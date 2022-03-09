@@ -230,10 +230,13 @@ void *run_module_thread()
 
 int main(int argc, const char **argv)
 {
-    pthread_t thread_id;
+    pthread_t t1, t2;
+    int i1, i2;
     printf("Before Thread\n");
-    pthread_create(&thread_id, NULL, run_module_thread, NULL);
-    pthread_join(thread_id, NULL);
+    i1 = pthread_create(&t1, NULL, run_module_thread, NULL);
+    i2 = pthread_create(&t2, NULL, run_module_thread, NULL);
+    pthread_join(t1, NULL);
+    pthread_join(t2, NULL);
     printf("After Thread\n");
 	struct lws_context_creation_info info;
 	struct lws_context *context;

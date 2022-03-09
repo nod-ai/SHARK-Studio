@@ -18,11 +18,11 @@ list(APPEND _ARGS "-iree-hal-target-backends=cuda")
 #list(APPEND _ARGS "-iree-hal-target-backends=vulkan-spirv")
 list(APPEND _ARGS "${CMAKE_CURRENT_SOURCE_DIR}/simple_embedding_test.mlir")
 list(APPEND _ARGS "-o")
-list(APPEND _ARGS "simple_embedding_test_bytecode_module.vmfb")
+list(APPEND _ARGS "simple_embedding_test_bytecode_module_cuda_c.vmfb")
 
 # Translate MLIR file to VM bytecode module
 add_custom_command(
-  OUTPUT "simple_embedding_test_bytecode_module.vmfb"
+  OUTPUT "simple_embedding_test_bytecode_module_cuda_c.vmfb"
   COMMAND ${_TRANSLATE_TOOL_EXECUTABLE} ${_ARGS}
   DEPENDS iree_tools_iree-translate
 )
@@ -34,26 +34,26 @@ add_custom_command(
 
 # Define arguments passed to generate_embed_data
 set(_ARGS)
-list(APPEND _ARGS "--output_header=simple_embedding_test_bytecode_module.h")
-list(APPEND _ARGS "--output_impl=simple_embedding_test_bytecode_module.c")
-list(APPEND _ARGS "--identifier=simple_embedding_test_bytecode_module")
+list(APPEND _ARGS "--output_header=simple_embedding_test_bytecode_module_cuda_c.h")
+list(APPEND _ARGS "--output_impl=simple_embedding_test_bytecode_module_cuda_c.c")
+list(APPEND _ARGS "--identifier=simple_embedding_test_bytecode_module_cuda_c")
 list(APPEND _ARGS "--flatten")
-list(APPEND _ARGS "simple_embedding_test_bytecode_module.vmfb")
+list(APPEND _ARGS "simple_embedding_test_bytecode_module_cuda_c.vmfb")
 
 # Embed VM bytecode module into c source file
 add_custom_command(
   OUTPUT
-    "simple_embedding_test_bytecode_module.h"
-    "simple_embedding_test_bytecode_module.c"
+    "simple_embedding_test_bytecode_module_cuda_c.h"
+    "simple_embedding_test_bytecode_module_cuda_c.c"
   COMMAND generate_embed_data ${_ARGS}
-  DEPENDS generate_embed_data simple_embedding_test_bytecode_module.vmfb
+  DEPENDS generate_embed_data simple_embedding_test_bytecode_module_cuda_c.vmfb
 )
 
-add_library(simple_embedding_test_bytecode_module_c STATIC "")
-target_sources(simple_embedding_test_bytecode_module_c
+add_library(simple_embedding_test_bytecode_module_cuda_c STATIC "")
+target_sources(simple_embedding_test_bytecode_module_cuda_c
   PRIVATE
-    simple_embedding_test_bytecode_module.c
-    simple_embedding_test_bytecode_module.h
+    simple_embedding_test_bytecode_module_cuda_c.c
+    simple_embedding_test_bytecode_module_cuda_c.h
 )
 
 set(SAMP lws-minimal-http-server-form-post-file)
@@ -68,10 +68,10 @@ if (requirements)
 	add_executable(${SAMP} ${SRCS})
 
 	if (websockets_shared)
-		target_link_libraries(${SAMP} websockets_shared ${LIBWEBSOCKETS_DEP_LIBS} simple_embedding_test_bytecode_module_c iree_base_base iree_hal_hal iree_hal_cuda_registration_registration iree_modules_hal_hal iree_vm_vm iree_vm_bytecode_module)
+		target_link_libraries(${SAMP} websockets_shared ${LIBWEBSOCKETS_DEP_LIBS} simple_embedding_test_bytecode_module_cuda_c iree_base_base iree_hal_hal iree_hal_cuda_registration_registration iree_modules_hal_hal iree_vm_vm iree_vm_bytecode_module)
 		add_dependencies(${SAMP} websockets_shared)
 	else()
-		target_link_libraries(${SAMP} websockets ${LIBWEBSOCKETS_DEP_LIBS} simple_embedding_test_bytecode_module_c iree_base_base iree_hal_hal iree_hal_cuda_registration_registration iree_modules_hal_hal iree_vm_vm iree_vm_bytecode_module) 
+		target_link_libraries(${SAMP} websockets ${LIBWEBSOCKETS_DEP_LIBS} simple_embedding_test_bytecode_module_cuda_c iree_base_base iree_hal_hal iree_hal_cuda_registration_registration iree_modules_hal_hal iree_vm_vm iree_vm_bytecode_module) 
 	endif()
 else()
 	message("not requirements")

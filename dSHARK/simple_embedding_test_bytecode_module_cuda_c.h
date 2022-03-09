@@ -1,6 +1,5 @@
 #pragma once
 #include <stddef.h>
-#include "simple_embedding_test_bytecode_module.c"
 #ifndef IREE_FILE_TOC
 #define IREE_FILE_TOC
 
@@ -21,8 +20,8 @@ typedef struct iree_file_toc_t {
 #if __cplusplus
 extern "C" {
 #endif // __cplusplus
-const iree_file_toc_t* simple_embedding_test_bytecode_module_create();
-static inline size_t simple_embedding_test_bytecode_module_size() {
+const iree_file_toc_t* simple_embedding_test_bytecode_module_cuda_c_create();
+static inline size_t simple_embedding_test_bytecode_module_cuda_c_size() {
   return 1;
 }
 #if __cplusplus
