@@ -1,3 +1,0 @@
-/Users/nodlabs/Documents/iree-wrapper/iree-wrapper/CMakeFiles/rebuild_cache.dir
-/Users/nodlabs/Documents/iree-wrapper/iree-wrapper/CMakeFiles/edit_cache.dir
-/Users/nodlabs/Documents/iree-wrapper/iree-wrapper/CMakeFiles/lws-minimal-http-server-form-post-file.dir
