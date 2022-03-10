@@ -19,15 +19,17 @@
 #include "iree/modules/hal/module.h"
 #include "iree/vm/api.h"
 #include "iree/vm/bytecode_module.h"
+#include "iree/base/internal/flags.h"
 #include "iree/hal/cuda/registration/driver_module.h"
-
+#include "iree/base/tracing.h"
+#include "iree/hal/cuda/api.h"
 #include "simple_embedding_test_bytecode_module_cuda_c.h"
 
 iree_status_t create_sample_device(iree_allocator_t host_allocator,
-                                   iree_hal_device_t** out_device) {
+                                   iree_hal_device_t** out_device, int index) {
   // Only register the CUDA HAL driver.
   IREE_RETURN_IF_ERROR(
-      iree_hal_cuda_driver_module_register(iree_hal_driver_registry_default()));
+      iree_hal_cuda_driver_module_register(iree_hal_driver_registry_default(), index));
 
   // Create the HAL driver from the name.
   iree_hal_driver_t* driver = NULL;
@@ -52,7 +54,7 @@ const iree_const_byte_span_t load_bytecode_module_data() {
                                    module_file_toc->size);
 }
 
-iree_status_t Run() {
+iree_status_t Run(int index) {
   // TODO(benvanik): move to instance-based registration.
   IREE_RETURN_IF_ERROR(iree_hal_module_register_types());
 
@@ -61,7 +63,7 @@ iree_status_t Run() {
       iree_vm_instance_create(iree_allocator_system(), &instance));
 
   iree_hal_device_t* device = NULL;
-  IREE_RETURN_IF_ERROR(create_sample_device(iree_allocator_system(), &device),
+  IREE_RETURN_IF_ERROR(create_sample_device(iree_allocator_system(), &device, index),
                        "create device");
   iree_vm_module_t* hal_module = NULL;
   IREE_RETURN_IF_ERROR(
@@ -181,8 +183,8 @@ iree_status_t Run() {
   return iree_ok_status();
 }
 
-int run_module() {
-  const iree_status_t result = Run();
+int run_module(int index) {
+  const iree_status_t result = Run(index);
   int ret = (int)iree_status_code(result);
   if (!iree_status_is_ok(result)) {
     iree_status_fprint(stderr, result);

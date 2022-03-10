@@ -222,9 +222,10 @@ void sigint_handler(int sig)
 	interrupted = 1;
 }
 
-void *run_module_thread()
+void* run_module_thread(void *i)
 {
-    int x = run_module();
+    int index = *(int *)i;
+    int x = run_module(index);
     return NULL;
 }
 
@@ -232,9 +233,11 @@ int main(int argc, const char **argv)
 {
     pthread_t t1, t2;
     int i1, i2;
+    int32_t ci0 = 0;
+    int32_t ci1 = 1;
     printf("Before Thread\n");
-    i1 = pthread_create(&t1, NULL, run_module_thread, NULL);
-    i2 = pthread_create(&t2, NULL, run_module_thread, NULL);
+    i1 = pthread_create(&t1, NULL, run_module_thread, (void *)0);
+    i2 = pthread_create(&t2, NULL, run_module_thread, (void *)1);
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     printf("After Thread\n");
