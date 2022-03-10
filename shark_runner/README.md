@@ -11,7 +11,7 @@ The Shark Runner provides inference and training APIs to run deep learning model
 #Activate your virtual environment.
 export TORCH_MLIR_BUILD_DIR=/path/to/torch-mlir/build
 export IREE_BUILD_DIR=/path/to/iree-build
-source ../set_dep_pypaths.sh
+source set_dep_pypaths.sh
 ```
 
 ### Run a demo script
