@@ -39,7 +39,7 @@ def get_results(compiled_vm, input):
 
     # TODO: Currently only one output and input is supported.
     # Extend it to support multiple inputs and outputs.
-    result = compiled_vm(input)
+    result = compiled_vm(*input)
     result_numpy = np.asarray(result, dtype=result.dtype)
 
     # TODO: Segfault if the copy of numpy array is not returned.

@@ -14,6 +14,8 @@
 
 from torch_mlir_utils import get_torch_mlir_module
 from iree_utils import get_results, get_iree_compiled_module
+from functorch_utils import AOTModule
+import numpy as np
 
 
 class SharkRunner:
@@ -53,12 +55,28 @@ class SharkInference:
         jit_trace: bool = False,
         from_aot: bool = False,
     ):
+        self.model = model
+        self.input = input
+
+        if(from_aot):
+            aot_module = AOTModule(model, input)
+            aot_module.generate_inference_graph()
+            self.model = aot_module.forward_graph
+            self.input = aot_module.forward_inputs
+
         self.shark_runner = SharkRunner(
-            model, input, dynamic, device, jit_trace, from_aot
+            self.model, self.input, dynamic, device, jit_trace, from_aot
         )
 
     def forward(self, input):
-        return self.shark_runner.forward(input)
+        input_list = []
+        # TODO Capture weights and inputs in case of AOT, Also rework the 
+        # forward pass.
+        if(True):
+            for input in self.input:
+                input_list.append(input.detach().numpy())
+                
+        return self.shark_runner.forward(input_list)
 
 
 class SharkTrainer:
