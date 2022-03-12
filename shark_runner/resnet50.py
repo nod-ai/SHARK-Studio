@@ -68,9 +68,9 @@ labels = load_labels()
 input = torch.randn(1,3,224,224)
 print(input.shape)
 
-shark_module = SharkInference(Resnet50Module(), (input,))
+shark_module = SharkInference(Resnet50Module(), (img,))
 
-results = shark_module.forward(img)
+results = shark_module.forward((img,))
 
 print("The top 3 results obtained via torch-mlir via iree-backend is:")
 print(top3_possibilities(torch.from_numpy(results)))
