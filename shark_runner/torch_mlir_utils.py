@@ -69,7 +69,9 @@ def shark_jit_trace(
     traced_module = torch.jit.trace_module(module, {"forward": input[0]})
     actual_script = traced_module._actual_script_module
     export(script_module.forward)
-    annotate_args_decorator = annotate_args(get_input_annotations(input, dynamic))
+    annotate_args_decorator = annotate_args(
+        get_input_annotations(input, dynamic)
+    )
     annotate_args_decorator(script_module.forward)
     module = torch.jit.script(script_module)
 
@@ -112,7 +114,9 @@ def get_torch_mlir_module(
     class_annotator.exportNone(module._c._type())
     class_annotator.exportPath(module._c._type(), ["forward"])
     class_annotator.annotateArgs(
-        module._c._type(), ["forward"], get_input_annotations(input, dynamic),
+        module._c._type(),
+        ["forward"],
+        get_input_annotations(input, dynamic),
     )
     mb.import_module(module._c, class_annotator)
 
@@ -121,5 +125,6 @@ def get_torch_mlir_module(
             "torchscript-module-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline"
         )
         pm.run(mb.module)
+    
 
     return mb.module

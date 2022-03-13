@@ -1,11 +1,12 @@
 import torch
 import torch.nn as nn
-from shark_runner import SharkInference
+from shark_runner import SharkInference, SharkTrainer
+
 
 class NeuralNet(nn.Module):
     def __init__(self):
         super(NeuralNet, self).__init__()
-        self.l1 = nn.Linear(10, 16) 
+        self.l1 = nn.Linear(10, 16)
         self.relu = nn.ReLU()
         self.l2 = nn.Linear(16, 2)
         self.train(False)
@@ -15,6 +16,7 @@ class NeuralNet(nn.Module):
         out = self.relu(out)
         out = self.l2(out)
         return out
+
 
 model = NeuralNet()
 
@@ -29,5 +31,9 @@ shark_module = SharkInference(NeuralNet(), input, from_aot = True)
 
 results = shark_module.forward(input)
 
-print(results)
+#TODO: Currently errors out in torch-mlir lowering pass.
+shark_trainer_module = SharkTrainer(
+    NeuralNet(), (input,), (labels,), dynamic=True, from_aot=True
+)
 
+shark_trainer_module.train(input)
