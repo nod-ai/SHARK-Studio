@@ -23,9 +23,10 @@ from typing import List
 
 
 class AOTModule:
-    def __init__(self, model, inputs):
+    def __init__(self, model, inputs, labels = None):
         self.model = model
         self.inputs = inputs
+        self.labels = labels
         self.forward_graph = None
         self.backward_graph = None
         self.forward_inputs = None
@@ -37,10 +38,17 @@ class AOTModule:
             for _ in range(iters):
                 out = model(inputs)
 
-    def train(self, model, inputs):
+    def train(self, model, inputs, labels):
+        # TODO: Pass the criterion and optimizer.
+        criterion = torch.nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
         iters = 1
         for _ in range(iters):
-            model(**inputs).loss.sum().backward()
+            optimizer.zero_grad()
+            output = model(*inputs)
+            loss = criterion(output, *labels)
+            loss.backward()
+            optimizer.step()
 
     def change_fx_graph_return_to_tuple(self, fx_g: fx.GraphModule):
         for node in fx_g.graph.nodes:
@@ -48,11 +56,10 @@ class AOTModule:
                 # output nodes always have one argument
                 node_arg = node.args[0]
                 if isinstance(node_arg, list):
-                    node.args = node_arg
+                    node.args = (tuple(node_arg),)
         fx_g.graph.lint()
         fx_g.recompile()
         return fx_g
-
 
     def get_forward_graph(self, fx_g: fx.GraphModule, inps):
         fx_g = self.change_fx_graph_return_to_tuple(fx_g)
@@ -90,4 +97,4 @@ class AOTModule:
             bw_compiler=self.get_backward_graph,
             partition_fn=min_cut_rematerialization_partition,
         )
-        self.train(aot_model, self.inputs)
+        self.train(aot_model, self.inputs, self.labels)

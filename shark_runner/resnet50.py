@@ -65,7 +65,7 @@ labels = load_labels()
 
 ##############################################################################
 
-input = torch.randn(1,3,224,224)
+input = torch.randn(1, 3, 224, 224)
 print(input.shape)
 
 shark_module = SharkInference(Resnet50Module(), (img,))
