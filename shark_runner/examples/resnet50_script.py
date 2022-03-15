@@ -68,8 +68,10 @@ labels = load_labels()
 input = torch.randn(1, 3, 224, 224)
 print(input.shape)
 
+## The img is passed to determine the input shape.
 shark_module = SharkInference(Resnet50Module(), (img,))
 
+## Can pass any img or input to the forward module.
 results = shark_module.forward((img,))
 
 print("The top 3 results obtained via torch-mlir via iree-backend is:")

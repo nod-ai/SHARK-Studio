@@ -37,11 +37,9 @@ def get_iree_compiled_module(module, device: str):
 def get_results(compiled_vm, input):
     """TODO: Documentation"""
 
-    # TODO: Currently only one output and input is supported.
-    # Extend it to support multiple inputs and outputs.
+    # TODO: Support returning multiple outputs.
     result = compiled_vm(*input)
     result_numpy = np.asarray(result, dtype=result.dtype)
-
     # TODO: Segfault if the copy of numpy array is not returned.
     result_copy = np.copy(result_numpy)
     return result_copy

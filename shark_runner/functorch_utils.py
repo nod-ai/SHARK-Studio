@@ -23,7 +23,7 @@ from typing import List
 
 
 class AOTModule:
-    def __init__(self, model, inputs, labels = None):
+    def __init__(self, model, inputs, labels=None):
         self.model = model
         self.inputs = inputs
         self.labels = labels
@@ -36,7 +36,7 @@ class AOTModule:
         iters = 1
         with torch.no_grad():
             for _ in range(iters):
-                out = model(inputs)
+                out = model(*inputs)
 
     def train(self, model, inputs, labels):
         # TODO: Pass the criterion and optimizer.
@@ -52,11 +52,13 @@ class AOTModule:
 
     def change_fx_graph_return_to_tuple(self, fx_g: fx.GraphModule):
         for node in fx_g.graph.nodes:
-            if node.op == 'output':
+            if node.op == "output":
                 # output nodes always have one argument
                 node_arg = node.args[0]
                 if isinstance(node_arg, list):
-                    node.args = (tuple(node_arg),)
+                    # TODO: Check why return of tuple is not working.
+                    # node.args = (tuple(node_arg),)
+                    node.args = node_arg
         fx_g.graph.lint()
         fx_g.recompile()
         return fx_g

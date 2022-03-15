@@ -62,18 +62,14 @@ def shark_jit_trace(
     if not tracing_required:
         return torch.jit.script(module)
 
-    # TODO: Currently, the jit trace accepts only one input.
-    if len(input) != 1:
-        sys.exit("Currently, the jit_trace accepts only one input")
-
-    traced_module = torch.jit.trace_module(module, {"forward": input[0]})
+    traced_module = torch.jit.trace_module(module, {"forward": input})
     actual_script = traced_module._actual_script_module
-    export(script_module.forward)
+    export(actual_script.forward)
     annotate_args_decorator = annotate_args(
         get_input_annotations(input, dynamic)
     )
-    annotate_args_decorator(script_module.forward)
-    module = torch.jit.script(script_module)
+    annotate_args_decorator(actual_script.forward)
+    module = torch.jit.script(actual_script)
 
     # TODO: remove saved annotations.pickle
     torchscript_module_bytes = module.save_to_buffer(
@@ -120,11 +116,11 @@ def get_torch_mlir_module(
     )
     mb.import_module(module._c, class_annotator)
 
+    mb.module.dump()
     with mb.module.context:
         pm = PassManager.parse(
             "torchscript-module-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline"
         )
         pm.run(mb.module)
-    
 
     return mb.module
