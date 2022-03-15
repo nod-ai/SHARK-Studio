@@ -24,16 +24,10 @@ criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
 
-input = torch.randn(1, 10)
+input = torch.randn(10, 10)
 labels = torch.randn(1, 2)
 
-shark_module = SharkInference(NeuralNet(), input, from_aot = True)
+shark_module = SharkInference(NeuralNet(), (input,), from_aot=True)
+results = shark_module.forward((input,))
 
-results = shark_module.forward(input)
-
-#TODO: Currently errors out in torch-mlir lowering pass.
-shark_trainer_module = SharkTrainer(
-    NeuralNet(), (input,), (labels,), dynamic=True, from_aot=True
-)
-
-shark_trainer_module.train(input)
+print(results)

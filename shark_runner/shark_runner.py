@@ -57,6 +57,7 @@ class SharkInference:
     ):
         self.model = model
         self.input = input
+        self.from_aot = from_aot
 
         if from_aot:
             aot_module = AOTModule(model, input)
@@ -68,14 +69,11 @@ class SharkInference:
             self.model, self.input, dynamic, device, jit_trace, from_aot
         )
 
-    def forward(self, input):
-        input_list = []
+    def forward(self, inputs):
         # TODO Capture weights and inputs in case of AOT, Also rework the
         # forward pass.
-        if True:
-            for input in self.input:
-                input_list.append(input.detach().numpy())
-
+        inputs = self.input if self.from_aot else inputs
+        input_list = [x.detach().numpy() for x in inputs]
         return self.shark_runner.forward(input_list)
 
 
@@ -111,27 +109,27 @@ class SharkTrainer:
             jit_trace,
             from_aot,
         )
-        self.shark_backward = SharkRunner(
-            self.backward_graph,
-            self.backward_inputs,
-            dynamic,
-            device,
-            jit_trace,
-            from_aot,
-        )
+        # self.shark_backward = SharkRunner(
+        # self.backward_graph,
+        # self.backward_inputs,
+        # dynamic,
+        # device,
+        # jit_trace,
+        # from_aot,
+        # )
 
-        def train(self, input):
-            forward_inputs = []
-            backward_inputs = []
-            for input in self.forward_inputs:
-                forward_inputs.append(input.detach().numpy())
-            for input in self.backward_inputs:
-                backward_inputs.append(input.detach().numpy())
+    def train(self, input):
+        forward_inputs = []
+        backward_inputs = []
+        for input in self.forward_inputs:
+            forward_inputs.append(input.detach().numpy())
+        for input in self.backward_inputs:
+            backward_inputs.append(input.detach().numpy())
 
-            # TODO: Pass the iter variable, and optimizer.
-            iters = 1
+        # TODO: Pass the iter variable, and optimizer.
+        iters = 1
 
-            for _ in range(iters):
-                self.shark_runner.forward(forward_inputs)
-                self.shark_runner.forward(backward_inputs)
-            return
+        for _ in range(iters):
+            self.shark_forward.forward(forward_inputs)
+            # self.shark_backward.forward(backward_inputs)
+        return
