@@ -14,6 +14,8 @@
 
 #include <libwebsockets.h>
 #include "run-module.c"
+#include "iree/tools/iree_translate_lib.h"
+//#include "iree/compiler/Translation/HALExecutable.h"
 #include <string.h>
 #include <signal.h>
 #if !defined(WIN32)
@@ -222,10 +224,16 @@ void sigint_handler(int sig)
 	interrupted = 1;
 }
 
-void* run_module_thread(void *i)
+void* run_module_thread0(void *i)
 {
-    int index = *(int *)i;
-    int x = run_module(index);
+    int index = *((int *)i);
+    int x = run_module(0);
+    return NULL;
+}
+
+void* run_module_thread1(void *i)
+{
+    int x = run_module(1);
     return NULL;
 }
 
@@ -233,11 +241,9 @@ int main(int argc, const char **argv)
 {
     pthread_t t1, t2;
     int i1, i2;
-    int32_t ci0 = 0;
-    int32_t ci1 = 1;
     printf("Before Thread\n");
-    i1 = pthread_create(&t1, NULL, run_module_thread, (void *)0);
-    i2 = pthread_create(&t2, NULL, run_module_thread, (void *)1);
+    i1 = pthread_create(&t1, NULL, run_module_thread0, NULL);
+    i2 = pthread_create(&t2, NULL, run_module_thread1, NULL);
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     printf("After Thread\n");

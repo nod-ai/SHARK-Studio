@@ -20,10 +20,13 @@
 #include "iree/vm/api.h"
 #include "iree/vm/bytecode_module.h"
 #include "iree/base/internal/flags.h"
-#include "iree/hal/cuda/registration/driver_module.h"
+#include "dshark_driver_module.c"
 #include "iree/base/tracing.h"
 #include "iree/hal/cuda/api.h"
 #include "simple_embedding_test_bytecode_module_cuda_c.h"
+#include "iree/hal/cuda/cuda_driver.c"
+#include "iree/hal/cuda/cuda_device.h"
+#include "iree/hal/cuda/cuda_device.c"
 
 iree_status_t create_sample_device(iree_allocator_t host_allocator,
                                    iree_hal_device_t** out_device, int index) {
@@ -34,14 +37,18 @@ iree_status_t create_sample_device(iree_allocator_t host_allocator,
   // Create the HAL driver from the name.
   iree_hal_driver_t* driver = NULL;
   iree_string_view_t identifier = iree_make_cstring_view("cuda");
-  iree_status_t status = iree_hal_driver_registry_try_create_by_name(
-      iree_hal_driver_registry_default(), identifier, host_allocator, &driver);
+  iree_hal_cuda_device_params_t* params;
+  iree_hal_cuda_device_params_initialize(params);
+  //iree_status_t status = iree_hal_cuda_driver_select_default_device(driver, NULL, index, host_allocator, out_device);
 
+  //if (iree_status_is_ok(status)) {
+  //  iree_status_t status = iree_hal_driver_registry_try_create_by_name(
+  //    iree_hal_driver_registry_default(), identifier, host_allocator, &driver);
+  //}
   // Create the default device (primary GPU).
-  if (iree_status_is_ok(status)) {
-    status = iree_hal_driver_create_default_device(driver, host_allocator,
+  
+  iree_status_t status = iree_hal_cuda_device_create(driver, identifier, params, NULL, index, host_allocator,
                                                    out_device);
-  }
 
   iree_hal_driver_release(driver);
   return iree_ok_status();
@@ -65,6 +72,7 @@ iree_status_t Run(int index) {
   iree_hal_device_t* device = NULL;
   IREE_RETURN_IF_ERROR(create_sample_device(iree_allocator_system(), &device, index),
                        "create device");
+  //device = (iree_hal_device_t)device;
   iree_vm_module_t* hal_module = NULL;
   IREE_RETURN_IF_ERROR(
       iree_hal_module_create(device, iree_allocator_system(), &hal_module));
@@ -104,7 +112,7 @@ iree_status_t Run(int index) {
   iree_hal_buffer_view_t* arg0_buffer_view = NULL;
   iree_hal_buffer_view_t* arg1_buffer_view = NULL;
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
-      iree_hal_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
+      iree_hal_cuda_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
@@ -115,7 +123,7 @@ iree_status_t Run(int index) {
       },
       iree_make_const_byte_span(kFloat4, sizeof(kFloat4)), &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
-      iree_hal_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
+      iree_hal_cuda_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
