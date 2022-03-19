@@ -40,7 +40,7 @@ static iree_status_t iree_hal_cuda_driver_factory_enumerate(
   return iree_ok_status();
 }
 
-static iree_status_t iree_hal_cuda_driver_factory_try_create0(
+static iree_status_t iree_hal_cuda_driver_factory_try_create0( 
     void* self, iree_hal_driver_id_t driver_id, iree_allocator_t allocator,
     iree_hal_driver_t** out_driver) {
   IREE_ASSERT_ARGUMENT(out_driver);
@@ -63,7 +63,7 @@ static iree_status_t iree_hal_cuda_driver_factory_try_create0(
 
   iree_hal_cuda_driver_options_t driver_options;
   iree_hal_cuda_driver_options_initialize(&driver_options);
-  driver_options.default_device_index = 0;
+ driver_options.default_device_index = 0;
 
   iree_string_view_t identifier = iree_make_cstring_view("cuda");
   iree_status_t status = iree_hal_cuda_driver_create(

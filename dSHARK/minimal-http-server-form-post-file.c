@@ -14,7 +14,6 @@
 
 #include <libwebsockets.h>
 #include "run-module.c"
-#include "iree/tools/iree_translate_lib.h"
 //#include "iree/compiler/Translation/HALExecutable.h"
 #include <string.h>
 #include <signal.h>
@@ -25,7 +24,8 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <pthread.h>
-
+#include <sys/stat.h>
+#include <stdint.h>
 /*
  * Unlike ws, http is a stateless protocol.  This pss only exists for the
  * duration of a single http transaction.  With http/1.1 keep-alive and http/2,
@@ -226,24 +226,24 @@ void sigint_handler(int sig)
 
 void* run_module_thread0(void *i)
 {
-    int index = *((int *)i);
-    int x = run_module(0);
+    char file_name[] = "simple_embedding_test_bytecode_module_cuda_c.vmfb";
+    run_module(file_name, 0);
     return NULL;
 }
 
 void* run_module_thread1(void *i)
 {
-    int x = run_module(1);
+    char file_name[] = "simple_embedding_test_bytecode_module_cuda_c.vmfb";
+    run_module(file_name, 1);
     return NULL;
 }
 
 int main(int argc, const char **argv)
 {
     pthread_t t1, t2;
-    int i1, i2;
     printf("Before Thread\n");
-    i1 = pthread_create(&t1, NULL, run_module_thread0, NULL);
-    i2 = pthread_create(&t2, NULL, run_module_thread1, NULL);
+    pthread_create(&t1, NULL, run_module_thread0, NULL);
+    pthread_create(&t2, NULL, run_module_thread1, NULL);
     pthread_join(t1, NULL);
     pthread_join(t2, NULL);
     printf("After Thread\n");
