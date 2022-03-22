@@ -116,7 +116,6 @@ def get_torch_mlir_module(
     )
     mb.import_module(module._c, class_annotator)
 
-    mb.module.dump()
     with mb.module.context:
         pm = PassManager.parse(
             "torchscript-module-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline"
