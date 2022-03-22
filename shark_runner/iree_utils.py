@@ -26,20 +26,23 @@ def get_iree_compiled_module(module, device: str):
         str(module), target_backends=[IREE_DEVICE_MAP[device]]
     )
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
-    tracer = ireert.Tracer(os.getcwd())
-    config = ireert.Config(IREE_DEVICE_MAP[device], tracer)
+    config = ireert.Config(IREE_DEVICE_MAP[device])
     ctx = ireert.SystemContext(config=config)
+    # TODO add optimisation args.
     ctx.add_vm_module(vm_module)
     ModuleCompiled = ctx.modules.module["forward"]
-    return ModuleCompiled
+    return ModuleCompiled, config
 
 
-def get_results(compiled_vm, input):
+def get_results(compiled_vm, input, config):
     """TODO: Documentation"""
 
     # TODO: Support returning multiple outputs.
-    result = compiled_vm(*input)
+    device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
+    result = compiled_vm(*device_inputs)
     result_numpy = np.asarray(result, dtype=result.dtype)
     # TODO: Segfault if the copy of numpy array is not returned.
     result_copy = np.copy(result_numpy)
+    # {k:v.to_host() for k, v in device_outputs.items(
     return result_copy
+

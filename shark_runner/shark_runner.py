@@ -35,12 +35,12 @@ class SharkRunner:
         self.torch_mlir_module = get_torch_mlir_module(
             model, input, dynamic, tracing_required, from_aot
         )
-        self.iree_compilation_module = get_iree_compiled_module(
+        self.iree_compilation_module, self.iree_config = get_iree_compiled_module(
             self.torch_mlir_module, device
         )
 
     def forward(self, input):
-        return get_results(self.iree_compilation_module, input)
+        return get_results(self.iree_compilation_module, input, self.iree_config)
 
 
 class SharkInference:
