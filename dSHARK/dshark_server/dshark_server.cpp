@@ -48,12 +48,14 @@ protected:
 		{
 			std::cout << "[" << client->GetID() << "]: evaluate binary\n";
 			auto myfile = std::fstream("output/file.vmfb", std::ios::out | std::ios::binary);
-			myfile.write((char*)&msg.body[0], 2048);
+			int n = msg.body.size();
+			std::cout << n << "\n";
+			myfile.write((char*)&msg.body[0], n);
 			myfile.close();
 
 			char* f_ = "output/file.vmfb";
-
 			run_module(f_, 0);
+
 
 			client->Send(msg);
 		}
