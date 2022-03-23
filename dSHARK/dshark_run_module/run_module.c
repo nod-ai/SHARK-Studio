@@ -23,9 +23,9 @@
 #include "dshark_driver_module.c"
 #include "iree/base/tracing.h"
 #include "iree/hal/cuda/api.h"
-#include "iree/hal/cuda/cuda_driver.c"
+//#include "iree/hal/cuda/cuda_driver.c"
 #include "iree/hal/cuda/cuda_device.h"
-#include "iree/hal/cuda/cuda_device.c"
+//#include "iree/hal/cuda/cuda_device.c"
 #include "iree/base/internal/file_io.h"
 
 iree_status_t create_sample_device(iree_allocator_t host_allocator,
@@ -116,7 +116,7 @@ iree_status_t Run(char* module_file, int index) {
   iree_hal_buffer_view_t* arg0_buffer_view = NULL;
   iree_hal_buffer_view_t* arg1_buffer_view = NULL;
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
-      iree_hal_cuda_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
+      iree_hal_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
@@ -127,7 +127,7 @@ iree_status_t Run(char* module_file, int index) {
       },
       iree_make_const_byte_span(kFloat4, sizeof(kFloat4)), &arg0_buffer_view));
   IREE_RETURN_IF_ERROR(iree_hal_buffer_view_allocate_buffer(
-      iree_hal_cuda_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
+      iree_hal_device_allocator(device), shape, IREE_ARRAYSIZE(shape),
       IREE_HAL_ELEMENT_TYPE_FLOAT_32, IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR,
       (iree_hal_buffer_params_t){
           .type = IREE_HAL_MEMORY_TYPE_DEVICE_LOCAL |
@@ -196,7 +196,7 @@ iree_status_t Run(char* module_file, int index) {
   return iree_ok_status();
 }
 
-int run_module(char filename[], int index) {
+int run_module(char* filename, int index) {
   // fread command
   //iree_sample_state_t* sample_state = setup_sample();
   //iree_program_state_t* program_state = load_program(sample_state, vmfb_data, vmfb_data_length);
