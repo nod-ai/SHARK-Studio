@@ -109,14 +109,14 @@ class SharkTrainer:
             jit_trace,
             from_aot,
         )
-        # self.shark_backward = SharkRunner(
-        # self.backward_graph,
-        # self.backward_inputs,
-        # dynamic,
-        # device,
-        # jit_trace,
-        # from_aot,
-        # )
+        self.shark_backward = SharkRunner(
+        self.backward_graph,
+        self.backward_inputs,
+        dynamic,
+        device,
+        jit_trace,
+        from_aot,
+        )
 
     def train(self, input):
         forward_inputs = []

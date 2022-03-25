@@ -16,10 +16,12 @@ import torch
 from functorch.compile import (
     aot_module,
     min_cut_rematerialization_partition,
+    memory_efficient_fusion
 )
 from torch_mlir_utils import get_torch_mlir_module
 from torch import optim, fx
 from typing import List
+import copy
 
 
 class AOTModule:
@@ -56,9 +58,12 @@ class AOTModule:
                 # output nodes always have one argument
                 node_arg = node.args[0]
                 if isinstance(node_arg, list):
-                    # TODO: Check why return of tuple is not working.
-                    # node.args = (tuple(node_arg),)
-                    node.args = node_arg
+                    # If there is a single tensor/element to be returned don't
+                    # a tuple for it.
+                    if(len(node_arg) == 1):
+                        node.args = node_arg
+                    else:
+                        node.args = (tuple(node_arg),)
         fx_g.graph.lint()
         fx_g.recompile()
         return fx_g
@@ -70,7 +75,7 @@ class AOTModule:
         torch.jit.save(f, "forw.pt")
         f = torch.jit.load("forw.pt")
         self.forward_graph = f
-        self.forward_inputs = inps
+        self.forward_inputs = copy.deepcopy(inps)
         return f
 
     def get_backward_graph(self, fx_g: fx.GraphModule, inps):
@@ -80,23 +85,23 @@ class AOTModule:
         torch.jit.save(f, "back.pt")
         f = torch.jit.load("back.pt")
         self.backward_graph = f
-        self.backward_inputs = inps
+        self.backward_inputs = copy.deepcopy(inps)
         return f
 
     def generate_inference_graph(self):
-        aot_model = aot_module(
+        aot_model = memory_efficient_fusion(
             self.model,
             fw_compiler=self.get_forward_graph,
             bw_compiler=self.get_backward_graph,
-            partition_fn=min_cut_rematerialization_partition,
+            # partition_fn=min_cut_rematerialization_partition,
         )
         self.inference(aot_model, self.inputs)
 
     def generate_training_graph(self):
-        aot_model = aot_module(
+        aot_model = memory_efficient_fusion(
             self.model,
             fw_compiler=self.get_forward_graph,
             bw_compiler=self.get_backward_graph,
-            partition_fn=min_cut_rematerialization_partition,
+            # partition_fn=min_cut_rematerialization_partition,
         )
         self.train(aot_model, self.inputs, self.labels)
