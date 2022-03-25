@@ -28,25 +28,39 @@
 //#include "iree/hal/cuda/cuda_device.c"
 #include "iree/base/internal/file_io.h"
 
-iree_status_t create_sample_device(iree_allocator_t host_allocator,
-                                   iree_hal_device_t** out_device, int index) {
+//iree_status_t create_sample_device(iree_allocator_t host_allocator,
+  ///                                 iree_hal_device_t** out_device, int index) {
   // Only register the CUDA HAL driver.
-  IREE_RETURN_IF_ERROR(
-      iree_hal_cuda_driver_module_register(iree_hal_driver_registry_default(), index));
+//  IREE_RETURN_IF_ERROR(
+//      iree_hal_cuda_driver_module_register(iree_hal_driver_registry_default(), index));
 
   // Create the HAL driver from the name.
-  iree_hal_driver_t* driver = NULL;
-  iree_string_view_t identifier = iree_make_cstring_view("cuda");
-  iree_hal_cuda_device_params_t* params = NULL;
-  iree_hal_cuda_device_params_initialize(params);
-  //iree_status_t status = iree_hal_cuda_driver_select_default_device(driver, NULL, index, host_allocator, out_device);
+//  iree_hal_driver_t* driver = NULL;
+//  iree_string_view_t identifier = iree_make_cstring_view("cuda");
+//  iree_status_t status = iree_hal_driver_registry_try_create_by_name(
+//      iree_hal_driver_registry_default(), identifier, host_allocator, &driver);
 
-  iree_hal_driver_registry_try_create_by_name(
-     iree_hal_driver_registry_default(), identifier, host_allocator, &driver);
-  
   // Create the default device (primary GPU).
-  iree_hal_cuda_device_create(driver, identifier, params, NULL, index, host_allocator,
-                                                out_device);
+///  if (iree_status_is_ok(status)) {
+    //status = iree_hal_driver_create_default_device(driver, host_allocator,
+    //                                               out_device);
+///    CreateDevice("cuda", &out_device);
+//  }
+
+//  iree_hal_driver_release(driver);
+//  return iree_ok_status();
+//}
+
+iree_status_t CreateDevice(const char* driver_name, iree_hal_device_t** out_device) {
+  iree_hal_driver_t* driver = NULL;
+  IREE_RETURN_IF_ERROR(iree_hal_driver_registry_try_create_by_name(
+                           iree_hal_driver_registry_default(),
+                           iree_make_cstring_view(driver_name),
+                           iree_allocator_system(), &driver),
+                       "creating driver '%s'", driver_name);
+  IREE_RETURN_IF_ERROR(iree_hal_driver_create_default_device(
+                           driver, iree_allocator_system(), out_device),
+                       "creating default device for driver '%s'", driver_name);
   iree_hal_driver_release(driver);
   return iree_ok_status();
 }
@@ -72,9 +86,11 @@ iree_status_t Run(char* module_file, int index) {
   IREE_RETURN_IF_ERROR(iree_vm_bytecode_module_create(
       module_data->const_buffer, iree_file_contents_deallocator(module_data),
       iree_allocator_system(), &input_module));
+  IREE_RETURN_IF_ERROR(
+      iree_hal_cuda_driver_module_register(iree_hal_driver_registry_default(), index));
 
   iree_hal_device_t* device = NULL;
-  IREE_RETURN_IF_ERROR(create_sample_device(iree_allocator_system(), &device, index),
+  IREE_RETURN_IF_ERROR(CreateDevice("cuda", &device),
                        "create device");
   //device = (iree_hal_device_t)device;
   iree_vm_module_t* hal_module = NULL;
