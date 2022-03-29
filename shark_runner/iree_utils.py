@@ -15,7 +15,6 @@
 import iree.runtime as ireert
 import iree.compiler as ireec
 import numpy as np
-import os
 
 IREE_DEVICE_MAP = {"cpu": "dylib", "gpu": "cuda", "vulkan": "vulkan"}
 

@@ -1,8 +1,6 @@
 import torch
-import torch.nn as nn
-from torchvision import transforms
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from shark_runner import SharkInference, SharkTrainer
+from shark_runner import SharkInference
 
 torch.manual_seed(0)
 tokenizer = AutoTokenizer.from_pretrained("microsoft/MiniLM-L12-H384-uncased")

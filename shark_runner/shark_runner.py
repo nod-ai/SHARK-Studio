@@ -15,7 +15,6 @@
 from torch_mlir_utils import get_torch_mlir_module
 from iree_utils import get_results, get_iree_compiled_module
 from functorch_utils import AOTModule
-import numpy as np
 
 
 class SharkRunner:
