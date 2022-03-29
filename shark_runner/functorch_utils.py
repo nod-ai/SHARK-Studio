@@ -16,7 +16,7 @@ import torch
 from functorch.compile import (
     aot_module,
     min_cut_rematerialization_partition,
-    memory_efficient_fusion
+    memory_efficient_fusion,
 )
 from torch_mlir_utils import get_torch_mlir_module
 from torch import optim, fx
@@ -25,10 +25,11 @@ import copy
 
 
 class AOTModule:
-    def __init__(self, model, inputs, labels=None):
+    def __init__(self, model, inputs, labels=None, custom_inference_fn=None):
         self.model = model
         self.inputs = inputs
         self.labels = labels
+        self.custom_inference_fn = custom_inference_fn
         self.forward_graph = None
         self.backward_graph = None
         self.forward_inputs = None
@@ -36,9 +37,14 @@ class AOTModule:
 
     def inference(self, model, inputs):
         iters = 1
-        with torch.no_grad():
-            for _ in range(iters):
-                out = model(*inputs)
+        if self.custom_inference_fn != None:
+            with torch.no_grad():
+                for _ in range(iters):
+                    out = self.custom_inference_fn(model, inputs)
+        else:
+            with torch.no_grad():
+                for _ in range(iters):
+                    out = model(*inputs)
 
     def train(self, model, inputs, labels):
         # TODO: Pass the criterion and optimizer.
@@ -60,7 +66,7 @@ class AOTModule:
                 if isinstance(node_arg, list):
                     # If there is a single tensor/element to be returned don't
                     # a tuple for it.
-                    if(len(node_arg) == 1):
+                    if len(node_arg) == 1:
                         node.args = node_arg
                     else:
                         node.args = (tuple(node_arg),)

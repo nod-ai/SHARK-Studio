@@ -35,12 +35,15 @@ class SharkRunner:
         self.torch_mlir_module = get_torch_mlir_module(
             model, input, dynamic, tracing_required, from_aot
         )
-        self.iree_compilation_module, self.iree_config = get_iree_compiled_module(
-            self.torch_mlir_module, device
-        )
+        (
+            self.iree_compilation_module,
+            self.iree_config,
+        ) = get_iree_compiled_module(self.torch_mlir_module, device)
 
     def forward(self, input):
-        return get_results(self.iree_compilation_module, input, self.iree_config)
+        return get_results(
+            self.iree_compilation_module, input, self.iree_config
+        )
 
 
 class SharkInference:
@@ -54,13 +57,16 @@ class SharkInference:
         device: str = "cpu",
         jit_trace: bool = False,
         from_aot: bool = False,
+        custom_inference_fn=None,
     ):
         self.model = model
         self.input = input
         self.from_aot = from_aot
 
         if from_aot:
-            aot_module = AOTModule(model, input)
+            aot_module = AOTModule(
+                model, input, custom_inference_fn=custom_inference_fn
+            )
             aot_module.generate_inference_graph()
             self.model = aot_module.forward_graph
             self.input = aot_module.forward_inputs
@@ -99,23 +105,24 @@ class SharkTrainer:
         self.forward_graph = aot_module.forward_graph
         self.forward_inputs = aot_module.forward_inputs
         self.backward_graph = aot_module.backward_graph
+        print(self.backward_graph.graph)
         self.backward_inputs = aot_module.backward_inputs
 
-        self.shark_forward = SharkRunner(
-            self.forward_graph,
-            self.forward_inputs,
+        # self.shark_forward = SharkRunner(
+        # self.forward_graph,
+        # self.forward_inputs,
+        # dynamic,
+        # device,
+        # jit_trace,
+        # from_aot,
+        # )
+        self.shark_backward = SharkRunner(
+            self.backward_graph,
+            self.backward_inputs,
             dynamic,
             device,
             jit_trace,
             from_aot,
-        )
-        self.shark_backward = SharkRunner(
-        self.backward_graph,
-        self.backward_inputs,
-        dynamic,
-        device,
-        jit_trace,
-        from_aot,
         )
 
     def train(self, input):
