@@ -1,25 +1,7 @@
-from transformers import (
-    AutoConfig,
-    AutoModelForCausalLM,
-    AutoModelForMaskedLM,
-    AutoModelForSeq2SeqLM,
-    BertConfig,
-)
+from transformers import AutoModelForMaskedLM, BertConfig
 import transformers
 import torch
-from functorch.compile import (
-    memory_efficient_fusion,
-    aot_module,
-    draw_graph_compile,
-    nop,
-    min_cut_rematerialization_partition,
-)
 import torch.utils._pytree as pytree
-import time
-from torch import optim, fx
-import torch.nn as nn
-from torch.nn.utils import _stateless
-from typing import List
 from shark_runner import SharkInference
 
 pytree._register_pytree_node(
@@ -27,30 +9,6 @@ pytree._register_pytree_node(
     lambda x: ([x.loss, x.logits], None),
     lambda values, _: transformers.modeling_outputs.MaskedLMOutput(
         loss=values[1], logits=values[1]
-    ),
-)
-
-pytree._register_pytree_node(
-    transformers.modeling_outputs.Seq2SeqLMOutput,
-    lambda x: ([x.loss, x.logits], None),
-    lambda values, _: transformers.modeling_outputs.Seq2SeqLMOutput(
-        loss=values[0], logits=values[1]
-    ),
-)
-
-pytree._register_pytree_node(
-    transformers.modeling_outputs.CausalLMOutputWithCrossAttentions,
-    lambda x: ([x.loss, x.logits], None),
-    lambda values, _: transformers.modeling_outputs.CausalLMOutputWithCrossAttentions(
-        loss=values[0], logits=values[1]
-    ),
-)
-
-pytree._register_pytree_node(
-    transformers.models.longformer.modeling_longformer.LongformerMaskedLMOutput,
-    lambda x: ([x.loss, x.logits], None),
-    lambda values, _: transformers.models.longformer.modeling_longformer.LongformerMaskedLMOutput(
-        loss=values[0], logits=values[1]
     ),
 )
 

@@ -1,5 +1,4 @@
 import torch
-from torchvision import transforms
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from shark_runner import SharkInference
 

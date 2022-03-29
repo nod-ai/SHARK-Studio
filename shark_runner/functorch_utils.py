@@ -15,12 +15,10 @@
 import torch
 from functorch.compile import (
     aot_module,
-    min_cut_rematerialization_partition,
     memory_efficient_fusion,
 )
-from torch_mlir_utils import get_torch_mlir_module
-from torch import optim, fx
-from typing import List
+
+from torch import fx
 import copy
 
 

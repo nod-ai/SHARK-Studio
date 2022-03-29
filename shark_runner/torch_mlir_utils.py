@@ -13,29 +13,21 @@
 # limitations under the License.
 
 import torch
-import os
 import io
-import sys
 import pickle
 
 from torch_mlir.dialects.torch.importer.jit_ir import (
     ClassAnnotator,
     ModuleBuilder,
 )
-from torch_mlir_e2e_test.torchscript.annotations import (
+from torch_mlir_e2e_test.torchscript.serialization import (
     extract_serializable_annotations,
     apply_serializable_annotations,
+    SerializableTest
 )
 
 from torch_mlir.passmanager import PassManager
-from torch_mlir_e2e_test.linalg_on_tensors_backends.abc import (
-    LinalgOnTensorsBackend,
-)
-from torch_mlir_e2e_test.torchscript.configs import (
-    LinalgOnTensorsBackendTestConfig,
-)
 from torch_mlir_e2e_test.torchscript.annotations import annotate_args, export
-from torch_mlir_e2e_test.torchscript.framework import SerializableTest
 
 
 def get_input_annotations(inputs: tuple, dynamic: bool) -> list:

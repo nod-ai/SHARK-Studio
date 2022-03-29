@@ -1,7 +1,4 @@
 import torch
-import numpy as np
-import os
-import sys
 from shark_runner import SharkInference
 
 # Currently not supported aten.transpose_conv2d missing.

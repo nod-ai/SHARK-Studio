@@ -3,8 +3,6 @@ import requests
 import torch
 import torchvision.models as models
 from torchvision import transforms
-import numpy as np
-import os
 import sys
 from shark_runner import SharkInference
 
