@@ -43,32 +43,32 @@ result = shark_module.forward(inputs)
 
 | Hugging Face Models | Torch-MLIR lowerable | IREE-CPU | IREE-GPU | IREE-VULKAN |
 |---------------------|----------------------|----------|----------|-------------|
-| BERT                | Yes (JIT)            |          |          |             |
-| Albert              | Yes (JIT)            |          |          |             |
-| BigBird             | Yes (AOT)            |          |          |             |
-| DistilBERT          | Yes (AOT)            |          |          |             |
-| GPT2                | Yes (AOT)            |          |          |             |
+| BERT                | :heavy_check_mark: (JIT)          |          |          |             |
+| Albert              | :heavy_check_mark: (JIT)            |          |          |             |
+| BigBird             | :heavy_check_mark: (AOT)            |          |          |             |
+| DistilBERT          | :heavy_check_mark: (AOT)            |          |          |             |
+| GPT2                | :heavy_check_mark: (AOT)            |          |          |             |
 
 
 | TORCHVISION Models | Torch-MLIR lowerable | IREE-CPU | IREE-GPU | IREE-VULKAN |
 |--------------------|----------------------|----------|----------|-------------|
-| AlexNet            | Yes (Script)         |          |          |             |
-| DenseNet121        | Yes (Script)         |          |          |             |
-| MNasNet1_0         | Yes (Script)         |          |          |             |
-| MobileNetV2        | Yes (Script)         |          |          |             |
-| MobileNetV3        | Yes (Script)         |          |          |             |
-| Unet               | Yes (Script)         |          |          |             |
-| Resnet18           | Yes (Script)         |          |          |             |
-| Resnet50           | Yes (Script)         |          |          |             |
-| Resnext50_32x4d    | Yes (Script)         |          |          |             |
-| ShuffleNet_v2      | Yes (Script)         |          |          |             |
-| SqueezeNet         | Yes (Script)         |          |          |             |
-| EfficientNet       | Yes (Script)         |          |          |             |
-| Regnet             | Yes (Script)         |          |          |             |
-| Resnest            | Yes (Script)         |          |          |             |
-| Vision Transformer | Yes (Script)         |          |          |             |
-| VGG 16             | Yes (Script)         |          |          |             |
-| Wide Resnet        | Yes (Script)         |          |          |             |
-| RAFT               | Yes (JIT)            |          |          |             |
+| AlexNet            | :heavy_check_mark: (Script)         |          |          |             |
+| DenseNet121        | :heavy_check_mark: (Script)         |          |          |             |
+| MNasNet1_0         | :heavy_check_mark: (Script)         |          |          |             |
+| MobileNetV2        | :heavy_check_mark: (Script)         |          |          |             |
+| MobileNetV3        | :heavy_check_mark: (Script)         |          |          |             |
+| Unet               | :heavy_check_mark: (Script)         |          |          |             |
+| Resnet18           | :heavy_check_mark: (Script)         |          |          |             |
+| Resnet50           | :heavy_check_mark: (Script)         |          |          |             |
+| Resnext50_32x4d    | :heavy_check_mark: (Script)         |          |          |             |
+| ShuffleNet_v2      | :heavy_check_mark: (Script)         |          |          |             |
+| SqueezeNet         | :heavy_check_mark: (Script)         |          |          |             |
+| EfficientNet       | :heavy_check_mark: (Script)         |          |          |             |
+| Regnet             | :heavy_check_mark: (Script)         |          |          |             |
+| Resnest            | :heavy_check_mark: (Script)         |          |          |             |
+| Vision Transformer | :heavy_check_mark: (Script)         |          |          |             |
+| VGG 16             | :heavy_check_mark: (Script)         |          |          |             |
+| Wide Resnet        | :heavy_check_mark: (Script)         |          |          |             |
+| RAFT               | :heavy_check_mark: (JIT)            |          |          |             |
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
