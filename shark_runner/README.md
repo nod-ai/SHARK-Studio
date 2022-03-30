@@ -37,3 +37,38 @@ result = shark_module.forward(inputs)
 ### Shark Trainer API
 
 #### Work in Progress
+
+
+### Model Tracking (Shark Inference)
+
+| Hugging Face Models | Torch-MLIR lowerable | IREE-CPU | IREE-GPU | IREE-VULKAN |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | Yes (JIT)            |          |          |             |
+| Albert              | Yes (JIT)            |          |          |             |
+| BigBird             | Yes (AOT)            |          |          |             |
+| DistilBERT          | Yes (AOT)            |          |          |             |
+| GPT2                | Yes (AOT)            |          |          |             |
+
+
+| TORCHVISION Models | Torch-MLIR lowerable | IREE-CPU | IREE-GPU | IREE-VULKAN |
+|--------------------|----------------------|----------|----------|-------------|
+| AlexNet            | Yes (Script)         |          |          |             |
+| DenseNet121        | Yes (Script)         |          |          |             |
+| MNasNet1_0         | Yes (Script)         |          |          |             |
+| MobileNetV2        | Yes (Script)         |          |          |             |
+| MobileNetV3        | Yes (Script)         |          |          |             |
+| Unet               | Yes (Script)         |          |          |             |
+| Resnet18           | Yes (Script)         |          |          |             |
+| Resnet50           | Yes (Script)         |          |          |             |
+| Resnext50_32x4d    | Yes (Script)         |          |          |             |
+| ShuffleNet_v2      | Yes (Script)         |          |          |             |
+| SqueezeNet         | Yes (Script)         |          |          |             |
+| EfficientNet       | Yes (Script)         |          |          |             |
+| Regnet             | Yes (Script)         |          |          |             |
+| Resnest            | Yes (Script)         |          |          |             |
+| Vision Transformer | Yes (Script)         |          |          |             |
+| VGG 16             | Yes (Script)         |          |          |             |
+| Wide Resnet        | Yes (Script)         |          |          |             |
+| RAFT               | Yes (JIT)            |          |          |             |
+
+For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
