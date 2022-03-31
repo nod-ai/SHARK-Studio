@@ -72,7 +72,7 @@ shark_module = SharkInference(Resnet50Module(), (img,))
 ## Can pass any img or input to the forward module.
 results = shark_module.forward((img,))
 
-print("The top 3 results obtained via torch-mlir via iree-backend is:")
+print("The top 3 results obtained via shark_runner is:")
 print(top3_possibilities(torch.from_numpy(results)))
 
 print()

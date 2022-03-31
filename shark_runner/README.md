@@ -4,19 +4,44 @@ The Shark Runner provides inference and training APIs to run deep learning model
 
 # How to configure.
 
-### Build [torch-mlir](https://github.com/llvm/torch-mlir) and [iree](https://github.com/google/iree) including [iree python bindings](https://google.github.io/iree/building-from-source/python-bindings-and-importers/#using-the-python-bindings)
+## Check out the code
 
-### Setup Python Environment
 ```shell
-#Activate your virtual environment.
-export TORCH_MLIR_BUILD_DIR=/path/to/torch-mlir/build
-export IREE_BUILD_DIR=/path/to/iree-build
-source set_dep_pypaths.sh
+git clone https://github.com/NodLabs/dSHARK.git 
+cd dSHARK
 ```
+
+## Setup your Python VirtualEnvironment and Dependencies
+```shell
+python -m venv shark_venv
+source shark_venv/bin/activate
+# Some older pip installs may not be able to handle the recent PyTorch deps
+python -m pip install --upgrade pip
+# Install latest PyTorch nightlies and build requirements.
+python -m pip install -r requirements.txt
+```
+
+## Install dependent packages
+```shell
+# Install latest torch-mlir release.
+python -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
+
+# Install latest IREE release.
+python -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
+
+# Install functorch
+python -m pip install ninja
+python -m pip install "git+https://github.com/pytorch/functorch.git"
+
+# Install shark_runner from the current path.
+python -m pip install .
+```
+
 
 ### Run a demo script
 ```shell
-python resnet50.py
+cd shark_runner/examples/
+python resnet50_script.py
 ```
 
 ### Shark Inference API
