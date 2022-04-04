@@ -4,7 +4,7 @@ import torch
 import torchvision.models as models
 from torchvision import transforms
 import sys
-from shark_runner import SharkInference
+from shark.shark_runner import SharkInference
 
 
 ################################## Preprocessing inputs and model ############
