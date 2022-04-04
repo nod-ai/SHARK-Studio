@@ -65,7 +65,7 @@ result = shark_module.forward(inputs)
 
 ### Model Tracking (Shark Inference)
 
-| Hugging Face Models | Torch-MLIR lowerable | IREE-CPU | IREE-GPU | IREE-VULKAN |
+| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-VULKAN |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :heavy_check_mark: (JIT)          |          |          |             |
 | Albert              | :heavy_check_mark: (JIT)            |          |          |             |
@@ -74,7 +74,7 @@ result = shark_module.forward(inputs)
 | GPT2                | :x: (AOT)            |          |          |             |
 
 
-| TORCHVISION Models | Torch-MLIR lowerable | IREE-CPU | IREE-GPU | IREE-VULKAN |
+| TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-VULKAN |
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :heavy_check_mark: (Script)         |          |          |             |
 | DenseNet121        | :heavy_check_mark: (Script)         |          |          |             |
@@ -82,8 +82,8 @@ result = shark_module.forward(inputs)
 | MobileNetV2        | :heavy_check_mark: (Script)         |          |          |             |
 | MobileNetV3        | :heavy_check_mark: (Script)         |          |          |             |
 | Unet               | :x: (Script)         |          |          |             |
-| Resnet18           | :heavy_check_mark: (Script)         |          |          |             |
-| Resnet50           | :heavy_check_mark: (Script)         |          |          |             |
+| Resnet18           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
+| Resnet50           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
 | Resnext50_32x4d    | :heavy_check_mark: (Script)         |          |          |             |
 | ShuffleNet_v2      | :x: (Script)         |          |          |             |
 | SqueezeNet         | :x: (Script)         |          |          |             |
@@ -92,7 +92,7 @@ result = shark_module.forward(inputs)
 | Resnest            | :x: (Script)         |          |          |             |
 | Vision Transformer | :heavy_check_mark: (Script)         |          |          |             |
 | VGG 16             | :heavy_check_mark: (Script)         |          |          |             |
-| Wide Resnet        | :heavy_check_mark: (Script)         |          |          |             |
+| Wide Resnet        | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
 | RAFT               | :x: (JIT)            |          |          |             |
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
