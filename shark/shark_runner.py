@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from torch_mlir_utils import get_torch_mlir_module
-from iree_utils import get_results, get_iree_compiled_module
-from functorch_utils import AOTModule
+from shark.torch_mlir_utils import get_torch_mlir_module
+from shark.iree_utils import get_results, get_iree_compiled_module
+# from functorch_utils import AOTModule
 
 
 class SharkRunner:
@@ -62,13 +62,13 @@ class SharkInference:
         self.input = input
         self.from_aot = from_aot
 
-        if from_aot:
-            aot_module = AOTModule(
-                model, input, custom_inference_fn=custom_inference_fn
-            )
-            aot_module.generate_inference_graph()
-            self.model = aot_module.forward_graph
-            self.input = aot_module.forward_inputs
+        # if from_aot:
+            # aot_module = AOTModule(
+                # model, input, custom_inference_fn=custom_inference_fn
+            # )
+            # aot_module.generate_inference_graph()
+            # self.model = aot_module.forward_graph
+            # self.input = aot_module.forward_inputs
 
         self.shark_runner = SharkRunner(
             self.model, self.input, dynamic, device, jit_trace, from_aot

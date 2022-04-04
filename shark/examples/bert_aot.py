@@ -2,7 +2,7 @@ from transformers import AutoModelForMaskedLM, BertConfig
 import transformers
 import torch
 import torch.utils._pytree as pytree
-from shark_runner import SharkInference
+from shark.shark_runner import SharkInference
 
 pytree._register_pytree_node(
     transformers.modeling_outputs.MaskedLMOutput,

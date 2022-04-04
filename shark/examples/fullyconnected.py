@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from shark_runner import SharkInference, SharkTrainer
+from shark.shark_runner import SharkInference, SharkTrainer
 
 
 class NeuralNet(nn.Module):

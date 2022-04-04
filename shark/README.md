@@ -29,7 +29,7 @@ python -m pip install --find-links https://github.com/llvm/torch-mlir/releases t
 # Install latest IREE release.
 python -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
 
-# Install functorch
+# Install functorch 
 python -m pip install ninja
 python -m pip install "git+https://github.com/pytorch/functorch.git"
 
@@ -40,8 +40,7 @@ python -m pip install .
 
 ### Run a demo script
 ```shell
-cd shark_runner/examples/
-python resnet50_script.py
+python -m  shark.examples.resnet50_script
 ```
 
 ### Shark Inference API
