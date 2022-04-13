@@ -26,7 +26,12 @@ python -m pip install -r requirements.txt
 # Install latest torch-mlir release.
 python -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
 
-# Install latest IREE release.
+# Install latest SHARK release.
+python -m pip install --find-links https://github.com/NodLabs/SHARK/releases  iree-compiler iree-runtime
+
+or
+
+# Install latest IREE release
 python -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
 
 # Install functorch 
