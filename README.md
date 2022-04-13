@@ -8,7 +8,6 @@ The Shark Runner provides inference and training APIs to run deep learning model
 
 ```shell
 git clone https://github.com/NodLabs/dSHARK.git 
-cd dSHARK
 ```
 
 ## Setup your Python VirtualEnvironment and Dependencies
@@ -39,6 +38,7 @@ python -m pip install ninja
 python -m pip install "git+https://github.com/pytorch/functorch.git"
 
 # Install shark_runner from the current path.
+cd shark
 python -m pip install .
 ```
 
