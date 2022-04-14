@@ -16,32 +16,9 @@ python -m venv shark_venv
 source shark_venv/bin/activate
 # Some older pip installs may not be able to handle the recent PyTorch deps
 python -m pip install --upgrade pip
-# Install latest PyTorch nightlies and build requirements.
-python -m pip install -r requirements.txt
+# Install necessary packages (torch-mlir, nodLabs/Shark, ...).
+./install.sh
 ```
-
-## Install dependent packages
-```shell
-# Install latest torch-mlir release.
-python -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
-
-# Install latest SHARK release.
-python -m pip install --find-links https://github.com/NodLabs/SHARK/releases  iree-compiler iree-runtime
-
-or
-
-# Install latest IREE release
-python -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
-
-# Install functorch 
-python -m pip install ninja
-python -m pip install "git+https://github.com/pytorch/functorch.git"
-
-# Install shark_runner from the current path.
-cd shark
-python -m pip install .
-```
-
 
 ### Run a demo script
 ```shell
