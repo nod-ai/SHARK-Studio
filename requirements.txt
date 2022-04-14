@@ -8,4 +8,5 @@ torchvision
 # Build requirements.
 pybind11
 wheel
+ninja
 
