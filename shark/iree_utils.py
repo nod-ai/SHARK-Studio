@@ -15,6 +15,8 @@
 import iree.runtime as ireert
 import iree.compiler as ireec
 import numpy as np
+import os
+from shark.torch_mlir_utils import get_module_name_for_asm_dump
 
 IREE_DEVICE_MAP = {"cpu": "dylib", "gpu": "cuda", "vulkan": "vulkan"}
 
@@ -32,6 +34,14 @@ def get_iree_compiled_module(module, device: str):
     ModuleCompiled = ctx.modules.module["forward"]
     return ModuleCompiled, config
 
+def export_iree_module_to_vmfb(module, device: str, directory: str):
+    module_name = get_module_name_for_asm_dump(module)
+    flatbuffer_blob = ireec.compile_str(
+        str(module), target_backends=[IREE_DEVICE_MAP[device]]
+    )
+    filename = os.path.join(directory, module_name + ".vmfb")
+    with open(filename, 'wb') as f:
+        f.write(flatbuffer_blob)
 
 def get_results(compiled_vm, input, config):
     """TODO: Documentation"""
