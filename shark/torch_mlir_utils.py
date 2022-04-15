@@ -15,7 +15,11 @@
 import torch
 import io
 import pickle
+import sys
+import os
+import tempfile
 
+from io import StringIO
 from torch_mlir.dialects.torch.importer.jit_ir import (
     ClassAnnotator,
     ModuleBuilder,
@@ -28,7 +32,23 @@ from torch_mlir_e2e_test.torchscript.serialization import (
 
 from torch_mlir.passmanager import PassManager
 from torch_mlir_e2e_test.torchscript.annotations import annotate_args, export
+from torch_mlir.ir import StringAttr
 
+def get_module_name_for_asm_dump(module):
+    """Gets a name suitable for an assembly dump.
+    The name is not guaranteed to be unique.
+    """
+    if not "torch.debug_module_name" in module.operation.attributes:
+        return "UnnammedModule"
+    return StringAttr(module.operation.attributes["torch.debug_module_name"]).value
+    
+def export_module_to_mlir_file(module):
+    """Writes MLIR module to /tmp/module.mlir for debugging or performance use."""
+    module_name = get_module_name_for_asm_dump(module)
+    asm = module.operation.get_asm()
+    filename = os.path.join(tempfile.gettempdir(), module_name + ".mlir")
+    with open(filename, 'w') as f:
+        f.write(asm)
 
 def get_input_annotations(inputs: tuple, dynamic: bool) -> list:
     """TODO: Include necessary documentation"""

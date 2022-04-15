@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from shark.torch_mlir_utils import get_torch_mlir_module
-from shark.iree_utils import get_results, get_iree_compiled_module
+from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file
+from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
+import argparse
 # from functorch_utils import AOTModule
-
-
+              
 class SharkRunner:
     """TODO: Write the description"""
 
@@ -29,16 +29,24 @@ class SharkRunner:
         tracing_required: bool,
         from_aot: bool,
     ):
+        self.parser = argparse.ArgumentParser(description='SHARK runner.')
+        self.parser.add_argument("--save_mlir", default=False, action="store_true", help="Saves input MLIR module to /tmp/ directory.")
+        self.parser.add_argument("--save_vmfb", default=False, action="store_true", help="Saves iree .vmfb module to /tmp/ directory.")
+        self.parser.parse_args(namespace=self)
         self.torch_module = model
         self.input = input
         self.torch_mlir_module = get_torch_mlir_module(
             model, input, dynamic, tracing_required, from_aot
         )
+        if self.save_mlir:
+            export_module_to_mlir_file(self.torch_mlir_module)
+        if self.save_vmfb:
+            export_iree_module_to_vmfb(self.torch_mlir_module, device)
         (
             self.iree_compilation_module,
             self.iree_config,
         ) = get_iree_compiled_module(self.torch_mlir_module, device)
-
+        
     def forward(self, input):
         return get_results(
             self.iree_compilation_module, input, self.iree_config
