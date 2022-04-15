@@ -15,7 +15,14 @@
 from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file
 from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
 import argparse
+import os
 # from functorch_utils import AOTModule
+
+def dir_path(path):
+    if os.path.isdir(path):
+        return path
+    else:
+        raise argparse.ArgumentTypeError(f"readable_dir:{path} is not a valid path")
               
 class SharkRunner:
     """TODO: Write the description"""
@@ -30,6 +37,7 @@ class SharkRunner:
         from_aot: bool,
     ):
         self.parser = argparse.ArgumentParser(description='SHARK runner.')
+        self.parser.add_argument("--repro_dir", help="Directory to which module files will be saved for reproduction or debugging.", type=dir_path, default="/tmp/")
         self.parser.add_argument("--save_mlir", default=False, action="store_true", help="Saves input MLIR module to /tmp/ directory.")
         self.parser.add_argument("--save_vmfb", default=False, action="store_true", help="Saves iree .vmfb module to /tmp/ directory.")
         self.parser.parse_args(namespace=self)
@@ -39,9 +47,9 @@ class SharkRunner:
             model, input, dynamic, tracing_required, from_aot
         )
         if self.save_mlir:
-            export_module_to_mlir_file(self.torch_mlir_module)
+            export_module_to_mlir_file(self.torch_mlir_module, self.repro_dir)
         if self.save_vmfb:
-            export_iree_module_to_vmfb(self.torch_mlir_module, device)
+            export_iree_module_to_vmfb(self.torch_mlir_module, device, self.repro_dir)
         (
             self.iree_compilation_module,
             self.iree_config,

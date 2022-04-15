@@ -17,7 +17,6 @@ import io
 import pickle
 import sys
 import os
-import tempfile
 
 from io import StringIO
 from torch_mlir.dialects.torch.importer.jit_ir import (
@@ -42,11 +41,11 @@ def get_module_name_for_asm_dump(module):
         return "UnnammedModule"
     return StringAttr(module.operation.attributes["torch.debug_module_name"]).value
     
-def export_module_to_mlir_file(module):
+def export_module_to_mlir_file(module, directory: str):
     """Writes MLIR module to /tmp/module.mlir for debugging or performance use."""
     module_name = get_module_name_for_asm_dump(module)
     asm = module.operation.get_asm()
-    filename = os.path.join(tempfile.gettempdir(), module_name + ".mlir")
+    filename = os.path.join(directory, module_name + ".mlir")
     with open(filename, 'w') as f:
         f.write(asm)
 
