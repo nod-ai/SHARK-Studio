@@ -12,12 +12,9 @@ git clone https://github.com/NodLabs/dSHARK.git
 
 ## Setup your Python VirtualEnvironment and Dependencies
 ```shell
-python -m venv shark_venv
-source shark_venv/bin/activate
-# Some older pip installs may not be able to handle the recent PyTorch deps
-python -m pip install --upgrade pip
-# Install necessary packages (torch-mlir, nodLabs/Shark, ...).
-./install.sh
+# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...).
+./setup_venv.sh
+# Please activate the venv after installation.
 ```
 
 ### Run a demo script
