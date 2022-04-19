@@ -127,10 +127,13 @@ def get_torch_mlir_module(
     )
     mb.import_module(module._c, class_annotator)
 
+    passes = "torchscript-module-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline"
+    # Set `SHARK_DEBUG` environment variable to log the intermediate mlir output.
+    if 'SHARK_DEBUG' in os.environ and os.environ['SHARK_DEBUG']:
+        mb.module.dump()
+
     with mb.module.context:
-        pm = PassManager.parse(
-            "torchscript-module-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline"
-        )
+        pm = PassManager.parse(passes)
         pm.run(mb.module)
 
     return mb.module
