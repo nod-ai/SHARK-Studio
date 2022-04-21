@@ -23,6 +23,7 @@ import copy
 
 
 class AOTModule:
+
     def __init__(self, model, inputs, labels=None, custom_inference_fn=None):
         self.model = model
         self.inputs = inputs
@@ -56,41 +57,71 @@ class AOTModule:
             loss.backward()
             optimizer.step()
 
+    # Replaces None types with zeros.
+    # def change_fx_graph_return_to_tuple(self, fx_g: fx.GraphModule) -> fx.GraphModule:
+    # for node in fx_g.graph.nodes:
+    # if node.op == 'output':
+    # # output nodes always have one argument
+    # node_arg = node.args[0]
+    # out_nodes = []
+    # if isinstance(node_arg, list):
+    # for out_node in node_arg:
+    # if isinstance(out_node, type(None)):
+    # print("None node found replacing with zeros")
+    # with fx_g.graph.inserting_before(out_node):
+    # new_node = fx_g.graph.call_function(torch.ops.aten.zeros, (-1,))
+    # out_nodes.append(new_node)
+    # else:
+    # out_nodes.append(out_node)
+
+    # node.args = (tuple(out_nodes),)
+    # fx_g.graph.lint()
+    # fx_g.recompile()
+    # return fx_g
+
+    # Doesn't replace the None type.
     def change_fx_graph_return_to_tuple(self, fx_g: fx.GraphModule):
         for node in fx_g.graph.nodes:
             if node.op == "output":
                 # output nodes always have one argument
                 node_arg = node.args[0]
+                out_nodes = []
                 if isinstance(node_arg, list):
+                    # Don't return NoneType elements.
+                    for out_node in node_arg:
+                        if not isinstance(out_node, type(None)):
+                            out_nodes.append(out_node)
                     # If there is a single tensor/element to be returned don't
                     # a tuple for it.
-                    if len(node_arg) == 1:
-                        node.args = node_arg
+                    if len(out_nodes) == 1:
+                        node.args = out_nodes
                     else:
-                        node.args = (tuple(node_arg),)
+                        node.args = (tuple(out_nodes),)
         fx_g.graph.lint()
         fx_g.recompile()
         return fx_g
 
     def get_forward_graph(self, fx_g: fx.GraphModule, inps):
-        fx_g = self.change_fx_graph_return_to_tuple(fx_g)
+        return_fx = copy.deepcopy(fx_g)
+        f = self.change_fx_graph_return_to_tuple(fx_g)
         f = torch.jit.script(fx_g)
         f = torch.jit.freeze(f.eval())
         torch.jit.save(f, "forw.pt")
         f = torch.jit.load("forw.pt")
         self.forward_graph = f
         self.forward_inputs = copy.deepcopy(inps)
-        return f
+        return return_fx
 
     def get_backward_graph(self, fx_g: fx.GraphModule, inps):
-        fx_g = self.change_fx_graph_return_to_tuple(fx_g)
+        return_fx = copy.deepcopy(fx_g)
+        f = self.change_fx_graph_return_to_tuple(fx_g)
         f = torch.jit.script(fx_g)
         f = torch.jit.freeze(f.eval())
         torch.jit.save(f, "back.pt")
         f = torch.jit.load("back.pt")
         self.backward_graph = f
         self.backward_inputs = copy.deepcopy(inps)
-        return f
+        return return_fx
 
     def generate_inference_graph(self):
         aot_model = memory_efficient_fusion(

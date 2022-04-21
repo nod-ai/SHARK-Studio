@@ -24,14 +24,13 @@ from torch_mlir.dialects.torch.importer.jit_ir import (
     ModuleBuilder,
 )
 from torch_mlir_e2e_test.torchscript.serialization import (
-    extract_serializable_annotations,
-    apply_serializable_annotations,
-    SerializableTest
-)
+    extract_serializable_annotations, apply_serializable_annotations,
+    SerializableTest)
 
 from torch_mlir.passmanager import PassManager
 from torch_mlir_e2e_test.torchscript.annotations import annotate_args, export
 from torch_mlir.ir import StringAttr
+
 
 def get_module_name_for_asm_dump(module):
     """Gets a name suitable for an assembly dump.
@@ -39,8 +38,10 @@ def get_module_name_for_asm_dump(module):
     """
     if not "torch.debug_module_name" in module.operation.attributes:
         return "UnnammedModule"
-    return StringAttr(module.operation.attributes["torch.debug_module_name"]).value
-    
+    return StringAttr(
+        module.operation.attributes["torch.debug_module_name"]).value
+
+
 def export_module_to_mlir_file(module, directory: str):
     """Writes MLIR module to /tmp/module.mlir for debugging or performance use."""
     module_name = get_module_name_for_asm_dump(module)
@@ -48,6 +49,7 @@ def export_module_to_mlir_file(module, directory: str):
     filename = os.path.join(directory, module_name + ".mlir")
     with open(filename, 'w') as f:
         f.write(asm)
+
 
 def get_input_annotations(inputs: tuple, dynamic: bool) -> list:
     """TODO: Include necessary documentation"""
@@ -65,9 +67,8 @@ def get_input_annotations(inputs: tuple, dynamic: bool) -> list:
     return annotations_list
 
 
-def shark_jit_trace(
-    module, input: tuple, dynamic: bool, tracing_required: bool
-):
+def shark_jit_trace(module, input: tuple, dynamic: bool,
+                    tracing_required: bool):
     """TODO: Include necessary documentation."""
 
     if not tracing_required:
@@ -77,26 +78,21 @@ def shark_jit_trace(
     actual_script = traced_module._actual_script_module
     export(actual_script.forward)
     annotate_args_decorator = annotate_args(
-        get_input_annotations(input, dynamic)
-    )
+        get_input_annotations(input, dynamic))
     annotate_args_decorator(actual_script.forward)
     module = torch.jit.script(actual_script)
 
     # TODO: remove saved annotations.pickle
-    torchscript_module_bytes = module.save_to_buffer(
-        {
-            "annotations.pkl": pickle.dumps(
-                extract_serializable_annotations(module)
-            )
-        }
-    )
-    serializable_test = SerializableTest(
-        unique_name="", program=torchscript_module_bytes, trace=None
-    )
+    torchscript_module_bytes = module.save_to_buffer({
+        "annotations.pkl":
+            pickle.dumps(extract_serializable_annotations(module))
+    })
+    serializable_test = SerializableTest(unique_name="",
+                                         program=torchscript_module_bytes,
+                                         trace=None)
     _extra_files = {"annotations.pkl": ""}
-    module = torch.jit.load(
-        io.BytesIO(serializable_test.program), _extra_files=_extra_files
-    )
+    module = torch.jit.load(io.BytesIO(serializable_test.program),
+                            _extra_files=_extra_files)
     # Load the pickled annotations.
     annotations = pickle.loads(_extra_files["annotations.pkl"])
     apply_serializable_annotations(module, annotations)
