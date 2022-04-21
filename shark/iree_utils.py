@@ -49,7 +49,7 @@ def check_device_drivers(device):
     return False
 
 
-def get_iree_compiled_module(module, device: str):
+def get_iree_compiled_module(module, device: str, callable_name="forward"):
     """Given an mlir module returns the compiled .vmfb"""
     args = ["--iree-llvm-target-cpu-features=host"]
     if device == "cpu":
@@ -87,7 +87,7 @@ def get_iree_compiled_module(module, device: str):
     ctx = ireert.SystemContext(config=config)
     # TODO add optimisation args.
     ctx.add_vm_module(vm_module)
-    ModuleCompiled = ctx.modules.module["forward"]
+    ModuleCompiled = ctx.modules.module[callable_name]
     return ModuleCompiled, config
 
 

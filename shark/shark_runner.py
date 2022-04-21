@@ -11,7 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from torch.utils._python_dispatch import enable_torch_dispatch_mode
+from torch_mlir.eager_mode import torch_mlir_tensor
+from torch_mlir.eager_mode.torch_mlir_tensor import TorchMLIRTensor
+from torch_mlir_e2e_test.eager_backends.refbackend import EagerModeRefBackend
 
+from shark.iree_eager_backend import EagerModeIREELinalgOnTensorsBackend
 from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file, run_on_refbackend
 from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
 import os
@@ -154,3 +159,16 @@ class SharkTrainer:
             weights = self.shark_runner.forward(weights + inputs)
 
         return weights
+
+
+class SharkMode:
+    def __init__(self, device="cpu"):
+        if device == "refbackend":
+            torch_mlir_tensor.backend = EagerModeRefBackend()
+        else:
+            torch_mlir_tensor.backend = EagerModeIREELinalgOnTensorsBackend(device)
+        self.guard = enable_torch_dispatch_mode(TorchMLIRTensor)
+        self.guard.__enter__()
+
+    def __del__(self):
+        self.guard.__exit__(None, None, None)
