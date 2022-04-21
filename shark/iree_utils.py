@@ -24,8 +24,7 @@ IREE_DEVICE_MAP = {"cpu": "dylib", "gpu": "cuda", "vulkan": "vulkan"}
 def get_iree_compiled_module(module, device: str):
     """TODO: Documentation"""
     flatbuffer_blob = ireec.compile_str(
-        str(module), target_backends=[IREE_DEVICE_MAP[device]]
-    )
+        str(module), target_backends=[IREE_DEVICE_MAP[device]])
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
     config = ireert.Config(IREE_DEVICE_MAP[device])
     ctx = ireert.SystemContext(config=config)
@@ -34,24 +33,24 @@ def get_iree_compiled_module(module, device: str):
     ModuleCompiled = ctx.modules.module["forward"]
     return ModuleCompiled, config
 
+
 def export_iree_module_to_vmfb(module, device: str, directory: str):
     module_name = get_module_name_for_asm_dump(module)
     flatbuffer_blob = ireec.compile_str(
-        str(module), target_backends=[IREE_DEVICE_MAP[device]]
-    )
+        str(module), target_backends=[IREE_DEVICE_MAP[device]])
     filename = os.path.join(directory, module_name + ".vmfb")
     with open(filename, 'wb') as f:
         f.write(flatbuffer_blob)
 
+
 def get_results(compiled_vm, input, config):
     """TODO: Documentation"""
-
-    # TODO: Support returning multiple outputs.
     device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
     result = compiled_vm(*device_inputs)
-    result_numpy = np.asarray(result, dtype=result.dtype)
-    # TODO: Segfault if the copy of numpy array is not returned.
-    result_copy = np.copy(result_numpy)
-    # {k:v.to_host() for k, v in device_outputs.items(
-    return result_copy
-
+    result_tensors = []
+    if (isinstance(result, tuple)):
+        for val in result:
+            result_tensors.append(np.copy(np.asarray(val, val.dtype)))
+        return result_tensors
+    else:
+        return np.copy(np.asarray(result, dtype=result.dtype))

@@ -16,14 +16,17 @@ from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_
 from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
 import argparse
 import os
-# from functorch_utils import AOTModule
+from shark.functorch_utils import AOTModule
+
 
 def dir_path(path):
     if os.path.isdir(path):
         return path
     else:
-        raise argparse.ArgumentTypeError(f"readable_dir:{path} is not a valid path")
-              
+        raise argparse.ArgumentTypeError(
+            f"readable_dir:{path} is not a valid path")
+
+
 class SharkRunner:
     """TODO: Write the description"""
 
@@ -37,28 +40,41 @@ class SharkRunner:
         from_aot: bool,
     ):
         self.parser = argparse.ArgumentParser(description='SHARK runner.')
-        self.parser.add_argument("--repro_dir", help="Directory to which module files will be saved for reproduction or debugging.", type=dir_path, default="/tmp/")
-        self.parser.add_argument("--save_mlir", default=False, action="store_true", help="Saves input MLIR module to /tmp/ directory.")
-        self.parser.add_argument("--save_vmfb", default=False, action="store_true", help="Saves iree .vmfb module to /tmp/ directory.")
+        self.parser.add_argument(
+            "--repro_dir",
+            help=
+            "Directory to which module files will be saved for reproduction or debugging.",
+            type=dir_path,
+            default="/tmp/")
+        self.parser.add_argument(
+            "--save_mlir",
+            default=False,
+            action="store_true",
+            help="Saves input MLIR module to /tmp/ directory.")
+        self.parser.add_argument(
+            "--save_vmfb",
+            default=False,
+            action="store_true",
+            help="Saves iree .vmfb module to /tmp/ directory.")
         self.parser.parse_args(namespace=self)
         self.torch_module = model
         self.input = input
-        self.torch_mlir_module = get_torch_mlir_module(
-            model, input, dynamic, tracing_required, from_aot
-        )
+        self.torch_mlir_module = get_torch_mlir_module(model, input, dynamic,
+                                                       tracing_required,
+                                                       from_aot)
         if self.save_mlir:
             export_module_to_mlir_file(self.torch_mlir_module, self.repro_dir)
         if self.save_vmfb:
-            export_iree_module_to_vmfb(self.torch_mlir_module, device, self.repro_dir)
+            export_iree_module_to_vmfb(self.torch_mlir_module, device,
+                                       self.repro_dir)
         (
             self.iree_compilation_module,
             self.iree_config,
         ) = get_iree_compiled_module(self.torch_mlir_module, device)
-        
+
     def forward(self, input):
-        return get_results(
-            self.iree_compilation_module, input, self.iree_config
-        )
+        return get_results(self.iree_compilation_module, input,
+                           self.iree_config)
 
 
 class SharkInference:
@@ -78,17 +94,16 @@ class SharkInference:
         self.input = input
         self.from_aot = from_aot
 
-        # if from_aot:
-            # aot_module = AOTModule(
-                # model, input, custom_inference_fn=custom_inference_fn
-            # )
-            # aot_module.generate_inference_graph()
-            # self.model = aot_module.forward_graph
-            # self.input = aot_module.forward_inputs
+        if from_aot:
+            aot_module = AOTModule(model,
+                                   input,
+                                   custom_inference_fn=custom_inference_fn)
+            aot_module.generate_inference_graph()
+            self.model = aot_module.forward_graph
+            self.input = aot_module.forward_inputs
 
-        self.shark_runner = SharkRunner(
-            self.model, self.input, dynamic, device, jit_trace, from_aot
-        )
+        self.shark_runner = SharkRunner(self.model, self.input, dynamic, device,
+                                        jit_trace, from_aot)
 
     def forward(self, inputs):
         # TODO Capture weights and inputs in case of AOT, Also rework the
@@ -120,17 +135,16 @@ class SharkTrainer:
         self.forward_graph = aot_module.forward_graph
         self.forward_inputs = aot_module.forward_inputs
         self.backward_graph = aot_module.backward_graph
-        print(self.backward_graph.graph)
         self.backward_inputs = aot_module.backward_inputs
 
-        # self.shark_forward = SharkRunner(
-        # self.forward_graph,
-        # self.forward_inputs,
-        # dynamic,
-        # device,
-        # jit_trace,
-        # from_aot,
-        # )
+        self.shark_forward = SharkRunner(
+            self.forward_graph,
+            self.forward_inputs,
+            dynamic,
+            device,
+            jit_trace,
+            from_aot,
+        )
         self.shark_backward = SharkRunner(
             self.backward_graph,
             self.backward_inputs,
@@ -153,5 +167,5 @@ class SharkTrainer:
 
         for _ in range(iters):
             self.shark_forward.forward(forward_inputs)
-            # self.shark_backward.forward(backward_inputs)
+            self.shark_backward.forward(backward_inputs)
         return
