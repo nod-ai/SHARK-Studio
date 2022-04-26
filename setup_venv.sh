@@ -34,5 +34,5 @@ python -m pip install .
 Red=`tput setaf 1`          
 Green=`tput setaf 2`
 echo "${Green}Before running examples activate venv with:"
-echo "  ${Red}source $VENV_DIR/bin/activate"
+echo "  ${Green}source $VENV_DIR/bin/activate"
 

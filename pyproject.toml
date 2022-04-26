@@ -1,0 +1,12 @@
+[build-system]
+requires = [
+    "setuptools>=42",
+    "wheel",
+    "packaging",
+
+    "numpy",
+    "torch-mlir",
+    "iree-compiler",
+    "iree-runtime",
+]
+build-backend = "setuptools.build_meta"
