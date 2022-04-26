@@ -25,6 +25,13 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Compute version
+      run: |
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
+        tag_name="snapshot-${package_version}"
+        echo "package_version=${package_version}" >> $GITHUB_ENV
+        echo "tag_name=${tag_name}" >> $GITHUB_ENV
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -38,5 +45,5 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Build the package
       run: |
-        SHARK_PACKAGE_VERSION=${{ github.event.inputs.python_package_version }} \
+        SHARK_PACKAGE_VERSION=${package_version} \
         pip wheel -v -w wheelhouse . --extra-index-url https://download.pytorch.org/whl/nightly/cpu  -f https://github.com/llvm/torch-mlir/releases
