@@ -1,6 +1,6 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from shark_runner import SharkInference
+from shark.shark_runner import SharkInference
 
 torch.manual_seed(0)
 
