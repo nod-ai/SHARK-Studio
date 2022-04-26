@@ -46,8 +46,8 @@ result = shark_module.forward(inputs)
 
 | Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
-| BERT                | :heavy_check_mark: (JIT)          |          |          |             |
-| Albert              | :heavy_check_mark: (JIT)            |          |          |             |
+| BERT                | :heavy_check_mark: (JIT)          | :heavy_check_mark:         |          |             |
+| Albert              | :heavy_check_mark: (JIT)            | :heavy_check_mark:         |          |             |
 | BigBird             | :heavy_check_mark: (AOT)            |          |          |             |
 | DistilBERT          | :heavy_check_mark: (AOT)            |          |          |             |
 | GPT2                | :x: (AOT)            |          |          |             |
