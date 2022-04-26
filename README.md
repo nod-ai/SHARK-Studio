@@ -44,7 +44,7 @@ result = shark_module.forward(inputs)
 
 ### Model Tracking (Shark Inference)
 
-| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-VULKAN |
+| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :heavy_check_mark: (JIT)          |          |          |             |
 | Albert              | :heavy_check_mark: (JIT)            |          |          |             |
@@ -53,7 +53,7 @@ result = shark_module.forward(inputs)
 | GPT2                | :x: (AOT)            |          |          |             |
 
 
-| TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-VULKAN |
+| TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :heavy_check_mark: (Script)         |          |          |             |
 | DenseNet121        | :heavy_check_mark: (Script)         |          |          |             |
