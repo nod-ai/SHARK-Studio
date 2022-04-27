@@ -9,4 +9,5 @@ torchvision
 pybind11
 wheel
 ninja
+pytest
 
