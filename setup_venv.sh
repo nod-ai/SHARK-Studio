@@ -27,12 +27,25 @@ python -m pip install --upgrade pip || die "Could not upgrade pip"
 python -m pip install --upgrade -r "$TD/requirements.txt"
 python -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
 python -m pip install --find-links https://github.com/NodLabs/SHARK/releases iree-compiler iree-runtime
-python -m pip install git+https://github.com/pytorch/functorch.git
+#python -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
+
+Red=`tput setaf 1`
+Green=`tput setaf 2`
+Yellow=`tput setaf 3`
+
+if [[ $(uname -s) = 'Darwin' ]]; then
+  if [[ $(uname -m) == 'arm64' ]]; then
+    echo "${Yellow}Apple M1 Detected"
+    echo "${Yellow}If tokenizers install fails make sure you have the latest rustc"
+    echo "${Yellow}Please run:"
+    echo "${Yellow}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+  fi
+fi
+
 python -m pip install transformers
+python -m pip install git+https://github.com/pytorch/functorch.git
 python -m pip install .
 
-Red=`tput setaf 1`          
-Green=`tput setaf 2`
 echo "${Green}Before running examples activate venv with:"
 echo "  ${Green}source $VENV_DIR/bin/activate"
 
