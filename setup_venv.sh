@@ -44,7 +44,7 @@ fi
 
 python -m pip install transformers
 python -m pip install git+https://github.com/pytorch/functorch.git
-python -m pip install .
+pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
 
 echo "${Green}Before running examples activate venv with:"
 echo "  ${Green}source $VENV_DIR/bin/activate"
