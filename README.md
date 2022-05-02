@@ -19,7 +19,7 @@ git clone https://github.com/NodLabs/dSHARK.git
 
 ### Run a demo script
 ```shell
-python -m  shark.examples.resnet50_script --device="cpu/gpu/vulkan"
+python -m  shark.examples.resnet50_script --device="cpu" # Use gpu | vulkan
 ```
 
 ### Shark Inference API
