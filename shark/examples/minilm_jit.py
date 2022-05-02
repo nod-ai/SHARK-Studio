@@ -1,14 +1,10 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from shark.shark_runner import SharkInference
+import timeit
 
 torch.manual_seed(0)
 tokenizer = AutoTokenizer.from_pretrained("microsoft/MiniLM-L12-H384-uncased")
-
-
-def _prepare_sentence_tokens(sentence: str):
-    return torch.tensor([tokenizer.encode(sentence)])
-
 
 class MiniLMSequenceClassification(torch.nn.Module):
     def __init__(self):
@@ -25,9 +21,11 @@ class MiniLMSequenceClassification(torch.nn.Module):
         return self.model.forward(tokens)[0]
 
 
-test_input = _prepare_sentence_tokens("this project is very interesting")
+test_input = torch.randint(2, (1,128))
 
 shark_module = SharkInference(
-    MiniLMSequenceClassification(), (test_input,), device="cpu", jit_trace=True
+    MiniLMSequenceClassification(), (test_input,), jit_trace=True
 )
-results = shark_module.forward((test_input,))
+
+print(timeit.timeit(lambda: shark_module.forward((test_input,)), number=1))
+
