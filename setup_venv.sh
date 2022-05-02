@@ -24,7 +24,7 @@ source "$VENV_DIR/bin/activate" || die "Could not activate venv"
 # Upgrade pip and install requirements. 'python' is used here in order to
 # reference to the python executable from the venv.
 python -m pip install --upgrade pip || die "Could not upgrade pip"
-python -m pip install --upgrade -r "$TD/requirements.txt"
+python -m pip install --upgrade -r "$TD/requirements.txt" --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
 python -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
 python -m pip install --find-links https://github.com/NodLabs/SHARK/releases iree-compiler iree-runtime
 #python -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
@@ -44,7 +44,10 @@ fi
 
 python -m pip install transformers
 python -m pip install git+https://github.com/pytorch/functorch.git
-pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
+
+pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/NodLabs/SHARK/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+python -m pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/NodLabs/SHARK/releases
+
 
 echo "${Green}Before running examples activate venv with:"
 echo "  ${Green}source $VENV_DIR/bin/activate"

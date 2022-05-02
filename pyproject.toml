@@ -5,8 +5,8 @@ requires = [
     "packaging",
 
     "numpy",
-    "torch-mlir",
-    "iree-compiler",
-    "iree-runtime",
+    "torch-mlir>=20220428.420",
+    "iree-compiler>=20220427.13",
+    "iree-runtime>=20220427.13",
 ]
 build-backend = "setuptools.build_meta"
