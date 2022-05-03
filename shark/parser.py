@@ -45,5 +45,15 @@ parser.add_argument(
     default=False,
     action="store_true",
     help="Saves iree .vmfb module to /tmp/ directory.")
+parser.add_argument(
+    "--num_warmup_iterations",
+    type=int,
+    default=2,
+    help="Run the model for the specified number of warmup iterations.")
+parser.add_argument(
+    "--num_iterations",
+    type=int,
+    default=1,
+    help="Run the model for the specified number of iterations.")
 
 shark_args = parser.parse_args()
