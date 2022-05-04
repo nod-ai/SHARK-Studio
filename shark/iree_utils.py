@@ -25,12 +25,17 @@ IREE_DEVICE_MAP = {"cpu": "dylib", "gpu": "cuda", "vulkan": "vulkan"}
 def get_iree_compiled_module(module, device: str):
     """TODO: Documentation"""
     args = ["--iree-llvm-target-cpu-features=host"]
-    if(device == "cpu"):
+    if (device == "cpu"):
         find_triple_cmd = "uname -s -m"
-        os_name, proc_name = subprocess.run(find_triple_cmd, shell=True, stdout=subprocess.PIPE, check=True).stdout.decode('utf-8').split()
+        os_name, proc_name = subprocess.run(
+            find_triple_cmd, shell=True, stdout=subprocess.PIPE,
+            check=True).stdout.decode('utf-8').split()
         if os_name == "Darwin":
             find_kernel_version_cmd = "uname -r"
-            kernel_version = subprocess.run(find_kernel_version_cmd, shell=True, stdout=subprocess.PIPE, check=True).stdout.decode('utf-8')
+            kernel_version = subprocess.run(find_kernel_version_cmd,
+                                            shell=True,
+                                            stdout=subprocess.PIPE,
+                                            check=True).stdout.decode('utf-8')
             target_triple = f"{proc_name}-apple-darwin{kernel_version}"
         elif os_name == "Linux":
             target_triple = f"{proc_name}-linux-gnu"
