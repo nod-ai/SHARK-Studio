@@ -17,6 +17,7 @@ from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_
 import os
 from shark.functorch_utils import AOTModule
 from shark.parser import shark_args
+from shark.backward_makefx import MakeFxModule
 
 
 class SharkRunner:
@@ -38,7 +39,8 @@ class SharkRunner:
                                                        from_aot)
 
         if shark_args.save_mlir:
-            export_module_to_mlir_file(self.torch_mlir_module, shark_args.repro_dir)
+            export_module_to_mlir_file(self.torch_mlir_module,
+                                       shark_args.repro_dir)
         if shark_args.save_vmfb:
             export_iree_module_to_vmfb(self.torch_mlir_module, device,
                                        shark_args.repro_dir)
@@ -97,53 +99,35 @@ class SharkTrainer:
         self,
         model,
         input: tuple,
-        label: tuple,
         dynamic: bool = False,
         device: str = None,
         jit_trace: bool = False,
         from_aot: bool = True,
+        custom_inference_fn=None,
     ):
-
         self.model = model
         self.input = input
-        self.label = label
+        self.from_aot = from_aot
+
         self.device = device if device is not None else shark_args.device
-        aot_module = AOTModule(model, input, label)
-        aot_module.generate_training_graph()
-        self.forward_graph = aot_module.forward_graph
-        self.forward_inputs = aot_module.forward_inputs
-        self.backward_graph = aot_module.backward_graph
-        self.backward_inputs = aot_module.backward_inputs
 
-        self.shark_forward = SharkRunner(
-            self.forward_graph,
-            self.forward_inputs,
-            dynamic,
-            self.device,
-            jit_trace,
-            from_aot,
-        )
-        self.shark_backward = SharkRunner(
-            self.backward_graph,
-            self.backward_inputs,
-            dynamic,
-            self.device,
-            jit_trace,
-            from_aot,
-        )
+        aot_module = MakeFxModule(model,
+                                  input,
+                                  custom_inference_fn=custom_inference_fn)
+        aot_module.generate_graph()
+        self.model = aot_module.backward_graph
 
-    def train(self, input):
-        forward_inputs = []
-        backward_inputs = []
-        for input in self.forward_inputs:
-            forward_inputs.append(input.detach().numpy())
-        for input in self.backward_inputs:
-            backward_inputs.append(input.detach().numpy())
+        self.input = [
+            i[1] for i in sorted(dict(model.named_parameters()).items())
+        ]
+        for i in input:
+            self.input.append(i)
+        self.shark_runner = SharkRunner(self.model, self.input, dynamic,
+                                        self.device, jit_trace, from_aot)
 
-        # TODO: Pass the iter variable, and optimizer.
-        iters = 1
-
-        for _ in range(iters):
-            self.shark_forward.forward(forward_inputs)
-            self.shark_backward.forward(backward_inputs)
-        return
+    def forward(self, inputs):
+        # TODO Capture weights and inputs in case of AOT, Also rework the
+        # forward pass.
+        inputs = self.input if self.from_aot else inputs
+        input_list = [x.detach().numpy() for x in inputs]
+        return self.shark_runner.forward(input_list)
