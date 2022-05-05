@@ -1,8 +1,6 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from shark.shark_runner import SharkInference
-import timeit
-from shark.parser import shark_args
 
 torch.manual_seed(0)
 tokenizer = AutoTokenizer.from_pretrained("microsoft/MiniLM-L12-H384-uncased")
@@ -28,9 +26,5 @@ shark_module = SharkInference(
     MiniLMSequenceClassification(), (test_input,), jit_trace=True
 )
 
-for i in range(shark_args.num_warmup_iterations):
-    shark_module.forward((test_input,))
-
-for i in range(shark_args.num_iterations):
-    print("Iteration " + str(i) + ": " + str(timeit.timeit(lambda: shark_module.forward((test_input,)), number=1)))
+shark_module.benchmark_forward((test_input,))
 

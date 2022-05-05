@@ -26,5 +26,5 @@ shark_module = SharkInference(
     UnetModule(),
     (input,),
 )
-shark_module.forward((input,))
+shark_module.benchmark_forward((input,))
 print(input)

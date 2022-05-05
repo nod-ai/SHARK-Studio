@@ -39,4 +39,4 @@ for i, vision_model in enumerate(vision_models_list):
         VisionModule(vision_model),
         (input,),
     )
-    shark_module.forward((input,))
+    shark_module.benchmark_forward((input,))

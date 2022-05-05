@@ -28,7 +28,7 @@ input = torch.randn(10, 10)
 labels = torch.randn(1, 2)
 
 shark_module = SharkInference(NeuralNet(), (input,))
-results = shark_module.forward((input,))
+results = shark_module.benchmark_forward((input,))
 
 # TODO: Currently errors out in torch-mlir lowering pass.
 # shark_trainer_module = SharkTrainer(
