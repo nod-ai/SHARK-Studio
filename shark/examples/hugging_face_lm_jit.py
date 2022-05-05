@@ -37,4 +37,4 @@ for hf_model in models:
         (test_input,),
         jit_trace=True,
     )
-    shark_module.forward((test_input,))
+    shark_module.benchmark_forward((test_input,))

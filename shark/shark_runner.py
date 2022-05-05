@@ -19,6 +19,7 @@ from shark.functorch_utils import AOTModule
 from shark.parser import shark_args
 from shark.backward_makefx import MakeFxModule
 from tqdm import tqdm
+import time
 
 
 class SharkRunner:
@@ -84,6 +85,20 @@ class SharkInference:
 
         self.shark_runner = SharkRunner(self.model, self.input, dynamic,
                                         self.device, jit_trace, from_aot)
+
+    def benchmark_forward(self, inputs):
+        inputs = self.input if self.from_aot else inputs
+        input_list = [x.detach().numpy() for x in inputs]
+        for i in range(shark_args.num_warmup_iterations):
+            self.shark_runner.forward(input_list)
+
+        for i in range(shark_args.num_iterations):
+            begin = time.time()
+            out = self.shark_runner.forward(input_list)
+            end = time.time()
+            print("Iteration " + str(i) + ": " + str(end - begin))
+            if i == shark_args.num_iterations - 1:
+                return out
 
     def forward(self, inputs):
         # TODO Capture weights and inputs in case of AOT, Also rework the

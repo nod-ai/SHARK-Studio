@@ -29,7 +29,7 @@ input = torch.randn(10, 10)
 labels = torch.randn(10, 2)
 
 # shark_module = SharkInference(NeuralNet(), (input,), from_aot=True)
-# results = shark_module.forward((input,))
+# results = shark_module.benchmark_forward((input,))
 
 shark_module = SharkTrainer(NeuralNet(), (input,), (labels,), from_aot=True)
 results = shark_module.train((input,))
