@@ -58,10 +58,10 @@ class MakeFxModule:
         fx_g = make_fx(self.custom_inference_fn)(dict(
             self.model.named_parameters()), dict(self.model.named_buffers()),
                                                  self.inputs)
-        fx_g = self.change_fx_graph_return_to_tuple(fx_g)
         fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
         fx_g.recompile()
+        fx_g = self.change_fx_graph_return_to_tuple(fx_g)
         ts_g = torch.jit.script(fx_g)
-        print(ts_g.graph)
-        self.backward_graph = ts_g
-        return ts_g
+        ts_g.save("hello.ts")
+        new_ts = torch.jit.load("hello.ts")
+        self.backward_graph = new_ts

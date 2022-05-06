@@ -19,8 +19,6 @@ def get_sorted_params(named_params):
 
 inp = (torch.randn(3, 3),)
 
-# optim = torch.optim.SGD(get_sorted_params(dict(mod.named_parameters())), lr=0.01)
-
 def forward(params, buffers, args):
     params_and_buffers = {**params, **buffers}
     _stateless.functional_call(mod, params_and_buffers, args, {}).sum().backward()
@@ -28,4 +26,11 @@ def forward(params, buffers, args):
     optim.step()
     return params, buffers
 
+print(dict(mod.named_parameters()))
+
+fx_graph = forward(dict(mod.named_parameters()),
+                            dict(mod.named_buffers()), inp)
+
 shark_module = SharkTrainer(mod, inp, custom_inference_fn=forward)
+
+print(shark_module.forward())
