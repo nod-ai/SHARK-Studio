@@ -121,9 +121,12 @@ class SharkTrainer:
         self.input = [
             i[1] for i in sorted(dict(model.named_parameters()).items())
         ]
-        print(self.input)
+        for i in sorted(dict(model.named_buffers()).items()):
+            self.input.append(i[1])
+
         for i in input:
             self.input.append(i)
+
         self.shark_runner = SharkRunner(self.model, self.input, dynamic,
                                         self.device, jit_trace, from_aot)
 

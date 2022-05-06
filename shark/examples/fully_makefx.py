@@ -26,7 +26,6 @@ def forward(params, buffers, args):
     optim.step()
     return params, buffers
 
-print(dict(mod.named_parameters()))
 
 fx_graph = forward(dict(mod.named_parameters()),
                             dict(mod.named_buffers()), inp)
