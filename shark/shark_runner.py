@@ -117,17 +117,19 @@ class SharkTrainer:
         aot_module.generate_graph()
         self.model = aot_module.backward_graph
 
+
         self.input = [
             i[1] for i in sorted(dict(model.named_parameters()).items())
         ]
+        print(self.input)
         for i in input:
             self.input.append(i)
         self.shark_runner = SharkRunner(self.model, self.input, dynamic,
                                         self.device, jit_trace, from_aot)
 
-    def forward(self, inputs):
+    def forward(self):
         # TODO Capture weights and inputs in case of AOT, Also rework the
         # forward pass.
-        inputs = self.input if self.from_aot else inputs
-        input_list = [x.detach().numpy() for x in inputs]
+        # inputs = self.input if self.from_aot else inputs
+        input_list = [x.detach().numpy() for x in self.input]
         return self.shark_runner.forward(input_list)
