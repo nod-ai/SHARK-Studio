@@ -36,16 +36,14 @@ parser.add_argument(
     "Directory to which module files will be saved for reproduction or debugging.",
     type=dir_path,
     default="/tmp/")
-parser.add_argument(
-    "--save_mlir",
-    default=False,
-    action="store_true",
-    help="Saves input MLIR module to /tmp/ directory.")
-parser.add_argument(
-    "--save_vmfb",
-    default=False,
-    action="store_true",
-    help="Saves iree .vmfb module to /tmp/ directory.")
+parser.add_argument("--save_mlir",
+                    default=False,
+                    action="store_true",
+                    help="Saves input MLIR module to /tmp/ directory.")
+parser.add_argument("--save_vmfb",
+                    default=False,
+                    action="store_true",
+                    help="Saves iree .vmfb module to /tmp/ directory.")
 parser.add_argument(
     "--num_warmup_iterations",
     type=int,
