@@ -13,10 +13,7 @@
 # limitations under the License.
 
 import torch
-from functorch.compile import (
-    aot_module,
-    memory_efficient_fusion,
-)
+from torch._decomp import get_decompositions
 from functorch import make_fx
 from torch.nn.utils import _stateless
 
@@ -55,9 +52,14 @@ class MakeFxModule:
         return fx_g
 
     def generate_graph(self):
-        fx_g = make_fx(self.custom_inference_fn)(dict(
-            self.model.named_parameters()), dict(self.model.named_buffers()),
-                                                 self.inputs)
+        fx_g = make_fx(self.custom_inference_fn,
+                       decomposition_table=get_decompositions([
+                           torch.ops.aten.embedding_dense_backward,
+                           torch.ops.aten.native_layer_norm_backward,
+                           torch.ops.aten.slice_backward,
+                           torch.ops.aten.select_backward
+                       ]))(dict(self.model.named_parameters()),
+                           dict(self.model.named_buffers()), self.inputs)
         fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
         fx_g.recompile()
         fx_g = self.change_fx_graph_return_to_tuple(fx_g)

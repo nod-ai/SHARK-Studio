@@ -117,7 +117,6 @@ class SharkTrainer:
         aot_module.generate_graph()
         self.model = aot_module.backward_graph
 
-
         self.input = [
             i[1] for i in sorted(dict(model.named_parameters()).items())
         ]
