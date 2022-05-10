@@ -37,9 +37,6 @@ shark_module = SharkInference(
 result = shark_module.forward(inputs)
 ```
 
-### Shark Trainer API
-
-#### Work in Progress
 
 
 ### Model Tracking (Shark Inference)
@@ -75,3 +72,10 @@ result = shark_module.forward(inputs)
 | RAFT               | :x: (JIT)            |          |          |             |
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
+
+### Shark Trainer API
+
+| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :x:           | :x:         |          |             |
+| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
