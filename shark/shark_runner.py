@@ -18,6 +18,7 @@ import os
 from shark.functorch_utils import AOTModule
 from shark.parser import shark_args
 from shark.backward_makefx import MakeFxModule
+from tqdm import tqdm
 
 
 class SharkRunner:
@@ -106,7 +107,7 @@ class SharkTrainer:
         custom_inference_fn=None,
     ):
         self.model = model
-        self.input = input
+        self.input = []
         self.from_aot = from_aot
 
         self.device = device if device is not None else shark_args.device
@@ -117,21 +118,26 @@ class SharkTrainer:
         aot_module.generate_graph()
         self.model = aot_module.backward_graph
 
-        self.input = [
+        self.weights = [
             i[1] for i in sorted(dict(model.named_parameters()).items())
         ]
         for i in sorted(dict(model.named_buffers()).items()):
-            self.input.append(i[1])
+            self.weights.append(i[1])
 
         for i in input:
             self.input.append(i)
 
-        self.shark_runner = SharkRunner(self.model, self.input, dynamic,
-                                        self.device, jit_trace, from_aot)
+        self.shark_runner = SharkRunner(self.model, self.weights + self.input,
+                                        dynamic, self.device, jit_trace,
+                                        from_aot)
 
-    def forward(self):
-        # TODO Capture weights and inputs in case of AOT, Also rework the
-        # forward pass.
-        # inputs = self.input if self.from_aot else inputs
-        input_list = [x.detach().numpy() for x in self.input]
-        return self.shark_runner.forward(input_list)
+    def train(self, num_iters = 1):
+        """Returns the updated weights after num_iters"""
+        weights = [x.detach().numpy() for x in self.weights]
+        inputs = [x.detach().numpy() for x in self.input]
+
+        print(f"Training started for {num_iters} iterations:")
+        for i in tqdm(range(num_iters)):
+            weights = self.shark_runner.forward(weights + inputs)
+
+        return weights
