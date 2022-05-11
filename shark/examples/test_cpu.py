@@ -116,3 +116,12 @@ def test_minilm():
     )
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
+
+def test_squeezenet():
+    model, input, act_out = get_vision_model(models.squeezenet1_0(pretrained = True))
+    shark_module = SharkInference(
+        model,
+        (input,),
+    )
+    results = shark_module.forward((input,))
+    assert True == compare_tensors(act_out, results)
