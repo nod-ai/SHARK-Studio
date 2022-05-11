@@ -1,0 +1,3 @@
+[submodule "inference/thirdparty/SHARK"]
+	path = inference/thirdparty/SHARK
+	url = https://github.com/NodLabs/SHARK.git
