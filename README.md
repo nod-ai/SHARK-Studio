@@ -62,7 +62,7 @@ result = shark_module.forward(inputs)
 | Resnet50           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
 | Resnext50_32x4d    | :heavy_check_mark: (Script)         |          |          |             |
 | ShuffleNet_v2      | :x: (Script)         |          |          |             |
-| SqueezeNet         | :x: (Script)         |          |          |             |
+| SqueezeNet         | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
 | EfficientNet       | :heavy_check_mark: (Script)         |          |          |             |
 | Regnet             | :heavy_check_mark: (Script)         |          |          |             |
 | Resnest            | :x: (Script)         |          |          |             |
