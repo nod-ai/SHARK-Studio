@@ -95,7 +95,7 @@ target_include_directories(
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_BINARY_DIR}/lib/cmake/mlir")
 
-add_subdirectory(thirdparty/SHARK EXCLUDE_FROM_ALL)
+add_subdirectory(thirdparty/shark-runtime EXCLUDE_FROM_ALL)
 
 target_link_libraries(triton-dshark-backend PRIVATE iree_base_base
   iree_hal_hal
