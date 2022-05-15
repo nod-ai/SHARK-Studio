@@ -13,20 +13,20 @@ if [ -z "$PYTHON" ]; then
   PYTHON="$(which python3)"
 fi
 
-PYTHON_VERSION_X_Y=`${PYTHON} -c 'import sys; version=sys.version_info[:2]; print("{0}.{1}".format(*version))'`
-
-echo "Setting up venv dir: $VENV_DIR"
-echo "Python: $PYTHON"
-echo "Python version: $PYTHON_VERSION_X_Y"
-
 function die() {
   echo "Error executing command: $*"
   exit 1
 }
 
+PYTHON_VERSION_X_Y=`${PYTHON} -c 'import sys; version=sys.version_info[:2]; print("{0}.{1}".format(*version))'`
+
+echo "Python: $PYTHON"
+echo "Python version: $PYTHON_VERSION_X_Y"
+
 if [[ -z "${CONDA_PREFIX}" ]]; then
   # Not a conda env. So create a new VENV dir
-  echo "Using pip venv.. "
+  VENV_DIR=${VENV_DIR:-shark.venv}
+  echo "Using pip venv.. Setting up venv dir: $VENV_DIR"
   $PYTHON -m venv "$VENV_DIR" || die "Could not create venv."
   source "$VENV_DIR/bin/activate" || die "Could not activate venv"
 else
