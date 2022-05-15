@@ -29,6 +29,7 @@ if [[ -z "${CONDA_PREFIX}" ]]; then
   echo "Using pip venv.. Setting up venv dir: $VENV_DIR"
   $PYTHON -m venv "$VENV_DIR" || die "Could not create venv."
   source "$VENV_DIR/bin/activate" || die "Could not activate venv"
+  PYTHON="$(which python3)"
 else
   echo "Found conda env $CONDA_DEFAULT_ENV. Running pip install inside the conda env"
 fi
