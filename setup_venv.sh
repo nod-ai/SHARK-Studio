@@ -10,7 +10,7 @@
 
 TD="$(cd $(dirname $0) && pwd)"
 if [ -z "$PYTHON" ]; then
-  PYTHON="$(which $PYTHON3)"
+  PYTHON="$(which python3)"
 fi
 
 PYTHON_VERSION_X_Y=`${PYTHON} -c 'import sys; version=sys.version_info[:2]; print("{0}.{1}".format(*version))'`
