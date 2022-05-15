@@ -1,8 +1,13 @@
-# Shark Runner
+#SHARK
 
-The Shark Runner provides inference and training APIs to run deep learning models on Shark Runtime.
 
-# How to configure.
+## Communication Channels
+
+*   [GitHub issues](https://github.com/NodLabs/SHARK/issues): Feature requests, bugs etc
+*   [Nod.ai SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the nod.ai team and other users
+
+
+# Installation
 
 ## Check out the code
 
@@ -21,6 +26,13 @@ git clone https://github.com/NodLabs/dSHARK.git
 ```shell
 python -m  shark.examples.resnet50_script --device="cpu" # Use gpu | vulkan
 ```
+
+
+### Run all tests on CPU
+```shell
+pytest
+```
+
 
 ### Shark Inference API
 
@@ -79,3 +91,23 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :x:           | :x:         |          |             |
 | FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+
+
+#### Related Project Channels
+
+*   [Upstream IREE issues](https://github.com/google/iree/issues): Feature requests,
+    bugs, and other work tracking
+*   [Upstream IREE Discord server](https://discord.gg/26P4xW4): Daily development
+    discussions with the core team and collaborators
+*   [iree-discuss email list](https://groups.google.com/forum/#!forum/iree-discuss):
+    Announcements, general and low-priority discussion
+*   [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31):
+    IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org). IREE
+    sometimes is referred to in certain MLIR discussions. Useful if you are also
+    interested in MLIR evolution.
+    
+    
+## License
+
+nod.ai SHARK is licensed under the terms of the Apache 2.0 License with LLVM Exceptions.
+See [LICENSE](LICENSE) for more information.
