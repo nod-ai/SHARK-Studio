@@ -87,7 +87,7 @@ else
 fi
 if [[ -z "${USE_IREE}" ]]; then
   echo "Installing SHARK..."
-  $PYTHON -m pip install --find-links https://github.com/NodLabs/SHARK-Runtime/releases iree-compiler iree-runtime
+  $PYTHON -m pip install --find-links https://github.com/nod-ai/SHARK-Runtime/releases iree-compiler iree-runtime
   if [ $? -eq 0 ];then
     echo "Successfully Installed SHARK Runtime"
   else
@@ -107,8 +107,8 @@ fi
 
 $PYTHON -m pip install transformers
 $PYTHON -m pip install git+https://github.com/pytorch/functorch.git
-$PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/NodLabs/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-$PYTHON -m pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/NodLabs/SHARK-Runtime/releases
+$PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/nod-ai/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+$PYTHON -m pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
 
 if [[ -z "${CONDA_PREFIX}" ]]; then
   echo "${Green}Before running examples activate venv with:"
