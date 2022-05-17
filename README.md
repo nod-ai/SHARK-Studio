@@ -28,7 +28,7 @@ python -m  shark.examples.resnet50_script --device="cpu" # Use gpu | vulkan
 ```
 
 
-### Run all tests on CPU
+### Run all tests on CPU/GPU/VULKAN
 ```shell
 pytest
 ```
