@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: Python package
+name: Nightly Release
 
 on:
   schedule:
@@ -26,7 +26,7 @@ jobs:
     - name: Compute version
       run: |
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
-        tag_name="snapshot-${package_version}"
+        tag_name="${package_version}"
         echo "package_version=${package_version}" >> $GITHUB_ENV
         echo "tag_name=${tag_name}" >> $GITHUB_ENV    
     - name: Create Release
@@ -36,7 +36,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         tag_name: ${{ env.tag_name }}
-        release_name: nod.ai SHARK snapshot ${{ env.tag_name }}
+        release_name: nod.ai SHARK ${{ env.tag_name }}
         body: |
           Automatic snapshot release of nod.ai SHARK.
         draft: true
