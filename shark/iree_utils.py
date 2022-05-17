@@ -19,11 +19,38 @@ import numpy as np
 import os
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
 
-IREE_DEVICE_MAP = {"cpu": "dylib", "gpu": "cuda", "vulkan": "vulkan"}
+IREE_DEVICE_MAP = {
+    "cpu": "dylib",
+    "gpu": "cuda",
+    "cuda": "cuda",
+    "vulkan": "vulkan",
+    "metal": "vulkan"
+}
+
+
+def check_device_drivers(device):
+    """Checks necessary drivers present for gpu and vulkan devices"""
+    if (device in ["gpu", "cuda"]):
+        try:
+            subprocess.check_output('nvidia-smi')
+        except Exception:
+            return True
+    elif (device in ["metal", "vulkan"]):
+        try:
+            subprocess.check_output('vulkaninfo')
+        except Exception:
+            return True
+    elif (device == "cpu"):
+        return False
+    # Unknown device.
+    else:
+        return True
+
+    return False
 
 
 def get_iree_compiled_module(module, device: str):
-    """TODO: Documentation"""
+    """Given an mlir module returns the compiled .vmfb"""
     args = ["--iree-llvm-target-cpu-features=host"]
     if (device == "cpu"):
         find_triple_cmd = "uname -s -m"
@@ -65,7 +92,7 @@ def export_iree_module_to_vmfb(module, device: str, directory: str):
 
 
 def get_results(compiled_vm, input, config):
-    """TODO: Documentation"""
+    """Runs a .vmfb file given inputs and config and returns output."""
     device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
     result = compiled_vm(*device_inputs)
     result_tensors = []
