@@ -78,29 +78,15 @@ def compare_tensors(torch_tensor, numpy_tensor):
 
 #############################   Model Tests ####################################
 
-# Please remove the skip flag to run the test with required param.
+# A specific case can be run with -m parameter. For eg., to run gpu - static 
+# case for all models it can be run by `pytest -m gpu_static` command.
 pytest_param = pytest.mark.parametrize(('dynamic', 'device'), [
-    pytest.param(False, 'cpu'),
-    pytest.param(
-        True,
-        'cpu',
-        marks=pytest.mark.skip(reason="dynamic-shape is not supported.")),
-    pytest.param(
-        False,
-        'gpu',
-        marks=pytest.mark.skip(reason="device in the CI not supported.")),
-    pytest.param(
-        True,
-        'gpu',
-        marks=pytest.mark.skip(reason="device in the CI not supported.")),
-    pytest.param(
-        False,
-        'vulkan',
-        marks=pytest.mark.skip(reason="device in the CI not supported.")),
-    pytest.param(
-        True,
-        'vulkan',
-        marks=pytest.mark.skip(reason="device in the CI not supported.")),
+    pytest.param(False, 'cpu', marks=pytest.mark.cpu_static),
+    pytest.param(True, 'cpu', marks=pytest.mark.cpu_dynamic),
+    pytest.param(False, 'gpu', marks=pytest.mark.gpu_static),
+    pytest.param(True, 'gpu', marks=pytest.mark.gpu_dynamic),
+    pytest.param(False, 'vulkan', marks=pytest.mark.vulkan_static),
+    pytest.param(True, 'vulkan', marks=pytest.mark.vulkan_dynamic),
 ])
 
 
