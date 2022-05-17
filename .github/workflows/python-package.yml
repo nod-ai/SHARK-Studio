@@ -4,10 +4,8 @@
 name: Python package
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  schedule:
+    - cron: '0 5,13 * * *'
   workflow_dispatch:
 
 jobs:
@@ -25,6 +23,25 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Compute version
+      run: |
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+        package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
+        tag_name="snapshot-${package_version}"
+        echo "package_version=${package_version}" >> $GITHUB_ENV
+        echo "tag_name=${tag_name}" >> $GITHUB_ENV    
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.WORKFLOW_INVOCATION_TOKEN }}
+      with:
+        tag_name: ${{ env.tag_name }}
+        release_name: nod.ai SHARK snapshot ${{ env.tag_name }}
+        body: |
+          Automatic snapshot release of nod.ai SHARK.
+        draft: true
+        prerelease: false        
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -41,3 +58,19 @@ jobs:
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
         pip wheel -v -w wheelhouse . --extra-index-url https://download.pytorch.org/whl/nightly/cpu  -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
+    - name: Upload Release Assets
+      id: upload-release-assets
+      uses: dwenegar/upload-release-assets@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
+        assets_path: ./wheelhouse/nodai_*.whl
+
+    - name: Publish Release
+      id: publish_release
+      uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
