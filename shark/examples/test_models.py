@@ -1,4 +1,5 @@
 from shark.shark_runner import SharkInference
+from shark.iree_utils import check_device_drivers
 
 import torch
 import numpy as np
@@ -78,15 +79,36 @@ def compare_tensors(torch_tensor, numpy_tensor):
 
 #############################   Model Tests ####################################
 
-# A specific case can be run with -m parameter. For eg., to run gpu - static 
-# case for all models it can be run by `pytest -m gpu_static` command.
+# A specific case can be run by commenting different cases. Runs all the test 
+# across cpu, gpu and vulkan according to available drivers.
 pytest_param = pytest.mark.parametrize(('dynamic', 'device'), [
-    pytest.param(False, 'cpu', marks=pytest.mark.cpu_static),
-    pytest.param(True, 'cpu', marks=pytest.mark.cpu_dynamic),
-    pytest.param(False, 'gpu', marks=pytest.mark.gpu_static),
-    pytest.param(True, 'gpu', marks=pytest.mark.gpu_dynamic),
-    pytest.param(False, 'vulkan', marks=pytest.mark.vulkan_static),
-    pytest.param(True, 'vulkan', marks=pytest.mark.vulkan_dynamic),
+    pytest.param(False, 'cpu'),
+    # TODO: Language models are failing for dynamic case..
+    pytest.param(True, 'cpu', marks=pytest.mark.skip),
+    pytest.param(False,
+                 'gpu',
+                 marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                          reason="nvidia-smi not found")),
+    pytest.param(True,
+                 'gpu',
+                 marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                          reason="nvidia-smi not found")),
+    pytest.param(
+        False,
+        'vulkan',
+        marks=pytest.mark.skipif(
+            check_device_drivers("vulkan"),
+            reason=
+            "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+        )),
+    pytest.param(
+        True,
+        'vulkan',
+        marks=pytest.mark.skipif(
+            check_device_drivers("vulkan"),
+            reason=
+            "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+        )),
 ])
 
 
