@@ -146,7 +146,7 @@ class SharkTrainer:
                                         dynamic, self.device, jit_trace,
                                         from_aot)
 
-    def train(self, num_iters = 1):
+    def train(self, num_iters=1):
         """Returns the updated weights after num_iters"""
         weights = [x.detach().numpy() for x in self.weights]
         inputs = [x.detach().numpy() for x in self.input]

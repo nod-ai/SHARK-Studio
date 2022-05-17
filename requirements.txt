@@ -10,4 +10,5 @@ pybind11
 wheel
 ninja
 pytest
+pytest-parallel
 
