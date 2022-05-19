@@ -1056,17 +1056,11 @@ ModelInstanceState::SetInputTensors(
 
     std::string tstr;
 
-    [[maybe_unused]] const uint64_t* vals = reinterpret_cast<const uint64_t*>(input_buffer);
-    [[maybe_unused]] uint64_t x = vals[0];
-    IREE_LOG(INFO) << std::to_string(x);
-
     RETURN_IF_ERROR(BufferAsTypedString(
       tstr, input_buffer, batchn_byte_size,
       input_datatype));
 
     std::string type_str;
-
-    //TRITONSERVER_DataType input_datatype = model_state_-> InputTensorDataType();
 
     switch (input_datatype)
     {
@@ -1105,8 +1099,6 @@ ModelInstanceState::SetInputTensors(
     tstr.erase(remove(tstr.begin(), tstr.end(), ','), tstr.end());
 
     tstr = input_shape_str + type_str + "=" + tstr;
-
-    IREE_LOG(INFO) << (tstr);
 
     input_strings.push_back(tstr);
   }
@@ -1460,4 +1452,3 @@ TRITONBACKEND_ModelInstanceExecute(
 }  // extern "C"
 
 }}}  // namespace triton::backend::dshark
-
