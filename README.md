@@ -3,7 +3,7 @@
 
 ## Communication Channels
 
-*   [GitHub issues](https://github.com/NodLabs/SHARK/issues): Feature requests, bugs etc
+*   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 *   [Nod.ai SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the nod.ai team and other users
 
 
@@ -12,7 +12,7 @@
 ## Check out the code
 
 ```shell
-git clone https://github.com/NodLabs/dSHARK.git 
+git clone https://github.com/nod-ai/SHARK.git 
 ```
 
 ## Setup your Python VirtualEnvironment and Dependencies
