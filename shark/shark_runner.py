@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file
+from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file, run_on_refbackend
 from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
 import os
 from shark.functorch_utils import AOTModule
@@ -23,7 +23,7 @@ import time
 
 
 class SharkRunner:
-    """TODO: Write the description"""
+    """Base class for Shark Inference and Shark Runner."""
 
     def __init__(
         self,
@@ -54,6 +54,10 @@ class SharkRunner:
     def forward(self, input):
         return get_results(self.iree_compilation_module, input,
                            self.iree_config)
+
+    # Refbackend is used only for debugging purpose. It can be quite slow.
+    def run_on_refbackend(self, input):
+        return run_on_refbackend(self.torch_mlir_module, input)
 
 
 class SharkInference:
@@ -106,6 +110,9 @@ class SharkInference:
         inputs = self.input if self.from_aot else inputs
         input_list = [x.detach().numpy() for x in inputs]
         return self.shark_runner.forward(input_list)
+
+    def run_on_refbackend(self, inputs):
+        self.shark_runner.run_on_refbackend(inputs)
 
 
 class SharkTrainer:

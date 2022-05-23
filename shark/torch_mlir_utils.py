@@ -27,6 +27,8 @@ from torch_mlir_e2e_test.torchscript.serialization import (
     extract_serializable_annotations, apply_serializable_annotations,
     SerializableTest)
 
+from torch_mlir_e2e_test.linalg_on_tensors_backends import refbackend
+
 from torch_mlir.passmanager import PassManager
 from torch_mlir_e2e_test.torchscript.annotations import annotate_args, export
 from torch_mlir.ir import StringAttr
@@ -66,6 +68,12 @@ def get_input_annotations(inputs: tuple, dynamic: bool) -> list:
         annotations_list.append(tuple(temp_list))
     return annotations_list
 
+def run_on_refbackend(torch_module, inputs):
+    backend = refbackend.RefBackendLinalgOnTensorsBackend()
+    compiled = backend.compile(torch_module)
+    jit_module = backend.load(compiled)
+    np_inputs = [x.numpy() for x in inputs]
+    return jit_module.forward(np_inputs[0])
 
 def shark_jit_trace(module, input: tuple, dynamic: bool,
                     tracing_required: bool):
