@@ -52,7 +52,7 @@ def check_device_drivers(device):
 def get_iree_compiled_module(module, device: str):
     """Given an mlir module returns the compiled .vmfb"""
     args = ["--iree-llvm-target-cpu-features=host"]
-    if (device == "cpu"):
+    if device == "cpu":
         find_triple_cmd = "uname -s -m"
         os_name, proc_name = subprocess.run(
             find_triple_cmd, shell=True, stdout=subprocess.PIPE,
@@ -71,6 +71,12 @@ def get_iree_compiled_module(module, device: str):
             raise Exception(error_message)
         print(f"Target triple found:{target_triple}")
         args.append(f"-iree-llvm-target-triple={target_triple}")
+
+    if device == "gpu":
+        args += ["--iree-cuda-llvm-target-arch=sm_80", "--iree-hal-cuda-disable-loop-nounroll-wa"]
+        ireert.flags.FUNCTION_INPUT_VALIDATION = False
+        ireert.flags.parse_flags("--cuda_allow_inline_execution")
+
     flatbuffer_blob = ireec.compile_str(
         str(module), target_backends=[IREE_DEVICE_MAP[device]], extra_args=args)
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
