@@ -140,10 +140,10 @@ class SharkTrainer:
         self.model = aot_module.backward_graph
 
         self.weights = [
-            i[1] for i in sorted(dict(model.named_parameters()).items())
+            i.detach() for i in model.parameters()
         ]
-        for i in sorted(dict(model.named_buffers()).items()):
-            self.weights.append(i[1])
+        for i in model.buffers():
+            self.weights.append(i.detach())
 
         for i in input:
             self.input.append(i)

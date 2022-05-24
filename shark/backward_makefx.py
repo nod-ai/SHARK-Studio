@@ -19,6 +19,7 @@ from torch.nn.utils import _stateless
 
 from torch import fx
 import copy
+import tempfile
 
 
 class MakeFxModule:
@@ -64,6 +65,8 @@ class MakeFxModule:
         fx_g.recompile()
         fx_g = self.change_fx_graph_return_to_tuple(fx_g)
         ts_g = torch.jit.script(fx_g)
-        ts_g.save("hello.ts")
-        new_ts = torch.jit.load("hello.ts")
+        temp=tempfile.NamedTemporaryFile(suffix='_heavy_dep',
+                                 prefix='temp_ts_')
+        ts_g.save(temp.name)
+        new_ts = torch.jit.load(temp.name)
         self.backward_graph = new_ts
