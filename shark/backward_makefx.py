@@ -14,7 +14,7 @@
 
 import torch
 from torch._decomp import get_decompositions
-from functorch import make_fx
+from torch.fx.experimental.proxy_tensor import make_fx
 from torch.nn.utils import _stateless
 
 from torch import fx
