@@ -55,4 +55,4 @@ parser.add_argument(
     default=1,
     help="Run the model for the specified number of iterations.")
 
-shark_args = parser.parse_args()
+shark_args, unknown = parser.parse_known_args()
