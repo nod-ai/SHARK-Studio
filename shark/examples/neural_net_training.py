@@ -1,6 +1,4 @@
 import torch
-from functorch.compile import aot_function, nop
-from functorch import make_fx
 from torch.nn.utils import _stateless
 from shark.shark_runner import SharkTrainer
 

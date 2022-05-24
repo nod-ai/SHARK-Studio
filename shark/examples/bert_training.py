@@ -1,5 +1,4 @@
 import torch
-from functorch import make_fx
 from torch.nn.utils import _stateless
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from shark.shark_runner import SharkTrainer
