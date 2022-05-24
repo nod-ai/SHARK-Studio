@@ -73,7 +73,7 @@ def get_iree_compiled_module(module, device: str):
         args.append(f"-iree-llvm-target-triple={target_triple}")
 
     if device == "gpu":
-        args += ["--iree-cuda-llvm-target-arch=sm_80", "--iree-hal-cuda-disable-loop-nounroll-wa"]
+        args += ["--iree-hal-cuda-disable-loop-nounroll-wa"]
         ireert.flags.FUNCTION_INPUT_VALIDATION = False
         ireert.flags.parse_flags("--cuda_allow_inline_execution")
 

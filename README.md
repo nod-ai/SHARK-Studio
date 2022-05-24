@@ -70,17 +70,17 @@ result = shark_module.forward(inputs)
 | MobileNetV2        | :heavy_check_mark: (Script)         |          |          |             |
 | MobileNetV3        | :heavy_check_mark: (Script)         |          |          |             |
 | Unet               | :x: (Script)         |          |          |             |
-| Resnet18           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
-| Resnet50           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
+| Resnet18           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |  :heavy_check_mark:        |             |
+| Resnet50           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
 | Resnext50_32x4d    | :heavy_check_mark: (Script)         |          |          |             |
 | ShuffleNet_v2      | :x: (Script)         |          |          |             |
-| SqueezeNet         | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
+| SqueezeNet         | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
 | EfficientNet       | :heavy_check_mark: (Script)         |          |          |             |
 | Regnet             | :heavy_check_mark: (Script)         |          |          |             |
 | Resnest            | :x: (Script)         |          |          |             |
 | Vision Transformer | :heavy_check_mark: (Script)         |          |          |             |
 | VGG 16             | :heavy_check_mark: (Script)         |          |          |             |
-| Wide Resnet        | :heavy_check_mark: (Script)         | :heavy_check_mark:         |          |             |
+| Wide Resnet        | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
 | RAFT               | :x: (JIT)            |          |          |             |
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
