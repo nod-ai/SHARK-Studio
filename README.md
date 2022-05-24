@@ -32,8 +32,8 @@ python -m  shark.examples.resnet50_script --device="cpu" # Use gpu | vulkan
 ```shell
 pytest
 
-# If on Mac OS:
-pytest -c pytest-mac.ini
+# If on Linux for quicker results:
+pytest --workers auto
 ```
 
 

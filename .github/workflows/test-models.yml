@@ -30,4 +30,4 @@ jobs:
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest
+        pytest --workers auto
