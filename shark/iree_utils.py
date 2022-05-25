@@ -72,10 +72,13 @@ def get_iree_compiled_module(module, device: str):
         print(f"Target triple found:{target_triple}")
         args.append(f"-iree-llvm-target-triple={target_triple}")
 
-    if device == "gpu":
+    if device in ["gpu", "cuda"]:
         args += ["--iree-hal-cuda-disable-loop-nounroll-wa"]
         ireert.flags.FUNCTION_INPUT_VALIDATION = False
         ireert.flags.parse_flags("--cuda_allow_inline_execution")
+
+    if device in ["vulkan", "metal"]:
+        args += ["--iree-flow-demote-i64-to-i32=false", "--iree-flow-demote-f64-to-f32=true"]
 
     flatbuffer_blob = ireec.compile_str(
         str(module), target_backends=[IREE_DEVICE_MAP[device]], extra_args=args)
