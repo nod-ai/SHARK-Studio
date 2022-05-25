@@ -13,11 +13,14 @@
 # limitations under the License.
 
 import iree.runtime as ireert
+import iree.runtime.scripts.iree_benchmark_module as benchmark_module
 import iree.compiler as ireec
 from iree.compiler import tf as tfc
+from shark.torch_mlir_utils import get_module_name_for_asm_dump
 import subprocess
 import numpy as np
 import os
+import re
 
 IREE_DEVICE_MAP = {
     "cpu": "dylib",
@@ -27,6 +30,10 @@ IREE_DEVICE_MAP = {
     "metal": "vulkan"
 }
 
+UNIT_TO_SECOND_MAP = {
+    "ms": 0.001,
+    "s": 1
+}
 
 def check_device_drivers(device):
     """Checks necessary drivers present for gpu and vulkan devices"""
@@ -152,6 +159,15 @@ def get_iree_compiled_module(module,
 
     return get_iree_module(module, device, input_type, args, func_name)
 
+def export_iree_module_to_vmfb(module, device: str, directory: str):
+    module_name = get_module_name_for_asm_dump(module)
+    flatbuffer_blob = ireec.compile_str(
+        str(module), target_backends=[IREE_DEVICE_MAP[device]])
+    filename = os.path.join(directory, module_name + ".vmfb")
+    with open(filename, 'wb') as f:
+        f.write(flatbuffer_blob)
+    return filename
+
 
 def get_results(compiled_vm, input, config, frontend="torch"):
     """Runs a .vmfb file given inputs and config and returns output."""
@@ -171,3 +187,69 @@ def get_results(compiled_vm, input, config, frontend="torch"):
         return np.copy(res)
     else:
         return np.copy(np.asarray(result, dtype=result.dtype))
+
+######### Benchmark Related Tools ###########
+
+def tensor_to_type_str(input_tensors : tuple):
+    """
+    Input: A tuple of input tensors i.e tuple(torch.tensor)
+    Output: list of string that represent mlir types (i.e 1x24xf64)
+    # TODO: Support more than floats, and ints
+    """
+    list_of_type = []
+    for input_tensor in input_tensors:
+        type_string = "x".join([str(dim) for dim in input_tensor.shape])
+        dtype_string = str(input_tensor.dtype).replace("torch.","")
+        regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
+        match = regex_split.match(dtype_string)
+        mlir_type_string = str(match.group(1)[0])+str(match.group(2))
+        type_string += f"x{mlir_type_string}"
+        list_of_type.append(type_string)
+    return list_of_type
+
+def build_benchmark_args(input_file : str, device : str, input_tensors : tuple, training=False):
+    """
+    Inputs: input_file leading to vmfb, input_tensor to function, target device, and whether it is training or not.
+    Outputs: string that execute benchmark-module on target model.
+    """
+    path = benchmark_module.__path__[0]
+    benchmarker_path = os.path.join(path, "..", "..", "iree-benchmark-module")
+    benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
+    fn_name = "forward"
+    if training == True:
+        # TODO: Replace name of train with actual train fn name.
+        fn_name = "train"
+    benchmark_cl.append(f"--entry_function={fn_name}")
+    benchmark_cl.append(f"--driver={IREE_DEVICE_MAP[device]}")
+    mlir_input_types = tensor_to_type_str(input_tensors)
+    for mlir_input in mlir_input_types:
+        benchmark_cl.append(f"--function_input={mlir_input}")
+    time_extractor = "| awk \'END{{print $2 $3}}\'"
+    benchmark_cl.append(time_extractor)
+    return benchmark_cl
+
+def run_cmd(cmd):
+    """
+    Inputs: cli command string.
+    """
+    try:
+        result = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        result_str = result.stdout.decode()
+        return result_str
+    except Exception:
+        sys.exit("Exiting program due to error running:", cmd)
+
+def run_benchmark(benchmark_cl):
+    """
+    Run benchmark command, extract result and return iteration/seconds.
+
+    Input: benchmark command.
+    """
+    benchmark_path = benchmark_cl[0]
+    assert os.path.exists(benchmark_path),"Cannot find benchmark_module, Please contact SHARK maintainer on discord."
+    bench_result = run_cmd(' '.join(benchmark_cl))
+    regex_split = re.compile("([0-9]+[.]*[0-9]*)([a-zA-Z]+)")
+    match = regex_split.match(bench_result)
+    time = float(match.group(1))
+    unit = match.group(2)
+    return 1.0/(time*UNIT_TO_SECOND_MAP[unit])

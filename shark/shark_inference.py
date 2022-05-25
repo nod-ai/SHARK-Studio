@@ -10,11 +10,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
-from shark.iree_utils import get_results, get_iree_compiled_module
 import os
 from shark.parser import shark_args
-from shark.shark_runner import SharkRunner
-from tqdm import tqdm
+from shark.shark_runner import SharkRunner, SharkBenchmarkRunner
 import time
 
 
@@ -28,11 +26,13 @@ class SharkInference:
         device: str = None,
         dynamic: bool = False,
         jit_trace: bool = False,
+        benchmark_mode : bool = False
     ):
         self.model = model
         self.input = input
         self.dynamic = dynamic
         self.jit_trace = jit_trace
+        self.benchmark_mode = benchmark_mode
 
         # By default it's torch frontend.
         self.frontend = "pytorch"
@@ -47,14 +47,12 @@ class SharkInference:
         self.frontend = frontend
 
     def compile(self):
-        if self.frontend in ["pytorch", "torch"]:
-            self.model = get_torch_mlir_module(self.model, self.input,
-                                               self.dynamic, self.jit_trace)
-
-        iree_compilation_module, iree_config = get_iree_compiled_module(
-            self.model, self.device, self.frontend)
-
-        self.shark_runner = SharkRunner(iree_compilation_module, iree_config)
+        # Inference do not use AOT.
+        from_aot = False
+        if(self.benchmark_mode == True):
+            self.shark_runner = SharkBenchmarkRunner(self.model, self.input, self.dynamic, self.device, self.jit_trace, from_aot, self.frontend)
+        else:
+            self.shark_runner = SharkRunner(self.model, self.input, self.dynamic, self.device, self.jit_trace, from_aot, self.frontend)
 
     # inputs are considered to be np.array.
     def forward(self, inputs):
@@ -65,3 +63,14 @@ class SharkInference:
         elif self.frontend in ["tensorflow", "tf"]:
             input_list = [x.numpy() for x in inputs]
         return self.shark_runner.forward(input_list, self.frontend)
+
+    ######### Benchmark Related Functions #########
+    def benchmark_mode(func):
+        def inner(self, *args, **kwargs):
+            assert self.benchmark_mode, "SharkRunner needs to be in benchmark mode to run benchmark methods."
+            return func(self, *args, **kwargs)
+        return inner
+
+    @benchmark_mode
+    def benchmark_all(self, inputs):
+        self.shark_runner.benchmark_all(inputs)
