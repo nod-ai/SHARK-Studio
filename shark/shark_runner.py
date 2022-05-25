@@ -78,14 +78,6 @@ class SharkInference:
 
         self.device = device if device is not None else shark_args.device
 
-        if from_aot:
-            aot_module = AOTModule(model,
-                                   input,
-                                   custom_inference_fn=custom_inference_fn)
-            aot_module.generate_inference_graph()
-            self.model = aot_module.forward_graph
-            self.input = aot_module.forward_inputs
-
         self.shark_runner = SharkRunner(self.model, self.input, dynamic,
                                         self.device, jit_trace, from_aot)
 
