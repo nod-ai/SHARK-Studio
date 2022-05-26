@@ -1,9 +1,10 @@
 import torch
 import torchvision.models as models
-from shark_runner import SharkInference
+from shark.shark_inference import SharkInference
 
 
 class VisionModule(torch.nn.Module):
+
     def __init__(self, model):
         super().__init__()
         self.model = model
@@ -39,4 +40,5 @@ for i, vision_model in enumerate(vision_models_list):
         VisionModule(vision_model),
         (input,),
     )
-    shark_module.benchmark_forward((input,))
+    shark_module.compile()
+    shark_module.forward((input,))
