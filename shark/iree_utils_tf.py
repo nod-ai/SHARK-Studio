@@ -91,5 +91,24 @@ def export_tf_iree_module_to_vmfb(module, device:str, directory: str):
         compiler_module, target_backends=[IREE_DEVICE_MAP[device]], extra_args=args, input_type="mhlo")
     filename = os.path.join(directory, "tf_iree_module.vmfb")
     ##TODO:get module name for assembly dump like in torch.
-    with open(filename, 'wb') as f:
-        f.write(flatbuffer_blob)
+    with open(filename, 'wb') as output_file:
+        output_file.write(flatbuffer_blob)
+        print(f"Wrote vmfb to path '{filename}'")
+        
+def get_results_tf(compiled_vm, input, config):
+    """Runs a .vmfb file given inputs and config and returns output."""
+    device_inputs = input
+    #device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
+
+    result = compiled_vm(*device_inputs)
+    result_tensors = []
+    if (isinstance(result, tuple)):
+        for val in result:
+            result_tensors.append(np.copy(np.asarray(val, val.dtype)))
+        return result_tensors
+    elif (isinstance(result, dict)):
+        data = list(result.items())
+        res = np.array(data, dtype=object)
+        return np.copy(res)
+    else:
+        return np.copy(np.asarray(result, dtype=result.dtype))

@@ -35,4 +35,4 @@ if __name__ == "__main__":
     	(encoded_input["input_ids"], encoded_input["attention_mask"], encoded_input["token_type_ids"])
     )
     
-    shark_module.benchmark_forward((encoded_input["input_ids"], encoded_input["attention_mask"], encoded_input["token_type_ids"]))
+    print(shark_module.forward((encoded_input["input_ids"], encoded_input["attention_mask"], encoded_input["token_type_ids"])))
