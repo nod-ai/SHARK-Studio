@@ -14,10 +14,10 @@
 
 import iree.runtime as ireert
 import iree.compiler as ireec
+from iree.compiler import tf as tfc
 import subprocess
 import numpy as np
 import os
-from shark.torch_mlir_utils import get_module_name_for_asm_dump
 
 IREE_DEVICE_MAP = {
     "cpu": "dylib",
@@ -47,12 +47,15 @@ def check_device_drivers(device):
         return True
 
     return False
+    
+def get_iree_compiled_module_tf(module, device: str):
+    """Given a tf.Module returns the compiled .vmfb"""
+    #Generate module for compiler using IREE
+    compiler_module = tfc.compile_module(module, exported_names = ["forward"], import_only=True)
 
-
-def get_iree_compiled_module(module, device: str):
-    """Given an mlir module returns the compiled .vmfb"""
-    args = ["--iree-llvm-target-cpu-features=host"]
-    if device == "cpu":
+    #Compile the module using IREE
+    args = ["--iree-llvm-target-cpu-features=host", "--iree-mhlo-demote-i64-to-i32=false", "--iree-flow-demote-i64-to-i32"]
+    if (device == "cpu"):
         find_triple_cmd = "uname -s -m"
         os_name, proc_name = subprocess.run(
             find_triple_cmd, shell=True, stdout=subprocess.PIPE,
@@ -67,41 +70,36 @@ def get_iree_compiled_module(module, device: str):
         elif os_name == "Linux":
             target_triple = f"{proc_name}-linux-gnu"
         else:
-            error_message = f"OS Type f{os_name} not supported and triple can't be determined, open issue to dSHARK team please :)"
+            error_message = f"OS Typle f{os_name} not supported and triple can't be determined, open issue to dSHARK team please :)"
             raise Exception(error_message)
         print(f"Target triple found:{target_triple}")
         args.append(f"-iree-llvm-target-triple={target_triple}")
-
-    if device in ["gpu", "cuda"]:
-        args += ["--iree-hal-cuda-disable-loop-nounroll-wa"]
-        ireert.flags.FUNCTION_INPUT_VALIDATION = False
-        ireert.flags.parse_flags("--cuda_allow_inline_execution")
-
-    if device in ["vulkan", "metal"]:
-        args += ["--iree-flow-demote-i64-to-i32=false", "--iree-flow-demote-f64-to-f32=true"]
-
     flatbuffer_blob = ireec.compile_str(
-        str(module), target_backends=[IREE_DEVICE_MAP[device]], extra_args=args)
+        compiler_module, target_backends=[IREE_DEVICE_MAP[device]], extra_args=args, input_type="mhlo")
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
+    #tracer = ireert.Tracer(os.getcwd())
+    #config = ireert.Config(IREE_DEVICE_MAP[device], tracer)
     config = ireert.Config(IREE_DEVICE_MAP[device])
     ctx = ireert.SystemContext(config=config)
-    # TODO add optimisation args.
+    #TODO add optimization args.
     ctx.add_vm_module(vm_module)
     ModuleCompiled = ctx.modules.module["forward"]
     return ModuleCompiled, config
-
-def export_iree_module_to_vmfb(module, device: str, directory: str):
-    module_name = get_module_name_for_asm_dump(module)
+    
+def export_tf_iree_module_to_vmfb(module, device:str, directory: str):
     flatbuffer_blob = ireec.compile_str(
-        str(module), target_backends=[IREE_DEVICE_MAP[device]])
-    filename = os.path.join(directory, module_name + ".vmfb")
-    with open(filename, 'wb') as f:
-        f.write(flatbuffer_blob)
-
-
-def get_results(compiled_vm, input, config):
+        compiler_module, target_backends=[IREE_DEVICE_MAP[device]], extra_args=args, input_type="mhlo")
+    filename = os.path.join(directory, "tf_iree_module.vmfb")
+    ##TODO:get module name for assembly dump like in torch.
+    with open(filename, 'wb') as output_file:
+        output_file.write(flatbuffer_blob)
+        print(f"Wrote vmfb to path '{filename}'")
+        
+def get_results_tf(compiled_vm, input, config):
     """Runs a .vmfb file given inputs and config and returns output."""
-    device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
+    device_inputs = input
+    #device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
+
     result = compiled_vm(*device_inputs)
     result_tensors = []
     if (isinstance(result, tuple)):
