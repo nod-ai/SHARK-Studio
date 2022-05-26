@@ -46,15 +46,15 @@ class EagerModeIREELinalgOnTensorsBackend(TorchMLIREagerBackend):
         self.iree_device_str = IREE_DEVICE_MAP[device]
         self.config = ireert.Config(self.iree_device_str)
 
-    def get_torch_metadata(
-        self, tensor: DeviceArray, kwargs: Dict[str, Any]
-    ) -> TensorMetaData:
+    def get_torch_metadata(self, tensor: DeviceArray,
+                           kwargs: Dict[str, Any]) -> TensorMetaData:
         return TensorMetaData(
             size=tensor.shape,
             dtype=NUMPY_TO_TORCH_DTYPE_DICT[tensor.dtype.type],
             device=torch.device(self.torch_device_str),
-            requires_grad=tensor.dtype.type in {np.float, np.float32, np.float64}
-            and kwargs.get("requires_grad", False),
+            requires_grad=tensor.dtype.type
+            in {np.float, np.float32, np.float64} and
+            kwargs.get("requires_grad", False),
         )
 
     def compile(self, imported_module: Module):
@@ -64,9 +64,9 @@ class EagerModeIREELinalgOnTensorsBackend(TorchMLIREagerBackend):
             "torch-function-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline",
             "EagerMode",
         )
-        callable, _ = get_iree_compiled_module(
-            imported_module, self.iree_device_str, fn_name
-        )
+        callable, _ = get_iree_compiled_module(imported_module,
+                                               self.iree_device_str,
+                                               func_name=fn_name)
         return callable
 
     def copy_into(self, dst, src):
@@ -76,5 +76,6 @@ class EagerModeIREELinalgOnTensorsBackend(TorchMLIREagerBackend):
     def transfer_from_device_to_torch(self, e):
         return torch.from_numpy(e.to_host())
 
-    def transfer_from_torch_to_device(self, tensor: torch.Tensor) -> DeviceArray:
+    def transfer_from_torch_to_device(self,
+                                      tensor: torch.Tensor) -> DeviceArray:
         return iree.runtime.asdevicearray(self.config.device, tensor.numpy())

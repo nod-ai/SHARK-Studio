@@ -1,4 +1,4 @@
-from shark.shark_runner import SharkInference
+from shark.shark_inference import SharkInference
 from shark.iree_utils import check_device_drivers
 
 import torch
@@ -79,37 +79,39 @@ def compare_tensors(torch_tensor, numpy_tensor):
 
 #############################   Model Tests ####################################
 
-# A specific case can be run by commenting different cases. Runs all the test 
+# A specific case can be run by commenting different cases. Runs all the test
 # across cpu, gpu and vulkan according to available drivers.
-pytest_param = pytest.mark.parametrize(('dynamic', 'device'), [
-    pytest.param(False, 'cpu'),
-    # TODO: Language models are failing for dynamic case..
-    pytest.param(True, 'cpu', marks=pytest.mark.skip),
-    pytest.param(False,
-                 'gpu',
-                 marks=pytest.mark.skipif(check_device_drivers("gpu"),
-                                          reason="nvidia-smi not found")),
-    pytest.param(True,
-                 'gpu',
-                 marks=pytest.mark.skipif(check_device_drivers("gpu"),
-                                          reason="nvidia-smi not found")),
-    pytest.param(
-        False,
-        'vulkan',
-        marks=pytest.mark.skipif(
-            check_device_drivers("vulkan"),
-            reason=
-            "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
-        )),
-    pytest.param(
-        True,
-        'vulkan',
-        marks=pytest.mark.skipif(
-            check_device_drivers("vulkan"),
-            reason=
-            "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
-        )),
-])
+pytest_param = pytest.mark.parametrize(
+    ('dynamic', 'device'),
+    [
+        pytest.param(False, 'cpu'),
+        # TODO: Language models are failing for dynamic case..
+        pytest.param(True, 'cpu', marks=pytest.mark.skip),
+        pytest.param(False,
+                     'gpu',
+                     marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                              reason="nvidia-smi not found")),
+        pytest.param(True,
+                     'gpu',
+                     marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                              reason="nvidia-smi not found")),
+        pytest.param(
+            False,
+            'vulkan',
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason=
+                "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
+        pytest.param(
+            True,
+            'vulkan',
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason=
+                "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
+    ])
 
 
 @pytest_param
@@ -119,6 +121,7 @@ def test_bert(dynamic, device):
                                   device=device,
                                   dynamic=dynamic,
                                   jit_trace=True)
+    shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
 
@@ -130,6 +133,7 @@ def test_albert(dynamic, device):
                                   device=device,
                                   dynamic=dynamic,
                                   jit_trace=True)
+    shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
 
@@ -143,6 +147,7 @@ def test_resnet18(dynamic, device):
         device=device,
         dynamic=dynamic,
     )
+    shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
 
@@ -156,6 +161,7 @@ def test_resnet50(dynamic, device):
         device=device,
         dynamic=dynamic,
     )
+    shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
 
@@ -170,6 +176,7 @@ def test_wide_resnet50(dynamic, device):
         device=device,
         dynamic=dynamic,
     )
+    shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
 
@@ -181,6 +188,7 @@ def test_minilm(dynamic, device):
                                   device=device,
                                   dynamic=dynamic,
                                   jit_trace=True)
+    shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
 
@@ -195,5 +203,6 @@ def test_squeezenet(dynamic, device):
         device=device,
         dynamic=dynamic,
     )
+    shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)

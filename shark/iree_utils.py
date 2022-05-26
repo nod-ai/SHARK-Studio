@@ -14,10 +14,10 @@
 
 import iree.runtime as ireert
 import iree.compiler as ireec
+from iree.compiler import tf as tfc
 import subprocess
 import numpy as np
 import os
-from shark.torch_mlir_utils import get_module_name_for_asm_dump
 
 IREE_DEVICE_MAP = {
     "cpu": "dylib",
@@ -49,59 +49,116 @@ def check_device_drivers(device):
     return False
 
 
-def get_iree_compiled_module(module, device: str, callable_name="forward"):
-    """Given an mlir module returns the compiled .vmfb"""
-    args = ["--iree-llvm-target-cpu-features=host"]
+def get_iree_cpu_args():
+    find_triple_cmd = "uname -s -m"
+    os_name, proc_name = subprocess.run(
+        find_triple_cmd, shell=True, stdout=subprocess.PIPE,
+        check=True).stdout.decode('utf-8').split()
+    if os_name == "Darwin":
+        find_kernel_version_cmd = "uname -r"
+        kernel_version = subprocess.run(find_kernel_version_cmd,
+                                        shell=True,
+                                        stdout=subprocess.PIPE,
+                                        check=True).stdout.decode('utf-8')
+        target_triple = f"{proc_name}-apple-darwin{kernel_version}"
+    elif os_name == "Linux":
+        target_triple = f"{proc_name}-linux-gnu"
+    else:
+        error_message = f"OS Type f{os_name} not supported and triple can't be determined, open issue to dSHARK team please :)"
+        raise Exception(error_message)
+    print(f"Target triple found:{target_triple}")
+    return [f"-iree-llvm-target-triple={target_triple}"]
+
+
+def get_iree_gpu_args():
+    ireert.flags.FUNCTION_INPUT_VALIDATION = False
+    ireert.flags.parse_flags("--cuda_allow_inline_execution")
+    return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
+
+
+def get_iree_vulkan_args():
+    return [
+        "--iree-flow-demote-i64-to-i32=false",
+        "--iree-flow-demote-f64-to-f32=true"
+    ]
+
+
+def get_iree_device_args(device):
     if device == "cpu":
-        find_triple_cmd = "uname -s -m"
-        os_name, proc_name = subprocess.run(
-            find_triple_cmd, shell=True, stdout=subprocess.PIPE,
-            check=True).stdout.decode('utf-8').split()
-        if os_name == "Darwin":
-            find_kernel_version_cmd = "uname -r"
-            kernel_version = subprocess.run(find_kernel_version_cmd,
-                                            shell=True,
-                                            stdout=subprocess.PIPE,
-                                            check=True).stdout.decode('utf-8')
-            target_triple = f"{proc_name}-apple-darwin{kernel_version}"
-        elif os_name == "Linux":
-            target_triple = f"{proc_name}-linux-gnu"
-        else:
-            error_message = f"OS Type f{os_name} not supported and triple can't be determined, open issue to dSHARK team please :)"
-            raise Exception(error_message)
-        print(f"Target triple found:{target_triple}")
-        args.append(f"-iree-llvm-target-triple={target_triple}")
-
+        return get_iree_cpu_args()
     if device in ["gpu", "cuda"]:
-        args += ["--iree-hal-cuda-disable-loop-nounroll-wa"]
-        ireert.flags.FUNCTION_INPUT_VALIDATION = False
-        ireert.flags.parse_flags("--cuda_allow_inline_execution")
+        return get_iree_gpu_args()
+    if device in ["metal", "vulkan"]:
+        return get_iree_vulkan_args()
+    return []
 
-    if device in ["vulkan", "metal"]:
-        args += ["--iree-flow-demote-i64-to-i32=false", "--iree-flow-demote-f64-to-f32=true"]
 
-    flatbuffer_blob = ireec.compile_str(
-        str(module), target_backends=[IREE_DEVICE_MAP[device]], extra_args=args)
+def get_iree_frontend_args(frontend):
+    if frontend in ["torch", "pytorch", "linalg"]:
+        return ["--iree-llvm-target-cpu-features=host"]
+    elif frontend in ["tensorflow", "tf", "mhlo"]:
+        return [
+            "--iree-llvm-target-cpu-features=host",
+            "--iree-mhlo-demote-i64-to-i32=false",
+            "--iree-flow-demote-i64-to-i32"
+        ]
+    else:
+        # Frontend not found.
+        return []
+
+
+# input_type should be "mhlo", "tosa" for linalg no need to mention the frontend.
+def get_iree_module(module, device, input_type, args, func_name):
+    flatbuffer_blob = None
+    # Compile according to the input type, else just try compiling.
+    if input_type in ["mhlo", "tosa"]:
+        flatbuffer_blob = ireec.compile_str(
+            str(module),
+            target_backends=[IREE_DEVICE_MAP[device]],
+            extra_args=args,
+            input_type=input_type)
+    else:
+        flatbuffer_blob = ireec.compile_str(
+            str(module),
+            target_backends=[IREE_DEVICE_MAP[device]],
+            extra_args=args)
+
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
     config = ireert.Config(IREE_DEVICE_MAP[device])
     ctx = ireert.SystemContext(config=config)
-    # TODO add optimisation args.
     ctx.add_vm_module(vm_module)
-    ModuleCompiled = ctx.modules.module[callable_name]
+    ModuleCompiled = ctx.modules.module[func_name]
     return ModuleCompiled, config
 
-def export_iree_module_to_vmfb(module, device: str, directory: str):
-    module_name = get_module_name_for_asm_dump(module)
-    flatbuffer_blob = ireec.compile_str(
-        str(module), target_backends=[IREE_DEVICE_MAP[device]])
-    filename = os.path.join(directory, module_name + ".vmfb")
-    with open(filename, 'wb') as f:
-        f.write(flatbuffer_blob)
+
+def get_iree_compiled_module(module,
+                             device: str,
+                             frontend: str = "torch",
+                             func_name: str = "forward"):
+    """Given a module returns the compiled .vmfb and configs"""
+    input_type = ""
+    args = get_iree_frontend_args(frontend)
+    args += get_iree_device_args(device)
+
+    if frontend in ["tensorflow", "tf"]:
+        module = tfc.compile_module(module,
+                                    exported_names=[func_name],
+                                    import_only=True)
+        input_type = "mhlo"
+    elif frontend in ["mhlo"]:
+        input_type = "mhlo"
+    elif frontend in ["tosa"]:
+        input_type = "tosa"
+
+    return get_iree_module(module, device, input_type, args, func_name)
 
 
-def get_results(compiled_vm, input, config):
+def get_results(compiled_vm, input, config, frontend="torch"):
     """Runs a .vmfb file given inputs and config and returns output."""
-    device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
+    device_inputs = input
+    if frontend in ["torch", "pytorch"]:
+        device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
+
     result = compiled_vm(*device_inputs)
     result_tensors = []
     if (isinstance(result, tuple)):

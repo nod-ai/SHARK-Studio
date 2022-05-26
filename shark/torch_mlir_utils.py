@@ -68,12 +68,14 @@ def get_input_annotations(inputs: tuple, dynamic: bool) -> list:
         annotations_list.append(tuple(temp_list))
     return annotations_list
 
+
 def run_on_refbackend(torch_module, inputs):
     backend = refbackend.RefBackendLinalgOnTensorsBackend()
     compiled = backend.compile(torch_module)
     jit_module = backend.load(compiled)
     np_inputs = [x.numpy() for x in inputs]
     return jit_module.forward(np_inputs[0])
+
 
 def shark_jit_trace(module, input: tuple, dynamic: bool,
                     tracing_required: bool):
@@ -112,7 +114,7 @@ def get_torch_mlir_module(
     input: tuple,
     dynamic: bool,
     tracing_required: bool,
-    from_aot: bool,
+    from_aot: bool = False,
 ):
     """TODO: Include necessary documentation."""
 
