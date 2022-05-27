@@ -53,6 +53,7 @@
 #include "iree/hal/cuda/cuda_buffer.h"
 #include "iree/hal/cuda/dynamic_symbols.h"
 #include "iree/hal/cuda/status_util.h"
+#include <chrono>
 
 // Several slightly modified iree tools
 
@@ -849,7 +850,14 @@ ModelInstanceState::ProcessRequests(
         model_state_->TritonMemoryManager(), false,
         nullptr));
 
+    auto start_ire = std::chrono::high_resolution_clock::now();
+
     InitializeRuntimeEnvironment(&input_module_, &hal_module_, &device_, &instance_, &context_);
+
+    auto stop_ire = std::chrono::high_resolution_clock::now();
+    auto duration_ire = std::chrono::duration_cast<std::chrono::microseconds>(stop_ire - start_ire);
+
+    IREE_LOG(INFO) << "Initializing Runtime Environment took " << std::to_string(duration_ire.count()) << " microseconds" << std::endl;
         
     RESPOND_ALL_AND_SET_TRUE_IF_ERROR(
         responses, request_count, all_response_failed,
@@ -906,9 +914,17 @@ ModelInstanceState::ProcessRequests(
 #endif
 
   // Run...
+
+  auto start_ex = std::chrono::high_resolution_clock::now();
+
   if (!all_response_failed) {
     Execute(&responses, requests, request_count, request_count, input_tensors, output_tensors, output_names);
   }
+
+  auto stop_ex = std::chrono::high_resolution_clock::now();
+  auto duration_ex = std::chrono::duration_cast<std::chrono::microseconds>(stop_ex - start_ex);
+
+  IREE_LOG(INFO) << "Executing took " << std::to_string(duration_ex.count()) << " microseconds" << std::endl;
 
   // Free BackendMemory used for inputs
   for (BackendMemory* mem : input_memories) {
@@ -1452,3 +1468,4 @@ TRITONBACKEND_ModelInstanceExecute(
 }  // extern "C"
 
 }}}  // namespace triton::backend::dshark
+
