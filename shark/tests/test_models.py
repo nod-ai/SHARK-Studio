@@ -208,9 +208,9 @@ def test_squeezenet(dynamic, device):
     assert True == compare_tensors(act_out, results)
 
 @pytest_param
-def test_vgg16(dynamic, device):
+def test_vgg11(dynamic, device):
     model, input, act_out = get_vision_model(
-        models.vgg16(pretrained=True))
+        models.vgg11(pretrained=True))
     shark_module = SharkInference(
         model,
         (input,),
