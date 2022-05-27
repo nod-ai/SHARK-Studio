@@ -35,8 +35,8 @@ class SharkRunner:
         dynamic: bool = False,
         device: str = None,
         jit_trace: bool = False,
-        from_aot : bool = False,
-        frontend : str = "torch",
+        from_aot: bool = False,
+        frontend: str = "torch",
     ):
         self.model = model
         self.frontend_model = model
@@ -47,8 +47,7 @@ class SharkRunner:
         device = device if device is not None else shark_args.device
         if self.frontend in ["pytorch", "torch"]:
             self.model = get_torch_mlir_module(self.model, input, dynamic,
-                                                        jit_trace,
-                                                        from_aot)
+                                               jit_trace, from_aot)
         (
             self.iree_compilation_module,
             self.iree_config,
@@ -56,16 +55,16 @@ class SharkRunner:
 
         # Debugging Options:
         if shark_args.save_mlir:
-            export_module_to_mlir_file(self.model,
-                                       shark_args.repro_dir)
+            export_module_to_mlir_file(self.model, shark_args.repro_dir)
         if shark_args.save_mlir:
             self.vmfb_file = export_iree_module_to_vmfb(self.model, device,
-                            shark_args.repro_dir)
+                                                        shark_args.repro_dir)
 
     # All the timings and benchmarking can be done here.
     def forward(self, input, frontend):
         return get_results(self.iree_compilation_module, input,
                            self.iree_config, frontend)
+
 
 class SharkMode:
 
@@ -81,6 +80,7 @@ class SharkMode:
     def __del__(self):
         self.guard.__exit__(None, None, None)
 
+
 class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
     def __init__(
@@ -90,14 +90,16 @@ class SharkBenchmarkRunner(SharkRunner):
         dynamic: bool = False,
         device: str = None,
         jit_trace: bool = False,
-        from_aot : bool = False,
-        frontend : str = "torch",
+        from_aot: bool = False,
+        frontend: str = "torch",
     ):
-        SharkRunner.__init__(self, model, input, dynamic, device, jit_trace, from_aot, frontend)
-        if(self.vmfb_file == None):
+        SharkRunner.__init__(self, model, input, dynamic, device, jit_trace,
+                             from_aot, frontend)
+        if (self.vmfb_file == None):
             self.vmfb_file = export_iree_module_to_vmfb(self.model, device,
-                            shark_args.repro_dir)
-        self.benchmark_cl = build_benchmark_args(self.vmfb_file, device, input, from_aot)
+                                                        shark_args.repro_dir)
+        self.benchmark_cl = build_benchmark_args(self.vmfb_file, device, input,
+                                                 from_aot)
 
     def benchmark_frontend(self, inputs):
         if self.frontend in ["pytorch", "torch"]:
@@ -117,7 +119,9 @@ class SharkBenchmarkRunner(SharkRunner):
             if i == shark_args.num_iterations - 1:
                 end = time.time()
                 break
-        print(f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}")
+        print(
+            f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
+        )
 
     def benchmark_tf(self, inputs):
         print(f"TF benchmark not implemented yet!")
@@ -138,7 +142,9 @@ class SharkBenchmarkRunner(SharkRunner):
             out = self.forward(input_list, self.frontend)
             if i == shark_args.num_iterations - 1:
                 end = time.time()
-        print(f"Shark-{self.frontend} Python-benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}")
+        print(
+            f"Shark-{self.frontend} Python-benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
+        )
 
     def benchmark_all(self, inputs):
         self.benchmark_frontend(inputs)

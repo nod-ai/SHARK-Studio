@@ -19,15 +19,13 @@ import time
 class SharkInference:
     """Inference API targeting pytorch, tensorflow, linalg, mhlo and tosa frontend."""
 
-    def __init__(
-        self,
-        model,
-        input: tuple,
-        device: str = None,
-        dynamic: bool = False,
-        jit_trace: bool = False,
-        benchmark_mode : bool = False
-    ):
+    def __init__(self,
+                 model,
+                 input: tuple,
+                 device: str = None,
+                 dynamic: bool = False,
+                 jit_trace: bool = False,
+                 benchmark_mode: bool = False):
         self.model = model
         self.input = input
         self.dynamic = dynamic
@@ -49,10 +47,16 @@ class SharkInference:
     def compile(self):
         # Inference do not use AOT.
         from_aot = False
-        if(self.benchmark_mode == True):
-            self.shark_runner = SharkBenchmarkRunner(self.model, self.input, self.dynamic, self.device, self.jit_trace, from_aot, self.frontend)
+        if (self.benchmark_mode == True):
+            self.shark_runner = SharkBenchmarkRunner(self.model, self.input,
+                                                     self.dynamic, self.device,
+                                                     self.jit_trace, from_aot,
+                                                     self.frontend)
         else:
-            self.shark_runner = SharkRunner(self.model, self.input, self.dynamic, self.device, self.jit_trace, from_aot, self.frontend)
+            self.shark_runner = SharkRunner(self.model, self.input,
+                                            self.dynamic, self.device,
+                                            self.jit_trace, from_aot,
+                                            self.frontend)
 
     # inputs are considered to be np.array.
     def forward(self, inputs):
@@ -66,9 +70,11 @@ class SharkInference:
 
     ######### Benchmark Related Functions #########
     def benchmark_mode(func):
+
         def inner(self, *args, **kwargs):
             assert self.benchmark_mode, "SharkRunner needs to be in benchmark mode to run benchmark methods."
             return func(self, *args, **kwargs)
+
         return inner
 
     @benchmark_mode
