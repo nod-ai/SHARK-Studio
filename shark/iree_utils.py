@@ -17,6 +17,7 @@ import iree.runtime.scripts.iree_benchmark_module as benchmark_module
 import iree.compiler as ireec
 from iree.compiler import tf as tfc
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
+from shark.cuda_utils import get_cuda_sm_cc
 import subprocess
 import numpy as np
 import os
@@ -79,8 +80,14 @@ def get_iree_cpu_args():
 def get_iree_gpu_args():
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
     ireert.flags.parse_flags("--cuda_allow_inline_execution")
-    return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
-
+    sm_arch = get_cuda_sm_cc()
+    if sm_arch in ['sm_70', 'sm_72', 'sm_75', 'sm_80', 'sm_84', 'sm_86']:
+        return [
+            "--iree-hal-cuda-disable-loop-nounroll-wa",
+            f"--iree-hal-cuda-llvm-target-arch={sm_arch}"
+        ]
+    else:
+        return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
 
 def get_iree_vulkan_args():
     return [
@@ -174,7 +181,13 @@ def get_results(compiled_vm, input, config, frontend="torch"):
     device_inputs = input
     if frontend in ["torch", "pytorch"]:
         device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
-
+    if frontend in ["tensorflow", "tf"]:
+        device_inputs = []
+        for a in input:
+            if (isinstance(a, list)):
+                device_inputs.append([ireert.asdevicearray(config.device, val, dtype=np.int32) for val in a])
+            else:
+                device_inputs.append(ireert.asdevicearray(config.device, a))
     result = compiled_vm(*device_inputs)
     result_tensors = []
     if (isinstance(result, tuple)):
