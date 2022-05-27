@@ -206,3 +206,31 @@ def test_squeezenet(dynamic, device):
     shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
+
+@pytest_param
+def test_vgg16(dynamic, device):
+    model, input, act_out = get_vision_model(
+        models.vgg16(pretrained=True))
+    shark_module = SharkInference(
+        model,
+        (input,),
+        device=device,
+        dynamic=dynamic,
+    )
+    shark_module.compile()
+    results = shark_module.forward((input,))
+    assert True == compare_tensors(act_out, results)
+
+@pytest_param
+def test_alexnet(dynamic, device):
+    model, input, act_out = get_vision_model(
+        models.alexnet(pretrained=True))
+    shark_module = SharkInference(
+        model,
+        (input,),
+        device=device,
+        dynamic=dynamic,
+    )
+    shark_module.compile()
+    results = shark_module.forward((input,))
+    assert True == compare_tensors(act_out, results)
