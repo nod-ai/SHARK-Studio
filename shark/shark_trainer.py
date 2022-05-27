@@ -11,3 +11,112 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file, run_on_refbackend
+from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
+import os
+from shark.parser import shark_args
+from shark.shark_runner import SharkRunner
+from shark.backward_makefx import MakeFxModule
+import numpy as np
+from tqdm import tqdm
+import time
+
+
+class SharkTrainer:
+    """Training pytorch, tensorflow module on shark runtime."""
+
+    def __init__(
+        self,
+        model,
+        input: tuple,
+        dynamic: bool = False,
+        device: str = None,
+        jit_trace: bool = False,
+        from_aot: bool = True,
+    ):
+        self.model = model
+        self.input = input
+        self.dynamic = dynamic
+        self.from_aot = from_aot
+        self.jit_trace = jit_trace
+        self.from_aot = from_aot
+
+        # By default it's the torch frontend.
+        self.frontend = "pytorch"
+        self.device = device if device is not None else shark_args.device
+
+        self.shark_runner = None
+
+    # Sets the frontend i.e `pytorch` or `tensorflow`.
+    def set_frontend(self, frontend: str):
+        self.frontend = frontend
+
+    # Training function is needed in the case of torch_fn.
+    def compile(self, training_fn=None):
+        if self.frontend in ["torch", "pytorch"]:
+            aot_module = MakeFxModule(self.model, self.input, training_fn)
+            aot_module.generate_graph()
+            # Returns the backward graph.
+            training_graph = aot_module.training_graph
+            weights = self.get_torch_params()
+            self.shark_runner = SharkRunner(training_graph,
+                                            weights + self.input, self.dynamic,
+                                            self.device, self.jit_trace,
+                                            self.from_aot, self.frontend)
+        elif self.frontend in ["tensorflow", "tf"]:
+            self.shark_runner = SharkRunner(self.model, self.input,
+                                            self.dynamic, self.device,
+                                            self.jit_trace, self.from_aot,
+                                            self.frontend)
+        else:
+            print("Unknown frontend")
+            return
+
+    # The inputs to the mlir-graph are weights, buffers and inputs respectively.
+    def get_torch_params(self):
+        params = [i.detach() for i in self.model.parameters()]
+        buffers = [i.detach() for i in self.model.buffers()]
+        return params + buffers
+
+    # Function to train pytorch module.
+    def _train_torch(self, num_iters):
+        """Returns the updated weights after num_iters"""
+        params = self.get_torch_params()
+        params = [x.numpy() for x in params]
+        print(f"Training started for {num_iters} iterations:")
+        for i in tqdm(range(num_iters)):
+            params = self.shark_runner.forward(params + self.input,
+                                               self.frontend)
+
+        return params
+
+    # Function to train tensorflow module.
+    def _train_tf(self, num_iters):
+        input_list = []
+        for x in self.input:
+            if (isinstance(x, list)):
+                for val in x:
+                    if (isinstance(val, np.ndarray)):
+                        input_list.append([val for val in x])
+                    else:
+                        input_list.append([val.numpy() for val in x])
+            elif (isinstance(x, np.ndarray)):
+                input_list.append(x)
+            else:
+                input_list.append(x.numpy())
+
+        print(f"Training started for {num_iters} iterations:")
+        for i in tqdm(range(num_iters)):
+            outputs = self.shark_runner.forward(input_list)
+
+        return self.model.trainable_variables
+
+    def train(self, num_iters=1):
+        if self.frontend in ["torch", "pytorch"]:
+            return self._train_torch(self, num_iters)
+        elif self.frontend in ["tf", "tensorflow"]:
+            return self._train_tf(self, num_iters)
+        else:
+            print("Unknown frontend")
+            return

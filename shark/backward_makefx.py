@@ -28,7 +28,7 @@ class MakeFxModule:
         self.model = model
         self.inputs = inputs
         self.custom_inference_fn = custom_inference_fn
-        self.backward_graph = None
+        self.training_graph = None
 
     # Doesn't replace the None type.
     def change_fx_graph_return_to_tuple(self, fx_g: fx.GraphModule):
@@ -65,8 +65,8 @@ class MakeFxModule:
         fx_g.recompile()
         fx_g = self.change_fx_graph_return_to_tuple(fx_g)
         ts_g = torch.jit.script(fx_g)
-        temp = tempfile.NamedTemporaryFile(suffix='_heavy_dep',
+        temp = tempfile.NamedTemporaryFile(suffix='_shark_ts',
                                            prefix='temp_ts_')
         ts_g.save(temp.name)
         new_ts = torch.jit.load(temp.name)
-        self.backward_graph = new_ts
+        self.training_graph = new_ts

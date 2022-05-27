@@ -9,15 +9,10 @@ mhlo_ir = r"""builtin.module  {
       }
 }"""
 
-arg0 = np.ones((1,4)).astype(np.float32)
-arg1 = np.ones((4,1)).astype(np.float32)
+arg0 = np.ones((1, 4)).astype(np.float32)
+arg1 = np.ones((4, 1)).astype(np.float32)
 
 shark_module = SharkInference(mhlo_ir, (arg0, arg1))
 shark_module.set_frontend("mhlo")
 shark_module.compile()
-print(shark_module.forward((arg0,arg1)))
-
-
-
-
-
+print(shark_module.forward((arg0, arg1)))

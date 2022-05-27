@@ -28,7 +28,8 @@ class MiniLMSequenceClassification(torch.nn.Module):
 test_input = torch.randint(2, (1, 128))
 
 shark_module = SharkInference(MiniLMSequenceClassification(), (test_input,),
-                              jit_trace=True, benchmark_mode=True)
+                              jit_trace=True,
+                              benchmark_mode=True)
 
 shark_module.compile()
 shark_module.forward((test_input,))

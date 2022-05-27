@@ -1,6 +1,6 @@
 import torch
 from torch.nn.utils import _stateless
-from shark.shark_runner import SharkTrainer
+from shark.shark_trainer import SharkTrainer
 
 
 class Foo(torch.nn.Module):
@@ -19,13 +19,11 @@ class Foo(torch.nn.Module):
 
 
 mod = Foo()
+inp = (torch.randn(10, 10),)
 
 
 def get_sorted_params(named_params):
     return [i[1] for i in sorted(named_params.items())]
-
-
-inp = (torch.randn(10, 10),)
 
 
 def forward(params, buffers, args):
@@ -37,8 +35,10 @@ def forward(params, buffers, args):
     return params, buffers
 
 
-fx_graph = forward(dict(mod.named_parameters()), dict(mod.named_buffers()), inp)
+# fx_graph = forward(dict(mod.named_parameters()), dict(mod.named_buffers()), inp)
 
-shark_module = SharkTrainer(mod, inp, custom_inference_fn=forward)
+shark_module = SharkTrainer(mod, inp)
+# Pass the training function in case of torch
+shark_module.compile(training_fn=forward)
 
 shark_module.train(num_iters=10)
