@@ -91,12 +91,24 @@ def get_iree_gpu_args():
         return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
 
 
-def get_iree_vulkan_args():
-    return [
-        "--iree-flow-demote-i64-to-i32=false",
-        "--iree-flow-demote-f64-to-f32=true"
-    ]
+def get_vulkan_triple_flag():
+    vulkan_device_cmd = "vulkaninfo | grep deviceName | awk \'END{{print $3}}\'"
+    vulkan_device = run_cmd(vulkan_device_cmd).strip()
+    if vulkan_device == "apple":
+        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
+    elif vulkan_device == "A100-SXM4-40GB":
+        return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
+    else:
+        print("Optimized kernel for your target device is not added yet. Contact SHARK Admin on discord or pull up an issue.")
+        return None
 
+
+def get_iree_vulkan_args():
+    vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
+    vulkan_triple_flag = get_vulkan_triple_flag()
+    if vulkan_triple_flag is not None:
+        vulkan_flag.append(vulkan_triple_flag)
+    return vulkan_flag
 
 def get_iree_device_args(device):
     if device == "cpu":
