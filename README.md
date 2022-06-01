@@ -109,7 +109,7 @@ print(shark_module.forward((arg0, arg1)))
 | Regnet             | :heavy_check_mark: (Script)         |          |          |             |
 | Resnest            | :x: (Script)         |          |          |             |
 | Vision Transformer | :heavy_check_mark: (Script)         |          |          |             |
-| VGG 16             | :heavy_check_mark: (Script)         |          |          |             |
+| VGG 16             | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
 | Wide Resnet        | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
 | RAFT               | :x: (JIT)            |          |          |             |
 
