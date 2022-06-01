@@ -37,6 +37,7 @@ class SharkRunner:
         jit_trace: bool = False,
         from_aot: bool = False,
         frontend: str = "torch",
+        use_tuned_model: str = None,
     ):
         self.model = model
         self.frontend_model = model
@@ -51,7 +52,8 @@ class SharkRunner:
         (
             self.iree_compilation_module,
             self.iree_config,
-        ) = get_iree_compiled_module(self.model, device)
+        ) = get_iree_compiled_module(self.model, device, self.frontend,
+                                     use_tuned_model=use_tuned_model)
 
         # Debugging Options:
         if shark_args.save_mlir:

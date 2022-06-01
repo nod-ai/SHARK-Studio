@@ -42,6 +42,8 @@ class SharkInference:
         # Sets the device.
         self.device = device if device is not None else shark_args.device
 
+        self.use_tuned_model = shark_args.model_config_path
+
         self.shark_runner = None
 
     # Sets the frontend i.e `pytorch` or `tensorflow`.
@@ -65,7 +67,8 @@ class SharkInference:
             self.shark_runner = SharkRunner(self.model, self.input,
                                             self.dynamic, self.device,
                                             self.jit_trace, from_aot,
-                                            self.frontend)
+                                            self.frontend,
+                                            self.use_tuned_model)
 
     # inputs are considered to be np.array.
     def forward(self, inputs):

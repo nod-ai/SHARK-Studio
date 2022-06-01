@@ -18,6 +18,7 @@ import iree.compiler as ireec
 from iree.compiler import tf as tfc
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
 from shark.cuda_utils import get_cuda_sm_cc
+from shark.model_annotation import *
 import subprocess
 import numpy as np
 import os
@@ -89,6 +90,7 @@ def get_iree_gpu_args():
     else:
         return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
 
+
 def get_iree_vulkan_args():
     return [
         "--iree-flow-demote-i64-to-i32=false",
@@ -147,7 +149,8 @@ def get_iree_module(module, device, input_type, args, func_name):
 def get_iree_compiled_module(module,
                              device: str,
                              frontend: str = "torch",
-                             func_name: str = "forward"):
+                             func_name: str = "forward",
+                             use_tuned_model: str = None):
     """Given a module returns the compiled .vmfb and configs"""
     input_type = ""
     args = get_iree_frontend_args(frontend)
@@ -162,6 +165,17 @@ def get_iree_compiled_module(module,
         input_type = "mhlo"
     elif frontend in ["tosa"]:
         input_type = "tosa"
+
+    if use_tuned_model != None:
+        # Currently tuned model only works on tf frontend
+        if frontend in ["tensorflow", "tf"]:
+            input_module = module.decode('utf-8')
+        elif frontend in ["pytorch", "torch"]:
+            input_module = module.operation.get_asm()
+        with create_context() as ctx:
+            module = model_annotation(ctx,
+                                      input_contents=input_module,
+                                      config_path=use_tuned_model)
 
     return get_iree_module(module, device, input_type, args, func_name)
 
