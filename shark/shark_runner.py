@@ -66,7 +66,7 @@ class SharkRunner:
                            self.iree_config, frontend)
 
 
-class SharkMode:
+class SharkEagerMode:
 
     def __init__(self, device="cpu"):
         if device == "refbackend":
