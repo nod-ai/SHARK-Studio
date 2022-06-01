@@ -31,4 +31,5 @@ shark_module = SharkInference(MiniLMSequenceClassification(), (test_input,),
                               jit_trace=True)
 
 shark_module.compile()
-shark_module.forward((test_input,))
+result = shark_module.forward((test_input,))
+print("Obtained result", result)
