@@ -57,7 +57,8 @@ jobs:
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest
+        pytest --workers auto
+        rm ./wheelhouse/nodai_SHARK-0.0.4-py3-none-any.whl
 
     - name: Build the package
       run: |
