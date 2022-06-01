@@ -101,6 +101,7 @@ print(shark_module.forward((arg0, arg1)))
 | Unet               | :x: (Script)         |          |          |             |
 | Resnet18           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |  :heavy_check_mark:        |             |
 | Resnet50           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
+| Resnet101           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
 | Resnext50_32x4d    | :heavy_check_mark: (Script)         |          |          |             |
 | ShuffleNet_v2      | :x: (Script)         |          |          |             |
 | SqueezeNet         | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
@@ -108,7 +109,7 @@ print(shark_module.forward((arg0, arg1)))
 | Regnet             | :heavy_check_mark: (Script)         |          |          |             |
 | Resnest            | :x: (Script)         |          |          |             |
 | Vision Transformer | :heavy_check_mark: (Script)         |          |          |             |
-| VGG 16             | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
+| VGG 16             | :heavy_check_mark: (Script)         |          |          |             |
 | Wide Resnet        | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
 | RAFT               | :x: (JIT)            |          |          |             |
 
