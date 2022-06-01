@@ -11,7 +11,7 @@ from official.nlp.modeling import layers
 from official.nlp.modeling import networks
 from official.nlp.modeling.models import bert_classifier
 
-from shark.shark_runner_tf import SharkTrainerTF
+from shark.shark_trainer import SharkTrainer
 
 vocab_size = 100
 NUM_CLASSES = 5
@@ -65,17 +65,19 @@ class BertModule(tf.Module):
 
 
 if __name__ == "__main__":
-    predict_sample_input = np.asarray([
+    predict_sample_input = [
         np.random.randint(5, size=(BATCH_SIZE, SEQUENCE_LENGTH)),
         np.random.randint(5, size=(BATCH_SIZE, SEQUENCE_LENGTH)),
         np.random.randint(5, size=(BATCH_SIZE, SEQUENCE_LENGTH))
-    ])
-    sample_input_tensors = tf.convert_to_tensor(predict_sample_input)
+    ]
+    sample_input_tensors = [tf.convert_to_tensor(val, dtype=tf.int32) for val in predict_sample_input]
     num_iter = 10
-    shark_module = SharkTrainerTF(
+    shark_module = SharkTrainer(
         BertModule(),
         (sample_input_tensors,
-         tf.convert_to_tensor(np.random.randint(5, size=(BATCH_SIZE)))))
+         tf.convert_to_tensor(np.random.randint(5, size=(BATCH_SIZE)), dtype=tf.int32)))
+    shark_module.set_frontend("tensorflow")
+    shark_module.compile()
     start = time.time()
     print(shark_module.train(num_iter))
     end = time.time()
