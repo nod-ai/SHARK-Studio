@@ -162,7 +162,7 @@ def get_iree_compiled_module(module,
                              device: str,
                              frontend: str = "torch",
                              func_name: str = "forward",
-                             use_tuned_model: str = None):
+                             model_config_path: str = None):
     """Given a module returns the compiled .vmfb and configs"""
     input_type = ""
     args = get_iree_frontend_args(frontend)
@@ -178,7 +178,7 @@ def get_iree_compiled_module(module,
     elif frontend in ["tosa"]:
         input_type = "tosa"
 
-    if use_tuned_model != None:
+    if model_config_path != None:
         # Currently tuned model only works on tf frontend
         if frontend in ["tensorflow", "tf"]:
             input_module = module.decode('utf-8')
@@ -187,7 +187,7 @@ def get_iree_compiled_module(module,
         with create_context() as ctx:
             module = model_annotation(ctx,
                                       input_contents=input_module,
-                                      config_path=use_tuned_model)
+                                      config_path=model_config_path)
 
     return get_iree_module(module, device, input_type, args, func_name)
 
