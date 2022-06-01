@@ -22,6 +22,7 @@ from iree.compiler.transforms import ireec as ireec_trans
 
 MATMUL_OP_NAMES = set([
   "linalg.matmul",
+  "linalg.batch_matmul",
   "mhlo.dot"
 ])
 idx = 0
