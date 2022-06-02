@@ -135,9 +135,15 @@ def get_iree_frontend_args(frontend):
 def get_iree_module(module, device, input_type, args, func_name):
     flatbuffer_blob = None
     # Compile according to the input type, else just try compiling.
-    if input_type in ["mhlo", "tosa"]:
+    if input_type in ["tosa"]:
         flatbuffer_blob = ireec.compile_str(
             str(module),
+            target_backends=[IREE_DEVICE_MAP[device]],
+            extra_args=args,
+            input_type=input_type)
+    elif input_type in ["mhlo"]:
+        flatbuffer_blob = ireec.compile_str(
+            module,
             target_backends=[IREE_DEVICE_MAP[device]],
             extra_args=args,
             input_type=input_type)

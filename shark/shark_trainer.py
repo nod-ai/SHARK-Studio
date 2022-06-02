@@ -110,11 +110,13 @@ class SharkTrainer:
         input_list = []
         for x in self.input:
             if (isinstance(x, list)):
+                nested_list = []
                 for val in x:
                     if (isinstance(val, np.ndarray)):
-                        input_list.append([val for val in x])
+                        nested_list.append(val)
                     else:
-                        input_list.append([val.numpy() for val in x])
+                        nested_list.append(val.numpy())
+                input_list.append(nested_list)
             elif (isinstance(x, np.ndarray)):
                 input_list.append(x)
             else:
@@ -122,7 +124,7 @@ class SharkTrainer:
 
         print(f"Training started for {num_iters} iterations:")
         for i in tqdm(range(num_iters)):
-            outputs = self.shark_runner.forward(input_list)
+            outputs = self.shark_runner.forward(input_list, self.frontend)
 
         return self.model.trainable_variables
 

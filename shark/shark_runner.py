@@ -48,10 +48,16 @@ class SharkRunner:
         if self.frontend in ["pytorch", "torch"]:
             self.model = get_torch_mlir_module(self.model, input, dynamic,
                                                jit_trace, from_aot)
-        (
+            (
             self.iree_compilation_module,
             self.iree_config,
-        ) = get_iree_compiled_module(self.model, device)
+            ) = get_iree_compiled_module(self.model, device)
+
+        if self.frontend in ["tensorflow", "tf", "mhlo"]:
+            (
+            self.iree_compilation_module,
+            self.iree_config,
+            ) = get_iree_compiled_module(self.model, device, self.frontend)
 
         # Debugging Options:
         if shark_args.save_mlir:
