@@ -1,20 +1,6 @@
--f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
 -f https://github.com/nod-ai/SHARK-Runtime/releases
---pre
-
-numpy
-torch
-torchvision
-
-# Build requirements.
-pybind11
-wheel
-ninja
-pytest
-pytest-parallel
-
-iree-compiler
-iree-runtime
+#iree-compiler should already be installed
+#iree-runtime
 iree-tools-tflite
 iree-tools-xla
 iree-tools-tf
@@ -26,6 +12,7 @@ tf-models-nightly
 tensorflow-text-nightly
 transformers
 jax[cpu]
+
 
 # tflitehub dependencies.
 Pillow
