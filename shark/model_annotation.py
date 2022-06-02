@@ -23,7 +23,8 @@ from iree.compiler.transforms import ireec as ireec_trans
 MATMUL_OP_NAMES = set([
   "linalg.matmul",
   "linalg.batch_matmul",
-  "mhlo.dot"
+  "mhlo.dot",
+  "mhlo.dot_general"
 ])
 idx = 0
 
@@ -75,6 +76,7 @@ def walk_children(op: ir.Operation, configs: List[Dict]):
 
           if split_k:
             add_split_k(child_op, split_k)
+
           idx = idx+1
           print(f"Updated op {child_op}", file=sys.stderr)
         walk_children(child_op, configs)
