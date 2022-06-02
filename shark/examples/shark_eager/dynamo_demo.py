@@ -1,10 +1,15 @@
 import torch
-import torchdynamo
 from torch_mlir import compile, OutputType
-from torchdynamo.optimizations.backends import create_backend
-from torchdynamo.optimizations.subgraph import SubGraph
 
 from shark.iree_utils import get_iree_compiled_module
+
+try:
+    import torchdynamo
+    from torchdynamo.optimizations.backends import create_backend
+    from torchdynamo.optimizations.subgraph import SubGraph
+except ModuleNotFoundError:
+    print("Please install TorchDynamo using pip install git+https://github.com/pytorch/torchdynamo")
+    exit()
 
 NUM_ITERS = 10
 
