@@ -131,28 +131,38 @@ def get_iree_frontend_args(frontend):
         return []
 
 
-# input_type should be "mhlo", "tosa" for linalg no need to mention the frontend.
-def get_iree_module(module, device, input_type, args, func_name):
-    flatbuffer_blob = None
+def compile_module_to_flatbuffer(module, device, frontend, func_name):
+    # Setup Compile arguments wrt to frontends.
+    input_type = ""
+    args = get_iree_frontend_args(frontend)
+    args += get_iree_device_args(device)
+
+    if frontend in ["tensorflow", "tf"]:
+        module = tfc.compile_module(module,
+                                    exported_names=[func_name],
+                                    import_only=True)
+        input_type = "mhlo"
+    elif frontend in ["mhlo", "tosa"]:
+        input_type = frontend
     # Compile according to the input type, else just try compiling.
-    if input_type in ["tosa"]:
-        flatbuffer_blob = ireec.compile_str(
-            str(module),
-            target_backends=[IREE_DEVICE_MAP[device]],
-            extra_args=args,
-            input_type=input_type)
-    elif input_type in ["mhlo"]:
+    if input_type != "mhlo":
+        module = str(module)
+    if input_type != "":
+        # Currently for MHLO/TOSA.
         flatbuffer_blob = ireec.compile_str(
             module,
             target_backends=[IREE_DEVICE_MAP[device]],
             extra_args=args,
             input_type=input_type)
     else:
+        # Currently for Torch.
         flatbuffer_blob = ireec.compile_str(
             str(module),
             target_backends=[IREE_DEVICE_MAP[device]],
             extra_args=args)
+    return flatbuffer_blob
 
+def get_iree_module(flatbuffer_blob, device, func_name):
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
     config = ireert.Config(IREE_DEVICE_MAP[device])
     ctx = ireert.SystemContext(config=config)
@@ -166,27 +176,17 @@ def get_iree_compiled_module(module,
                              frontend: str = "torch",
                              func_name: str = "forward"):
     """Given a module returns the compiled .vmfb and configs"""
-    input_type = ""
-    args = get_iree_frontend_args(frontend)
-    args += get_iree_device_args(device)
-
-    if frontend in ["tensorflow", "tf"]:
-        module = tfc.compile_module(module,
-                                    exported_names=[func_name],
-                                    import_only=True)
-        input_type = "mhlo"
-    elif frontend in ["mhlo"]:
-        input_type = "mhlo"
-    elif frontend in ["tosa"]:
-        input_type = "tosa"
-
-    return get_iree_module(module, device, input_type, args, func_name)
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name)
+    return get_iree_module(flatbuffer_blob, device, func_name)
 
 
-def export_iree_module_to_vmfb(module, device: str, directory: str):
+def export_iree_module_to_vmfb(module,
+                             device: str,
+                             directory: str,
+                             frontend: str = "torch",
+                             func_name: str = "forward"):
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name)
     module_name = get_module_name_for_asm_dump(module)
-    flatbuffer_blob = ireec.compile_str(
-        str(module), target_backends=[IREE_DEVICE_MAP[device]])
     filename = os.path.join(directory, module_name + ".vmfb")
     with open(filename, 'wb') as f:
         f.write(flatbuffer_blob)
