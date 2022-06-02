@@ -13,7 +13,7 @@ class SsdMobilenetV2Test(test_util.TFLiteModelTest):
     super(SsdMobilenetV2Test, self).__init__(model_path, *args, **kwargs)
 
   def compare_results(self, iree_results, tflite_results, details):
-    super(SsdMobilenetV1Test, self).compare_results(iree_results, tflite_results, details)
+    super(SsdMobilenetV2Test, self).compare_results(iree_results, tflite_results, details)
     for i in range(len(iree_results)):
       # Dequantize outputs.
       zero_point = details[i]['quantization_parameters']['zero_points'][0]
