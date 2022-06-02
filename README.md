@@ -1,13 +1,14 @@
 # SHARK
 
+High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerators and Heterogeneous Clusters
 
 ## Communication Channels
 
-*   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 *   [Nod.ai SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the nod.ai team and other users
+*   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 
 
-# Installation
+# Installation (Linux and macOS)
 
 ## Check out the code
 
@@ -28,7 +29,7 @@ python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use g
 ```
 
 
-### Run all tests on CPU/GPU/VULKAN
+### Run all tests on CPU/GPU/VULKAN/Metal
 ```shell
 pytest
 
