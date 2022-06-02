@@ -105,6 +105,11 @@ else
   fi
 fi
 
+if [[ $(uname -s) = 'Linux' ]]; then
+  echo "${Yellow}Linux detected.. installing importer tools"
+  $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/nod-ai/SHARK-Runtime/releases
+fi
+
 $PYTHON -m pip install transformers
 $PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/nod-ai/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 $PYTHON -m pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
