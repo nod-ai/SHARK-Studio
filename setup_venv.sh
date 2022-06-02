@@ -87,7 +87,7 @@ else
 fi
 if [[ -z "${USE_IREE}" ]]; then
   echo "Installing SHARK..."
-  $PYTHON -m pip install --find-links https://github.com/nod-ai/SHARK-Runtime/releases iree-compiler iree-runtime iree-tools-tf iree-tools-tflite
+  $PYTHON -m pip install --find-links https://github.com/nod-ai/SHARK-Runtime/releases iree-compiler iree-runtime
   if [ $? -eq 0 ];then
     echo "Successfully Installed SHARK Runtime"
   else
@@ -96,7 +96,7 @@ if [[ -z "${USE_IREE}" ]]; then
   fi
 else
   echo "Installing IREE..."
-  $PYTHON -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime iree-tools-tf iree-tools-tflite
+  $PYTHON -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
   if [ $? -eq 0 ];then
     echo "Successfully Installed IREE Runtime"
   else
@@ -113,7 +113,6 @@ fi
 $PYTHON -m pip install transformers
 $PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/nod-ai/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 $PYTHON -m pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
-$PYTHON -m pip install tensorflow
 
 if [[ -z "${CONDA_PREFIX}" ]]; then
   echo "${Green}Before running examples activate venv with:"
