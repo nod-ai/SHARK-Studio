@@ -92,11 +92,13 @@ def get_iree_gpu_args():
 
 
 def get_vulkan_triple_flag():
-    vulkan_device_cmd = "vulkaninfo | grep deviceName | awk \'END{{print $3}}\'"
+    vulkan_device_cmd = "vulkaninfo | grep deviceName | awk \'END{{print $NF}}\'"
     vulkan_device = run_cmd(vulkan_device_cmd).strip()
-    if vulkan_device == "apple":
+    if vulkan_device == "M1":
+        print("Found Apple Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
     elif vulkan_device == "A100-SXM4-40GB":
+        print("Found Nvidia Device. Using ampere-rtx3080-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
     else:
         print("Optimized kernel for your target device is not added yet. Contact SHARK Admin on discord or pull up an issue.")
