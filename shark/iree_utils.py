@@ -18,6 +18,7 @@ import iree.compiler as ireec
 from iree.compiler import tf as tfc
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
 from shark.cuda_utils import get_cuda_sm_cc
+from shark.model_annotation import *
 import subprocess
 import numpy as np
 import os
@@ -89,6 +90,7 @@ def get_iree_gpu_args():
     else:
         return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
 
+
 def get_vulkan_triple_flag():
     vulkan_device_cmd = "vulkaninfo | grep deviceName | awk \'END{{print $3}}\'"
     vulkan_device = run_cmd(vulkan_device_cmd).strip()
@@ -99,6 +101,7 @@ def get_vulkan_triple_flag():
     else:
         print("Optimized kernel for your target device is not added yet. Contact SHARK Admin on discord or pull up an issue.")
         return None
+
 
 def get_iree_vulkan_args():
     vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
@@ -131,7 +134,7 @@ def get_iree_frontend_args(frontend):
         return []
 
 
-def compile_module_to_flatbuffer(module, device, frontend, func_name):
+def compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path):
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
@@ -144,6 +147,20 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name):
         input_type = "mhlo"
     elif frontend in ["mhlo", "tosa"]:
         input_type = frontend
+    
+    # Annotate the input module with the configs
+    if model_config_path != None:
+        # Currently tuned model only works on tf frontend
+        if frontend in ["tensorflow", "tf"]:
+            input_module = module.decode('utf-8')
+        elif frontend in ["pytorch", "torch"]:
+            input_module = module.operation.get_asm()
+        with create_context() as ctx:
+            module = model_annotation(ctx,
+                                      input_contents=input_module,
+                                      config_path=model_config_path)
+            module = str(module)
+    
     # Compile according to the input type, else just try compiling.
     if input_type != "mhlo":
         module = str(module)
@@ -174,9 +191,10 @@ def get_iree_module(flatbuffer_blob, device, func_name):
 def get_iree_compiled_module(module,
                              device: str,
                              frontend: str = "torch",
-                             func_name: str = "forward"):
+                             func_name: str = "forward",
+                             model_config_path: str = None):
     """Given a module returns the compiled .vmfb and configs"""
-    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name)
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
     return get_iree_module(flatbuffer_blob, device, func_name)
 
 
@@ -185,7 +203,7 @@ def export_iree_module_to_vmfb(module,
                              directory: str,
                              frontend: str = "torch",
                              func_name: str = "forward"):
-    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name)
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
     module_name = get_module_name_for_asm_dump(module)
     filename = os.path.join(directory, module_name + ".vmfb")
     with open(filename, 'wb') as f:

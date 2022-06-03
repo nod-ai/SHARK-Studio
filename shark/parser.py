@@ -45,6 +45,12 @@ parser.add_argument("--save_vmfb",
                     action="store_true",
                     help="Saves iree .vmfb module to /tmp/ directory.")
 parser.add_argument(
+    "--model_config_path",
+    help=
+    "Directory to where the tuned model config file is located.",
+    default=None)
+
+parser.add_argument(
     "--num_warmup_iterations",
     type=int,
     default=2,
