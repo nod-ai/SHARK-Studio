@@ -53,7 +53,6 @@
 #include "iree/hal/cuda/cuda_buffer.h"
 #include "iree/hal/cuda/dynamic_symbols.h"
 #include "iree/hal/cuda/status_util.h"
-#include <chrono>
 
 // Several slightly modified iree tools
 
@@ -850,14 +849,11 @@ ModelInstanceState::ProcessRequests(
         model_state_->TritonMemoryManager(), false,
         nullptr));
 
-    auto start_ire = std::chrono::high_resolution_clock::now();
+    ModelInstanceState::device_name_code code = hashit(model_state_->DeviceName());
 
-    InitializeRuntimeEnvironment(&input_module_, &hal_module_, &device_, &instance_, &context_);
-
-    auto stop_ire = std::chrono::high_resolution_clock::now();
-    auto duration_ire = std::chrono::duration_cast<std::chrono::microseconds>(stop_ire - start_ire);
-
-    IREE_LOG(INFO) << "Initializing Runtime Environment took " << std::to_string(duration_ire.count()) << " microseconds" << std::endl;
+    if(code == GPU_KIND){
+        iree_cuda_set_current_thread(device_);
+    } 
         
     RESPOND_ALL_AND_SET_TRUE_IF_ERROR(
         responses, request_count, all_response_failed,
@@ -915,16 +911,10 @@ ModelInstanceState::ProcessRequests(
 
   // Run...
 
-  auto start_ex = std::chrono::high_resolution_clock::now();
 
   if (!all_response_failed) {
     Execute(&responses, requests, request_count, request_count, input_tensors, output_tensors, output_names);
   }
-
-  auto stop_ex = std::chrono::high_resolution_clock::now();
-  auto duration_ex = std::chrono::duration_cast<std::chrono::microseconds>(stop_ex - start_ex);
-
-  IREE_LOG(INFO) << "Executing took " << std::to_string(duration_ex.count()) << " microseconds" << std::endl;
 
   // Free BackendMemory used for inputs
   for (BackendMemory* mem : input_memories) {
@@ -992,11 +982,11 @@ ModelInstanceState::ProcessRequests(
         "failed reporting batch request statistics");
   }
 
-  iree_hal_device_release(device_);
-  iree_vm_context_release(context_);
-  iree_vm_instance_release(instance_);
-  iree_vm_module_release(hal_module_);
-  iree_vm_module_release(input_module_);
+  //iree_hal_device_release(device_);
+  //iree_vm_context_release(context_);
+  //iree_vm_instance_release(instance_);
+  //iree_vm_module_release(hal_module_);
+  //iree_vm_module_release(input_module_);
 
 }
 
@@ -1140,7 +1130,8 @@ ModelInstanceState::InitializeRuntimeEnvironment(
       iree_vm_module_t** hal_module,
       iree_hal_device_t** device,
       iree_vm_instance_t** instance,
-      iree_vm_context_t** context)
+      iree_vm_context_t** context
+      )
 {
 
   // Find the binary file that describes the model. If the model
@@ -1246,7 +1237,7 @@ ModelInstanceState::Execute(
     IREE_LOG(INFO) << "can't find return buffer view";
   }
 
-  IREE_CHECK_OK(iree::PrintVariantList(output_tensors, (size_t)1024));
+  //IREE_CHECK_OK(iree::PrintVariantList(output_tensors, (size_t)1024));
 
   // I want to do this is a seperate function that calls after execute in process tensors
   // I'm doing it like this for now so I can get a demo running
@@ -1344,6 +1335,8 @@ ModelInstanceState::ModelInstanceState(
         iree_hal_driver_registry_default());
       break;
   }
+
+  InitializeRuntimeEnvironment(&input_module_, &hal_module_, &device_, &instance_, &context_);
 
   //THROW_IF_BACKEND_INSTANCE_ERROR(model_state->LoadModel(
   //  ArtifactFilename(), &device_, &model_path_, &instance_, &context_, &input_module_, &hal_module_));
