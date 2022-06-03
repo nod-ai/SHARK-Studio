@@ -43,7 +43,9 @@ Yellow=`tput setaf 3`
 torch_mlir_bin=false
 if [[ $(uname -s) = 'Darwin' ]]; then
   echo "${Yellow}Apple macOS detected"
+  install_tensorflow_mac=true
   if [[ $(uname -m) == 'arm64' ]]; then
+    install_tensorflow_metal_extension=true
     echo "${Yellow}Apple M1 Detected"
     hash rustc 2>/dev/null
     if [ $? -eq 0 ];then
@@ -72,6 +74,17 @@ fi
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt" --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
+if [ "$install_tensorflow_mac" = true ]; then
+  $PYTHON -m pip install tensorflow-macos
+  if [ $? -eq 0 ];then
+    echo "Successfully Installed Tensorflow tools"
+  else
+    echo "Could not install Tensorflow tools" >&2
+  fi
+  if [ "$install_tensorflow_metal_extension" = true ]; then
+    $PYTHON -m pip install tensorflow-metal
+  fi
+fi
 if [ "$torch_mlir_bin" = true ]; then
   $PYTHON -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
   if [ $? -eq 0 ];then
