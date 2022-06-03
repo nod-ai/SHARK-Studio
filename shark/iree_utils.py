@@ -202,7 +202,8 @@ def export_iree_module_to_vmfb(module,
                              device: str,
                              directory: str,
                              frontend: str = "torch",
-                             func_name: str = "forward"):
+                             func_name: str = "forward",
+                             model_config_path: str = None):
     flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
     module_name = get_module_name_for_asm_dump(module)
     filename = os.path.join(directory, module_name + ".vmfb")
