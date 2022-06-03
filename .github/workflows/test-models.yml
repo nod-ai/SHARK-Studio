@@ -54,15 +54,10 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    
     - name: Install dependencies
       run: |
         cd $GITHUB_WORKSPACE
-        ./setup_venv.sh
+        PYTHON=python3.9 ./setup_venv.sh
         source shark.venv/bin/activate
         python -m pip install flake8 pytest
 
