@@ -97,8 +97,8 @@ jobs:
         source $HOME/miniconda3/bin/activate /opt/conda/envs/perfbot
         python --version
         cd $GITHUB_WORKSPACE
-        PYTHON=python3.9 ./setup_venv.sh
-        source shark.venv/bin/activate
-        pytest --workers auto
+        ./setup_venv.sh
+        pytest --workers auto -k 'cpu'
+        pytest -k 'not cpu'
         conda deactivate
         conda env remove -n perfbot
