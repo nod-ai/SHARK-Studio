@@ -58,7 +58,6 @@ jobs:
         ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --workers auto -k 'not benchmark'
-        rm ./wheelhouse/nodai_SHARK-0.0.4-py3-none-any.whl
 
     - name: Build the package
       run: |
