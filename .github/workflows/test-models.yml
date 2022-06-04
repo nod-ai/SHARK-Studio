@@ -43,7 +43,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --workers auto
+        pytest --workers auto -k 'not benchmark'
         
   build-macOS:
     runs-on: self-hosted
