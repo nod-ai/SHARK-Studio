@@ -77,27 +77,26 @@ jobs:
   perf-linux:
 
     runs-on: a100
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.9"]
 
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
+      run: |
+        conda create -n perfbot python=3.9 -y
     
     - name: Install dependencies
       run: |
+        conda activate perfbot
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
         if [ -f requirements.txt ]; then pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/nightly/cpu  -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases; fi
 
     - name: Validate Models
       run: |
+        conda activate perfbot
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --workers auto
+        conda deactivate
+        conda env remove -n perfbot
