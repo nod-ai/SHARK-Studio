@@ -86,6 +86,7 @@ jobs:
     
     - name: Install dependencies
       run: |
+        source $HOME/miniconda3/etc/profile.d/conda.sh
         conda activate perfbot
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest
@@ -93,6 +94,7 @@ jobs:
 
     - name: Validate Models
       run: |
+        source $HOME/miniconda3/etc/profile.d/conda.sh
         conda activate perfbot
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
