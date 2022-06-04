@@ -15,7 +15,6 @@
 import iree.runtime as ireert
 import iree.runtime.scripts.iree_benchmark_module as benchmark_module
 import iree.compiler as ireec
-from iree.compiler import tf as tfc
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
 from shark.cuda_utils import get_cuda_sm_cc
 from shark.model_annotation import *
@@ -143,13 +142,10 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name, model_conf
     args += get_iree_device_args(device)
 
     if frontend in ["tensorflow", "tf"]:
-        module = tfc.compile_module(module,
-                                    exported_names=[func_name],
-                                    import_only=True)
         input_type = "mhlo"
     elif frontend in ["mhlo", "tosa"]:
         input_type = frontend
-    
+
     # Annotate the input module with the configs
     if model_config_path != None:
         # Currently tuned model only works on tf frontend
@@ -162,7 +158,7 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name, model_conf
                                       input_contents=input_module,
                                       config_path=model_config_path)
             module = str(module)
-    
+
     # Compile according to the input type, else just try compiling.
     if input_type != "mhlo":
         module = str(module)
@@ -207,7 +203,7 @@ def export_iree_module_to_vmfb(module,
                              func_name: str = "forward",
                              model_config_path: str = None):
     flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
-    module_name = get_module_name_for_asm_dump(module)
+    module_name = f"{frontend}_{func_name}_{device}"
     filename = os.path.join(directory, module_name + ".vmfb")
     with open(filename, 'wb') as f:
         f.write(flatbuffer_blob)
@@ -243,16 +239,21 @@ def get_results(compiled_vm, input, config, frontend="torch"):
 ######### Benchmark Related Tools ###########
 
 
-def tensor_to_type_str(input_tensors: tuple):
+def tensor_to_type_str(input_tensors: tuple, frontend: str):
     """
     Input: A tuple of input tensors i.e tuple(torch.tensor)
     Output: list of string that represent mlir types (i.e 1x24xf64)
     # TODO: Support more than floats, and ints
     """
+    print("front:",frontend)
     list_of_type = []
     for input_tensor in input_tensors:
         type_string = "x".join([str(dim) for dim in input_tensor.shape])
-        dtype_string = str(input_tensor.dtype).replace("torch.", "")
+        if frontend in ["torch", "pytorch"]:
+            dtype_string = str(input_tensor.dtype).replace("torch.", "")
+        elif frontend in ["tensorflow","tf"]:
+            dtype = input_tensor.dtype
+            dtype_string = re.findall('\'[^"]*\'',str(dtype))[0].replace("\'","")
         regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
         match = regex_split.match(dtype_string)
         mlir_type_string = str(match.group(1)[0]) + str(match.group(2))
@@ -264,6 +265,7 @@ def tensor_to_type_str(input_tensors: tuple):
 def build_benchmark_args(input_file: str,
                          device: str,
                          input_tensors: tuple,
+                         frontend: str,
                          training=False):
     """
     Inputs: input_file leading to vmfb, input_tensor to function, target device, and whether it is training or not.
@@ -278,7 +280,7 @@ def build_benchmark_args(input_file: str,
         fn_name = "train"
     benchmark_cl.append(f"--entry_function={fn_name}")
     benchmark_cl.append(f"--driver={IREE_DEVICE_MAP[device]}")
-    mlir_input_types = tensor_to_type_str(input_tensors)
+    mlir_input_types = tensor_to_type_str(input_tensors, frontend)
     for mlir_input in mlir_input_types:
         benchmark_cl.append(f"--function_input={mlir_input}")
     time_extractor = "| awk \'END{{print $2 $3}}\'"
