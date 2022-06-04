@@ -72,5 +72,5 @@ jobs:
     - name: Validate Models
       run: |
         source shark.venv/bin/activate
-        pytest --workers auto -k 'not shark/tests/test_benchmark.py'
+        pytest -k 'not shark/tests/test_benchmark.py'
 
