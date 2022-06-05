@@ -1,0 +1,5 @@
+# To Enable ONNX Runtime Benchmarks
+onnx
+onnxruntime
+coloredlogs
+sympy

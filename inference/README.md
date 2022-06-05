@@ -1,15 +1,15 @@
-# dSHARK Backend
+# SHARK Triton Backend
 
 The triton backend for shark.
 
 # Build
 
-Install dSHARK
+Install SHARK
 
 ```
 git clone https://github.com/nod-ai/SHARK.git
 # skip above step if dshark is already installed
-cd dSHARK/inference
+cd SHARK/inference
 ```
 
 install dependancies
