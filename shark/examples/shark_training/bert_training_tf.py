@@ -13,6 +13,8 @@ from official.nlp.modeling.models import bert_classifier
 
 from shark.shark_trainer import SharkTrainer
 
+
+tf.random.set_seed(0)
 vocab_size = 100
 NUM_CLASSES = 5
 SEQUENCE_LENGTH = 512
@@ -61,7 +63,7 @@ class BertModule(tf.Module):
         variables = self.m.trainable_variables
         gradients = tape.gradient(loss, variables)
         self.optimizer.apply_gradients(zip(gradients, variables))
-        return probs
+        return loss
 
 
 if __name__ == "__main__":

@@ -205,10 +205,22 @@ def export_iree_module_to_vmfb(module,
     flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
     module_name = f"{frontend}_{func_name}_{device}"
     filename = os.path.join(directory, module_name + ".vmfb")
+    print(f"Saved vmfb in {filename}.")
     with open(filename, 'wb') as f:
         f.write(flatbuffer_blob)
     return filename
 
+def export_module_to_mlir_file(module, frontend, directory: str):
+    mlir_str = module
+    if frontend in ["tensorflow", "tf", "mhlo"]:
+        mlir_str = module.decode('utf-8')
+    elif frontend in ["pytorch", "torch"]:
+        mlir_str = module.operation.get_asm()
+    filename = os.path.join(directory, "model.mlir")
+    with open(filename, 'w') as f:
+        f.write(mlir_str)
+    print(f"Saved mlir in {filename}.")
+    return filename
 
 def get_results(compiled_vm, input, config, frontend="torch"):
     """Runs a .vmfb file given inputs and config and returns output."""

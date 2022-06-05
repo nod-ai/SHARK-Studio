@@ -23,6 +23,13 @@ def dir_path(path):
         raise argparse.ArgumentTypeError(
             f"readable_dir:{path} is not a valid path")
 
+def dir_file(path):
+    if os.path.isfile(path):
+        return path
+    else:
+        raise argparse.ArgumentTypeError(
+            f"readable_file:{path} is not a valid file")
+
 
 parser = argparse.ArgumentParser(description='SHARK runner.')
 parser.add_argument(
