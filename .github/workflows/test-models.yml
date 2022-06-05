@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -57,7 +57,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -72,7 +72,7 @@ jobs:
     - name: Install dependencies
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python3.9 ./setup_venv.sh
+        PYTHON=python3.10 ./setup_venv.sh
         source shark.venv/bin/activate
         python -m pip install flake8 pytest
 
@@ -89,33 +89,3 @@ jobs:
         source shark.venv/bin/activate
         pytest -k 'not benchmark'
         
-  perf-linux:
-
-    runs-on: a100
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      run: |
-        rm -rf /opt/conda/envs/perfbot/
-        conda create -n perfbot python=3.9 setuptools -y
-    
-    - name: Install dependencies
-      run: |
-        source $HOME/miniconda3/etc/profile.d/conda.sh
-        source $HOME/miniconda3/bin/activate /opt/conda/envs/perfbot
-        python --version
-        python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
-
-    - name: Validate Models
-      run: |
-        source $HOME/miniconda3/etc/profile.d/conda.sh
-        source $HOME/miniconda3/bin/activate /opt/conda/envs/perfbot
-        python --version
-        cd $GITHUB_WORKSPACE
-        USE_IREE=1 ./setup_venv.sh
-        pytest -k 'cpu'
-        conda deactivate
-        # conda env remove -n perfbot
-        rm -rf /opt/conda/envs/perfbot/
