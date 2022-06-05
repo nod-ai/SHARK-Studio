@@ -98,7 +98,6 @@ jobs:
         python --version
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
-        pytest --workers auto -k 'cpu'
-        pytest -k 'not cpu'
+        pytest
         conda deactivate
         conda env remove -n perfbot
