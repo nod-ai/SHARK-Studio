@@ -98,7 +98,7 @@ jobs:
         python --version
         cd $GITHUB_WORKSPACE
         USE_IREE=1 ./setup_venv.sh
-        pytest
+        pytest -k 'not benchmark'
         conda deactivate
         # conda env remove -n perfbot
         rm -rf /opt/conda/envs/perfbot/
