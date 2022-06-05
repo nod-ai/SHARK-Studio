@@ -97,7 +97,8 @@ jobs:
         source $HOME/miniconda3/bin/activate /opt/conda/envs/perfbot
         python --version
         cd $GITHUB_WORKSPACE
-        ./setup_venv.sh
+        USE_IREE=1 ./setup_venv.sh
         pytest
         conda deactivate
-        conda env remove -n perfbot
+        # conda env remove -n perfbot
+        rm -rf /opt/conda/envs/perfbot/
