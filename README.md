@@ -10,8 +10,37 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 *   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 
 
-# Installation (Linux and macOS)
+## Installation (Linux and macOS)
 
+<details>
+  <summary>Installation</summary>
+  
+ ### pip install SHARK and related packages with Python 3.10 venv
+
+```shell
+pip install nodai-shark -f https://github.com/nod-ai/SHARK/releases -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+```
+
+### Download and run Resnet50 sample
+```shell
+curl -O https://raw.githubusercontent.com/nod-ai/SHARK/main/shark/examples/shark_inference/resnet50_script.py
+#Install deps for test script
+pip install pillow requests tqdm torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+python ./resnet50_script.py --device="cpu"  #use cuda or vulkan or metal 
+```
+        
+### Download and run BERT (MiniLM) sample
+```shell
+curl -O https://raw.githubusercontent.com/nod-ai/SHARK/main/shark/examples/shark_inference/minilm_jit.py
+#Install deps for test script
+pip install transformers torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal 
+```
+</details>
+
+
+<details>
+  <summary>Source Installation</summary>
 ## Check out the code
 
 ```shell
@@ -38,8 +67,11 @@ pytest
 # If on Linux for quicker results:
 pytest --workers auto
 ```
+</details>
 
 
+<details>
+  <summary>API Reference</summary>
 ### Shark Inference API
 
 ```
@@ -80,7 +112,7 @@ shark_module.set_frontend("mhlo")
 shark_module.compile()
 print(shark_module.forward((arg0, arg1)))
 ```
-
+</details>
 
 
 ### Model Tracking (Shark Inference)
