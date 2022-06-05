@@ -44,15 +44,6 @@ def get_module_name_for_asm_dump(module):
         module.operation.attributes["torch.debug_module_name"]).value
 
 
-def export_module_to_mlir_file(module, directory: str):
-    """Writes MLIR module to /tmp/module.mlir for debugging or performance use."""
-    module_name = get_module_name_for_asm_dump(module)
-    asm = module.operation.get_asm()
-    filename = os.path.join(directory, module_name + ".mlir")
-    with open(filename, 'w') as f:
-        f.write(asm)
-
-
 def get_input_annotations(inputs: tuple, dynamic: bool) -> list:
     """TODO: Include necessary documentation"""
 
