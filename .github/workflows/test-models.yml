@@ -97,6 +97,7 @@ jobs:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
       run: |
+        rm -rf /opt/conda/envs/perfbot/
         conda create -n perfbot python=3.9 setuptools -y
     
     - name: Install dependencies
