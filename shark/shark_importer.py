@@ -1,9 +1,5 @@
 # Lint as: python3
-"""Test architecture for a set of tflite tests."""
-
-import absl
-from absl.flags import FLAGS
-import absl.testing as testing
+"""SHARK Importer"""
 
 import iree.compiler.tflite as iree_tflite_compile
 import iree.runtime as iree_rt
@@ -13,20 +9,19 @@ import sys
 import tensorflow.compat.v2 as tf
 import time
 import urllib.request
-
 from shark.shark_inference import SharkInference
 
 targets = {
   'dylib' : 'dylib-llvm-aot',
   'vulkan' : 'vulkan-spirv',
+  'cuda' : 'cuda',
 }
 
 configs = {
   'dylib' : 'dylib',
   'vulkan' : 'vulkan',
+  'cuda' : 'cuda',
 }
-
-absl.flags.DEFINE_string('config', 'dylib', 'model path to execute')
 
 class GenerateInputSharkImporter():
   def __init__(self, input_details, model_source_hub="tfhub"):
@@ -36,7 +31,7 @@ class GenerateInputSharkImporter():
   def generate_inputs(self):
     args = []
     for input in self.input_details:
-      absl.logging.info("\t%s, %s", str(input["shape"]), input["dtype"].__name__)
+      print("\t%s, %s", str(input["shape"]), input["dtype"].__name__)
       args.append(np.zeros(shape=input["shape"], dtype=input["dtype"]))
     return args
 
@@ -44,10 +39,12 @@ class SharkImporter:
   def __init__(self,
                model_path,
                model_type="tflite",
-               model_source_hub="tfhub"):
+               model_source_hub="tfhub",
+               exe_config='dylib'):
     self.model_path = model_path
     self.model_type = model_type
     self.model_source_hub = model_source_hub
+    self.exe_config = exe_config
     self.inputs = None
     self.input_details = None
     self.output_details = None
@@ -81,7 +78,7 @@ class SharkImporter:
           output_file=self.binary,
           save_temp_tfl_input=self.tflite_ir,
           save_temp_iree_input=self.iree_ir,
-          target_backends=[targets[absl.flags.FLAGS.config]],
+          target_backends=[targets[self.exe_config]],
           import_only=False)
         self.setup_iree()
         self.setup_tflite()
@@ -97,7 +94,7 @@ class SharkImporter:
   def setup_iree(self):
     print("Setting up iree runtime")
     with open(self.binary, 'rb') as f:
-      config = iree_rt.Config(configs[absl.flags.FLAGS.config])
+      config = iree_rt.Config(configs[self.exe_config])
       self.iree_context = iree_rt.SystemContext(config=config)
       vm_module = iree_rt.VmModule.from_flatbuffer(f.read())
       self.iree_context.add_vm_module(vm_module)
