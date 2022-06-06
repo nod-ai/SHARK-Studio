@@ -11,14 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from iree.compiler import tf as tfc
 from torch.utils._python_dispatch import enable_torch_dispatch_mode
 from torch_mlir.eager_mode import torch_mlir_tensor
 from torch_mlir.eager_mode.torch_mlir_tensor import TorchMLIRTensor
 from torch_mlir_e2e_test.eager_backends.refbackend import EagerModeRefBackend
 
 from shark.iree_eager_backend import EagerModeIREELinalgOnTensorsBackend
-from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file, run_on_refbackend
-from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb, build_benchmark_args, run_benchmark
+from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
+from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb, export_module_to_mlir_file, build_benchmark_args, run_benchmark
 import os
 from shark.parser import shark_args
 from tqdm import tqdm
@@ -37,6 +38,7 @@ class SharkRunner:
         jit_trace: bool = False,
         from_aot: bool = False,
         frontend: str = "torch",
+        model_config_path: str = None,
     ):
         self.model = model
         self.frontend_model = model
@@ -44,18 +46,24 @@ class SharkRunner:
         self.input = input
         self.frontend = frontend
         self.vmfb_file = None
+        func_name = "forward"
         device = device if device is not None else shark_args.device
         if self.frontend in ["pytorch", "torch"]:
             self.model = get_torch_mlir_module(self.model, input, dynamic,
                                                jit_trace, from_aot)
+        elif frontend in ["tensorflow", "tf"]:
+            self.model = tfc.compile_module(self.model,
+                                        exported_names=[func_name],
+                                        import_only=True)
         (
         self.iree_compilation_module,
         self.iree_config,
-        ) = get_iree_compiled_module(self.model, device, self.frontend)
+        ) = get_iree_compiled_module(self.model, device, self.frontend,
+                                     model_config_path=model_config_path)
 
         # Debugging Options:
         if shark_args.save_mlir:
-            export_module_to_mlir_file(self.model, device, shark_args.repro_dir, self.frontend)
+            export_module_to_mlir_file(self.model, self.frontend, shark_args.repro_dir)
         if shark_args.save_vmfb:
             self.vmfb_file = export_iree_module_to_vmfb(self.model, device,
                                                         shark_args.repro_dir,
@@ -101,7 +109,7 @@ class SharkBenchmarkRunner(SharkRunner):
                                                         shark_args.repro_dir,
                                                         frontend)
         self.benchmark_cl = build_benchmark_args(self.vmfb_file, device, input,
-                                                 from_aot)
+                                                 frontend, from_aot)
 
     def benchmark_frontend(self, inputs):
         if self.frontend in ["pytorch", "torch"]:
@@ -126,7 +134,18 @@ class SharkBenchmarkRunner(SharkRunner):
         )
 
     def benchmark_tf(self, inputs):
-        print(f"TF benchmark not implemented yet!")
+        for i in range(shark_args.num_warmup_iterations):
+            self.frontend_model.forward(*inputs)
+
+        begin = time.time()
+        for i in range(shark_args.num_iterations):
+            out = self.frontend_model.forward(*inputs)
+            if i == shark_args.num_iterations - 1:
+                end = time.time()
+                break
+        print(
+            f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
+        )
         return
 
     def benchmark_c(self):
@@ -135,7 +154,7 @@ class SharkBenchmarkRunner(SharkRunner):
 
     def benchmark_python(self, inputs):
         inputs = self.input if self.from_aot else inputs
-        input_list = [x.detach().numpy() for x in inputs]
+        input_list = [x for x in inputs]
         for i in range(shark_args.num_warmup_iterations):
             self.forward(input_list, self.frontend)
 

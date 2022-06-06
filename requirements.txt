@@ -7,29 +7,9 @@ torch
 torchvision
 
 # Build requirements.
+setuptools
 pybind11
 wheel
 ninja
 pytest
 pytest-parallel
-
-iree-compiler
-iree-runtime
-iree-tools-tflite
-iree-tools-xla
-iree-tools-tf
-
-# TensorFlow and JAX.
-gin-config
-tensorflow
-tf-models-nightly
-tensorflow-text-nightly
-transformers
-jax[cpu]
-
-# tflitehub dependencies.
-Pillow
-
-# Testing and support.
-lit
-pyyaml

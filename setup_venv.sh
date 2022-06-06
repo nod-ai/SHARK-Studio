@@ -3,7 +3,7 @@
 # e.g:
 # ./setup_venv.sh  #setup a default $PYTHON3 shark.venv
 # Environment Variables by the script.
-# PYTHON=$PYTHON3.9 ./setup_venv.sh  #pass a version of $PYTHON to use
+# PYTHON=$PYTHON3.10 ./setup_venv.sh  #pass a version of $PYTHON to use
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
 # if you run the script from a conda env it will install in your conda env
@@ -39,11 +39,13 @@ Green=`tput setaf 2`
 Yellow=`tput setaf 3`
 
 # Assume no binary torch-mlir.
-# Currently available for macOS m1&intel (3.9) and Linux(3.7,3.8,3.9,3.10)
+# Currently available for macOS m1&intel (3.10) and Linux(3.7,3.8,3.9,3.10)
 torch_mlir_bin=false
 if [[ $(uname -s) = 'Darwin' ]]; then
   echo "${Yellow}Apple macOS detected"
+  install_tensorflow_mac=true
   if [[ $(uname -m) == 'arm64' ]]; then
+    install_tensorflow_metal_extension=true
     echo "${Yellow}Apple M1 Detected"
     hash rustc 2>/dev/null
     if [ $? -eq 0 ];then
@@ -57,7 +59,7 @@ if [[ $(uname -s) = 'Darwin' ]]; then
   fi
   echo "${Yellow}Run the following commands to setup your SSL certs for your Python version if you see SSL errors with tests"
   echo "${Yellow}/Applications/Python\ 3.XX/Install\ Certificates.command"
-  if [ "$PYTHON_VERSION_X_Y" == "3.9" ]; then
+  if [ "$PYTHON_VERSION_X_Y" == "3.10" ]; then
     torch_mlir_bin=true
   fi
 elif [[ $(uname -s) = 'Linux' ]]; then
@@ -72,6 +74,17 @@ fi
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt" --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
+if [ "$install_tensorflow_mac" = true ]; then
+  $PYTHON -m pip install tensorflow-macos
+  if [ $? -eq 0 ];then
+    echo "Successfully Installed Tensorflow tools"
+  else
+    echo "Could not install Tensorflow tools" >&2
+  fi
+  if [ "$install_tensorflow_metal_extension" = true ]; then
+    $PYTHON -m pip install tensorflow-metal
+  fi
+fi
 if [ "$torch_mlir_bin" = true ]; then
   $PYTHON -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
   if [ $? -eq 0 ];then
@@ -81,7 +94,7 @@ if [ "$torch_mlir_bin" = true ]; then
   fi
 else
   echo "${Red}No binaries found for Python $PYTHON_VERSION_X_Y on $(uname -s)"
-  echo "${Yello}Python 3.9 supported on macOS and 3.7,3.8,3.9 and 3.10 on Linux"
+  echo "${Yello}Python 3.10 supported on macOS and 3.7,3.8,3.9 and 3.10 on Linux"
   echo "${Red}Please build torch-mlir from source in your environment"
   exit 1
 fi
@@ -111,8 +124,8 @@ if [[ $(uname -s) = 'Linux' ]]; then
 fi
 
 $PYTHON -m pip install transformers
-$PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/nod-ai/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-$PYTHON -m pip install . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
+#$PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/nod-ai/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+$PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
 
 if [[ -z "${CONDA_PREFIX}" ]]; then
   echo "${Green}Before running examples activate venv with:"

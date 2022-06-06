@@ -23,6 +23,13 @@ def dir_path(path):
         raise argparse.ArgumentTypeError(
             f"readable_dir:{path} is not a valid path")
 
+def dir_file(path):
+    if os.path.isfile(path):
+        return path
+    else:
+        raise argparse.ArgumentTypeError(
+            f"readable_file:{path} is not a valid file")
+
 
 parser = argparse.ArgumentParser(description='SHARK runner.')
 parser.add_argument(
@@ -44,6 +51,12 @@ parser.add_argument("--save_vmfb",
                     default=False,
                     action="store_true",
                     help="Saves iree .vmfb module to /tmp/ directory.")
+parser.add_argument(
+    "--model_config_path",
+    help=
+    "Directory to where the tuned model config file is located.",
+    default=None)
+
 parser.add_argument(
     "--num_warmup_iterations",
     type=int,
