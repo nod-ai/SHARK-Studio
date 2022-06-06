@@ -23,6 +23,7 @@ def dir_path(path):
         raise argparse.ArgumentTypeError(
             f"readable_dir:{path} is not a valid path")
 
+
 def dir_file(path):
     if os.path.isfile(path):
         return path
@@ -53,8 +54,7 @@ parser.add_argument("--save_vmfb",
                     help="Saves iree .vmfb module to /tmp/ directory.")
 parser.add_argument(
     "--model_config_path",
-    help=
-    "Directory to where the tuned model config file is located.",
+    help="Directory to where the tuned model config file is located.",
     default=None)
 
 parser.add_argument(

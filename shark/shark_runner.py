@@ -53,17 +53,20 @@ class SharkRunner:
                                                jit_trace, from_aot)
         elif frontend in ["tensorflow", "tf"]:
             self.model = tfc.compile_module(self.model,
-                                        exported_names=[func_name],
-                                        import_only=True)
+                                            exported_names=[func_name],
+                                            import_only=True)
         (
-        self.iree_compilation_module,
-        self.iree_config,
-        ) = get_iree_compiled_module(self.model, device, self.frontend,
+            self.iree_compilation_module,
+            self.iree_config,
+        ) = get_iree_compiled_module(self.model,
+                                     device,
+                                     self.frontend,
                                      model_config_path=model_config_path)
 
         # Debugging Options:
         if shark_args.save_mlir:
-            export_module_to_mlir_file(self.model, self.frontend, shark_args.repro_dir)
+            export_module_to_mlir_file(self.model, self.frontend,
+                                       shark_args.repro_dir)
         if shark_args.save_vmfb:
             self.vmfb_file = export_iree_module_to_vmfb(self.model, device,
                                                         shark_args.repro_dir,
