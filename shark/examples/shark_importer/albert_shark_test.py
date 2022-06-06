@@ -1,12 +1,5 @@
 # RUN: %PYTHON %s
-import unittest
-from absl import app
 import numpy as np
-import sys
-print(sys.path)
-print(f"Name: {__name__}")
-print(f"Package: {__package__}")
-
 from shark.shark_importer import SharkImporter, GenerateInputSharkImporter
 
 model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
@@ -45,8 +38,8 @@ class AlbertInput(GenerateInputSharkImporter):
         assert(np.isclose(iree_results[0], tflite_results[0], atol=1e-4).all() == True)
         assert(np.isclose(iree_results[1], tflite_results[1], atol=1e-4).all() == True)
 
-def main(argv):
-    my_shark_importer = SharkImporter(model_path, "tflite", "tfhub")
+def test_albert():
+    my_shark_importer = SharkImporter(model_path, "tflite", "tfhub", 'dylib')
     input_details, output_details = my_shark_importer.setup_tflite()
     albert_inputs_obj = AlbertInput(input_details, "tfhub")
     inputs = albert_inputs_obj.generate_inputs()
@@ -55,4 +48,4 @@ def main(argv):
     albert_inputs_obj.compare_results(iree_results, tflite_results, output_details)
 
 if __name__ == '__main__':
-    app.run(main)
+    test_albert()
