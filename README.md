@@ -116,7 +116,13 @@ print(shark_module.forward((arg0, arg1)))
 </details>
 
 
-### Model Tracking (Shark Inference)
+### Supported and Validated Models
+  
+
+<details>
+  <summary>PyTorch Models</summary>
+
+### Huggingface PyTorch Models
 
 | Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
@@ -126,7 +132,8 @@ print(shark_module.forward((arg0, arg1)))
 | DistilBERT          | :heavy_check_mark: (JIT)            | :heavy_check_mark:         |          |             |
 | GPT2                | :x: (AOT)            |          |          |             |
 
-
+### Torchvision  Models
+  
 | TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
@@ -151,14 +158,53 @@ print(shark_module.forward((arg0, arg1)))
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
 
-### Shark Trainer API
+### PyTorch Training Models 
 
 | Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :x:           | :x:         |          |             |
 | FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
 
+</details>
+  
+<details>
+  <summary>JAX Models</summary>
 
+
+### JAX  Models 
+
+| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :x:           | :x:         |          |             |
+| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+ 
+</details>
+  
+<details>
+  <summary>TFLite Models</summary>
+ 
+### TFLite Models 
+
+| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :x:           | :x:         |          |             |
+| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+  
+</details>
+
+  <details>
+  <summary>TF Models</summary>
+ 
+### Tensorflow Models 
+
+| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :x:           | :x:         |          |             |
+| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+  
+</details>
+  
+  
 #### Related Project Channels
 
 *   [Upstream IREE issues](https://github.com/google/iree/issues): Feature requests,
