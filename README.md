@@ -15,7 +15,24 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 <details>
   <summary>Installation (Linux and macOS)</summary>
   
- pip install SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
+### Setup a new pip Virtual Environment
+
+This step sets up a new VirtualEnv for Python
+  
+```shell
+python --version #Check you have 3.7->3.10 on Linux or 3.10 on macOS
+python -m venv shark_venv
+source shark_venv/bin/activate
+
+# If you are using conda create and activate a new conda env
+
+# Some older pip installs may not be able to handle the recent PyTorch deps
+python -m pip install --upgrade pip
+```
+
+### Install SHARK
+  
+This step pip installs SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
 
 ```shell
 pip install nodai-shark -f https://github.com/nod-ai/SHARK/releases -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
