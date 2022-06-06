@@ -19,7 +19,7 @@ from torch_mlir_e2e_test.eager_backends.refbackend import EagerModeRefBackend
 
 from shark.iree_eager_backend import EagerModeIREELinalgOnTensorsBackend
 from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
-from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb, export_module_to_mlir_file, build_benchmark_args, run_benchmark
+from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb, export_module_to_mlir_file, build_benchmark_args, run_benchmark_module
 import os
 from shark.parser import shark_args
 from tqdm import tqdm
@@ -152,7 +152,7 @@ class SharkBenchmarkRunner(SharkRunner):
         return
 
     def benchmark_c(self):
-        result = run_benchmark(self.benchmark_cl)
+        result = run_benchmark_module(self.benchmark_cl)
         print(f"Shark-{self.frontend} C-benchmark:{result} iter/second")
 
     def benchmark_python(self, inputs):

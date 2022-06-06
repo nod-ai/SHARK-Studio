@@ -269,7 +269,6 @@ def tensor_to_type_str(input_tensors: tuple, frontend: str):
     Output: list of string that represent mlir types (i.e 1x24xf64)
     # TODO: Support more than floats, and ints
     """
-    print("front:", frontend)
     list_of_type = []
     for input_tensor in input_tensors:
         type_string = "x".join([str(dim) for dim in input_tensor.shape])
@@ -329,7 +328,7 @@ def run_cmd(cmd):
         sys.exit("Exiting program due to error running:", cmd)
 
 
-def run_benchmark(benchmark_cl):
+def run_benchmark_module(benchmark_cl):
     """
     Run benchmark command, extract result and return iteration/seconds.
 

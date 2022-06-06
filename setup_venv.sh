@@ -120,6 +120,16 @@ fi
 
 if [[ $(uname -s) = 'Linux' ]]; then
   echo "${Yellow}Linux detected.. installing importer tools"
+  # Modules required for ONNX/Transformer Benchmarking.
+  # TODO: move this to requirements.txt
+  $PYTHON -m pip install protobuf
+  $PYTHON -m pip install coloredlogs
+  $PYTHON -m pip install flatbuffers
+  $PYTHON -m pip install sympy
+  $PYTHON -m pip install psutil
+  $PYTHON -m pip install -i https://test.pypi.org/simple/ onnx-weekly
+  $PYTHON -m pip install -i https://test.pypi.org/simple/ ort-nightly
+
   $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/nod-ai/SHARK-Runtime/releases
 fi
 
