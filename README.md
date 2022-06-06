@@ -15,7 +15,7 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 <details>
   <summary>Installation</summary>
   
- ### pip install SHARK and related packages with Python 3.10 venv
+ pip install SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
 
 ```shell
 pip install nodai-shark -f https://github.com/nod-ai/SHARK/releases -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
@@ -41,6 +41,7 @@ python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal
 
 <details>
   <summary>Source Installation</summary>
+
 ## Check out the code
 
 ```shell
