@@ -233,3 +233,14 @@ def test_resnet101(dynamic, device):
     shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
+
+@pytest_param
+def test_distilbert(dynamic, device):
+    model, input, act_out = get_hf_model("distilbert-base-uncased")
+    shark_module = SharkInference(model, (input,),
+                                  device=device,
+                                  dynamic=dynamic,
+                                  jit_trace=True)
+    shark_module.compile()
+    results = shark_module.forward((input,))
+    assert True == compare_tensors(act_out, results)
