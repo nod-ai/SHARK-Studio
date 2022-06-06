@@ -10,10 +10,10 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 *   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 
 
-## Installation (Linux and macOS)
+## Installation
 
 <details>
-  <summary>Installation</summary>
+  <summary>Installation (Linux and macOS)</summary>
   
  pip install SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
 
@@ -116,8 +116,7 @@ print(shark_module.forward((arg0, arg1)))
 </details>
 
 
-### Supported and Validated Models
-  
+## Supported and Validated Models
 
 <details>
   <summary>PyTorch Models</summary>
@@ -192,7 +191,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
   
 </details>
 
-  <details>
+<details>
   <summary>TF Models</summary>
  
 ### Tensorflow Models 
@@ -203,9 +202,11 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 | FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
   
 </details>
+
+## Related Projects
   
-  
-#### Related Project Channels
+<details>
+  <summary>Related Project Channels</summary>
 
 *   [Upstream IREE issues](https://github.com/google/iree/issues): Feature requests,
     bugs, and other work tracking
@@ -217,7 +218,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
     IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org). IREE
     sometimes is referred to in certain MLIR discussions. Useful if you are also
     interested in MLIR evolution.
-    
+</details>
     
 ## License
 
