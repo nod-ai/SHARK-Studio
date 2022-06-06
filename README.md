@@ -123,7 +123,7 @@ print(shark_module.forward((arg0, arg1)))
 | BERT                | :heavy_check_mark: (JIT)          | :heavy_check_mark:         |          |             |
 | Albert              | :heavy_check_mark: (JIT)            | :heavy_check_mark:         |          |             |
 | BigBird             | :heavy_check_mark: (AOT)            |          |          |             |
-| DistilBERT          | :heavy_check_mark: (AOT)            |          |          |             |
+| DistilBERT          | :heavy_check_mark: (JIT)            | :heavy_check_mark:         |          |             |
 | GPT2                | :x: (AOT)            |          |          |             |
 
 
