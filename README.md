@@ -40,6 +40,9 @@ pip install nodai-shark -f https://github.com/nod-ai/SHARK/releases -f https://g
 If you are on an Intel macOS machine you need this [workaround](https://github.com/nod-ai/SHARK/issues/102) for an upstream issue.
 
 ### Download and run Resnet50 sample
+  
+*macOS Metal* users please install https://vulkan.lunarg.com/sdk/home
+  
 ```shell
 curl -O https://raw.githubusercontent.com/nod-ai/SHARK/main/shark/examples/shark_inference/resnet50_script.py
 #Install deps for test script
