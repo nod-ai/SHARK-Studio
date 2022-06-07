@@ -121,6 +121,7 @@ pytest_benchmark_param = pytest.mark.parametrize(
         pytest.param(True, 'cpu', marks=pytest.mark.skip),
     ])
 
+@pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
 @pytest_benchmark_param
 def test_bench_minilm_torch(dynamic, device):
     model, test_input, act_out = get_hf_model("microsoft/MiniLM-L12-H384-uncased")
@@ -140,8 +141,27 @@ def test_bench_minilm_torch(dynamic, device):
 
 @pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
 @pytest_benchmark_param
-def test_bench_minilm_tf(dynamic, device):
-    model, test_input, act_out = get_TFhf_model("microsoft/MiniLM-L12-H384-uncased")
+def test_bench_distilbert(dynamic, device):
+    model, test_input, act_out = get_TFhf_model("distilbert-base-uncased")
+    shark_module = SharkInference(model, test_input,
+                                  device=device,
+                                  dynamic=dynamic,
+                                  jit_trace=True,
+                                  benchmark_mode=True)
+    try:
+        # If becnhmarking succesful, assert success/True.
+        shark_module.set_frontend("tensorflow")
+        shark_module.compile()
+        shark_module.benchmark_all(test_input)
+        assert True
+    except Exception as e:
+        # If anything happen during benchmarking, assert False/failure.
+        assert False
+
+@pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
+@pytest_benchmark_param
+def test_bench_xlm_roberta(dynamic, device):
+    model, test_input, act_out = get_TFhf_model("xlm-roberta-base")
     shark_module = SharkInference(model, test_input,
                                   device=device,
                                   dynamic=dynamic,
