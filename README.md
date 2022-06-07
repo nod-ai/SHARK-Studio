@@ -6,7 +6,7 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 
 ## Communication Channels
 
-*   [Nod.ai SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the nod.ai team and other users
+*   [SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the SHARK team and other users
 *   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 
 
