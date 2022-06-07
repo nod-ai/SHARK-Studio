@@ -190,9 +190,9 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 
 ### JAX  Models 
 
-| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| Models | JAX-MHLO lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
-| BERT                | :x:           | :x:         |          |             |
+| DALL-E                | :x:           | :x:         |          |             |
 | FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
  
 </details>
@@ -202,7 +202,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
  
 ### TFLite Models 
 
-| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| Models | TOSA/LinAlg  | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :x:           | :x:         |          |             |
 | FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
@@ -224,7 +224,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 ## Related Projects
   
 <details>
-  <summary>Related Project Channels</summary>
+  <summary>IREE Project Channels</summary>
 
 *   [Upstream IREE issues](https://github.com/google/iree/issues): Feature requests,
     bugs, and other work tracking
@@ -232,12 +232,18 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
     discussions with the core team and collaborators
 *   [iree-discuss email list](https://groups.google.com/forum/#!forum/iree-discuss):
     Announcements, general and low-priority discussion
-*   [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31):
-    IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org). IREE
-    sometimes is referred to in certain MLIR discussions. Useful if you are also
-    interested in MLIR evolution.
 </details>
     
+<details>
+  <summary>MLIR and Torch-MLIR Project Channels</summary>
+
+* `#torch-mlir` channel on the LLVM [Discord](https://discord.gg/xS7Z362) - this is the most active communication channel
+* Torch-MLIR Github issues [here](https://github.com/llvm/torch-mlir/issues)
+* [`torch-mlir` section](https://llvm.discourse.group/c/projects-that-want-to-become-official-llvm-projects/torch-mlir/41) of LLVM Discourse
+*  Weekly meetings on Mondays 9AM PST. See [here](https://discourse.llvm.org/t/community-meeting-developer-hour-refactoring-recurring-meetings/62575) for more information.
+* [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31) SHARK and IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org).
+</details>
+  
 ## License
 
 nod.ai SHARK is licensed under the terms of the Apache 2.0 License with LLVM Exceptions.
