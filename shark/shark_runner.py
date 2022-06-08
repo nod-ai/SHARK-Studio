@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from iree.compiler import tf as tfc
+import iree.compiler.tflite as ireec_tflite
 from torch.utils._python_dispatch import enable_torch_dispatch_mode
 from torch_mlir.eager_mode import torch_mlir_tensor
 from torch_mlir.eager_mode.torch_mlir_tensor import TorchMLIRTensor
@@ -49,12 +50,26 @@ class SharkRunner:
         func_name = "forward"
         device = device if device is not None else shark_args.device
         if self.frontend in ["pytorch", "torch"]:
+            #get torch-mlir dialet
+            # self.model = torch.Module
+            # TODO assert
             self.model = get_torch_mlir_module(self.model, input, dynamic,
                                                jit_trace, from_aot)
         elif frontend in ["tensorflow", "tf"]:
+            # get mhlo dialect
+            # self.model = tf.Module
+            # TODO assert
             self.model = tfc.compile_module(self.model,
                                             exported_names=[func_name],
                                             import_only=True)
+        elif frontend in ["tflite"]:
+            print("Setting up for IREE tflite")
+            # get tosa dialect
+            # self.model = model.tflite
+            # TODO assert
+            self.model = ireec_tflite.compile_file(self.model,
+                                                   input_type="tosa",
+                                                   import_only=True)
         (
             self.iree_compilation_module,
             self.iree_config,

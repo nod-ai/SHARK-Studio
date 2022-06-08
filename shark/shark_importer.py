@@ -17,11 +17,12 @@ targets = {
   'cuda' : 'cuda',
 }
 
-configs = {
-  'dylib' : 'dylib',
-  'vulkan' : 'vulkan',
-  'cuda' : 'cuda',
-}
+#iree_utils.py IREE_DEVICE_MAP
+# configs = {
+#   'dylib' : 'dylib',
+#   'vulkan' : 'vulkan',
+#   'cuda' : 'cuda',
+# }
 
 class GenerateInputSharkImporter():
   def __init__(self, input_details, model_source_hub="tfhub"):
@@ -40,11 +41,19 @@ class SharkImporter:
                model_path,
                model_type="tflite",
                model_source_hub="tfhub",
-               exe_config='dylib'):
+               exe_config='dylib',
+               device: str = None,
+               dynamic: bool = False,
+               jit_trace: bool = False,
+               benchmark_mode: bool = False):
     self.model_path = model_path
     self.model_type = model_type
     self.model_source_hub = model_source_hub
-    self.exe_config = exe_config
+    self.exe_config = exe_config # device
+    self.device = device
+    self.dynamic = dynamic
+    self.jit_trace = jit_trace
+    self.benchmark_mode = benchmark_mode
     self.inputs = None
     self.input_details = None
     self.output_details = None
@@ -70,17 +79,17 @@ class SharkImporter:
           self.tflite_file = self.model_path
         else:
           urllib.request.urlretrieve(self.model_path, self.tflite_file)
-        self.binary = '/'.join([self.workdir, 'module.bytecode'])
+        self.binary = '/'.join([self.workdir, 'module.bytecode']) #flatbuffer_blob
 
-        print("Setting up for IREE")
-        iree_tflite_compile.compile_file(
-          self.tflite_file, input_type="tosa",
-          output_file=self.binary,
-          save_temp_tfl_input=self.tflite_ir,
-          save_temp_iree_input=self.iree_ir,
-          target_backends=[targets[self.exe_config]],
-          import_only=False)
-        self.setup_iree()
+        # print("Setting up for IREE")
+        # iree_tflite_compile.compile_file(
+        #   self.tflite_file, input_type="tosa",
+        #   output_file=self.binary,
+        #   save_temp_tfl_input=self.tflite_ir,
+        #   save_temp_iree_input=self.iree_ir,
+        #   target_backends=[targets[self.exe_config]],
+        #   import_only=False)
+        # self.setup_iree()
         self.setup_tflite()
 
   def setup_tflite(self):
@@ -91,19 +100,19 @@ class SharkImporter:
     self.output_details = self.tflite_interpreter.get_output_details()
     return self.input_details, self.output_details
 
-  def setup_iree(self):
-    print("Setting up iree runtime")
-    with open(self.binary, 'rb') as f:
-      config = iree_rt.Config(configs[self.exe_config])
-      self.iree_context = iree_rt.SystemContext(config=config)
-      vm_module = iree_rt.VmModule.from_flatbuffer(f.read())
-      self.iree_context.add_vm_module(vm_module)
+  # def setup_iree(self): # get_iree_module
+  #   print("Setting up iree runtime")
+  #   with open(self.binary, 'rb') as f:
+  #     config = iree_rt.Config(configs[self.exe_config])
+  #     self.iree_context = iree_rt.SystemContext(config=config)
+  #     vm_module = iree_rt.VmModule.from_flatbuffer(f.read())
+  #     self.iree_context.add_vm_module(vm_module)
 
   def setup_input(self, inputs):
     print("Setting up inputs")
     self.inputs = inputs
 
-  def invoke_tflite(self, args):
+  def invoke_tflite(self, args): # moving to testing, just test tflite model run
     for i, input in enumerate(args):
       self.tflite_interpreter.set_tensor(self.input_details[i]['index'], input)
     start = time.perf_counter()
@@ -120,15 +129,15 @@ class SharkImporter:
       tflite_results[i] = tflite_results[i].astype(dtype)
     return tflite_results
 
-  def invoke_iree(self, args):
-    invoke = self.iree_context.modules.module["main"]
-    start = time.perf_counter()
-    iree_results = invoke(*args)
-    end = time.perf_counter()
-    print(f"Invocation time: {end - start:0.4f} seconds")
-    if not isinstance(iree_results, tuple):
-      iree_results = (iree_results,)
-    return iree_results
+  # def invoke_iree(self, args):
+  #   invoke = self.iree_context.modules.module["main"] # ModuleCompiled
+  #   start = time.perf_counter()
+  #   iree_results = invoke(*args) #result = compiled_vm(*device_inputs)
+  #   end = time.perf_counter()
+  #   print(f"Invocation time: {end - start:0.4f} seconds")
+  #   if not isinstance(iree_results, tuple):
+  #     iree_results = (iree_results,)
+  #   return iree_results
 
   def compile_and_execute(self):
     # preprocess model_path to get model_type and Model Source Hub
@@ -138,10 +147,16 @@ class SharkImporter:
       print("Invoking TFLite")
       tflite_results = self.invoke_tflite(self.inputs)
 
-      print("Invoke IREE")
-      iree_results = self.invoke_iree(self.inputs)
+      shark_module = SharkInference(self.tflite_file, (self.inputs,),
+                                    device=self.exe_config,
+                                    dynamic=self.dynamic,
+                                    jit_trace=self.jit_trace)
+      shark_module.set_frontend("tflite")
+      shark_module.compile()
+      iree_results = shark_module.forward((self.inputs,))
 
       # Fix type information for unsigned cases.
+      # for test compare result
       iree_results = list(iree_results)
       for i in range(len(self.output_details)):
         dtype = self.output_details[i]["dtype"]

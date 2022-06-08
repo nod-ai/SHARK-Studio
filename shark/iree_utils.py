@@ -15,6 +15,7 @@
 import iree.runtime as ireert
 import iree.runtime.scripts.iree_benchmark_module as benchmark_module
 import iree.compiler as ireec
+import iree.compiler.tflite as ireec_tflite
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
 from shark.cuda_utils import get_cuda_sm_cc
 from shark.model_annotation import *
@@ -149,6 +150,8 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
         input_type = "mhlo"
     elif frontend in ["mhlo", "tosa"]:
         input_type = frontend
+    elif frontend in ["tflite"]:
+        input_type = "tosa"
 
     # Annotate the input module with the configs
     if model_config_path != None:
@@ -166,6 +169,13 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
     # Compile according to the input type, else just try compiling.
     if input_type != "mhlo":
         module = str(module)
+    # if input_type == "tosa":
+    #     print("Setting up for tflite IREE tflite")
+    #     flatbuffer_blob = ireec_tflite.compile_str(
+    #         module, input_type=input_type,
+    #         target_backends=[IREE_DEVICE_MAP[device]],
+    #         import_only=False)
+
     if input_type != "":
         # Currently for MHLO/TOSA.
         flatbuffer_blob = ireec.compile_str(
@@ -236,7 +246,7 @@ def get_results(compiled_vm, input, config, frontend="torch"):
     device_inputs = input
     if frontend in ["torch", "pytorch"]:
         device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
-    if frontend in ["tensorflow", "tf"]:
+    if frontend in ["tensorflow", "tf", "tflite"]:
         device_inputs = []
         for a in input:
             if (isinstance(a, list)):

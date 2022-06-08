@@ -1,6 +1,8 @@
 # RUN: %PYTHON %s
 import numpy as np
 from shark.shark_importer import SharkImporter, GenerateInputSharkImporter
+import pytest
+from shark.iree_utils import check_device_drivers
 
 model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
 
@@ -38,14 +40,57 @@ class AlbertInput(GenerateInputSharkImporter):
         assert(np.isclose(iree_results[0], tflite_results[0], atol=1e-4).all() == True)
         assert(np.isclose(iree_results[1], tflite_results[1], atol=1e-4).all() == True)
 
-def test_albert():
-    my_shark_importer = SharkImporter(model_path, "tflite", "tfhub", 'dylib')
+# A specific case can be run by commenting different cases. Runs all the test
+# across cpu, gpu and vulkan according to available drivers.
+pytest_param = pytest.mark.parametrize(
+    ('dynamic', 'device'),
+    [
+        pytest.param(False, 'cpu'),
+        # TODO: Language models are failing for dynamic case..
+        pytest.param(True, 'cpu', marks=pytest.mark.skip),
+        pytest.param(False,
+                     'gpu',
+                     marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                              reason="nvidia-smi not found")),
+        pytest.param(True,
+                     'gpu',
+                     marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                              reason="nvidia-smi not found")),
+        pytest.param(
+            False,
+            'vulkan',
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason=
+                "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
+        pytest.param(
+            True,
+            'vulkan',
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason=
+                "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
+    ])
+
+
+@pytest_param
+def test_albert(dynamic, device):
+    my_shark_importer = SharkImporter(model_path=model_path,
+                                      model_type="tflite",
+                                      model_source_hub="tfhub",
+                                      exe_config='cpu',
+                                      device=device,
+                                      dynamic=dynamic,
+                                      jit_trace=True
+                                      )
     input_details, output_details = my_shark_importer.setup_tflite()
     albert_inputs_obj = AlbertInput(input_details, "tfhub")
-    inputs = albert_inputs_obj.generate_inputs()
+    inputs = albert_inputs_obj.generate_inputs() # device_inputs
     my_shark_importer.setup_input(inputs)
     iree_results, tflite_results = my_shark_importer.compile_and_execute()
     albert_inputs_obj.compare_results(iree_results, tflite_results, output_details)
 
 if __name__ == '__main__':
-    test_albert()
+    test_albert(False, "cpu")
