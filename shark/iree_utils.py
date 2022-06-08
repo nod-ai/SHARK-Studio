@@ -15,7 +15,6 @@
 import iree.runtime as ireert
 import iree.runtime.scripts.iree_benchmark_module as benchmark_module
 import iree.compiler as ireec
-import iree.compiler.tflite as ireec_tflite
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
 from shark.cuda_utils import get_cuda_sm_cc
 from shark.model_annotation import *
@@ -30,7 +29,8 @@ IREE_DEVICE_MAP = {
     "gpu": "cuda",
     "cuda": "cuda",
     "vulkan": "vulkan",
-    "metal": "vulkan"
+    "metal": "vulkan",
+    "rocm": "rocm"
 }
 
 UNIT_TO_SECOND_MAP = {"ms": 0.001, "s": 1}

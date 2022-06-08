@@ -10,12 +10,6 @@ import tensorflow.compat.v2 as tf
 import urllib.request
 from shark.shark_inference import SharkInference
 
-targets = {
-  'dylib' : 'dylib-llvm-aot',
-  'vulkan' : 'vulkan-spirv',
-  'cuda' : 'cuda',
-}
-
 class SharkImporter:
   def __init__(self,
                model_path,
