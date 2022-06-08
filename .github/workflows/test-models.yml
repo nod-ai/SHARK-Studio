@@ -12,7 +12,7 @@ on:
 
 jobs:
   build-linux:
-
+    if: ! github.event.pull_request.draft
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -55,6 +55,7 @@ jobs:
         pytest --workers auto -k 'not benchmark'
         
   perf-macOS:
+    if: ! github.event.pull_request.draft
     runs-on: MacStudio
     strategy:
       fail-fast: false
