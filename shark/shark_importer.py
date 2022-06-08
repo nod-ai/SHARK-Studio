@@ -7,7 +7,6 @@ import numpy as np
 import os
 import sys
 import tensorflow.compat.v2 as tf
-import time
 import urllib.request
 from shark.shark_inference import SharkInference
 
@@ -16,18 +15,6 @@ targets = {
   'vulkan' : 'vulkan-spirv',
   'cuda' : 'cuda',
 }
-
-class GenerateInputSharkImporter():
-  def __init__(self, input_details, model_source_hub="tfhub"):
-    self.input_details = input_details
-    self.model_source_hub = model_source_hub
-
-  def generate_inputs(self):
-    args = []
-    for input in self.input_details:
-      print("\t%s, %s", str(input["shape"]), input["dtype"].__name__)
-      args.append(np.zeros(shape=input["shape"], dtype=input["dtype"]))
-    return args
 
 class SharkImporter:
   def __init__(self,
@@ -84,20 +71,28 @@ class SharkImporter:
     print("Setting up inputs")
     self.inputs = inputs
 
-  def compile_and_execute(self):
+  def compile(self):
     # preprocess model_path to get model_type and Model Source Hub
-    print("Shark Importer Compile and Execute Model")
+    print("Shark Importer compile Model")
     if self.model_source_hub == "tfhub":
       # compile and run tfhub tflite
       print("Inference tfhub model")
-      shark_module = SharkInference(self.tflite_file, self.inputs,
+      self.shark_module = SharkInference(self.tflite_file, self.inputs,
                                     device=self.device,
                                     dynamic=self.dynamic,
                                     jit_trace=self.jit_trace)
-      shark_module.set_frontend("tflite")
-      shark_module.compile()
-      shark_results = shark_module.forward(self.inputs)
+      self.shark_module.set_frontend("tflite")
+      self.shark_module.compile()
+    elif self.model_source_hub == "huggingface":
+      print("Inference huggingface model")
+    elif self.model_source_hub == "jaxhub":
+      print("Inference JAX hub model")
 
+  def forward(self):
+    # preprocess model_path to get model_type and Model Source Hub
+    print("Shark Importer forward Model")
+    if self.model_source_hub == "tfhub":
+      shark_results = self.shark_module.forward(self.inputs)
       # Fix type information for unsigned cases.
       # for test compare result
       shark_results = list(shark_results)
