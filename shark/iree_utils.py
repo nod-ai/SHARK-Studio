@@ -167,15 +167,9 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
             module = str(module)
 
     # Compile according to the input type, else just try compiling.
-    if input_type != "mhlo":
+    print(type(module))
+    if input_type not in ["mhlo","tosa"]:
         module = str(module)
-    # if input_type == "tosa":
-    #     print("Setting up for tflite IREE tflite")
-    #     flatbuffer_blob = ireec_tflite.compile_str(
-    #         module, input_type=input_type,
-    #         target_backends=[IREE_DEVICE_MAP[device]],
-    #         import_only=False)
-
     if input_type != "":
         # Currently for MHLO/TOSA.
         flatbuffer_blob = ireec.compile_str(

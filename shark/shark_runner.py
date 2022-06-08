@@ -70,12 +70,14 @@ class SharkRunner:
             self.model = ireec_tflite.compile_file(self.model,
                                                    input_type="tosa",
                                                    import_only=True)
+            func_name = "main"
         (
             self.iree_compilation_module,
             self.iree_config,
         ) = get_iree_compiled_module(self.model,
                                      device,
                                      self.frontend,
+                                     func_name=func_name,
                                      model_config_path=model_config_path)
 
         # Debugging Options:
