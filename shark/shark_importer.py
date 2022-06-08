@@ -17,13 +17,6 @@ targets = {
   'cuda' : 'cuda',
 }
 
-#iree_utils.py IREE_DEVICE_MAP
-# configs = {
-#   'dylib' : 'dylib',
-#   'vulkan' : 'vulkan',
-#   'cuda' : 'cuda',
-# }
-
 class GenerateInputSharkImporter():
   def __init__(self, input_details, model_source_hub="tfhub"):
     self.input_details = input_details
@@ -103,15 +96,15 @@ class SharkImporter:
                                     jit_trace=self.jit_trace)
       shark_module.set_frontend("tflite")
       shark_module.compile()
-      iree_results = shark_module.forward(self.inputs)
+      shark_results = shark_module.forward(self.inputs)
 
       # Fix type information for unsigned cases.
       # for test compare result
-      iree_results = list(iree_results)
+      shark_results = list(shark_results)
       for i in range(len(self.output_details)):
         dtype = self.output_details[i]["dtype"]
-        iree_results[i] = iree_results[i].astype(dtype)
-      return iree_results
+        shark_results[i] = shark_results[i].astype(dtype)
+      return shark_results
     elif self.model_source_hub == "huggingface":
       print("Inference huggingface model")
     elif self.model_source_hub == "jaxhub":

@@ -2,7 +2,6 @@
 import numpy as np
 from shark.shark_importer import SharkImporter, GenerateInputSharkImporter
 import pytest
-from shark.iree_utils import check_device_drivers
 
 model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
 
@@ -47,8 +46,8 @@ def test_albert(dynamic, device):
     albert_inputs_obj = AlbertInput(input_details, "tfhub")
     inputs = albert_inputs_obj.generate_inputs() # device_inputs
     my_shark_importer.setup_inputs(inputs)
-    iree_results = my_shark_importer.compile_and_execute()
-    # print(iree_results)
+    shark_results = my_shark_importer.compile_and_execute()
+    # print(shark_results)
 
 if __name__ == '__main__':
     test_albert(False, "cpu")
