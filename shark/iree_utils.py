@@ -186,9 +186,15 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
     return flatbuffer_blob
 
 
-def get_iree_module(flatbuffer_blob, device, func_name):
+def get_iree_module(flatbuffer_blob, device, func_name, device_idx=None):
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
     config = ireert.Config(IREE_DEVICE_MAP[device])
+    if device_idx is not None:
+        if device == "gpu":
+            ireert.flags.parse_flags("--cuda_default_index=" + device_idx)
+        else:
+            print("device_idx was specified but device is: " + device +
+                  ". Only gpu currently supported")
     ctx = ireert.SystemContext(config=config)
     ctx.add_vm_module(vm_module)
     ModuleCompiled = ctx.modules.module[func_name]
@@ -199,11 +205,12 @@ def get_iree_compiled_module(module,
                              device: str,
                              frontend: str = "torch",
                              func_name: str = "forward",
-                             model_config_path: str = None):
+                             model_config_path: str = None,
+                             device_idx: str = None):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend,
                                                    func_name, model_config_path)
-    return get_iree_module(flatbuffer_blob, device, func_name)
+    return get_iree_module(flatbuffer_blob, device, func_name, device_idx)
 
 
 def export_iree_module_to_vmfb(module,

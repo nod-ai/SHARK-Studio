@@ -40,6 +40,7 @@ class SharkRunner:
         from_aot: bool = False,
         frontend: str = "torch",
         model_config_path: str = None,
+        device_idx: str = None,
     ):
         self.model = model
         self.frontend_model = model
@@ -77,8 +78,8 @@ class SharkRunner:
         ) = get_iree_compiled_module(self.model,
                                      device,
                                      self.frontend,
-                                     func_name=func_name,
-                                     model_config_path=model_config_path)
+                                     model_config_path=model_config_path,
+                                     device_idx=device_idx)
 
         # Debugging Options:
         if shark_args.save_mlir:

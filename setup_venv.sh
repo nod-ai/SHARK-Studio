@@ -74,6 +74,7 @@ fi
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt" --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
+$PYTHON -m cupyx.tools.install_library --library nccl --cuda 11.3
 if [ "$install_tensorflow_mac" = true ]; then
   $PYTHON -m pip install tensorflow-macos
   if [ $? -eq 0 ];then

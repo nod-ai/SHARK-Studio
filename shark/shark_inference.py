@@ -31,13 +31,14 @@ class SharkInference:
                  device: str = None,
                  dynamic: bool = False,
                  jit_trace: bool = False,
-                 benchmark_mode: bool = False):
+                 benchmark_mode: bool = False,
+                 device_idx: str = False):
         self.model = model
         self.input = input
         self.dynamic = dynamic
         self.jit_trace = jit_trace
         self.benchmark_mode = benchmark_mode
-
+        self.device_idx = device_idx
         # By default it's torch frontend.
         self.frontend = "pytorch"
 
@@ -70,7 +71,8 @@ class SharkInference:
                                             self.dynamic, self.device,
                                             self.jit_trace, from_aot,
                                             self.frontend,
-                                            self.model_config_path)
+                                            self.model_config_path,
+                                            self.device_idx)
 
     # inputs are considered to be np.array.
     def forward(self, inputs):
