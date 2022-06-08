@@ -2,7 +2,7 @@
 -f https://github.com/nod-ai/SHARK-Runtime/releases
 --pre
 
-numpy
+numpy==1.22.4
 torch
 torchvision
 

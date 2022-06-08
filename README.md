@@ -6,26 +6,47 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 
 ## Communication Channels
 
-*   [Nod.ai SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the nod.ai team and other users
+*   [SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the SHARK team and other users
 *   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 
 
-## Installation (Linux and macOS)
+## Installation
 
 <details>
-  <summary>Installation</summary>
+  <summary>Installation (Linux and macOS)</summary>
   
- pip install SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
+### Setup a new pip Virtual Environment
+
+This step sets up a new VirtualEnv for Python
+  
+```shell
+python --version #Check you have 3.7->3.10 on Linux or 3.10 on macOS
+python -m venv shark_venv
+source shark_venv/bin/activate
+
+# If you are using conda create and activate a new conda env
+
+# Some older pip installs may not be able to handle the recent PyTorch deps
+python -m pip install --upgrade pip
+```
+
+*macOS Metal* users please install https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg
+
+### Install SHARK
+  
+This step pip installs SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
 
 ```shell
 pip install nodai-shark -f https://github.com/nod-ai/SHARK/releases -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
+If you are on an Intel macOS machine you need this [workaround](https://github.com/nod-ai/SHARK/issues/102) for an upstream issue.
 
 ### Download and run Resnet50 sample
+    
 ```shell
 curl -O https://raw.githubusercontent.com/nod-ai/SHARK/main/shark/examples/shark_inference/resnet50_script.py
 #Install deps for test script
-pip install pillow requests tqdm torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install --pre torch torchvision torchaudio tqdm pillow --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 python ./resnet50_script.py --device="cpu"  #use cuda or vulkan or metal 
 ```
         
@@ -73,6 +94,7 @@ pytest --workers auto
 
 <details>
   <summary>API Reference</summary>
+
 ### Shark Inference API
 
 ```
@@ -116,7 +138,12 @@ print(shark_module.forward((arg0, arg1)))
 </details>
 
 
-### Model Tracking (Shark Inference)
+## Supported and Validated Models
+
+<details>
+  <summary>PyTorch Models</summary>
+
+### Huggingface PyTorch Models
 
 | Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
@@ -126,7 +153,8 @@ print(shark_module.forward((arg0, arg1)))
 | DistilBERT          | :heavy_check_mark: (JIT)            | :heavy_check_mark:         |          |             |
 | GPT2                | :x: (AOT)            |          |          |             |
 
-
+### Torchvision  Models
+  
 | TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
@@ -151,15 +179,56 @@ print(shark_module.forward((arg0, arg1)))
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
 
-### Shark Trainer API
+### PyTorch Training Models 
 
 | Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :x:           | :x:         |          |             |
 | FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
 
+</details>
+  
+<details>
+  <summary>JAX Models</summary>
 
-#### Related Project Channels
+
+### JAX  Models 
+
+| Models | JAX-MHLO lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| DALL-E                | :x:           | :x:         |          |             |
+| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+ 
+</details>
+  
+<details>
+  <summary>TFLite Models</summary>
+ 
+### TFLite Models 
+
+| Models | TOSA/LinAlg  | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :x:           | :x:         |          |             |
+| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+  
+</details>
+
+<details>
+  <summary>TF Models</summary>
+ 
+### Tensorflow Models 
+
+| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :x:           | :x:         |          |             |
+| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+  
+</details>
+
+## Related Projects
+  
+<details>
+  <summary>IREE Project Channels</summary>
 
 *   [Upstream IREE issues](https://github.com/google/iree/issues): Feature requests,
     bugs, and other work tracking
@@ -167,12 +236,18 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
     discussions with the core team and collaborators
 *   [iree-discuss email list](https://groups.google.com/forum/#!forum/iree-discuss):
     Announcements, general and low-priority discussion
-*   [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31):
-    IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org). IREE
-    sometimes is referred to in certain MLIR discussions. Useful if you are also
-    interested in MLIR evolution.
+</details>
     
-    
+<details>
+  <summary>MLIR and Torch-MLIR Project Channels</summary>
+
+* `#torch-mlir` channel on the LLVM [Discord](https://discord.gg/xS7Z362) - this is the most active communication channel
+* Torch-MLIR Github issues [here](https://github.com/llvm/torch-mlir/issues)
+* [`torch-mlir` section](https://llvm.discourse.group/c/projects-that-want-to-become-official-llvm-projects/torch-mlir/41) of LLVM Discourse
+*  Weekly meetings on Mondays 9AM PST. See [here](https://discourse.llvm.org/t/community-meeting-developer-hour-refactoring-recurring-meetings/62575) for more information.
+* [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31) SHARK and IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org).
+</details>
+  
 ## License
 
 nod.ai SHARK is licensed under the terms of the Apache 2.0 License with LLVM Exceptions.
