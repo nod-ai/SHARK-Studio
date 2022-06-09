@@ -48,5 +48,5 @@ def test_albert(dynamic, device):
     input_details, output_details = my_shark_importer.get_model_details()
     inputs = generate_inputs(input_details)  # device_inputs
     my_shark_importer.compile(inputs)
-    shark_results = my_shark_importer.forward()
+    shark_results = my_shark_importer.forward(inputs)
     # print(shark_results)

@@ -96,7 +96,9 @@ class SharkImporter:
         elif self.model_source_hub == "jaxhub":
             print("Inference", self.model_source_hub, " not implemented yet")
 
-    def forward(self):
+    def forward(self, inputs=None):
+        if inputs is not None:
+            self.setup_inputs(inputs)
         # preprocess model_path to get model_type and Model Source Hub
         print("Shark Importer forward Model")
         if self.model_source_hub == "tfhub":
