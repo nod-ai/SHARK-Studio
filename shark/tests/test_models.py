@@ -207,10 +207,10 @@ def test_squeezenet(dynamic, device):
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
 
+
 @pytest_param
 def test_alexnet(dynamic, device):
-    model, input, act_out = get_vision_model(
-        models.alexnet(pretrained=True))
+    model, input, act_out = get_vision_model(models.alexnet(pretrained=True))
     shark_module = SharkInference(
         model,
         (input,),
@@ -220,6 +220,7 @@ def test_alexnet(dynamic, device):
     shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
+
 
 @pytest_param
 def test_resnet101(dynamic, device):
@@ -233,6 +234,7 @@ def test_resnet101(dynamic, device):
     shark_module.compile()
     results = shark_module.forward((input,))
     assert True == compare_tensors(act_out, results)
+
 
 @pytest_param
 def test_distilbert(dynamic, device):
