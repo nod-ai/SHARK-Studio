@@ -91,5 +91,5 @@ jobs:
       run: |
         source shark.venv/bin/activate
         pytest -k 'not benchmark' --ignore=shark/tests/test_hf_benchmark.py
-        pytest -k 'not benchmark' --ignore=shark/tests/test_shark_model.py
+        pytest -k 'not benchmark' --ignore=shark/tests/test_shark_importer.py
         
