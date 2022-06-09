@@ -130,9 +130,9 @@ if [[ $(uname -s) = 'Linux' ]]; then
   $PYTHON -m pip install -i https://test.pypi.org/simple/ onnx-weekly
   $PYTHON -m pip install -i https://test.pypi.org/simple/ ort-nightly
 
-  $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/nod-ai/SHARK-Runtime/releases
 fi
 
+$PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/nod-ai/SHARK-Runtime/releases
 $PYTHON -m pip install transformers
 #$PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/nod-ai/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 $PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
