@@ -16,14 +16,18 @@ pytest_benchmark_param = pytest.mark.parametrize(
         pytest.param(True, 'cpu', marks=pytest.mark.skip),
     ])
 
-@pytest.mark.skipif(importlib.util.find_spec("onnxruntime") is None, reason = "Cannot find ONNXRUNTIME.")
+
+@pytest.mark.skipif(importlib.util.find_spec("onnxruntime") is None,
+                    reason="Cannot find ONNXRUNTIME.")
 @pytest_benchmark_param
 def test_HFbench_minilm_torch(dynamic, device):
     model_name = "bert-base-uncased"
     test_input = torch.randint(2, (1, 128))
     try:
         shark_module = SharkHFBenchmarkRunner(model_name, (test_input,),
-                                            jit_trace=True, dynamic = dynamic, device = device)
+                                              jit_trace=True,
+                                              dynamic=dynamic,
+                                              device=device)
         shark_module.benchmark_c()
         shark_module.benchmark_python((test_input,))
         shark_module.benchmark_torch(test_input)
