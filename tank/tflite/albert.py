@@ -8,7 +8,7 @@ model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1
 # Inputs modified to be useful albert inputs.
 def generate_inputs(input_details):
     for input in input_details:
-        print("\t%s, %s", str(input["shape"]), input["dtype"].__name__)
+        print(str(input["shape"]), input["dtype"].__name__)
 
     args = []
     args.append(

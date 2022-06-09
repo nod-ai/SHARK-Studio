@@ -53,6 +53,17 @@ class SharkImporter:
         print("Setting up tflite interpreter")
         self.tflite_interpreter = tf.lite.Interpreter(model_path=self.tflite_file)
         self.tflite_interpreter.allocate_tensors()
+        # default input initialization
+        self.input_details, self.output_details = self.get_model_details()
+        inputs = self.generate_inputs(self.input_details)  # device_inputs
+        self.setup_inputs(inputs)
+
+  def generate_inputs(self, input_details):
+    args = []
+    for input in input_details:
+      print(str(input["shape"]), input["dtype"].__name__)
+      args.append(np.zeros(shape=input["shape"], dtype=input["dtype"]))
+    return args
 
   def get_model_details(self):
     if self.model_type == "tflite":

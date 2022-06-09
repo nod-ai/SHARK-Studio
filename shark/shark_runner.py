@@ -50,7 +50,7 @@ class SharkRunner:
         func_name = "forward"
         device = device if device is not None else shark_args.device
         if self.frontend in ["pytorch", "torch"]:
-            #get torch-mlir dialet
+            # get torch-mlir dialect
             # self.model = torch.Module
             # TODO assert
             self.model = get_torch_mlir_module(self.model, input, dynamic,
