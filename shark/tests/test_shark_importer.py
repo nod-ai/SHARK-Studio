@@ -47,7 +47,6 @@ def test_albert(dynamic, device):
                                       jit_trace=True)
     input_details, output_details = my_shark_importer.get_model_details()
     inputs = generate_inputs(input_details)  # device_inputs
-    my_shark_importer.setup_inputs(inputs)
-    my_shark_importer.compile()
+    my_shark_importer.compile(inputs)
     shark_results = my_shark_importer.forward()
     # print(shark_results)

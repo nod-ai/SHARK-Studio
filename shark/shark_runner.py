@@ -63,7 +63,7 @@ class SharkRunner:
                                             exported_names=[func_name],
                                             import_only=True)
         elif frontend in ["tflite"]:
-            print("Setting up for IREE tflite")
+            print("Setting up for IREE compiler tflite")
             # get tosa dialect
             # self.model = model.tflite
             # TODO assert

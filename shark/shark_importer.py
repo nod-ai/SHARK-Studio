@@ -76,9 +76,10 @@ class SharkImporter:
     print("Setting up inputs")
     self.inputs = inputs
 
-  def compile(self):
+  def compile(self, inputs):
+    self.setup_inputs(inputs)
     # preprocess model_path to get model_type and Model Source Hub
-    print("Shark Importer compile Model")
+    print("Shark Importer Intialize SharkInference and Do Compile")
     if self.model_source_hub == "tfhub":
       # compile and run tfhub tflite
       print("Inference tfhub model")
@@ -89,9 +90,9 @@ class SharkImporter:
       self.shark_module.set_frontend("tflite")
       self.shark_module.compile()
     elif self.model_source_hub == "huggingface":
-      print("Inference huggingface model")
+      print("Inference", self.model_source_hub, " not implemented yet")
     elif self.model_source_hub == "jaxhub":
-      print("Inference JAX hub model")
+      print("Inference", self.model_source_hub, " not implemented yet")
 
   def forward(self):
     # preprocess model_path to get model_type and Model Source Hub
@@ -106,7 +107,7 @@ class SharkImporter:
         shark_results[i] = shark_results[i].astype(dtype)
       return shark_results
     elif self.model_source_hub == "huggingface":
-      print("Inference huggingface model")
+      print("Inference", self.model_source_hub, " not implemented yet")
     elif self.model_source_hub == "jaxhub":
-      print("Inference JAX hub model")
+      print("Inference", self.model_source_hub, " not implemented yet")
 
