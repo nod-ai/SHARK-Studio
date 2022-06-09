@@ -16,9 +16,11 @@ from shark.shark_runner import SharkRunner, SharkBenchmarkRunner
 import time
 import sys
 
+
 # Prints to stderr.
 def print_err(*a):
     print(*a, file=sys.stderr)
+
 
 class SharkInference:
     """Inference API targeting pytorch, tensorflow, linalg, mhlo and tosa frontend."""

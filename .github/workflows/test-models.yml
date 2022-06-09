@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
 
     steps:
     - uses: actions/checkout@v3
@@ -26,10 +26,18 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     
+    - name: Setup pip cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
+        python -m pip install flake8 pytest yapf toml
 
     - name: Lint with flake8
       run: |
@@ -37,6 +45,8 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py
+        yapf -i --style .style.yapf shark/*.py
+
     - name: Validate Models
       run: |
         cd $GITHUB_WORKSPACE
@@ -49,16 +59,24 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.9"]
+        python-version: ["3.10"]
 
     steps:
     - uses: actions/checkout@v3
+    - name: Setup pip cache
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Caches/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
     - name: Install dependencies
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python3.9 ./setup_venv.sh
+        PYTHON=python3.10 ./setup_venv.sh
         source shark.venv/bin/activate
-        python -m pip install flake8 pytest
+        python -m pip install flake8 pytest yapf toml
 
     - name: Lint with flake8
       run: |
@@ -67,38 +85,10 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py,shark.venv
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py,shark.venv
+        yapf -i --style .style.yapf shark/*.py
         
     - name: Validate Models
       run: |
         source shark.venv/bin/activate
-        pytest -k 'not benchmark'
+        pytest -k 'not benchmark' --ignore=shark/tests/test_hf_benchmark.py
         
-  perf-linux:
-
-    runs-on: a100
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      run: |
-        conda create -n perfbot python=3.9 setuptools -y
-    
-    - name: Install dependencies
-      run: |
-        source $HOME/miniconda3/etc/profile.d/conda.sh
-        source $HOME/miniconda3/bin/activate /opt/conda/envs/perfbot
-        python --version
-        python -m pip install --upgrade pip
-        python -m pip install flake8 pytest
-
-    - name: Validate Models
-      run: |
-        source $HOME/miniconda3/etc/profile.d/conda.sh
-        source $HOME/miniconda3/bin/activate /opt/conda/envs/perfbot
-        python --version
-        cd $GITHUB_WORKSPACE
-        ./setup_venv.sh
-        pytest --workers auto -k 'cpu'
-        pytest -k 'not cpu'
-        conda deactivate
-        conda env remove -n perfbot

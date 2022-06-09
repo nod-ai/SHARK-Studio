@@ -20,3 +20,11 @@ Pillow
 # Testing and support.
 lit
 pyyaml
+
+# To Enable ONNX Runtime Benchmarks
+# TODO: Uncomment this when builder fixed.
+# onnx
+# --extra-index-url https://test.pypi.org/simple/
+# ort-nightly
+# coloredlogs
+# sympy

@@ -143,117 +143,58 @@ pytest_benchmark_param = pytest.mark.parametrize(
             )),
     ])
 
-class MiniLMTorchBenchmarkTest(unittest.TestCase):
-    
-    @pytest.fixture(autouse=True)
-    def setup_benchmark(self, benchmark):
-        self.benchmark = benchmark
-    
-    def setup_model(self):
-        self.model, self.test_input, self.act_out = get_hf_model("microsoft/MiniLM-L12-H384-uncased")
-    
-    def setup_shark_module(self, dynamic, device):
-        shark_module = SharkInference(self.model, (self.test_input,),
-                                           device=device,
-                                           dynamic=dynamic,
-                                           jit_trace=True,
-                                           benchmark_mode=True)
-        return shark_module
+@pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
+@pytest_benchmark_param
+def test_bench_minilm_torch(dynamic, device):
+    model, test_input, act_out = get_hf_model("microsoft/MiniLM-L12-H384-uncased")
+    shark_module = SharkInference(model, (test_input,),
+                                  device=device,
+                                  dynamic=dynamic,
+                                  jit_trace=True,
+                                  benchmark_mode=True)
+    try:
+        # If becnhmarking succesful, assert success/True.
+        shark_module.compile()
+        shark_module.benchmark_all((test_input,))
+        assert True
+    except Exception as e:
+        # If anything happen during benchmarking, assert False/failure.
+        assert False
 
-    def test_bench_minilm_frontend(self):
-        dynamic_opts = ["True", "False"]
-        device_opts = ["cpu", "gpu", "vulkan"]
-        self.setup_model()
-        
-        for dynamic, device in zip(dynamic_opts, device_opts):
+@pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
+@pytest_benchmark_param
+def test_bench_distilbert(dynamic, device):
+    model, test_input, act_out = get_TFhf_model("distilbert-base-uncased")
+    shark_module = SharkInference(model, test_input,
+                                  device=device,
+                                  dynamic=dynamic,
+                                  jit_trace=True,
+                                  benchmark_mode=True)
+    try:
+        # If becnhmarking succesful, assert success/True.
+        shark_module.set_frontend("tensorflow")
+        shark_module.compile()
+        shark_module.benchmark_all(test_input)
+        assert True
+    except Exception as e:
+        # If anything happen during benchmarking, assert False/failure.
+        assert False
 
-            shark_module = self.setup_shark_module(dynamic, device)
-            try:
-                shark_module.benchmark_frontend((self.test_input,))
-                assert True
-            except Exception as e:
-                assert False
-    
-    def test_bench_minilm_python(self):
-        dynamic_opts = ["True", "False"]
-        device_opts = ["cpu", "gpu", "vulkan"]
-        self.setup_model()
-
-        for dynamic, device in zip(dynamic_opts, device_opts):
-
-            self.setup_shark_module(dynamic, device)
-            try:
-                self.shark_module.benchmark_python((self.test_input,)))
-                assert True
-            except Exception as e:
-                assert False
-            
-    def test_bench_minilm_c(self):
-        dynamic_opts = ["True", "False"]
-        device_opts = ["cpu", "gpu", "vulkan"]
-        self.setup_model()
-        
-        for dynamic, device in zip(dynamic_opts, device_opts):
-            self.setup_shark_module(dynamic, device)
-            try:
-                self.shark_module.benchmark_frontend()
-                assert True
-            except Exception as e:
-                assert False
-            
-class MiniLMTFBenchmarkTest(unittest.TestCase):
-    
-    def setup_model(self):
-        self.model, self.test_input, self.act_out = get_TFhf_model("microsoft/MiniLM-L12-H384-uncased")
-    
-    def setup_and_compile_module(self, dynamic, device):
-        self.shark_module = SharkInference(self.model, self.test_input,
-                                           device=device,
-                                           dynamic=dynamic,
-                                           jit_trace=True,
-                                           benchmark_mode=True)
-        self.shark_module.set_frontend("tensorflow")
-        self.shark_module.compile()
-    
-    @pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
-    def test_bench_minilm_frontend(self,):
-        dynamic_opts = ["True", "False"]
-        device_opts = ["cpu", "gpu", "vulkan"]
-        self.setup_model()
-        
-        for dynamic, device in zip(dynamic_opts, device_opts):
-            self.setup_and_compile_module(dynamic, device)
-            try:
-                self.shark_module.benchmark_frontend(self.test_input)
-                assert True
-            except Exception as e:
-                assert False
-    
-    @pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
-    def test_bench_minilm_python(self):
-        dynamic_opts = ["True", "False"]
-        device_opts = ["cpu", "gpu", "vulkan"]
-        self.setup_model()
-        
-        for dynamic, device in zip(dynamic_opts, device_opts):
-            self.setup_and_compile_module(dynamic, device)
-            try:
-                self.shark_module.benchmark_python(self.test_input)
-                assert True
-            except Exception as e:
-                assert False
-            
-    @pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
-    def test_bench_minilm_c(self):
-        dynamic_opts = ["True", "False"]
-        device_opts = ["cpu", "gpu", "vulkan"]
-        self.setup_model()
-        
-        for dynamic, device in zip(dynamic_opts, device_opts):
-            self.setup_and_compile_module(dynamic, device)
-            try:
-                self.shark_module.benchmark_frontend()
-                assert True
-            except Exception as e:
-                assert False
-           
+@pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None, reason = "Cannot find tools to import TF")
+@pytest_benchmark_param
+def test_bench_xlm_roberta(dynamic, device):
+    model, test_input, act_out = get_TFhf_model("xlm-roberta-base")
+    shark_module = SharkInference(model, test_input,
+                                  device=device,
+                                  dynamic=dynamic,
+                                  jit_trace=True,
+                                  benchmark_mode=True)
+    try:
+        # If becnhmarking succesful, assert success/True.
+        shark_module.set_frontend("tensorflow")
+        shark_module.compile()
+        shark_module.benchmark_all(test_input)
+        assert True
+    except Exception as e:
+        # If anything happen during benchmarking, assert False/failure.
+        assert False

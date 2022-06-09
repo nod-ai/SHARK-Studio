@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from shark.torch_mlir_utils import get_torch_mlir_module, export_module_to_mlir_file, run_on_refbackend
+from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
 from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
 import os
 from shark.parser import shark_args
@@ -78,7 +78,7 @@ class SharkTrainer:
                                             weights + self.input, self.dynamic,
                                             self.device, self.jit_trace,
                                             self.from_aot, self.frontend)
-        elif self.frontend in ["tensorflow", "tf"]:
+        elif self.frontend in ["tensorflow", "tf", "mhlo"]:
             self.shark_runner = SharkRunner(self.model, self.input,
                                             self.dynamic, self.device,
                                             self.jit_trace, self.from_aot,
@@ -106,6 +106,8 @@ class SharkTrainer:
         return params
 
     # Function to train tensorflow module.
+    # Output final loss.
+    # TODO(raikonenfnu): Save updated weight/states in SHARK.
     def _train_tf(self, num_iters):
         input_list = []
         for x in self.input:
@@ -125,13 +127,12 @@ class SharkTrainer:
         print(f"Training started for {num_iters} iterations:")
         for i in tqdm(range(num_iters)):
             outputs = self.shark_runner.forward(input_list, self.frontend)
-
-        return self.model.trainable_variables
+        return outputs
 
     def train(self, num_iters=1):
         if self.frontend in ["torch", "pytorch"]:
             return self._train_torch(num_iters)
-        elif self.frontend in ["tf", "tensorflow"]:
+        elif self.frontend in ["tf", "tensorflow", "mhlo"]:
             return self._train_tf(num_iters)
         else:
             print_err("Unknown frontend")

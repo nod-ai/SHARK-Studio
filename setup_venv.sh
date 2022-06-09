@@ -3,7 +3,7 @@
 # e.g:
 # ./setup_venv.sh  #setup a default $PYTHON3 shark.venv
 # Environment Variables by the script.
-# PYTHON=$PYTHON3.9 ./setup_venv.sh  #pass a version of $PYTHON to use
+# PYTHON=$PYTHON3.10 ./setup_venv.sh  #pass a version of $PYTHON to use
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
 # if you run the script from a conda env it will install in your conda env
@@ -39,7 +39,7 @@ Green=`tput setaf 2`
 Yellow=`tput setaf 3`
 
 # Assume no binary torch-mlir.
-# Currently available for macOS m1&intel (3.9) and Linux(3.7,3.8,3.9,3.10)
+# Currently available for macOS m1&intel (3.10) and Linux(3.7,3.8,3.9,3.10)
 torch_mlir_bin=false
 if [[ $(uname -s) = 'Darwin' ]]; then
   echo "${Yellow}Apple macOS detected"
@@ -59,7 +59,7 @@ if [[ $(uname -s) = 'Darwin' ]]; then
   fi
   echo "${Yellow}Run the following commands to setup your SSL certs for your Python version if you see SSL errors with tests"
   echo "${Yellow}/Applications/Python\ 3.XX/Install\ Certificates.command"
-  if [ "$PYTHON_VERSION_X_Y" == "3.9" ]; then
+  if [ "$PYTHON_VERSION_X_Y" == "3.10" ]; then
     torch_mlir_bin=true
   fi
 elif [[ $(uname -s) = 'Linux' ]]; then
@@ -94,7 +94,7 @@ if [ "$torch_mlir_bin" = true ]; then
   fi
 else
   echo "${Red}No binaries found for Python $PYTHON_VERSION_X_Y on $(uname -s)"
-  echo "${Yello}Python 3.9 supported on macOS and 3.7,3.8,3.9 and 3.10 on Linux"
+  echo "${Yello}Python 3.10 supported on macOS and 3.7,3.8,3.9 and 3.10 on Linux"
   echo "${Red}Please build torch-mlir from source in your environment"
   exit 1
 fi
@@ -120,6 +120,16 @@ fi
 
 if [[ $(uname -s) = 'Linux' ]]; then
   echo "${Yellow}Linux detected.. installing importer tools"
+  # Modules required for ONNX/Transformer Benchmarking.
+  # TODO: move this to requirements.txt
+  $PYTHON -m pip install protobuf
+  $PYTHON -m pip install coloredlogs
+  $PYTHON -m pip install flatbuffers
+  $PYTHON -m pip install sympy
+  $PYTHON -m pip install psutil
+  $PYTHON -m pip install -i https://test.pypi.org/simple/ onnx-weekly
+  $PYTHON -m pip install -i https://test.pypi.org/simple/ ort-nightly
+
   $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/nod-ai/SHARK-Runtime/releases
 fi
 

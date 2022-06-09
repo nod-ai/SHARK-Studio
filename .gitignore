@@ -161,4 +161,8 @@ cython_debug/
 #.idea/
 
 # Shark related artefacts
-shark.venv/ 
+shark.venv/
+
+# ORT related artefacts
+cache_models/
+onnx_models/

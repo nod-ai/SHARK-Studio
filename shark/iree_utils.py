@@ -100,7 +100,9 @@ def get_vulkan_triple_flag():
         print("Found Nvidia Device. Using ampere-rtx3080-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
     else:
-        print("Optimized kernel for your target device is not added yet. Contact SHARK Admin on discord or pull up an issue.")
+        print(
+            "Optimized kernel for your target device is not added yet. Contact SHARK Admin on discord or pull up an issue."
+        )
         return None
 
 
@@ -110,6 +112,7 @@ def get_iree_vulkan_args():
     if vulkan_triple_flag is not None:
         vulkan_flag.append(vulkan_triple_flag)
     return vulkan_flag
+
 
 def get_iree_device_args(device):
     if device == "cpu":
@@ -135,7 +138,8 @@ def get_iree_frontend_args(frontend):
         return []
 
 
-def compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path):
+def compile_module_to_flatbuffer(module, device, frontend, func_name,
+                                 model_config_path):
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
@@ -177,6 +181,7 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name, model_conf
             extra_args=args)
     return flatbuffer_blob
 
+
 def get_iree_module(flatbuffer_blob, device, func_name):
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
     config = ireert.Config(IREE_DEVICE_MAP[device])
@@ -192,21 +197,37 @@ def get_iree_compiled_module(module,
                              func_name: str = "forward",
                              model_config_path: str = None):
     """Given a module returns the compiled .vmfb and configs"""
-    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend,
+                                                   func_name, model_config_path)
     return get_iree_module(flatbuffer_blob, device, func_name)
 
 
 def export_iree_module_to_vmfb(module,
-                             device: str,
-                             directory: str,
-                             frontend: str = "torch",
-                             func_name: str = "forward",
-                             model_config_path: str = None):
-    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
+                               device: str,
+                               directory: str,
+                               frontend: str = "torch",
+                               func_name: str = "forward",
+                               model_config_path: str = None):
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend,
+                                                   func_name, model_config_path)
     module_name = f"{frontend}_{func_name}_{device}"
     filename = os.path.join(directory, module_name + ".vmfb")
+    print(f"Saved vmfb in {filename}.")
     with open(filename, 'wb') as f:
         f.write(flatbuffer_blob)
+    return filename
+
+
+def export_module_to_mlir_file(module, frontend, directory: str):
+    mlir_str = module
+    if frontend in ["tensorflow", "tf", "mhlo"]:
+        mlir_str = module.decode('utf-8')
+    elif frontend in ["pytorch", "torch"]:
+        mlir_str = module.operation.get_asm()
+    filename = os.path.join(directory, "model.mlir")
+    with open(filename, 'w') as f:
+        f.write(mlir_str)
+    print(f"Saved mlir in {filename}.")
     return filename
 
 
@@ -219,7 +240,10 @@ def get_results(compiled_vm, input, config, frontend="torch"):
         device_inputs = []
         for a in input:
             if (isinstance(a, list)):
-                device_inputs.append([ireert.asdevicearray(config.device, val, dtype=np.int32) for val in a])
+                device_inputs.append([
+                    ireert.asdevicearray(config.device, val, dtype=np.int32)
+                    for val in a
+                ])
             else:
                 device_inputs.append(ireert.asdevicearray(config.device, a))
     result = compiled_vm(*device_inputs)
@@ -245,15 +269,15 @@ def tensor_to_type_str(input_tensors: tuple, frontend: str):
     Output: list of string that represent mlir types (i.e 1x24xf64)
     # TODO: Support more than floats, and ints
     """
-    print("front:",frontend)
     list_of_type = []
     for input_tensor in input_tensors:
         type_string = "x".join([str(dim) for dim in input_tensor.shape])
         if frontend in ["torch", "pytorch"]:
             dtype_string = str(input_tensor.dtype).replace("torch.", "")
-        elif frontend in ["tensorflow","tf"]:
+        elif frontend in ["tensorflow", "tf"]:
             dtype = input_tensor.dtype
-            dtype_string = re.findall('\'[^"]*\'',str(dtype))[0].replace("\'","")
+            dtype_string = re.findall('\'[^"]*\'',
+                                      str(dtype))[0].replace("\'", "")
         regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
         match = regex_split.match(dtype_string)
         mlir_type_string = str(match.group(1)[0]) + str(match.group(2))
@@ -304,7 +328,7 @@ def run_cmd(cmd):
         sys.exit("Exiting program due to error running:", cmd)
 
 
-def run_benchmark(benchmark_cl):
+def run_benchmark_module(benchmark_cl):
     """
     Run benchmark command, extract result and return iteration/seconds.
 
