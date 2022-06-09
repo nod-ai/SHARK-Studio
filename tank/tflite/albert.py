@@ -33,6 +33,10 @@ if __name__ == '__main__':
                                       device="cpu",
                                       dynamic=False,
                                       jit_trace=True)
+    # Case1: Use default inputs
+    my_shark_importer.compile()
+    shark_results = my_shark_importer.forward()
+    # Case2: Use manually set inputs
     input_details, output_details = my_shark_importer.get_model_details()
     inputs = generate_inputs(input_details)  # device_inputs
     my_shark_importer.compile(inputs)
