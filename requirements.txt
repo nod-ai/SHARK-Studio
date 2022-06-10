@@ -12,4 +12,4 @@ pybind11
 wheel
 ninja
 pytest
-pytest-parallel
+pytest-xdist

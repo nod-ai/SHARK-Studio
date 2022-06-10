@@ -82,12 +82,17 @@ python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use g
 ```
 
 
-### Run all tests on CPU/GPU/VULKAN/Metal
+### Run all model tests on CPU/GPU/VULKAN/Metal
 ```shell
-pytest
+pytest shark/tests/models
 
 # If on Linux for quicker results:
-pytest --workers auto
+pytest shark/tests/models -n auto
+```
+
+### Run all model benchmark tests on CPU/GPU/VULKAN/Metal
+```shell
+pytest shark/tests/benchmarks
 ```
 </details>
 
