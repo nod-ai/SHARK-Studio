@@ -29,7 +29,8 @@ IREE_DEVICE_MAP = {
     "gpu": "cuda",
     "cuda": "cuda",
     "vulkan": "vulkan",
-    "metal": "vulkan"
+    "metal": "vulkan",
+    "rocm": "rocm"
 }
 
 UNIT_TO_SECOND_MAP = {"ms": 0.001, "s": 1}
@@ -149,6 +150,8 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
         input_type = "mhlo"
     elif frontend in ["mhlo", "tosa"]:
         input_type = frontend
+    elif frontend in ["tflite"]:
+        input_type = "tosa"
 
     # Annotate the input module with the configs
     if model_config_path != None:
@@ -164,7 +167,8 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
             module = str(module)
 
     # Compile according to the input type, else just try compiling.
-    if input_type != "mhlo":
+    print(type(module))
+    if input_type not in ["mhlo","tosa"]:
         module = str(module)
     if input_type != "":
         # Currently for MHLO/TOSA.
@@ -236,7 +240,7 @@ def get_results(compiled_vm, input, config, frontend="torch"):
     device_inputs = input
     if frontend in ["torch", "pytorch"]:
         device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
-    if frontend in ["tensorflow", "tf"]:
+    if frontend in ["tensorflow", "tf", "tflite"]:
         device_inputs = []
         for a in input:
             if (isinstance(a, list)):
