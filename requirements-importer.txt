@@ -1,4 +1,3 @@
--f https://github.com/nod-ai/SHARK-Runtime/releases
 #iree-compiler should already be installed
 #iree-runtime
 iree-tools-tflite
@@ -21,10 +20,12 @@ Pillow
 lit
 pyyaml
 
-# To Enable ONNX Runtime Benchmarks
-# TODO: Uncomment this when builder fixed.
-# onnx
-# --extra-index-url https://test.pypi.org/simple/
-# ort-nightly
-# coloredlogs
-# sympy
+#ONNX and ORT for benchmarking
+--extra-index-url https://test.pypi.org/simple/
+protobuf
+coloredlogs
+flatbuffers
+sympy
+psutil
+onnx-weekly
+ort-nightly
