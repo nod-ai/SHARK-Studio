@@ -56,7 +56,7 @@ jobs:
     - name: Validate Models
       run: |
         cd $GITHUB_WORKSPACE
-        ./setup_venv.sh
+        IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest -k 'not benchmark'
 
