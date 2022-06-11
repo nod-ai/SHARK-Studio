@@ -52,7 +52,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --workers auto -k 'not benchmark'
+        pytest -k 'not benchmark'
         
   perf-macOS:
     runs-on: MacStudio
