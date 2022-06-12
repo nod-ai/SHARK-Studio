@@ -25,6 +25,15 @@ import re
 import sys
 
 IREE_DEVICE_MAP = {
+    "cpu": "local-task",
+    "gpu": "cuda",
+    "cuda": "cuda",
+    "vulkan": "vulkan",
+    "metal": "vulkan",
+    "rocm": "rocm"
+}
+
+IREE_TARGET_MAP = {
     "cpu": "dylib",
     "gpu": "cuda",
     "cuda": "cuda",
@@ -32,6 +41,7 @@ IREE_DEVICE_MAP = {
     "metal": "vulkan",
     "rocm": "rocm"
 }
+
 
 UNIT_TO_SECOND_MAP = {"ms": 0.001, "s": 1}
 
@@ -174,14 +184,14 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
         # Currently for MHLO/TOSA.
         flatbuffer_blob = ireec.compile_str(
             module,
-            target_backends=[IREE_DEVICE_MAP[device]],
+            target_backends=[IREE_TARGET_MAP[device]],
             extra_args=args,
             input_type=input_type)
     else:
         # Currently for Torch.
         flatbuffer_blob = ireec.compile_str(
             str(module),
-            target_backends=[IREE_DEVICE_MAP[device]],
+            target_backends=[IREE_TARGET_MAP[device]],
             extra_args=args)
     return flatbuffer_blob
 
