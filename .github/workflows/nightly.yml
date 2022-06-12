@@ -58,7 +58,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -k 'not benchmark'
+        pytest -k 'not benchmark' --ignore=shark/tests/test_hf_benchmark.py --ignore=shark/tests/test_shark_importer.py
 
     - name: Build the package
       run: |
