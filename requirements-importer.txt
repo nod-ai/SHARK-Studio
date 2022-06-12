@@ -15,8 +15,8 @@ iree-tools-tf
 # TensorFlow and JAX.
 gin-config
 tensorflow
-tf-models-nightly
-tensorflow-text-nightly
+tf-models
+tensorflow-text
 transformers
 #jax[cpu]
 
