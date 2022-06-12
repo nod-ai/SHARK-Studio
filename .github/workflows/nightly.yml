@@ -53,9 +53,9 @@ jobs:
       run: |
         source shark.venv/bin/activate
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py --exclude shark.venv/
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py --exclude shark.venv/
         yapf -i --style .style.yapf shark/*.py
 
     - name: Build the package
@@ -63,8 +63,8 @@ jobs:
         source shark.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        #pip wheel -v -w wheelhouse . --extra-index-url https://download.pytorch.org/whl/nightly/cpu  -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
-        pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu  -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
+        pip wheel -v -w wheelhouse . --extra-index-url https://download.pytorch.org/whl/nightly/cpu  -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
+        pip install wheelhouse/nodai-shark*
         
     - name: Validate Models
       run: |
