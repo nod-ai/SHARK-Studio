@@ -18,7 +18,7 @@ tensorflow
 tf-models-nightly
 tensorflow-text-nightly
 transformers
-jax[cpu]
+#jax[cpu]
 
 
 # tflitehub dependencies.

@@ -17,20 +17,20 @@ tqdm
 gin-config
 tensorflow-macos
 tensorflow-metal
-tf-models-nightly
+#tf-models-nightly
 #tensorflow-text-nightly
 transformers
-jax[cpu]
+#jax[cpu]
 
 # tflitehub dependencies.
 Pillow
 
 # Testing and support.
-lit
-pyyaml
+#lit
+#pyyaml
 
 #ONNX and ORT for benchmarking
---extra-index-url https://test.pypi.org/simple/
+#--extra-index-url https://test.pypi.org/simple/
 #protobuf
 #coloredlogs
 #flatbuffers
