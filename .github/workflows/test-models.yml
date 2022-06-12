@@ -74,7 +74,7 @@ jobs:
     - name: Install dependencies
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python3.10 ./setup_venv.sh
+        PYTHON=python3.10 IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         python -m pip install flake8 pytest yapf toml
 
