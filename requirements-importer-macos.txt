@@ -6,18 +6,19 @@ torch
 torchvision
 
 #iree-compiler  | iree-runtime should already be installed
-iree-tools-tflite
-iree-tools-xla
-iree-tools-tf
+#these dont work ok osx
+#iree-tools-tflite
+#iree-tools-xla
+#iree-tools-tf
 
 # TensorFlow and JAX.
 gin-config
-tensorflow
+tensorflow-macos
+tensorflow-metal
 tf-models-nightly
 tensorflow-text-nightly
 transformers
 jax[cpu]
-
 
 # tflitehub dependencies.
 Pillow
@@ -28,10 +29,10 @@ pyyaml
 
 #ONNX and ORT for benchmarking
 --extra-index-url https://test.pypi.org/simple/
-protobuf
-coloredlogs
-flatbuffers
-sympy
-psutil
-onnx-weekly
-ort-nightly
+#protobuf
+#coloredlogs
+#flatbuffers
+#sympy
+#psutil
+#onnx-weekly
+#ort-nightly

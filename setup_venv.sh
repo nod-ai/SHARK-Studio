@@ -100,8 +100,8 @@ if [[ ! -z "${IMPORTER}" ]]; then
     echo "${Yellow}Linux detected.. installing importer tools"
     $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/${RUNTIME}/releases --extra-index-url https://test.pypi.org/simple/
   elif [[ $(uname -s) = 'Darwin' ]]; then
-    #Conda seems to have some problems install these packages and hope they get resolved upstream.
-    $PYTHON -m pip install tensorflow-macos tensorflow-metal
+    #Conda seems to have some problems installing these packages and hope they get resolved upstream.
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f https://github.com/${RUNTIME}/releases
   fi
 fi
 
