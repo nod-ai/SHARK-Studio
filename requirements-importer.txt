@@ -5,6 +5,8 @@ numpy
 torch
 torchvision
 
+tqdm
+
 #iree-compiler  | iree-runtime should already be installed
 iree-tools-tflite
 iree-tools-xla
