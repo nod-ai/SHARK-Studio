@@ -18,7 +18,7 @@ gin-config
 tensorflow-macos
 tensorflow-metal
 tf-models-nightly
-tensorflow-text-nightly
+#tensorflow-text-nightly
 transformers
 jax[cpu]
 
