@@ -1,5 +1,5 @@
-#-f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
-#--pre
+-f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
+--pre
 
 numpy
 torch
