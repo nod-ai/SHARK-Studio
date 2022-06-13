@@ -1,6 +1,6 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils import check_device_drivers
-from shark.tests.test_utils import get_vision_model, compare_tensors
+from tank.torch.tests.test_utils import get_vision_model, compare_tensors
 
 import torch
 import unittest
@@ -10,7 +10,7 @@ import pytest
 
 torch.manual_seed(0)
 
-class AlexnetModuleTester:
+class Resnet101ModuleTester:
 
     def __init__(
         self,
@@ -21,7 +21,7 @@ class AlexnetModuleTester:
         self.device = device
 
     def create_and_check_module(self):
-        model, input, act_out = get_vision_model(models.alexnet(pretrained=True))
+        model, input, act_out = get_vision_model(models.resnet101(pretrained=True))
         shark_module = SharkInference(
                 model,
                 (input,),
@@ -32,10 +32,10 @@ class AlexnetModuleTester:
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
 
-class AlexnetModuleTest(unittest.TestCase):
+class Resnet101ModuleTest(unittest.TestCase):
 
     def setUp(self):
-        self.module_tester = AlexnetModuleTester(self)
+        self.module_tester = Resnet101ModuleTester(self)
         
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
