@@ -74,7 +74,7 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=shark/tests/test_shark_importer.py
+        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
     
     - name: Upload Release Assets
       id: upload-release-assets
