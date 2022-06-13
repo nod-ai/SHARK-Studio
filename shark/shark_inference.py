@@ -94,3 +94,15 @@ class SharkInference:
     @benchmark_mode
     def benchmark_all(self, inputs):
         self.shark_runner.benchmark_all(inputs)
+    
+    @benchmark_mode
+    def benchmark_frontend(self, inputs):
+        self.shark_runner.benchmark_frontend(inputs)
+
+    @benchmark_mode
+    def benchmark_python(self, inputs):
+        self.shark_runner.benchmark_python(inputs)
+
+    @benchmark_mode
+    def benchmark_c(self):
+        self.shark_runner.benchmark_c()

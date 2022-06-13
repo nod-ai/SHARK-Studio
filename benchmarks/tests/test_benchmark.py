@@ -8,6 +8,7 @@ import torchvision.models as models
 from transformers import AutoModelForSequenceClassification, BertTokenizer, TFBertModel
 import importlib
 import pytest
+import unittest
 
 torch.manual_seed(0)
 
@@ -113,13 +114,34 @@ def get_vision_model(torch_model):
 
 #############################   Benchmark Tests ####################################
 
-# Test running benchmark module without failing.
 pytest_benchmark_param = pytest.mark.parametrize(
     ('dynamic', 'device'),
     [
         pytest.param(False, 'cpu'),
         # TODO: Language models are failing for dynamic case..
         pytest.param(True, 'cpu', marks=pytest.mark.skip),
+        pytest.param(False,
+                     'gpu',
+                     marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                              reason="nvidia-smi not found")),
+        pytest.param(True, 
+                     'gpu', 
+                     marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                              reason="nvidia-smi not found")),
+        pytest.param(
+            False, 
+            'vulkan', 
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
+        pytest.param(
+            True, 
+            'vulkan', 
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
     ])
 
 
