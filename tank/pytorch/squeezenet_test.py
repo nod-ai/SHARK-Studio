@@ -1,6 +1,6 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils import check_device_drivers
-from tank.pytorch.tests.test_utils import get_vision_model, compare_tensors
+from tank.pytorch.test_utils import get_vision_model, compare_tensors
 
 import torch
 import unittest
@@ -10,7 +10,7 @@ import pytest
 
 torch.manual_seed(0)
 
-class WideResnet50ModuleTester:
+class SqueezenetModuleTester:
 
     def __init__(
         self,
@@ -21,7 +21,7 @@ class WideResnet50ModuleTester:
         self.device = device
 
     def create_and_check_module(self):
-        model, input, act_out = get_vision_model(models.wide_resnet50_2(pretrained=True))
+        model, input, act_out = get_vision_model(models.squeezenet1_0(pretrained=True))
         shark_module = SharkInference(
                 model,
                 (input,),
@@ -32,10 +32,10 @@ class WideResnet50ModuleTester:
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
 
-class WideResnet50ModuleTest(unittest.TestCase):
+class SqueezenetModuleTest(unittest.TestCase):
 
     def setUp(self):
-        self.module_tester = WideResnet50ModuleTester(self)
+        self.module_tester = SqueezenetModuleTester(self)
         
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False

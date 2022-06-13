@@ -1,6 +1,6 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils import check_device_drivers
-from tank.tf.tests.test_utils_tf import get_TFhf_model, compare_tensors_tf
+from tank.tf.test_utils_tf import get_TFhf_model, compare_tensors_tf
 
 import tensorflow as tf
 import unittest
