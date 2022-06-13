@@ -1,6 +1,6 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils import check_device_drivers
-from tank.pytorch.tests.test_utils import get_vision_model, compare_tensors
+from tank.model_utils import get_vision_model, compare_tensors
 
 import torch
 import unittest
