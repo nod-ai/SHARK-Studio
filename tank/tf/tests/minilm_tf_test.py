@@ -83,3 +83,7 @@ class MiniLMTFModuleTest(unittest.TestCase):
         dynamic = True
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
+
+
+if __name__ == '__main__':
+    unittest.main()

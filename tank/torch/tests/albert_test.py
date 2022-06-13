@@ -77,3 +77,6 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester.dynamic = True
         self.module_tester.device = "vulkan"
         self.module_tester.create_and_check_module()
+
+if __name__ == '__main__'
+    unittest.main()
