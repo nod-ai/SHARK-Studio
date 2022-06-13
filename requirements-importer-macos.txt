@@ -19,7 +19,7 @@ tensorflow-macos
 tensorflow-metal
 #tf-models-nightly
 #tensorflow-text-nightly
-transformers
+transformers==4.18.0
 #jax[cpu]
 
 # tflitehub dependencies.
