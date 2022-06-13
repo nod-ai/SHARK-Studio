@@ -118,7 +118,8 @@ def get_vulkan_triple_flag():
 
 
 def get_iree_vulkan_args():
-    vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
+    #vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
+    vulkan_flag = []
     vulkan_triple_flag = get_vulkan_triple_flag()
     if vulkan_triple_flag is not None:
         vulkan_flag.append(vulkan_triple_flag)
