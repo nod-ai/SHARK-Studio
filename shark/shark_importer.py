@@ -12,6 +12,7 @@ from shark.shark_inference import SharkInference
 
 
 class SharkImporter:
+
     def __init__(self,
                  model_path,
                  model_type: str = "tflite",
@@ -41,22 +42,28 @@ class SharkImporter:
             if self.model_type == "tflite":
                 print("Setting up for TMP_DIR")
                 exe_basename = os.path.basename(sys.argv[0])
-                self.workdir = os.path.join(os.path.dirname(__file__), "tmp", exe_basename)
+                self.workdir = os.path.join(os.path.dirname(__file__), "tmp",
+                                            exe_basename)
                 print(f"TMP_DIR = {self.workdir}")
                 os.makedirs(self.workdir, exist_ok=True)
                 self.tflite_file = '/'.join([self.workdir, 'model.tflite'])
-                print("Setting up local address for tflite model file: ", self.tflite_file)
+                print("Setting up local address for tflite model file: ",
+                      self.tflite_file)
                 if os.path.exists(self.model_path):
                     self.tflite_file = self.model_path
                 else:
                     print("Download tflite model")
-                    urllib.request.urlretrieve(self.model_path, self.tflite_file)
+                    urllib.request.urlretrieve(self.model_path,
+                                               self.tflite_file)
                 print("Setting up tflite interpreter")
-                self.tflite_interpreter = tf.lite.Interpreter(model_path=self.tflite_file)
+                self.tflite_interpreter = tf.lite.Interpreter(
+                    model_path=self.tflite_file)
                 self.tflite_interpreter.allocate_tensors()
                 # default input initialization
-                self.input_details, self.output_details = self.get_model_details()
-                inputs = self.generate_inputs(self.input_details)  # device_inputs
+                self.input_details, self.output_details = self.get_model_details(
+                )
+                inputs = self.generate_inputs(
+                    self.input_details)  # device_inputs
                 self.setup_inputs(inputs)
 
     def generate_inputs(self, input_details):
@@ -85,7 +92,8 @@ class SharkImporter:
         if self.model_source_hub == "tfhub":
             # compile and run tfhub tflite
             print("Inference tfhub model")
-            self.shark_module = SharkInference(self.tflite_file, self.inputs,
+            self.shark_module = SharkInference(self.tflite_file,
+                                               self.inputs,
                                                device=self.device,
                                                dynamic=self.dynamic,
                                                jit_trace=self.jit_trace)

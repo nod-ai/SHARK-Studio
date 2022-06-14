@@ -72,7 +72,7 @@ fi
 
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
-$PYTHON -m pip install --upgrade -r "$TD/requirements.txt" --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
+$PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
   $PYTHON -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   if [ $? -eq 0 ];then
