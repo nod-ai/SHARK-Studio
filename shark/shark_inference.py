@@ -51,7 +51,8 @@ class SharkInference:
     # Sets the frontend i.e `pytorch` or `tensorflow`.
     def set_frontend(self, frontend: str):
         if frontend not in [
-                "pytorch", "torch", "tensorflow", "tf", "mhlo", "linalg", "tosa", "tflite"
+                "pytorch", "torch", "tensorflow", "tf", "mhlo", "linalg",
+                "tosa", "tflite"
         ]:
             print_err("frontend not supported.")
         else:
@@ -94,7 +95,7 @@ class SharkInference:
     @benchmark_mode
     def benchmark_all(self, inputs):
         self.shark_runner.benchmark_all(inputs)
-    
+
     @benchmark_mode
     def benchmark_frontend(self, inputs):
         self.shark_runner.benchmark_frontend(inputs)
