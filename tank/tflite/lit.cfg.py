@@ -10,7 +10,7 @@ import lit.llvm
 lit.llvm.initialize(lit_config, config)
 
 # name: The name of this test suite.
-config.name = 'TFLITEHUB'
+config.name = 'TFLITE'
 
 config.test_format = lit.formats.ShTest()
 
@@ -22,13 +22,11 @@ config.test_source_root = os.path.dirname(__file__)
 
 #config.use_default_substitutions()
 config.excludes = [
-    'coco_test_data.py',
-    'imagenet_test_data.py',
+    'coco_data.py',
+    'imagenet_data.py',
     'lit.cfg.py',
     'lit.site.cfg.py',
-    'manual_test.py',
-    'squad_test_data.py',
-    'test_util.py',
+    'squad_data.py',
 ]
 
 config.substitutions.extend([

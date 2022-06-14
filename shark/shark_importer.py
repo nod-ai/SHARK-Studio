@@ -19,7 +19,9 @@ class SharkImporter:
                  device: str = None,
                  dynamic: bool = False,
                  jit_trace: bool = False,
-                 benchmark_mode: bool = False):
+                 benchmark_mode: bool = False,
+                 input_details=None,
+                 output_details=None):
         self.model_path = model_path
         self.model_type = model_type
         self.model_source_hub = model_source_hub
@@ -28,8 +30,8 @@ class SharkImporter:
         self.jit_trace = jit_trace
         self.benchmark_mode = benchmark_mode
         self.inputs = None
-        self.input_details = None
-        self.output_details = None
+        self.input_details = input_details
+        self.output_details = output_details
 
         # create tmp model file directory
         if self.model_path is None:
@@ -51,11 +53,12 @@ class SharkImporter:
                 else:
                     print("Download tflite model")
                     urllib.request.urlretrieve(self.model_path, self.tflite_file)
-                print("Setting up tflite interpreter")
-                self.tflite_interpreter = tf.lite.Interpreter(model_path=self.tflite_file)
-                self.tflite_interpreter.allocate_tensors()
-                # default input initialization
-                self.input_details, self.output_details = self.get_model_details()
+                if (self.input_details == None) or (self.output_details == None):
+                    print("Setting up tflite interpreter")
+                    self.tflite_interpreter = tf.lite.Interpreter(model_path=self.tflite_file)
+                    self.tflite_interpreter.allocate_tensors()
+                    # default input initialization
+                    self.input_details, self.output_details = self.get_model_details()
                 inputs = self.generate_inputs(self.input_details)  # device_inputs
                 self.setup_inputs(inputs)
 
