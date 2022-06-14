@@ -99,4 +99,4 @@ jobs:
         cd $GITHUB_WORKSPACE
         IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore benchmarks/tests/test_benchmark.py --ignore=tank/tf/
+        pytest --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
