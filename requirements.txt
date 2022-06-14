@@ -1,15 +1,9 @@
--f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
--f https://github.com/nod-ai/SHARK-Runtime/releases
---pre
-
-numpy==1.22.4
-torch
-torchvision
-
-# Build requirements.
 setuptools
-pybind11
 wheel
-ninja
+
+#SHARK Runner
+tqdm
+
+#Testing
 pytest
-pytest-parallel
+pytest-xdist

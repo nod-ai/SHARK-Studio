@@ -25,6 +25,15 @@ import re
 import sys
 
 IREE_DEVICE_MAP = {
+    "cpu": "local-task",
+    "gpu": "cuda",
+    "cuda": "cuda",
+    "vulkan": "vulkan",
+    "metal": "vulkan",
+    "rocm": "rocm"
+}
+
+IREE_TARGET_MAP = {
     "cpu": "dylib",
     "gpu": "cuda",
     "cuda": "cuda",
@@ -102,13 +111,14 @@ def get_vulkan_triple_flag():
         return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
     else:
         print(
-            "Optimized kernel for your target device is not added yet. Contact SHARK Admin on discord or pull up an issue."
+            "Optimized kernel for your target device is not added yet. Contact SHARK Admin on discord[https://discord.com/invite/RUqY2h2s9u] or pull up an issue."
         )
         return None
 
 
 def get_iree_vulkan_args():
-    vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
+    #vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
+    vulkan_flag = []
     vulkan_triple_flag = get_vulkan_triple_flag()
     if vulkan_triple_flag is not None:
         vulkan_flag.append(vulkan_triple_flag)
@@ -167,21 +177,20 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
             module = str(module)
 
     # Compile according to the input type, else just try compiling.
-    print(type(module))
-    if input_type not in ["mhlo","tosa"]:
+    if input_type not in ["mhlo", "tosa"]:
         module = str(module)
     if input_type != "":
         # Currently for MHLO/TOSA.
         flatbuffer_blob = ireec.compile_str(
             module,
-            target_backends=[IREE_DEVICE_MAP[device]],
+            target_backends=[IREE_TARGET_MAP[device]],
             extra_args=args,
             input_type=input_type)
     else:
         # Currently for Torch.
         flatbuffer_blob = ireec.compile_str(
             str(module),
-            target_backends=[IREE_DEVICE_MAP[device]],
+            target_backends=[IREE_TARGET_MAP[device]],
             extra_args=args)
     return flatbuffer_blob
 
@@ -307,7 +316,7 @@ def build_benchmark_args(input_file: str,
         # TODO: Replace name of train with actual train fn name.
         fn_name = "train"
     benchmark_cl.append(f"--entry_function={fn_name}")
-    benchmark_cl.append(f"--driver={IREE_DEVICE_MAP[device]}")
+    benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
     mlir_input_types = tensor_to_type_str(input_tensors, frontend)
     for mlir_input in mlir_input_types:
         benchmark_cl.append(f"--function_input={mlir_input}")

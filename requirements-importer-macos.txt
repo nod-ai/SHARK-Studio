@@ -1,39 +1,40 @@
 -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
 --pre
 
-numpy==1.22.4
+numpy
 torch
 torchvision
 
 tqdm
 
 #iree-compiler  | iree-runtime should already be installed
-iree-tools-tflite
-iree-tools-xla
-iree-tools-tf
+#these dont work ok osx
+#iree-tools-tflite
+#iree-tools-xla
+#iree-tools-tf
 
 # TensorFlow and JAX.
 gin-config
-tensorflow
-tf-models-nightly
-tensorflow-text-nightly
+tensorflow-macos
+tensorflow-metal
+#tf-models-nightly
+#tensorflow-text-nightly
 transformers==4.18.0
 #jax[cpu]
-
 
 # tflitehub dependencies.
 Pillow
 
 # Testing and support.
-lit
-pyyaml
+#lit
+#pyyaml
 
 #ONNX and ORT for benchmarking
---extra-index-url https://test.pypi.org/simple/
-protobuf
-coloredlogs
-flatbuffers
-sympy
-psutil
-onnx-weekly
-ort-nightly
+#--extra-index-url https://test.pypi.org/simple/
+#protobuf
+#coloredlogs
+#flatbuffers
+#sympy
+#psutil
+#onnx-weekly
+#ort-nightly
