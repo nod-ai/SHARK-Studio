@@ -52,7 +52,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -k 'not benchmark' --ignore=tank/tf/ --ignore=shark/tests/test_shark_importer.py
+        pytest --ignore=tank/tf/ --ignore=shark/tests/test_shark_importer.py
         
   perf-macOS:
     runs-on: MacStudio
