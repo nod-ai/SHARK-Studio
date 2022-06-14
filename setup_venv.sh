@@ -6,6 +6,7 @@
 # PYTHON=$PYTHON3.10 ./setup_venv.sh  #pass a version of $PYTHON to use
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
+# IMPORTER=1 #Install importer deps
 # if you run the script from a conda env it will install in your conda env
 
 TD="$(cd $(dirname $0) && pwd)"
@@ -43,9 +44,7 @@ Yellow=`tput setaf 3`
 torch_mlir_bin=false
 if [[ $(uname -s) = 'Darwin' ]]; then
   echo "${Yellow}Apple macOS detected"
-  install_tensorflow_mac=true
   if [[ $(uname -m) == 'arm64' ]]; then
-    install_tensorflow_metal_extension=true
     echo "${Yellow}Apple M1 Detected"
     hash rustc 2>/dev/null
     if [ $? -eq 0 ];then
@@ -73,20 +72,9 @@ fi
 
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
-$PYTHON -m pip install --upgrade -r "$TD/requirements.txt" --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases
-if [ "$install_tensorflow_mac" = true ]; then
-  $PYTHON -m pip install tensorflow-macos
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed Tensorflow tools"
-  else
-    echo "Could not install Tensorflow tools" >&2
-  fi
-  if [ "$install_tensorflow_metal_extension" = true ]; then
-    $PYTHON -m pip install tensorflow-metal
-  fi
-fi
+$PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
-  $PYTHON -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir
+  $PYTHON -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   if [ $? -eq 0 ];then
     echo "Successfully Installed torch-mlir"
   else
@@ -99,43 +87,26 @@ else
   exit 1
 fi
 if [[ -z "${USE_IREE}" ]]; then
-  echo "Installing SHARK..."
-  $PYTHON -m pip install --find-links https://github.com/nod-ai/SHARK-Runtime/releases iree-compiler iree-runtime
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed SHARK Runtime"
-  else
-    echo "Could not install SHARK" >&2
-    exit 1
-  fi
+  RUNTIME="nod-ai/SHARK-Runtime"
 else
-  echo "Installing IREE..."
-  $PYTHON -m pip install --find-links https://github.com/google/iree/releases iree-compiler iree-runtime
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed IREE Runtime"
-  else
-    echo "Could not install IREE" >&2
-    exit 1
+  RUNTIME="google/iree"
+fi
+echo "Installing ${RUNTIME}..."
+$PYTHON -m pip install --find-links https://github.com/${RUNTIME}/releases iree-compiler iree-runtime
+
+if [[ ! -z "${IMPORTER}" ]]; then
+  echo "${Yellow}Installing importer tools.."
+  if [[ $(uname -s) = 'Linux' ]]; then
+    echo "${Yellow}Linux detected.. installing Linux importer tools"
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/${RUNTIME}/releases --extra-index-url https://test.pypi.org/simple/ --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+  elif [[ $(uname -s) = 'Darwin' ]]; then
+    echo "${Yellow}macOS detected.. installing macOS importer tools"
+    #Conda seems to have some problems installing these packages and hope they get resolved upstream.
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f https://github.com/${RUNTIME}/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   fi
 fi
 
-if [[ $(uname -s) = 'Linux' ]]; then
-  echo "${Yellow}Linux detected.. installing importer tools"
-  # Modules required for ONNX/Transformer Benchmarking.
-  # TODO: move this to requirements.txt
-  $PYTHON -m pip install protobuf
-  $PYTHON -m pip install coloredlogs
-  $PYTHON -m pip install flatbuffers
-  $PYTHON -m pip install sympy
-  $PYTHON -m pip install psutil
-  $PYTHON -m pip install -i https://test.pypi.org/simple/ onnx-weekly
-  $PYTHON -m pip install -i https://test.pypi.org/simple/ ort-nightly
-
-  $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/nod-ai/SHARK-Runtime/releases
-fi
-
-$PYTHON -m pip install transformers
-#$PYTHON -m pip wheel -v -w $TD/wheelhouse $TD -f https://github.com/nod-ai/SHARK-Runtime/releases -f https://github.com/llvm/torch-mlir/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-$PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
+$PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/${RUNTIME}/releases
 
 if [[ -z "${CONDA_PREFIX}" ]]; then
   echo "${Green}Before running examples activate venv with:"

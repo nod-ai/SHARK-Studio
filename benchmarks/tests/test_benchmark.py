@@ -8,8 +8,12 @@ import torchvision.models as models
 from transformers import AutoModelForSequenceClassification, BertTokenizer, TFBertModel
 import importlib
 import pytest
+import unittest
 
 torch.manual_seed(0)
+gpus = tf.config.experimental.list_physical_devices('GPU')
+for gpu in gpus:
+  tf.config.experimental.set_memory_growth(gpu, True)
 
 ##################### Tensorflow Hugging Face LM Models ###################################
 MAX_SEQUENCE_LENGTH = 512
@@ -41,8 +45,7 @@ class TFHuggingFaceLanguage(tf.Module):
 
 def get_TFhf_model(name):
     model = TFHuggingFaceLanguage(name)
-    tokenizer = BertTokenizer.from_pretrained(
-        "microsoft/MiniLM-L12-H384-uncased")
+    tokenizer = BertTokenizer.from_pretrained(name)
     text = "Replace me by any text you'd like."
     encoded_input = tokenizer(text,
                               padding='max_length',
@@ -113,13 +116,33 @@ def get_vision_model(torch_model):
 
 #############################   Benchmark Tests ####################################
 
-# Test running benchmark module without failing.
 pytest_benchmark_param = pytest.mark.parametrize(
     ('dynamic', 'device'),
     [
         pytest.param(False, 'cpu'),
         # TODO: Language models are failing for dynamic case..
         pytest.param(True, 'cpu', marks=pytest.mark.skip),
+        pytest.param(False,
+                     'gpu',
+                     marks=pytest.mark.skipif(check_device_drivers("gpu"),
+                                              reason="nvidia-smi not found")),
+        pytest.param(True,
+                     'gpu',
+                     marks=pytest.mark.skip),
+        pytest.param(
+            False,
+            'vulkan',
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
+        pytest.param(
+            True,
+            'vulkan',
+            marks=pytest.mark.skipif(
+                check_device_drivers("vulkan"),
+                reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+            )),
     ])
 
 
@@ -166,8 +189,7 @@ def test_bench_distilbert(dynamic, device):
         assert False
 
 
-@pytest.mark.skipif(importlib.util.find_spec("iree.tools") is None,
-                    reason="Cannot find tools to import TF")
+@pytest.mark.skip(reason="XLM Roberta too large to test.")
 @pytest_benchmark_param
 def test_bench_xlm_roberta(dynamic, device):
     model, test_input, act_out = get_TFhf_model("xlm-roberta-base")

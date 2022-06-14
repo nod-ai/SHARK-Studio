@@ -50,9 +50,9 @@ jobs:
     - name: Validate Models
       run: |
         cd $GITHUB_WORKSPACE
-        ./setup_venv.sh
+        IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --workers auto -k 'not benchmark'
+        pytest -k 'not benchmark' --ignore=tank/tf/ --ignore=shark/tests/test_shark_importer.py
         
   perf-macOS:
     runs-on: MacStudio
@@ -62,33 +62,41 @@ jobs:
         python-version: ["3.10"]
 
     steps:
+    - uses: actions/checkout@v3   
+    - name: Validate Models dependencies
+      run: |
+        cd $GITHUB_WORKSPACE
+        PYTHON=python3.10 IMPORTER=1 ./setup_venv.sh
+        source shark.venv/bin/activate
+        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=tank/tf/ --ignore=shark/tests/test_shark_importer.py 
+        
+  perf-linux:
+    runs-on: a100
+    timeout-minutes: 45
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
     - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    
     - name: Setup pip cache
       uses: actions/cache@v3
       with:
-        path: ~/Library/Caches/pip
+        path: ~/.cache/pip
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        cd $GITHUB_WORKSPACE
-        PYTHON=python3.10 ./setup_venv.sh
-        source shark.venv/bin/activate
-        python -m pip install flake8 pytest yapf toml
 
-    - name: Lint with flake8
-      run: |
-        source shark.venv/bin/activate
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py,shark.venv
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py,shark.venv
-        yapf -i --style .style.yapf shark/*.py
-        
     - name: Validate Models
       run: |
+        cd $GITHUB_WORKSPACE
+        IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -k 'not benchmark' --ignore=shark/tests/test_hf_benchmark.py --ignore=shark/tests/test_shark_importer.py
-        
+        pytest --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore benchmarks/tests/test_benchmark.py --ignore=tank/tf/
