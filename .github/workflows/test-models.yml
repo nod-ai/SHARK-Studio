@@ -62,15 +62,7 @@ jobs:
         python-version: ["3.10"]
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Setup pip cache
-      uses: actions/cache@v3
-      with:
-        path: ~/Library/Caches/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
+    - uses: actions/checkout@v3   
     - name: Validate Models dependencies
       run: |
         cd $GITHUB_WORKSPACE
@@ -107,4 +99,4 @@ jobs:
         cd $GITHUB_WORKSPACE
         IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore benchmarks/tests/test_benchmark.py --ignore=tank/tf/
+        pytest --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore benchmarks/tests/test_benchmark.py --ignore=tank/tf/
