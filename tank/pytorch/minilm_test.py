@@ -1,6 +1,7 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils import check_device_drivers
 from tank.model_utils import get_hf_model, compare_tensors
+from shark.parser import shark_args
 
 import torch
 import unittest
@@ -15,12 +16,15 @@ class MiniLMModuleTester:
         self,
         dynamic=False,
         device="cpu",
+        save_mlir=False,
     ):
         self.dynamic = dynamic
         self.device = device
+        self.save_mlir = save_mlir
 
     def create_and_check_module(self):
         model, input, act_out = get_hf_model("microsoft/MiniLM-L12-H384-uncased")
+        shark_args.save_mlir = self.save_mlir
         shark_module = SharkInference(model, (input,),
                                       device=self.device,
                                       dynamic=self.dynamic,
@@ -31,6 +35,10 @@ class MiniLMModuleTester:
 
 class MiniLMModuleTest(unittest.TestCase):
 
+    @pytest.fixture(autouse=True)
+    def configure(self, pytestconfig): 
+        self.save_mlir = pytestconfig.getoption("save_mlir")
+    
     def setUp(self):
         self.module_tester = MiniLMModuleTester(self)
 
