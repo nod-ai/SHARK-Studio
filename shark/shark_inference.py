@@ -84,7 +84,7 @@ class SharkInference:
         return self.shark_runner.forward(input_list, self.frontend)
 
     # Saves the .vmfb module.
-    def save_module(self, dir = None):
+    def save_module(self, dir=None):
         if dir is None:
             return self.shark_runner.save_module()
         return self.shark_runner.save_module(dir)

@@ -287,7 +287,7 @@ def tensor_to_type_str(input_tensors: tuple, frontend: str):
         type_string = "x".join([str(dim) for dim in input_tensor.shape])
         if frontend in ["torch", "pytorch"]:
             dtype_string = str(input_tensor.dtype).replace("torch.", "")
-        elif frontend in ["tensorflow", "tf"]:
+        elif frontend in ["tensorflow", "tf", "mhlo"]:
             dtype = input_tensor.dtype
             dtype_string = re.findall('\'[^"]*\'',
                                       str(dtype))[0].replace("\'", "")
