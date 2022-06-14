@@ -83,6 +83,12 @@ class SharkInference:
             input_list = [x.numpy() for x in inputs]
         return self.shark_runner.forward(input_list, self.frontend)
 
+    # Saves the .vmfb module.
+    def save_module(self, dir = None):
+        if dir is None:
+            return self.shark_runner.save_module()
+        return self.shark_runner.save_module(dir)
+
     ######### Benchmark Related Functions #########
     def benchmark_mode(func):
 
