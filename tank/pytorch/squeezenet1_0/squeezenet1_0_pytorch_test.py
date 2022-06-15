@@ -11,21 +11,24 @@ import pytest
 
 torch.manual_seed(0)
 
-class Resnet18ModuleTester:
+class SqueezenetModuleTester:
 
     def __init__(
         self,
         dynamic=False,
         device="cpu",
         save_mlir=False,
+        save_vmfb=False,
     ):
         self.dynamic = dynamic
         self.device = device
         self.save_mlir = save_mlir
+        self.save_vmfb = save_vmfb
 
     def create_and_check_module(self):
-        model, input, act_out = get_vision_model(models.resnet18(pretrained=True))
+        model, input, act_out = get_vision_model(models.squeezenet1_0(pretrained=True))
         shark_args.save_mlir = self.save_mlir
+        shark_args.save_vmfb = self.save_vmfb
         shark_module = SharkInference(
                 model,
                 (input,),
@@ -36,14 +39,15 @@ class Resnet18ModuleTester:
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
 
-class Resnet18ModuleTest(unittest.TestCase):
+class SqueezenetModuleTest(unittest.TestCase):
 
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig): 
         self.save_mlir = pytestconfig.getoption("save_mlir")
-    
+        self.save_vmfb = pytestconfig.getoption("save_vmfb")
+
     def setUp(self):
-        self.module_tester = Resnet18ModuleTester(self)
+        self.module_tester = SqueezenetModuleTester(self)
         
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False

@@ -11,21 +11,24 @@ import pytest
 
 torch.manual_seed(0)
 
-class Resnet50ModuleTester:
+class Resnet101ModuleTester:
 
     def __init__(
         self,
         dynamic=False,
         device="cpu",
         save_mlir=False,
+        save_vmfb=False,
     ):
         self.dynamic = dynamic
         self.device = device
         self.save_mlir = save_mlir
+        self.save_vmfb = save_vmfb
 
     def create_and_check_module(self):
-        model, input, act_out = get_vision_model(models.resnet50(pretrained=True))
+        model, input, act_out = get_vision_model(models.resnet101(pretrained=True))
         shark_args.save_mlir = self.save_mlir
+        shark_args.save_vmfb = self.save_vmfb
         shark_module = SharkInference(
                 model,
                 (input,),
@@ -36,14 +39,15 @@ class Resnet50ModuleTester:
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
 
-class Resnet50ModuleTest(unittest.TestCase):
+class Resnet101ModuleTest(unittest.TestCase):
 
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig): 
         self.save_mlir = pytestconfig.getoption("save_mlir")
-    
+        self.save_vmfb = pytestconfig.getoption("save_vmfb")
+
     def setUp(self):
-        self.module_tester = Resnet50ModuleTester(self)
+        self.module_tester = Resnet101ModuleTester(self)
         
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
@@ -84,7 +88,6 @@ class Resnet50ModuleTest(unittest.TestCase):
         self.module_tester.dynamic = True
         self.module_tester.device = "vulkan"
         self.module_tester.create_and_check_module()
-
 
 if __name__ == '__main__':
     unittest.main()
