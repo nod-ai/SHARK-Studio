@@ -2,3 +2,4 @@ def pytest_addoption(parser):
     # Attaches SHARK command-line arguments to the pytest machinery.
     parser.addoption("--save_mlir", action="store_true", default="False", help="Pass option to save input MLIR module to /tmp/ directory.")
     parser.addoption("--save_vmfb", action="store_true", default="False", help="Pass option to save input MLIR module to /tmp/ directory.")
+    parser.addoption("--benchmark", action="store_true", default="False", help="Saves test benchmark results to .csv in working directory.")

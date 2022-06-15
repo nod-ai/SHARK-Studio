@@ -18,6 +18,7 @@ import iree.compiler as ireec
 from shark.torch_mlir_utils import get_module_name_for_asm_dump
 from shark.cuda_utils import get_cuda_sm_cc
 from shark.model_annotation import *
+from shark.parser import shark_args
 import subprocess
 import numpy as np
 import os
@@ -83,8 +84,14 @@ def get_iree_cpu_args():
     else:
         error_message = f"OS Type f{os_name} not supported and triple can't be determined, open issue to dSHARK team please :)"
         raise Exception(error_message)
-    print(f"Target triple found:{target_triple}")
-    return [f"-iree-llvm-target-triple={target_triple}"]
+    print(f"Target triple found:{target_triple}") 
+    if shark_args.increase_stack_alloc_size == True:
+        return [
+            "--iree-llvmcpu-stack-allocation-limit=131072",
+            f"-iree-llvm-target-triple={target_triple}"
+        ]
+    else:
+        return [f"-iree-llvm-target-triple={target_triple}"]
 
 
 def get_iree_gpu_args():

@@ -67,5 +67,10 @@ parser.add_argument(
     type=int,
     default=1,
     help="Run the model for the specified number of iterations.")
+parser.add_argument(
+    "--increase_stack_alloc_size",
+    default=False,
+    action="store_true",
+    help="Increases IREE cpu stack allocation size limit from 32KB to 128KB. Should only be used for dynamic cpu case on language models.")
 
 shark_args, unknown = parser.parse_known_args()

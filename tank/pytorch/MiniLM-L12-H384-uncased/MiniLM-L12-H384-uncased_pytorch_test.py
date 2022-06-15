@@ -18,16 +18,19 @@ class MiniLMModuleTester:
         device="cpu",
         save_mlir=False,
         save_vmfb=False,
+        increase_stack_alloc_size=False,
     ):
         self.dynamic = dynamic
         self.device = device
         self.save_mlir = save_mlir
         self.save_vmfb = save_vmfb
+        self.increase_stack_alloc_size = increase_stack_alloc_size
 
     def create_and_check_module(self):
         model, input, act_out = get_hf_model("microsoft/MiniLM-L12-H384-uncased")
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
+        shark_args.increase_stack_alloc_size = self.increase_stack_alloc_size
         shark_module = SharkInference(model, (input,),
                                       device=self.device,
                                       dynamic=self.dynamic,
@@ -51,10 +54,10 @@ class MiniLMModuleTest(unittest.TestCase):
         self.module_tester.device = "cpu"
         self.module_tester.create_and_check_module()
     
-    @pytest.mark.xfail(reason="language models failing for dynamic case")
     def test_module_dynamic_cpu(self):
         self.module_tester.dynamic = True
         self.module_tester.device = "cpu"
+        self.module_tester.increase_stack_alloc_size = True
         self.module_tester.create_and_check_module()
     
     @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
