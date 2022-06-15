@@ -17,15 +17,18 @@ class SqueezenetModuleTester:
         self,
         dynamic=False,
         device="cpu",
-        save_mlir=False
+        save_mlir=False,
+        save_vmfb=False,
     ):
         self.dynamic = dynamic
         self.device = device
         self.save_mlir = save_mlir
+        self.save_vmfb = save_vmfb
 
     def create_and_check_module(self):
         model, input, act_out = get_vision_model(models.squeezenet1_0(pretrained=True))
         shark_args.save_mlir = self.save_mlir
+        shark_args.save_vmfb = self.save_vmfb
         shark_module = SharkInference(
                 model,
                 (input,),
@@ -41,7 +44,8 @@ class SqueezenetModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig): 
         self.save_mlir = pytestconfig.getoption("save_mlir")
-    
+        self.save_vmfb = pytestconfig.getoption("save_vmfb")
+
     def setUp(self):
         self.module_tester = SqueezenetModuleTester(self)
         
