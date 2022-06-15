@@ -153,34 +153,34 @@ print(shark_module.forward((arg0, arg1)))
 
 | Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
-| BERT                | :heavy_check_mark: (JIT)          | :heavy_check_mark:         |          |             |
-| Albert              | :heavy_check_mark: (JIT)            | :heavy_check_mark:         |          |             |
+| BERT                | :heavy_check_mark: (JIT)          | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| Albert              | :heavy_check_mark: (JIT)            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
 | BigBird             | :heavy_check_mark: (AOT)            |          |          |             |
-| DistilBERT          | :heavy_check_mark: (JIT)            | :heavy_check_mark:         |          |             |
+| DistilBERT          | :heavy_check_mark: (JIT)            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
 | GPT2                | :x: (AOT)            |          |          |             |
 
 ### Torchvision  Models
   
 | TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |--------------------|----------------------|----------|----------|-------------|
-| AlexNet            | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
+| AlexNet            | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
 | DenseNet121        | :heavy_check_mark: (Script)         |          |          |             |
 | MNasNet1_0         | :heavy_check_mark: (Script)         |          |          |             |
 | MobileNetV2        | :heavy_check_mark: (Script)         |          |          |             |
 | MobileNetV3        | :heavy_check_mark: (Script)         |          |          |             |
 | Unet               | :x: (Script)         |          |          |             |
-| Resnet18           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |  :heavy_check_mark:        |             |
-| Resnet50           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
-| Resnet101           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
+| Resnet18           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |  :heavy_check_mark:        | :heavy_check_mark:            |
+| Resnet50           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       | :heavy_check_mark:            |
+| Resnet101           | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       | :heavy_check_mark:            |
 | Resnext50_32x4d    | :heavy_check_mark: (Script)         |          |          |             |
 | ShuffleNet_v2      | :x: (Script)         |          |          |             |
-| SqueezeNet         | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
+| SqueezeNet         | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       | :heavy_check_mark:            |
 | EfficientNet       | :heavy_check_mark: (Script)         |          |          |             |
 | Regnet             | :heavy_check_mark: (Script)         |          |          |             |
 | Resnest            | :x: (Script)         |          |          |             |
 | Vision Transformer | :heavy_check_mark: (Script)         |          |          |             |
 | VGG 16             | :heavy_check_mark: (Script)         | :heavy_check_mark:         |   :heavy_check_mark:       |             |
-| Wide Resnet        | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         |             |
+| Wide Resnet        | :heavy_check_mark: (Script)         | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
 | RAFT               | :x: (JIT)            |          |          |             |
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
