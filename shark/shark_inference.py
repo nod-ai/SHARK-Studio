@@ -10,10 +10,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
-import os
 from shark.parser import shark_args
 from shark.shark_runner import SharkRunner, SharkBenchmarkRunner
-import time
 import sys
 
 
@@ -84,7 +82,7 @@ class SharkInference:
         return self.shark_runner.forward(input_list, self.frontend)
 
     # Saves the .vmfb module.
-    def save_module(self, dir = None):
+    def save_module(self, dir=None):
         if dir is None:
             return self.shark_runner.save_module()
         return self.shark_runner.save_module(dir)

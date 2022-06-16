@@ -1,11 +1,9 @@
 from iree import runtime as ireert
 from iree.compiler import tf as tfc
-import sys
 from absl import app
 
 import numpy as np
 import os
-import tempfile
 import tensorflow as tf
 
 from transformers import BertModel, BertTokenizer, TFBertModel

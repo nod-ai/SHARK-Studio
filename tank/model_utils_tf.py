@@ -4,7 +4,6 @@ from shark.iree_utils import check_device_drivers
 import tensorflow as tf
 import numpy as np
 from transformers import AutoModelForSequenceClassification, BertTokenizer, TFBertModel
-import importlib
 
 ##################### Tensorflow Hugging Face LM Models ###################################
 MAX_SEQUENCE_LENGTH = 512
@@ -57,7 +56,7 @@ def compare_tensors_tf(tf_tensor, numpy_tensor):
     # setting the absolute and relative tolerance
     rtol = 1e-02
     atol = 1e-03
-    tf_to_numpy = tf_tensor.pooler_output.numpy()
+    tf_to_numpy = tf_tensor.numpy()
     return np.allclose(tf_to_numpy, numpy_tensor, rtol, atol)
 
 

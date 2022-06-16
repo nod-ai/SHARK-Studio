@@ -14,13 +14,11 @@
 
 from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
 from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
-import os
 from shark.parser import shark_args
 from shark.shark_runner import SharkRunner
 from shark.backward_makefx import MakeFxModule
 import numpy as np
 from tqdm import tqdm
-import time
 import sys
 
 
