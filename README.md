@@ -31,7 +31,7 @@ source shark_venv/bin/activate
 python -m pip install --upgrade pip
 ```
 
-*macOS Metal* users please install https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg
+*macOS Metal* users please install https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg and enable "System wide install"
 
 ### Install SHARK
   
