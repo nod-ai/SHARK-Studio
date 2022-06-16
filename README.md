@@ -222,12 +222,27 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 <details>
   <summary>TF Models</summary>
  
-### Tensorflow Models 
+### Tensorflow Models (Inference) 
 
-| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| Hugging Face Models | tf-mhlo lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
-| BERT                | :x:           | :x:         |          |             |
-| FullyConnected                | :heavy_check_mark:           | :heavy_check_mark:         |          |             |
+| BERT                | :heavy_check_mark:          | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| albert-base-v2              | :heavy_check_mark:            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| DistilBERT          | :heavy_check_mark:            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| CamemBert                | :heavy_check_mark:          | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| ConvBert              | :heavy_check_mark:            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| Deberta              |            |         |          |             |
+| electra          | :heavy_check_mark:            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| funnel              |            |         |          |             |
+| layoutlm              | :heavy_check_mark:            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| longformer              |            |         |          |             |
+| mobile-bert                | :heavy_check_mark:          | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| remembert              |            |         |          |             |
+| tapas              |            |         |          |             |
+| flaubert                | :heavy_check_mark:          | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| roberta                | :heavy_check_mark:          | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| xlm-roberta              | :heavy_check_mark:            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
+| mpnet              | :heavy_check_mark:            | :heavy_check_mark:         | :heavy_check_mark:         | :heavy_check_mark:            |
   
 </details>
 
