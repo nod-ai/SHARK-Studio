@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from iree.compiler import tf as tfc
+import iree.compiler.tflite as ireec_tflite
 from torch.utils._python_dispatch import enable_torch_dispatch_mode
 from torch_mlir.eager_mode import torch_mlir_tensor
 from torch_mlir.eager_mode.torch_mlir_tensor import TorchMLIRTensor
@@ -19,7 +20,7 @@ from torch_mlir_e2e_test.eager_backends.refbackend import EagerModeRefBackend
 
 from shark.iree_eager_backend import EagerModeIREELinalgOnTensorsBackend
 from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
-from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb, export_module_to_mlir_file, build_benchmark_args, run_benchmark
+from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb, export_module_to_mlir_file, build_benchmark_args, run_benchmark_module
 import os
 from shark.parser import shark_args
 from tqdm import tqdm
@@ -47,20 +48,39 @@ class SharkRunner:
         self.frontend = frontend
         self.vmfb_file = None
         func_name = "forward"
-        device = device if device is not None else shark_args.device
+        self.device = device if device is not None else shark_args.device
         if self.frontend in ["pytorch", "torch"]:
+            # get torch-mlir dialect
+            # self.model = torch.Module
+            # TODO assert
             self.model = get_torch_mlir_module(self.model, input, dynamic,
                                                jit_trace, from_aot)
-        elif frontend in ["tensorflow", "tf"]:
+        elif self.frontend in ["tensorflow", "tf"]:
+            # get mhlo dialect
+            # self.model = tf.Module
+            # TODO assert
             self.model = tfc.compile_module(self.model,
                                             exported_names=[func_name],
                                             import_only=True)
+        elif self.frontend in ["tflite"]:
+            print("Setting up for IREE compiler tflite")
+            # get tosa dialect
+            # self.model = model.tflite
+            # TODO assert
+            self.model = ireec_tflite.compile_file(self.model,
+                                                   input_type="tosa",
+                                                   import_only=True)
+            func_name = "main"
+
+        # TODO: We can capture the .vmfb module here and later use it for saving
+        # rather than recompiling it again, if used for saving.
         (
             self.iree_compilation_module,
             self.iree_config,
         ) = get_iree_compiled_module(self.model,
-                                     device,
+                                     self.device,
                                      self.frontend,
+                                     func_name=func_name,
                                      model_config_path=model_config_path)
 
         # Debugging Options:
@@ -68,14 +88,23 @@ class SharkRunner:
             export_module_to_mlir_file(self.model, self.frontend,
                                        shark_args.repro_dir)
         if shark_args.save_vmfb:
-            self.vmfb_file = export_iree_module_to_vmfb(self.model, device,
-                                                        shark_args.repro_dir,
-                                                        frontend)
+            self.vmfb_file = self.save_module(shark_args.repro_dir)
 
     # All the timings and benchmarking can be done here.
     def forward(self, input, frontend):
         return get_results(self.iree_compilation_module, input,
                            self.iree_config, frontend)
+
+    # TODO: Instead of passing directory and having names decided by the module
+    # , user may want to save the module with manual names.
+    def save_module(self, dir=os.getcwd()):
+        return export_iree_module_to_vmfb(self.model, self.device, dir,
+                                          self.frontend)
+
+    # TODO: Load a module and directly use it, we will need to set the frontend
+    # in this case.
+    def load_module(self, name):
+        pass
 
 
 class SharkEagerMode:
@@ -152,7 +181,7 @@ class SharkBenchmarkRunner(SharkRunner):
         return
 
     def benchmark_c(self):
-        result = run_benchmark(self.benchmark_cl)
+        result = run_benchmark_module(self.benchmark_cl)
         print(f"Shark-{self.frontend} C-benchmark:{result} iter/second")
 
     def benchmark_python(self, inputs):

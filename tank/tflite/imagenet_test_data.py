@@ -3,6 +3,7 @@ import urllib.request
 
 from PIL import Image
 
+
 # Returns a sample image in the Imagenet dataset in uint8.
 def generate_input(workdir, input_details):
     # We use an image of apples since this is an easy example.

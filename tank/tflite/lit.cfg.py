@@ -22,13 +22,13 @@ config.test_source_root = os.path.dirname(__file__)
 
 #config.use_default_substitutions()
 config.excludes = [
-  'coco_test_data.py',
-  'imagenet_test_data.py',
-  'lit.cfg.py',
-  'lit.site.cfg.py',
-  'manual_test.py',
-  'squad_test_data.py',
-  'test_util.py',
+    'coco_test_data.py',
+    'imagenet_test_data.py',
+    'lit.cfg.py',
+    'lit.site.cfg.py',
+    'manual_test.py',
+    'squad_test_data.py',
+    'test_util.py',
 ]
 
 config.substitutions.extend([
@@ -43,4 +43,4 @@ project_root = os.path.dirname(os.path.dirname(__file__))
 # syntax.
 features_param = lit_config.params.get('FEATURES')
 if features_param:
-  config.available_features.update(features_param.split(','))
+    config.available_features.update(features_param.split(','))
