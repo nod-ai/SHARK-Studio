@@ -72,7 +72,7 @@ jobs:
         
   perf-linux:
     runs-on: a100
-    timeout-minutes: 45
+    timeout-minutes: 300
     continue-on-error: true
     strategy:
       fail-fast: false
