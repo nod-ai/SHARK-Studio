@@ -27,6 +27,7 @@ class FlauBertModuleTest(unittest.TestCase):
     def setUp(self):
         self.module_tester = FlauBertModuleTester()
 
+    @pytest.mark.xfail
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
@@ -39,6 +40,7 @@ class FlauBertModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail
     @pytest.mark.skipif(check_device_drivers("gpu"),
                         reason="nvidia-smi not found")
     def test_module_static_gpu(self):
@@ -55,6 +57,7 @@ class FlauBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason=

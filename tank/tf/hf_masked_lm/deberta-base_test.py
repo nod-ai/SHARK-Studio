@@ -26,6 +26,7 @@ class DebertaModuleTest(unittest.TestCase):
     def setUp(self):
         self.module_tester = DebertaModuleTester()
 
+    @pytest.mark.xfail
     @pytest.mark.skip(reason="deberta currently failing in the lowering passes."
                      )
     def test_module_static_cpu(self):
@@ -33,6 +34,7 @@ class DebertaModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail
     @pytest.mark.skip(
         reason="Language models currently failing for dynamic case")
     def test_module_dynamic_cpu(self):
