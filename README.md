@@ -81,19 +81,38 @@ git clone https://github.com/nod-ai/SHARK.git
 ```shell
 python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
 ```
+</details>
 
+
+<details>
+  <summary>Testing</summary>
 
 ### Run all model tests on CPU/GPU/VULKAN/Metal
 ```shell
-pytest shark/tests/models
+pytest tank
 
 # If on Linux for quicker results:
-pytest shark/tests/models -n auto
+pytest tank -n auto
 ```
 
+### Running specific tests
+```shell
+# Run tests for a specific model:
+pytest tank/<MODEL_NAME> #i.e., pytest tank/bert-base-uncased
+  
+# Run tests for a specific case:
+pytest tank/<MODEL_NAME>/<MODEL_TEST>.py::<MODEL>ModuleTest::<CASE> 
+# i.e., pytest tank/bert-base-uncased/bert-base-uncased_test.py::BertModuleTest::test_module_static_cpu
+# For frontends other than pytorch, if available for a model, add frontend to filename: tank/bert-base-uncased/bert-base-uncased_tf_test.py
+
+# Run all tests, including tests for benchmarking and SHARK modules:
+# From base SHARK directory,
+pytest
+```
+  
 ### Run all model benchmark tests on CPU/GPU/VULKAN/Metal
 ```shell
-pytest shark/tests/benchmarks
+pytest benchmarks
 ```
 </details>
 
