@@ -18,7 +18,6 @@ from torch.fx.experimental.proxy_tensor import make_fx
 from torch.nn.utils import _stateless
 
 from torch import fx
-import copy
 import tempfile
 
 

@@ -4,7 +4,6 @@ import tensorflow as tf
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
 import argparse
-import os
 
 
 seq_parser = argparse.ArgumentParser(description='Shark Sequence Classification.')

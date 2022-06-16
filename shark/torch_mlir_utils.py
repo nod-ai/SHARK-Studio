@@ -15,10 +15,7 @@
 import torch
 import io
 import pickle
-import sys
-import os
 
-from io import StringIO
 from torch_mlir.dialects.torch.importer.jit_ir import (
     ClassAnnotator,
     ModuleBuilder,

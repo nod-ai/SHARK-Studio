@@ -1,6 +1,4 @@
 import numpy as np
-import os
-import tempfile
 import tensorflow as tf
 import time
 

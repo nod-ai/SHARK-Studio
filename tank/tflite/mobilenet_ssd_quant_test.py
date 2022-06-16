@@ -2,7 +2,6 @@
 
 import absl.testing
 import numpy
-import os
 import test_util
 import urllib.request
 

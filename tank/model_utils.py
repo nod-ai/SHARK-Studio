@@ -5,7 +5,6 @@ import torch
 import numpy as np
 import torchvision.models as models
 from transformers import AutoModelForSequenceClassification, BertTokenizer, TFBertModel
-import importlib
 
 torch.manual_seed(0)
 

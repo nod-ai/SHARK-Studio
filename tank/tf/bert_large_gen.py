@@ -1,12 +1,10 @@
 from iree import runtime as ireert
 from iree.tf.support import module_utils
 from iree.compiler import tf as tfc
-import sys
 from absl import app
 
 import numpy as np
 import os
-import tempfile
 import tensorflow as tf
 
 from official.nlp.modeling import layers

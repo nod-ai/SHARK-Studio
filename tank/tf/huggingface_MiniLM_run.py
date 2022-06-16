@@ -1,15 +1,12 @@
 from iree import runtime as ireert
 from iree.compiler import tf as tfc
 from iree.compiler import compile_str
-import sys
 from absl import app
 
 import numpy as np
 import os
-import tempfile
 import tensorflow as tf
 
-import time
 from transformers import BertModel, BertTokenizer, TFBertModel
 
 MAX_SEQUENCE_LENGTH = 512
