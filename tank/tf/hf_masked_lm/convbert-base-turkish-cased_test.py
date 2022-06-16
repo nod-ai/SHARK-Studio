@@ -27,11 +27,13 @@ class ConvBertModuleTest(unittest.TestCase):
     def setUp(self):
         self.module_tester = ConvBertModuleTester()
 
+    @pytest.mark.xfail
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail
     @pytest.mark.skip(
         reason="Language models currently failing for dynamic case")
     def test_module_dynamic_cpu(self):
@@ -39,6 +41,7 @@ class ConvBertModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail
     @pytest.mark.skipif(check_device_drivers("gpu"),
                         reason="nvidia-smi not found")
     def test_module_static_gpu(self):
@@ -55,6 +58,7 @@ class ConvBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason=
