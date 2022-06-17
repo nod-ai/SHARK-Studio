@@ -57,6 +57,10 @@ def compare_tensors_tf(tf_tensor, numpy_tensor):
     rtol = 1e-02
     atol = 1e-03
     tf_to_numpy = tf_tensor.numpy()
+    diffs = tf_to_numpy - numpy_tensor
+    print(f"Diff (expected - result): {diffs}")
+    print(f"SHARK result: {numpy_tensor}")
+    print(f"Tensorflow (expected) result: {tf_to_numpy}")
     return np.allclose(tf_to_numpy, numpy_tensor, rtol, atol)
 
 

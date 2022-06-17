@@ -40,7 +40,7 @@ class AlbertBaseModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail
+    ########@pytest.mark.xfail
     @pytest.mark.skipif(check_device_drivers("gpu"),
                         reason="nvidia-smi not found")
     def test_module_static_gpu(self):
