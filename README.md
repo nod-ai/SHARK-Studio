@@ -74,6 +74,7 @@ git clone https://github.com/nod-ai/SHARK.git
 ```shell
 # Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...).
 ./setup_venv.sh
+# USE_IREE=1 ./setup_venv.sh #uses the latest IREE nightly instead of SHARK
 # Please activate the venv after installation.
 ```
 
