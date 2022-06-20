@@ -197,7 +197,7 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
 
 def get_iree_module(flatbuffer_blob, device, func_name):
     vm_module = ireert.VmModule.from_flatbuffer(flatbuffer_blob)
-    config = ireert.Config(IREE_TARGET_MAP[device])
+    config = ireert.Config(IREE_DEVICE_MAP[device])
     ctx = ireert.SystemContext(config=config)
     ctx.add_vm_module(vm_module)
     ModuleCompiled = ctx.modules.module[func_name]
