@@ -14,13 +14,16 @@ from shark.shark_inference import SharkInference
 class SharkImporter:
 
     def __init__(self,
-                 model_path,
+                 model_name: str=None,
+                 model_path: str=None,
                  model_type: str = "tflite",
                  model_source_hub: str = "tfhub",
                  device: str = None,
                  dynamic: bool = False,
                  jit_trace: bool = False,
-                 benchmark_mode: bool = False):
+                 benchmark_mode: bool = False,
+                 tank_url: str = None):
+        self.model_name = model_name
         self.model_path = model_path
         self.model_type = model_type
         self.model_source_hub = model_source_hub
