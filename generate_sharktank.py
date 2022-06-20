@@ -47,19 +47,23 @@ class SharkTank:
                     iree_ir = '/'.join([tflite_model_name_dir,  str(tflite_model_name)+'_tosa.mlir'])
                     self.binary = '/'.join([tflite_model_name_dir, str(tflite_model_name)+'_module.bytecode'])
                     print("Setting up local address for tflite model file: ", tflite_saving_file)
-                    if os.path.exists(tflite_model_link):
-                        tflite_saving_file = tflite_model_link
+                    if os.path.exists(tflite_saving_file):
+                        print(tflite_saving_file, "exists")
                     else:
                         print("Download tflite model")
                         urllib.request.urlretrieve(str(tflite_model_link),
                                                    tflite_saving_file)
 
-                    ireec_tflite.compile_file(
-                        tflite_saving_file,
-                        input_type="tosa",
-                        save_temp_iree_input=iree_ir,
-                        target_backends=[IREE_TARGET_MAP['cpu']],
-                        import_only=False)
+                    if os.path.exists(iree_ir):
+                        print(iree_ir, "exists")
+                    else:
+                        print("Convert tflite to tosa.mlir")
+                        ireec_tflite.compile_file(
+                            tflite_saving_file,
+                            input_type="tosa",
+                            save_temp_iree_input=iree_ir,
+                            target_backends=[IREE_TARGET_MAP['cpu']],
+                            import_only=False)
 
         if self.upload == True:
             print("upload tmp tank to gcp")
