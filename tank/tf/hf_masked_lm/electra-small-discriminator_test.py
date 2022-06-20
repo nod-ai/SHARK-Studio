@@ -57,7 +57,7 @@ class ElectraModuleTester:
 class ElectraModuleTest(unittest.TestCase):
 
     @pytest.fixture(autouse=True)
-    def configure(self):
+    def configure(self, pytestconfig):
         self.module_tester = ElectraModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
 
