@@ -33,9 +33,5 @@ resnet_50_224_int8, https://storage.googleapis.com/tf_model_garden/vision/resnet
 squeezenet, https://tfhub.dev/tensorflow/lite-model/squeezenet/1/default/1?lite-format=tflite
 ssd_mobilenet_v1_320_1.0_float, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v1_320_1.0_float.tflite
 ssd_mobilenet_v1_320_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v1_320_1.0_uint8.tflite
-ssd_mobilenet_v2_fpnlite_dynamic_1.0_float, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_fpnlite_dynamic_1.0_float.tflite
-ssd_mobilenet_v2_fpnlite_dynamic_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_fpnlite_dynamic_1.0_uint8.tflite
-ssd_mobilenet_v2_dynamic_1.0_int8, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_dynamic_1.0_int8.tflite
-ssd_mobilenet_v2_dynamic_1.0_float, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_dynamic_1.0_float.tflite
 ssd_spaghettinet_edgetpu_large, https://storage.googleapis.com/iree-model-artifacts/ssd_spaghettinet_edgetpu_large.tflite
 ssd_spaghettinet_edgetpu_large_uint8, https://storage.googleapis.com/iree-model-artifacts/ssd_spaghettinet_edgetpu_large_uint8.tflite
