@@ -9,7 +9,6 @@ efficientnet_224_fp32, https://storage.googleapis.com/iree-model-artifacts/effic
 gpt2-64, https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-64.tflite
 inception_v4_299_fp32, https://storage.googleapis.com/iree-model-artifacts/inception_v4_299_fp32.tflite
 inception_v4_299_uint8, https://storage.googleapis.com/iree-model-artifacts/inception_v4_299_uint8.tflite
-keras-ocr, https://tfhub.dev/tulasiram58827/lite-model/keras-ocr/dr/2?lite-format=tflite
 arbitrary-image-stylization-v1-256, https://tfhub.dev/google/lite-model/magenta/arbitrary-image-stylization-v1-256/int8/prediction/1?lite-format=tflite
 midas, https://tfhub.dev/intel/lite-model/midas/v2_1_small/1/lite/1?lite-format=tflite
 mnasnet_1.0_224, https://tfhub.dev/tensorflow/lite-model/mnasnet_1.0_224/1/metadata/1?lite-format=tflite

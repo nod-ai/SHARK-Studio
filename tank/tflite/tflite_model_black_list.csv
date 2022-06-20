@@ -9,4 +9,5 @@ rosetta, https://tfhub.dev/tulasiram58827/lite-model/rosetta/dr/1?lite-format=tf
 spice, https://tfhub.dev/google/lite-model/spice/1?lite-format=tflite
 visual_wake_words, https://github.com/mlcommons/tiny/raw/0b04bcd402ee28f84e79fa86d8bb8e731d9497b8/v0.5/training/visual_wake_words/trained_models/vww_96_int8.tflite
 east-text-detector, https://tfhub.dev/sayakpaul/lite-model/east-text-detector/dr/1?lite-format=tflite
+keras-ocr, https://tfhub.dev/tulasiram58827/lite-model/keras-ocr/dr/2?lite-format=tflite
 
