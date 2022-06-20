@@ -1,8 +1,6 @@
 albert_lite_base, https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite
-ASR_TFLite, https://tfhub.dev/neso613/lite-model/ASR_TFLite/pre_trained_models/English/1?lite-format=tflite
 birds_V1, https://tfhub.dev/google/lite-model/aiy/vision/classifier/birds_V1/3?lite-format=tflite
 cartoongan, https://tfhub.dev/sayakpaul/lite-model/cartoongan/dr/1?lite-format=tflite
-craft-text-detector, https://tfhub.dev/tulasiram58827/lite-model/craft-text-detector/dr/1?lite-format=tflite
 deeplabv3, https://tfhub.dev/tensorflow/lite-model/deeplabv3/1/metadata/2?lite-format=tflite
 densenet, https://tfhub.dev/tensorflow/lite-model/densenet/1/metadata/1?lite-format=tflite
 east-text-detector, https://tfhub.dev/sayakpaul/lite-model/east-text-detector/dr/1?lite-format=tflite
@@ -10,16 +8,11 @@ efficientnet_lite0_int8_2, https://storage.googleapis.com/iree-model-artifacts/e
 efficientnet_lite0_fp32_2, https://storage.googleapis.com/iree-model-artifacts/efficientnet_lite0_fp32_2.tflite
 efficientnet_224_fp32, https://storage.googleapis.com/iree-model-artifacts/efficientnet_224_fp32.tflite
 gpt2-64, https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-64.tflite
-arbitrary-image-stylization-inceptionv3-dynamic-shapes, https://tfhub.dev/sayakpaul/lite-model/arbitrary-image-stylization-inceptionv3-dynamic-shapes/int8/predict/1?lite-format=tflite
 inception_v4_299_fp32, https://storage.googleapis.com/iree-model-artifacts/inception_v4_299_fp32.tflite
 inception_v4_299_uint8, https://storage.googleapis.com/iree-model-artifacts/inception_v4_299_uint8.tflite
 keras-ocr, https://tfhub.dev/tulasiram58827/lite-model/keras-ocr/dr/2?lite-format=tflite
-lightning_fp16, https://tfhub.dev/google/lite-model/movenet/singlepose/lightning/tflite/float16/4?lite-format=tflite
-lightning_int8, https://tfhub.dev/google/lite-model/movenet/singlepose/lightning/tflite/int8/4?lite-format=tflite
-lightning, https://tfhub.dev/google/lite-model/movenet/singlepose/lightning/3?lite-format=tflite
 arbitrary-image-stylization-v1-256, https://tfhub.dev/google/lite-model/magenta/arbitrary-image-stylization-v1-256/int8/prediction/1?lite-format=tflite
 midas, https://tfhub.dev/intel/lite-model/midas/v2_1_small/1/lite/1?lite-format=tflite
-mirnet-fixed, https://tfhub.dev/sayakpaul/lite-model/mirnet-fixed/dr/1?lite-format=tflite
 mnasnet_1.0_224, https://tfhub.dev/tensorflow/lite-model/mnasnet_1.0_224/1/metadata/1?lite-format=tflite
 mobilebert-edgetpu-s-float, https://storage.googleapis.com/iree-model-artifacts/mobilebert-edgetpu-s-float.tflite
 mobilebert-edgetpu-s-quant, https://storage.googleapis.com/iree-model-artifacts/mobilebert-edgetpu-s-quant.tflite
@@ -39,8 +32,6 @@ nasnet, https://tfhub.dev/tensorflow/lite-model/nasnet/large/1/default/1?lite-fo
 person_detect, https://github.com/tensorflow/tflite-micro/raw/aeac6f39e5c7475cea20c54e86d41e3a38312546/tensorflow/lite/micro/models/person_detect.tflite
 multi_person_mobilenet_v1_075_float, https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/multi_person_mobilenet_v1_075_float.tflite
 resnet_50_224_int8, https://storage.googleapis.com/tf_model_garden/vision/resnet50_imagenet/resnet_50_224_int8.tflite
-rosetta, https://tfhub.dev/tulasiram58827/lite-model/rosetta/dr/1?lite-format=tflite
-spice, https://tfhub.dev/google/lite-model/spice/1?lite-format=tflite
 squeezenet, https://tfhub.dev/tensorflow/lite-model/squeezenet/1/default/1?lite-format=tflite
 ssd_mobilenet_v1_320_1.0_float, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v1_320_1.0_float.tflite
 ssd_mobilenet_v1_320_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v1_320_1.0_uint8.tflite
@@ -50,4 +41,3 @@ ssd_mobilenet_v2_dynamic_1.0_int8, https://storage.googleapis.com/iree-model-art
 ssd_mobilenet_v2_dynamic_1.0_float, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_dynamic_1.0_float.tflite
 ssd_spaghettinet_edgetpu_large, https://storage.googleapis.com/iree-model-artifacts/ssd_spaghettinet_edgetpu_large.tflite
 ssd_spaghettinet_edgetpu_large_uint8, https://storage.googleapis.com/iree-model-artifacts/ssd_spaghettinet_edgetpu_large_uint8.tflite
-visual_wake_words, https://github.com/mlcommons/tiny/raw/0b04bcd402ee28f84e79fa86d8bb8e731d9497b8/v0.5/training/visual_wake_words/trained_models/vww_96_int8.tflite

@@ -1,0 +1,11 @@
+ASR_TFLite, https://tfhub.dev/neso613/lite-model/ASR_TFLite/pre_trained_models/English/1?lite-format=tflite
+craft-text-detector, https://tfhub.dev/tulasiram58827/lite-model/craft-text-detector/dr/1?lite-format=tflite
+arbitrary-image-stylization-inceptionv3-dynamic-shapes, https://tfhub.dev/sayakpaul/lite-model/arbitrary-image-stylization-inceptionv3-dynamic-shapes/int8/predict/1?lite-format=tflite
+lightning_fp16, https://tfhub.dev/google/lite-model/movenet/singlepose/lightning/tflite/float16/4?lite-format=tflite
+lightning_int8, https://tfhub.dev/google/lite-model/movenet/singlepose/lightning/tflite/int8/4?lite-format=tflite
+lightning, https://tfhub.dev/google/lite-model/movenet/singlepose/lightning/3?lite-format=tflite
+mirnet-fixed, https://tfhub.dev/sayakpaul/lite-model/mirnet-fixed/dr/1?lite-format=tflite
+rosetta, https://tfhub.dev/tulasiram58827/lite-model/rosetta/dr/1?lite-format=tflite
+spice, https://tfhub.dev/google/lite-model/spice/1?lite-format=tflite
+visual_wake_words, https://github.com/mlcommons/tiny/raw/0b04bcd402ee28f84e79fa86d8bb8e731d9497b8/v0.5/training/visual_wake_words/trained_models/vww_96_int8.tflite
+
