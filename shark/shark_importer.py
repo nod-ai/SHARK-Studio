@@ -122,3 +122,15 @@ class SharkImporter:
             print("Inference", self.model_source_hub, " not implemented yet")
         elif self.model_source_hub == "jaxhub":
             print("Inference", self.model_source_hub, " not implemented yet")
+
+
+def shark_load(model_name, file_path):
+    file_link = f"https://storage.googleapis.com/shark_tank/users/stanley/{model_name}.mlir"
+    response = urllib.request.urlretrieve(file_link, file_path)
+    if not os.path.isfile(file_path):
+        raise ValueError(
+            f"Tried looking for target mlir in {file_path}, but cannot be found."
+        )
+    with open(file_path, "rb") as input_file:
+        model_mlir = input_file.read()
+    return model_mlir

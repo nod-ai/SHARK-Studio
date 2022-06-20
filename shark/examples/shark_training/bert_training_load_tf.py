@@ -5,7 +5,7 @@ import tensorflow as tf
 
 from shark.shark_trainer import SharkTrainer
 from shark.parser import parser
-from urllib import request
+from shark.shark_importer import shark_load
 
 parser.add_argument(
     "--download_mlir_path",
@@ -27,14 +27,10 @@ if __name__ == "__main__":
         np.random.randint(5, size=(BATCH_SIZE, SEQUENCE_LENGTH)),
         np.random.randint(5, size=(BATCH_SIZE, SEQUENCE_LENGTH))
     ]
-    file_link = "https://storage.googleapis.com/shark_tank/users/stanley/bert_tf_training.mlir"
-    response = request.urlretrieve(file_link, load_args.download_mlir_path)
+    model_name = "bert_tf_training"
+    bert_mlir = shark_load(model_name, load_args.download_mlir_path)
     sample_input_tensors = [tf.convert_to_tensor(val, dtype=tf.int32) for val in predict_sample_input]
     num_iter = 10
-    if not os.path.isfile(load_args.download_mlir_path):
-        raise ValueError(f"Tried looking for target mlir in {load_args.download_mlir_path}, but cannot be found.")
-    with open(load_args.download_mlir_path, "rb") as input_file:
-        bert_mlir = input_file.read()
     shark_module = SharkTrainer(
         bert_mlir,
         (sample_input_tensors,
