@@ -44,7 +44,6 @@ class SharkTank:
                     os.makedirs(tflite_model_name_dir, exist_ok=True)
 
                     tflite_saving_file = '/'.join([tflite_model_name_dir, str(tflite_model_name)+'_tflite.tflite'])
-                    tflite_ir = '/'.join([tflite_model_name_dir,  str(tflite_model_name)+'_tflite.mlir'])
                     iree_ir = '/'.join([tflite_model_name_dir,  str(tflite_model_name)+'_tosa.mlir'])
                     self.binary = '/'.join([tflite_model_name_dir, str(tflite_model_name)+'_module.bytecode'])
                     print("Setting up local address for tflite model file: ", tflite_saving_file)
@@ -65,7 +64,6 @@ class SharkTank:
         if self.upload == True:
             print("upload tmp tank to gcp")
             os.system('gsutil cp -r ./tmp_shark_tank gs://shark_tank/')
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--torch_model_list", type=str, default="./tank/torch/torch_model_list.csv")
