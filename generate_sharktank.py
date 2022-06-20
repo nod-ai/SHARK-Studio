@@ -27,7 +27,7 @@ class SharkTank:
         # compile and run tfhub tflite
         if self.tflite_model_list is not None:
             print("Setting up for tflite TMP_DIR")
-            self.tflite_workdir = os.path.join(os.path.dirname(__file__), "./tmp_shark_tank/tflite")
+            self.tflite_workdir = os.path.join(os.path.dirname(__file__), "./gen_shark_tank/tflite")
             print(f"tflite TMP_shark_tank_DIR = {self.tflite_workdir}")
             os.makedirs(self.tflite_workdir, exist_ok=True)
 
