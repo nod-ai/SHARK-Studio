@@ -239,7 +239,7 @@ def export_iree_module_to_vmfb(module,
 
 def export_module_to_mlir_file(module, frontend, directory: str):
     mlir_str = module
-    if frontend in ["tensorflow", "tf", "mhlo"]:
+    if frontend in ["tensorflow", "tf", "mhlo", "tflite"]:
         mlir_str = module.decode('utf-8')
     elif frontend in ["pytorch", "torch"]:
         mlir_str = module.operation.get_asm()
