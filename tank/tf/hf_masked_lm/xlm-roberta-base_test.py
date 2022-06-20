@@ -61,7 +61,7 @@ class XLMRobertaModuleTest(unittest.TestCase):
         self.module_tester = XLMRobertaModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
 
-    @pytest.mark.xfail(reason="Upstream IREE issue, see https://github.com/google/iree/issues/9536")
+    @pytest.mark.skip(reason="Test currently hangs.")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"

@@ -61,7 +61,6 @@ class FlauBertModuleTest(unittest.TestCase):
         self.module_tester = FlauBertModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
 
-    @pytest.mark.xfail(reason="Upstream IREE issue, see https://github.com/google/iree/issues/9536")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
