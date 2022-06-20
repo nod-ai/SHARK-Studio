@@ -1,18 +1,16 @@
-from shark.shark_inference import SharkInference
+from masked_lm import get_causal_lm_model
+from tank.model_utils_tf import compare_tensors_tf
 from shark.iree_utils import check_device_drivers
-from tank.model_utils_tf import get_TFhf_model, compare_tensors_tf
+from shark.shark_inference import SharkInference
 
-import tensorflow as tf
 import unittest
-import numpy as np
 import pytest
 
 
-class MiniLMTFModuleTester:
+class XLMRobertaModuleTester:
 
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_TFhf_model(
-            "microsoft/MiniLM-L12-H384-uncased")
+        model, input, act_out = get_causal_lm_model("xlm-roberta-base")
         shark_module = SharkInference(model, (input,),
                                       device=device,
                                       dynamic=dynamic,
@@ -23,26 +21,25 @@ class MiniLMTFModuleTester:
         assert True == compare_tensors_tf(act_out, results)
 
 
-class MiniLMTFModuleTest(unittest.TestCase):
+class XLMRobertaModuleTest(unittest.TestCase):
 
     def setUp(self):
-        self.module_tester = MiniLMTFModuleTester()
+        self.module_tester = XLMRobertaModuleTester()
 
-    @pytest.mark.skip(reason="TF testing temporarily unavailable.")
+    @pytest.mark.xfail
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="TF testing temporarily unavailable.")
-    @pytest.mark.xfail(
+    @pytest.mark.skip(
         reason="Language models currently failing for dynamic case")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="TF testing temporarily unavailable.")
+    @pytest.mark.xfail
     @pytest.mark.skipif(check_device_drivers("gpu"),
                         reason="nvidia-smi not found")
     def test_module_static_gpu(self):
@@ -50,7 +47,6 @@ class MiniLMTFModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="TF testing temporarily unavailable.")
     @pytest.mark.xfail(
         reason="Language models currently failing for dynamic case")
     @pytest.mark.skipif(check_device_drivers("gpu"),
@@ -60,7 +56,7 @@ class MiniLMTFModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="TF testing temporarily unavailable.")
+    @pytest.mark.xfail
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason=
@@ -71,7 +67,6 @@ class MiniLMTFModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="TF testing temporarily unavailable.")
     @pytest.mark.xfail(
         reason="Language models currently failing for dynamic case")
     @pytest.mark.skipif(

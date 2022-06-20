@@ -69,10 +69,10 @@ jobs:
         PYTHON=python3.10 IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=tank/tf/ --ignore=shark/tests/test_shark_importer.py 
-        
-  perf-linux:
+         
+  perf-linux-cuda:
     runs-on: a100
-    timeout-minutes: 45
+    timeout-minutes: 300
     continue-on-error: true
     strategy:
       fail-fast: false
@@ -99,4 +99,36 @@ jobs:
         cd $GITHUB_WORKSPACE
         IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
+        pytest -k 'gpu' --ignore=shark/tests/test_shark_importer.py
+        
+              
+  perf-linux-vulkan:
+    runs-on: a100
+    timeout-minutes: 300
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Setup pip cache
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Validate Models
+      run: |
+        cd $GITHUB_WORKSPACE
+        IMPORTER=1 ./setup_venv.sh
+        source shark.venv/bin/activate
+        pytest -k 'vulkan' --ignore=shark/tests/test_shark_importer.py  

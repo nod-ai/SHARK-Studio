@@ -20,6 +20,7 @@ tensorflow-metal
 #tf-models-nightly
 #tensorflow-text-nightly
 transformers==4.18.0
+tensorflow-probability
 #jax[cpu]
 
 # tflitehub dependencies.

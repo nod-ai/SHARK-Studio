@@ -70,7 +70,7 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester.device = "gpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.xfail(reason="Static albert model on vulkan currently fails to validate.")
+    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
             check_device_drivers("vulkan"),
             reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
@@ -80,6 +80,7 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester.device = "vulkan"
         self.module_tester.create_and_check_module()
 
+    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
             check_device_drivers("vulkan"),
             reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"

@@ -254,7 +254,7 @@ def get_results(compiled_vm, input, config, frontend="torch"):
         for a in input:
             if (isinstance(a, list)):
                 device_inputs.append([
-                    ireert.asdevicearray(config.device, val, dtype=np.int32)
+                    ireert.asdevicearray(config.device, val, dtype=val.dtype)
                     for val in a
                 ])
             else:
