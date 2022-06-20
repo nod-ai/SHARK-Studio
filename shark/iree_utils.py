@@ -148,6 +148,11 @@ def get_iree_frontend_args(frontend):
         # Frontend not found.
         return []
 
+def get_iree_common_args():
+        return [
+            "--iree-stream-resource-index-bits=64",
+            "--iree-vm-target-index-bits=64"
+        ]
 
 def compile_module_to_flatbuffer(module, device, frontend, func_name,
                                  model_config_path):
@@ -155,6 +160,7 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
     input_type = ""
     args = get_iree_frontend_args(frontend)
     args += get_iree_device_args(device)
+    args += get_iree_common_args()
 
     if frontend in ["tensorflow", "tf"]:
         input_type = "mhlo"
