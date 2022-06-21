@@ -15,10 +15,10 @@ iree-tools-tf
 # TensorFlow and JAX.
 gin-config
 tensorflow
-tf-models-nightly
-tensorflow-text-nightly
+#tf-models-nightly
+#tensorflow-text-nightly
 transformers==4.18.0
-tensorflow-probability
+#tensorflow-probability
 #jax[cpu]
 
 
@@ -30,11 +30,11 @@ lit
 pyyaml
 
 #ONNX and ORT for benchmarking
---extra-index-url https://test.pypi.org/simple/
-protobuf
-coloredlogs
-flatbuffers
-sympy
-psutil
-onnx-weekly
-ort-nightly
+#--extra-index-url https://test.pypi.org/simple/
+#protobuf
+#coloredlogs
+#flatbuffers
+#sympy
+#psutil
+#onnx-weekly
+#ort-nightly
