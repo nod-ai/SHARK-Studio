@@ -49,7 +49,10 @@ class SharkRunner:
         self.vmfb_file = None
         func_name = "forward"
         self.device = device if device is not None else shark_args.device
-        if self.frontend in ["pytorch", "torch"]:
+
+        if self.frontend in ["tflite-tosa"]:
+            func_name = "main"
+        elif self.frontend in ["pytorch", "torch"]:
             # get torch-mlir dialect
             # self.model = torch.Module
             # TODO assert

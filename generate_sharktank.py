@@ -1,5 +1,15 @@
 # Lint as: python3
 """SHARK Tank"""
+# python generate_sharktank.py, you have to give a csv tile with [model_name, model_download_url]
+# will generate local shark tank folder like this:
+#   /SHARK
+#     /gen_shark_tank
+#       /tflite
+#         /albert_lite_base
+#         /...model_name...
+#       /tf
+#       /pytorch
+#
 
 import os
 import urllib.request
@@ -22,8 +32,12 @@ class SharkTank:
 
         if self.torch_model_list is not None:
             print("Process torch model")
+        else:
+            print("Torch sharktank not implemented yet")
         if self.tf_model_list is not None:
             print("Process torch model")
+        else:
+            print("tf sharktank not implemented yet")
 
         print("self.tflite_model_list: ", self.tflite_model_list)
         # compile and run tfhub tflite
@@ -44,7 +58,7 @@ class SharkTank:
                     os.makedirs(tflite_model_name_dir, exist_ok=True)
 
                     tflite_saving_file = '/'.join([tflite_model_name_dir, str(tflite_model_name)+'_tflite.tflite'])
-                    iree_ir = '/'.join([tflite_model_name_dir,  str(tflite_model_name)+'_tosa.mlir'])
+                    tflite_tosa_file = '/'.join([tflite_model_name_dir,  str(tflite_model_name)+'_tosa.mlir'])
                     self.binary = '/'.join([tflite_model_name_dir, str(tflite_model_name)+'_module.bytecode'])
                     print("Setting up local address for tflite model file: ", tflite_saving_file)
                     if os.path.exists(tflite_saving_file):
@@ -54,14 +68,14 @@ class SharkTank:
                         urllib.request.urlretrieve(str(tflite_model_link),
                                                    tflite_saving_file)
 
-                    if os.path.exists(iree_ir):
-                        print(iree_ir, "exists")
+                    if os.path.exists(tflite_tosa_file):
+                        print("Exists", tflite_tosa_file)
                     else:
                         print("Convert tflite to tosa.mlir")
                         ireec_tflite.compile_file(
                             tflite_saving_file,
                             input_type="tosa",
-                            save_temp_iree_input=iree_ir,
+                            save_temp_iree_input=tflite_tosa_file,
                             target_backends=[IREE_TARGET_MAP['cpu']],
                             import_only=False)
 

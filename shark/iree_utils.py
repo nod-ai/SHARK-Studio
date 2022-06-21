@@ -166,7 +166,7 @@ def compile_module_to_flatbuffer(module, device, frontend, func_name,
         input_type = "mhlo"
     elif frontend in ["mhlo", "tosa"]:
         input_type = frontend
-    elif frontend in ["tflite"]:
+    elif frontend in ["tflite", "tflite-tosa"]:
         input_type = "tosa"
 
     # Annotate the input module with the configs
@@ -239,7 +239,7 @@ def export_iree_module_to_vmfb(module,
 
 def export_module_to_mlir_file(module, frontend, directory: str):
     mlir_str = module
-    if frontend in ["tensorflow", "tf", "mhlo"]:
+    if frontend in ["tensorflow", "tf", "mhlo", "tflite"]:
         mlir_str = module.decode('utf-8')
     elif frontend in ["pytorch", "torch"]:
         mlir_str = module.operation.get_asm()
@@ -255,7 +255,7 @@ def get_results(compiled_vm, input, config, frontend="torch"):
     device_inputs = input
     if frontend in ["torch", "pytorch"]:
         device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
-    if frontend in ["tensorflow", "tf", "tflite"]:
+    if frontend in ["tensorflow", "tf", "tflite", "tflite-tosa"]:
         device_inputs = []
         for a in input:
             if (isinstance(a, list)):
