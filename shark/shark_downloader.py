@@ -30,7 +30,7 @@ class SharkDownloader:
 
     def __init__(self,
                  model_name: str,
-                 tank_url: str = None,
+                 tank_url: str = "https://storage.googleapis.com/shark_tank",
                  local_tank_dir: str = "./../gen_shark_tank/tflite",
                  model_type: str = "tflite-tosa",
                  input_json: str = "input.json",
@@ -48,10 +48,6 @@ class SharkDownloader:
         # create tmp model file directory
         if self.tank_url is None and self.model_name is None:
             print("Error. No tank_url, No model name,Please input either one.")
-            return
-
-        if self.model_type not in ["tflite-tosa"]:
-            print("Unsupported model type.")
             return
 
         # read inputs from json file
@@ -73,7 +69,7 @@ class SharkDownloader:
                 args = json.load(f)
             self.inputs = [np.asarray(arg, dtype=self.input_type) for arg in args]
         else:
-            print("Unsupported json input")
+            print("No json input required for current model. You could call setup_inputs(you_inputs).")
         return self.inputs
 
     def load_mlir_model(self):
@@ -91,13 +87,14 @@ class SharkDownloader:
             os.makedirs(model_name_dir, exist_ok=True)
             print(f"TMP_MODELNAME_DIR = {model_name_dir}")
 
+            mlir_url = self.tank_url + "/tflite/" + str(self.model_name) + "/"+str(self.model_name) + '_tosa.mlir'
             self.mlir_file = '/'.join(
                 [model_name_dir, str(self.model_name) + '_tosa.mlir'])
             if os.path.exists(self.mlir_file):
                 print("Model has been downloaded before.", self.mlir_file)
             else:
-                print("Download mlir model")
-                urllib.request.urlretrieve(self.tank_url,
+                print("Download mlir model", mlir_url)
+                urllib.request.urlretrieve(mlir_url,
                                            self.mlir_file)
 
             print("Get tosa.mlir model return")

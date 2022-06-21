@@ -23,8 +23,7 @@ class AlbertTfliteModuleTester:
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
         self.shark_downloader = SharkDownloader(model_name="albert_lite_base",
-                                                tank_url="https://storage.googleapis.com/shark_tank/tflite"
-                                                         "/albert_lite_base/albert_lite_base_tosa.mlir",
+                                                tank_url="https://storage.googleapis.com/shark_tank",
                                                 local_tank_dir="./../gen_shark_tank/tflite",
                                                 model_type="tflite-tosa",
                                                 input_json="input.json",
@@ -67,17 +66,17 @@ if __name__ == '__main__':
 # TEST RESULT:
 # (shark.venv) nod% python albert_lite_base_tflite_mlir_test.py
 # load json inputs
-# TMP_MODEL_DIR =shark/SHARK/shark/./../gen_shark_tank/tflite
-# TMP_MODELNAME_DIR =shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base
-# Model has been downloaded before.shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base/albert_lite_base_tosa.mlir
+# TMP_MODEL_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite
+# Model has not been download.shark_downloader will automatically download by tank_url if provided. You can also manually to download the model from shark_tank by yourself.
+# TMP_MODELNAME_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base
+# Download mlir model https://storage.googleapis.com/shark_tank/tflite/albert_lite_base/albert_lite_base_tosa.mlir
 # Get tosa.mlir model return
 # Target triple found:x86_64-linux-gnu
 # (shark.venv) nod% python albert_lite_base_tflite_mlir_test.py
 # load json inputs
-# TMP_MODEL_DIR =shark/SHARK/shark/./../gen_shark_tank/tflite
-# Model has not been download, You can try to download the model from shark_tank by yourself.Or shark_downloader will try to download by tank_url if provided
-# TMP_MODELNAME_DIR =shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base
-# Download mlir model
+# TMP_MODEL_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite
+# TMP_MODELNAME_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base
+# Model has been downloaded before. shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base/albert_lite_base_tosa.mlir
 # Get tosa.mlir model return
 # Target triple found:x86_64-linux-gnu
 #
