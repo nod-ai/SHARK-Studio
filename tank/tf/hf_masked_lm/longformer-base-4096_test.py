@@ -2,6 +2,7 @@ from masked_lm import get_causal_lm_model
 from tank.model_utils_tf import compare_tensors_tf
 from shark.iree_utils import check_device_drivers
 from shark.shark_inference import SharkInference
+from shark.parser import shark_args
 
 import iree.compiler as ireec
 import unittest
@@ -11,17 +12,23 @@ import tempfile
 
 
 class LongFormerModuleTester:
-    
+     
     def __init__(
         self,
-        save_temps=False
+        save_temps=False,
+        save_mlir=False,
+        save_vmfb=False,
+        benchmark=False
     ):
         self.save_temps = save_temps
-
+        self.save_mlir = save_mlir
+        self.save_vmfb = save_vmfb
+    
     def create_and_check_module(self, dynamic, device):
         model, input, act_out = get_causal_lm_model("allenai/longformer-base-4096")
-        save_temps = self.save_temps
-        if save_temps == True:
+        shark_args.save_mlir = self.save_mlir
+        shark_args.save_vmfb = self.save_vmfb
+        if self.save_temps == True:
             if dynamic == True:
                 repro_dir = f"longformer_dynamic_{device}"
             else:
@@ -37,7 +44,8 @@ class LongFormerModuleTester:
                 shark_module = SharkInference(model, (input,),
                                               device=device,
                                               dynamic=dynamic,
-                                              jit_trace=True)
+                                              jit_trace=True,
+                                              benchmark_mode=self.benchmark)
                 shark_module.set_frontend("tensorflow")
                 shark_module.compile()
                 results = shark_module.forward((input))
@@ -47,12 +55,18 @@ class LongFormerModuleTester:
             shark_module = SharkInference(model, (input,),
                                           device=device,
                                           dynamic=dynamic,
-                                          jit_trace=True)
+                                          jit_trace=True,
+                                          benchmark_mode=self.benchmark)
             shark_module.set_frontend("tensorflow")
             shark_module.compile()
             results = shark_module.forward((input))
             assert True == compare_tensors_tf(act_out, results)
 
+        if self.benchmark == True:
+            shark_module.benchmark_all_csv((input),
+                                           "longformer-base-4096",
+                                           dynamic,
+                                           device)
 
 class LongFormerModuleTest(unittest.TestCase):
 
@@ -60,6 +74,9 @@ class LongFormerModuleTest(unittest.TestCase):
     def configure(self, pytestconfig):
         self.module_tester = LongFormerModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
+        self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
+        self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
+        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     @pytest.mark.skip(
         reason="longformer currently failing in the lowering passes.")
