@@ -4,7 +4,8 @@ import pytest
 import unittest
 from shark.parser import shark_args
 
-model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
+# model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
+# model_path = model_path
 
 # Inputs modified to be useful albert inputs.
 def generate_inputs(input_details):
@@ -43,7 +44,7 @@ class AlbertTfliteModuleTester:
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
         my_shark_importer = SharkImporter(model_name="albert_lite_base",
-                                          model_path=model_path,
+                                          # model_path=model_path,
                                           model_type="tflite",
                                           model_source_hub="tfhub",
                                           device=self.device,
@@ -78,4 +79,6 @@ class AlbertTfliteModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module()
 
 if __name__ == '__main__':
+    # module_tester = AlbertTfliteModuleTester()
+    # module_tester.create_and_check_module()
     unittest.main()
