@@ -21,15 +21,16 @@ class MiniLMSequenceClassification(torch.nn.Module):
             torchscript=True,
         )
 
-    def forward(self, tokens):
-        return self.model.forward(tokens)[0]
+    def forward(self, x, y, z):
+        return self.model.forward(x, y, z)[0]
 
 
-test_input = torch.randint(2, (1, 128))
+test_input = torch.randint(2, (1, 128)).to(torch.int32)
 
-shark_module = SharkInference(MiniLMSequenceClassification(), (test_input,),
+shark_module = SharkInference(MiniLMSequenceClassification(),
+                              (test_input, test_input, test_input),
                               jit_trace=True)
 
 shark_module.compile()
-result = shark_module.forward((test_input,))
+result = shark_module.forward((test_input, test_input, test_input))
 print("Obtained result", result)
