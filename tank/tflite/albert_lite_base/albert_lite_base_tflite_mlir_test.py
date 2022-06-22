@@ -24,7 +24,7 @@ class AlbertTfliteModuleTester:
         self.shark_downloader = SharkDownloader(
             model_name="albert_lite_base",
             tank_url="https://storage.googleapis.com/shark_tank",
-            local_tank_dir="./../gen_shark_tank/tflite",
+            local_tank_dir="./../gen_shark_tank",
             model_type="tflite-tosa",
             input_json="input.json",
             input_type="int32",
