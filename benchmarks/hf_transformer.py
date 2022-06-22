@@ -1,8 +1,12 @@
 import torch
-from shark.shark_runner import SharkBenchmarkRunner
+from shark.shark_benchmark_runner import SharkBenchmarkRunner
 from shark.parser import shark_args
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from onnxruntime.transformers.benchmark import run_pytorch, run_tensorflow, run_onnxruntime
+from onnxruntime.transformers.benchmark import (
+    run_pytorch,
+    run_tensorflow,
+    run_onnxruntime,
+)
 from onnxruntime.transformers.huggingface_models import MODELS
 from onnxruntime.transformers.benchmark_helper import ConfigModifier, Precision
 import os
@@ -10,7 +14,6 @@ import psutil
 
 
 class OnnxFusionOptions(object):
-
     def __init__(self):
         self.disable_gelu = False
         self.disable_layer_norm = False
@@ -25,17 +28,13 @@ class OnnxFusionOptions(object):
 
 
 class HuggingFaceLanguage(torch.nn.Module):
-
     def __init__(self, hf_model_name):
         super().__init__()
         self.model = AutoModelForSequenceClassification.from_pretrained(
             hf_model_name,  # The pretrained model.
-            num_labels=
-            2,  # The number of output labels--2 for binary classification.
-            output_attentions=
-            False,  # Whether the model returns attentions weights.
-            output_hidden_states=
-            False,  # Whether the model returns all hidden-states.
+            num_labels=2,  # The number of output labels--2 for binary classification.
+            output_attentions=False,  # Whether the model returns attentions weights.
+            output_hidden_states=False,  # Whether the model returns all hidden-states.
             torchscript=True,
         )
 
@@ -62,8 +61,16 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
             )
         self.model_name = model_name
         model = HuggingFaceLanguage(model_name)
-        SharkBenchmarkRunner.__init__(self, model, input, dynamic, self.device,
-                                      jit_trace, from_aot, frontend)
+        SharkBenchmarkRunner.__init__(
+            self,
+            model,
+            input,
+            dynamic,
+            self.device,
+            jit_trace,
+            from_aot,
+            frontend,
+        )
 
     def benchmark_torch(self, inputs):
         use_gpu = self.device == "gpu"
@@ -74,10 +81,20 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
         sequence_lengths = [inputs.shape[-1]]
         cache_dir = os.path.join(".", "cache_models")
         verbose = False
-        result = run_pytorch(use_gpu, [self.model_name], None, config_modifier,
-                             Precision.FLOAT32, num_threads, batch_sizes,
-                             sequence_lengths, shark_args.num_iterations, False,
-                             cache_dir, verbose)
+        result = run_pytorch(
+            use_gpu,
+            [self.model_name],
+            None,
+            config_modifier,
+            Precision.FLOAT32,
+            num_threads,
+            batch_sizes,
+            sequence_lengths,
+            shark_args.num_iterations,
+            False,
+            cache_dir,
+            verbose,
+        )
         print(
             f"ONNX Pytorch-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
@@ -92,10 +109,19 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
         sequence_lengths = [inputs.shape[-1]]
         cache_dir = os.path.join(".", "cache_models")
         verbose = False
-        result = run_tensorflow(use_gpu, [self.model_name], None,
-                                config_modifier, Precision.FLOAT32, num_threads,
-                                batch_sizes, sequence_lengths,
-                                shark_args.num_iterations, cache_dir, verbose)
+        result = run_tensorflow(
+            use_gpu,
+            [self.model_name],
+            None,
+            config_modifier,
+            Precision.FLOAT32,
+            num_threads,
+            batch_sizes,
+            sequence_lengths,
+            shark_args.num_iterations,
+            cache_dir,
+            verbose,
+        )
         print(
             f"ONNX TF-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
@@ -105,7 +131,8 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
             print(
                 f"{self.model_name} is currently not supported in ORT's HF. Check \
 https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/python/tools/transformers/huggingface_models.py \
-for currently supported models. Exiting benchmark ONNX.")
+for currently supported models. Exiting benchmark ONNX."
+            )
             return
         use_gpu = self.device == "gpu"
         num_threads = psutil.cpu_count(logical=False)
@@ -121,17 +148,34 @@ for currently supported models. Exiting benchmark ONNX.")
         use_raw_attention_mask = True
         model_fusion_statistics = {}
         overwrite = False
-        model_source = "pt"  #Either "pt" or "tf"
+        model_source = "pt"  # Either "pt" or "tf"
         provider = None
         config_modifier = ConfigModifier(None)
         onnx_args = OnnxFusionOptions()
         result = run_onnxruntime(
-            use_gpu, provider, [self.model_name], None, config_modifier,
-            Precision.FLOAT32, num_threads, batch_sizes, sequence_lengths,
-            shark_args.num_iterations, input_counts, optimize_onnx,
-            validate_onnx, cache_dir, onnx_dir, verbose, overwrite,
-            disable_ort_io_binding, use_raw_attention_mask,
-            model_fusion_statistics, model_source, onnx_args)
+            use_gpu,
+            provider,
+            [self.model_name],
+            None,
+            config_modifier,
+            Precision.FLOAT32,
+            num_threads,
+            batch_sizes,
+            sequence_lengths,
+            shark_args.num_iterations,
+            input_counts,
+            optimize_onnx,
+            validate_onnx,
+            cache_dir,
+            onnx_dir,
+            verbose,
+            overwrite,
+            disable_ort_io_binding,
+            use_raw_attention_mask,
+            model_fusion_statistics,
+            model_source,
+            onnx_args,
+        )
         print(
             f"ONNX ORT-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
         )

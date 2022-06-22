@@ -12,9 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# All the iree_gpu related functionalities go here.
+
+import iree.runtime as ireert
 import ctypes
 
-#Some constants taken from cuda.h
+# Get the default gpu args given the architecture.
+def get_iree_gpu_args():
+    ireert.flags.FUNCTION_INPUT_VALIDATION = False
+    ireert.flags.parse_flags("--cuda_allow_inline_execution")
+    # TODO: Give the user_interface to pass the sm_arch.
+    sm_arch = get_cuda_sm_cc()
+    if sm_arch in ["sm_70", "sm_72", "sm_75", "sm_80", "sm_84", "sm_86"]:
+        return [
+            "--iree-hal-cuda-disable-loop-nounroll-wa",
+            f"--iree-hal-cuda-llvm-target-arch={sm_arch}",
+        ]
+    else:
+        return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
+
+
+# Some constants taken from cuda.h
 CUDA_SUCCESS = 0
 CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT = 16
 CU_DEVICE_ATTRIBUTE_MAX_THREADS_PER_MULTIPROCESSOR = 39
@@ -23,7 +41,7 @@ CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE = 36
 
 
 def get_cuda_sm_cc():
-    libnames = ('libcuda.so', 'libcuda.dylib', 'cuda.dll')
+    libnames = ("libcuda.so", "libcuda.dylib", "cuda.dll")
     for libname in libnames:
         try:
             cuda = ctypes.CDLL(libname)
@@ -32,10 +50,10 @@ def get_cuda_sm_cc():
         else:
             break
     else:
-        raise OSError("could not load any of: " + ' '.join(libnames))
+        raise OSError("could not load any of: " + " ".join(libnames))
 
     nGpus = ctypes.c_int()
-    name = b' ' * 100
+    name = b" " * 100
     cc_major = ctypes.c_int()
     cc_minor = ctypes.c_int()
 
@@ -47,31 +65,43 @@ def get_cuda_sm_cc():
     result = cuda.cuInit(0)
     if result != CUDA_SUCCESS:
         cuda.cuGetErrorString(result, ctypes.byref(error_str))
-        print("cuInit failed with error code %d: %s" %
-              (result, error_str.value.decode()))
+        print(
+            "cuInit failed with error code %d: %s"
+            % (result, error_str.value.decode())
+        )
         return 1
     result = cuda.cuDeviceGetCount(ctypes.byref(nGpus))
     if result != CUDA_SUCCESS:
         cuda.cuGetErrorString(result, ctypes.byref(error_str))
-        print("cuDeviceGetCount failed with error code %d: %s" %
-              (result, error_str.value.decode()))
+        print(
+            "cuDeviceGetCount failed with error code %d: %s"
+            % (result, error_str.value.decode())
+        )
         return 1
     print("Found %d device(s)." % nGpus.value)
     for i in range(nGpus.value):
         result = cuda.cuDeviceGet(ctypes.byref(device), i)
         if result != CUDA_SUCCESS:
             cuda.cuGetErrorString(result, ctypes.byref(error_str))
-            print("cuDeviceGet failed with error code %d: %s" %
-                  (result, error_str.value.decode()))
+            print(
+                "cuDeviceGet failed with error code %d: %s"
+                % (result, error_str.value.decode())
+            )
             return 1
         print("Device: %d" % i)
-        if cuda.cuDeviceGetName(ctypes.c_char_p(name), len(name),
-                                device) == CUDA_SUCCESS:
-            print("  Name: %s" % (name.split(b'\0', 1)[0].decode()))
-        if cuda.cuDeviceComputeCapability(ctypes.byref(cc_major),
-                                          ctypes.byref(cc_minor),
-                                          device) == CUDA_SUCCESS:
-            print("  Compute Capability: %d.%d" %
-                  (cc_major.value, cc_minor.value))
+        if (
+            cuda.cuDeviceGetName(ctypes.c_char_p(name), len(name), device)
+            == CUDA_SUCCESS
+        ):
+            print("  Name: %s" % (name.split(b"\0", 1)[0].decode()))
+        if (
+            cuda.cuDeviceComputeCapability(
+                ctypes.byref(cc_major), ctypes.byref(cc_minor), device
+            )
+            == CUDA_SUCCESS
+        ):
+            print(
+                "  Compute Capability: %d.%d" % (cc_major.value, cc_minor.value)
+            )
     sm = f"sm_{cc_major.value}{cc_minor.value}"
     return sm

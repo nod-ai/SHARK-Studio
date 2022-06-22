@@ -22,7 +22,6 @@ import tempfile
 
 
 class MakeFxModule:
-
     def __init__(self, model, inputs, labels=None, custom_inference_fn=None):
         self.model = model
         self.inputs = inputs
@@ -52,20 +51,28 @@ class MakeFxModule:
         return fx_g
 
     def generate_graph(self):
-        fx_g = make_fx(self.custom_inference_fn,
-                       decomposition_table=get_decompositions([
-                           torch.ops.aten.embedding_dense_backward,
-                           torch.ops.aten.native_layer_norm_backward,
-                           torch.ops.aten.slice_backward,
-                           torch.ops.aten.select_backward
-                       ]))(dict(self.model.named_parameters()),
-                           dict(self.model.named_buffers()), self.inputs)
+        fx_g = make_fx(
+            self.custom_inference_fn,
+            decomposition_table=get_decompositions(
+                [
+                    torch.ops.aten.embedding_dense_backward,
+                    torch.ops.aten.native_layer_norm_backward,
+                    torch.ops.aten.slice_backward,
+                    torch.ops.aten.select_backward,
+                ]
+            ),
+        )(
+            dict(self.model.named_parameters()),
+            dict(self.model.named_buffers()),
+            self.inputs,
+        )
         fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
         fx_g.recompile()
         fx_g = self.change_fx_graph_return_to_tuple(fx_g)
         ts_g = torch.jit.script(fx_g)
-        temp = tempfile.NamedTemporaryFile(suffix='_shark_ts',
-                                           prefix='temp_ts_')
+        temp = tempfile.NamedTemporaryFile(
+            suffix="_shark_ts", prefix="temp_ts_"
+        )
         ts_g.save(temp.name)
         new_ts = torch.jit.load(temp.name)
         self.training_graph = new_ts

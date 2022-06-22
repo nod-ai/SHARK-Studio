@@ -21,8 +21,10 @@ from torch_mlir.dialects.torch.importer.jit_ir import (
     ModuleBuilder,
 )
 from torch_mlir_e2e_test.torchscript.serialization import (
-    extract_serializable_annotations, apply_serializable_annotations,
-    SerializableTest)
+    extract_serializable_annotations,
+    apply_serializable_annotations,
+    SerializableTest,
+)
 
 from torch_mlir_e2e_test.linalg_on_tensors_backends import refbackend
 
@@ -38,7 +40,8 @@ def get_module_name_for_asm_dump(module):
     if not "torch.debug_module_name" in module.operation.attributes:
         return "UnnammedModule"
     return StringAttr(
-        module.operation.attributes["torch.debug_module_name"]).value
+        module.operation.attributes["torch.debug_module_name"]
+    ).value
 
 
 def get_input_annotations(inputs: tuple, dynamic: bool) -> list:
@@ -65,8 +68,9 @@ def run_on_refbackend(torch_module, inputs):
     return jit_module.forward(np_inputs[0])
 
 
-def shark_jit_trace(module, input: tuple, dynamic: bool,
-                    tracing_required: bool):
+def shark_jit_trace(
+    module, input: tuple, dynamic: bool, tracing_required: bool
+):
     """TODO: Include necessary documentation."""
 
     if not tracing_required:
@@ -76,21 +80,26 @@ def shark_jit_trace(module, input: tuple, dynamic: bool,
     actual_script = traced_module._actual_script_module
     export(actual_script.forward)
     annotate_args_decorator = annotate_args(
-        get_input_annotations(input, dynamic))
+        get_input_annotations(input, dynamic)
+    )
     annotate_args_decorator(actual_script.forward)
     module = torch.jit.script(actual_script)
 
     # TODO: remove saved annotations.pickle
-    torchscript_module_bytes = module.save_to_buffer({
-        "annotations.pkl":
-            pickle.dumps(extract_serializable_annotations(module))
-    })
-    serializable_test = SerializableTest(unique_name="",
-                                         program=torchscript_module_bytes,
-                                         trace=None)
+    torchscript_module_bytes = module.save_to_buffer(
+        {
+            "annotations.pkl": pickle.dumps(
+                extract_serializable_annotations(module)
+            )
+        }
+    )
+    serializable_test = SerializableTest(
+        unique_name="", program=torchscript_module_bytes, trace=None
+    )
     _extra_files = {"annotations.pkl": ""}
-    module = torch.jit.load(io.BytesIO(serializable_test.program),
-                            _extra_files=_extra_files)
+    module = torch.jit.load(
+        io.BytesIO(serializable_test.program), _extra_files=_extra_files
+    )
     # Load the pickled annotations.
     annotations = pickle.loads(_extra_files["annotations.pkl"])
     apply_serializable_annotations(module, annotations)

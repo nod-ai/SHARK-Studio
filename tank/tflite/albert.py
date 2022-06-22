@@ -13,26 +13,35 @@ def generate_inputs(input_details):
 
     args = []
     args.append(
-        np.random.randint(low=0,
-                          high=256,
-                          size=input_details[0]["shape"],
-                          dtype=input_details[0]["dtype"]))
+        np.random.randint(
+            low=0,
+            high=256,
+            size=input_details[0]["shape"],
+            dtype=input_details[0]["dtype"],
+        )
+    )
     args.append(
-        np.ones(shape=input_details[1]["shape"],
-                dtype=input_details[1]["dtype"]))
+        np.ones(
+            shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]
+        )
+    )
     args.append(
-        np.zeros(shape=input_details[2]["shape"],
-                 dtype=input_details[2]["dtype"]))
+        np.zeros(
+            shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]
+        )
+    )
     return args
 
 
-if __name__ == '__main__':
-    my_shark_importer = SharkImporter(model_path=model_path,
-                                      model_type="tflite",
-                                      model_source_hub="tfhub",
-                                      device="cpu",
-                                      dynamic=False,
-                                      jit_trace=True)
+if __name__ == "__main__":
+    my_shark_importer = SharkImporter(
+        model_path=model_path,
+        model_type="tflite",
+        model_source_hub="tfhub",
+        device="cpu",
+        dynamic=False,
+        jit_trace=True,
+    )
     # Case1: Use default inputs
     my_shark_importer.compile()
     shark_results = my_shark_importer.forward()

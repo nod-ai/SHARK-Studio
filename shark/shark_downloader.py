@@ -22,19 +22,20 @@ input_type_to_np_dtype = {
     "float64": np.float64,
     "bool": np.bool_,
     "int32": np.int32,
-    "int64": np.int64
+    "int64": np.int64,
 }
 
 
 class SharkDownloader:
-
-    def __init__(self,
-                 model_name: str,
-                 tank_url: str = "https://storage.googleapis.com/shark_tank",
-                 local_tank_dir: str = "./../gen_shark_tank/tflite",
-                 model_type: str = "tflite-tosa",
-                 input_json: str = "input.json",
-                 input_type: str = "int32"):
+    def __init__(
+        self,
+        model_name: str,
+        tank_url: str = "https://storage.googleapis.com/shark_tank",
+        local_tank_dir: str = "./../gen_shark_tank/tflite",
+        model_type: str = "tflite-tosa",
+        input_json: str = "input.json",
+        input_type: str = "int32",
+    ):
         self.model_name = model_name
         self.local_tank_dir = local_tank_dir
         self.tank_url = tank_url
@@ -65,37 +66,52 @@ class SharkDownloader:
         print("load json inputs")
         if self.model_type in ["tflite-tosa"]:
             args = []
-            with open(self.input_json, 'r') as f:
+            with open(self.input_json, "r") as f:
                 args = json.load(f)
-            self.inputs = [np.asarray(arg, dtype=self.input_type) for arg in args]
+            self.inputs = [
+                np.asarray(arg, dtype=self.input_type) for arg in args
+            ]
         else:
-            print("No json input required for current model. You could call setup_inputs(you_inputs).")
+            print(
+                "No json input required for current model. You could call setup_inputs(you_inputs)."
+            )
         return self.inputs
 
     def load_mlir_model(self):
         if self.model_type in ["tflite-tosa"]:
-            workdir = os.path.join(os.path.dirname(__file__), self.local_tank_dir)
+            workdir = os.path.join(
+                os.path.dirname(__file__), self.local_tank_dir
+            )
             os.makedirs(workdir, exist_ok=True)
             print(f"TMP_MODEL_DIR = {workdir}")
 
             # use model name get dir.
             model_name_dir = os.path.join(workdir, str(self.model_name))
             if not os.path.exists(model_name_dir):
-                print("Model has not been download."
-                      "shark_downloader will automatically download by tank_url if provided."
-                      " You can also manually to download the model from shark_tank by yourself.")
+                print(
+                    "Model has not been download."
+                    "shark_downloader will automatically download by tank_url if provided."
+                    " You can also manually to download the model from shark_tank by yourself."
+                )
             os.makedirs(model_name_dir, exist_ok=True)
             print(f"TMP_MODELNAME_DIR = {model_name_dir}")
 
-            mlir_url = self.tank_url + "/tflite/" + str(self.model_name) + "/"+str(self.model_name) + '_tosa.mlir'
-            self.mlir_file = '/'.join(
-                [model_name_dir, str(self.model_name) + '_tosa.mlir'])
+            mlir_url = (
+                self.tank_url
+                + "/tflite/"
+                + str(self.model_name)
+                + "/"
+                + str(self.model_name)
+                + "_tosa.mlir"
+            )
+            self.mlir_file = "/".join(
+                [model_name_dir, str(self.model_name) + "_tosa.mlir"]
+            )
             if os.path.exists(self.mlir_file):
                 print("Model has been downloaded before.", self.mlir_file)
             else:
                 print("Download mlir model", mlir_url)
-                urllib.request.urlretrieve(mlir_url,
-                                           self.mlir_file)
+                urllib.request.urlretrieve(mlir_url, self.mlir_file)
 
             print("Get tosa.mlir model return")
             with open(self.mlir_file) as f:

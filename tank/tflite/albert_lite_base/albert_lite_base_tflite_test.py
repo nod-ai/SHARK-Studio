@@ -14,20 +14,27 @@ def generate_inputs(input_details):
 
     args = []
     args.append(
-        np.random.randint(low=0,
-                          high=256,
-                          size=input_details[0]["shape"],
-                          dtype=input_details[0]["dtype"]))
+        np.random.randint(
+            low=0,
+            high=256,
+            size=input_details[0]["shape"],
+            dtype=input_details[0]["dtype"],
+        )
+    )
     args.append(
-        np.ones(shape=input_details[1]["shape"],
-                dtype=input_details[1]["dtype"]))
+        np.ones(
+            shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]
+        )
+    )
     args.append(
-        np.zeros(shape=input_details[2]["shape"],
-                 dtype=input_details[2]["dtype"]))
+        np.zeros(
+            shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]
+        )
+    )
     return args
 
-class AlbertTfliteModuleTester:
 
+class AlbertTfliteModuleTester:
     def __init__(
         self,
         dynamic=False,
@@ -43,14 +50,16 @@ class AlbertTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        my_shark_importer = SharkImporter(model_name="albert_lite_base",
-                                          # model_path=model_path,
-                                          model_type="tflite",
-                                          model_source_hub="tfhub",
-                                          device=self.device,
-                                          dynamic=self.dynamic,
-                                          jit_trace=True,
-                                          tank_url=None)
+        my_shark_importer = SharkImporter(
+            model_name="albert_lite_base",
+            # model_path=model_path,
+            model_type="tflite",
+            model_source_hub="tfhub",
+            device=self.device,
+            dynamic=self.dynamic,
+            jit_trace=True,
+            tank_url=None,
+        )
         # Case1: Use default inputs
         my_shark_importer.compile()
         shark_results = my_shark_importer.forward()
@@ -63,7 +72,6 @@ class AlbertTfliteModuleTester:
 
 
 class AlbertTfliteModuleTest(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.save_mlir = pytestconfig.getoption("save_mlir")
@@ -78,7 +86,8 @@ class AlbertTfliteModuleTest(unittest.TestCase):
         self.module_tester.device = "cpu"
         self.module_tester.create_and_check_module()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # module_tester = AlbertTfliteModuleTester()
     # module_tester.create_and_check_module()
     unittest.main()

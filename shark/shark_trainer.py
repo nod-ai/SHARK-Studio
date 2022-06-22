@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
-from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb
 from shark.parser import shark_args
 from shark.shark_runner import SharkRunner
 from shark.backward_makefx import MakeFxModule
@@ -56,7 +54,13 @@ class SharkTrainer:
     # Sets the frontend i.e `pytorch` or `tensorflow`.
     def set_frontend(self, frontend: str):
         if frontend not in [
-                "pytorch", "torch", "tensorflow", "tf", "mhlo", "linalg", "tosa"
+            "pytorch",
+            "torch",
+            "tensorflow",
+            "tf",
+            "mhlo",
+            "linalg",
+            "tosa",
         ]:
             print_err("frontend not supported.")
         else:
@@ -65,22 +69,32 @@ class SharkTrainer:
     # Training function is needed in the case of torch_fn.
     def compile(self, training_fn=None):
         if self.frontend in ["torch", "pytorch"]:
-            aot_module = MakeFxModule(self.model,
-                                      tuple(self.input),
-                                      custom_inference_fn=training_fn)
+            aot_module = MakeFxModule(
+                self.model, tuple(self.input), custom_inference_fn=training_fn
+            )
             aot_module.generate_graph()
             # Returns the backward graph.
             training_graph = aot_module.training_graph
             weights = self.get_torch_params()
-            self.shark_runner = SharkRunner(training_graph,
-                                            weights + self.input, self.dynamic,
-                                            self.device, self.jit_trace,
-                                            self.from_aot, self.frontend)
+            self.shark_runner = SharkRunner(
+                training_graph,
+                weights + self.input,
+                self.dynamic,
+                self.device,
+                self.jit_trace,
+                self.from_aot,
+                self.frontend,
+            )
         elif self.frontend in ["tensorflow", "tf", "mhlo"]:
-            self.shark_runner = SharkRunner(self.model, self.input,
-                                            self.dynamic, self.device,
-                                            self.jit_trace, self.from_aot,
-                                            self.frontend)
+            self.shark_runner = SharkRunner(
+                self.model,
+                self.input,
+                self.dynamic,
+                self.device,
+                self.jit_trace,
+                self.from_aot,
+                self.frontend,
+            )
         else:
             print_err("Unknown frontend")
             return
@@ -98,8 +112,9 @@ class SharkTrainer:
         params = [x.numpy() for x in params]
         print(f"Training started for {num_iters} iterations:")
         for i in tqdm(range(num_iters)):
-            params = self.shark_runner.forward(params + self.input,
-                                               self.frontend)
+            params = self.shark_runner.forward(
+                params + self.input, self.frontend
+            )
 
         return params
 
@@ -109,15 +124,15 @@ class SharkTrainer:
     def _train_tf(self, num_iters):
         input_list = []
         for x in self.input:
-            if (isinstance(x, list)):
+            if isinstance(x, list):
                 nested_list = []
                 for val in x:
-                    if (isinstance(val, np.ndarray)):
+                    if isinstance(val, np.ndarray):
                         nested_list.append(val)
                     else:
                         nested_list.append(val.numpy())
                 input_list.append(nested_list)
-            elif (isinstance(x, np.ndarray)):
+            elif isinstance(x, np.ndarray):
                 input_list.append(x)
             else:
                 input_list.append(x.numpy())
