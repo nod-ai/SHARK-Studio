@@ -227,7 +227,11 @@ class SharkBenchmarkRunner(SharkRunner):
                 'shark_python',
                 'shark_iree_c'
                 ]
-
+        
+        if self.frontend in ["pytorch", "torch"]:
+            platform_frontend = "pytorch"
+        elif self.frontend in ["tensorflow", "tf"]:
+            platform_frontend = "tensorflow"
         if not os.path.exists('bench_results.csv'):
             with open('bench_results.csv', mode='w', newline='') as f:
                 writer = csv.writer(f)
@@ -244,7 +248,7 @@ class SharkBenchmarkRunner(SharkRunner):
             bench_result['device'] = device_str
             for p in platforms:
                 if p == 'frontend':
-                    bench_result['platform'] = "frontend"
+                    bench_result['platform'] = platform_frontend
                     bench_result['iter/sec'] = self.benchmark_frontend(inputs)[0]
                     bench_result['ms/iter'] = self.benchmark_frontend(inputs)[1]
                 elif p == 'shark_python':
