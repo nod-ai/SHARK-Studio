@@ -2,6 +2,7 @@ from masked_lm import get_causal_lm_model
 from tank.model_utils_tf import compare_tensors_tf
 from shark.iree_utils import check_device_drivers
 from shark.shark_inference import SharkInference
+from shark.parser import shark_args
 
 import iree.compiler as ireec
 import unittest
@@ -14,14 +15,20 @@ class DistilBertModuleTester:
     
     def __init__(
         self,
-        save_temps=False
+        save_temps=False,
+        save_mlir=False,
+        save_vmfb=False,
+        benchmark=False
     ):
         self.save_temps = save_temps
+        self.save_mlir = save_mlir
+        self.save_vmfb = save_vmfb
 
     def create_and_check_module(self, dynamic, device):
         model, input, act_out = get_causal_lm_model("distilbert-base-uncased")
-        save_temps = self.save_temps
-        if save_temps == True:
+        shark_args.save_mlir = self.save_mlir
+        shark_args.save_vmfb = self.save_vmfb
+        if self.save_temps == True:
             if dynamic == True:
                 repro_dir = f"distilbert_dynamic_{device}"
             else:
@@ -37,7 +44,8 @@ class DistilBertModuleTester:
                 shark_module = SharkInference(model, (input,),
                                               device=device,
                                               dynamic=dynamic,
-                                              jit_trace=True)
+                                              jit_trace=True,
+                                              benchmark_mode=self.benchmark)
                 shark_module.set_frontend("tensorflow")
                 shark_module.compile()
                 results = shark_module.forward((input))
@@ -47,11 +55,18 @@ class DistilBertModuleTester:
             shark_module = SharkInference(model, (input,),
                                           device=device,
                                           dynamic=dynamic,
-                                          jit_trace=True)
+                                          jit_trace=True,
+                                          benchmark_mode=self.benchmark)
             shark_module.set_frontend("tensorflow")
             shark_module.compile()
             results = shark_module.forward((input))
             assert True == compare_tensors_tf(act_out, results)
+
+        if self.benchmark == True:
+            shark_module.benchmark_all_csv((input),
+                                           "distilbert-base-uncased",
+                                           dynamic,
+                                           device)
 
 class DistilBertModuleTest(unittest.TestCase):
 
@@ -59,6 +74,9 @@ class DistilBertModuleTest(unittest.TestCase):
     def configure(self, pytestconfig):
         self.module_tester = DistilBertModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
+        self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
+        self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
+        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     @pytest.mark.xfail(reason="Upstream IREE issue, see https://github.com/google/iree/issues/9536")
     def test_module_static_cpu(self):

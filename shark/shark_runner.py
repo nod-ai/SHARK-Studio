@@ -24,7 +24,9 @@ from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_
 import os
 from shark.parser import shark_args
 from tqdm import tqdm
+from datetime import datetime
 import time
+import csv
 
 
 class SharkRunner:
@@ -148,9 +150,9 @@ class SharkBenchmarkRunner(SharkRunner):
 
     def benchmark_frontend(self, inputs):
         if self.frontend in ["pytorch", "torch"]:
-            self.benchmark_torch(inputs)
+            return self.benchmark_torch(inputs)
         elif self.frontend in ["tensorflow", "tf"]:
-            self.benchmark_tf(inputs)
+            return self.benchmark_tf(inputs)
 
     def benchmark_torch(self, inputs):
         inputs = self.input if self.from_aot else inputs
@@ -167,6 +169,7 @@ class SharkBenchmarkRunner(SharkRunner):
         print(
             f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
+        return [f"{shark_args.num_iterations/(end-begin)}", f"{((end-begin)/shark_args.num_iterations)*1000}"]
 
     def benchmark_tf(self, inputs):
         for i in range(shark_args.num_warmup_iterations):
@@ -181,11 +184,12 @@ class SharkBenchmarkRunner(SharkRunner):
         print(
             f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
-        return
-
+        return [f"{shark_args.num_iterations/(end-begin)}", f"{((end-begin)/shark_args.num_iterations)*1000}"]
+    
     def benchmark_c(self):
         result = run_benchmark_module(self.benchmark_cl)
         print(f"Shark-{self.frontend} C-benchmark:{result} iter/second")
+        return [f"{result}", f"{1000/result}"]
 
     def benchmark_python(self, inputs):
         inputs = self.input if self.from_aot else inputs
@@ -201,8 +205,57 @@ class SharkBenchmarkRunner(SharkRunner):
         print(
             f"Shark-{self.frontend} Python-benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
+        return [f"{shark_args.num_iterations/(end-begin)}", f"{((end-begin)/shark_args.num_iterations)*1000}"]
 
     def benchmark_all(self, inputs):
         self.benchmark_frontend(inputs)
         self.benchmark_python(inputs)
         self.benchmark_c()
+
+    def benchmark_all_csv(self, inputs, modelname, dynamic, device_str):
+        field_names = [
+                'platform',
+                'model',
+                'dynamic',
+                'device',
+                'iter/sec',
+                'ms/iter',
+                'datetime'
+                ]
+        platforms = [
+                'frontend',
+                'shark_python',
+                'shark_iree_c'
+                ]
+
+        if not os.path.exists('bench_results.csv'):
+            with open('bench_results.csv', mode='w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(field_names)
+        
+        with open('bench_results.csv', mode='a', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=field_names)
+            bench_result = {}
+            bench_result['model'] = modelname
+            if dynamic == True:
+                bench_result['dynamic'] = "True"
+            else:
+                bench_result['dynamic'] = "False"
+            bench_result['device'] = device_str
+            for p in platforms:
+                if p == 'frontend':
+                    bench_result['platform'] = "frontend"
+                    bench_result['iter/sec'] = self.benchmark_frontend(inputs)[0]
+                    bench_result['ms/iter'] = self.benchmark_frontend(inputs)[1]
+                elif p == 'shark_python':
+                    bench_result['platform'] = "shark_python"
+                    bench_result['iter/sec'] = self.benchmark_python(inputs)[0]
+                    bench_result['ms/iter'] = self.benchmark_python(inputs)[1]
+                else:
+                    bench_result['platform'] = "shark_iree_c"
+                    bench_result['iter/sec'] = self.benchmark_c()[0]
+                    bench_result['ms/iter'] = self.benchmark_c()[1]
+                bench_result['datetime'] = str(datetime.now())
+                writer.writerow(bench_result)
+                
+

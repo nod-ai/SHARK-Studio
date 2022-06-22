@@ -111,3 +111,7 @@ class SharkInference:
     @benchmark_mode
     def benchmark_c(self):
         self.shark_runner.benchmark_c()
+
+    @benchmark_mode
+    def benchmark_all_csv(self, inputs, modelname, dynamic, device_str):
+        self.shark_runner.benchmark_all_csv(inputs, modelname, dynamic, device_str)
