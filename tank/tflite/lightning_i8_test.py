@@ -13,7 +13,6 @@ model_path = "https://tfhub.dev/google/lite-model/movenet/singlepose/lightning/t
 # Currently failing further in the linalg stack:
 #   Invalid cast from ui8 to f32 TODO: make tfl.cast insert a rescale for ui8
 class LightningI8Test(test_util.TFLiteModelTest):
-
     def __init__(self, *args, **kwargs):
         super(LightningI8Test, self).__init__(model_path, *args, **kwargs)
 
@@ -22,6 +21,7 @@ class LightningI8Test(test_util.TFLiteModelTest):
     # debug the source of numerical differences.
     def plot_results(self, iree_results, tflite_results, details):
         from matplotlib import pyplot as plt
+
         local_path = "/".join([self.workdir, "person.jpg"])
         im = numpy.array(Image.open(local_path))
 
@@ -38,24 +38,31 @@ class LightningI8Test(test_util.TFLiteModelTest):
         iree_y = iree_result[0, 0, :, 1] * height
 
         plt.imshow(im)
-        plt.scatter(tflite_y, tflite_x, label='tflite')
-        plt.scatter(iree_y, iree_x, label='iree')
+        plt.scatter(tflite_y, tflite_x, label="tflite")
+        plt.scatter(iree_y, iree_x, label="iree")
         plt.legend()
         plt.show()
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(LightningI8Test, self).compare_results(iree_results,
-                                                     tflite_results, details)
+        super(LightningI8Test, self).compare_results(
+            iree_results, tflite_results, details
+        )
         # This value is a discretized location of the persons joints. If we are
         # *close* to the expected position we can consider this good enough.
         self.assertTrue(
-            numpy.isclose(iree_results[0][:, :, :, 0],
-                          tflite_results[0][:, :, :, 0],
-                          atol=25e-3).all())
+            numpy.isclose(
+                iree_results[0][:, :, :, 0],
+                tflite_results[0][:, :, :, 0],
+                atol=25e-3,
+            ).all()
+        )
         self.assertTrue(
-            numpy.isclose(iree_results[0][:, :, :, 1],
-                          tflite_results[0][:, :, :, 1],
-                          atol=25e-3).all())
+            numpy.isclose(
+                iree_results[0][:, :, :, 1],
+                tflite_results[0][:, :, :, 1],
+                atol=25e-3,
+            ).all()
+        )
         # self.plot_results(iree_results, tflite_results, details)
 
     def generate_inputs(self, input_details):
@@ -72,5 +79,5 @@ class LightningI8Test(test_util.TFLiteModelTest):
         self.compile_and_execute()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     absl.testing.absltest.main()

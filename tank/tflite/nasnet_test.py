@@ -9,7 +9,6 @@ model_path = "https://tfhub.dev/tensorflow/lite-model/nasnet/large/1/default/1?l
 
 
 class MnasnetTest(test_util.TFLiteModelTest):
-
     def __init__(self, *args, **kwargs):
         super(MnasnetTest, self).__init__(model_path, *args, **kwargs)
 
@@ -17,5 +16,5 @@ class MnasnetTest(test_util.TFLiteModelTest):
         self.compile_and_execute()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     absl.testing.absltest.main()

@@ -13,7 +13,6 @@ gpt2_inputs = [
 
 
 class GPT2Module(tf.Module):
-
     def __init__(self):
         super(GPT2Module, self).__init__()
         self.m = TFGPT2Model.from_pretrained("distilgpt2")
@@ -30,9 +29,10 @@ if __name__ == "__main__":
     tokenizer = GPT2Tokenizer.from_pretrained("distilgpt2")
     text = "I love the distilled version of models."
 
-    inputs = tokenizer(text, return_tensors='tf')
+    inputs = tokenizer(text, return_tensors="tf")
     shark_module = SharkInference(
-        GPT2Module(), (inputs["input_ids"], inputs["attention_mask"]))
+        GPT2Module(), (inputs["input_ids"], inputs["attention_mask"])
+    )
     shark_module.set_frontend("tensorflow")
     shark_module.compile()
     print(shark_module.forward((inputs["input_ids"], inputs["attention_mask"])))

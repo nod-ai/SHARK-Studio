@@ -20,13 +20,14 @@ from torch_mlir_e2e_test.eager_backends.refbackend import EagerModeRefBackend
 
 from shark.iree_eager_backend import EagerModeIREELinalgOnTensorsBackend
 from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
-from shark.iree_utils import get_results, get_iree_compiled_module, export_iree_module_to_vmfb, export_module_to_mlir_file, build_benchmark_args, run_benchmark_module
-import os
 from shark.parser import shark_args
-from tqdm import tqdm
-from datetime import datetime
-import time
-import csv
+from shark.iree_utils.compile_utils import (
+    get_iree_compiled_module,
+    export_iree_module_to_vmfb,
+    export_module_to_mlir_file,
+    get_results,
+)
+import os
 
 
 class SharkRunner:
@@ -57,24 +58,27 @@ class SharkRunner:
         elif self.frontend in ["pytorch", "torch"]:
             # get torch-mlir dialect
             # self.model = torch.Module
+            # Lowers in linalg dialect.
             # TODO assert
-            self.model = get_torch_mlir_module(self.model, input, dynamic,
-                                               jit_trace, from_aot)
+            # TODO tosa dialect from torch_module.
+            self.model = get_torch_mlir_module(
+                self.model, input, dynamic, jit_trace, from_aot
+            )
         elif self.frontend in ["tensorflow", "tf"]:
             # get mhlo dialect
             # self.model = tf.Module
             # TODO assert
-            self.model = tfc.compile_module(self.model,
-                                            exported_names=[func_name],
-                                            import_only=True)
+            self.model = tfc.compile_module(
+                self.model, exported_names=[func_name], import_only=True
+            )
         elif self.frontend in ["tflite"]:
             print("Setting up for IREE compiler tflite")
             # get tosa dialect
             # self.model = model.tflite
             # TODO assert
-            self.model = ireec_tflite.compile_file(self.model,
-                                                   input_type="tosa",
-                                                   import_only=True)
+            self.model = ireec_tflite.compile_file(
+                self.model, input_type="tosa", import_only=True
+            )
             func_name = "main"
 
         # TODO: We can capture the .vmfb module here and later use it for saving
@@ -82,29 +86,44 @@ class SharkRunner:
         (
             self.iree_compilation_module,
             self.iree_config,
-        ) = get_iree_compiled_module(self.model,
-                                     self.device,
-                                     self.frontend,
-                                     func_name=func_name,
-                                     model_config_path=model_config_path)
+        ) = get_iree_compiled_module(
+            self.model,
+            self.device,
+            self.frontend,
+            func_name=func_name,
+            model_config_path=model_config_path,
+        )
 
         # Debugging Options:
         if shark_args.save_mlir:
-            export_module_to_mlir_file(self.model, self.frontend,
-                                       shark_args.repro_dir)
+            export_module_to_mlir_file(
+                self.model, self.frontend, shark_args.repro_dir
+            )
         if shark_args.save_vmfb:
             self.vmfb_file = self.save_module(shark_args.repro_dir)
 
     # All the timings and benchmarking can be done here.
     def forward(self, input, frontend):
-        return get_results(self.iree_compilation_module, input,
-                           self.iree_config, frontend)
+        return get_results(
+            self.iree_compilation_module, input, self.iree_config, frontend
+        )
+
+    # Saves the .mlir file, can be in tosa, linalg or mhlo dialect.
+    # torch-mlir can export tosa or linalg dialects.
+    # tensorflow models get exported to mhlo dialect.
+    def import_mlir(self, model_name, dir):
+        filename = os.path.join(dir, f"{model_name}_{self.frontend}.mlir")
+        with open(filename, "w") as f:
+            f.write(self.model)
+        print(f"Saved mlir in {filename}.")
+        return filename
 
     # TODO: Instead of passing directory and having names decided by the module
     # , user may want to save the module with manual names.
     def save_module(self, dir=os.getcwd()):
-        return export_iree_module_to_vmfb(self.model, self.device, dir,
-                                          self.frontend)
+        return export_iree_module_to_vmfb(
+            self.model, self.device, dir, self.frontend
+        )
 
     # TODO: Load a module and directly use it, we will need to set the frontend
     # in this case.
@@ -112,150 +131,17 @@ class SharkRunner:
         pass
 
 
+# TODO: Document shark_eager mode.
 class SharkEagerMode:
-
     def __init__(self, device="cpu"):
         if device == "refbackend":
             torch_mlir_tensor.backend = EagerModeRefBackend()
         else:
             torch_mlir_tensor.backend = EagerModeIREELinalgOnTensorsBackend(
-                device)
+                device
+            )
         self.guard = enable_torch_dispatch_mode(TorchMLIRTensor)
         self.guard.__enter__()
 
     def __del__(self):
         self.guard.__exit__(None, None, None)
-
-
-class SharkBenchmarkRunner(SharkRunner):
-    # SharkRunner derived class with Benchmarking capabilities.
-    def __init__(
-        self,
-        model,
-        input: tuple,
-        dynamic: bool = False,
-        device: str = None,
-        jit_trace: bool = False,
-        from_aot: bool = False,
-        frontend: str = "torch",
-    ):
-        SharkRunner.__init__(self, model, input, dynamic, device, jit_trace,
-                             from_aot, frontend)
-        if (self.vmfb_file == None):
-            self.vmfb_file = export_iree_module_to_vmfb(self.model, device,
-                                                        shark_args.repro_dir,
-                                                        frontend)
-        self.benchmark_cl = build_benchmark_args(self.vmfb_file, device, input,
-                                                 frontend, from_aot)
-
-    def benchmark_frontend(self, inputs):
-        if self.frontend in ["pytorch", "torch"]:
-            return self.benchmark_torch(inputs)
-        elif self.frontend in ["tensorflow", "tf"]:
-            return self.benchmark_tf(inputs)
-
-    def benchmark_torch(self, inputs):
-        inputs = self.input if self.from_aot else inputs
-        inputs = inputs[0]
-        for i in range(shark_args.num_warmup_iterations):
-            self.frontend_model.forward(inputs)
-
-        begin = time.time()
-        for i in range(shark_args.num_iterations):
-            out = self.frontend_model.forward(inputs)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
-                break
-        print(
-            f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
-        return [f"{shark_args.num_iterations/(end-begin)}", f"{((end-begin)/shark_args.num_iterations)*1000}"]
-
-    def benchmark_tf(self, inputs):
-        for i in range(shark_args.num_warmup_iterations):
-            self.frontend_model.forward(*inputs)
-
-        begin = time.time()
-        for i in range(shark_args.num_iterations):
-            out = self.frontend_model.forward(*inputs)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
-                break
-        print(
-            f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
-        return [f"{shark_args.num_iterations/(end-begin)}", f"{((end-begin)/shark_args.num_iterations)*1000}"]
-    
-    def benchmark_c(self):
-        result = run_benchmark_module(self.benchmark_cl)
-        print(f"Shark-{self.frontend} C-benchmark:{result} iter/second")
-        return [f"{result}", f"{1000/result}"]
-
-    def benchmark_python(self, inputs):
-        inputs = self.input if self.from_aot else inputs
-        input_list = [x for x in inputs]
-        for i in range(shark_args.num_warmup_iterations):
-            self.forward(input_list, self.frontend)
-
-        begin = time.time()
-        for i in range(shark_args.num_iterations):
-            out = self.forward(input_list, self.frontend)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
-        print(
-            f"Shark-{self.frontend} Python-benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
-        return [f"{shark_args.num_iterations/(end-begin)}", f"{((end-begin)/shark_args.num_iterations)*1000}"]
-
-    def benchmark_all(self, inputs):
-        self.benchmark_frontend(inputs)
-        self.benchmark_python(inputs)
-        self.benchmark_c()
-
-    def benchmark_all_csv(self, inputs, modelname, dynamic, device_str):
-        field_names = [
-                'platform',
-                'model',
-                'dynamic',
-                'device',
-                'iter/sec',
-                'ms/iter',
-                'datetime'
-                ]
-        platforms = [
-                'frontend',
-                'shark_python',
-                'shark_iree_c'
-                ]
-
-        if not os.path.exists('bench_results.csv'):
-            with open('bench_results.csv', mode='w', newline='') as f:
-                writer = csv.writer(f)
-                writer.writerow(field_names)
-        
-        with open('bench_results.csv', mode='a', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=field_names)
-            bench_result = {}
-            bench_result['model'] = modelname
-            if dynamic == True:
-                bench_result['dynamic'] = "True"
-            else:
-                bench_result['dynamic'] = "False"
-            bench_result['device'] = device_str
-            for p in platforms:
-                if p == 'frontend':
-                    bench_result['platform'] = "frontend"
-                    bench_result['iter/sec'] = self.benchmark_frontend(inputs)[0]
-                    bench_result['ms/iter'] = self.benchmark_frontend(inputs)[1]
-                elif p == 'shark_python':
-                    bench_result['platform'] = "shark_python"
-                    bench_result['iter/sec'] = self.benchmark_python(inputs)[0]
-                    bench_result['ms/iter'] = self.benchmark_python(inputs)[1]
-                else:
-                    bench_result['platform'] = "shark_iree_c"
-                    bench_result['iter/sec'] = self.benchmark_c()[0]
-                    bench_result['ms/iter'] = self.benchmark_c()[1]
-                bench_result['datetime'] = str(datetime.now())
-                writer.writerow(bench_result)
-                
-

@@ -9,11 +9,11 @@ inputs_signature = [
 
 
 class AutoModelMaskedLM(tf.Module):
-
     def __init__(self, model_name):
         super(AutoModelMaskedLM, self).__init__()
-        self.m = TFAutoModelForMaskedLM.from_pretrained(model_name,
-                                                        output_attentions=False)
+        self.m = TFAutoModelForMaskedLM.from_pretrained(
+            model_name, output_attentions=False
+        )
         self.m.predict = lambda x: self.m(input_ids=x)
 
     @tf.function(input_signature=inputs_signature)
@@ -24,20 +24,26 @@ class AutoModelMaskedLM(tf.Module):
 fail_models = ["microsoft/deberta-base", "google/rembert", "google/tapas-base"]
 
 supported_models = [
-    "albert-base-v2", "bert-base-uncased", "camembert-base",
-    "dbmdz/convbert-base-turkish-cased", "distilbert-base-uncased",
+    "albert-base-v2",
+    "bert-base-uncased",
+    "camembert-base",
+    "dbmdz/convbert-base-turkish-cased",
+    "distilbert-base-uncased",
     "google/electra-small-discriminator",
-    "hf-internal-testing/tiny-random-flaubert", "funnel-transformer/small",
-    "microsoft/layoutlm-base-uncased", "allenai/longformer-base-4096",
-    "google/mobilebert-uncased", "microsoft/mpnet-base", "roberta-base",
-    "xlm-roberta-base"
+    "hf-internal-testing/tiny-random-flaubert",
+    "funnel-transformer/small",
+    "microsoft/layoutlm-base-uncased",
+    "allenai/longformer-base-4096",
+    "google/mobilebert-uncased",
+    "microsoft/mpnet-base",
+    "roberta-base",
+    "xlm-roberta-base",
 ]
 
 if __name__ == "__main__":
-    inputs = tf.random.uniform(shape=[1, 512],
-                               maxval=3,
-                               dtype=tf.int32,
-                               seed=10)
+    inputs = tf.random.uniform(
+        shape=[1, 512], maxval=3, dtype=tf.int32, seed=10
+    )
 
     for model_name in supported_models:
         print(f"Running model: {model_name}")

@@ -4,7 +4,6 @@ from shark.shark_inference import SharkInference
 
 
 class VisionModule(torch.nn.Module):
-
     def __init__(self, model):
         super().__init__()
         self.model = model

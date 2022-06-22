@@ -47,18 +47,23 @@ if os.path.exists(checkpoint):
     model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
 
 model = model.to(device).eval().requires_grad_(False)
-clip_model_name = model.clip_model if hasattr(model, "clip_model") else "ViT-B/16"
+clip_model_name = (
+    model.clip_model if hasattr(model, "clip_model") else "ViT-B/16"
+)
 clip_model = clip.load(clip_model_name, jit=False, device=device)[0]
 clip_model.eval().requires_grad_(False)
 normalize = transforms.Normalize(
-    mean=[0.48145466, 0.4578275, 0.40821073], std=[0.26862954, 0.26130258, 0.27577711]
+    mean=[0.48145466, 0.4578275, 0.40821073],
+    std=[0.26862954, 0.26130258, 0.27577711],
 )
 
 zero_embed = torch.zeros([1, clip_model.visual.output_dim], device=device)
 target_embeds, weights = [zero_embed], []
 
 txt, weight = parse_prompt(args.prompts[0])
-target_embeds.append(clip_model.encode_text(clip.tokenize(txt).to(device)).float())
+target_embeds.append(
+    clip_model.encode_text(clip.tokenize(txt).to(device)).float()
+)
 weights.append(weight)
 
 weights = torch.tensor([1 - sum(weights), *weights], device=device)

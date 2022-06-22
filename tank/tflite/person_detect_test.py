@@ -11,27 +11,32 @@ model_path = "https://github.com/tensorflow/tflite-micro/raw/aeac6f39e5c7475cea2
 
 
 class PersonDetectTest(test_util.TFLiteModelTest):
-
     def __init__(self, *args, **kwargs):
         super(PersonDetectTest, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(PersonDetectTest, self).compare_results(iree_results,
-                                                      tflite_results, details)
+        super(PersonDetectTest, self).compare_results(
+            iree_results, tflite_results, details
+        )
         self.assertTrue(
-            numpy.isclose(iree_results[0], tflite_results[0], atol=1e-3).all())
+            numpy.isclose(iree_results[0], tflite_results[0], atol=1e-3).all()
+        )
 
     # TFLite is broken with this model so we hardcode the input/output details.
     def setup_tflite(self):
-        self.input_details = [{
-            "shape": [1, 96, 96, 1],
-            "dtype": numpy.int8,
-            "index": 0,
-        }]
-        self.output_details = [{
-            "shape": [1, 2],
-            "dtype": numpy.int8,
-        }]
+        self.input_details = [
+            {
+                "shape": [1, 96, 96, 1],
+                "dtype": numpy.int8,
+                "index": 0,
+            }
+        ]
+        self.output_details = [
+            {
+                "shape": [1, 2],
+                "dtype": numpy.int8,
+            }
+        ]
 
     # The input has known expected values. We hardcode this value.
     def invoke_tflite(self, args):
@@ -43,8 +48,9 @@ class PersonDetectTest(test_util.TFLiteModelTest):
         urllib.request.urlretrieve(img_path, local_path)
 
         shape = input_details[0]["shape"]
-        im = numpy.array(Image.open(local_path).resize(
-            (shape[1], shape[2]))).astype(input_details[0]["dtype"])
+        im = numpy.array(
+            Image.open(local_path).resize((shape[1], shape[2]))
+        ).astype(input_details[0]["dtype"])
         args = [im.reshape(shape)]
         return args
 
@@ -52,5 +58,5 @@ class PersonDetectTest(test_util.TFLiteModelTest):
         self.compile_and_execute()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     absl.testing.absltest.main()

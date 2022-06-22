@@ -1,6 +1,6 @@
 from masked_lm import get_causal_lm_model
 from tank.model_utils_tf import compare_tensors_tf
-from shark.iree_utils import check_device_drivers
+from shark.iree_utils._common import check_device_drivers
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
 
@@ -12,20 +12,21 @@ import tempfile
 
 
 class FlauBertModuleTester:
-    
     def __init__(
         self,
         save_temps=False,
         save_mlir=False,
         save_vmfb=False,
-        benchmark=False
+        benchmark=False,
     ):
         self.save_temps = save_temps
         self.save_mlir = save_mlir
         self.save_vmfb = save_vmfb
-    
+
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_causal_lm_model("hf-internal-testing/tiny-random-flaubert")
+        model, input, act_out = get_causal_lm_model(
+            "hf-internal-testing/tiny-random-flaubert"
+        )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
         if self.save_temps == True:
@@ -41,35 +42,40 @@ class FlauBertModuleTester:
             with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
                 out_file.write(np.array2string(exp_out))
             with ireec.tools.TempFileSaver(temp_dir):
-                shark_module = SharkInference(model, (input,),
-                                              device=device,
-                                              dynamic=dynamic,
-                                              jit_trace=True,
-                                              benchmark_mode=self.benchmark)
+                shark_module = SharkInference(
+                    model,
+                    (input,),
+                    device=device,
+                    dynamic=dynamic,
+                    jit_trace=True,
+                    benchmark_mode=self.benchmark,
+                )
                 shark_module.set_frontend("tensorflow")
                 shark_module.compile()
                 results = shark_module.forward((input))
             assert True == compare_tensors_tf(act_out, results)
-                
-        else:            
-            shark_module = SharkInference(model, (input,),
-                                          device=device,
-                                          dynamic=dynamic,
-                                          jit_trace=True,
-                                          benchmark_mode=self.benchmark)
+
+        else:
+            shark_module = SharkInference(
+                model,
+                (input,),
+                device=device,
+                dynamic=dynamic,
+                jit_trace=True,
+                benchmark_mode=self.benchmark,
+            )
             shark_module.set_frontend("tensorflow")
             shark_module.compile()
             results = shark_module.forward((input))
             assert True == compare_tensors_tf(act_out, results)
 
         if self.benchmark == True:
-            shark_module.benchmark_all_csv((input),
-                                           "tiny-random-flaubert",
-                                           dynamic,
-                                           device)
+            shark_module.benchmark_all_csv(
+                (input), "tiny-random-flaubert", dynamic, device
+            )
+
 
 class FlauBertModuleTest(unittest.TestCase):
-
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.module_tester = FlauBertModuleTester(self)
@@ -84,24 +90,28 @@ class FlauBertModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skip(
-        reason="Language models currently failing for dynamic case")
+        reason="Language models currently failing for dynamic case"
+    )
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.xfail
-    @pytest.mark.skipif(check_device_drivers("gpu"),
-                        reason="nvidia-smi not found")
+    @pytest.mark.skipif(
+        check_device_drivers("gpu"), reason="nvidia-smi not found"
+    )
     def test_module_static_gpu(self):
         dynamic = False
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case")
-    @pytest.mark.skipif(check_device_drivers("gpu"),
-                        reason="nvidia-smi not found")
+        reason="Language models currently failing for dynamic case"
+    )
+    @pytest.mark.skipif(
+        check_device_drivers("gpu"), reason="nvidia-smi not found"
+    )
     def test_module_dynamic_gpu(self):
         dynamic = True
         device = "gpu"
@@ -110,8 +120,7 @@ class FlauBertModuleTest(unittest.TestCase):
     @pytest.mark.xfail
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
-        reason=
-        "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+        reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
     )
     def test_module_static_vulkan(self):
         dynamic = False
@@ -119,11 +128,11 @@ class FlauBertModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case")
+        reason="Language models currently failing for dynamic case"
+    )
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
-        reason=
-        "vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases"
+        reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
     )
     def test_module_dynamic_vulkan(self):
         dynamic = True
@@ -131,5 +140,5 @@ class FlauBertModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

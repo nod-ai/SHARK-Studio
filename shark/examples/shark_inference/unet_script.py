@@ -4,7 +4,6 @@ from shark_runner import SharkInference
 
 # Currently not supported aten.transpose_conv2d missing.
 class UnetModule(torch.nn.Module):
-
     def __init__(self):
         super().__init__()
         self.model = torch.hub.load(

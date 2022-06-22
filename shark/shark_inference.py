@@ -9,10 +9,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from shark.torch_mlir_utils import get_torch_mlir_module, run_on_refbackend
 from shark.parser import shark_args
-from shark.shark_runner import SharkRunner, SharkBenchmarkRunner
+from shark.shark_runner import SharkRunner
 import sys
+import os
 
 
 # Prints to stderr.
@@ -23,13 +23,15 @@ def print_err(*a):
 class SharkInference:
     """Inference API targeting pytorch, tensorflow, linalg, mhlo and tosa frontend."""
 
-    def __init__(self,
-                 model,
-                 input: tuple,
-                 device: str = None,
-                 dynamic: bool = False,
-                 jit_trace: bool = False,
-                 benchmark_mode: bool = False):
+    def __init__(
+        self,
+        model,
+        input: tuple,
+        device: str = None,
+        dynamic: bool = False,
+        jit_trace: bool = False,
+        benchmark_mode: bool = False,
+    ):
         self.model = model
         self.input = input
         self.dynamic = dynamic
@@ -49,27 +51,48 @@ class SharkInference:
     # Sets the frontend i.e `pytorch` or `tensorflow`.
     def set_frontend(self, frontend: str):
         if frontend not in [
-                "pytorch", "torch", "tensorflow", "tf", "mhlo", "linalg",
-                "tosa", "tflite", "tflite-tosa"
+            "pytorch",
+            "torch",
+            "tensorflow",
+            "tf",
+            "mhlo",
+            "linalg",
+            "tosa",
+            "tflite",
+            "tflite-tosa",
         ]:
             print_err("frontend not supported.")
         else:
             self.frontend = frontend
 
     def compile(self):
-        # Inference do not use AOT.
+        # Inference do not use AOT. # TODO: Remove the from_aot arg as it's not
+        # needed.
         from_aot = False
-        if (self.benchmark_mode == True):
-            self.shark_runner = SharkBenchmarkRunner(self.model, self.input,
-                                                     self.dynamic, self.device,
-                                                     self.jit_trace, from_aot,
-                                                     self.frontend)
+        if self.benchmark_mode == True:
+            # Only import shark_benchmark runner when needed.
+            from shark.shark_benchmark_runner import SharkBenchmarkRunner
+
+            self.shark_runner = SharkBenchmarkRunner(
+                self.model,
+                self.input,
+                self.dynamic,
+                self.device,
+                self.jit_trace,
+                from_aot,
+                self.frontend,
+            )
         else:
-            self.shark_runner = SharkRunner(self.model, self.input,
-                                            self.dynamic, self.device,
-                                            self.jit_trace, from_aot,
-                                            self.frontend,
-                                            self.model_config_path)
+            self.shark_runner = SharkRunner(
+                self.model,
+                self.input,
+                self.dynamic,
+                self.device,
+                self.jit_trace,
+                from_aot,
+                self.frontend,
+                self.model_config_path,
+            )
 
     # inputs are considered to be np.array.
     def forward(self, inputs):
@@ -81,6 +104,9 @@ class SharkInference:
             input_list = [x.numpy() for x in inputs]
         return self.shark_runner.forward(input_list, self.frontend)
 
+    def import_mlir(self, model_name="model", dir=os.getcwd()):
+        self.shark_runner.import_mlir(model_name, dir)
+
     # Saves the .vmfb module.
     def save_module(self, dir=None):
         if dir is None:
@@ -89,9 +115,10 @@ class SharkInference:
 
     ######### Benchmark Related Functions #########
     def benchmark_mode(func):
-
         def inner(self, *args, **kwargs):
-            assert self.benchmark_mode, "SharkRunner needs to be in benchmark mode to run benchmark methods."
+            assert (
+                self.benchmark_mode
+            ), "SharkRunner needs to be in benchmark mode to run benchmark methods."
             return func(self, *args, **kwargs)
 
         return inner
@@ -114,4 +141,6 @@ class SharkInference:
 
     @benchmark_mode
     def benchmark_all_csv(self, inputs, modelname, dynamic, device_str):
-        self.shark_runner.benchmark_all_csv(inputs, modelname, dynamic, device_str)
+        self.shark_runner.benchmark_all_csv(
+            inputs, modelname, dynamic, device_str
+        )

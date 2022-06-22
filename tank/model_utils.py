@@ -1,10 +1,13 @@
 from shark.shark_inference import SharkInference
-from shark.iree_utils import check_device_drivers
 
 import torch
 import numpy as np
 import torchvision.models as models
-from transformers import AutoModelForSequenceClassification, BertTokenizer, TFBertModel
+from transformers import (
+    AutoModelForSequenceClassification,
+    BertTokenizer,
+    TFBertModel,
+)
 
 torch.manual_seed(0)
 
@@ -12,17 +15,13 @@ torch.manual_seed(0)
 
 
 class HuggingFaceLanguage(torch.nn.Module):
-
     def __init__(self, hf_model_name):
         super().__init__()
         self.model = AutoModelForSequenceClassification.from_pretrained(
             hf_model_name,  # The pretrained model.
-            num_labels=
-            2,  # The number of output labels--2 for binary classification.
-            output_attentions=
-            False,  # Whether the model returns attentions weights.
-            output_hidden_states=
-            False,  # Whether the model returns all hidden-states.
+            num_labels=2,  # The number of output labels--2 for binary classification.
+            output_attentions=False,  # Whether the model returns attentions weights.
+            output_hidden_states=False,  # Whether the model returns all hidden-states.
             torchscript=True,
         )
 
@@ -44,7 +43,6 @@ def get_hf_model(name):
 
 
 class VisionModule(torch.nn.Module):
-
     def __init__(self, model):
         super().__init__()
         self.model = model
@@ -61,6 +59,7 @@ def get_vision_model(torch_model):
     actual_out = model(test_input)
     return model, test_input, actual_out
 
+
 ################################################################################
 
 # Utility function for comparing two tensors (torch).
@@ -70,4 +69,3 @@ def compare_tensors(torch_tensor, numpy_tensor):
     atol = 1e-03
     torch_to_numpy = torch_tensor.detach().numpy()
     return np.allclose(torch_to_numpy, numpy_tensor, rtol, atol)
-

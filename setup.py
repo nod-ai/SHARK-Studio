@@ -26,7 +26,7 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
     ],
-    packages=find_packages(exclude=('examples')),
+    packages=find_packages(exclude=("examples")),
     python_requires=">=3.7",
     install_requires=[
         "numpy",
