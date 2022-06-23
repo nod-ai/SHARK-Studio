@@ -45,7 +45,7 @@ parser.add_argument(
     "--repro_dir",
     help="Directory to which module files will be saved for reproduction or debugging.",
     type=dir_path,
-    default="/tmp/",
+    default="./repro_dir/",
 )
 parser.add_argument(
     "--save_mlir",
