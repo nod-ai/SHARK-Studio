@@ -16,7 +16,7 @@ import urllib.request
 import csv
 import argparse
 import iree.compiler.tflite as ireec_tflite
-from shark.iree_utils import IREE_TARGET_MAP
+from shark.iree_utils._common import IREE_TARGET_MAP
 
 
 class SharkTank:

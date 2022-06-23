@@ -53,6 +53,8 @@ class SharkBenchmarkRunner(SharkRunner):
             return self.benchmark_torch(inputs)
         elif self.frontend in ["tensorflow", "tf"]:
             return self.benchmark_tf(inputs)
+        elif self.frontend in ["tflite-tosa", "tflite"]:
+            return self.benchmark_tflite()
 
     def benchmark_torch(self, inputs):
         inputs = self.input if self.from_aot else inputs
@@ -91,6 +93,12 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
         ]
+
+    def benchmark_tflite(self):
+        print(
+            "Shark-tflite-tosa Tflite-benchmark not implemented yet. 0 iter/second, Total Iterations: 0"
+        )
+        return [0, 0]
 
     def benchmark_c(self):
         result = run_benchmark_module(self.benchmark_cl)
@@ -133,6 +141,14 @@ class SharkBenchmarkRunner(SharkRunner):
         ]
         platforms = ["frontend", "shark_python", "shark_iree_c"]
 
+        platform_frontend = ""
+        if self.frontend in ["pytorch", "torch"]:
+            platform_frontend = "pytorch"
+        elif self.frontend in ["tensorflow", "tf"]:
+            platform_frontend = "tensorflow"
+        elif self.frontend in ["tflite-tosa", "tflite"]:
+            platform_frontend = "tflite-tosa"
+
         if not os.path.exists("bench_results.csv"):
             with open("bench_results.csv", mode="w", newline="") as f:
                 writer = csv.writer(f)
@@ -149,7 +165,7 @@ class SharkBenchmarkRunner(SharkRunner):
             bench_result["device"] = device_str
             for p in platforms:
                 if p == "frontend":
-                    bench_result["platform"] = "frontend"
+                    bench_result["platform"] = platform_frontend
                     bench_result["iter/sec"] = self.benchmark_frontend(inputs)[
                         0
                     ]
