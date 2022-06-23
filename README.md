@@ -76,6 +76,11 @@ git clone https://github.com/nod-ai/SHARK.git
 ./setup_venv.sh
 # USE_IREE=1 ./setup_venv.sh #uses the latest IREE nightly instead of SHARK
 # Please activate the venv after installation.
+# e.g:
+# git clone https://github.com/nod-ai/SHARK.git
+# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 USE_IREE=1 ./setup_venv.sh 
+# source 0617_venv/bin/activate
+# pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_module_static_gpu
 ```
 
 ### Run a demo script
