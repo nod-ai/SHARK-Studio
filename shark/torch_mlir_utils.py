@@ -110,14 +110,14 @@ def get_torch_mlir_module(
     module,
     input: tuple,
     dynamic: bool,
-    tracing_required: bool,
-    from_aot: bool = False,
+    jit_trace: bool,
+    from_torchscript: bool = False,
 ):
     """TODO: Include necessary documentation."""
 
     # Tracing is not required from the aot_module.
-    if not from_aot:
-        module = shark_jit_trace(module, input, dynamic, tracing_required)
+    if not from_torchscript:
+        module = shark_jit_trace(module, input, dynamic, jit_trace)
 
     mb = ModuleBuilder()
     class_annotator = ClassAnnotator()

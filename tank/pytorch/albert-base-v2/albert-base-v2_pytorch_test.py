@@ -1,4 +1,5 @@
 from shark.shark_inference import SharkInference
+from shark.shark_importer import SharkImporter
 from shark.iree_utils._common import check_device_drivers
 from tank.model_utils import get_hf_model, compare_tensors
 from shark.parser import shark_args
@@ -28,12 +29,16 @@ class AlbertModuleTester:
         model, input, act_out = get_hf_model("albert-base-v2")
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        shark_module = SharkInference(
+        mlir_importer = SharkImporter(
             model,
             (input,),
-            device=self.device,
-            dynamic=self.dynamic,
-            jit_trace=True,
+            frontend="torch",
+        )
+        minilm_mlir, func_name = mlir_importer.import_mlir(
+            is_dynamic=self.dynamic, tracing_required=True
+        )
+        shark_module = SharkInference(
+            minilm_mlir, func_name, device="cpu", mlir_dialect="linalg"
         )
         shark_module.compile()
         results = shark_module.forward((input,))
@@ -55,9 +60,6 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester.device = "cpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
     def test_module_dynamic_cpu(self):
         self.module_tester.dynamic = True
         self.module_tester.device = "cpu"
@@ -79,7 +81,6 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester.device = "gpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
@@ -89,7 +90,6 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester.device = "vulkan"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",

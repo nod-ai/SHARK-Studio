@@ -1,6 +1,7 @@
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from shark.shark_inference import SharkInference
+from shark.shark_importer import SharkImporter
 
 torch.manual_seed(0)
 tokenizer = AutoTokenizer.from_pretrained("microsoft/MiniLM-L12-H384-uncased")
@@ -23,12 +24,22 @@ class MiniLMSequenceClassification(torch.nn.Module):
 
 test_input = torch.randint(2, (1, 128)).to(torch.int32)
 
-shark_module = SharkInference(
+mlir_importer = SharkImporter(
     MiniLMSequenceClassification(),
     (test_input, test_input, test_input),
-    jit_trace=True,
+    frontend="torch",
 )
 
+# torch hugging face models needs tracing..
+(minilm_mlir, func_name), inputs, golden_out = mlir_importer.import_debug(
+    tracing_required=True
+)
+
+print(golden_out)
+
+shark_module = SharkInference(
+    minilm_mlir, func_name, device="cpu", mlir_dialect="linalg"
+)
 shark_module.compile()
 result = shark_module.forward((test_input, test_input, test_input))
 print("Obtained result", result)
