@@ -1,4 +1,5 @@
 from shark.shark_inference import SharkInference
+from shark.shark_importer import SharkImporter
 from shark.iree_utils._common import check_device_drivers
 from tank.model_utils import get_hf_model, compare_tensors
 from shark.parser import shark_args
@@ -28,12 +29,16 @@ class DistilBertModuleTester:
         model, input, act_out = get_hf_model("distilbert-base-uncased")
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        shark_module = SharkInference(
+        mlir_importer = SharkImporter(
             model,
             (input,),
-            device=self.device,
-            dynamic=self.dynamic,
-            jit_trace=True,
+            frontend="torch",
+        )
+        minilm_mlir, func_name = mlir_importer.import_mlir(
+            is_dynamic=self.dynamic, tracing_required=True
+        )
+        shark_module = SharkInference(
+            minilm_mlir, func_name, device="cpu", mlir_dialect="linalg"
         )
         shark_module.compile()
         results = shark_module.forward((input,))

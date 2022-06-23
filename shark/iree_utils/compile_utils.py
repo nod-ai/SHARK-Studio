@@ -14,7 +14,6 @@
 import iree.runtime as ireert
 import iree.compiler as ireec
 from shark.iree_utils._common import IREE_DEVICE_MAP, IREE_TARGET_MAP
-from shark.model_annotation import *
 import numpy as np
 import os
 
@@ -157,23 +156,7 @@ def export_module_to_mlir_file(module, frontend, directory: str):
 
 def get_results(compiled_vm, input, config, frontend="torch"):
     """Runs a .vmfb file given inputs and config and returns output."""
-    device_inputs = input
-    if frontend in ["torch", "pytorch"]:
-        device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
-    if frontend in ["tensorflow", "tf", "tflite", "tflite-tosa"]:
-        device_inputs = []
-        for a in input:
-            if isinstance(a, list):
-                device_inputs.append(
-                    [
-                        ireert.asdevicearray(
-                            config.device, val, dtype=val.dtype
-                        )
-                        for val in a
-                    ]
-                )
-            else:
-                device_inputs.append(ireert.asdevicearray(config.device, a))
+    device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
     result = compiled_vm(*device_inputs)
     result_tensors = []
     if isinstance(result, tuple):
