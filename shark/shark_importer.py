@@ -11,7 +11,7 @@ import tensorflow as tf
 import urllib.request
 from shark.shark_inference import SharkInference
 import iree.compiler.tflite as ireec_tflite
-from shark.iree_utils import IREE_TARGET_MAP
+from shark.iree_utils._common import IREE_TARGET_MAP
 
 
 class SharkImporter:
