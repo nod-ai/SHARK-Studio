@@ -162,6 +162,7 @@ cython_debug/
 
 # Shark related artefacts
 *venv/
+shark_tmp/
 
 # ORT related artefacts
 cache_models/
