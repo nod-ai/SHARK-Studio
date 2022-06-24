@@ -16,7 +16,7 @@ import urllib.request
 import csv
 import argparse
 import iree.compiler.tflite as ireec_tflite
-from shark.iree_utils import IREE_TARGET_MAP
+from shark.iree_utils._common import IREE_TARGET_MAP
 
 
 class SharkTank:
@@ -46,7 +46,7 @@ class SharkTank:
         if self.tflite_model_list is not None:
             print("Setting up for tflite TMP_DIR")
             self.tflite_workdir = os.path.join(
-                os.path.dirname(__file__), "./gen_shark_tank/tflite"
+                os.path.dirname(__file__), "./gen_shark_tank"
             )
             print(f"tflite TMP_shark_tank_DIR = {self.tflite_workdir}")
             os.makedirs(self.tflite_workdir, exist_ok=True)
@@ -72,7 +72,7 @@ class SharkTank:
                     tflite_tosa_file = "/".join(
                         [
                             tflite_model_name_dir,
-                            str(tflite_model_name) + "_tosa.mlir",
+                            str(tflite_model_name) + "_tflite.mlir",
                         ]
                     )
                     self.binary = "/".join(
