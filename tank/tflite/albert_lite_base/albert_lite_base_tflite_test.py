@@ -89,5 +89,8 @@ class AlbertTfliteModuleTest(unittest.TestCase):
 
 if __name__ == "__main__":
     # module_tester = AlbertTfliteModuleTester()
+    # module_tester.save_mlir = True
+    # module_tester.save_vmfb = True
     # module_tester.create_and_check_module()
+
     unittest.main()
