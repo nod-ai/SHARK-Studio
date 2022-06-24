@@ -1213,7 +1213,7 @@ void ModelInstanceState::Execute(
   uint32_t output_count;
   TRITONBACKEND_RequestOutputCount(requests[0], &output_count);
 
-  for (iree_host_size_t i = 0; i < iree_vm_list_size(output_tensors); ++i) {
+  for (iree_host_size_t i = 0; i < output_count; ++i) {
 
     iree_vm_variant_t variant = iree_vm_variant_empty();
     IREE_CHECK_OK(iree_vm_list_get_variant(output_tensors, i, &variant));
