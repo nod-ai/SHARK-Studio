@@ -9,6 +9,7 @@ import unittest
 import pytest
 import numpy as np
 import tempfile
+import os
 
 
 class LayoutLmModuleTester:
@@ -29,12 +30,21 @@ class LayoutLmModuleTester:
         )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
+
+        if (
+            shark_args.save_mlir == True
+            or shark_args.save_vmfb == True
+            or self.save_temps == True
+        ):
+            repro_path = f"./shark_tmp/layoutlm_tf_{dynamic}_{device}"
+            if not os.path.isdir(repro_path):
+                os.mkdir(repro_path)
+            shark_args.repro_dir = repro_path
+
         if self.save_temps == True:
-            if dynamic == True:
-                repro_dir = f"layoutlm_dynamic_{device}"
-            else:
-                repro_dir = f"layoutlm__static_{device}"
-            temp_dir = tempfile.mkdtemp(prefix=repro_dir)
+            temp_dir = tempfile.mkdtemp(
+                prefix="iree_tfs", dir=shark_args.repro_dir
+            )
             np.set_printoptions(threshold=np.inf)
             np.save(f"{temp_dir}/input1.npy", input[0])
             np.save(f"{temp_dir}/input2.npy", input[1])

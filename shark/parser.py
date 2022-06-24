@@ -20,9 +20,8 @@ def dir_path(path):
     if os.path.isdir(path):
         return path
     else:
-        raise argparse.ArgumentTypeError(
-            f"readable_dir:{path} is not a valid path"
-        )
+        os.mkdir(path)
+        return path
 
 
 def dir_file(path):
@@ -44,7 +43,8 @@ parser.add_argument(
 parser.add_argument(
     "--repro_dir",
     help="Directory to which module files will be saved for reproduction or debugging.",
-    default="./shark_tmp/",
+    type=dir_path,
+    default="./shark_tmp",
 )
 parser.add_argument(
     "--save_mlir",
@@ -78,7 +78,3 @@ parser.add_argument(
 )
 
 shark_args, unknown = parser.parse_known_args()
-
-if not os.path.exists(shark_args.repro_dir):
-    # Create a new directory because it does not exist
-    os.makedirs(shark_args.repro_dir)
