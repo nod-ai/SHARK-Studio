@@ -74,19 +74,29 @@ git clone https://github.com/nod-ai/SHARK.git
 ```shell
 # Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...).
 ./setup_venv.sh
-# USE_IREE=1 ./setup_venv.sh #uses the latest IREE nightly instead of SHARK
-# Please activate the venv after installation.
-# e.g:
-# git clone https://github.com/nod-ai/SHARK.git
-# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 USE_IREE=1 ./setup_venv.sh 
-# source 0617_venv/bin/activate
-# pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_module_static_gpu
+source shark.venv/bin/activate
 ```
+For example if you want to use Python3.10 and upstream IREE with TF Import tools you can use the environment variables like:
+```
+# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 USE_IREE=1 ./setup_venv.sh 
+```
+
+If you are a Torch-mlir developer or an IREE developer and want to test local changes you can uninstall
+the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
+with Python bindings and set your PYTHONPATH as mentioned [here](https://google.github.io/iree/bindings/python/)
+for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
+for Torch-MLIR.
 
 ### Run a demo script
 ```shell
 python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
+# Or a pytest
+pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_module_static_cpu
 ```
+
+
+
+
 </details>
 
 
