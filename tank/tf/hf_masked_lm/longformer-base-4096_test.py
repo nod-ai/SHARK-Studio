@@ -103,7 +103,7 @@ class LongFormerModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skip(
-        reason="Language models currently failing for dynamic case"
+        reason="longformer currently failing in the lowering passes."
     )
     def test_module_dynamic_cpu(self):
         dynamic = True
@@ -123,9 +123,6 @@ class LongFormerModuleTest(unittest.TestCase):
 
     @pytest.mark.skip(
         reason="longformer currently failing in the lowering passes."
-    )
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
     )
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
@@ -149,9 +146,6 @@ class LongFormerModuleTest(unittest.TestCase):
 
     @pytest.mark.skip(
         reason="longformer currently failing in the lowering passes."
-    )
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
     )
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),

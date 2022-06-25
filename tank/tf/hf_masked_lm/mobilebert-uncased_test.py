@@ -101,14 +101,16 @@ class MobileBertModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skip(
-        reason="Language models currently failing for dynamic case"
+        reason="Upstream IREE issue, see https://github.com/google/iree/issues/9536"
     )
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail
+    @pytest.mark.xfail(
+        reason="Upstream IREE issue, see https://github.com/google/iree/issues/9553"
+    )
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )
@@ -118,7 +120,7 @@ class MobileBertModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
+        reason="Upstream IREE issue, see https://github.com/google/iree/issues/9553"
     )
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
@@ -138,9 +140,7 @@ class MobileBertModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
+    @pytest.mark.xfail
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",

@@ -92,7 +92,6 @@ class DebertaModuleTest(unittest.TestCase):
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    @pytest.mark.xfail
     @pytest.mark.skip(
         reason="deberta currently failing in the lowering passes."
     )
@@ -101,9 +100,8 @@ class DebertaModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail
     @pytest.mark.skip(
-        reason="Language models currently failing for dynamic case"
+        reason="deberta currently failing in the lowering passes."
     )
     def test_module_dynamic_cpu(self):
         dynamic = True
@@ -123,9 +121,6 @@ class DebertaModuleTest(unittest.TestCase):
 
     @pytest.mark.skip(
         reason="deberta currently failing in the lowering passes."
-    )
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
     )
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
@@ -149,9 +144,6 @@ class DebertaModuleTest(unittest.TestCase):
 
     @pytest.mark.skip(
         reason="deberta currently failing in the lowering passes."
-    )
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
     )
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),

@@ -92,21 +92,19 @@ class FunnelModuleTest(unittest.TestCase):
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    @pytest.mark.skip(reason="funnel currently failing in the lowering passes.")
+    @pytest.mark.skip(reason="Funnel currently fails during the lowering passes")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(
-        reason="Language models currently failing for dynamic case"
-    )
+    @pytest.mark.skip(reason="Funnel currently fails during the lowering passes")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="funnel currently failing in the lowering passes.")
+    @pytest.mark.skip(reason="Funnel currently fails during the lowering passes")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )
@@ -115,10 +113,7 @@ class FunnelModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="funnel currently failing in the lowering passes.")
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
+    @pytest.mark.skip(reason="Funnel currently fails during the lowering passes")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )
@@ -127,7 +122,7 @@ class FunnelModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="funnel currently failing in the lowering passes.")
+    @pytest.mark.skip(reason="Funnel currently fails during the lowering passes")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
@@ -137,10 +132,7 @@ class FunnelModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="funnel currently failing in the lowering passes.")
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
+    @pytest.mark.skip(reason="Funnel currently fails during the lowering passes.")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
