@@ -3,97 +3,132 @@ from shark.iree_utils._common import check_device_drivers
 from tank.model_utils import get_vision_model, compare_tensors
 from shark.parser import shark_args
 
-import torch
-import unittest
-import numpy as np
+import iree.compiler as ireec
 import torchvision.models as models
-import pytest
 
-torch.manual_seed(0)
+import unittest
+import pytest
+import numpy as np
+import tempfile
+import os
 
 
 class SqueezenetModuleTester:
     def __init__(
         self,
-        dynamic=False,
-        device="cpu",
+        save_temps=False,
         save_mlir=False,
         save_vmfb=False,
+        benchmark=False
     ):
-        self.dynamic = dynamic
-        self.device = device
+        self.save_temps = save_temps
         self.save_mlir = save_mlir
         self.save_vmfb = save_vmfb
+        self.benchmark = benchmark
 
-    def create_and_check_module(self):
-        model, input, act_out = get_vision_model(
-            models.squeezenet1_0(pretrained=True)
-        )
+    def create_and_check_module(self, dynamic, device):
+        model, input, act_out = get_vision_model(models.squeezenet1_0(pretrained=True))
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        shark_module = SharkInference(
-            model,
-            (input,),
-            device=self.device,
-            dynamic=self.dynamic,
-        )
-        shark_module.compile()
-        results = shark_module.forward((input,))
-        assert True == compare_tensors(act_out, results)
+
+        if (
+            shark_args.save_mlir == True
+            or shark_args.save_vmfb == True
+            or self.save_temps == True
+        ):
+            repro_path = f"./shark_tmp/squeezenet1_0_pytorch_{dynamic}_{device}"
+            if not os.path.isdir(repro_path):
+                os.mkdir(repro_path)
+            shark_args.repro_dir = repro_path
+
+        if self.save_temps == True:
+            temp_dir = tempfile.mkdtemp(
+                prefix="iree_tfs", dir=shark_args.repro_dir
+            )
+            np.set_printoptions(threshold=np.inf)
+            np.save(f"{temp_dir}/input.npy", input[0])
+            exp_out = act_out.detach().numpy()
+            with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
+                out_file.write(np.array2string(exp_out))
+            with ireec.tools.TempFileSaver(temp_dir):
+                shark_module = SharkInference(model, (input,),
+                                              device=device,
+                                              dynamic=dynamic,
+                                              benchmark_mode=self.benchmark)
+                shark_module.compile()
+                results = shark_module.forward((input,))
+            assert True == compare_tensors(act_out, results)
+        
+        else:
+            shark_module = SharkInference(model, (input,),
+                                          device=device,
+                                          dynamic=dynamic,
+                                          benchmark_mode=self.benchmark)
+            shark_module.compile()
+            results = shark_module.forward((input,))
+            assert True == compare_tensors(act_out, results)
+
+        if self.benchmark == True:
+            shark_module.benchmark_all_csv((input,),
+                                           "squeezenet1_0",
+                                           dynamic,
+                                           device)
+
 
 
 class SqueezenetModuleTest(unittest.TestCase):
+    
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
-        self.save_mlir = pytestconfig.getoption("save_mlir")
-        self.save_vmfb = pytestconfig.getoption("save_vmfb")
-
-    def setUp(self):
         self.module_tester = SqueezenetModuleTester(self)
+        self.module_tester.save_temps = pytestconfig.getoption("save_temps")
+        self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
+        self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
+        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     def test_module_static_cpu(self):
-        self.module_tester.dynamic = False
-        self.module_tester.device = "cpu"
-        self.module_tester.create_and_check_module()
+        dynamic = False
+        device = "cpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     def test_module_dynamic_cpu(self):
-        self.module_tester.dynamic = True
-        self.module_tester.device = "cpu"
-        self.module_tester.create_and_check_module()
+        dynamic = True
+        device = "cpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )
     def test_module_static_gpu(self):
-        self.module_tester.dynamic = False
-        self.module_tester.device = "gpu"
-        self.module_tester.create_and_check_module()
+        dynamic = False
+        device = "gpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )
     def test_module_dynamic_gpu(self):
-        self.module_tester.dynamic = True
-        self.module_tester.device = "gpu"
-        self.module_tester.create_and_check_module()
+        dynamic = True
+        device = "gpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
     )
     def test_module_static_vulkan(self):
-        self.module_tester.dynamic = False
-        self.module_tester.device = "vulkan"
-        self.module_tester.create_and_check_module()
+        dynamic = False
+        device = "vulkan"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
     )
     def test_module_dynamic_vulkan(self):
-        self.module_tester.dynamic = True
-        self.module_tester.device = "vulkan"
-        self.module_tester.create_and_check_module()
+        dynamic = True
+        device = "vulkan"
+        self.module_tester.create_and_check_module(dynamic, device)
 
 
 if __name__ == "__main__":

@@ -127,11 +127,18 @@ class SharkBenchmarkRunner(SharkRunner):
             "model",
             "dynamic",
             "device",
-            "iter/sec",
-            "ms/iter",
+            "it/sec",
+            "ms/it",
             "datetime",
         ]
         platforms = ["frontend", "shark_python", "shark_iree_c"]
+        
+        if self.frontend in ["pytorch", "torch"]:
+            platform_frontend = "pytorch"
+        if self.frontend in ["tensorflow", "tf"]:
+            platform_frontend = "tensorflow"
+        if self.frontend == "tflite":
+            platform_frontend = "tflite"
 
         if not os.path.exists("bench_results.csv"):
             with open("bench_results.csv", mode="w", newline="") as f:
@@ -149,18 +156,16 @@ class SharkBenchmarkRunner(SharkRunner):
             bench_result["device"] = device_str
             for p in platforms:
                 if p == "frontend":
-                    bench_result["platform"] = "frontend"
-                    bench_result["iter/sec"] = self.benchmark_frontend(inputs)[
-                        0
-                    ]
-                    bench_result["ms/iter"] = self.benchmark_frontend(inputs)[1]
+                    bench_result["platform"] = platform_frontend
+                    bench_result["it/sec"] = self.benchmark_frontend(inputs)[0]
+                    bench_result["ms/it"] = self.benchmark_frontend(inputs)[1]
                 elif p == "shark_python":
                     bench_result["platform"] = "shark_python"
-                    bench_result["iter/sec"] = self.benchmark_python(inputs)[0]
-                    bench_result["ms/iter"] = self.benchmark_python(inputs)[1]
+                    bench_result["it/sec"] = self.benchmark_python(inputs)[0]
+                    bench_result["ms/it"] = self.benchmark_python(inputs)[1]
                 else:
                     bench_result["platform"] = "shark_iree_c"
-                    bench_result["iter/sec"] = self.benchmark_c()[0]
-                    bench_result["ms/iter"] = self.benchmark_c()[1]
+                    bench_result["it/sec"] = self.benchmark_c()[0]
+                    bench_result["ms/it"] = self.benchmark_c()[1]
                 bench_result["datetime"] = str(datetime.now())
                 writer.writerow(bench_result)

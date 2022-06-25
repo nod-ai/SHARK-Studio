@@ -92,7 +92,7 @@ class TapasBaseModuleTest(unittest.TestCase):
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    @pytest.mark.skip(reason="tapas currently failing in the lowering passes.")
+   # @pytest.mark.skip(reason="tapas currently failing in the lowering passes.")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
