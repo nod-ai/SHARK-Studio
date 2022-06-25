@@ -132,7 +132,7 @@ class SharkBenchmarkRunner(SharkRunner):
             "datetime",
         ]
         platforms = ["frontend", "shark_python", "shark_iree_c"]
-        
+
         if self.frontend in ["pytorch", "torch"]:
             platform_frontend = "pytorch"
         if self.frontend in ["tensorflow", "tf"]:

@@ -108,9 +108,7 @@ class RobertaModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
-        reason="https://github.com/nod-ai/SHARK/issues/154"
-    )
+    @pytest.mark.xfail(reason="https://github.com/nod-ai/SHARK/issues/154")
     @pytest.mark.xfail(
         reason="Upstream IREE issue, see https://github.com/google/iree/issues/9553"
     )
@@ -122,9 +120,7 @@ class RobertaModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
-        reason="https://github.com/nod-ai/SHARK/issues/154"
-    )
+    @pytest.mark.xfail(reason="https://github.com/nod-ai/SHARK/issues/154")
     @pytest.mark.xfail(
         reason="Upstream IREE issue, see https://github.com/google/iree/issues/9553"
     )

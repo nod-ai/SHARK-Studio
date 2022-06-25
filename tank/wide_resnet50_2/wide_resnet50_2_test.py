@@ -1,9 +1,11 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers
-from tank.model_utils import get_hf_model, compare_tensors
+from tank.model_utils import get_vision_model, compare_tensors
 from shark.parser import shark_args
 
 import iree.compiler as ireec
+import torchvision.models as models
+
 import unittest
 import pytest
 import numpy as np
@@ -11,13 +13,13 @@ import tempfile
 import os
 
 
-class DistilBertModuleTester:
+class WideResnet50ModuleTester:
     def __init__(
         self,
         save_temps=False,
         save_mlir=False,
         save_vmfb=False,
-        benchmark=False
+        benchmark=False,
     ):
         self.save_temps = save_temps
         self.save_mlir = save_mlir
@@ -25,7 +27,9 @@ class DistilBertModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_hf_model("distilbert-base-uncased")
+        model, input, act_out = get_vision_model(
+            models.wide_resnet50_2(pretrained=True)
+        )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
 
@@ -34,7 +38,9 @@ class DistilBertModuleTester:
             or shark_args.save_vmfb == True
             or self.save_temps == True
         ):
-            repro_path = f"./shark_tmp/distilbert_base_uncased_pytorch_{dynamic}_{device}"
+            repro_path = (
+                f"./shark_tmp/wide_resnet50_2_pytorch_{dynamic}_{device}"
+            )
             if not os.path.isdir(repro_path):
                 os.mkdir(repro_path)
             shark_args.repro_dir = repro_path
@@ -49,38 +55,39 @@ class DistilBertModuleTester:
             with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
                 out_file.write(np.array2string(exp_out))
             with ireec.tools.TempFileSaver(temp_dir):
-                shark_module = SharkInference(model, (input,),
-                                              device=device,
-                                              dynamic=dynamic,
-                                              jit_trace=True,
-                                              benchmark_mode=self.benchmark)
+                shark_module = SharkInference(
+                    model,
+                    (input,),
+                    device=device,
+                    dynamic=dynamic,
+                    benchmark_mode=self.benchmark,
+                )
                 shark_module.compile()
                 results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
-        
+
         else:
-            shark_module = SharkInference(model, (input,),
-                                          device=device,
-                                          dynamic=dynamic,
-                                          jit_trace=True,
-                                          benchmark_mode=self.benchmark)
+            shark_module = SharkInference(
+                model,
+                (input,),
+                device=device,
+                dynamic=dynamic,
+                benchmark_mode=self.benchmark,
+            )
             shark_module.compile()
             results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
 
         if self.benchmark == True:
-            shark_module.benchmark_all_csv((input,),
-                                           "distilbert_base_uncased",
-                                           dynamic,
-                                           device)
+            shark_module.benchmark_all_csv(
+                (input,), "wide_resnet50_2", dynamic, device
+            )
 
 
-
-class DistilBertModuleTest(unittest.TestCase):
-    
+class WideResnet50ModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
-        self.module_tester = DistilBertModuleTester(self)
+        self.module_tester = WideResnet50ModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
         self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
@@ -91,7 +98,6 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(reason="DistilBert fails to lower in dynamic case")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
@@ -105,7 +111,6 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(reason="DistilBert fails to lower in dynamic case")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )
@@ -114,7 +119,6 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
@@ -124,8 +128,6 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(reason="DistilBert fails to execute pass pipeline for dynamic case")
-    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",

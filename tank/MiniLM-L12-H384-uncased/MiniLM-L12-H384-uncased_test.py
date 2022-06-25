@@ -19,7 +19,7 @@ class MiniLMModuleTester:
         save_temps=False,
         save_mlir=False,
         save_vmfb=False,
-        benchmark=False
+        benchmark=False,
     ):
         self.save_temps = save_temps
         self.save_mlir = save_mlir
@@ -27,7 +27,9 @@ class MiniLMModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_hf_model("microsoft/MiniLM-L12-H384-uncased")
+        model, input, act_out = get_hf_model(
+            "microsoft/MiniLM-L12-H384-uncased"
+        )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
 
@@ -51,35 +53,38 @@ class MiniLMModuleTester:
             with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
                 out_file.write(np.array2string(exp_out))
             with ireec.tools.TempFileSaver(temp_dir):
-                shark_module = SharkInference(model, (input,),
-                                              device=device,
-                                              dynamic=dynamic,
-                                              jit_trace=True,
-                                              benchmark_mode=self.benchmark)
+                shark_module = SharkInference(
+                    model,
+                    (input,),
+                    device=device,
+                    dynamic=dynamic,
+                    jit_trace=True,
+                    benchmark_mode=self.benchmark,
+                )
                 shark_module.compile()
                 results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
-        
+
         else:
-            shark_module = SharkInference(model, (input,),
-                                          device=device,
-                                          dynamic=dynamic,
-                                          jit_trace=True,
-                                          benchmark_mode=self.benchmark)
+            shark_module = SharkInference(
+                model,
+                (input,),
+                device=device,
+                dynamic=dynamic,
+                jit_trace=True,
+                benchmark_mode=self.benchmark,
+            )
             shark_module.compile()
             results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
 
         if self.benchmark == True:
-            shark_module.benchmark_all_csv((input,),
-                                           "MiniLM-L12-H384-uncased",
-                                           dynamic,
-                                           device)
-
+            shark_module.benchmark_all_csv(
+                (input,), "MiniLM-L12-H384-uncased", dynamic, device
+            )
 
 
 class MiniLMModuleTest(unittest.TestCase):
-    
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.module_tester = MiniLMModuleTester(self)

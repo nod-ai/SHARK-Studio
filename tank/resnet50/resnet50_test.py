@@ -13,13 +13,13 @@ import tempfile
 import os
 
 
-class Resnet101ModuleTester:
+class Resnet50ModuleTester:
     def __init__(
         self,
         save_temps=False,
         save_mlir=False,
         save_vmfb=False,
-        benchmark=False
+        benchmark=False,
     ):
         self.save_temps = save_temps
         self.save_mlir = save_mlir
@@ -27,7 +27,9 @@ class Resnet101ModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_vision_model(models.resnet101(pretrained=True))
+        model, input, act_out = get_vision_model(
+            models.Resnet50(pretrained=True)
+        )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
 
@@ -36,7 +38,7 @@ class Resnet101ModuleTester:
             or shark_args.save_vmfb == True
             or self.save_temps == True
         ):
-            repro_path = f"./shark_tmp/resnet101_pytorch_{dynamic}_{device}"
+            repro_path = f"./shark_tmp/Resnet50_pytorch_{dynamic}_{device}"
             if not os.path.isdir(repro_path):
                 os.mkdir(repro_path)
             shark_args.repro_dir = repro_path
@@ -51,36 +53,39 @@ class Resnet101ModuleTester:
             with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
                 out_file.write(np.array2string(exp_out))
             with ireec.tools.TempFileSaver(temp_dir):
-                shark_module = SharkInference(model, (input,),
-                                              device=device,
-                                              dynamic=dynamic,
-                                              benchmark_mode=self.benchmark)
+                shark_module = SharkInference(
+                    model,
+                    (input,),
+                    device=device,
+                    dynamic=dynamic,
+                    benchmark_mode=self.benchmark,
+                )
                 shark_module.compile()
                 results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
-        
+
         else:
-            shark_module = SharkInference(model, (input,),
-                                          device=device,
-                                          dynamic=dynamic,
-                                          benchmark_mode=self.benchmark)
+            shark_module = SharkInference(
+                model,
+                (input,),
+                device=device,
+                dynamic=dynamic,
+                benchmark_mode=self.benchmark,
+            )
             shark_module.compile()
             results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
 
         if self.benchmark == True:
-            shark_module.benchmark_all_csv((input,),
-                                           "resnet101",
-                                           dynamic,
-                                           device)
+            shark_module.benchmark_all_csv(
+                (input,), "Resnet50", dynamic, device
+            )
 
 
-
-class Resnet101ModuleTest(unittest.TestCase):
-    
+class Resnet50ModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
-        self.module_tester = Resnet101ModuleTester(self)
+        self.module_tester = Resnet50ModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
         self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")

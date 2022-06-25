@@ -29,11 +29,11 @@ def tensor_to_type_str(input_tensors: tuple, frontend: str):
     """
     list_of_type = []
     for input_tensor in input_tensors:
-        if (isinstance(input_tensor, tuple)):
+        if isinstance(input_tensor, tuple):
             for val in input_tensor:
                 sublist = tensor_to_type_str(val, frontend)
                 list_of_type.append(sublist)
-        
+
         else:
             type_string = "x".join([str(dim) for dim in input_tensor.shape])
             if frontend in ["torch", "pytorch"]:

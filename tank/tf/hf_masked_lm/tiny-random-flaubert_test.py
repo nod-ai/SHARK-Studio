@@ -131,7 +131,7 @@ class FlauBertModuleTest(unittest.TestCase):
         dynamic = False
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
-    
+
     @pytest.mark.xfail
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),

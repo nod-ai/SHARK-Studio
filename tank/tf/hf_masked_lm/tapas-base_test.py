@@ -92,24 +92,20 @@ class TapasBaseModuleTest(unittest.TestCase):
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-   # @pytest.mark.skip(reason="tapas currently failing in the lowering passes.")
+    # @pytest.mark.skip(reason="tapas currently failing in the lowering passes.")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(
-        reason="tapas currently failing in the lowering passes."
-    )
+    @pytest.mark.skip(reason="tapas currently failing in the lowering passes.")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skip(reason="tapas currently failing in the lowering passes.")
-    @pytest.mark.xfail(
-        reason="https://github.com/nod-ai/SHARK/issues/154"
-    )
+    @pytest.mark.xfail(reason="https://github.com/nod-ai/SHARK/issues/154")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )
@@ -119,9 +115,7 @@ class TapasBaseModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skip(reason="tapas currently failing in the lowering passes.")
-    @pytest.mark.xfail(
-        reason="https://github.com/nod-ai/SHARK/issues/154"
-    )
+    @pytest.mark.xfail(reason="https://github.com/nod-ai/SHARK/issues/154")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )

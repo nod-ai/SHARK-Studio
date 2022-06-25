@@ -100,7 +100,7 @@ class BertBaseUncasedModuleTest(unittest.TestCase):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
-  
+
     @pytest.mark.xfail(
         reason="Upstream IREE issue, see https://github.com/google/iree/issues/9536"
     )
@@ -111,7 +111,7 @@ class BertBaseUncasedModuleTest(unittest.TestCase):
 
     @pytest.mark.xfail(
         reason="Upstream IREE issue, see https://github.com/google/iree/issues/9553"
-    )        
+    )
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason="nvidia-smi not found"
     )

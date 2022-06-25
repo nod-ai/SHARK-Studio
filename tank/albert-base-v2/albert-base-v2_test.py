@@ -19,7 +19,7 @@ class AlbertModuleTester:
         save_temps=False,
         save_mlir=False,
         save_vmfb=False,
-        benchmark=False
+        benchmark=False,
     ):
         self.save_temps = save_temps
         self.save_mlir = save_mlir
@@ -36,7 +36,9 @@ class AlbertModuleTester:
             or shark_args.save_vmfb == True
             or self.save_temps == True
         ):
-            repro_path = f"./shark_tmp/albert_base_v2_pytorch_{dynamic}_{device}"
+            repro_path = (
+                f"./shark_tmp/albert_base_v2_pytorch_{dynamic}_{device}"
+            )
             if not os.path.isdir(repro_path):
                 os.mkdir(repro_path)
             shark_args.repro_dir = repro_path
@@ -51,35 +53,38 @@ class AlbertModuleTester:
             with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
                 out_file.write(np.array2string(exp_out))
             with ireec.tools.TempFileSaver(temp_dir):
-                shark_module = SharkInference(model, (input,),
-                                              device=device,
-                                              dynamic=dynamic,
-                                              jit_trace=True,
-                                              benchmark_mode=self.benchmark)
+                shark_module = SharkInference(
+                    model,
+                    (input,),
+                    device=device,
+                    dynamic=dynamic,
+                    jit_trace=True,
+                    benchmark_mode=self.benchmark,
+                )
                 shark_module.compile()
                 results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
-        
+
         else:
-            shark_module = SharkInference(model, (input,),
-                                          device=device,
-                                          dynamic=dynamic,
-                                          jit_trace=True,
-                                          benchmark_mode=self.benchmark)
+            shark_module = SharkInference(
+                model,
+                (input,),
+                device=device,
+                dynamic=dynamic,
+                jit_trace=True,
+                benchmark_mode=self.benchmark,
+            )
             shark_module.compile()
             results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
 
         if self.benchmark == True:
-            shark_module.benchmark_all_csv((input,),
-                                           "albert_base_v2",
-                                           dynamic,
-                                           device)
-
+            shark_module.benchmark_all_csv(
+                (input,), "albert_base_v2", dynamic, device
+            )
 
 
 class AlbertModuleTest(unittest.TestCase):
-    
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.module_tester = AlbertModuleTester(self)

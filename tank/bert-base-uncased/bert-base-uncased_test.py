@@ -1,11 +1,9 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers
-from tank.model_utils import get_vision_model, compare_tensors
+from tank.model_utils import get_hf_model, compare_tensors
 from shark.parser import shark_args
 
 import iree.compiler as ireec
-import torchvision.models as models
-
 import unittest
 import pytest
 import numpy as np
@@ -13,13 +11,13 @@ import tempfile
 import os
 
 
-class Resnet50ModuleTester:
+class BertBaseUncasedModuleTester:
     def __init__(
         self,
         save_temps=False,
         save_mlir=False,
         save_vmfb=False,
-        benchmark=False
+        benchmark=False,
     ):
         self.save_temps = save_temps
         self.save_mlir = save_mlir
@@ -27,7 +25,7 @@ class Resnet50ModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_vision_model(models.Resnet50(pretrained=True))
+        model, input, act_out = get_hf_model("bert-base-uncased")
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
 
@@ -36,7 +34,9 @@ class Resnet50ModuleTester:
             or shark_args.save_vmfb == True
             or self.save_temps == True
         ):
-            repro_path = f"./shark_tmp/Resnet50_pytorch_{dynamic}_{device}"
+            repro_path = (
+                f"./shark_tmp/bert-base-uncased_pytorch_{dynamic}_{device}"
+            )
             if not os.path.isdir(repro_path):
                 os.mkdir(repro_path)
             shark_args.repro_dir = repro_path
@@ -51,36 +51,41 @@ class Resnet50ModuleTester:
             with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
                 out_file.write(np.array2string(exp_out))
             with ireec.tools.TempFileSaver(temp_dir):
-                shark_module = SharkInference(model, (input,),
-                                              device=device,
-                                              dynamic=dynamic,
-                                              benchmark_mode=self.benchmark)
+                shark_module = SharkInference(
+                    model,
+                    (input,),
+                    device=device,
+                    dynamic=dynamic,
+                    jit_trace=True,
+                    benchmark_mode=self.benchmark,
+                )
                 shark_module.compile()
                 results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
-        
+
         else:
-            shark_module = SharkInference(model, (input,),
-                                          device=device,
-                                          dynamic=dynamic,
-                                          benchmark_mode=self.benchmark)
+            shark_module = SharkInference(
+                model,
+                (input,),
+                device=device,
+                dynamic=dynamic,
+                jit_trace=True,
+                benchmark_mode=self.benchmark,
+            )
             shark_module.compile()
             results = shark_module.forward((input,))
             assert True == compare_tensors(act_out, results)
 
         if self.benchmark == True:
-            shark_module.benchmark_all_csv((input,),
-                                           "Resnet50",
-                                           dynamic,
-                                           device)
+            shark_module.benchmark_all_csv(
+                (input,), "bert_base_uncased", dynamic, device
+            )
 
 
-
-class Resnet50ModuleTest(unittest.TestCase):
-    
+class BertBaseUncasedModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
-        self.module_tester = Resnet50ModuleTester(self)
+        self.module_tester = BertBaseUncasedModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
         self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
@@ -112,6 +117,7 @@ class Resnet50ModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
@@ -121,6 +127,7 @@ class Resnet50ModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
