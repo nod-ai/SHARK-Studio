@@ -31,6 +31,8 @@ class SharkImporter:
         information.
     frontend: str
         frontend to which the module belongs.
+    raw_model_file: str
+        temp tflite model path
 
     Methods
     -------
@@ -50,6 +52,7 @@ class SharkImporter:
         module,
         inputs: tuple = (),
         frontend: str = "torch",
+        raw_model_file: str = "",
     ):
         self.module = module
         self.inputs = None if len(inputs) == 0 else inputs
@@ -59,6 +62,7 @@ class SharkImporter:
                 f"The frontend is not in the supported_frontends: {supported_frontends}"
             )
             sys.exit(1)
+        self.raw_model_file = raw_model_file
 
     # NOTE: The default function for torch is "forward" and tf-lite is "main".
 
@@ -78,11 +82,14 @@ class SharkImporter:
 
     def _tflite_mlir(self, func_name):
         from iree.compiler import tflite as tflitec
+        from shark.iree_utils._common import IREE_TARGET_MAP
 
-        # TODO(Chi): Just add the conversion of tflite model here.
-        return tflitec.compile_module(
-            self.module, exported_names=[func_name], import_only=True
+        self.mlir_model = tflitec.compile_file(
+            self.raw_model_file,  # in tflite, it is a path to .tflite file, not a tflite interpreter
+            input_type="tosa",
+            import_only=True,
         )
+        return self.mlir_model
 
     # Adds the conversion of the frontend with the private function.
     def import_mlir(
@@ -109,9 +116,6 @@ class SharkImporter:
         if self.frontend in ["torch", "pytorch"]:
             return [x.detach().numpy() for x in array_tuple]
         if self.frontend in ["tf", "tensorflow"]:
-            return [x.numpy() for x in array_tuple]
-        if self.frontend in ["tf-lite", "tflite"]:
-            # TODO(Chi): Validate for tf-lite tensors.
             return [x.numpy() for x in array_tuple]
 
     def import_debug(
@@ -147,9 +151,9 @@ class SharkImporter:
             )
         if self.frontend in ["tflite", "tf-lite"]:
             # TODO(Chi): Validate it for tflite models.
-            golden_out = self.module.main(*self.inputs)
+            golden_out = self.module.invoke_tflite(self.inputs)
             return (
                 imported_mlir,
-                self.convert_to_numpy(self.inputs),
-                golden_out.numpy(),
+                self.inputs,
+                golden_out,
             )
