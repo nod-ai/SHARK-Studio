@@ -4,12 +4,9 @@ from shark.shark_inference import SharkInference
 import pytest
 import unittest
 from shark.parser import shark_args
-import os
-import sys
-from tank.tflite import imagenet_data
 
 
-# model_path = "https://tfhub.dev/tensorflow/lite-model/nasnet/large/1/default/1?lite-format=tflite"
+# model_path = "https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/multi_person_mobilenet_v1_075_float.tflite"
 
 
 def compare_results(mlir_results, tflite_results, details):
@@ -25,7 +22,7 @@ def compare_results(mlir_results, tflite_results, details):
         print("Max error (%d): %f", i, max_error)
 
 
-class NasnetTfliteModuleTester:
+class MobilenetTfliteModuleTester:
     def __init__(
         self,
         dynamic=False,
@@ -41,7 +38,10 @@ class NasnetTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        my_shark_importer = SharkImporter(model_name="nasnet", model_type="tflite")
+        my_shark_importer = SharkImporter(
+            model_name="multi_person_mobilenet_v1_075_float",
+            model_type="tflite",
+        )
 
         mlir_model = my_shark_importer.get_mlir_model()
         inputs = my_shark_importer.get_inputs()
@@ -61,14 +61,14 @@ class NasnetTfliteModuleTester:
         compare_results(mlir_results, tflite_results, output_details)
 
 
-class NasnetTfliteModuleTest(unittest.TestCase):
+class MobilenetTfliteModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.save_mlir = pytestconfig.getoption("save_mlir")
         self.save_vmfb = pytestconfig.getoption("save_vmfb")
 
     def setUp(self):
-        self.module_tester = NasnetTfliteModuleTester(self)
+        self.module_tester = MobilenetTfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
     def test_module_static_cpu(self):
@@ -78,7 +78,7 @@ class NasnetTfliteModuleTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # module_tester = NasnetTfliteModuleTester()
+    # module_tester = MobilenetTfliteModuleTester()
     # module_tester.save_mlir = True
     # module_tester.save_vmfb = True
     # module_tester.create_and_check_module()

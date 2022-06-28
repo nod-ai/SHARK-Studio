@@ -4,12 +4,27 @@ from shark.shark_inference import SharkInference
 import pytest
 import unittest
 from shark.parser import shark_args
-import os
-import sys
-from tank.tflite import imagenet_data
 
 
-# model_path = "https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/multi_person_mobilenet_v1_075_float.tflite"
+# model_path = "https://storage.googleapis.com/iree-model-artifacts/mobilebert-edgetpu-s-float.tflite"
+
+
+def generate_inputs(input_details):
+    for input in input_details:
+        print(str(input["shape"]), input["dtype"].__name__)
+
+    args = []
+    args.append(
+        np.random.randint(
+            low=0,
+            high=256,
+            size=input_details[0]["shape"],
+            dtype=input_details[0]["dtype"],
+        )
+    )
+    args.append(np.ones(shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]))
+    args.append(np.zeros(shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]))
+    return
 
 
 def compare_results(mlir_results, tflite_results, details):
@@ -25,7 +40,7 @@ def compare_results(mlir_results, tflite_results, details):
         print("Max error (%d): %f", i, max_error)
 
 
-class MobilenetTfliteModuleTester:
+class MobilebertTfliteModuleTester:
     def __init__(
         self,
         dynamic=False,
@@ -41,10 +56,7 @@ class MobilenetTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        my_shark_importer = SharkImporter(
-            model_name="multi_person_mobilenet_v1_075_float",
-            model_type="tflite",
-        )
+        my_shark_importer = SharkImporter(model_name="mobilebert-edgetpu-s-float", model_type="tflite")
 
         mlir_model = my_shark_importer.get_mlir_model()
         inputs = my_shark_importer.get_inputs()
@@ -63,15 +75,26 @@ class MobilenetTfliteModuleTester:
         tflite_results = my_shark_importer.get_raw_model_output()
         compare_results(mlir_results, tflite_results, output_details)
 
+        # Case2: Use manually set inputs
+        input_details, output_details = my_shark_importer.get_model_details()
+        inputs = generate_inputs(input_details)  # device_inputs
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
+        shark_module.set_frontend("tflite-tosa")
+        shark_module.compile()
+        mlir_results = shark_module.forward(inputs)
+        tflite_results = my_shark_importer.get_raw_model_output()
+        compare_results(mlir_results, tflite_results, output_details)
+        # print(mlir_results)
 
-class MobilenetTfliteModuleTest(unittest.TestCase):
+
+class MobilebertTfliteModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.save_mlir = pytestconfig.getoption("save_mlir")
         self.save_vmfb = pytestconfig.getoption("save_vmfb")
 
     def setUp(self):
-        self.module_tester = MobilenetTfliteModuleTester(self)
+        self.module_tester = MobilebertTfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
     def test_module_static_cpu(self):
@@ -81,7 +104,7 @@ class MobilenetTfliteModuleTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # module_tester = MobilenetTfliteModuleTester()
+    # module_tester = MobilebertTfliteModuleTester()
     # module_tester.save_mlir = True
     # module_tester.save_vmfb = True
     # module_tester.create_and_check_module()
