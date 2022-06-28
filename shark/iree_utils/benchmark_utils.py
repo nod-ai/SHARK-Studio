@@ -29,19 +29,26 @@ def tensor_to_type_str(input_tensors: tuple, frontend: str):
     """
     list_of_type = []
     for input_tensor in input_tensors:
-        type_string = "x".join([str(dim) for dim in input_tensor.shape])
-        if frontend in ["torch", "pytorch"]:
-            dtype_string = str(input_tensor.dtype).replace("torch.", "")
-        elif frontend in ["tensorflow", "tf"]:
-            dtype = input_tensor.dtype
-            dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace(
-                "'", ""
-            )
-        regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
-        match = regex_split.match(dtype_string)
-        mlir_type_string = str(match.group(1)[0]) + str(match.group(2))
-        type_string += f"x{mlir_type_string}"
-        list_of_type.append(type_string)
+        if isinstance(input_tensor, tuple):
+            for val in input_tensor:
+                sublist = tensor_to_type_str(val, frontend)
+                list_of_type.append(sublist)
+        else:
+            type_string = "x".join([str(dim) for dim in input_tensor.shape])
+            if frontend in ["torch", "pytorch"]:
+                dtype_string = str(input_tensor.dtype).replace("torch.", "")
+            elif frontend in ["tensorflow", "tf"]:
+                dtype = input_tensor.dtype
+                dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace(
+                    "'", ""
+                )
+            elif frontend in ["tflite-tosa"]:
+                dtype_string = str(input_tensor.dtype).replace("tosa.", "")
+            regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
+            match = regex_split.match(dtype_string)
+            mlir_type_string = str(match.group(1)[0]) + str(match.group(2))
+            type_string += f"x{mlir_type_string}"
+            list_of_type.append(type_string)
     return list_of_type
 
 
@@ -61,7 +68,11 @@ def build_benchmark_args(
     benchmarker_path = os.path.join(path, "..", "..", "iree-benchmark-module")
     benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
     # TODO: The function named can be passed as one of the args.
-    fn_name = "forward"
+    fn_name = ""
+    if frontend in ["tflite-tosa"]:
+        fn_name = "main"
+    else:
+        fn_name = "forward"
     if training == True:
         # TODO: Replace name of train with actual train fn name.
         fn_name = "train"
