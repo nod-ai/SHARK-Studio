@@ -98,7 +98,3 @@ class SharkRunner:
         return export_iree_module_to_vmfb(
             self.model, self.device, dir, self.mlir_dialect
         )
-
-    # TODO: Get the input information from the mlir_module.
-    def input_info(self):
-        pass

@@ -16,19 +16,22 @@ print("Running shark on cpu backend")
 shark_module = SharkInference(
     mhlo_ir, function_name="forward", device="cpu", mlir_dialect="mhlo"
 )
+
+# Generate the random inputs and feed into the graph.
+x = shark_module.generate_random_inputs()
 shark_module.compile()
-print(shark_module.forward((arg0, arg1)))
+print(shark_module.forward(x))
 
 print("Running shark on cuda backend")
 shark_module = SharkInference(
     mhlo_ir, function_name="forward", device="cuda", mlir_dialect="mhlo"
 )
 shark_module.compile()
-print(shark_module.forward((arg0, arg1)))
+print(shark_module.forward(x))
 
 print("Running shark on vulkan backend")
 shark_module = SharkInference(
     mhlo_ir, function_name="forward", device="vulkan", mlir_dialect="mhlo"
 )
 shark_module.compile()
-print(shark_module.forward((arg0, arg1)))
+print(shark_module.forward(x))
