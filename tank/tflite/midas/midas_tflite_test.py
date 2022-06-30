@@ -11,9 +11,7 @@ from shark.parser import shark_args
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(
-        tflite_results
-    ), "Number of results do not match"
+    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
@@ -40,15 +38,11 @@ class MidasTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        my_shark_importer = SharkImporter(
-            model_name="midas", model_type="tflite"
-        )
+        my_shark_importer = SharkImporter(model_name="midas", model_type="tflite")
 
         mlir_model = my_shark_importer.get_mlir_model()
         inputs = my_shark_importer.get_inputs()
-        shark_module = SharkInference(
-            mlir_model, inputs, device=self.device, dynamic=self.dynamic
-        )
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
         shark_module.set_frontend("tflite-tosa")
 
         # Case1: Use shark_importer default generate inputs

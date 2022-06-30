@@ -14,15 +14,9 @@ def generate_inputs(input_details):
     for input in input_details:
         print(str(input["shape"]), input["dtype"].__name__)
 
-    input_0 = np.asarray(
-        squad_data._INPUT_WORD_ID, dtype=input_details[0]["dtype"]
-    )
-    input_1 = np.asarray(
-        squad_data._INPUT_TYPE_ID, dtype=input_details[1]["dtype"]
-    )
-    input_2 = np.asarray(
-        squad_data._INPUT_MASK, dtype=input_details[2]["dtype"]
-    )
+    input_0 = np.asarray(squad_data._INPUT_WORD_ID, dtype=input_details[0]["dtype"])
+    input_1 = np.asarray(squad_data._INPUT_TYPE_ID, dtype=input_details[1]["dtype"])
+    input_2 = np.asarray(squad_data._INPUT_MASK, dtype=input_details[2]["dtype"])
     return [
         input_0.reshape(input_details[0]["shape"]),
         input_1.reshape(input_details[1]["shape"]),
@@ -32,9 +26,7 @@ def generate_inputs(input_details):
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(
-        tflite_results
-    ), "Number of results do not match"
+    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
@@ -61,15 +53,11 @@ class MobilebertTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        my_shark_importer = SharkImporter(
-            model_name="mobilebert-baseline-tf2-float", model_type="tflite"
-        )
+        my_shark_importer = SharkImporter(model_name="mobilebert-baseline-tf2-float", model_type="tflite")
 
         mlir_model = my_shark_importer.get_mlir_model()
         inputs = my_shark_importer.get_inputs()
-        shark_module = SharkInference(
-            mlir_model, inputs, device=self.device, dynamic=self.dynamic
-        )
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
         shark_module.set_frontend("tflite-tosa")
 
         # Case1: Use shark_importer default generate inputs
@@ -87,9 +75,7 @@ class MobilebertTfliteModuleTester:
         # Case2: Use manually set inputs
         input_details, output_details = my_shark_importer.get_model_details()
         inputs = generate_inputs(input_details)  # device_inputs
-        shark_module = SharkInference(
-            mlir_model, inputs, device=self.device, dynamic=self.dynamic
-        )
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
         shark_module.set_frontend("tflite-tosa")
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)

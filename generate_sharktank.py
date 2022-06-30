@@ -45,9 +45,7 @@ class SharkTank:
         # compile and run tfhub tflite
         if self.tflite_model_list is not None:
             print("Setting up for tflite TMP_DIR")
-            self.tflite_workdir = os.path.join(
-                os.path.dirname(__file__), "./gen_shark_tank"
-            )
+            self.tflite_workdir = os.path.join(os.path.dirname(__file__), "./gen_shark_tank")
             print(f"tflite TMP_shark_tank_DIR = {self.tflite_workdir}")
             os.makedirs(self.tflite_workdir, exist_ok=True)
 
@@ -58,9 +56,7 @@ class SharkTank:
                     tflite_model_link = row[1]
                     print("tflite_model_name", tflite_model_name)
                     print("tflite_model_link", tflite_model_link)
-                    tflite_model_name_dir = os.path.join(
-                        self.tflite_workdir, str(tflite_model_name)
-                    )
+                    tflite_model_name_dir = os.path.join(self.tflite_workdir, str(tflite_model_name))
                     os.makedirs(tflite_model_name_dir, exist_ok=True)
 
                     tflite_saving_file = "/".join(
@@ -89,9 +85,7 @@ class SharkTank:
                         print(tflite_saving_file, "exists")
                     else:
                         print("Download tflite model")
-                        urllib.request.urlretrieve(
-                            str(tflite_model_link), tflite_saving_file
-                        )
+                        urllib.request.urlretrieve(str(tflite_model_link), tflite_saving_file)
 
                     if os.path.exists(tflite_tosa_file):
                         print("Exists", tflite_tosa_file)
@@ -117,9 +111,7 @@ if __name__ == "__main__":
         type=str,
         default="./tank/torch/torch_model_list.csv",
     )
-    parser.add_argument(
-        "--tf_model_list", type=str, default="./tank/tf/tf_model_list.csv"
-    )
+    parser.add_argument("--tf_model_list", type=str, default="./tank/tf/tf_model_list.csv")
     parser.add_argument(
         "--tflite_model_list",
         type=str,

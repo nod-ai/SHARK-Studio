@@ -57,9 +57,7 @@ def get_iree_common_args():
     ]
 
 
-def compile_module_to_flatbuffer(
-    module, device, frontend, func_name, model_config_path
-):
+def compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path):
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
@@ -114,9 +112,7 @@ def get_iree_compiled_module(
     model_config_path: str = None,
 ):
     """Given a module returns the compiled .vmfb and configs"""
-    flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, frontend, func_name, model_config_path
-    )
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
     return get_iree_module(flatbuffer_blob, device, func_name)
 
 
@@ -129,9 +125,7 @@ def export_iree_module_to_vmfb(
     model_config_path: str = None,
 ):
     # Compiles the module given specs and saves it as .vmfb file.
-    flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, frontend, func_name, model_config_path
-    )
+    flatbuffer_blob = compile_module_to_flatbuffer(module, device, frontend, func_name, model_config_path)
     module_name = f"{frontend}_{func_name}_{device}"
     filename = os.path.join(directory, module_name + ".vmfb")
     print(f"Saved vmfb in {filename}.")

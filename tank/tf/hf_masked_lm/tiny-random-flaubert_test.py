@@ -25,26 +25,18 @@ class FlauBertModuleTester:
         self.save_vmfb = save_vmfb
 
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_causal_lm_model(
-            "hf-internal-testing/tiny-random-flaubert"
-        )
+        model, input, act_out = get_causal_lm_model("hf-internal-testing/tiny-random-flaubert")
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
 
-        if (
-            shark_args.save_mlir == True
-            or shark_args.save_vmfb == True
-            or self.save_temps == True
-        ):
+        if shark_args.save_mlir == True or shark_args.save_vmfb == True or self.save_temps == True:
             repro_path = f"./shark_tmp/tiny_flaubert_tf_{dynamic}_{device}"
             if not os.path.isdir(repro_path):
                 os.mkdir(repro_path)
             shark_args.repro_dir = repro_path
 
         if self.save_temps == True:
-            temp_dir = tempfile.mkdtemp(
-                prefix="iree_tfs", dir=shark_args.repro_dir
-            )
+            temp_dir = tempfile.mkdtemp(prefix="iree_tfs", dir=shark_args.repro_dir)
             np.set_printoptions(threshold=np.inf)
             np.save(f"{temp_dir}/input1.npy", input[0])
             np.save(f"{temp_dir}/input2.npy", input[1])
@@ -80,9 +72,7 @@ class FlauBertModuleTester:
             assert True == compare_tensors_tf(act_out, results)
 
         if self.benchmark == True:
-            shark_module.benchmark_all_csv(
-                (input), "tiny-random-flaubert", dynamic, device
-            )
+            shark_module.benchmark_all_csv((input), "tiny-random-flaubert", dynamic, device)
 
 
 class FlauBertModuleTest(unittest.TestCase):
@@ -99,29 +89,21 @@ class FlauBertModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(
-        reason="Language models currently failing for dynamic case"
-    )
+    @pytest.mark.skip(reason="Language models currently failing for dynamic case")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.xfail
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason="nvidia-smi not found"
-    )
+    @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
     def test_module_static_gpu(self):
         dynamic = False
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason="nvidia-smi not found"
-    )
+    @pytest.mark.xfail(reason="Language models currently failing for dynamic case")
+    @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
     def test_module_dynamic_gpu(self):
         dynamic = True
         device = "gpu"
@@ -137,9 +119,7 @@ class FlauBertModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
+    @pytest.mark.xfail(reason="Language models currently failing for dynamic case")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",

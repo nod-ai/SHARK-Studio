@@ -20,16 +20,8 @@ def generate_inputs(input_details):
             dtype=input_details[0]["dtype"],
         )
     )
-    args.append(
-        np.ones(
-            shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]
-        )
-    )
-    args.append(
-        np.zeros(
-            shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]
-        )
-    )
+    args.append(np.ones(shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]))
+    args.append(np.zeros(shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]))
     return args
 
 

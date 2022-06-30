@@ -8,27 +8,21 @@ try:
     from torchdynamo.optimizations.backends import create_backend
     from torchdynamo.optimizations.subgraph import SubGraph
 except ModuleNotFoundError:
-    print(
-        "Please install TorchDynamo using pip install git+https://github.com/pytorch/torchdynamo"
-    )
+    print("Please install TorchDynamo using pip install git+https://github.com/pytorch/torchdynamo")
     exit()
 
 NUM_ITERS = 10
 
 
 def __torch_mlir(fx_graph, *args, **kwargs):
-    assert isinstance(
-        fx_graph, torch.fx.GraphModule
-    ), "Model must be an FX GraphModule."
+    assert isinstance(fx_graph, torch.fx.GraphModule), "Model must be an FX GraphModule."
 
     def _unwrap_single_tuple_return(fx_g: torch.fx.GraphModule):
         """Replace tuple with tuple element in functions that return one-element tuples."""
 
         for node in fx_g.graph.nodes:
             if node.op == "output":
-                assert (
-                    len(node.args) == 1
-                ), "Output node must have a single argument"
+                assert len(node.args) == 1, "Output node must have a single argument"
                 node_arg = node.args[0]
                 if isinstance(node_arg, tuple) and len(node_arg) == 1:
                     node.args = (node_arg[0],)
@@ -45,12 +39,8 @@ def __torch_mlir(fx_graph, *args, **kwargs):
     if len(args) == 1 and isinstance(args[0], list):
         args = args[0]
 
-    linalg_module = compile(
-        ts_graph, args, output_type=OutputType.LINALG_ON_TENSORS
-    )
-    callable, _ = get_iree_compiled_module(
-        linalg_module, "cuda", func_name="forward"
-    )
+    linalg_module = compile(ts_graph, args, output_type=OutputType.LINALG_ON_TENSORS)
+    callable, _ = get_iree_compiled_module(linalg_module, "cuda", func_name="forward")
 
     def forward(*inputs):
         return callable(*inputs)

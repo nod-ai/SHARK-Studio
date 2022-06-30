@@ -58,9 +58,7 @@ class SharkImporter:
         self.inputs = None if len(inputs) == 0 else inputs
         self.frontend = frontend
         if not self.frontend in supported_frontends:
-            print(
-                f"The frontend is not in the supported_frontends: {supported_frontends}"
-            )
+            print(f"The frontend is not in the supported_frontends: {supported_frontends}")
             sys.exit(1)
         self.raw_model_file = raw_model_file
 
@@ -69,16 +67,12 @@ class SharkImporter:
     def _torch_mlir(self, is_dynamic, tracing_required):
         from shark.torch_mlir_utils import get_torch_mlir_module
 
-        return get_torch_mlir_module(
-            self.module, self.inputs, is_dynamic, tracing_required
-        )
+        return get_torch_mlir_module(self.module, self.inputs, is_dynamic, tracing_required)
 
     def _tf_mlir(self, func_name):
         from iree.compiler import tf as tfc
 
-        return tfc.compile_module(
-            self.module, exported_names=[func_name], import_only=True
-        )
+        return tfc.compile_module(self.module, exported_names=[func_name], import_only=True)
 
     def _tflite_mlir(self, func_name):
         from iree.compiler import tflite as tflitec
@@ -100,9 +94,7 @@ class SharkImporter:
     ):
         if self.frontend in ["torch", "pytorch"]:
             if self.inputs == None:
-                print(
-                    "Please pass in the inputs, the inputs are required to determine the shape of the mlir_module"
-                )
+                print("Please pass in the inputs, the inputs are required to determine the shape of the mlir_module")
                 sys.exit(1)
             return self._torch_mlir(is_dynamic, tracing_required), func_name
         if self.frontend in ["tf", "tensorflow"]:
@@ -125,14 +117,10 @@ class SharkImporter:
         func_name="forward",
     ):
         if self.inputs == None:
-            print(
-                f"There is no input provided: {self.inputs}, please provide inputs or simply run import_mlir."
-            )
+            print(f"There is no input provided: {self.inputs}, please provide inputs or simply run import_mlir.")
             sys.exit(1)
 
-        imported_mlir = self.import_mlir(
-            is_dynamic, tracing_required, func_name
-        )
+        imported_mlir = self.import_mlir(is_dynamic, tracing_required, func_name)
         # TODO: Make sure that any generic function name is accepted. Currently takes in the default function names.
         # TODO: Check for multiple outputs.
         if self.frontend in ["torch", "pytorch"]:

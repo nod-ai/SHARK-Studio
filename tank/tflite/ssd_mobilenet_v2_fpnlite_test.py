@@ -11,20 +11,12 @@ model_path = "https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_
 
 class SsdMobilenetV2FpnliteTest(test_util.TFLiteModelTest):
     def __init__(self, *args, **kwargs):
-        super(SsdMobilenetV2FpnliteTest, self).__init__(
-            model_path, *args, **kwargs
-        )
+        super(SsdMobilenetV2FpnliteTest, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(SsdMobilenetV2FpnliteTest, self).compare_results(
-            iree_results, tflite_results, details
-        )
+        super(SsdMobilenetV2FpnliteTest, self).compare_results(iree_results, tflite_results, details)
         for i in range(len(iree_results)):
-            self.assertTrue(
-                numpy.isclose(
-                    iree_results[i], tflite_results[i], atol=1e-4
-                ).all()
-            )
+            self.assertTrue(numpy.isclose(iree_results[i], tflite_results[i], atol=1e-4).all())
 
     def generate_inputs(self, input_details):
         inputs = coco_test_data.generate_input(self.workdir, input_details)

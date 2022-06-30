@@ -7,14 +7,10 @@ absl.flags.DEFINE_string("model", None, "model path to execute")
 
 class ManualTest(test_util.TFLiteModelTest):
     def __init__(self, *args, **kwargs):
-        super(ManualTest, self).__init__(
-            absl.flags.FLAGS.model, *args, **kwargs
-        )
+        super(ManualTest, self).__init__(absl.flags.FLAGS.model, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(ManualTest, self).compare_results(
-            iree_results, tflite_results, details
-        )
+        super(ManualTest, self).compare_results(iree_results, tflite_results, details)
 
     def test_compile_tflite(self):
         if self.model_path is not None:

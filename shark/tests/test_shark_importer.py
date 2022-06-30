@@ -23,24 +23,14 @@ def generate_inputs(input_details):
             dtype=input_details[0]["dtype"],
         )
     )
-    args.append(
-        np.ones(
-            shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]
-        )
-    )
-    args.append(
-        np.zeros(
-            shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]
-        )
-    )
+    args.append(np.ones(shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]))
+    args.append(np.zeros(shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]))
     return args
 
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(
-        tflite_results
-    ), "Number of results do not match"
+    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]

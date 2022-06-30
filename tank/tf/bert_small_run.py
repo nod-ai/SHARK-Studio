@@ -29,14 +29,10 @@ class BertModule(tf.Module):
     def __init__(self):
         super(BertModule, self).__init__()
         dict_outputs = False
-        test_network = networks.BertEncoder(
-            vocab_size=vocab_size, num_layers=2, dict_outputs=dict_outputs
-        )
+        test_network = networks.BertEncoder(vocab_size=vocab_size, num_layers=2, dict_outputs=dict_outputs)
 
         # Create a BERT trainer with the created network.
-        bert_trainer_model = bert_classifier.BertClassifier(
-            test_network, num_classes=NUM_CLASSES
-        )
+        bert_trainer_model = bert_classifier.BertClassifier(test_network, num_classes=NUM_CLASSES)
         bert_trainer_model.summary()
 
         # Invoke the trainer model on the inputs. This causes the layer to be built.
@@ -69,9 +65,7 @@ class BertModule(tf.Module):
 if __name__ == "__main__":
     # BertModule()
     # Compile the model using IREE
-    compiler_module = tfc.compile_module(
-        BertModule(), exported_names=["learn"], import_only=True
-    )
+    compiler_module = tfc.compile_module(BertModule(), exported_names=["learn"], import_only=True)
 
     # Compile the model using IREE
     backend = "dylib-llvm-aot"
@@ -114,11 +108,7 @@ if __name__ == "__main__":
     for i in range(10):
         if i == warmup - 1:
             start = time.time()
-        print(
-            BertCompiled.learn(
-                predict_sample_input, np.random.randint(5, size=(BATCH_SIZE))
-            )
-        )
+        print(BertCompiled.learn(predict_sample_input, np.random.randint(5, size=(BATCH_SIZE))))
     end = time.time()
     total_time = end - start
     print("time: " + str(total_time))

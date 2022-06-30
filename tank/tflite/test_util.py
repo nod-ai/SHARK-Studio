@@ -40,9 +40,7 @@ class TFLiteModelTest(testing.absltest.TestCase):
         if self.model_path is None:
             return
         exe_basename = os.path.basename(sys.argv[0])
-        self.workdir = os.path.join(
-            os.path.dirname(__file__), "tmp", exe_basename
-        )
+        self.workdir = os.path.join(os.path.dirname(__file__), "tmp", exe_basename)
         print(f"TMP_DIR = {self.workdir}")
         os.makedirs(self.workdir, exist_ok=True)
         self.tflite_file = "/".join([self.workdir, "model.tflite"])
@@ -57,9 +55,7 @@ class TFLiteModelTest(testing.absltest.TestCase):
     def generate_inputs(self, input_details):
         args = []
         for input in input_details:
-            absl.logging.info(
-                "\t%s, %s", str(input["shape"]), input["dtype"].__name__
-            )
+            absl.logging.info("\t%s, %s", str(input["shape"]), input["dtype"].__name__)
             args.append(np.zeros(shape=input["shape"], dtype=input["dtype"]))
         return args
 
@@ -81,9 +77,7 @@ class TFLiteModelTest(testing.absltest.TestCase):
 
     def setup_tflite(self):
         absl.logging.info("Setting up tflite interpreter")
-        self.tflite_interpreter = tf.lite.Interpreter(
-            model_path=self.tflite_file
-        )
+        self.tflite_interpreter = tf.lite.Interpreter(model_path=self.tflite_file)
         self.tflite_interpreter.allocate_tensors()
         self.input_details = self.tflite_interpreter.get_input_details()
         self.output_details = self.tflite_interpreter.get_output_details()
@@ -98,20 +92,14 @@ class TFLiteModelTest(testing.absltest.TestCase):
 
     def invoke_tflite(self, args):
         for i, input in enumerate(args):
-            self.tflite_interpreter.set_tensor(
-                self.input_details[i]["index"], input
-            )
+            self.tflite_interpreter.set_tensor(self.input_details[i]["index"], input)
         start = time.perf_counter()
         self.tflite_interpreter.invoke()
         end = time.perf_counter()
         tflite_results = []
         absl.logging.info(f"Invocation time: {end - start:0.4f} seconds")
         for output_detail in self.output_details:
-            tflite_results.append(
-                np.array(
-                    self.tflite_interpreter.get_tensor(output_detail["index"])
-                )
-            )
+            tflite_results.append(np.array(self.tflite_interpreter.get_tensor(output_detail["index"])))
 
         for i in range(len(self.output_details)):
             dtype = self.output_details[i]["dtype"]

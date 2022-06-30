@@ -56,9 +56,7 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
     ):
         self.device = device if device is not None else shark_args.device
         if self.device == "gpu":
-            raise ValueError(
-                "Currently GPU Benchmarking is not supported due to OOM from ORT."
-            )
+            raise ValueError("Currently GPU Benchmarking is not supported due to OOM from ORT.")
         self.model_name = model_name
         model = HuggingFaceLanguage(model_name)
         SharkBenchmarkRunner.__init__(
@@ -95,9 +93,7 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
             cache_dir,
             verbose,
         )
-        print(
-            f"ONNX Pytorch-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
+        print(f"ONNX Pytorch-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}")
 
     # TODO: Currently non-functional due to TF runtime error. There might be some issue with, initializing TF.
     def benchmark_tf(self, inputs):
@@ -122,9 +118,7 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
             cache_dir,
             verbose,
         )
-        print(
-            f"ONNX TF-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
+        print(f"ONNX TF-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}")
 
     def benchmark_onnx(self, inputs):
         if self.model_name not in MODELS:
@@ -176,6 +170,4 @@ for currently supported models. Exiting benchmark ONNX."
             model_source,
             onnx_args,
         )
-        print(
-            f"ONNX ORT-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
+        print(f"ONNX ORT-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}")

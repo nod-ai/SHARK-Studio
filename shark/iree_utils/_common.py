@@ -84,8 +84,6 @@ def device_driver_info(device):
             "nvidia-smi not found, please install the required drivers from https://www.nvidia.in/Download/index.aspx?lang=en-in"
         )
     elif device in ["metal", "vulkan"]:
-        print(
-            "vulkaninfo not found, Install from https://vulkan.lunarg.com/sdk/home or your distribution"
-        )
+        print("vulkaninfo not found, Install from https://vulkan.lunarg.com/sdk/home or your distribution")
     else:
         print(f"{device} is not supported.")

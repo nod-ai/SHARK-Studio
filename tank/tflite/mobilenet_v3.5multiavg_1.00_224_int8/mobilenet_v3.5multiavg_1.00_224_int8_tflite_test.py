@@ -25,9 +25,7 @@ def generate_inputs(input_details):
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(
-        tflite_results
-    ), "Number of results do not match"
+    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
@@ -61,9 +59,7 @@ class MobilenetTfliteModuleTester:
 
         mlir_model = my_shark_importer.get_mlir_model()
         inputs = my_shark_importer.get_inputs()
-        shark_module = SharkInference(
-            mlir_model, inputs, device=self.device, dynamic=self.dynamic
-        )
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
         shark_module.set_frontend("tflite-tosa")
 
         # Case1: Use shark_importer default generate inputs
@@ -81,9 +77,7 @@ class MobilenetTfliteModuleTester:
         # Case2: Use manually set inputs
         input_details, output_details = my_shark_importer.get_model_details()
         inputs = generate_inputs(input_details)  # device_inputs
-        shark_module = SharkInference(
-            mlir_model, inputs, device=self.device, dynamic=self.dynamic
-        )
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
         shark_module.set_frontend("tflite-tosa")
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)

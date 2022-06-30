@@ -31,15 +31,11 @@ mlir_importer = SharkImporter(
 )
 
 # torch hugging face models needs tracing..
-(minilm_mlir, func_name), inputs, golden_out = mlir_importer.import_debug(
-    tracing_required=True
-)
+(minilm_mlir, func_name), inputs, golden_out = mlir_importer.import_debug(tracing_required=True)
 
 print(golden_out)
 
-shark_module = SharkInference(
-    minilm_mlir, func_name, device="cpu", mlir_dialect="linalg"
-)
+shark_module = SharkInference(minilm_mlir, func_name, device="cpu", mlir_dialect="linalg")
 shark_module.compile()
 result = shark_module.forward((test_input, test_input, test_input))
 print("Obtained result", result)

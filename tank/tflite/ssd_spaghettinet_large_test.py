@@ -11,22 +11,14 @@ model_path = "https://storage.googleapis.com/iree-model-artifacts/ssd_spaghettin
 
 class SsdSpaghettinetLargeTest(test_util.TFLiteModelTest):
     def __init__(self, *args, **kwargs):
-        super(SsdSpaghettinetLargeTest, self).__init__(
-            model_path, *args, **kwargs
-        )
+        super(SsdSpaghettinetLargeTest, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(SsdSpaghettinetLargeTest, self).compare_results(
-            iree_results, tflite_results, details
-        )
+        super(SsdSpaghettinetLargeTest, self).compare_results(iree_results, tflite_results, details)
         for i in range(len(iree_results)):
             print("iree_results: " + str(iree_results[i]))
             print("tflite_results: " + str(tflite_results[i]))
-            self.assertTrue(
-                numpy.isclose(
-                    iree_results[i], tflite_results[i], atol=1e-4
-                ).all()
-            )
+            self.assertTrue(numpy.isclose(iree_results[i], tflite_results[i], atol=1e-4).all())
 
     def generate_inputs(self, input_details):
         inputs = coco_test_data.generate_input(self.workdir, input_details)

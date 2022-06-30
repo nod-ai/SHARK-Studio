@@ -5,9 +5,7 @@ import absl.testing
 import numpy
 import test_util
 
-model_path = (
-    "https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-64.tflite"
-)
+model_path = "https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-64.tflite"
 
 
 # This test is a massive download and excluded due to causing timeouts.
@@ -29,15 +27,9 @@ class GPT2Test(test_util.TFLiteModelTest):
         return args
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(GPT2Test, self).compare_results(
-            iree_results, tflite_results, details
-        )
+        super(GPT2Test, self).compare_results(iree_results, tflite_results, details)
         for i in range(len(iree_results)):
-            self.assertTrue(
-                numpy.isclose(
-                    iree_results[i], tflite_results[i], atol=5e-3
-                ).all()
-            )
+            self.assertTrue(numpy.isclose(iree_results[i], tflite_results[i], atol=5e-3).all())
 
     def test_compile_tflite(self):
         self.compile_and_execute()

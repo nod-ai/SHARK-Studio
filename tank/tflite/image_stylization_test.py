@@ -13,17 +13,11 @@ class ImageStylizationTest(test_util.TFLiteModelTest):
         super(ImageStylizationTest, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(ImageStylizationTest, self).compare_results(
-            iree_results, tflite_results, details
-        )
+        super(ImageStylizationTest, self).compare_results(iree_results, tflite_results, details)
         iree = iree_results[0].flatten().astype(numpy.single)
         tflite = tflite_results[0].flatten().astype(numpy.single)
         # Error is not tiny but appears close.
-        self.assertTrue(
-            numpy.isclose(
-                numpy.max(numpy.abs(iree - tflite)), 0.0, atol=5e-2
-            ).all()
-        )
+        self.assertTrue(numpy.isclose(numpy.max(numpy.abs(iree - tflite)), 0.0, atol=5e-2).all())
 
     def test_compile_tflite(self):
         self.compile_and_execute()

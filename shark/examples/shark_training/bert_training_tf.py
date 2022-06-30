@@ -28,14 +28,10 @@ class BertModule(tf.Module):
     def __init__(self):
         super(BertModule, self).__init__()
         dict_outputs = False
-        test_network = networks.BertEncoder(
-            vocab_size=vocab_size, num_layers=2, dict_outputs=dict_outputs
-        )
+        test_network = networks.BertEncoder(vocab_size=vocab_size, num_layers=2, dict_outputs=dict_outputs)
 
         # Create a BERT trainer with the created network.
-        bert_trainer_model = bert_classifier.BertClassifier(
-            test_network, num_classes=NUM_CLASSES
-        )
+        bert_trainer_model = bert_classifier.BertClassifier(test_network, num_classes=NUM_CLASSES)
         bert_trainer_model.summary()
 
         # Invoke the trainer model on the inputs. This causes the layer to be built.
@@ -71,18 +67,13 @@ if __name__ == "__main__":
         np.random.randint(5, size=(BATCH_SIZE, SEQUENCE_LENGTH)),
         np.random.randint(5, size=(BATCH_SIZE, SEQUENCE_LENGTH)),
     ]
-    sample_input_tensors = [
-        tf.convert_to_tensor(val, dtype=tf.int32)
-        for val in predict_sample_input
-    ]
+    sample_input_tensors = [tf.convert_to_tensor(val, dtype=tf.int32) for val in predict_sample_input]
     num_iter = 10
     shark_module = SharkTrainer(
         BertModule(),
         (
             sample_input_tensors,
-            tf.convert_to_tensor(
-                np.random.randint(5, size=(BATCH_SIZE)), dtype=tf.int32
-            ),
+            tf.convert_to_tensor(np.random.randint(5, size=(BATCH_SIZE)), dtype=tf.int32),
         ),
     )
     shark_module.set_frontend("tensorflow")

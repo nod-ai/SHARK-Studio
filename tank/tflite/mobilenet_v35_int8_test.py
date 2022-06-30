@@ -13,13 +13,9 @@ class MobilenetV35Int8Test(test_util.TFLiteModelTest):
         super(MobilenetV35Int8Test, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(MobilenetV35Int8Test, self).compare_results(
-            iree_results, tflite_results, details
-        )
+        super(MobilenetV35Int8Test, self).compare_results(iree_results, tflite_results, details)
         # The difference here is quite high for a dequantized output.
-        self.assertTrue(
-            numpy.isclose(iree_results, tflite_results, atol=0.5).all()
-        )
+        self.assertTrue(numpy.isclose(iree_results, tflite_results, atol=0.5).all())
 
         # Make sure the predicted class is the same.
         iree_predicted_class = numpy.argmax(iree_results[0][0])

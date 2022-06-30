@@ -23,18 +23,14 @@ def generate_inputs(input_details):
     urllib.request.urlretrieve(img_path, local_path)
 
     shape = input_details[0]["shape"]
-    im = np.array(Image.open(local_path).resize((shape[1], shape[2]))).astype(
-        input_details[0]["dtype"]
-    )
+    im = np.array(Image.open(local_path).resize((shape[1], shape[2]))).astype(input_details[0]["dtype"])
     args = [im.reshape(shape)]
     return args
 
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(
-        tflite_results
-    ), "Number of results do not match"
+    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
@@ -61,15 +57,11 @@ class PersonDetectionTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        my_shark_importer = SharkImporter(
-            model_name="person_detect", model_type="tflite"
-        )
+        my_shark_importer = SharkImporter(model_name="person_detect", model_type="tflite")
 
         mlir_model = my_shark_importer.get_mlir_model()
         inputs = my_shark_importer.get_inputs()
-        shark_module = SharkInference(
-            mlir_model, inputs, device=self.device, dynamic=self.dynamic
-        )
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
         shark_module.set_frontend("tflite-tosa")
 
         # Case2: Use manually set inputs
@@ -87,9 +79,7 @@ class PersonDetectionTfliteModuleTester:
             }
         ]
         inputs = generate_inputs(input_details)  # device_inputs
-        shark_module = SharkInference(
-            mlir_model, inputs, device=self.device, dynamic=self.dynamic
-        )
+        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
         shark_module.set_frontend("tflite-tosa")
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)

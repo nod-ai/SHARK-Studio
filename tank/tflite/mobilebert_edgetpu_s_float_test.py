@@ -14,9 +14,7 @@ class MobileBertTest(test_util.TFLiteModelTest):
     # Inputs modified to be useful mobilebert inputs.
     def generate_inputs(self, input_details):
         for input in input_details:
-            absl.logging.info(
-                "\t%s, %s", str(input["shape"]), input["dtype"].__name__
-            )
+            absl.logging.info("\t%s, %s", str(input["shape"]), input["dtype"].__name__)
 
         args = []
         args.append(
@@ -27,28 +25,14 @@ class MobileBertTest(test_util.TFLiteModelTest):
                 dtype=input_details[0]["dtype"],
             )
         )
-        args.append(
-            numpy.ones(
-                shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]
-            )
-        )
-        args.append(
-            numpy.zeros(
-                shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]
-            )
-        )
+        args.append(numpy.ones(shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]))
+        args.append(numpy.zeros(shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]))
         return args
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(MobileBertTest, self).compare_results(
-            iree_results, tflite_results, details
-        )
-        self.assertTrue(
-            numpy.isclose(iree_results[0], tflite_results[0], atol=1e-4).all()
-        )
-        self.assertTrue(
-            numpy.isclose(iree_results[1], tflite_results[1], atol=1e-4).all()
-        )
+        super(MobileBertTest, self).compare_results(iree_results, tflite_results, details)
+        self.assertTrue(numpy.isclose(iree_results[0], tflite_results[0], atol=1e-4).all())
+        self.assertTrue(numpy.isclose(iree_results[1], tflite_results[1], atol=1e-4).all())
 
     def test_compile_tflite(self):
         self.compile_and_execute()

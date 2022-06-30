@@ -16,9 +16,7 @@ class TFLiteModelUtil:
         self.inputs = []
 
     def setup_tflite_interpreter(self):
-        self.tflite_interpreter = tf.lite.Interpreter(
-            model_path=self.raw_model_file
-        )
+        self.tflite_interpreter = tf.lite.Interpreter(model_path=self.raw_model_file)
         self.tflite_interpreter.allocate_tensors()
         # default input initialization
         return self.get_model_details()
@@ -33,20 +31,14 @@ class TFLiteModelUtil:
         self.inputs = inputs
         print("invoke_tflite")
         for i, input in enumerate(self.inputs):
-            self.tflite_interpreter.set_tensor(
-                self.input_details[i]["index"], input
-            )
+            self.tflite_interpreter.set_tensor(self.input_details[i]["index"], input)
         self.tflite_interpreter.invoke()
 
         # post process tflite_result for compare with mlir_result,
         # for tflite the output is a list of numpy.tensor
         tflite_results = []
         for output_detail in self.output_details:
-            tflite_results.append(
-                np.array(
-                    self.tflite_interpreter.get_tensor(output_detail["index"])
-                )
-            )
+            tflite_results.append(np.array(self.tflite_interpreter.get_tensor(output_detail["index"])))
 
         for i in range(len(self.output_details)):
             out_dtype = self.output_details[i]["dtype"]
@@ -63,37 +55,23 @@ class TFLitePreprocessor:
         model_path=None,
     ):
         self.model_name = model_name
-        self.input_details = (
-            input_details  # used for tflite, optional for tf/pytorch
-        )
-        self.output_details = (
-            output_details  # used for tflite, optional for tf/pytorch
-        )
+        self.input_details = input_details  # used for tflite, optional for tf/pytorch
+        self.output_details = output_details  # used for tflite, optional for tf/pytorch
         self.inputs = []
         self.model_path = model_path  # url to download the model
-        self.raw_model_file = (
-            None  # local address for raw tf/tflite/pytorch model
-        )
-        self.mlir_file = (
-            None  # local address for .mlir file of tf/tflite/pytorch model
-        )
+        self.raw_model_file = None  # local address for raw tf/tflite/pytorch model
+        self.mlir_file = None  # local address for .mlir file of tf/tflite/pytorch model
         self.mlir_model = None  # read of .mlir file
-        self.output_tensor = (
-            None  # the raw tf/pytorch/tflite_output_tensor, not mlir_tensor
-        )
+        self.output_tensor = None  # the raw tf/pytorch/tflite_output_tensor, not mlir_tensor
         self.interpreter = None  # could be tflite/tf/torch_interpreter in utils
 
         # create tmp model file directory
         if self.model_path is None and self.model_name is None:
-            print(
-                "Error. No model_path, No model name,Please input either one."
-            )
+            print("Error. No model_path, No model name,Please input either one.")
             return
 
         print("Setting up for TMP_WORK_DIR")
-        self.workdir = os.path.join(
-            os.path.dirname(__file__), "./../gen_shark_tank"
-        )
+        self.workdir = os.path.join(os.path.dirname(__file__), "./../gen_shark_tank")
         os.makedirs(self.workdir, exist_ok=True)
         print(f"TMP_WORK_DIR = {self.workdir}")
 
@@ -117,12 +95,8 @@ class TFLitePreprocessor:
         os.makedirs(tflite_model_name_dir, exist_ok=True)
         print(f"TMP_TFLITE_MODELNAME_DIR = {tflite_model_name_dir}")
 
-        self.raw_model_file = "/".join(
-            [tflite_model_name_dir, str(self.model_name) + "_tflite.tflite"]
-        )
-        self.mlir_file = "/".join(
-            [tflite_model_name_dir, str(self.model_name) + "_tflite.mlir"]
-        )
+        self.raw_model_file = "/".join([tflite_model_name_dir, str(self.model_name) + "_tflite.tflite"])
+        self.mlir_file = "/".join([tflite_model_name_dir, str(self.model_name) + "_tflite.mlir"])
 
         if os.path.exists(self.raw_model_file):
             print(
@@ -179,18 +153,12 @@ class TFLitePreprocessor:
         self.inputs = []
         for tmp_input in input_details:
             print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
-            self.inputs.append(
-                np.ones(shape=tmp_input["shape"], dtype=tmp_input["dtype"])
-            )
+            self.inputs.append(np.ones(shape=tmp_input["shape"], dtype=tmp_input["dtype"]))
         # save inputs into json file
         tmp_json = []
         for tmp_input in input_details:
             print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
-            tmp_json.append(
-                np.ones(
-                    shape=tmp_input["shape"], dtype=tmp_input["dtype"]
-                ).tolist()
-            )
+            tmp_json.append(np.ones(shape=tmp_input["shape"], dtype=tmp_input["dtype"]).tolist())
         with open("input1.json", "w") as f:
             json.dump(tmp_json, f)
         return self.inputs

@@ -27,9 +27,7 @@ class Resnet18ModuleTester:
         self.save_vmfb = save_vmfb
 
     def create_and_check_module(self):
-        model, input, act_out = get_vision_model(
-            models.resnet18(pretrained=True)
-        )
+        model, input, act_out = get_vision_model(models.resnet18(pretrained=True))
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
         mlir_importer = SharkImporter(
@@ -37,12 +35,8 @@ class Resnet18ModuleTester:
             (input,),
             frontend="torch",
         )
-        minilm_mlir, func_name = mlir_importer.import_mlir(
-            is_dynamic=self.dynamic, tracing_required=False
-        )
-        shark_module = SharkInference(
-            minilm_mlir, func_name, device="cpu", mlir_dialect="linalg"
-        )
+        minilm_mlir, func_name = mlir_importer.import_mlir(is_dynamic=self.dynamic, tracing_required=False)
+        shark_module = SharkInference(minilm_mlir, func_name, device="cpu", mlir_dialect="linalg")
         shark_module.compile()
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
@@ -67,17 +61,13 @@ class Resnet18ModuleTest(unittest.TestCase):
         self.module_tester.device = "cpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason="nvidia-smi not found"
-    )
+    @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
     def test_module_static_gpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "gpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason="nvidia-smi not found"
-    )
+    @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
     def test_module_dynamic_gpu(self):
         self.module_tester.dynamic = True
         self.module_tester.device = "gpu"

@@ -44,9 +44,7 @@ class LightningI8Test(test_util.TFLiteModelTest):
         plt.show()
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(LightningI8Test, self).compare_results(
-            iree_results, tflite_results, details
-        )
+        super(LightningI8Test, self).compare_results(iree_results, tflite_results, details)
         # This value is a discretized location of the persons joints. If we are
         # *close* to the expected position we can consider this good enough.
         self.assertTrue(

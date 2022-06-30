@@ -30,9 +30,7 @@ def preprocess_input(model_name, text="This is just used to compile the model"):
 class MaskedLM(tf.Module):
     def __init__(self, model_name):
         super(MaskedLM, self).__init__()
-        self.m = TFAutoModelForMaskedLM.from_pretrained(
-            model_name, output_attentions=False, num_labels=2
-        )
+        self.m = TFAutoModelForMaskedLM.from_pretrained(model_name, output_attentions=False, num_labels=2)
         self.m.predict = lambda x, y: self.m(input_ids=x, attention_mask=y)[0]
 
     @tf.function(input_signature=inputs_signature)
