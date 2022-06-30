@@ -37,6 +37,9 @@ def compare_results(mlir_results, tflite_results, details):
         tflite_result = tflite_results[i]
         mlir_result = mlir_result.astype(np.single)
         tflite_result = tflite_result.astype(np.single)
+        mlir_result = np.expand_dims(mlir_result, axis=0)
+        print("mlir_result.shape", mlir_result.shape)
+        print("tflite_result.shape", tflite_result.shape)
         assert mlir_result.shape == tflite_result.shape, "shape doesnot match"
         max_error = np.max(np.abs(mlir_result - tflite_result))
         print("Max error (%d): %f", i, max_error)
@@ -95,8 +98,12 @@ class BirdsV1TfliteModuleTester:
         # Case2: Use manually set inputs
         input_details, output_details = tflite_preprocessor.get_model_details()
         inputs = generate_inputs(input_details)  # device_inputs
-        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
-        shark_module.set_frontend("tflite-tosa")
+        shark_module = SharkInference(
+            mlir_module=mlir_model,
+            function_name=func_name,
+            device=self.device,
+            mlir_dialect="tflite",
+        )
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
         tflite_results = tflite_preprocessor.get_raw_model_output()

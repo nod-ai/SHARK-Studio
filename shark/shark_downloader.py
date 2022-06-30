@@ -52,7 +52,9 @@ class SharkDownloader:
             print("Error. No tank_url, No model name,Please input either one.")
             return
 
-        self.workdir = os.path.join(os.path.dirname(__file__), self.local_tank_dir)
+        self.workdir = os.path.join(
+            os.path.dirname(__file__), self.local_tank_dir
+        )
         os.makedirs(self.workdir, exist_ok=True)
         print(f"TMP_MODEL_DIR = {self.workdir}")
         # use model name get dir.
@@ -82,15 +84,9 @@ class SharkDownloader:
         print("load json inputs")
         if self.model_type in ["tflite-tosa"]:
             input_url = (
-                self.tank_url
-                + "/"
-                + str(self.model_name)
-                + "/"
-                + "input.json"
+                self.tank_url + "/" + str(self.model_name) + "/" + "input.json"
             )
-            input_file = "/".join(
-                [self.model_name_dir, str(self.input_json)]
-            )
+            input_file = "/".join([self.model_name_dir, str(self.input_json)])
             if os.path.exists(input_file):
                 print("Input has been downloaded before.", input_file)
             else:

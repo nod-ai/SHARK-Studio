@@ -31,6 +31,9 @@ def compare_results(mlir_results, tflite_results, details):
         tflite_result = tflite_results[i]
         mlir_result = mlir_result.astype(np.single)
         tflite_result = tflite_result.astype(np.single)
+        mlir_result = np.expand_dims(mlir_result, axis=0)
+        print("mlir_result.shape", mlir_result.shape)
+        print("tflite_result.shape", tflite_result.shape)
         assert mlir_result.shape == tflite_result.shape, "shape doesnot match"
         max_error = np.max(np.abs(mlir_result - tflite_result))
         print("Max error (%d): %f", i, max_error)

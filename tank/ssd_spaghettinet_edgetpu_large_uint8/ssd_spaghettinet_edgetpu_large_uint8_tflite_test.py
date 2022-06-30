@@ -53,7 +53,7 @@ class SpaghettinetTfliteModuleTester:
 
         # Preprocess to get SharkImporter input args
         tflite_preprocessor = TFLitePreprocessor(
-            model_name="ssd_spaghettinet_edgetpu_large"
+            model_name="ssd_spaghettinet_edgetpu_large_uint8"
         )
         raw_model_file_path = tflite_preprocessor.get_raw_model_file()
         inputs = tflite_preprocessor.get_inputs()
