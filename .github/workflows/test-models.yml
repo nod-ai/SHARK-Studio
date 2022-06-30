@@ -44,7 +44,8 @@ jobs:
     - name: Set up Python Version File ${{ matrix.python-version }}
       if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
       run: |
-        echo ${{ matrix.python-version }} >> $GITHUB_WORKSPACE/.python_version
+        # See https://github.com/actions/setup-python/issues/433
+        echo ${{ matrix.python-version }} >> $GITHUB_WORKSPACE/.python-version
     
     - name: Set up Python ${{ matrix.python-version }}
       if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
