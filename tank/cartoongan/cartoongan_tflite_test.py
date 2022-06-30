@@ -4,6 +4,7 @@ from shark.shark_inference import SharkInference
 import pytest
 import unittest
 from shark.parser import shark_args
+from shark.tflite_utils import TFLitePreprocessor
 
 
 # model_path = "https://tfhub.dev/sayakpaul/lite-model/cartoongan/dr/1?lite-format=tflite"
@@ -38,23 +39,37 @@ class CartoonganTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        my_shark_importer = SharkImporter(model_name="cartoongan", model_type="tflite")
 
-        mlir_model = my_shark_importer.get_mlir_model()
-        inputs = my_shark_importer.get_inputs()
-        shark_module = SharkInference(mlir_model, inputs, device=self.device, dynamic=self.dynamic)
-        shark_module.set_frontend("tflite-tosa")
+        tflite_preprocessor = TFLitePreprocessor(model_name="cartoongan")
+        raw_model_file_path = tflite_preprocessor.get_raw_model_file()
+        inputs = tflite_preprocessor.get_inputs()
+        tflite_interpreter = tflite_preprocessor.get_interpreter()
+
+        my_shark_importer = SharkImporter(
+            module=tflite_interpreter,
+            inputs=inputs,
+            frontend="tflite",
+            raw_model_file=raw_model_file_path,
+        )
+        mlir_model, func_name = my_shark_importer.import_mlir()
+
+        shark_module = SharkInference(
+            mlir_module=mlir_model,
+            function_name=func_name,
+            device=self.device,
+            mlir_dialect="tflite",
+        )
 
         # Case1: Use shark_importer default generate inputs
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
         ## post process results for compare
-        input_details, output_details = my_shark_importer.get_model_details()
+        input_details, output_details = tflite_preprocessor.get_model_details()
         mlir_results = list(mlir_results)
         for i in range(len(output_details)):
             dtype = output_details[i]["dtype"]
             mlir_results[i] = mlir_results[i].astype(dtype)
-        tflite_results = my_shark_importer.get_raw_model_output()
+        tflite_results = tflite_preprocessor.get_raw_model_output()
         compare_results(mlir_results, tflite_results, output_details)
 
 

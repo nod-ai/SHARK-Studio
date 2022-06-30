@@ -58,12 +58,14 @@ class AlbertTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        tflite_preprocessor = TFLitePreprocessor(model_name="albert_lite_base")
 
+        # Preprocess to get SharkImporter input args
+        tflite_preprocessor = TFLitePreprocessor(model_name="albert_lite_base")
         raw_model_file_path = tflite_preprocessor.get_raw_model_file()
         inputs = tflite_preprocessor.get_inputs()
         tflite_interpreter = tflite_preprocessor.get_interpreter()
 
+        # Use SharkImporter to get SharkInference input args
         my_shark_importer = SharkImporter(
             module=tflite_interpreter,
             inputs=inputs,
@@ -72,6 +74,7 @@ class AlbertTfliteModuleTester:
         )
         mlir_model, func_name = my_shark_importer.import_mlir()
 
+        # Use SharkInference to get inference result
         shark_module = SharkInference(
             mlir_module=mlir_model,
             function_name=func_name,
