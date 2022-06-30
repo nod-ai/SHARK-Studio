@@ -31,7 +31,10 @@ jobs:
           - os: MacStudio
             suite: gpu
           - os: MacStudio
-            suite: vulkan           
+            suite: vulkan
+          - os: a100
+            # For now ignore cpu tests on a100 since we don't have that many runners and it is tests on macos
+            suite: cpu
 
     runs-on: ${{ matrix.os }}
 
