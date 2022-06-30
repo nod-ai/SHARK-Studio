@@ -28,23 +28,20 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install flake8 pytest toml black
-
-    - name: Lint with black & flake8
-      run: |
-        # black format check
-        black --line-length 127 --check .
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py
-
     - name: Validate Models
       run: |
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
+        # Get the lint flake8/black tools
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest toml black
+        # Run lint checks
+        # black format check
+        # black --line-length 127 --check .
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py
+
         pytest -k 'not benchmark' --ignore=tank/tf/  --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
