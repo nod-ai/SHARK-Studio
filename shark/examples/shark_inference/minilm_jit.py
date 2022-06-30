@@ -32,7 +32,7 @@ mlir_importer = SharkImporter(
 
 # torch hugging face models needs tracing..
 (minilm_mlir, func_name), inputs, golden_out = mlir_importer.import_debug(
-    tracing_required=True
+    use_tracing=True, dynamic_axis=None
 )
 
 print(golden_out)
