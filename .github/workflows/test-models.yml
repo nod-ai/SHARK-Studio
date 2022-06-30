@@ -11,13 +11,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-linux:
-
-    runs-on: ubuntu-latest
+  build-validate:
     strategy:
       fail-fast: true
       matrix:
+        os: [a100, MacStudio]
         python-version: ["3.10"]
+
+    runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
@@ -25,24 +26,16 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-    
-    - name: Setup pip cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest toml black
 
-    - name: Lint with flake8
+    - name: Lint with black & flake8
       run: |
         # black format check
-        black --line-length 80 --check .
+        black --line-length 127 --check .
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
@@ -51,85 +44,6 @@ jobs:
     - name: Validate Models
       run: |
         cd $GITHUB_WORKSPACE
-        IMPORTER=1 ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest -k 'not benchmark' --ignore=tank/tf/  --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
-        
-  perf-macOS:
-    runs-on: MacStudio
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.10"]
-
-    steps:
-    - uses: actions/checkout@v3   
-    - name: Validate Models dependencies
-      run: |
-        cd $GITHUB_WORKSPACE
-        PYTHON=python3.10 IMPORTER=1 ./setup_venv.sh
-        source shark.venv/bin/activate
-        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=tank/tf/ --ignore=shark/tests/test_shark_importer.py 
-         
-  perf-linux-cuda:
-    runs-on: a100
-    timeout-minutes: 300
-    continue-on-error: false
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version: ["3.10"]
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Setup pip cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Validate Models
-      run: |
-        cd $GITHUB_WORKSPACE
-        IMPORTER=1 ./setup_venv.sh
-        source shark.venv/bin/activate
-        pytest -k 'gpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
-        
-              
-  perf-linux-vulkan:
-    runs-on: a100
-    timeout-minutes: 300
-    continue-on-error: false
-    strategy:
-      fail-fast: true
-      matrix:
-        python-version: ["3.10"]
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Setup pip cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Validate Models
-      run: |
-        cd $GITHUB_WORKSPACE
-        IMPORTER=1 ./setup_venv.sh
-        source shark.venv/bin/activate
-        pytest -k 'vulkan' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
