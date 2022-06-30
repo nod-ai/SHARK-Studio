@@ -1,32 +1,27 @@
-# RUN: %PYTHON %s
 import numpy as np
 from shark.shark_importer import SharkImporter
-import pytest
-from shark.parser import shark_args
 from shark.shark_inference import SharkInference
-from shark.tflite_utils import TFLitePreprocessor
+import pytest
+import unittest
+from shark.parser import shark_args
+import os
 import sys
+from tank.tflite import imagenet_data
+from shark.tflite_utils import TFLitePreprocessor
 
-# model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
+
+# model_path = "https://storage.googleapis.com/iree-model-artifacts/mobilenet_v2_1.0_224.tflite"
 
 
-# Inputs modified to be useful albert inputs.
 def generate_inputs(input_details):
-    for input in input_details:
-        print(str(input["shape"]), input["dtype"].__name__)
+    exe_basename = os.path.basename(sys.argv[0])
+    workdir = os.path.join(os.path.dirname(__file__), "../tmp", exe_basename)
+    os.makedirs(workdir, exist_ok=True)
 
-    args = []
-    args.append(
-        np.random.randint(
-            low=0,
-            high=256,
-            size=input_details[0]["shape"],
-            dtype=input_details[0]["dtype"],
-        )
-    )
-    args.append(np.ones(shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]))
-    args.append(np.zeros(shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]))
-    return args
+    inputs = imagenet_data.generate_input(workdir, input_details)
+    # Normalize inputs to [-1, 1].
+    inputs = (inputs.astype("float32") / 127.5) - 1
+    return [inputs]
 
 
 def compare_results(mlir_results, tflite_results, details):
@@ -37,12 +32,15 @@ def compare_results(mlir_results, tflite_results, details):
         tflite_result = tflite_results[i]
         mlir_result = mlir_result.astype(np.single)
         tflite_result = tflite_result.astype(np.single)
+        mlir_result = np.expand_dims(mlir_result, axis=0)
+        print("mlir_result.shape", mlir_result.shape)
+        print("tflite_result.shape", tflite_result.shape)
         assert mlir_result.shape == tflite_result.shape, "shape doesnot match"
         max_error = np.max(np.abs(mlir_result - tflite_result))
         print("Max error (%d): %f", i, max_error)
 
 
-class AlbertTfliteModuleTester:
+class MobilenetTfliteModuleTester:
     def __init__(
         self,
         dynamic=False,
@@ -58,12 +56,14 @@ class AlbertTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        tflite_preprocessor = TFLitePreprocessor(model_name="albert_lite_base")
 
+        # Preprocess to get SharkImporter input args
+        tflite_preprocessor = TFLitePreprocessor(model_name="mobilenet_v2_1.0_224")
         raw_model_file_path = tflite_preprocessor.get_raw_model_file()
         inputs = tflite_preprocessor.get_inputs()
         tflite_interpreter = tflite_preprocessor.get_interpreter()
 
+        # Use SharkImporter to get SharkInference input args
         my_shark_importer = SharkImporter(
             module=tflite_interpreter,
             inputs=inputs,
@@ -72,6 +72,7 @@ class AlbertTfliteModuleTester:
         )
         mlir_model, func_name = my_shark_importer.import_mlir()
 
+        # Use SharkInference to get inference result
         shark_module = SharkInference(
             mlir_module=mlir_model,
             function_name=func_name,
@@ -109,24 +110,29 @@ class AlbertTfliteModuleTester:
         # print(mlir_results)
 
 
-# A specific case can be run by commenting different cases. Runs all the test
-# across cpu, gpu and vulkan according to available drivers.
-pytest_param = pytest.mark.parametrize(
-    ("dynamic", "device"),
-    [
-        pytest.param(False, "cpu"),
-        # TODO: Language models are failing for dynamic case..
-        pytest.param(True, "cpu", marks=pytest.mark.skip),
-    ],
-)
+class MobilenetTfliteModuleTest(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def configure(self, pytestconfig):
+        self.save_mlir = pytestconfig.getoption("save_mlir")
+        self.save_vmfb = pytestconfig.getoption("save_vmfb")
 
+    def setUp(self):
+        self.module_tester = MobilenetTfliteModuleTester(self)
+        self.module_tester.save_mlir = self.save_mlir
 
-@pytest_param
-@pytest.mark.xfail(sys.platform == "darwin", reason="known macos tflite install issue")
-def test_albert(dynamic, device):
-    module_tester = AlbertTfliteModuleTester(dynamic=dynamic, device=device)
-    module_tester.create_and_check_module()
+    import sys
+
+    @pytest.mark.xfail(sys.platform == "darwin", reason="known macos tflite install issue")
+    def test_module_static_cpu(self):
+        self.module_tester.dynamic = False
+        self.module_tester.device = "cpu"
+        self.module_tester.create_and_check_module()
 
 
 if __name__ == "__main__":
-    test_albert(False, "cpu")
+    # module_tester = MobilenetTfliteModuleTester()
+    # module_tester.save_mlir = True
+    # module_tester.save_vmfb = True
+    # module_tester.create_and_check_module()
+
+    unittest.main()

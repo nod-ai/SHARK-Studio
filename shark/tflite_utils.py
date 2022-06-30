@@ -3,7 +3,6 @@ import numpy as np
 import os
 import csv
 import urllib.request
-from shark.iree_utils._common import IREE_TARGET_MAP
 import json
 
 
