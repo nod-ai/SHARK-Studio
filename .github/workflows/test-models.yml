@@ -44,7 +44,7 @@ jobs:
       if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
       uses: actions/setup-python@v4
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '${{ matrix.python-version }}'
         cache: 'pip'
         cache-dependency-path: |
           **/requirements-importer.txt
