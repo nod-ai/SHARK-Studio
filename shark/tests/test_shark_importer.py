@@ -5,6 +5,7 @@ import pytest
 from shark.parser import shark_args
 from shark.shark_inference import SharkInference
 from shark.tflite_utils import TFLitePreprocessor
+import sys
 
 # model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
 
@@ -121,7 +122,7 @@ pytest_param = pytest.mark.parametrize(
 
 
 @pytest_param
-@pytest.mark.xfail(reason="known macos tflite install issue")
+@pytest.mark.xfail(sys.platform == "darwin", reason="known macos tflite install issue")
 def test_albert(dynamic, device):
     module_tester = AlbertTfliteModuleTester(dynamic=dynamic, device=device)
     module_tester.create_and_check_module()
