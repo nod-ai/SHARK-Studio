@@ -40,6 +40,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    
+    - name: Set up Python Version File ${{ matrix.python-version }}
+      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
+      run: |
+        cat ${{ matrix.python-version }} >> $GITHUB_WORKSPACE/.python_version
+    
     - name: Set up Python ${{ matrix.python-version }}
       if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
       uses: actions/setup-python@v4
