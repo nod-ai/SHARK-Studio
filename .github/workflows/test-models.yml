@@ -26,6 +26,8 @@ jobs:
             suite: vulkan
           - os: ubuntu-latest
             suite: gpu
+          - os: ubuntu-latest
+            suite: cpu
           - os: MacStudio
             suite: gpu
           - os: MacStudio
@@ -41,20 +43,52 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Validate Models
+    - name: Setup pip cache
+      uses: actions/cache@v3
+      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
+      with:
+        path: ~/.cache/pip
+        key: ${{ matrix.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ matrix.os }}-pip-
+          
+    - name: Install dependencies
+      if: matrix.suite == lint
       run: |
-        cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
-        source shark.venv/bin/activate
-        # Get the lint flake8/black tools
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest toml black
-        # Run lint checks
+        
+    - name: Lint with flake8
+      if: matrix.suite == lint
+      run: |
         # black format check
-        # black --line-length 127 --check .
+        black --version
+        black --line-length 127 --check .
         # stop the build if there are Python syntax errors or undefined names
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py
 
+    - name: Validate CPU Models
+      if: matrix.suite == cpu
+      run: |
+        cd $GITHUB_WORKSPACE
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
+        source shark.venv/bin/activate
         pytest -k 'not benchmark' --ignore=tank/tf/  --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+
+    - name: Validate GPU Models
+      if: matrix.suite == gpu
+      run: |
+        cd $GITHUB_WORKSPACE
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
+        source shark.venv/bin/activate
+        pytest -k 'gpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+
+    - name: Validate Vulkan Models
+      if: matrix.suite == vulkan
+      run: |
+        cd $GITHUB_WORKSPACE
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
+        source shark.venv/bin/activate
+        pytest -k 'vulkan' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py
