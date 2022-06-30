@@ -45,15 +45,7 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-
-    - name: Setup pip cache
-      uses: actions/cache@v3
-      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
-      with:
-        path: ~/.cache/pip
-        key: ${{ matrix.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ matrix.os }}-pip-
+        cache: 'pip'
           
     - name: Install dependencies
       if: matrix.suite == 'lint'
