@@ -15,15 +15,28 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [a100, MacStudio]
+        os: [a100, MacStudio, ubuntu-latest]
+        suite: [cpu,gpu,vulkan]
         python-version: ["3.10"]
+        include:
+          - os: ubuntu-latest
+            suite: lint
+        exclude:
+          - os: ubuntu-latest
+            suite: vulkan
+          - os: ubuntu-latest
+            suite: gpu
+          - os: MacStudio
+            suite: gpu
+          - os: MacStudio
+            suite: vulkan           
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
     - name: Set up Python ${{ matrix.python-version }}
-      if: matrix.os == 'a100'
+      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
