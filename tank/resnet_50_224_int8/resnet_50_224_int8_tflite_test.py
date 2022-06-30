@@ -44,9 +44,7 @@ class ResnetTfliteModuleTester:
         shark_args.save_vmfb = self.save_vmfb
 
         # Preprocess to get SharkImporter input args
-        tflite_preprocessor = TFLitePreprocessor(
-            model_name="resnet_50_224_int8"
-        )
+        tflite_preprocessor = TFLitePreprocessor(model_name="resnet_50_224_int8")
         raw_model_file_path = tflite_preprocessor.get_raw_model_file()
         inputs = tflite_preprocessor.get_inputs()
         tflite_interpreter = tflite_preprocessor.get_interpreter()
@@ -91,6 +89,7 @@ class ResnetTfliteModuleTest(unittest.TestCase):
         self.module_tester = ResnetTfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
+    @pytest.mark.xfail(reason="known macos tflite install issue")
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"

@@ -121,6 +121,7 @@ pytest_param = pytest.mark.parametrize(
 
 
 @pytest_param
+@pytest.mark.xfail(reason="known macos tflite install issue")
 def test_albert(dynamic, device):
     module_tester = AlbertTfliteModuleTester(dynamic=dynamic, device=device)
     module_tester.create_and_check_module()

@@ -55,9 +55,7 @@ class Inception_v4_299_uint8TfliteModuleTester:
         shark_args.save_vmfb = self.save_vmfb
 
         # Preprocess to get SharkImporter input args
-        tflite_preprocessor = TFLitePreprocessor(
-            model_name="inception_v4_299_uint8"
-        )
+        tflite_preprocessor = TFLitePreprocessor(model_name="inception_v4_299_uint8")
         raw_model_file_path = tflite_preprocessor.get_raw_model_file()
         inputs = tflite_preprocessor.get_inputs()
         tflite_interpreter = tflite_preprocessor.get_interpreter()
@@ -119,6 +117,7 @@ class Inception_v4_299_uint8TfliteModuleTest(unittest.TestCase):
         self.module_tester = Inception_v4_299_uint8TfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
+    @pytest.mark.xfail(reason="known macos tflite install issue")
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"
