@@ -15,6 +15,7 @@
 import torch
 import io
 import pickle
+from typing import Sequence, Union, List
 
 from torch_mlir.dialects.torch.importer.jit_ir import (
     ClassAnnotator,
@@ -31,6 +32,8 @@ from torch_mlir_e2e_test.linalg_on_tensors_backends import refbackend
 from torch_mlir.passmanager import PassManager
 from torch_mlir_e2e_test.torchscript.annotations import annotate_args, export
 from torch_mlir.ir import StringAttr
+import torch_mlir
+import sys
 
 
 def get_module_name_for_asm_dump(module):
@@ -68,72 +71,29 @@ def run_on_refbackend(torch_module, inputs):
     return jit_module.forward(np_inputs[0])
 
 
-def shark_jit_trace(
-    module, input: tuple, dynamic: bool, tracing_required: bool
-):
-    """TODO: Include necessary documentation."""
-
-    if not tracing_required:
-        return torch.jit.script(module)
-
-    traced_module = torch.jit.trace_module(module, {"forward": input})
-    actual_script = traced_module._actual_script_module
-    export(actual_script.forward)
-    annotate_args_decorator = annotate_args(
-        get_input_annotations(input, dynamic)
-    )
-    annotate_args_decorator(actual_script.forward)
-    module = torch.jit.script(actual_script)
-
-    # TODO: remove saved annotations.pickle
-    torchscript_module_bytes = module.save_to_buffer(
-        {
-            "annotations.pkl": pickle.dumps(
-                extract_serializable_annotations(module)
-            )
-        }
-    )
-    serializable_test = SerializableTest(
-        unique_name="", program=torchscript_module_bytes, trace=None
-    )
-    _extra_files = {"annotations.pkl": ""}
-    module = torch.jit.load(
-        io.BytesIO(serializable_test.program), _extra_files=_extra_files
-    )
-    # Load the pickled annotations.
-    annotations = pickle.loads(_extra_files["annotations.pkl"])
-    apply_serializable_annotations(module, annotations)
-    return module
-
-
 def get_torch_mlir_module(
     module,
     input: tuple,
-    dynamic: bool,
-    jit_trace: bool,
-    from_torchscript: bool = False,
+    use_tracing: bool,
+    dynamic_axis: Union[None, Sequence[List]] = None,
 ):
     """TODO: Include necessary documentation."""
+    if dynamic_axis != None and len(dynamic_axis) != len(input):
+        sys.stderr.write("Please mention the dynamic axis for all the inputs.")
+        sys.exit(1)
 
-    # Tracing is not required from the aot_module.
-    if not from_torchscript:
-        module = shark_jit_trace(module, input, dynamic, jit_trace)
+    dyn_inputs = input
+    if dynamic_axis != None:
+        dyn_inputs = []
+        for i, j in zip(input, dynamic_axis):
+            dyn_inputs.append(
+                torch_mlir.TensorPlaceholder.like(i, dynamic_axis=j)
+            )
 
-    mb = ModuleBuilder()
-    class_annotator = ClassAnnotator()
-    class_annotator.exportNone(module._c._type())
-    class_annotator.exportPath(module._c._type(), ["forward"])
-    class_annotator.annotateArgs(
-        module._c._type(),
-        ["forward"],
-        get_input_annotations(input, dynamic),
+    module = torch_mlir.compile(
+        module,
+        input,
+        output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
+        use_tracing=use_tracing,
     )
-    mb.import_module(module._c, class_annotator)
-
-    with mb.module.context:
-        pm = PassManager.parse(
-            "torchscript-module-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline"
-        )
-        pm.run(mb.module)
-
-    return mb.module
+    return module

@@ -66,11 +66,11 @@ class SharkImporter:
 
     # NOTE: The default function for torch is "forward" and tf-lite is "main".
 
-    def _torch_mlir(self, is_dynamic, tracing_required):
+    def _torch_mlir(self, use_tracing, dynamic_axis):
         from shark.torch_mlir_utils import get_torch_mlir_module
 
         return get_torch_mlir_module(
-            self.module, self.inputs, is_dynamic, tracing_required
+            self.module, self.inputs, use_tracing, dynamic_axis
         )
 
     def _tf_mlir(self, func_name):
@@ -94,8 +94,8 @@ class SharkImporter:
     # Adds the conversion of the frontend with the private function.
     def import_mlir(
         self,
-        is_dynamic=False,
-        tracing_required=False,
+        use_tracing=False,
+        dynamic_axis=None,
         func_name="forward",
     ):
         if self.frontend in ["torch", "pytorch"]:
@@ -104,7 +104,7 @@ class SharkImporter:
                     "Please pass in the inputs, the inputs are required to determine the shape of the mlir_module"
                 )
                 sys.exit(1)
-            return self._torch_mlir(is_dynamic, tracing_required), func_name
+            return self._torch_mlir(use_tracing, dynamic_axis), func_name
         if self.frontend in ["tf", "tensorflow"]:
             return self._tf_mlir(func_name), func_name
         if self.frontend in ["tflite", "tf-lite"]:
@@ -120,8 +120,8 @@ class SharkImporter:
 
     def import_debug(
         self,
-        is_dynamic=False,
-        tracing_required=False,
+        use_tracing=False,
+        dynamic_axis=False,
         func_name="forward",
     ):
         if self.inputs == None:
@@ -130,9 +130,7 @@ class SharkImporter:
             )
             sys.exit(1)
 
-        imported_mlir = self.import_mlir(
-            is_dynamic, tracing_required, func_name
-        )
+        imported_mlir = self.import_mlir(use_tracing, dynamic_axis, func_name)
         # TODO: Make sure that any generic function name is accepted. Currently takes in the default function names.
         # TODO: Check for multiple outputs.
         if self.frontend in ["torch", "pytorch"]:
