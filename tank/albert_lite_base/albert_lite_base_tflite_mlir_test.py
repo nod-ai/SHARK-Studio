@@ -21,7 +21,7 @@ class AlbertTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        self.shark_downloader = SharkDownloader(
+        shark_downloader = SharkDownloader(
             model_name="albert_lite_base",
             tank_url="https://storage.googleapis.com/shark_tank",
             local_tank_dir="./../gen_shark_tank",
@@ -29,18 +29,17 @@ class AlbertTfliteModuleTester:
             input_json="input.json",
             input_type="int32",
         )
-        tflite_tosa_model = self.shark_downloader.get_mlir_file()
-        inputs = self.shark_downloader.get_inputs()
-        self.shark_module = SharkInference(
-            tflite_tosa_model,
-            inputs,
+        tflite_tosa_model = shark_downloader.get_mlir_file()
+        inputs = shark_downloader.get_inputs()
+
+        shark_module = SharkInference(
+            mlir_module=tflite_tosa_model,
+            function_name="main",
             device=self.device,
-            dynamic=self.dynamic,
-            jit_trace=True,
+            mlir_dialect="tflite",
         )
-        self.shark_module.set_frontend("tflite-tosa")
-        self.shark_module.compile()
-        self.shark_module.forward(inputs)
+        shark_module.compile()
+        shark_module.forward(inputs)
         # print(shark_results)
 
 
@@ -61,9 +60,9 @@ class AlbertTfliteModuleTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
-    # module_tester = AlbertTfliteModuleTester()
-    # module_tester.create_and_check_module()
+    # unittest.main()
+    module_tester = AlbertTfliteModuleTester()
+    module_tester.create_and_check_module()
 
 # TEST RESULT:
 # (shark.venv) nod% python albert_lite_base_tflite_mlir_test.py

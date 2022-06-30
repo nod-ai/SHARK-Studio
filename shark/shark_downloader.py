@@ -52,6 +52,21 @@ class SharkDownloader:
             print("Error. No tank_url, No model name,Please input either one.")
             return
 
+        self.workdir = os.path.join(os.path.dirname(__file__), self.local_tank_dir)
+        os.makedirs(self.workdir, exist_ok=True)
+        print(f"TMP_MODEL_DIR = {self.workdir}")
+        # use model name get dir.
+        self.model_name_dir = os.path.join(self.workdir, str(self.model_name))
+        if not os.path.exists(self.model_name_dir):
+            print(
+                "Model has not been download."
+                "shark_downloader will automatically download by "
+                "tank_url if provided. You can also manually to "
+                "download the model from shark_tank by yourself."
+            )
+        os.makedirs(self.model_name_dir, exist_ok=True)
+        print(f"TMP_MODELNAME_DIR = {self.model_name_dir}")
+
         # read inputs from json file
         self.load_json_input()
         # get milr model file
@@ -66,42 +81,65 @@ class SharkDownloader:
     def load_json_input(self):
         print("load json inputs")
         if self.model_type in ["tflite-tosa"]:
+            input_url = (
+                self.tank_url
+                + "/"
+                + str(self.model_name)
+                + "/"
+                + "input.json"
+            )
+            input_file = "/".join(
+                [self.model_name_dir, str(self.input_json)]
+            )
+            if os.path.exists(input_file):
+                print("Input has been downloaded before.", input_file)
+            else:
+                print("Download input", input_url)
+                urllib.request.urlretrieve(input_url, input_file)
+
             args = []
-            with open(self.input_json, "r") as f:
+            with open(input_file, "r") as f:
                 args = json.load(f)
             self.inputs = [np.asarray(arg, dtype=self.input_type) for arg in args]
         else:
-            print("No json input required for current model type. You could call setup_inputs(YOU_INPUTS).")
+            print(
+                "No json input required for current model type. "
+                "You could call setup_inputs(YOU_INPUTS)."
+            )
         return self.inputs
 
     def load_mlir_model(self):
-        workdir = os.path.join(os.path.dirname(__file__), self.local_tank_dir)
-        os.makedirs(workdir, exist_ok=True)
-        print(f"TMP_MODEL_DIR = {workdir}")
-        # use model name get dir.
-        model_name_dir = os.path.join(workdir, str(self.model_name))
-        if not os.path.exists(model_name_dir):
-            print(
-                "Model has not been download."
-                "shark_downloader will automatically download by tank_url if provided."
-                " You can also manually to download the model from shark_tank by yourself."
-            )
-        os.makedirs(model_name_dir, exist_ok=True)
-        print(f"TMP_MODELNAME_DIR = {model_name_dir}")
-
         if self.model_type in ["tflite-tosa"]:
-            self.mlir_url = self.tank_url + "/" + str(self.model_name) + "/" + str(self.model_name) + "_tflite.mlir"
-            self.mlir_file = "/".join([model_name_dir, str(self.model_name) + "_tfite.mlir"])
+            self.mlir_url = (
+                self.tank_url
+                + "/"
+                + str(self.model_name)
+                + "/"
+                + str(self.model_name)
+                + "_tflite.mlir"
+            )
+            self.mlir_file = "/".join(
+                [self.model_name_dir, str(self.model_name) + "_tfite.mlir"]
+            )
         elif self.model_type in ["tensorflow"]:
-            self.mlir_url = self.tank_url + "/" + str(self.model_name) + "/" + str(self.model_name) + "_tf.mlir"
-            self.mlir_file = "/".join([model_name_dir, str(self.model_name) + "_tf.mlir"])
+            self.mlir_url = (
+                self.tank_url
+                + "/"
+                + str(self.model_name)
+                + "/"
+                + str(self.model_name)
+                + "_tf.mlir"
+            )
+            self.mlir_file = "/".join(
+                [self.model_name_dir, str(self.model_name) + "_tf.mlir"]
+            )
         elif self.model_type in ["torch", "jax", "mhlo", "tosa"]:
             self.mlir_url = (
                 self.tank_url + "/" + str(self.model_name) + "/" + str(self.model_name) + "_" + str(self.model_type) + ".mlir"
             )
             self.mlir_file = "/".join(
                 [
-                    model_name_dir,
+                    self.model_name_dir,
                     str(self.model_name) + "_" + str(self.model_type) + ".mlir",
                 ]
             )
