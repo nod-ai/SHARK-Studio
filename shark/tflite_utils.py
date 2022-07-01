@@ -63,6 +63,7 @@ class TFLitePreprocessor:
         self.mlir_model = None  # read of .mlir file
         self.output_tensor = None  # the raw tf/pytorch/tflite_output_tensor, not mlir_tensor
         self.interpreter = None  # could be tflite/tf/torch_interpreter in utils
+        self.input_file = None
 
         # create tmp model file directory
         if self.model_path is None and self.model_name is None:
@@ -81,7 +82,7 @@ class TFLitePreprocessor:
             return
 
         if (self.input_details is None) or (self.output_details is None):
-            print("Setting up tflite interpreter to get model input details")
+            # print("Setting up tflite interpreter to get model input details")
             self.setup_interpreter()
 
             inputs = self.generate_inputs(self.input_details)  # device_inputs
@@ -96,6 +97,7 @@ class TFLitePreprocessor:
 
         self.raw_model_file = "/".join([tflite_model_name_dir, str(self.model_name) + "_tflite.tflite"])
         self.mlir_file = "/".join([tflite_model_name_dir, str(self.model_name) + "_tflite.mlir"])
+        self.input_file = "/".join([tflite_model_name_dir, "input.json"])
 
         if os.path.exists(self.raw_model_file):
             print(
@@ -121,24 +123,6 @@ class TFLitePreprocessor:
                 print("Error, No model path find in tflite_model_list.csv")
                 return False
             urllib.request.urlretrieve(self.model_path, self.raw_model_file)
-        # if os.path.exists(self.mlir_file):
-        #     print("Exists MLIR model ", self.mlir_file)
-        # else:
-        #     print(
-        #         "No tflite tosa.mlir, please use python generate_sharktank.py to download tosa model"
-        #     )
-        #     print("Convert tflite to tosa.mlir")
-        #     import iree.compiler.tflite as ireec_tflite
-        #
-        #     ireec_tflite.compile_file(
-        #         self.raw_model_file,
-        #         input_type="tosa",
-        #         save_temp_iree_input=self.mlir_file,
-        #         target_backends=[IREE_TARGET_MAP["cpu"]],
-        #         import_only=False,
-        #     )
-        # with open(self.mlir_file) as f:
-        #     self.mlir_model = f.read()
         return True
 
     def setup_interpreter(self):
@@ -151,19 +135,19 @@ class TFLitePreprocessor:
     def generate_inputs(self, input_details):
         self.inputs = []
         for tmp_input in input_details:
-            print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
+            # print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
             self.inputs.append(np.ones(shape=tmp_input["shape"], dtype=tmp_input["dtype"]))
         # save inputs into json file
         tmp_json = []
         for tmp_input in input_details:
-            print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
+            # print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
             tmp_json.append(np.ones(shape=tmp_input["shape"], dtype=tmp_input["dtype"]).tolist())
-        with open("input1.json", "w") as f:
+        with open(self.input_file, "w") as f:
             json.dump(tmp_json, f)
         return self.inputs
 
     def setup_inputs(self, inputs):
-        print("Setting up inputs")
+        # print("Setting up inputs")
         self.inputs = inputs
 
     def get_mlir_model(self):
