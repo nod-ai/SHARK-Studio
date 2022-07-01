@@ -25,7 +25,7 @@ def generate_inputs(input_details):
     )
     args.append(np.ones(shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]))
     args.append(np.zeros(shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]))
-    return
+    return args
 
 
 def compare_results(mlir_results, tflite_results, details):
