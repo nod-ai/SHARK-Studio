@@ -14,4 +14,4 @@ ssd_mobilenet_v2_fpnlite_dynamic_1.0_float, https://storage.googleapis.com/iree-
 ssd_mobilenet_v2_fpnlite_dynamic_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_fpnlite_dynamic_1.0_uint8.tflite
 ssd_mobilenet_v2_dynamic_1.0_int8, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_dynamic_1.0_int8.tflite
 ssd_mobilenet_v2_dynamic_1.0_float, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v2_dynamic_1.0_float.tflite
-
+person_detect, https://github.com/tensorflow/tflite-micro/raw/aeac6f39e5c7475cea20c54e86d41e3a38312546/tensorflow/lite/micro/models/person_detect.tflite

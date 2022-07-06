@@ -27,7 +27,6 @@ mobilenet_v3-large_224_1.0_float, https://storage.googleapis.com/iree-model-arti
 mobilenet_v3-large_224_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/mobilenet_v3-large_224_1.0_uint8.tflite
 mobilenet_v3.5multiavg_1.00_224_int8, https://storage.googleapis.com/tf_model_garden/vision/mobilenet/v3.5multiavg_1.0_int8/mobilenet_v3.5multiavg_1.00_224_int8.tflite
 nasnet, https://tfhub.dev/tensorflow/lite-model/nasnet/large/1/default/1?lite-format=tflite
-person_detect, https://github.com/tensorflow/tflite-micro/raw/aeac6f39e5c7475cea20c54e86d41e3a38312546/tensorflow/lite/micro/models/person_detect.tflite
 multi_person_mobilenet_v1_075_float, https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/multi_person_mobilenet_v1_075_float.tflite
 resnet_50_224_int8, https://storage.googleapis.com/tf_model_garden/vision/resnet50_imagenet/resnet_50_224_int8.tflite
 squeezenet, https://tfhub.dev/tensorflow/lite-model/squeezenet/1/default/1?lite-format=tflite

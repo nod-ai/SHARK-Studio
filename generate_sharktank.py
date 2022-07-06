@@ -15,8 +15,7 @@ import os
 import urllib.request
 import csv
 import argparse
-import iree.compiler.tflite as ireec_tflite
-from shark.iree_utils._common import IREE_TARGET_MAP
+from shark.shark_importer import SharkImporter
 
 
 class SharkTank:
@@ -32,76 +31,77 @@ class SharkTank:
         self.tflite_model_list = tflite_model_list
         self.upload = upload
 
+        print("Setting up for TMP_DIR")
+        self.workdir = os.path.join(os.path.dirname(__file__), "./gen_shark_tank")
+        print(f"tflite TMP_shark_tank_DIR = {self.workdir}")
+        os.makedirs(self.workdir, exist_ok=True)
+
         if self.torch_model_list is not None:
-            print("Process torch model")
-        else:
-            print("Torch sharktank not implemented yet")
+            self.save_torch_model()
+
         if self.tf_model_list is not None:
-            print("Process torch model")
-        else:
-            print("tf sharktank not implemented yet")
+            self.save_tf_model()
 
         print("self.tflite_model_list: ", self.tflite_model_list)
         # compile and run tfhub tflite
         if self.tflite_model_list is not None:
-            print("Setting up for tflite TMP_DIR")
-            self.tflite_workdir = os.path.join(os.path.dirname(__file__), "./gen_shark_tank")
-            print(f"tflite TMP_shark_tank_DIR = {self.tflite_workdir}")
-            os.makedirs(self.tflite_workdir, exist_ok=True)
+            self.save_tflite_model()
 
-            with open(self.tflite_model_list) as csvfile:
-                tflite_reader = csv.reader(csvfile, delimiter=",")
-                for row in tflite_reader:
-                    tflite_model_name = row[0]
-                    tflite_model_link = row[1]
-                    print("tflite_model_name", tflite_model_name)
-                    print("tflite_model_link", tflite_model_link)
-                    tflite_model_name_dir = os.path.join(self.tflite_workdir, str(tflite_model_name))
-                    os.makedirs(tflite_model_name_dir, exist_ok=True)
-
-                    tflite_saving_file = "/".join(
-                        [
-                            tflite_model_name_dir,
-                            str(tflite_model_name) + "_tflite.tflite",
-                        ]
-                    )
-                    tflite_tosa_file = "/".join(
-                        [
-                            tflite_model_name_dir,
-                            str(tflite_model_name) + "_tflite.mlir",
-                        ]
-                    )
-                    self.binary = "/".join(
-                        [
-                            tflite_model_name_dir,
-                            str(tflite_model_name) + "_module.bytecode",
-                        ]
-                    )
-                    print(
-                        "Setting up local address for tflite model file: ",
-                        tflite_saving_file,
-                    )
-                    if os.path.exists(tflite_saving_file):
-                        print(tflite_saving_file, "exists")
-                    else:
-                        print("Download tflite model")
-                        urllib.request.urlretrieve(str(tflite_model_link), tflite_saving_file)
-
-                    if os.path.exists(tflite_tosa_file):
-                        print("Exists", tflite_tosa_file)
-                    else:
-                        print("Convert tflite to tosa.mlir")
-                        ireec_tflite.compile_file(
-                            tflite_saving_file,
-                            input_type="tosa",
-                            save_temp_iree_input=tflite_tosa_file,
-                            target_backends=[IREE_TARGET_MAP["cpu"]],
-                            import_only=False,
-                        )
-
-        if self.upload == True:
+        if self.upload:
             print("upload tmp tank to gcp")
             os.system("gsutil cp -r ./gen_shark_tank gs://shark_tank/")
+
+    def save_torch_model(self):
+        from tank.model_utils import get_hf_model
+
+        print("Torch sharktank not implemented yet")
+
+    def save_tf_model(self):
+        print("tf sharktank not implemented yet")
+
+    def save_tflite_model(self):
+        from shark.tflite_utils import TFLitePreprocessor
+
+        with open(self.tflite_model_list) as csvfile:
+            tflite_reader = csv.reader(csvfile, delimiter=",")
+            for row in tflite_reader:
+                tflite_model_name = row[0]
+                tflite_model_link = row[1]
+                print("tflite_model_name", tflite_model_name)
+                print("tflite_model_link", tflite_model_link)
+                tflite_model_name_dir = os.path.join(self.workdir, str(tflite_model_name))
+                os.makedirs(tflite_model_name_dir, exist_ok=True)
+                print(f"TMP_TFLITE_MODELNAME_DIR = {tflite_model_name_dir}")
+
+                tflite_tosa_file = "/".join(
+                    [
+                        tflite_model_name_dir,
+                        str(tflite_model_name) + "_tflite.mlir",
+                    ]
+                )
+
+                # Preprocess to get SharkImporter input args
+                tflite_preprocessor = TFLitePreprocessor(str(tflite_model_name))
+                raw_model_file_path = tflite_preprocessor.get_raw_model_file()
+                inputs = tflite_preprocessor.get_inputs()
+                tflite_interpreter = tflite_preprocessor.get_interpreter()
+
+                # Use SharkImporter to get SharkInference input args
+                my_shark_importer = SharkImporter(
+                    module=tflite_interpreter,
+                    inputs=inputs,
+                    frontend="tflite",
+                    raw_model_file=raw_model_file_path,
+                )
+                mlir_model, func_name = my_shark_importer.import_mlir()
+
+                if os.path.exists(tflite_tosa_file):
+                    print("Exists", tflite_tosa_file)
+                else:
+                    mlir_str = mlir_model.decode("utf-8")
+                    with open(tflite_tosa_file, "w") as f:
+                        f.write(mlir_str)
+                    print(f"Saved mlir in {tflite_tosa_file}")
 
 
 if __name__ == "__main__":
