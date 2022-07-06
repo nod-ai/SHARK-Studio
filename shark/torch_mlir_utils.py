@@ -31,6 +31,7 @@ from torch_mlir_e2e_test.linalg_on_tensors_backends import refbackend
 from torch_mlir.passmanager import PassManager
 from torch_mlir_e2e_test.torchscript.annotations import annotate_args, export
 from torch_mlir.ir import StringAttr
+import torch_mlir
 
 
 def get_module_name_for_asm_dump(module):
@@ -100,6 +101,18 @@ def get_torch_mlir_module(
     from_torchscript: bool = False,
 ):
     """TODO: Include necessary documentation."""
+
+    # Static modules compiles well with the torch_mlir.compile API.
+    # We will always jit_trace = True with the API since we always
+    # want to propagate static shapes.
+    if not dynamic:
+        module = torch_mlir.compile(
+            module,
+            input,
+            output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
+            use_tracing=jit_trace,
+        )
+        return module
 
     # Tracing is not required from the aot_module.
     if not from_torchscript:
