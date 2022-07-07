@@ -32,10 +32,11 @@ class SharkTank:
         self.upload = upload
 
         print("Setting up for TMP_DIR")
-        self.workdir = os.path.join(os.path.dirname(__file__), "./gen_shark_tank")
+        self.workdir = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
         print(f"tflite TMP_shark_tank_DIR = {self.workdir}")
         os.makedirs(self.workdir, exist_ok=True)
 
+        print("self.torch_model_list: ", self.torch_model_list)
         if self.torch_model_list is not None:
             self.save_torch_model()
 
@@ -53,6 +54,81 @@ class SharkTank:
 
     def save_torch_model(self):
         from tank.model_utils import get_hf_model
+        from tank.model_utils import get_vision_model, models_dict
+        import torch
+
+        with open(self.torch_model_list) as csvfile:
+            torch_reader = csv.reader(csvfile, delimiter=",")
+            for row in torch_reader:
+                torch_model_name = row[0]
+                print("----------------- torch_model_name", torch_model_name)
+                is_dynamic = row[1]
+                tracing_required = row[2]
+
+                torch_file = ""
+                torch_mlir_file = ""
+                model = []
+                input = []
+                if str(torch_model_name)[0:7] == "models.":
+                    print("pretrained model")
+                    model, input, act_out = get_vision_model(models_dict[torch_model_name](pretrained=True))
+
+                    torch_model_name_dir = os.path.join(self.workdir, str(torch_model_name)[7:])
+                    os.makedirs(torch_model_name_dir, exist_ok=True)
+                    print(f"TMP_TORCH_MODELNAME_DIR = {torch_model_name_dir}")
+                    torch_file = "/".join(
+                        [
+                            torch_model_name_dir,
+                            str(torch_model_name)[7:] + ".pt",
+                        ]
+                    )
+                    torch_mlir_file = "/".join(
+                        [
+                            torch_model_name_dir,
+                            str(torch_model_name)[7:] + "_torch.mlir",
+                        ]
+                    )
+                else:
+                    model, input, act_out = get_hf_model(str(torch_model_name))
+
+                    torch_model_name_dir = os.path.join(self.workdir, str(torch_model_name))
+                    os.makedirs(torch_model_name_dir, exist_ok=True)
+                    print(f"TMP_TORCH_MODELNAME_DIR = {torch_model_name_dir}")
+                    torch_file = "/".join(
+                        [
+                            torch_model_name_dir,
+                            str(torch_model_name) + ".pt",
+                        ]
+                    )
+                    torch_mlir_file = "/".join(
+                        [
+                            torch_model_name_dir,
+                            str(torch_model_name) + "_torch.mlir",
+                        ]
+                    )
+
+                # save torch model
+                if os.path.exists(torch_file):
+                    print("Exists", torch_file)
+                else:
+                    torch.save(model.state_dict(), torch_file)
+
+                # get mlir model
+                mlir_importer = SharkImporter(
+                    model,
+                    (input,),
+                    frontend="torch",
+                )
+                mlir_model, func_name = mlir_importer.import_mlir(is_dynamic=is_dynamic, tracing_required=tracing_required)
+
+                # save mlir model
+                if os.path.exists(torch_mlir_file):
+                    print("Exists", torch_mlir_file)
+                else:
+                    mlir_str = mlir_model.operation.get_asm()
+                    with open(torch_mlir_file, "w") as f:
+                        f.write(mlir_str)
+                    print(f"Saved mlir in {torch_mlir_file}")
 
         print("Torch sharktank not implemented yet")
 
@@ -109,13 +185,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--torch_model_list",
         type=str,
-        default="./tank/torch/torch_model_list.csv",
+        default="./tank/pytorch/torch_model_list.csv",
     )
     parser.add_argument("--tf_model_list", type=str, default="./tank/tf/tf_model_list.csv")
     parser.add_argument(
         "--tflite_model_list",
         type=str,
-        default="./tank/tflite/tflite_model_list.csv",
+        # default="./tank/tflite/tflite_model_list.csv",
     )
     parser.add_argument("--upload", type=bool, default=False)
     args = parser.parse_args()
