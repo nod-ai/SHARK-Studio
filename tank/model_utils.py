@@ -14,6 +14,9 @@ torch.manual_seed(0)
 ##################### Hugging Face LM Models ###################################
 
 
+models_dict = {"models.alexnet": models.alexnet}
+
+
 class HuggingFaceLanguage(torch.nn.Module):
     def __init__(self, hf_model_name):
         super().__init__()
