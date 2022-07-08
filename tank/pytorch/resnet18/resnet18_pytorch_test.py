@@ -1,6 +1,6 @@
 from shark.shark_inference import SharkInference
 from shark.shark_importer import SharkImporter
-from shark.iree_utils._common import check_device_drivers
+from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import get_vision_model, compare_tensors
 from shark.parser import shark_args
 
@@ -61,31 +61,25 @@ class Resnet18ModuleTest(unittest.TestCase):
         self.module_tester.device = "cpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
+    @pytest.mark.skipif(check_device_drivers("gpu"), reason=device_driver_info("gpu"))
     def test_module_static_gpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "gpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
+    @pytest.mark.skipif(check_device_drivers("gpu"), reason=device_driver_info("gpu"))
     def test_module_dynamic_gpu(self):
         self.module_tester.dynamic = True
         self.module_tester.device = "gpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"),
-        reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
-    )
+    @pytest.mark.skipif(check_device_drivers("vulkan"), reason=device_driver_info("vulkan"))
     def test_module_static_vulkan(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "vulkan"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"),
-        reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
-    )
+    @pytest.mark.skipif(check_device_drivers("vulkan"), reason=device_driver_info("vulkan"))
     def test_module_dynamic_vulkan(self):
         self.module_tester.dynamic = True
         self.module_tester.device = "vulkan"
