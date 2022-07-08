@@ -26,6 +26,9 @@ def get_vulkan_triple_flag():
     elif vulkan_device == "A100-SXM4-40GB":
         print("Found Nvidia Device. Using ampere-rtx3080-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
+    elif vulkan_device == "3090":
+        print("Found Nvidia Device. Using ampere-rtx3090-linux")
+        return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
     else:
         print(
             """Optimized kernel for your target device is not added yet.
