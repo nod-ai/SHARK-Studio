@@ -198,6 +198,7 @@ result = shark_module.forward((arg0, arg1))
 | BigBird             | :green_heart: (AOT)            |          |          |             |
 | DistilBERT          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
 | GPT2                | :broken_heart: (AOT)            |          |          |             |
+| MobileBert          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
 
 ### Torchvision  Models
 

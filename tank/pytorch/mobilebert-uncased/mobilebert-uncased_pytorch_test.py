@@ -1,19 +1,18 @@
 from shark.shark_inference import SharkInference
 from shark.shark_importer import SharkImporter
 from shark.iree_utils._common import check_device_drivers, device_driver_info
-from tank.model_utils import get_vision_model, compare_tensors
+from tank.model_utils import get_hf_model, compare_tensors
 from shark.parser import shark_args
 
 import torch
 import unittest
 import numpy as np
-import torchvision.models as models
 import pytest
 
 torch.manual_seed(0)
 
 
-class SqueezenetModuleTester:
+class MobileBertUncasedModuleTester:
     def __init__(
         self,
         dynamic=False,
@@ -27,7 +26,7 @@ class SqueezenetModuleTester:
         self.save_vmfb = save_vmfb
 
     def create_and_check_module(self):
-        model, input, act_out = get_vision_model(models.squeezenet1_0(pretrained=True))
+        model, input, act_out = get_hf_model("google/mobilebert-uncased")
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
         mlir_importer = SharkImporter(
@@ -35,21 +34,21 @@ class SqueezenetModuleTester:
             (input,),
             frontend="torch",
         )
-        minilm_mlir, func_name = mlir_importer.import_mlir(is_dynamic=self.dynamic, tracing_required=False)
+        minilm_mlir, func_name = mlir_importer.import_mlir(is_dynamic=self.dynamic, tracing_required=True)
         shark_module = SharkInference(minilm_mlir, func_name, device="cpu", mlir_dialect="linalg")
         shark_module.compile()
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
 
 
-class SqueezenetModuleTest(unittest.TestCase):
+class MobileBertModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.save_mlir = pytestconfig.getoption("save_mlir")
         self.save_vmfb = pytestconfig.getoption("save_vmfb")
 
     def setUp(self):
-        self.module_tester = SqueezenetModuleTester(self)
+        self.module_tester = MobileBertUncasedModuleTester(self)
 
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False

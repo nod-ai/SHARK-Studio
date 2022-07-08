@@ -50,31 +50,33 @@ class DistilBertModuleTest(unittest.TestCase):
     def setUp(self):
         self.module_tester = DistilBertModuleTester(self)
 
+    @pytest.mark.xfail(reason="torch_mlir lowering issues.")
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.xfail(reason="Language models currently failing for dynamic case")
+    @pytest.mark.xfail(reason="torch_mlir lowering issues.")
     def test_module_dynamic_cpu(self):
         self.module_tester.dynamic = True
         self.module_tester.device = "cpu"
         self.module_tester.create_and_check_module()
 
+    @pytest.mark.xfail(reason="torch_mlir lowering issues.")
     @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
     def test_module_static_gpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "gpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.skipif(check_device_drivers("gpu"), reason="nvidia-smi not found")
+    @pytest.mark.xfail(reason="torch_mlir lowering issues.")
     @pytest.mark.xfail(reason="Language models currently failing for dynamic case")
     def test_module_dynamic_gpu(self):
         self.module_tester.dynamic = True
         self.module_tester.device = "gpu"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
+    @pytest.mark.xfail(reason="torch_mlir lowering issues.")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
@@ -84,7 +86,7 @@ class DistilBertModuleTest(unittest.TestCase):
         self.module_tester.device = "vulkan"
         self.module_tester.create_and_check_module()
 
-    @pytest.mark.xfail(reason="https://github.com/google/iree/issues/9554")
+    @pytest.mark.xfail(reason="torch_mlir lowering issues.")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"),
         reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",

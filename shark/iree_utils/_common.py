@@ -80,10 +80,8 @@ def check_device_drivers(device):
 # Installation info for the missing device drivers.
 def device_driver_info(device):
     if device in ["gpu", "cuda"]:
-        print(
-            "nvidia-smi not found, please install the required drivers from https://www.nvidia.in/Download/index.aspx?lang=en-in"
-        )
+        return "nvidia-smi not found, please install the required drivers from https://www.nvidia.in/Download/index.aspx?lang=en-in"
     elif device in ["metal", "vulkan"]:
-        print("vulkaninfo not found, Install from https://vulkan.lunarg.com/sdk/home or your distribution")
+        return "vulkaninfo not found, Install from https://vulkan.lunarg.com/sdk/home or your distribution"
     else:
-        print(f"{device} is not supported.")
+        return f"{device} is not supported."
