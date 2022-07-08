@@ -94,6 +94,9 @@ class SharkTank:
                     torch_model_name_dir = os.path.join(self.workdir, str(torch_model_name))
                     os.makedirs(torch_model_name_dir, exist_ok=True)
                     print(f"TMP_TORCH_MODELNAME_DIR = {torch_model_name_dir}")
+                    loc = torch_model_name.find("/") + 1
+                    torch_model_name = torch_model_name[loc:]
+
                     torch_file = "/".join(
                         [
                             torch_model_name_dir,
