@@ -1,0 +1,7 @@
+distilbert-base-uncased,False,True
+models.alexnet,False,False
+models.resnet18,False,False
+models.resnet50,False,False
+models.resnet101,False,False
+models.squeezenet1_0,False,False
+models.wide_resnet50_2,False,False
