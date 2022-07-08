@@ -36,7 +36,7 @@ class Resnet18ModuleTester:
             frontend="torch",
         )
         minilm_mlir, func_name = mlir_importer.import_mlir(is_dynamic=self.dynamic, tracing_required=False)
-        shark_module = SharkInference(minilm_mlir, func_name, device="cpu", mlir_dialect="linalg")
+        shark_module = SharkInference(minilm_mlir, func_name, device=self.device, mlir_dialect="linalg")
         shark_module.compile()
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
