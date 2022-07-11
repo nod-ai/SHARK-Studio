@@ -206,18 +206,18 @@ result = shark_module.forward((arg0, arg1))
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | DenseNet121        | :green_heart: (Script)         |          |          |             |
-| MNasNet1_0         | :green_heart: (Script)         | :green_heart:         |          |             |
-| MobileNetV2        | :green_heart: (Script)         | :green_heart:         |          |             |
-| MobileNetV3        | :green_heart: (Script)         | :green_heart:         |          |             |
+| MNasNet1_0         | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| MobileNetV2        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| MobileNetV3        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | Unet               | :broken_heart: (Script)         |          |          |             |
 | Resnet18           | :green_heart: (Script)         | :green_heart:         |  :green_heart:        | :green_heart:            |
 | Resnet50           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
 | Resnet101           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| Resnext50_32x4d    | :green_heart: (Script)         | :green_heart:         |          |             |
+| Resnext50_32x4d    | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | ShuffleNet_v2      | :broken_heart: (Script)         |          |          |             |
 | SqueezeNet         | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
 | EfficientNet       | :green_heart: (Script)         |          |          |             |
-| Regnet             | :green_heart: (Script)         | :green_heart:         |          |             |
+| Regnet             | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | Resnest            | :broken_heart: (Script)         |          |          |             |
 | Vision Transformer | :green_heart: (Script)         |          |          |             |
 | VGG 16             | :green_heart: (Script)         | :green_heart:         |   :green_heart:       |             |
