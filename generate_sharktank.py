@@ -17,190 +17,142 @@ import csv
 import argparse
 from shark.shark_importer import SharkImporter
 
+# All generated models and metadata will be saved under this directory.
+WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
 
-class SharkTank:
-    def __init__(
-        self,
-        torch_model_list: str = None,
-        tf_model_list: str = None,
-        tflite_model_list: str = None,
-        upload: bool = False,
-    ):
-        self.torch_model_list = torch_model_list
-        self.tf_model_list = tf_model_list
-        self.tflite_model_list = tflite_model_list
-        self.upload = upload
 
-        print("Setting up for TMP_DIR")
-        self.workdir = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
-        print(f"tflite TMP_shark_tank_DIR = {self.workdir}")
-        os.makedirs(self.workdir, exist_ok=True)
+def save_torch_model(torch_model_list):
+    from tank.model_utils import get_hf_model
+    from tank.model_utils import get_vision_model
+    import torch
 
-        print("self.torch_model_list: ", self.torch_model_list)
-        if self.torch_model_list is not None:
-            self.save_torch_model()
+    with open(torch_model_list) as csvfile:
+        torch_reader = csv.reader(csvfile, delimiter=",")
+        fields = next(torch_reader)
+        for row in torch_reader:
+            torch_model_name = row[0]
+            tracing_required = row[1]
+            model_type = row[2]
 
-        if self.tf_model_list is not None:
-            self.save_tf_model()
+            tracing_required = False if tracing_required == "False" else True
 
-        print("self.tflite_model_list: ", self.tflite_model_list)
-        # compile and run tfhub tflite
-        if self.tflite_model_list is not None:
-            self.save_tflite_model()
+            model = None
+            input = None
+            if model_type == "vision":
+                model, input, _ = get_vision_model(torch_model_name)
+            elif model_type == "hf":
+                model, input, _ = get_hf_model(torch_model_name)
 
-        if self.upload:
-            print("upload tmp tank to gcp")
-            os.system("gsutil cp -r ./gen_shark_tank gs://shark_tank/")
+            torch_model_name = torch_model_name.replace("/", "_")
+            torch_model_dir = os.path.join(WORKDIR, str(torch_model_name))
+            os.makedirs(torch_model_dir, exist_ok=True)
 
-    def save_torch_model(self):
-        from tank.model_utils import get_hf_model
-        from tank.model_utils import get_vision_model, models_dict
-        import torch
+            mlir_importer = SharkImporter(
+                model,
+                (input,),
+                frontend="torch",
+            )
+            mlir_importer.import_debug(
+                is_dynamic=False,
+                tracing_required=tracing_required,
+                dir=torch_model_dir,
+                model_name=torch_model_name,
+            )
 
-        with open(self.torch_model_list) as csvfile:
-            torch_reader = csv.reader(csvfile, delimiter=",")
-            for row in torch_reader:
-                torch_model_name = row[0]
-                print("----------------- torch_model_name", torch_model_name)
-                is_dynamic = row[1]
-                tracing_required = row[2]
 
-                torch_file = ""
-                torch_mlir_file = ""
-                model = []
-                input = []
-                if str(torch_model_name)[0:7] == "models.":
-                    print("pretrained model")
-                    model, input, act_out = get_vision_model(models_dict[torch_model_name](pretrained=True))
+def save_tf_model(tf_model_list):
+    print("tf sharktank not implemented yet")
+    pass
 
-                    torch_model_name_dir = os.path.join(self.workdir, str(torch_model_name)[7:])
-                    os.makedirs(torch_model_name_dir, exist_ok=True)
-                    print(f"TMP_TORCH_MODELNAME_DIR = {torch_model_name_dir}")
-                    torch_file = "/".join(
-                        [
-                            torch_model_name_dir,
-                            str(torch_model_name)[7:] + ".pt",
-                        ]
-                    )
-                    torch_mlir_file = "/".join(
-                        [
-                            torch_model_name_dir,
-                            str(torch_model_name)[7:] + "_torch.mlir",
-                        ]
-                    )
-                else:
-                    model, input, act_out = get_hf_model(str(torch_model_name))
 
-                    torch_model_name_dir = os.path.join(self.workdir, str(torch_model_name))
-                    os.makedirs(torch_model_name_dir, exist_ok=True)
-                    print(f"TMP_TORCH_MODELNAME_DIR = {torch_model_name_dir}")
-                    loc = torch_model_name.find("/") + 1
-                    torch_model_name = torch_model_name[loc:]
+def save_tflite_model(tflite_model_list):
+    from shark.tflite_utils import TFLitePreprocessor
 
-                    torch_file = "/".join(
-                        [
-                            torch_model_name_dir,
-                            str(torch_model_name) + ".pt",
-                        ]
-                    )
-                    torch_mlir_file = "/".join(
-                        [
-                            torch_model_name_dir,
-                            str(torch_model_name) + "_torch.mlir",
-                        ]
-                    )
+    with open(tflite_model_list) as csvfile:
+        tflite_reader = csv.reader(csvfile, delimiter=",")
+        for row in tflite_reader:
+            tflite_model_name = row[0]
+            tflite_model_link = row[1]
+            print("tflite_model_name", tflite_model_name)
+            print("tflite_model_link", tflite_model_link)
+            tflite_model_name_dir = os.path.join(
+                WORKDIR, str(tflite_model_name)
+            )
+            os.makedirs(tflite_model_name_dir, exist_ok=True)
+            print(f"TMP_TFLITE_MODELNAME_DIR = {tflite_model_name_dir}")
 
-                # save torch model
-                if os.path.exists(torch_file):
-                    print("Exists", torch_file)
-                else:
-                    torch.save(model.state_dict(), torch_file)
+            tflite_tosa_file = "/".join(
+                [
+                    tflite_model_name_dir,
+                    str(tflite_model_name) + "_tflite.mlir",
+                ]
+            )
 
-                # get mlir model
-                mlir_importer = SharkImporter(
-                    model,
-                    (input,),
-                    frontend="torch",
-                )
-                mlir_model, func_name = mlir_importer.import_mlir(is_dynamic=is_dynamic, tracing_required=tracing_required)
+            # Preprocess to get SharkImporter input args
+            tflite_preprocessor = TFLitePreprocessor(str(tflite_model_name))
+            raw_model_file_path = tflite_preprocessor.get_raw_model_file()
+            inputs = tflite_preprocessor.get_inputs()
+            tflite_interpreter = tflite_preprocessor.get_interpreter()
 
-                # save mlir model
-                if os.path.exists(torch_mlir_file):
-                    print("Exists", torch_mlir_file)
-                else:
-                    mlir_str = mlir_model.operation.get_asm()
-                    with open(torch_mlir_file, "w") as f:
-                        f.write(mlir_str)
-                    print(f"Saved mlir in {torch_mlir_file}")
+            # Use SharkImporter to get SharkInference input args
+            my_shark_importer = SharkImporter(
+                module=tflite_interpreter,
+                inputs=inputs,
+                frontend="tflite",
+                raw_model_file=raw_model_file_path,
+            )
+            mlir_model, func_name = my_shark_importer.import_mlir()
 
-        print("Torch sharktank not implemented yet")
+            if os.path.exists(tflite_tosa_file):
+                print("Exists", tflite_tosa_file)
+            else:
+                mlir_str = mlir_model.decode("utf-8")
+                with open(tflite_tosa_file, "w") as f:
+                    f.write(mlir_str)
+                print(f"Saved mlir in {tflite_tosa_file}")
 
-    def save_tf_model(self):
-        print("tf sharktank not implemented yet")
 
-    def save_tflite_model(self):
-        from shark.tflite_utils import TFLitePreprocessor
-
-        with open(self.tflite_model_list) as csvfile:
-            tflite_reader = csv.reader(csvfile, delimiter=",")
-            for row in tflite_reader:
-                tflite_model_name = row[0]
-                tflite_model_link = row[1]
-                print("tflite_model_name", tflite_model_name)
-                print("tflite_model_link", tflite_model_link)
-                tflite_model_name_dir = os.path.join(self.workdir, str(tflite_model_name))
-                os.makedirs(tflite_model_name_dir, exist_ok=True)
-                print(f"TMP_TFLITE_MODELNAME_DIR = {tflite_model_name_dir}")
-
-                tflite_tosa_file = "/".join(
-                    [
-                        tflite_model_name_dir,
-                        str(tflite_model_name) + "_tflite.mlir",
-                    ]
-                )
-
-                # Preprocess to get SharkImporter input args
-                tflite_preprocessor = TFLitePreprocessor(str(tflite_model_name))
-                raw_model_file_path = tflite_preprocessor.get_raw_model_file()
-                inputs = tflite_preprocessor.get_inputs()
-                tflite_interpreter = tflite_preprocessor.get_interpreter()
-
-                # Use SharkImporter to get SharkInference input args
-                my_shark_importer = SharkImporter(
-                    module=tflite_interpreter,
-                    inputs=inputs,
-                    frontend="tflite",
-                    raw_model_file=raw_model_file_path,
-                )
-                mlir_model, func_name = my_shark_importer.import_mlir()
-
-                if os.path.exists(tflite_tosa_file):
-                    print("Exists", tflite_tosa_file)
-                else:
-                    mlir_str = mlir_model.decode("utf-8")
-                    with open(tflite_tosa_file, "w") as f:
-                        f.write(mlir_str)
-                    print(f"Saved mlir in {tflite_tosa_file}")
+# Validates whether the file is present or not.
+def is_valid_file(arg):
+    if not os.path.exists(arg):
+        return None
+    else:
+        return arg
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--torch_model_list",
-        type=str,
+        "--torch_model_csv",
+        type=lambda x: is_valid_file(x),
         default="./tank/pytorch/torch_model_list.csv",
+        help="""Contains the file with torch_model name and args. 
+             Please see: https://github.com/nod-ai/SHARK/blob/main/tank/pytorch/torch_model_list.csv""",
     )
-    parser.add_argument("--tf_model_list", type=str, default="./tank/tf/tf_model_list.csv")
     parser.add_argument(
-        "--tflite_model_list",
-        type=str,
-        # default="./tank/tflite/tflite_model_list.csv",
+        "--tf_model_csv",
+        type=lambda x: is_valid_file(x),
+        default="./tank/tf/tf_model_list.csv",
+        help="Contains the file with tf model name and args.",
+    )
+    parser.add_argument(
+        "--tflite_model_csv",
+        type=lambda x: is_valid_file(x),
+        default="./tank/tflite/tflite_model_list.csv",
+        help="Contains the file with tf model name and args.",
     )
     parser.add_argument("--upload", type=bool, default=False)
+
     args = parser.parse_args()
-    SharkTank(
-        torch_model_list=args.torch_model_list,
-        tf_model_list=args.tf_model_list,
-        tflite_model_list=args.tflite_model_list,
-        upload=args.upload,
-    )
+    if args.torch_model_csv:
+        save_torch_model(args.torch_model_csv)
+
+    if args.tf_model_csv:
+        save_tf_model(args.torch_model_csv)
+
+    if args.tflite_model_csv:
+        save_tflite_model(args.torch_model_csv)
+
+    if args.upload:
+        print("uploading files to gs://shark_tank/")
+        os.system("gsutil cp -r ./gen_shark_tank/* gs://shark_tank/")

@@ -30,7 +30,11 @@ if __name__ == "__main__":
     text = "I love the distilled version of models."
 
     inputs = tokenizer(text, return_tensors="tf")
-    shark_module = SharkInference(GPT2Module(), (inputs["input_ids"], inputs["attention_mask"]))
+    shark_module = SharkInference(
+        GPT2Module(), (inputs["input_ids"], inputs["attention_mask"])
+    )
     shark_module.set_frontend("tensorflow")
     shark_module.compile()
-    print(shark_module.forward((inputs["input_ids"], inputs["attention_mask"])))
+    print(
+        shark_module.forward((inputs["input_ids"], inputs["attention_mask"]))
+    )

@@ -13,9 +13,15 @@ class SsdMobilenetV1Test(test_util.TFLiteModelTest):
         super(SsdMobilenetV1Test, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(SsdMobilenetV1Test, self).compare_results(iree_results, tflite_results, details)
+        super(SsdMobilenetV1Test, self).compare_results(
+            iree_results, tflite_results, details
+        )
         for i in range(len(iree_results)):
-            self.assertTrue(numpy.isclose(iree_results[i], tflite_results[i], atol=1e-4).all())
+            self.assertTrue(
+                numpy.isclose(
+                    iree_results[i], tflite_results[i], atol=1e-4
+                ).all()
+            )
 
     def generate_inputs(self, input_details):
         inputs = coco_test_data.generate_input(self.workdir, input_details)

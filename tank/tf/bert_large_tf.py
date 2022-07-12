@@ -31,13 +31,17 @@ class BertModule(tf.Module):
         )
 
         # Create a BERT trainer with the created network.
-        bert_trainer_model = bert_classifier.BertClassifier(test_network, num_classes=NUM_CLASSES)
+        bert_trainer_model = bert_classifier.BertClassifier(
+            test_network, num_classes=NUM_CLASSES
+        )
         bert_trainer_model.summary()
 
         # Invoke the trainer model on the inputs. This causes the layer to be built.
         self.m = bert_trainer_model
         self.m.predict = lambda x: self.m.call(x, training=False)
-        self.predict = tf.function(input_signature=[bert_input])(self.m.predict)
+        self.predict = tf.function(input_signature=[bert_input])(
+            self.m.predict
+        )
         self.m.learn = lambda x, y: self.m.call(x, training=False)
         self.loss = tf.keras.losses.SparseCategoricalCrossentropy()
         self.optimizer = tf.keras.optimizers.SGD(learning_rate=1e-2)
@@ -73,7 +77,11 @@ if __name__ == "__main__":
     total_iter = 10
     num_iter = total_iter - warmup
     for i in range(total_iter):
-        print(bert_model.learn(predict_sample_input, np.random.randint(5, size=(BATCH_SIZE))))
+        print(
+            bert_model.learn(
+                predict_sample_input, np.random.randint(5, size=(BATCH_SIZE))
+            )
+        )
         if i == warmup - 1:
             start = time.time()
 

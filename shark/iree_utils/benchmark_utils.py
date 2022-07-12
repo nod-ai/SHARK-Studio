@@ -34,7 +34,9 @@ def tensor_to_type_str(input_tensors: tuple, frontend: str):
             dtype_string = str(input_tensor.dtype).replace("torch.", "")
         elif frontend in ["tensorflow", "tf"]:
             dtype = input_tensor.dtype
-            dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace("'", "")
+            dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace(
+                "'", ""
+            )
         regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
         match = regex_split.match(dtype_string)
         mlir_type_string = str(match.group(1)[0]) + str(match.group(2))
@@ -81,7 +83,9 @@ def run_benchmark_module(benchmark_cl):
     Input: benchmark command.
     """
     benchmark_path = benchmark_cl[0]
-    assert os.path.exists(benchmark_path), "Cannot find benchmark_module, Please contact SHARK maintainer on discord."
+    assert os.path.exists(
+        benchmark_path
+    ), "Cannot find benchmark_module, Please contact SHARK maintainer on discord."
     bench_result = run_cmd(" ".join(benchmark_cl))
     regex_split = re.compile("([0-9]+[.]*[0-9]*)([a-zA-Z]+)")
     match = regex_split.match(bench_result)

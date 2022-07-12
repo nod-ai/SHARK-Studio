@@ -20,7 +20,11 @@ import subprocess
 def get_iree_cpu_args():
     find_triple_cmd = "uname -s -m"
     os_name, proc_name = (
-        subprocess.run(find_triple_cmd, shell=True, stdout=subprocess.PIPE, check=True).stdout.decode("utf-8").split()
+        subprocess.run(
+            find_triple_cmd, shell=True, stdout=subprocess.PIPE, check=True
+        )
+        .stdout.decode("utf-8")
+        .split()
     )
     if os_name == "Darwin":
         find_kernel_version_cmd = "uname -r"

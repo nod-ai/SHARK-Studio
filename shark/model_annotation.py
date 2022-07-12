@@ -20,11 +20,15 @@ from typing import List, Dict
 from iree.compiler import ir
 from iree.compiler.transforms import ireec as ireec_trans
 
-MATMUL_OP_NAMES = set(["linalg.matmul", "linalg.batch_matmul", "mhlo.dot", "mhlo.dot_general"])
+MATMUL_OP_NAMES = set(
+    ["linalg.matmul", "linalg.batch_matmul", "mhlo.dot", "mhlo.dot_general"]
+)
 idx = 0
 
 
-def model_annotation(ctx: ir.Context, *, input_contents: str, config_path: str):
+def model_annotation(
+    ctx: ir.Context, *, input_contents: str, config_path: str
+):
     if os.path.isfile(input_contents):
         with open(input_contents, "rb") as f:
             input_contents = f.read()
@@ -45,7 +49,9 @@ def model_annotation(ctx: ir.Context, *, input_contents: str, config_path: str):
     # More efficient than: print(module)
     #   - Disables verification (already done above)
     #   - Writes as binary, avoiding costly unicode conversions
-    sys.stdout.buffer.write(module.operation.get_asm(assume_verified=True, binary=True))
+    sys.stdout.buffer.write(
+        module.operation.get_asm(assume_verified=True, binary=True)
+    )
     return module
 
 
@@ -85,7 +91,11 @@ def walk_children(op: ir.Operation, configs: List[Dict]):
 
 def parse_config(config: Dict):
     if config["pipeline"] == "GPU" or config["pipeline"] == "GPU_TENSORCORE":
-        pipeline = "LLVMGPUMatmulSimt" if config["pipeline"] == "GPU" else "LLVMGPUMatmulTensorCore"
+        pipeline = (
+            "LLVMGPUMatmulSimt"
+            if config["pipeline"] == "GPU"
+            else "LLVMGPUMatmulTensorCore"
+        )
         tile_sizes = [config["work_group_tile_sizes"]]
         workgroup_size = config["work_group_sizes"]
         try:
@@ -149,4 +159,6 @@ def create_context() -> ir.Context:
 
 if __name__ == "__main__":
     with create_context() as ctx:
-        model_annotation(ctx, input_contents=sys.argv[1], config_path=sys.argv[2])
+        model_annotation(
+            ctx, input_contents=sys.argv[1], config_path=sys.argv[2]
+        )

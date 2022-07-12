@@ -23,14 +23,24 @@ def generate_inputs(input_details):
             dtype=input_details[0]["dtype"],
         )
     )
-    args.append(np.ones(shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]))
-    args.append(np.zeros(shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]))
+    args.append(
+        np.ones(
+            shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]
+        )
+    )
+    args.append(
+        np.zeros(
+            shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]
+        )
+    )
     return args
 
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
+    assert len(mlir_results) == len(
+        tflite_results
+    ), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
@@ -61,7 +71,9 @@ class MobilebertTfliteModuleTester:
         shark_args.save_vmfb = self.save_vmfb
 
         # Preprocess to get SharkImporter input args
-        tflite_preprocessor = TFLitePreprocessor(model_name="mobilebert-edgetpu-s-float")
+        tflite_preprocessor = TFLitePreprocessor(
+            model_name="mobilebert-edgetpu-s-float"
+        )
         raw_model_file_path = tflite_preprocessor.get_raw_model_file()
         inputs = tflite_preprocessor.get_inputs()
         tflite_interpreter = tflite_preprocessor.get_interpreter()
@@ -125,7 +137,9 @@ class MobilebertTfliteModuleTest(unittest.TestCase):
 
     import sys
 
-    @pytest.mark.xfail(sys.platform == "darwin", reason="known macos tflite install issue")
+    @pytest.mark.xfail(
+        sys.platform == "darwin", reason="known macos tflite install issue"
+    )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"

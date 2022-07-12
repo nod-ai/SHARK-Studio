@@ -12,7 +12,9 @@ from shark.tflite_utils import TFLitePreprocessor
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
+    assert len(mlir_results) == len(
+        tflite_results
+    ), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
@@ -91,7 +93,9 @@ class SequeezeNetTfliteModuleTest(unittest.TestCase):
 
     import sys
 
-    @pytest.mark.xfail(sys.platform == "darwin", reason="known macos tflite install issue")
+    @pytest.mark.xfail(
+        sys.platform == "darwin", reason="known macos tflite install issue"
+    )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"

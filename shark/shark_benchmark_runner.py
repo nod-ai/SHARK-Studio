@@ -37,10 +37,16 @@ class SharkBenchmarkRunner(SharkRunner):
         from_aot: bool = False,
         frontend: str = "torch",
     ):
-        SharkRunner.__init__(self, model, input, dynamic, device, jit_trace, from_aot, frontend)
+        SharkRunner.__init__(
+            self, model, input, dynamic, device, jit_trace, from_aot, frontend
+        )
         if self.vmfb_file == None:
-            self.vmfb_file = export_iree_module_to_vmfb(self.model, device, shark_args.repro_dir, frontend)
-        self.benchmark_cl = build_benchmark_args(self.vmfb_file, device, input, frontend, from_aot)
+            self.vmfb_file = export_iree_module_to_vmfb(
+                self.model, device, shark_args.repro_dir, frontend
+            )
+        self.benchmark_cl = build_benchmark_args(
+            self.vmfb_file, device, input, frontend, from_aot
+        )
 
     def benchmark_frontend(self, inputs):
         if self.frontend in ["pytorch", "torch"]:
@@ -144,8 +150,12 @@ class SharkBenchmarkRunner(SharkRunner):
             for p in platforms:
                 if p == "frontend":
                     bench_result["platform"] = "frontend"
-                    bench_result["iter/sec"] = self.benchmark_frontend(inputs)[0]
-                    bench_result["ms/iter"] = self.benchmark_frontend(inputs)[1]
+                    bench_result["iter/sec"] = self.benchmark_frontend(inputs)[
+                        0
+                    ]
+                    bench_result["ms/iter"] = self.benchmark_frontend(inputs)[
+                        1
+                    ]
                 elif p == "shark_python":
                     bench_result["platform"] = "shark_python"
                     bench_result["iter/sec"] = self.benchmark_python(inputs)[0]

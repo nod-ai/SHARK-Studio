@@ -27,7 +27,9 @@ class TFHuggingFaceLanguage(tf.Module):
         self.m = TFBertModel.from_pretrained(hf_model_name, from_pt=True)
 
         # Invoke the trainer model on the inputs. This causes the layer to be built.
-        self.m.predict = lambda x, y, z: self.m.call(input_ids=x, attention_mask=y, token_type_ids=z, training=False)
+        self.m.predict = lambda x, y, z: self.m.call(
+            input_ids=x, attention_mask=y, token_type_ids=z, training=False
+        )
 
     @tf.function(input_signature=tf_bert_input)
     def forward(self, input_ids, attention_mask, token_type_ids):
@@ -36,7 +38,9 @@ class TFHuggingFaceLanguage(tf.Module):
 
 def get_TFhf_model(name):
     model = TFHuggingFaceLanguage(name)
-    tokenizer = BertTokenizer.from_pretrained("microsoft/MiniLM-L12-H384-uncased")
+    tokenizer = BertTokenizer.from_pretrained(
+        "microsoft/MiniLM-L12-H384-uncased"
+    )
     text = "Replace me by any text you'd like."
     encoded_input = tokenizer(
         text,
@@ -45,7 +49,9 @@ def get_TFhf_model(name):
         max_length=MAX_SEQUENCE_LENGTH,
     )
     for key in encoded_input:
-        encoded_input[key] = tf.expand_dims(tf.convert_to_tensor(encoded_input[key]), 0)
+        encoded_input[key] = tf.expand_dims(
+            tf.convert_to_tensor(encoded_input[key]), 0
+        )
     test_input = (
         encoded_input["input_ids"],
         encoded_input["attention_mask"],

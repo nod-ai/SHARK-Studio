@@ -10,7 +10,9 @@ from tqdm import trange
 try:
     from diffusion import get_model, sampling, utils
 except ModuleNotFoundError:
-    print("You need to download v-diffusion source from https://github.com/crowsonkb/v-diffusion-pytorch")
+    print(
+        "You need to download v-diffusion source from https://github.com/crowsonkb/v-diffusion-pytorch"
+    )
     raise
 
 torch.manual_seed(0)
@@ -45,7 +47,9 @@ if os.path.exists(checkpoint):
     model.load_state_dict(torch.load(checkpoint, map_location="cpu"))
 
 model = model.to(device).eval().requires_grad_(False)
-clip_model_name = model.clip_model if hasattr(model, "clip_model") else "ViT-B/16"
+clip_model_name = (
+    model.clip_model if hasattr(model, "clip_model") else "ViT-B/16"
+)
 clip_model = clip.load(clip_model_name, jit=False, device=device)[0]
 clip_model.eval().requires_grad_(False)
 normalize = transforms.Normalize(
@@ -57,7 +61,9 @@ zero_embed = torch.zeros([1, clip_model.visual.output_dim], device=device)
 target_embeds, weights = [zero_embed], []
 
 txt, weight = parse_prompt(args.prompts[0])
-target_embeds.append(clip_model.encode_text(clip.tokenize(txt).to(device)).float())
+target_embeds.append(
+    clip_model.encode_text(clip.tokenize(txt).to(device)).float()
+)
 weights.append(weight)
 
 weights = torch.tensor([1 - sum(weights), *weights], device=device)
@@ -85,7 +91,9 @@ def repro(model):
     steps = utils.get_spliced_ddpm_cosine_schedule(t)
     for i in trange(0, args.n, args.batch_size):
         cur_batch_size = min(args.n - i, args.batch_size)
-        outs = sampling.plms_sample(partial(cfg_model_fn, model), x[i : i + cur_batch_size], steps, {})
+        outs = sampling.plms_sample(
+            partial(cfg_model_fn, model), x[i : i + cur_batch_size], steps, {}
+        )
         for j, out in enumerate(outs):
             utils.to_pil_image(out).save(f"out_{i + j:05}.png")
 

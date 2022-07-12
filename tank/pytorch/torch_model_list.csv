@@ -1,3 +1,11 @@
-microsoft/MiniLM-L12-H384-uncased,False,True
-albert-base-v2,False,True
-bert-base-uncased,False,True
+model_name, use_tracing, model_type
+microsoft/MiniLM-L12-H384-uncased,True,hf
+albert-base-v2,True,hf
+bert-base-uncased,True,hf
+google/mobilebert-uncased,True,hf
+alexnet,False,vision
+resnet18,False,vision
+resnet50,False,vision
+resnet101,False,vision
+squeezenet1_0,False,vision
+wide_resnet50_2,False,vision

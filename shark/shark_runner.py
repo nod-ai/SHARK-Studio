@@ -74,7 +74,10 @@ class SharkRunner:
             sys.exit(1)
 
         # Compile the module to get the .vmfb.
-        (self.iree_compilation_module, self.iree_config,) = get_iree_compiled_module(
+        (
+            self.iree_compilation_module,
+            self.iree_config,
+        ) = get_iree_compiled_module(
             self.mlir_module,
             self.device,
             self.mlir_dialect,
@@ -92,4 +95,6 @@ class SharkRunner:
     # TODO: Instead of passing directory and having names decided by the module
     # , user may want to save the module with manual names.
     def save_module(self, dir=os.getcwd()):
-        return export_iree_module_to_vmfb(self.model, self.device, dir, self.mlir_dialect)
+        return export_iree_module_to_vmfb(
+            self.model, self.device, dir, self.mlir_dialect
+        )

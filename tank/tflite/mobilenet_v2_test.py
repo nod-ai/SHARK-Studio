@@ -13,8 +13,12 @@ class MobilenetV2Test(test_util.TFLiteModelTest):
         super(MobilenetV2Test, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(MobilenetV2Test, self).compare_results(iree_results, tflite_results, details)
-        self.assertTrue(numpy.isclose(iree_results, tflite_results, atol=1e-4).all())
+        super(MobilenetV2Test, self).compare_results(
+            iree_results, tflite_results, details
+        )
+        self.assertTrue(
+            numpy.isclose(iree_results, tflite_results, atol=1e-4).all()
+        )
 
     def generate_inputs(self, input_details):
         inputs = imagenet_test_data.generate_input(self.workdir, input_details)

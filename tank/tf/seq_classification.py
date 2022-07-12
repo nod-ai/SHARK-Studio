@@ -6,7 +6,9 @@ from shark.parser import shark_args
 import argparse
 
 
-seq_parser = argparse.ArgumentParser(description="Shark Sequence Classification.")
+seq_parser = argparse.ArgumentParser(
+    description="Shark Sequence Classification."
+)
 seq_parser.add_argument(
     "--hf_model_name",
     type=str,
@@ -45,12 +47,16 @@ def preprocess_input(text="This is just used to compile the model"):
 class SeqClassification(tf.Module):
     def __init__(self, model_name):
         super(SeqClassification, self).__init__()
-        self.m = TFAutoModelForSequenceClassification.from_pretrained(model_name, output_attentions=False, num_labels=2)
+        self.m = TFAutoModelForSequenceClassification.from_pretrained(
+            model_name, output_attentions=False, num_labels=2
+        )
         self.m.predict = lambda x, y: self.m(input_ids=x, attention_mask=y)[0]
 
     @tf.function(input_signature=inputs_signature)
     def forward(self, input_ids, attention_mask):
-        return tf.math.softmax(self.m.predict(input_ids, attention_mask), axis=-1)
+        return tf.math.softmax(
+            self.m.predict(input_ids, attention_mask), axis=-1
+        )
 
 
 if __name__ == "__main__":
@@ -64,8 +70,14 @@ if __name__ == "__main__":
     print(f"Model has been successfully compiled on {shark_args.device}")
 
     while True:
-        input_text = input("Enter the text to classify (press q or nothing to exit): ")
+        input_text = input(
+            "Enter the text to classify (press q or nothing to exit): "
+        )
         if not input_text or input_text == "q":
             break
         inputs = preprocess_input(input_text)
-        print(shark_module.forward((inputs["input_ids"], inputs["attention_mask"])))
+        print(
+            shark_module.forward(
+                (inputs["input_ids"], inputs["attention_mask"])
+            )
+        )

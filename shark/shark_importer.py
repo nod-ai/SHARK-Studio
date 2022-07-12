@@ -2,6 +2,8 @@
 """SHARK Importer"""
 
 import sys
+import tempfile
+import os
 
 # List of the supported frontends.
 supported_frontends = {
@@ -58,7 +60,9 @@ class SharkImporter:
         self.inputs = None if len(inputs) == 0 else inputs
         self.frontend = frontend
         if not self.frontend in supported_frontends:
-            print(f"The frontend is not in the supported_frontends: {supported_frontends}")
+            print(
+                f"The frontend is not in the supported_frontends: {supported_frontends}"
+            )
             sys.exit(1)
         self.raw_model_file = raw_model_file
 
@@ -67,12 +71,16 @@ class SharkImporter:
     def _torch_mlir(self, is_dynamic, tracing_required):
         from shark.torch_mlir_utils import get_torch_mlir_module
 
-        return get_torch_mlir_module(self.module, self.inputs, is_dynamic, tracing_required)
+        return get_torch_mlir_module(
+            self.module, self.inputs, is_dynamic, tracing_required
+        )
 
     def _tf_mlir(self, func_name):
         from iree.compiler import tf as tfc
 
-        return tfc.compile_module(self.module, exported_names=[func_name], import_only=True)
+        return tfc.compile_module(
+            self.module, exported_names=[func_name], import_only=True
+        )
 
     def _tflite_mlir(self, func_name):
         from iree.compiler import tflite as tflitec
@@ -94,7 +102,9 @@ class SharkImporter:
     ):
         if self.frontend in ["torch", "pytorch"]:
             if self.inputs == None:
-                print("Please pass in the inputs, the inputs are required to determine the shape of the mlir_module")
+                print(
+                    "Please pass in the inputs, the inputs are required to determine the shape of the mlir_module"
+                )
                 sys.exit(1)
             return self._torch_mlir(is_dynamic, tracing_required), func_name
         if self.frontend in ["tf", "tensorflow"]:
@@ -110,25 +120,68 @@ class SharkImporter:
         if self.frontend in ["tf", "tensorflow"]:
             return [x.numpy() for x in array_tuple]
 
+    # Saves `function_name.npy`, `inputs.npz`, `golden_out.npz` and `model_name.mlir` in the directory `dir`.
+    def save_data(
+        self, dir, model_name, mlir_data, func_name, inputs, outputs
+    ):
+        import numpy as np
+
+        inputs_name = "inputs.npz"
+        outputs_name = "golden_out.npz"
+        func_file_name = "function_name"
+        model_name_mlir = model_name + ".mlir"
+        np.savez(os.path.join(dir, inputs_name), *inputs)
+        np.savez(os.path.join(dir, outputs_name), *outputs)
+        np.save(os.path.join(dir, func_file_name), np.array(func_name))
+
+        mlir_str = mlir_data.operation.get_asm()
+        with open(os.path.join(dir, model_name_mlir), "w") as mlir_file:
+            mlir_file.write(mlir_str)
+
+        return
+
     def import_debug(
         self,
         is_dynamic=False,
         tracing_required=False,
         func_name="forward",
+        dir=tempfile.gettempdir(),
+        model_name="model",
     ):
         if self.inputs == None:
-            print(f"There is no input provided: {self.inputs}, please provide inputs or simply run import_mlir.")
+            print(
+                f"There is no input provided: {self.inputs}, please provide inputs or simply run import_mlir."
+            )
             sys.exit(1)
 
-        imported_mlir = self.import_mlir(is_dynamic, tracing_required, func_name)
+        imported_mlir = self.import_mlir(
+            is_dynamic, tracing_required, func_name
+        )
         # TODO: Make sure that any generic function name is accepted. Currently takes in the default function names.
         # TODO: Check for multiple outputs.
         if self.frontend in ["torch", "pytorch"]:
+            import torch
+
             golden_out = self.module(*self.inputs)
+            if torch.is_tensor(golden_out):
+                golden_out = tuple(
+                    golden_out.detach().numpy(),
+                )
+            else:
+                golden_out = self.convert_to_numpy(golden_out)
+            # Save the artifacts in the directory dir.
+            self.save_data(
+                dir,
+                model_name,
+                imported_mlir[0],
+                imported_mlir[1],
+                self.inputs,
+                golden_out,
+            )
             return (
                 imported_mlir,
                 self.convert_to_numpy(self.inputs),
-                golden_out.detach().numpy(),
+                golden_out,
             )
         if self.frontend in ["tf", "tensorflow"]:
             golden_out = self.module.forward(*self.inputs)

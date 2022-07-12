@@ -13,10 +13,14 @@ class MobilenetV2Int8Test(test_util.TFLiteModelTest):
         super(MobilenetV2Int8Test, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(MobilenetV2Int8Test, self).compare_results(iree_results, tflite_results, details)
+        super(MobilenetV2Int8Test, self).compare_results(
+            iree_results, tflite_results, details
+        )
         # Although this a quantized model, inputs and outputs are in float.
         # The difference here is quite high for a dequantized output.
-        self.assertTrue(numpy.isclose(iree_results, tflite_results, atol=0.5).all())
+        self.assertTrue(
+            numpy.isclose(iree_results, tflite_results, atol=0.5).all()
+        )
 
         # Make sure the predicted class is the same.
         iree_predicted_class = numpy.argmax(iree_results[0][0])
