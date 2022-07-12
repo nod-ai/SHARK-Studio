@@ -1,5 +1,5 @@
 import numpy as np
-from shark.shark_importer import SharkImporter
+from shark.shark_downloader import SharkDownloader
 from shark.shark_inference import SharkInference
 import pytest
 import unittest
@@ -47,18 +47,19 @@ class SequeezeNetTfliteModuleTester:
 
         # Preprocess to get SharkImporter input args
         tflite_preprocessor = TFLitePreprocessor(model_name="squeezenet")
-        raw_model_file_path = tflite_preprocessor.get_raw_model_file()
-        inputs = tflite_preprocessor.get_inputs()
-        tflite_interpreter = tflite_preprocessor.get_interpreter()
+        # inputs = tflite_preprocessor.get_inputs()
 
-        # Use SharkImporter to get SharkInference input args
-        my_shark_importer = SharkImporter(
-            module=tflite_interpreter,
-            inputs=inputs,
-            frontend="tflite",
-            raw_model_file=raw_model_file_path,
+        shark_downloader = SharkDownloader(
+            model_name="squeezenet",
+            tank_url="https://storage.googleapis.com/shark_tank",
+            local_tank_dir="./../gen_shark_tank",
+            model_type="tflite",
+            input_json="input.json",
+            input_type="float32",
         )
-        mlir_model, func_name = my_shark_importer.import_mlir()
+        mlir_model = shark_downloader.get_mlir_file()
+        inputs = shark_downloader.get_inputs()
+        func_name = "main"
 
         # Use SharkInference to get inference result
         shark_module = SharkInference(
