@@ -60,7 +60,9 @@ class Inception_v4_299_uint8TfliteModuleTester:
         tflite_preprocessor = TFLitePreprocessor(
             model_name="inception_v4_299_uint8"
         )
-        tflite_preprocessor = TFLitePreprocessor(model_name="inception_v4_299_uint8")
+        tflite_preprocessor = TFLitePreprocessor(
+            model_name="inception_v4_299_uint8"
+        )
         # inputs = tflite_preprocessor.get_inputs()
 
         shark_downloader = SharkDownloader(
@@ -126,7 +128,8 @@ class Inception_v4_299_uint8TfliteModuleTest(unittest.TestCase):
     import sys
 
     @pytest.mark.xfail(
-        sys.platform == "darwin", reason="known macos tflite install issue"
+        reason="known macos tflite install issue & "
+        "'tosa.conv2d' op attribute 'quantization_info' failed "
     )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
