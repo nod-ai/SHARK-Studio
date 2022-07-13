@@ -24,14 +24,18 @@ def generate_inputs(input_details):
     urllib.request.urlretrieve(img_path, local_path)
 
     shape = input_details[0]["shape"]
-    im = np.array(Image.open(local_path).resize((shape[1], shape[2]))).astype(input_details[0]["dtype"])
+    im = np.array(Image.open(local_path).resize((shape[1], shape[2]))).astype(
+        input_details[0]["dtype"]
+    )
     args = [im.reshape(shape)]
     return args
 
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
+    assert len(mlir_results) == len(
+        tflite_results
+    ), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]

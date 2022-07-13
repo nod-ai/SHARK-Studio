@@ -57,7 +57,9 @@ class AlbertTfliteModuleTest(unittest.TestCase):
 
     import sys
 
-    @pytest.mark.xfail(sys.platform == "darwin", reason="known macos tflite install issue")
+    @pytest.mark.xfail(
+        sys.platform == "darwin", reason="known macos tflite install issue"
+    )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"

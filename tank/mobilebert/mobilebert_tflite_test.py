@@ -14,9 +14,15 @@ def generate_inputs(input_details):
     for input in input_details:
         print(str(input["shape"]), input["dtype"].__name__)
 
-    input_0 = np.asarray(squad_data._INPUT_WORD_ID, dtype=input_details[0]["dtype"])
-    input_1 = np.asarray(squad_data._INPUT_TYPE_ID, dtype=input_details[1]["dtype"])
-    input_2 = np.asarray(squad_data._INPUT_MASK, dtype=input_details[2]["dtype"])
+    input_0 = np.asarray(
+        squad_data._INPUT_WORD_ID, dtype=input_details[0]["dtype"]
+    )
+    input_1 = np.asarray(
+        squad_data._INPUT_TYPE_ID, dtype=input_details[1]["dtype"]
+    )
+    input_2 = np.asarray(
+        squad_data._INPUT_MASK, dtype=input_details[2]["dtype"]
+    )
     return [
         input_0.reshape(input_details[0]["shape"]),
         input_1.reshape(input_details[1]["shape"]),
@@ -26,7 +32,9 @@ def generate_inputs(input_details):
 
 def compare_results(mlir_results, tflite_results, details):
     print("Compare mlir_results VS tflite_results: ")
-    assert len(mlir_results) == len(tflite_results), "Number of results do not match"
+    assert len(mlir_results) == len(
+        tflite_results
+    ), "Number of results do not match"
     for i in range(len(details)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
@@ -119,7 +127,9 @@ class MobilebertTfliteModuleTest(unittest.TestCase):
 
     import sys
 
-    @pytest.mark.xfail(sys.platform == "darwin", reason="known macos tflite install issue")
+    @pytest.mark.xfail(
+        sys.platform == "darwin", reason="known macos tflite install issue"
+    )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"

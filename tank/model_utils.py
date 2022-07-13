@@ -14,9 +14,6 @@ torch.manual_seed(0)
 ##################### Hugging Face LM Models ###################################
 
 
-models_dict = {"models.alexnet": models.alexnet}
-
-
 class HuggingFaceLanguage(torch.nn.Module):
     def __init__(self, hf_model_name):
         super().__init__()
@@ -44,6 +41,15 @@ def get_hf_model(name):
 
 ##################### Torch Vision Models    ###################################
 
+vision_models_dict = {
+    "alexnet": models.alexnet(pretrained=True),
+    "resnet18": models.resnet18(pretrained=True),
+    "resnet50": models.resnet50(pretrained=True),
+    "resnet101": models.resnet101(pretrained=True),
+    "squeezenet1_0": models.squeezenet1_0(pretrained=True),
+    "wide_resnet50_2": models.wide_resnet50_2(pretrained=True),
+}
+
 
 class VisionModule(torch.nn.Module):
     def __init__(self, model):
@@ -56,8 +62,9 @@ class VisionModule(torch.nn.Module):
 
 
 def get_vision_model(torch_model):
+    if isinstance(torch_model, str):
+        torch_model = vision_models_dict[torch_model]
     model = VisionModule(torch_model)
-    # TODO: Currently the test input is set to (1,128)
     test_input = torch.randn(1, 3, 224, 224)
     actual_out = model(test_input)
     return model, test_input, actual_out

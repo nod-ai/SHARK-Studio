@@ -11,7 +11,9 @@ inputs_signature = [
 class AutoModelMaskedLM(tf.Module):
     def __init__(self, model_name):
         super(AutoModelMaskedLM, self).__init__()
-        self.m = TFAutoModelForMaskedLM.from_pretrained(model_name, output_attentions=False)
+        self.m = TFAutoModelForMaskedLM.from_pretrained(
+            model_name, output_attentions=False
+        )
         self.m.predict = lambda x: self.m(input_ids=x)
 
     @tf.function(input_signature=inputs_signature)
@@ -39,7 +41,9 @@ supported_models = [
 ]
 
 if __name__ == "__main__":
-    inputs = tf.random.uniform(shape=[1, 512], maxval=3, dtype=tf.int32, seed=10)
+    inputs = tf.random.uniform(
+        shape=[1, 512], maxval=3, dtype=tf.int32, seed=10
+    )
 
     for model_name in supported_models:
         print(f"Running model: {model_name}")

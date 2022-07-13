@@ -33,7 +33,9 @@ inp = (torch.randint(2, (1, 128)),)
 
 def forward(params, buffers, args):
     params_and_buffers = {**params, **buffers}
-    _stateless.functional_call(mod, params_and_buffers, args, {}).sum().backward()
+    _stateless.functional_call(
+        mod, params_and_buffers, args, {}
+    ).sum().backward()
     optim = torch.optim.SGD(get_sorted_params(params), lr=0.01)
     # optim.load_state_dict(optim_state)
     optim.step()

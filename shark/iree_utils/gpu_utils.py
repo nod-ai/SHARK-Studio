@@ -65,24 +65,44 @@ def get_cuda_sm_cc():
     result = cuda.cuInit(0)
     if result != CUDA_SUCCESS:
         cuda.cuGetErrorString(result, ctypes.byref(error_str))
-        print("cuInit failed with error code %d: %s" % (result, error_str.value.decode()))
+        print(
+            "cuInit failed with error code %d: %s"
+            % (result, error_str.value.decode())
+        )
         return 1
     result = cuda.cuDeviceGetCount(ctypes.byref(nGpus))
     if result != CUDA_SUCCESS:
         cuda.cuGetErrorString(result, ctypes.byref(error_str))
-        print("cuDeviceGetCount failed with error code %d: %s" % (result, error_str.value.decode()))
+        print(
+            "cuDeviceGetCount failed with error code %d: %s"
+            % (result, error_str.value.decode())
+        )
         return 1
     print("Found %d device(s)." % nGpus.value)
     for i in range(nGpus.value):
         result = cuda.cuDeviceGet(ctypes.byref(device), i)
         if result != CUDA_SUCCESS:
             cuda.cuGetErrorString(result, ctypes.byref(error_str))
-            print("cuDeviceGet failed with error code %d: %s" % (result, error_str.value.decode()))
+            print(
+                "cuDeviceGet failed with error code %d: %s"
+                % (result, error_str.value.decode())
+            )
             return 1
         print("Device: %d" % i)
-        if cuda.cuDeviceGetName(ctypes.c_char_p(name), len(name), device) == CUDA_SUCCESS:
+        if (
+            cuda.cuDeviceGetName(ctypes.c_char_p(name), len(name), device)
+            == CUDA_SUCCESS
+        ):
             print("  Name: %s" % (name.split(b"\0", 1)[0].decode()))
-        if cuda.cuDeviceComputeCapability(ctypes.byref(cc_major), ctypes.byref(cc_minor), device) == CUDA_SUCCESS:
-            print("  Compute Capability: %d.%d" % (cc_major.value, cc_minor.value))
+        if (
+            cuda.cuDeviceComputeCapability(
+                ctypes.byref(cc_major), ctypes.byref(cc_minor), device
+            )
+            == CUDA_SUCCESS
+        ):
+            print(
+                "  Compute Capability: %d.%d"
+                % (cc_major.value, cc_minor.value)
+            )
     sm = f"sm_{cc_major.value}{cc_minor.value}"
     return sm

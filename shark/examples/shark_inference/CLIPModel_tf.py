@@ -18,11 +18,15 @@ class CLIPModule(tf.Module):
         super(CLIPModule, self).__init__()
         self.m = TFCLIPModel.from_pretrained("openai/clip-vit-base-patch32")
 
-        self.m.predict = lambda x, y, z: self.m(input_ids=x, attention_mask=y, pixel_values=z)
+        self.m.predict = lambda x, y, z: self.m(
+            input_ids=x, attention_mask=y, pixel_values=z
+        )
 
     @tf.function(input_signature=clip_vit_inputs)
     def forward(self, input_ids, attention_mask, pixel_values):
-        return self.m.predict(input_ids, attention_mask, pixel_values).logits_per_image
+        return self.m.predict(
+            input_ids, attention_mask, pixel_values
+        ).logits_per_image
 
 
 if __name__ == "__main__":
@@ -41,7 +45,11 @@ if __name__ == "__main__":
 
     shark_module = SharkInference(
         CLIPModule(),
-        (inputs["input_ids"], inputs["attention_mask"], inputs["pixel_values"]),
+        (
+            inputs["input_ids"],
+            inputs["attention_mask"],
+            inputs["pixel_values"],
+        ),
     )
     shark_module.set_frontend("tensorflow")
     shark_module.compile()

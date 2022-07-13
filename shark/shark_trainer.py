@@ -69,7 +69,9 @@ class SharkTrainer:
     # Training function is needed in the case of torch_fn.
     def compile(self, training_fn=None):
         if self.frontend in ["torch", "pytorch"]:
-            aot_module = MakeFxModule(self.model, tuple(self.input), custom_inference_fn=training_fn)
+            aot_module = MakeFxModule(
+                self.model, tuple(self.input), custom_inference_fn=training_fn
+            )
             aot_module.generate_graph()
             # Returns the backward graph.
             training_graph = aot_module.training_graph
@@ -110,7 +112,9 @@ class SharkTrainer:
         params = [x.numpy() for x in params]
         print(f"Training started for {num_iters} iterations:")
         for i in tqdm(range(num_iters)):
-            params = self.shark_runner.forward(params + self.input, self.frontend)
+            params = self.shark_runner.forward(
+                params + self.input, self.frontend
+            )
 
         return params
 

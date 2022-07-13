@@ -11,7 +11,9 @@ class SqueezeNetTest(test_util.TFLiteModelTest):
         super(SqueezeNetTest, self).__init__(model_path, *args, **kwargs)
 
     def compare_results(self, iree_results, tflite_results, details):
-        super(SqueezeNetTest, self).compare_results(iree_results, tflite_results, details)
+        super(SqueezeNetTest, self).compare_results(
+            iree_results, tflite_results, details
+        )
 
     def test_compile_tflite(self):
         self.compile_and_execute()

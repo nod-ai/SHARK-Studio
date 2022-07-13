@@ -115,5 +115,9 @@ class SharkInference:
         shapes, dtype = self._input_info()
         inputs = []
         for i, j in zip(shapes, dtype):
-            inputs.append(np.random.uniform(low, high, size=i).astype(dtype_to_np_dtype[j]))
+            inputs.append(
+                np.random.uniform(low, high, size=i).astype(
+                    dtype_to_np_dtype[j]
+                )
+            )
         return tuple(inputs)

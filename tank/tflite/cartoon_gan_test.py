@@ -4,7 +4,9 @@
 import absl.testing
 import test_util
 
-model_path = "https://tfhub.dev/sayakpaul/lite-model/cartoongan/dr/1?lite-format=tflite"
+model_path = (
+    "https://tfhub.dev/sayakpaul/lite-model/cartoongan/dr/1?lite-format=tflite"
+)
 
 
 class CartoonGanTest(test_util.TFLiteModelTest):
