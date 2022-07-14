@@ -12,21 +12,19 @@ import pytest
 torch.manual_seed(0)
 
 
-class MobileBertUncasedModuleTester:
+class MiniLMModuleTester:
     def __init__(
         self,
-        dynamic=False,
-        device="cpu",
         save_mlir=False,
         save_vmfb=False,
     ):
-        self.dynamic = dynamic
-        self.device = device
         self.save_mlir = save_mlir
         self.save_vmfb = save_vmfb
 
-    def create_and_check_module(self):
-        model, input, act_out = get_hf_model("google/mobilebert-uncased")
+    def create_and_check_module(self, dynamic, device):
+        model, input, act_out = get_hf_model(
+            "microsoft/MiniLM-L12-H384-uncased"
+        )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
         mlir_importer = SharkImporter(
@@ -35,67 +33,64 @@ class MobileBertUncasedModuleTester:
             frontend="torch",
         )
         minilm_mlir, func_name = mlir_importer.import_mlir(
-            is_dynamic=self.dynamic, tracing_required=True
+            is_dynamic=dynamic, tracing_required=True
         )
         shark_module = SharkInference(
-            minilm_mlir, func_name, device=self.device, mlir_dialect="linalg"
+            minilm_mlir, func_name, device=device, mlir_dialect="linalg"
         )
         shark_module.compile()
         results = shark_module.forward((input,))
         assert True == compare_tensors(act_out, results)
 
 
-class MobileBertModuleTest(unittest.TestCase):
+class MiniLMModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
-        self.save_mlir = pytestconfig.getoption("save_mlir")
-        self.save_vmfb = pytestconfig.getoption("save_vmfb")
-
-    def setUp(self):
-        self.module_tester = MobileBertUncasedModuleTester(self)
+        self.module_tester = MiniLMModuleTester(self)
+        self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
+        self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
 
     def test_module_static_cpu(self):
-        self.module_tester.dynamic = False
-        self.module_tester.device = "cpu"
-        self.module_tester.create_and_check_module()
+        dynamic = False
+        device = "cpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     def test_module_dynamic_cpu(self):
-        self.module_tester.dynamic = True
-        self.module_tester.device = "cpu"
-        self.module_tester.create_and_check_module()
+        dynamic = True
+        device = "cpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(reason="golden and original results mismatch")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
     def test_module_static_gpu(self):
-        self.module_tester.dynamic = False
-        self.module_tester.device = "gpu"
-        self.module_tester.create_and_check_module()
+        dynamic = False
+        device = "gpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
     def test_module_dynamic_gpu(self):
-        self.module_tester.dynamic = True
-        self.module_tester.device = "gpu"
-        self.module_tester.create_and_check_module()
+        dynamic = True
+        device = "gpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_static_vulkan(self):
-        self.module_tester.dynamic = False
-        self.module_tester.device = "vulkan"
-        self.module_tester.create_and_check_module()
+        dynamic = False
+        device = "vulkan"
+        self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_dynamic_vulkan(self):
-        self.module_tester.dynamic = True
-        self.module_tester.device = "vulkan"
-        self.module_tester.create_and_check_module()
+        dynamic = True
+        device = "vulkan"
+        self.module_tester.create_and_check_module(dynamic, device)
 
 
 if __name__ == "__main__":

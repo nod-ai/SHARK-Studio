@@ -1,9 +1,9 @@
 setuptools
 wheel
 
-#SHARK Runner
+# SHARK Runner
 tqdm
 
-#Testing
+# Testing
 pytest
 pytest-xdist
