@@ -27,6 +27,29 @@ input_type_to_np_dtype = {
     "int8": np.int8,
 }
 
+WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+
+# Downloads the torch model from gs://shark_tank dir.
+def download_torch_model(model_name):
+    model_name = model_name.replace("/", "_")
+    os.makedirs(WORKDIR, exist_ok=True)
+    gs_command = (
+        "gsutil cp -r gs://shark_tank" + "/" + model_name + " " + WORKDIR
+    )
+    if os.system(gs_command) != 0:
+        raise Exception("model not present in the tank. Contact Nod Admin")
+    model_dir = os.path.join(WORKDIR, model_name)
+    with open(os.path.join(model_dir, model_name + ".mlir")) as f:
+        mlir_file = f.read()
+
+    function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
+    inputs = np.load(os.path.join(model_dir, "inputs.npz"))
+    golden_out = np.load(os.path.join(model_dir, "golden_out.npz"))
+
+    inputs_tuple = tuple([inputs[key] for key in inputs])
+    golden_out_tuple = tuple([golden_out[key] for key in golden_out])
+    return mlir_file, function_name, inputs_tuple, golden_out_tuple
+
 
 class SharkDownloader:
     def __init__(
