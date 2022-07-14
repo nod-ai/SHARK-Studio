@@ -43,6 +43,9 @@ class MaskedLM(tf.Module):
 
 
 def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
     model = MaskedLM(hf_name)
     encoded_input = preprocess_input(hf_name, text)
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])

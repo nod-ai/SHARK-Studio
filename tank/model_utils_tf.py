@@ -37,6 +37,9 @@ class TFHuggingFaceLanguage(tf.Module):
 
 
 def get_TFhf_model(name):
+    gpus = tf.config.experimental.list_physical_devices("GPU")
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
     model = TFHuggingFaceLanguage(name)
     tokenizer = BertTokenizer.from_pretrained(
         "microsoft/MiniLM-L12-H384-uncased"

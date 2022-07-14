@@ -1,7 +1,7 @@
-from masked_lm import get_causal_lm_model
-from tank.model_utils_tf import compare_tensors_tf
-from shark.iree_utils._common import check_device_drivers
+from tank.model_utils_tf import compare_tensors_tf, get_TFhf_model
+from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
+from shark.shark_importer import SharkImporter
 from shark.parser import shark_args
 
 import iree.compiler as ireec
@@ -12,21 +12,23 @@ import tempfile
 import os
 
 
-class ElectraModuleTester:
+class MiniLMModuleTester:
     def __init__(
         self,
         save_temps=False,
         save_mlir=False,
         save_vmfb=False,
-        benchmark=False,
+        #        benchmark=False,
     ):
         self.save_temps = save_temps
         self.save_mlir = save_mlir
         self.save_vmfb = save_vmfb
 
+    #        self.benchmark = benchmark
+
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_causal_lm_model(
-            "google/electra-small-discriminator"
+        model, input, act_out = get_TFhf_model(
+            "microsoft/MiniLM-L12-H384-uncased"
         )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
@@ -36,7 +38,7 @@ class ElectraModuleTester:
             or shark_args.save_vmfb == True
             or self.save_temps == True
         ):
-            repro_path = f"./shark_tmp/electra_tf_{dynamic}_{device}"
+            repro_path = f"./shark_tmp/minilm_tf_{dynamic}_{device}"
             if not os.path.isdir(repro_path):
                 os.mkdir(repro_path)
             shark_args.repro_dir = repro_path
@@ -52,100 +54,83 @@ class ElectraModuleTester:
             with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
                 out_file.write(np.array2string(exp_out))
             with ireec.tools.TempFileSaver(temp_dir):
-                shark_module = SharkInference(
-                    model,
-                    (input,),
-                    device=device,
-                    dynamic=dynamic,
-                    jit_trace=True,
-                    benchmark_mode=self.benchmark,
+                mlir_importer = SharkImporter(
+                    model, (input,), frontend="tensorflow"
                 )
-                shark_module.set_frontend("tensorflow")
+                mlir_module, func_name = mlir_importer.import_mlir(
+                    is_dynamic=dynamic, tracing_required=False
+                )
+                shark_module = SharkInference(
+                    mlir_module, func_name, device=device, mlir_dialect="mhlo"
+                )
                 shark_module.compile()
-                results = shark_module.forward((input))
-            assert True == compare_tensors_tf(act_out, results)
 
         else:
-            shark_module = SharkInference(
+            mlir_importer = SharkImporter(
                 model,
                 (input,),
-                device=device,
-                dynamic=dynamic,
-                jit_trace=True,
-                benchmark_mode=self.benchmark,
+                frontend="tensorflow",
             )
-            shark_module.set_frontend("tensorflow")
+            mlir_module, func_name = mlir_importer.import_mlir(
+                is_dynamic=dynamic, tracing_required=False
+            )
+            shark_module = SharkInference(
+                mlir_module, func_name, device=device, mlir_dialect="mhlo"
+            )
             shark_module.compile()
-            results = shark_module.forward((input))
-            assert True == compare_tensors_tf(act_out, results)
-
-        if self.benchmark == True:
-            shark_module.benchmark_all_csv(
-                (input), "electra-small-discriminator", dynamic, device
-            )
+        results = shark_module.forward((input))
+        outputs = results[0]
+        assert True == compare_tensors_tf(act_out[0], outputs[1].to_host())
 
 
-class ElectraModuleTest(unittest.TestCase):
+class MiniLMModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
-        self.module_tester = ElectraModuleTester(self)
+        self.module_tester = MiniLMModuleTester(self)
         self.module_tester.save_temps = pytestconfig.getoption("save_temps")
         self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
-        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    @pytest.mark.xfail(
-        reason="Upstream IREE issue, see https://github.com/google/iree/issues/9536"
-    )
+    #        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
+
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(
-        reason="Language models currently failing for dynamic case"
-    )
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail
+    @pytest.mark.skip(reason="https://github.com/google/iree/issues/9553")
     @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason="nvidia-smi not found"
+        check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
     def test_module_static_gpu(self):
         dynamic = False
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
+    @pytest.mark.skip(reason="https://github.com/google/iree/issues/9553")
     @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason="nvidia-smi not found"
+        check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
     def test_module_dynamic_gpu(self):
         dynamic = True
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail
     @pytest.mark.skipif(
-        check_device_drivers("vulkan"),
-        reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
+        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_static_vulkan(self):
         dynamic = False
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
-        reason="Language models currently failing for dynamic case"
-    )
     @pytest.mark.skipif(
-        check_device_drivers("vulkan"),
-        reason="vulkaninfo not found, install from https://github.com/KhronosGroup/MoltenVK/releases",
+        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_dynamic_vulkan(self):
         dynamic = True
