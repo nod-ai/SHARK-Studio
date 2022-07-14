@@ -23,6 +23,8 @@ input_type_to_np_dtype = {
     "bool": np.bool_,
     "int32": np.int32,
     "int64": np.int64,
+    "uint8": np.uint8,
+    "int8": np.int8,
 }
 
 
@@ -32,7 +34,7 @@ class SharkDownloader:
         model_name: str,
         tank_url: str = "https://storage.googleapis.com/shark_tank",
         local_tank_dir: str = "./../gen_shark_tank/tflite",
-        model_type: str = "tflite-tosa",
+        model_type: str = "tflite",
         input_json: str = "input.json",
         input_type: str = "int32",
     ):
@@ -84,7 +86,7 @@ class SharkDownloader:
 
     def load_json_input(self):
         print("load json inputs")
-        if self.model_type in ["tflite-tosa"]:
+        if self.model_type in ["tflite"]:
             input_url = (
                 self.tank_url + "/" + str(self.model_name) + "/" + "input.json"
             )
@@ -109,7 +111,7 @@ class SharkDownloader:
         return self.inputs
 
     def load_mlir_model(self):
-        if self.model_type in ["tflite-tosa"]:
+        if self.model_type in ["tflite"]:
             self.mlir_url = (
                 self.tank_url
                 + "/"

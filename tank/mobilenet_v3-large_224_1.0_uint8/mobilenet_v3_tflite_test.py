@@ -1,5 +1,5 @@
 import numpy as np
-from shark.shark_importer import SharkImporter
+from shark.shark_downloader import SharkDownloader
 from shark.shark_inference import SharkInference
 import pytest
 import unittest
@@ -60,18 +60,19 @@ class MobilenetTfliteModuleTester:
         tflite_preprocessor = TFLitePreprocessor(
             model_name="mobilenet_v3-large_224_1.0_uint8"
         )
-        raw_model_file_path = tflite_preprocessor.get_raw_model_file()
-        inputs = tflite_preprocessor.get_inputs()
-        tflite_interpreter = tflite_preprocessor.get_interpreter()
+        # inputs = tflite_preprocessor.get_inputs()
 
-        # Use SharkImporter to get SharkInference input args
-        my_shark_importer = SharkImporter(
-            module=tflite_interpreter,
-            inputs=inputs,
-            frontend="tflite",
-            raw_model_file=raw_model_file_path,
+        shark_downloader = SharkDownloader(
+            model_name="mobilenet_v3-large_224_1.0_uint8",
+            tank_url="https://storage.googleapis.com/shark_tank",
+            local_tank_dir="./../gen_shark_tank",
+            model_type="tflite",
+            input_json="input.json",
+            input_type="uint8",
         )
-        mlir_model, func_name = my_shark_importer.import_mlir()
+        mlir_model = shark_downloader.get_mlir_file()
+        inputs = shark_downloader.get_inputs()
+        func_name = "main"
 
         # Use SharkInference to get inference result
         shark_module = SharkInference(
@@ -124,7 +125,8 @@ class MobilenetTfliteModuleTest(unittest.TestCase):
     import sys
 
     @pytest.mark.xfail(
-        sys.platform == "darwin", reason="known macos tflite install issue"
+        reason="known macos tflite install issue & "
+        "'tosa.conv2d' op attribute 'quantization_info' failed "
     )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False

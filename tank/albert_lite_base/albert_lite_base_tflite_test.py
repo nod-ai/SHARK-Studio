@@ -1,5 +1,5 @@
 import numpy as np
-from shark.shark_importer import SharkImporter
+from shark.shark_downloader import SharkDownloader
 from shark.shark_inference import SharkInference
 import pytest
 import unittest
@@ -70,58 +70,26 @@ class AlbertTfliteModuleTester:
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-
-        # Preprocess to get SharkImporter input args
-        tflite_preprocessor = TFLitePreprocessor(model_name="albert_lite_base")
-        raw_model_file_path = tflite_preprocessor.get_raw_model_file()
-        inputs = tflite_preprocessor.get_inputs()
-        tflite_interpreter = tflite_preprocessor.get_interpreter()
-
-        # Use SharkImporter to get SharkInference input args
-        my_shark_importer = SharkImporter(
-            module=tflite_interpreter,
-            inputs=inputs,
-            frontend="tflite",
-            raw_model_file=raw_model_file_path,
+        shark_downloader = SharkDownloader(
+            model_name="albert_lite_base",
+            tank_url="https://storage.googleapis.com/shark_tank",
+            local_tank_dir="./../gen_shark_tank",
+            model_type="tflite",
+            input_json="input.json",
+            input_type="int32",
         )
-        mlir_model, func_name = my_shark_importer.import_mlir()
-
-        # Use SharkInference to get inference result
-        shark_module = SharkInference(
-            mlir_module=mlir_model,
-            function_name=func_name,
-            device=self.device,
-            mlir_dialect="tflite",
-        )
-
-        # Case1: Use shark_importer default generate inputs
-        shark_module.compile()
-        mlir_results = shark_module.forward(inputs)
-        ## post process results for compare
-        input_details, output_details = tflite_preprocessor.get_model_details()
-        mlir_results = list(mlir_results)
-        for i in range(len(output_details)):
-            dtype = output_details[i]["dtype"]
-            mlir_results[i] = mlir_results[i].astype(dtype)
-        tflite_results = tflite_preprocessor.get_raw_model_output()
-        compare_results(mlir_results, tflite_results, output_details)
-
-        # Case2: Use manually set inputs
-        input_details, output_details = tflite_preprocessor.get_model_details()
-        inputs = generate_inputs(input_details)  # new inputs
+        tflite_tosa_model = shark_downloader.get_mlir_file()
+        inputs = shark_downloader.get_inputs()
 
         shark_module = SharkInference(
-            mlir_module=mlir_model,
-            function_name=func_name,
+            mlir_module=tflite_tosa_model,
+            function_name="main",
             device=self.device,
             mlir_dialect="tflite",
         )
         shark_module.compile()
-        mlir_results = shark_module.forward(inputs)
-        ## post process results for compare
-        tflite_results = tflite_preprocessor.get_raw_model_output()
-        compare_results(mlir_results, tflite_results, output_details)
-        # print(mlir_results)
+        shark_module.forward(inputs)
+        # print(shark_results)
 
 
 class AlbertTfliteModuleTest(unittest.TestCase):
@@ -146,9 +114,24 @@ class AlbertTfliteModuleTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
+    unittest.main()
     # module_tester = AlbertTfliteModuleTester()
-    # module_tester.save_mlir = True
-    # module_tester.save_vmfb = True
     # module_tester.create_and_check_module()
 
-    unittest.main()
+# TEST RESULT:
+# (shark.venv) nod% python albert_lite_base_tflite_mlir_test.py
+# load json inputs
+# TMP_MODEL_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite
+# Model has not been download.shark_downloader will automatically download by tank_url if provided. You can also manually to download the model from shark_tank by yourself.
+# TMP_MODELNAME_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base
+# Download mlir model https://storage.googleapis.com/shark_tank/tflite/albert_lite_base/albert_lite_base_tosa.mlir
+# Get tosa.mlir model return
+# Target triple found:x86_64-linux-gnu
+# (shark.venv) nod% python albert_lite_base_tflite_mlir_test.py
+# load json inputs
+# TMP_MODEL_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite
+# TMP_MODELNAME_DIR = shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base
+# Model has been downloaded before. shark/SHARK/shark/./../gen_shark_tank/tflite/albert_lite_base/albert_lite_base_tosa.mlir
+# Get tosa.mlir model return
+# Target triple found:x86_64-linux-gnu
+#

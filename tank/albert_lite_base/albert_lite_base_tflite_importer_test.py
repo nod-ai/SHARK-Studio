@@ -4,30 +4,36 @@ from shark.shark_inference import SharkInference
 import pytest
 import unittest
 from shark.parser import shark_args
-import os
-import sys
-import urllib.request
-from PIL import Image
 from shark.tflite_utils import TFLitePreprocessor
 
 
-# model_path = "https://github.com/tensorflow/tflite-micro/raw/aeac6f39e5c7475cea20c54e86d41e3a38312546/tensorflow/lite/micro/models/person_detect.tflite"
+# model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
+# model_path = model_path
 
-
+# Inputs modified to be useful albert inputs.
 def generate_inputs(input_details):
-    exe_basename = os.path.basename(sys.argv[0])
-    workdir = os.path.join(os.path.dirname(__file__), "../tmp", exe_basename)
-    os.makedirs(workdir, exist_ok=True)
+    for input in input_details:
+        print(str(input["shape"]), input["dtype"].__name__)
 
-    img_path = "https://github.com/tensorflow/tflite-micro/raw/aeac6f39e5c7475cea20c54e86d41e3a38312546/tensorflow/lite/micro/examples/person_detection/testdata/person.bmp"
-    local_path = "/".join([workdir, "person.bmp"])
-    urllib.request.urlretrieve(img_path, local_path)
-
-    shape = input_details[0]["shape"]
-    im = np.array(Image.open(local_path).resize((shape[1], shape[2]))).astype(
-        input_details[0]["dtype"]
+    args = []
+    args.append(
+        np.random.randint(
+            low=0,
+            high=256,
+            size=input_details[0]["shape"],
+            dtype=input_details[0]["dtype"],
+        )
     )
-    args = [im.reshape(shape)]
+    args.append(
+        np.ones(
+            shape=input_details[1]["shape"], dtype=input_details[1]["dtype"]
+        )
+    )
+    args.append(
+        np.zeros(
+            shape=input_details[2]["shape"], dtype=input_details[2]["dtype"]
+        )
+    )
     return args
 
 
@@ -41,12 +47,14 @@ def compare_results(mlir_results, tflite_results, details):
         tflite_result = tflite_results[i]
         mlir_result = mlir_result.astype(np.single)
         tflite_result = tflite_result.astype(np.single)
+        print("mlir_result.shape", mlir_result.shape)
+        print("tflite_result.shape", tflite_result.shape)
         assert mlir_result.shape == tflite_result.shape, "shape doesnot match"
         max_error = np.max(np.abs(mlir_result - tflite_result))
         print("Max error (%d): %f", i, max_error)
 
 
-class PersonDetectionTfliteModuleTester:
+class AlbertTfliteModuleTester:
     def __init__(
         self,
         dynamic=False,
@@ -64,25 +72,7 @@ class PersonDetectionTfliteModuleTester:
         shark_args.save_vmfb = self.save_vmfb
 
         # Preprocess to get SharkImporter input args
-        # The input has known expected values. We hardcode this value.
-        input_details = [
-            {
-                "shape": [1, 96, 96, 1],
-                "dtype": np.int8,
-                "index": 0,
-            }
-        ]
-        output_details = [
-            {
-                "shape": [1, 2],
-                "dtype": np.int8,
-            }
-        ]
-        tflite_preprocessor = TFLitePreprocessor(
-            model_name="person_detect",
-            input_details=input_details,
-            output_details=output_details,
-        )
+        tflite_preprocessor = TFLitePreprocessor(model_name="albert_lite_base")
         raw_model_file_path = tflite_preprocessor.get_raw_model_file()
         inputs = tflite_preprocessor.get_inputs()
         tflite_interpreter = tflite_preprocessor.get_interpreter()
@@ -104,8 +94,20 @@ class PersonDetectionTfliteModuleTester:
             mlir_dialect="tflite",
         )
 
-        # Case2: Use manually set inputs
+        # Case1: Use shark_importer default generate inputs
+        shark_module.compile()
+        mlir_results = shark_module.forward(inputs)
+        ## post process results for compare
+        input_details, output_details = tflite_preprocessor.get_model_details()
+        mlir_results = list(mlir_results)
+        for i in range(len(output_details)):
+            dtype = output_details[i]["dtype"]
+            mlir_results[i] = mlir_results[i].astype(dtype)
+        tflite_results = tflite_preprocessor.get_raw_model_output()
+        compare_results(mlir_results, tflite_results, output_details)
 
+        # Case2: Use manually set inputs
+        input_details, output_details = tflite_preprocessor.get_model_details()
         inputs = generate_inputs(input_details)  # new inputs
 
         shark_module = SharkInference(
@@ -117,23 +119,26 @@ class PersonDetectionTfliteModuleTester:
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
         ## post process results for compare
-        # The input has known expected values. We hardcode this value.
-        tflite_results = [np.array([[-113, 113]], dtype=np.int8)]
+        tflite_results = tflite_preprocessor.get_raw_model_output()
         compare_results(mlir_results, tflite_results, output_details)
         # print(mlir_results)
 
 
-class PersonDetectionTfliteModuleTest(unittest.TestCase):
+class AlbertTfliteModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.save_mlir = pytestconfig.getoption("save_mlir")
         self.save_vmfb = pytestconfig.getoption("save_vmfb")
 
     def setUp(self):
-        self.module_tester = PersonDetectionTfliteModuleTester(self)
+        self.module_tester = AlbertTfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
-    @pytest.mark.skip(reason="TFLite is broken with this model")
+    import sys
+
+    @pytest.mark.xfail(
+        sys.platform == "darwin", reason="known macos tflite install issue"
+    )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"
@@ -141,7 +146,7 @@ class PersonDetectionTfliteModuleTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    # module_tester = PersonDetectionTfliteModuleTester()
+    # module_tester = AlbertTfliteModuleTester()
     # module_tester.save_mlir = True
     # module_tester.save_vmfb = True
     # module_tester.create_and_check_module()
