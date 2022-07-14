@@ -6,4 +6,4 @@ tqdm
 
 # Testing
 pytest
-pytest - xdist
+pytest-xdist
