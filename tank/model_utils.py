@@ -2,12 +2,6 @@ from shark.shark_inference import SharkInference
 
 import torch
 import numpy as np
-import torchvision.models as models
-from transformers import (
-    AutoModelForSequenceClassification,
-    BertTokenizer,
-    TFBertModel,
-)
 
 torch.manual_seed(0)
 
@@ -17,6 +11,8 @@ torch.manual_seed(0)
 class HuggingFaceLanguage(torch.nn.Module):
     def __init__(self, hf_model_name):
         super().__init__()
+        from transformers import AutoModelForSequenceClassification
+
         self.model = AutoModelForSequenceClassification.from_pretrained(
             hf_model_name,  # The pretrained model.
             num_labels=2,  # The number of output labels--2 for binary classification.
@@ -30,6 +26,11 @@ class HuggingFaceLanguage(torch.nn.Module):
 
 
 def get_hf_model(name):
+    from transformers import (
+        BertTokenizer,
+        TFBertModel,
+    )
+
     model = HuggingFaceLanguage(name)
     # TODO: Currently the test input is set to (1,128)
     test_input = torch.randint(2, (1, 128))
@@ -40,15 +41,6 @@ def get_hf_model(name):
 ################################################################################
 
 ##################### Torch Vision Models    ###################################
-
-vision_models_dict = {
-    "alexnet": models.alexnet(pretrained=True),
-    "resnet18": models.resnet18(pretrained=True),
-    "resnet50": models.resnet50(pretrained=True),
-    "resnet101": models.resnet101(pretrained=True),
-    "squeezenet1_0": models.squeezenet1_0(pretrained=True),
-    "wide_resnet50_2": models.wide_resnet50_2(pretrained=True),
-}
 
 
 class VisionModule(torch.nn.Module):
@@ -62,6 +54,16 @@ class VisionModule(torch.nn.Module):
 
 
 def get_vision_model(torch_model):
+    import torchvision.models as models
+
+    vision_models_dict = {
+        "alexnet": models.alexnet(pretrained=True),
+        "resnet18": models.resnet18(pretrained=True),
+        "resnet50": models.resnet50(pretrained=True),
+        "resnet101": models.resnet101(pretrained=True),
+        "squeezenet1_0": models.squeezenet1_0(pretrained=True),
+        "wide_resnet50_2": models.wide_resnet50_2(pretrained=True),
+    }
     if isinstance(torch_model, str):
         torch_model = vision_models_dict[torch_model]
     model = VisionModule(torch_model)
@@ -77,5 +79,5 @@ def compare_tensors(torch_tensor, numpy_tensor):
     # setting the absolute and relative tolerance
     rtol = 1e-02
     atol = 1e-03
-    torch_to_numpy = torch_tensor.detach().numpy()
-    return np.allclose(torch_to_numpy, numpy_tensor, rtol, atol)
+    # torch_to_numpy = torch_tensor.detach().numpy()
+    return np.allclose(torch_tensor, numpy_tensor, rtol, atol)

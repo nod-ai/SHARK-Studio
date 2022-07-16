@@ -4,6 +4,9 @@ wheel
 # SHARK Runner
 tqdm
 
+# SHARK Downloader
+gsutil
+
 # Testing
 pytest
 pytest-xdist

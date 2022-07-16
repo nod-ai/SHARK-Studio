@@ -10,6 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from shark.shark_runner import SharkRunner
+from shark.shark_benchmark_runner import SharkBenchmarkRunner
 import numpy as np
 
 
@@ -40,6 +41,8 @@ class SharkInference:
     mlir_dialect: str
         The dialect in which the given mlir_module is in.
         Refer to {https://mlir.llvm.org/docs/Dialects/}
+    is_benchmark: bool
+        Whether this SharkInference module should be benchmark-enabled.
 
     Methods
     -------
@@ -51,7 +54,6 @@ class SharkInference:
         Gives the information about the inputs required by the `function_name`.
         This can be expensive as it does string matching to do so.
 
-        TODO(Stanley) Add the benchmark APIs with is_benchmark = True argument.
     """
 
     def __init__(
@@ -60,22 +62,33 @@ class SharkInference:
         function_name: str = "forward",
         device: str = "cpu",
         mlir_dialect: str = "linalg",
+        is_benchmark: bool = False,
     ):
         self.mlir_module = mlir_module
         self.function_name = function_name
         self.device = device
         self.mlir_dialect = mlir_dialect
+        self.is_benchmark = is_benchmark
 
         self.shark_runner = None
 
     def compile(self):
-        # TODO: (Stanley) Update the shark_benchmark APIs.
-        self.shark_runner = SharkRunner(
-            self.mlir_module,
-            self.function_name,
-            self.device,
-            self.mlir_dialect,
-        )
+
+        if self.is_benchmark == True:
+            self.shark_runner = SharkBenchmarkRunner(
+                self.mlir_module,
+                self.function_name,
+                self.device,
+                self.mlir_dialect,
+            )
+
+        else:
+            self.shark_runner = SharkRunner(
+                self.mlir_module,
+                self.function_name,
+                self.device,
+                self.mlir_dialect,
+            )
 
     # inputs are considered to be tuple of np.array.
     def forward(self, inputs: tuple):

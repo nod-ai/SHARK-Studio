@@ -1,15 +1,13 @@
 from shark.shark_inference import SharkInference
-from shark.shark_importer import SharkImporter
 from shark.iree_utils._common import check_device_drivers, device_driver_info
-from tank.model_utils import get_hf_model, compare_tensors
+from tank.model_utils import compare_tensors
 from shark.parser import shark_args
+from shark.shark_downloader import download_torch_model
 
 import torch
 import unittest
 import numpy as np
 import pytest
-
-torch.manual_seed(0)
 
 
 class MiniLMModuleTester:
@@ -17,30 +15,57 @@ class MiniLMModuleTester:
         self,
         save_mlir=False,
         save_vmfb=False,
+        benchmark=False,
     ):
         self.save_mlir = save_mlir
         self.save_vmfb = save_vmfb
+        self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_hf_model(
+        model_mlir, func_name, input, act_out = download_torch_model(
             "microsoft/MiniLM-L12-H384-uncased"
         )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
-        mlir_importer = SharkImporter(
-            model,
-            (input,),
-            frontend="torch",
-        )
-        minilm_mlir, func_name = mlir_importer.import_mlir(
-            is_dynamic=dynamic, tracing_required=True
-        )
+
+        # from shark.shark_importer import SharkImporter
+        # mlir_importer = SharkImporter(
+        #    model,
+        #    (input,),
+        #    frontend="torch",
+        # )
+        # minilm_mlir, func_name = mlir_importer.import_mlir(
+        #    is_dynamic=dynamic, tracing_required=True
+        # )
+
         shark_module = SharkInference(
-            minilm_mlir, func_name, device=device, mlir_dialect="linalg"
+            model_mlir,
+            func_name,
+            device=device,
+            mlir_dialect="linalg",
+            is_benchmark=self.benchmark,
         )
         shark_module.compile()
-        results = shark_module.forward((input,))
+        results = shark_module.forward(input)
         assert True == compare_tensors(act_out, results)
+
+        if self.benchmark == True:
+            import torch
+            from tank.model_utils import get_hf_model
+
+            torch.manual_seed(0)
+
+            model, input, act_out = get_hf_model(
+                "microsoft/MiniLM-L12-H384-uncased"
+            )
+            shark_module.shark_runner.frontend_model = model
+            shark_module.shark_runner.benchmark_all_csv(
+                (input,),
+                "MiniLM-L12-H384-uncased",
+                dynamic,
+                device,
+                "torch",
+            )
 
 
 class MiniLMModuleTest(unittest.TestCase):
@@ -49,6 +74,7 @@ class MiniLMModuleTest(unittest.TestCase):
         self.module_tester = MiniLMModuleTester(self)
         self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
+        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     def test_module_static_cpu(self):
         dynamic = False
