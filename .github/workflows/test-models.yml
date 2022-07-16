@@ -77,7 +77,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -n 2 -k 'not benchmark'  --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/  --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+        pytest -n 2 -k 'cpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
 
     - name: Validate GPU Models
       if: matrix.suite == 'gpu'
