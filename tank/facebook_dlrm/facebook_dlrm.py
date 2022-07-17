@@ -1,3 +1,25 @@
+#MIT License
+#
+#Copyright (c) Facebook, Inc. and its affiliates.
+#
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+#
+#The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+#
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+
 from typing import Dict, List
 import numpy as np
 import torch
@@ -51,6 +73,7 @@ class DLRM_Net(nn.Module):
             n = n.item()
 
             if self.qr_flag and n > self.qr_threshold:
+                print("This flow is not used")
                 EE = QREmbeddingBag(
                     n,
                     m,
@@ -60,6 +83,7 @@ class DLRM_Net(nn.Module):
                     sparse=True,
                 )
             elif self.md_flag and n > self.md_threshold:
+                print("This embedding is not used")
                 base = max(m)
                 _m = m[i] if n > self.md_threshold else base
                 EE = PrEmbeddingBag(n, _m, base)
@@ -69,6 +93,7 @@ class DLRM_Net(nn.Module):
                 ).astype(np.float32)
                 EE.embs.weight.data = torch.tensor(W, requires_grad=True)
             else:
+                print("This embedding bag is used")
                 EE = nn.EmbeddingBag(n, m, mode="sum", sparse=True)
                 W = np.random.uniform(
                     low=-np.sqrt(1 / n), high=np.sqrt(1 / n), size=(n, m)
@@ -826,4 +851,10 @@ mlir_importer = SharkImporter(
          frontend="torch",
         )
 
+#print(mlir_importer)
+
 torch_mlir, func_name = mlir_importer.import_mlir(tracing_required=True)
+
+print(torch_mlir)
+print(func_name)
+
