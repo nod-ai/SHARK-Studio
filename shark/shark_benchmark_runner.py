@@ -29,23 +29,34 @@ class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
     def __init__(
         self,
-        model,
-        input: tuple,
-        dynamic: bool = False,
-        device: str = None,
-        jit_trace: bool = False,
-        from_aot: bool = False,
+        mlir_module: str,
+        function_name: str = "forward",
+        device: str = "cpu",
+        mlir_dialect: str = "linalg",
         frontend: str = "torch",
     ):
+        self.device = device
+        self.frontend = frontend
+        self.frontend_model = None
+        self.vmfb_file = None
         SharkRunner.__init__(
-            self, model, input, dynamic, device, jit_trace, from_aot, frontend
+            self,
+            mlir_module,
+            function_name,
+            device,
+            mlir_dialect,
         )
         if self.vmfb_file == None:
             self.vmfb_file = export_iree_module_to_vmfb(
-                self.model, device, shark_args.repro_dir, frontend
+                mlir_module, device, shark_args.repro_dir, self.frontend
             )
+
+    def setup_cl(self, input_tensors):
         self.benchmark_cl = build_benchmark_args(
-            self.vmfb_file, device, input, frontend, from_aot
+            self.vmfb_file,
+            self.device,
+            input_tensors,
+            mlir_dialect=self.mlir_dialect,
         )
 
     def benchmark_frontend(self, inputs):
@@ -54,9 +65,8 @@ class SharkBenchmarkRunner(SharkRunner):
         elif self.frontend in ["tensorflow", "tf"]:
             return self.benchmark_tf(inputs)
 
-    def benchmark_torch(self, inputs):
-        inputs = self.input if self.from_aot else inputs
-        inputs = inputs[0]
+    def benchmark_torch(self, input_tuple):
+        inputs = input_tuple[0]
         for i in range(shark_args.num_warmup_iterations):
             self.frontend_model.forward(inputs)
 
@@ -98,14 +108,13 @@ class SharkBenchmarkRunner(SharkRunner):
         return [f"{result}", f"{1000/result}"]
 
     def benchmark_python(self, inputs):
-        inputs = self.input if self.from_aot else inputs
         input_list = [x for x in inputs]
         for i in range(shark_args.num_warmup_iterations):
-            self.forward(input_list, self.frontend)
+            self.run(input_list)
 
         begin = time.time()
         for i in range(shark_args.num_iterations):
-            out = self.forward(input_list, self.frontend)
+            out = self.run(input_list)
             if i == shark_args.num_iterations - 1:
                 end = time.time()
         print(
@@ -116,12 +125,15 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{((end-begin)/shark_args.num_iterations)*1000}",
         ]
 
-    def benchmark_all(self, inputs):
+    def benchmark_all(self, inputs: tuple):
         self.benchmark_frontend(inputs)
         self.benchmark_python(inputs)
         self.benchmark_c()
 
-    def benchmark_all_csv(self, inputs, modelname, dynamic, device_str):
+    def benchmark_all_csv(
+        self, inputs: tuple, modelname, dynamic, device_str, frontend
+    ):
+        self.setup_cl(inputs)
         field_names = [
             "platform",
             "model",
@@ -149,7 +161,7 @@ class SharkBenchmarkRunner(SharkRunner):
             bench_result["device"] = device_str
             for p in platforms:
                 if p == "frontend":
-                    bench_result["platform"] = "frontend"
+                    bench_result["platform"] = frontend
                     bench_result["iter/sec"] = self.benchmark_frontend(inputs)[
                         0
                     ]

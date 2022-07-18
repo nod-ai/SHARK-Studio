@@ -21,7 +21,7 @@ import re
 UNIT_TO_SECOND_MAP = {"ms": 0.001, "s": 1}
 
 
-def tensor_to_type_str(input_tensors: tuple, frontend: str):
+def tensor_to_type_str(input_tensors: tuple, mlir_dialect: str):
     """
     Input: A tuple of input tensors i.e tuple(torch.tensor)
     Output: list of string that represent mlir types (i.e 1x24xf64)
@@ -30,9 +30,9 @@ def tensor_to_type_str(input_tensors: tuple, frontend: str):
     list_of_type = []
     for input_tensor in input_tensors:
         type_string = "x".join([str(dim) for dim in input_tensor.shape])
-        if frontend in ["torch", "pytorch"]:
+        if mlir_dialect in ["linalg", "tosa"]:
             dtype_string = str(input_tensor.dtype).replace("torch.", "")
-        elif frontend in ["tensorflow", "tf"]:
+        elif mlir_dialect in ["mhlo", "tflite"]:
             dtype = input_tensor.dtype
             dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace(
                 "'", ""
@@ -49,7 +49,7 @@ def build_benchmark_args(
     input_file: str,
     device: str,
     input_tensors: tuple,
-    frontend: str,
+    mlir_dialect: str,
     training=False,
 ):
     """
@@ -67,7 +67,7 @@ def build_benchmark_args(
         fn_name = "train"
     benchmark_cl.append(f"--entry_function={fn_name}")
     benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
-    mlir_input_types = tensor_to_type_str(input_tensors, frontend)
+    mlir_input_types = tensor_to_type_str(input_tensors, mlir_dialect)
     for mlir_input in mlir_input_types:
         benchmark_cl.append(f"--function_input={mlir_input}")
     time_extractor = "| awk 'END{{print $2 $3}}'"
