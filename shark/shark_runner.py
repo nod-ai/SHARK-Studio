@@ -71,6 +71,7 @@ class SharkRunner:
 
         if check_device_drivers(self.device):
             device_driver_info(self.device)
+            sys.exit(1)
 
         # Compile the module to get the .vmfb.
         (
