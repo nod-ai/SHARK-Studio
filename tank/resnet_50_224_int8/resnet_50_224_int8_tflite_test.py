@@ -96,7 +96,7 @@ class ResnetTfliteModuleTest(unittest.TestCase):
 
     import sys
 
-    @pytest.mark.skip(
+    @pytest.mark.xfail(
         reason="known macos tflite install issue & "
         "'tosa.conv2d' op attribute 'quantization_info' failed "
     )
