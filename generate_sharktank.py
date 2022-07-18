@@ -61,8 +61,34 @@ def save_torch_model(torch_model_list):
 
 
 def save_tf_model(tf_model_list):
-    print("tf sharktank not implemented yet")
-    pass
+    from tank.masked_lm_tf import get_causal_lm_model
+
+    with open(tf_model_list) as csvfile:
+        tf_reader = csv.reader(csvfile, delimiter=",")
+        fields = next(tf_reader)
+        for row in tf_reader:
+            tf_model_name = row[0]
+            model_type = row[1]
+
+            model = None
+            input = None
+            print(model_type)
+            if model_type == "hf":
+                model, input, _ = get_causal_lm_model(tf_model_name)
+
+            tf_model_name = tf_model_name.replace("/", "_")
+            tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
+            os.makedirs(tf_model_dir, exist_ok=True)
+
+            mlir_importer = SharkImporter(
+                model,
+                input,
+                frontend="tf",
+            )
+            mlir_importer.import_debug(
+                dir=tf_model_dir,
+                model_name=tf_model_name,
+            )
 
 
 def save_tflite_model(tflite_model_list):
@@ -148,10 +174,10 @@ if __name__ == "__main__":
         save_torch_model(args.torch_model_csv)
 
     if args.tf_model_csv:
-        save_tf_model(args.torch_model_csv)
+        save_tf_model(args.tf_model_csv)
 
     if args.tflite_model_csv:
-        save_tflite_model(args.torch_model_csv)
+        save_tflite_model(args.tflite_model_csv)
 
     if args.upload:
         print("uploading files to gs://shark_tank/")

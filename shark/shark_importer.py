@@ -134,7 +134,11 @@ class SharkImporter:
         np.savez(os.path.join(dir, outputs_name), *outputs)
         np.save(os.path.join(dir, func_file_name), np.array(func_name))
 
-        mlir_str = mlir_data.operation.get_asm()
+        mlir_str = mlir_data
+        if self.frontend == "torch":
+            mlir_str = mlir_data.operation.get_asm()
+        elif self.frontend == "tf":
+            mlir_str = str(mlir_data)
         with open(os.path.join(dir, model_name_mlir), "w") as mlir_file:
             mlir_file.write(mlir_str)
 
@@ -184,11 +188,28 @@ class SharkImporter:
                 golden_out,
             )
         if self.frontend in ["tf", "tensorflow"]:
+            import tensorflow as tf
+
             golden_out = self.module.forward(*self.inputs)
+            if tf.is_tensor(golden_out):
+                golden_out = tuple(
+                    golden_out.numpy(),
+                )
+            else:
+                golden_out = self.convert_to_numpy(golden_out)
+            # Save the artifacts in the directory dir.
+            self.save_data(
+                dir,
+                model_name,
+                imported_mlir[0],
+                imported_mlir[1],
+                self.inputs,
+                golden_out,
+            )
             return (
                 imported_mlir,
                 self.convert_to_numpy(self.inputs),
-                golden_out.numpy(),
+                golden_out,
             )
         if self.frontend in ["tflite", "tf-lite"]:
             # TODO(Chi): Validate it for tflite models.
