@@ -133,7 +133,7 @@ class MobilenetTfliteModuleTest(unittest.TestCase):
 
     import sys
 
-    @pytest.mark.xfail(
+    @pytest.mark.skip(
         reason="known macos tflite install issue & "
         "'tosa.pad' op attribute 'quantization_info' failed  "
     )

@@ -94,7 +94,7 @@ class MnasnetTfliteModuleTest(unittest.TestCase):
 
     import sys
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
         sys.platform == "darwin", reason="known macos tflite install issue"
     )
     def test_module_static_cpu(self):
