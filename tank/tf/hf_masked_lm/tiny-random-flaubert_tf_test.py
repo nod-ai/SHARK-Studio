@@ -96,11 +96,13 @@ class FlauBertModuleTest(unittest.TestCase):
 
     #        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
+    @pytest.mark.skip(reason="TF tests to be updated to use shark-downloader")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.skip(reason="TF tests to be updated to use shark-downloader")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
