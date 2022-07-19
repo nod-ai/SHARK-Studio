@@ -10,7 +10,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from shark.shark_runner import SharkRunner
-from shark.shark_benchmark_runner import SharkBenchmarkRunner
 import numpy as np
 
 
@@ -75,6 +74,8 @@ class SharkInference:
     def compile(self):
 
         if self.is_benchmark == True:
+            from shark.shark_benchmark_runner import SharkBenchmarkRunner
+
             self.shark_runner = SharkBenchmarkRunner(
                 self.mlir_module,
                 self.function_name,
