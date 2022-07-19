@@ -50,7 +50,11 @@ def download_torch_model(model_name):
     os.makedirs(WORKDIR, exist_ok=True)
     if not check_dir_exists(model_name):
         gs_command = (
-            "gsutil cp -r gs://shark_tank" + "/" + model_name + " " + WORKDIR
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
+            + "/"
+            + model_name
+            + " "
+            + WORKDIR
         )
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
