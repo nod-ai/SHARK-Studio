@@ -23,7 +23,7 @@ class MobileBertModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         model_mlir, func_name, input, act_out = download_torch_model(
-            "google/mobilebert-uncased"
+            "google/mobilebert-uncased", dynamic
         )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
@@ -83,7 +83,6 @@ class MobileBertModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(reason="golden and original results mismatch")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
@@ -92,7 +91,6 @@ class MobileBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(reason="golden and original results mismatch")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
