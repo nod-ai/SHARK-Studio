@@ -23,7 +23,7 @@ class MiniLMModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         model_mlir, func_name, input, act_out = download_torch_model(
-            "microsoft/MiniLM-L12-H384-uncased"
+            "microsoft/MiniLM-L12-H384-uncased", dynamic
         )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb

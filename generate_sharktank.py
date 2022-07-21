@@ -58,6 +58,13 @@ def save_torch_model(torch_model_list):
                 dir=torch_model_dir,
                 model_name=torch_model_name,
             )
+            # Generate torch dynamic models.
+            mlir_importer.import_debug(
+                is_dynamic=True,
+                tracing_required=tracing_required,
+                dir=torch_model_dir,
+                model_name=torch_model_name + "_dynamic",
+            )
 
 
 def save_tf_model(tf_model_list):

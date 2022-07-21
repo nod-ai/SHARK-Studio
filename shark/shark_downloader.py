@@ -28,27 +28,33 @@ input_type_to_np_dtype = {
 }
 
 WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
-print(WORKDIR)
 
 # Checks whether the directory and files exists.
-def check_dir_exists(model_name):
+def check_dir_exists(model_name, dynamic=""):
     model_dir = os.path.join(WORKDIR, model_name)
     if os.path.isdir(model_dir):
         if (
-            os.path.isfile(os.path.join(model_dir, model_name + ".mlir"))
+            os.path.isfile(
+                os.path.join(model_dir, model_name + dynamic + ".mlir")
+            )
             and os.path.isfile(os.path.join(model_dir, "function_name.npy"))
             and os.path.isfile(os.path.join(model_dir, "inputs.npz"))
             and os.path.isfile(os.path.join(model_dir, "golden_out.npz"))
         ):
+            print(
+                f"""The models are present in the {WORKDIR}. If you want a fresh 
+                download, consider deleting the directory."""
+            )
             return True
     return False
 
 
 # Downloads the torch model from gs://shark_tank dir.
-def download_torch_model(model_name):
+def download_torch_model(model_name, dynamic=False):
     model_name = model_name.replace("/", "_")
+    dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
-    if not check_dir_exists(model_name):
+    if not check_dir_exists(model_name, dyn_str):
         gs_command = (
             'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
             + "/"
@@ -60,7 +66,7 @@ def download_torch_model(model_name):
             raise Exception("model not present in the tank. Contact Nod Admin")
 
     model_dir = os.path.join(WORKDIR, model_name)
-    with open(os.path.join(model_dir, model_name + ".mlir")) as f:
+    with open(os.path.join(model_dir, model_name + dyn_str + ".mlir")) as f:
         mlir_file = f.read()
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))

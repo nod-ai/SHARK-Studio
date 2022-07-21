@@ -22,7 +22,7 @@ class Resnet18ModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         model_mlir, func_name, input, act_out = download_torch_model(
-            "resnet18"
+            "resnet18", dynamic
         )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
