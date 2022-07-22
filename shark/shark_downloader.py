@@ -30,8 +30,13 @@ input_type_to_np_dtype = {
 WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
 
 # Checks whether the directory and files exists.
-def check_dir_exists(model_name, dynamic=""):
+def check_dir_exists(model_name, frontend="torch", dynamic=""):
     model_dir = os.path.join(WORKDIR, model_name)
+
+    # Remove the _tf keyword from end.
+    if frontend in ["tf", "tensorflow"]:
+        model_name = model_name[:-3]
+
     if os.path.isdir(model_dir):
         if (
             os.path.isfile(
@@ -67,6 +72,34 @@ def download_torch_model(model_name, dynamic=False):
 
     model_dir = os.path.join(WORKDIR, model_name)
     with open(os.path.join(model_dir, model_name + dyn_str + ".mlir")) as f:
+        mlir_file = f.read()
+
+    function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
+    inputs = np.load(os.path.join(model_dir, "inputs.npz"))
+    golden_out = np.load(os.path.join(model_dir, "golden_out.npz"))
+
+    inputs_tuple = tuple([inputs[key] for key in inputs])
+    golden_out_tuple = tuple([golden_out[key] for key in golden_out])
+    return mlir_file, function_name, inputs_tuple, golden_out_tuple
+
+
+def download_tf_model(model_name):
+    model_name = model_name.replace("/", "_")
+    os.makedirs(WORKDIR, exist_ok=True)
+    model_dir_name = model_name + "_tf"
+    if not check_dir_exists(model_dir_name, frontend="tf"):
+        gs_command = (
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
+            + "/"
+            + model_dir_name
+            + " "
+            + WORKDIR
+        )
+        if os.system(gs_command) != 0:
+            raise Exception("model not present in the tank. Contact Nod Admin")
+
+    model_dir = os.path.join(WORKDIR, model_dir_name)
+    with open(os.path.join(model_dir, model_name + ".mlir")) as f:
         mlir_file = f.read()
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
