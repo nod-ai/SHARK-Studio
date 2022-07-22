@@ -24,6 +24,9 @@ import time
 import csv
 import os
 
+use_gpu = lambda x=True: torch.set_default_tensor_type(torch.cuda.FloatTensor 
+                                if torch.cuda.is_available() and x
+                                else torch.FloatTensor)
 
 class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
@@ -66,6 +69,8 @@ class SharkBenchmarkRunner(SharkRunner):
             return self.benchmark_tf(inputs)
 
     def benchmark_torch(self, input_tuple):
+        if self.device == "gpu":
+            use_gpu()
         inputs = input_tuple[0]
         for i in range(shark_args.num_warmup_iterations):
             self.frontend_model.forward(inputs)

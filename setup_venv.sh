@@ -108,6 +108,20 @@ fi
 
 $PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/${RUNTIME}/releases
 
+if [[ ! -z "${CUDA_BENCHMARKS}" ]]; then
+  echo "${Yellow}Installing GPU benchmarking tools..."
+  if [[ $(uname -s) = 'Linux' ]]; then
+    echo "${Yellow}Linux detected.. installing Linux benchmarking tools"
+    $PYTHON -m pip uninstall -y torch torchvision
+    $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+    if [ $? -eq 0 ];then
+      echo "Successfully Installed torch-mlir + cu116"
+    else
+      echo "Could not install torch-mlir" >&2
+    fi
+  fi
+fi
+
 if [[ -z "${CONDA_PREFIX}" ]]; then
   echo "${Green}Before running examples activate venv with:"
   echo "  ${Green}source $VENV_DIR/bin/activate"
