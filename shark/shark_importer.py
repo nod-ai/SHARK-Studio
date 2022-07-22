@@ -138,7 +138,7 @@ class SharkImporter:
         if self.frontend == "torch":
             mlir_str = mlir_data.operation.get_asm()
         elif self.frontend == "tf":
-            mlir_str = str(mlir_data)
+            mlir_str = mlir_data.decode("utf-8")
         with open(os.path.join(dir, model_name_mlir), "w") as mlir_file:
             mlir_file.write(mlir_str)
 

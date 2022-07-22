@@ -1,7 +1,6 @@
-from tank.model_utils_tf import compare_tensors_tf, get_TFhf_model
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
-from shark.shark_importer import SharkImporter
+from shark.shark_downloader import download_tf_model
 from shark.parser import shark_args
 
 import iree.compiler as ireec
@@ -25,62 +24,19 @@ class MiniLMModuleTester:
         self.save_vmfb = save_vmfb
 
     #        self.benchmark = benchmark
-
     def create_and_check_module(self, dynamic, device):
-        model, input, act_out = get_TFhf_model(
+        model, func_name, inputs, golden_out = download_tf_model(
             "microsoft/MiniLM-L12-H384-uncased"
         )
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
 
-        if (
-            shark_args.save_mlir == True
-            or shark_args.save_vmfb == True
-            or self.save_temps == True
-        ):
-            repro_path = f"./shark_tmp/minilm_tf_{dynamic}_{device}"
-            if not os.path.isdir(repro_path):
-                os.mkdir(repro_path)
-            shark_args.repro_dir = repro_path
-
-        if self.save_temps == True:
-            temp_dir = tempfile.mkdtemp(
-                prefix="iree_tfs", dir=shark_args.repro_dir
-            )
-            np.set_printoptions(threshold=np.inf)
-            np.save(f"{temp_dir}/input1.npy", input[0])
-            np.save(f"{temp_dir}/input2.npy", input[1])
-            exp_out = act_out.numpy()
-            with open(f"{temp_dir}/expected_out.txt", "w") as out_file:
-                out_file.write(np.array2string(exp_out))
-            with ireec.tools.TempFileSaver(temp_dir):
-                mlir_importer = SharkImporter(
-                    model, (input,), frontend="tensorflow"
-                )
-                mlir_module, func_name = mlir_importer.import_mlir(
-                    is_dynamic=dynamic, tracing_required=False
-                )
-                shark_module = SharkInference(
-                    mlir_module, func_name, device=device, mlir_dialect="mhlo"
-                )
-                shark_module.compile()
-
-        else:
-            mlir_importer = SharkImporter(
-                model,
-                (input,),
-                frontend="tensorflow",
-            )
-            mlir_module, func_name = mlir_importer.import_mlir(
-                is_dynamic=dynamic, tracing_required=False
-            )
-            shark_module = SharkInference(
-                mlir_module, func_name, device=device, mlir_dialect="mhlo"
-            )
-            shark_module.compile()
-        results = shark_module.forward((input))
-        outputs = results[0]
-        assert True == compare_tensors_tf(act_out[0], outputs[1].to_host())
+        shark_module = SharkInference(
+            model, func_name, device=device, mlir_dialect="mhlo"
+        )
+        shark_module.compile()
+        result = shark_module.forward(inputs)
+        np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=1e-03)
 
 
 class MiniLMModuleTest(unittest.TestCase):
@@ -93,19 +49,11 @@ class MiniLMModuleTest(unittest.TestCase):
 
     #        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    @pytest.mark.skip(reason="TF tests to be updated to use shark-downloader")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="TF tests to be updated to use shark-downloader")
-    def test_module_dynamic_cpu(self):
-        dynamic = True
-        device = "cpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skip(reason="https://github.com/google/iree/issues/9553")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
@@ -114,30 +62,11 @@ class MiniLMModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="https://github.com/google/iree/issues/9553")
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason=device_driver_info("gpu")
-    )
-    def test_module_dynamic_gpu(self):
-        dynamic = True
-        device = "gpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skip(reason="TF tests to be updated to use shark-downloader")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_static_vulkan(self):
         dynamic = False
-        device = "vulkan"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skip(reason="TF tests to be updated to use shark-downloader")
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
-    )
-    def test_module_dynamic_vulkan(self):
-        dynamic = True
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
