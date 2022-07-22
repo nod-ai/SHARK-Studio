@@ -8,6 +8,16 @@ from transformers import (
     TFBertModel,
 )
 
+visible_default = tf.config.list_physical_devices("GPU")
+try:
+    tf.config.set_visible_devices([], "GPU")
+    visible_devices = tf.config.get_visible_devices()
+    for device in visible_devices:
+        assert device.device_type != "GPU"
+except:
+    # Invalid device or cannot modify virtual devices once initialized.
+    pass
+
 ##################### Tensorflow Hugging Face LM Models ###################################
 MAX_SEQUENCE_LENGTH = 512
 BATCH_SIZE = 1
@@ -37,9 +47,9 @@ class TFHuggingFaceLanguage(tf.Module):
 
 
 def get_TFhf_model(name):
-    gpus = tf.config.experimental.list_physical_devices("GPU")
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
+    #    gpus = tf.config.experimental.list_physical_devices("GPU")
+    #    for gpu in gpus:
+    #        tf.config.experimental.set_memory_growth(gpu, True)
     model = TFHuggingFaceLanguage(name)
     tokenizer = BertTokenizer.from_pretrained(
         "microsoft/MiniLM-L12-H384-uncased"

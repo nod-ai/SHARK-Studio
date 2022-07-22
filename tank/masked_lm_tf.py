@@ -1,6 +1,16 @@
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 import tensorflow as tf
 
+visible_default = tf.config.list_physical_devices("GPU")
+try:
+    tf.config.set_visible_devices([], "GPU")
+    visible_devices = tf.config.get_visible_devices()
+    for device in visible_devices:
+        assert device.device_type != "GPU"
+except:
+    # Invalid device or cannot modify virtual devices once initialized.
+    pass
+
 # The max_sequence_length is set small for testing purpose.
 BATCH_SIZE = 1
 MAX_SEQUENCE_LENGTH = 16
@@ -43,9 +53,9 @@ class MaskedLM(tf.Module):
 
 
 def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
-    gpus = tf.config.experimental.list_physical_devices("GPU")
-    for gpu in gpus:
-        tf.config.experimental.set_memory_growth(gpu, True)
+    #    gpus = tf.config.experimental.list_physical_devices("GPU")
+    #    for gpu in gpus:
+    #        tf.config.experimental.set_memory_growth(gpu, True)
     model = MaskedLM(hf_name)
     encoded_input = preprocess_input(hf_name, text)
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
