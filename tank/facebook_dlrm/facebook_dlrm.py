@@ -761,7 +761,7 @@ def generate_dlrm_model_and_inputs():
 
     np.random.seed(args.numpy_rand_seed)
     torch.manual_seed(args.numpy_rand_seed)
-    device  = torch.device("cpu")
+    #device  = torch.device("cpu")
     use_gpu = args.use_gpu
 
     ### prepare training data ###
@@ -831,7 +831,7 @@ def generate_dlrm_model_and_inputs():
 
     #prepare the trace inputs
     model_inputs = []
-    model_inputs.append(X.to(device))
+    model_inputs.append(X.to(torch.float))
     model_inputs.append(lS_o)
 
     for i in range(len(lS_i)):
