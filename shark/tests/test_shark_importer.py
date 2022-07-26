@@ -98,7 +98,7 @@ class AlbertTfliteModuleTester:
         for i in range(len(output_details)):
             dtype = output_details[i]["dtype"]
             mlir_results[i] = mlir_results[i].astype(dtype)
-        tflite_results = tflite_preprocessor.get_raw_model_output()
+        tflite_results = tflite_preprocessor.get_golden_output()
         compare_results(mlir_results, tflite_results, output_details)
 
         # Case2: Use manually set inputs
@@ -114,7 +114,7 @@ class AlbertTfliteModuleTester:
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
         ## post process results for compare
-        tflite_results = tflite_preprocessor.get_raw_model_output()
+        tflite_results = tflite_preprocessor.get_golden_output()
         compare_results(mlir_results, tflite_results, output_details)
         # print(mlir_results)
 
