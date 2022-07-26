@@ -6,7 +6,6 @@ densenet, https://tfhub.dev/tensorflow/lite-model/densenet/1/metadata/1?lite-for
 efficientnet_lite0_int8_2, https://storage.googleapis.com/iree-model-artifacts/efficientnet_lite0_int8_2.tflite
 efficientnet_lite0_fp32_2, https://storage.googleapis.com/iree-model-artifacts/efficientnet_lite0_fp32_2.tflite
 efficientnet_224_fp32, https://storage.googleapis.com/iree-model-artifacts/efficientnet_224_fp32.tflite
-gpt2-64, https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-64.tflite
 inception_v4_299_fp32, https://storage.googleapis.com/iree-model-artifacts/inception_v4_299_fp32.tflite
 inception_v4_299_uint8, https://storage.googleapis.com/iree-model-artifacts/inception_v4_299_uint8.tflite
 arbitrary-image-stylization-v1-256, https://tfhub.dev/google/lite-model/magenta/arbitrary-image-stylization-v1-256/int8/prediction/1?lite-format=tflite
@@ -17,7 +16,6 @@ mobilebert-edgetpu-s-quant, https://storage.googleapis.com/iree-model-artifacts/
 mobilebert, https://tfhub.dev/tensorflow/lite-model/mobilebert/1/metadata/1?lite-format=tflite
 mobilebert-baseline-tf2-float, https://storage.googleapis.com/iree-model-artifacts/mobilebert-baseline-tf2-float.tflite
 mobilebert-baseline-tf2-quant, https://storage.googleapis.com/iree-model-artifacts/mobilebert-baseline-tf2-quant.tflite
-ssd_mobilenet_v2_face_quant, https://storage.googleapis.com/iree-shared-files/models/ssd_mobilenet_v2_face_quant.tflite
 mobilenet_v1_224_1.0_float, https://storage.googleapis.com/iree-model-artifacts/mobilenet_v1_224_1.0_float.tflite
 mobilenet_v1_224_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/mobilenet_v1_224_1.0_uint8.tflite
 mobilenet_v2_1.00_224_int8, https://storage.googleapis.com/tf_model_garden/vision/mobilenet/v2_1.0_int8/mobilenet_v2_1.00_224_int8.tflite
@@ -27,9 +25,11 @@ mobilenet_v3-large_224_1.0_float, https://storage.googleapis.com/iree-model-arti
 mobilenet_v3-large_224_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/mobilenet_v3-large_224_1.0_uint8.tflite
 mobilenet_v3.5multiavg_1.00_224_int8, https://storage.googleapis.com/tf_model_garden/vision/mobilenet/v3.5multiavg_1.0_int8/mobilenet_v3.5multiavg_1.00_224_int8.tflite
 nasnet, https://tfhub.dev/tensorflow/lite-model/nasnet/large/1/default/1?lite-format=tflite
-multi_person_mobilenet_v1_075_float, https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/multi_person_mobilenet_v1_075_float.tflite
 resnet_50_224_int8, https://storage.googleapis.com/tf_model_garden/vision/resnet50_imagenet/resnet_50_224_int8.tflite
 squeezenet, https://tfhub.dev/tensorflow/lite-model/squeezenet/1/default/1?lite-format=tflite
+gpt2-64, https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-64.tflite
+ssd_mobilenet_v2_face_quant, https://storage.googleapis.com/iree-shared-files/models/ssd_mobilenet_v2_face_quant.tflite
+multi_person_mobilenet_v1_075_float, https://storage.googleapis.com/download.tensorflow.org/models/tflite/gpu/multi_person_mobilenet_v1_075_float.tflite
 ssd_mobilenet_v1_320_1.0_float, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v1_320_1.0_float.tflite
 ssd_mobilenet_v1_320_1.0_uint8, https://storage.googleapis.com/iree-model-artifacts/ssd_mobilenet_v1_320_1.0_uint8.tflite
 ssd_spaghettinet_edgetpu_large, https://storage.googleapis.com/iree-model-artifacts/ssd_spaghettinet_edgetpu_large.tflite

@@ -1,10 +1,9 @@
 import numpy as np
-from shark.shark_downloader import SharkDownloader
+from shark.shark_downloader import download_tflite_model
 from shark.shark_inference import SharkInference
 import pytest
 import unittest
 from shark.parser import shark_args
-from shark.tflite_utils import TFLitePreprocessor
 
 
 # model_path = "https://s3.amazonaws.com/models.huggingface.co/bert/gpt2-64.tflite"
@@ -23,12 +22,12 @@ def generate_inputs(input_details):
     return args
 
 
-def compare_results(mlir_results, tflite_results, details):
+def compare_results(mlir_results, tflite_results):
     print("Compare mlir_results VS tflite_results: ")
     assert len(mlir_results) == len(
         tflite_results
     ), "Number of results do not match"
-    for i in range(len(details)):
+    for i in range(len(mlir_results)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
         mlir_result = mlir_result.astype(np.single)
@@ -59,20 +58,9 @@ class GptTfliteModuleTester:
         shark_args.save_vmfb = self.save_vmfb
 
         # Preprocess to get SharkImporter input args
-        tflite_preprocessor = TFLitePreprocessor(model_name="gpt2-64")
-        # inputs = tflite_preprocessor.get_inputs()
-
-        shark_downloader = SharkDownloader(
-            model_name="gpt2-64",
-            tank_url="https://storage.googleapis.com/shark_tank",
-            local_tank_dir="./../gen_shark_tank",
-            model_type="tflite",
-            input_json="input.json",
-            input_type="int32",
+        mlir_model, func_name, inputs, tflite_results = download_tflite_model(
+            model_name="gpt2-64"
         )
-        mlir_model = shark_downloader.get_mlir_file()
-        inputs = shark_downloader.get_inputs()
-
         shark_module = SharkInference(
             mlir_module=mlir_model,
             function_name="main",
@@ -83,17 +71,15 @@ class GptTfliteModuleTester:
         # Case1: Use shark_importer default generate inputs
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
-        ## post process results for compare
-        input_details, output_details = tflite_preprocessor.get_model_details()
-        mlir_results = list(mlir_results)
-        for i in range(len(output_details)):
-            dtype = output_details[i]["dtype"]
-            mlir_results[i] = mlir_results[i].astype(dtype)
-        tflite_results = tflite_preprocessor.get_raw_model_output()
-        compare_results(mlir_results, tflite_results, output_details)
+        compare_results(mlir_results, tflite_results)
 
         # Case2: Use manually set inputs
-        input_details, output_details = tflite_preprocessor.get_model_details()
+        input_details = [
+            {
+                "shape": [1, 64],
+                "dtype": np.int32,
+            }
+        ]
         inputs = generate_inputs(input_details)  # new inputs
 
         shark_module = SharkInference(
@@ -104,9 +90,7 @@ class GptTfliteModuleTester:
         )
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
-        ## post process results for compare
-        tflite_results = tflite_preprocessor.get_raw_model_output()
-        compare_results(mlir_results, tflite_results, output_details)
+        compare_results(mlir_results, tflite_results)
         # print(mlir_results)
 
 

@@ -1,5 +1,5 @@
 import numpy as np
-from shark.shark_downloader import SharkDownloader
+from shark.shark_downloader import download_tflite_model
 from shark.shark_inference import SharkInference
 import pytest
 import unittest
@@ -8,13 +8,12 @@ import os
 import sys
 import urllib.request
 from PIL import Image
-from shark.tflite_utils import TFLitePreprocessor
-
 
 # model_path = "https://tfhub.dev/google/lite-model/aiy/vision/classifier/birds_V1/3?lite-format=tflite"
 
 
 def generate_inputs(input_details):
+    # input_details shape: [  1 224 224   3]  type: uint8
     exe_basename = os.path.basename(sys.argv[0])
     workdir = os.path.join(os.path.dirname(__file__), "../tmp", exe_basename)
     os.makedirs(workdir, exist_ok=True)
@@ -29,12 +28,12 @@ def generate_inputs(input_details):
     return args
 
 
-def compare_results(mlir_results, tflite_results, details):
+def compare_results(mlir_results, tflite_results):
     print("Compare mlir_results VS tflite_results: ")
     assert len(mlir_results) == len(
         tflite_results
     ), "Number of results do not match"
-    for i in range(len(details)):
+    for i in range(len(mlir_results)):
         mlir_result = mlir_results[i]
         tflite_result = tflite_results[i]
         mlir_result = mlir_result.astype(np.single)
@@ -64,20 +63,12 @@ class BirdsV1TfliteModuleTester:
         shark_args.save_mlir = self.save_mlir
         shark_args.save_vmfb = self.save_vmfb
 
-        tflite_preprocessor = TFLitePreprocessor(model_name="birds_V1")
-        # inputs = tflite_preprocessor.get_inputs()
-
-        shark_downloader = SharkDownloader(
-            model_name="birds_V1",
-            tank_url="https://storage.googleapis.com/shark_tank",
-            local_tank_dir="./../gen_shark_tank",
-            model_type="tflite",
-            input_json="input.json",
-            input_type="uint8",
-        )
-        mlir_model = shark_downloader.get_mlir_file()
-        inputs = shark_downloader.get_inputs()
-
+        (
+            mlir_model,
+            function_name,
+            inputs,
+            tflite_results,
+        ) = download_tflite_model(model_name="birds_V1")
         shark_module = SharkInference(
             mlir_module=mlir_model,
             function_name="main",
@@ -88,17 +79,15 @@ class BirdsV1TfliteModuleTester:
         # Case1: Use shark_importer default generate inputs
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
-        ## post process results for compare
-        input_details, output_details = tflite_preprocessor.get_model_details()
-        mlir_results = list(mlir_results)
-        for i in range(len(output_details)):
-            dtype = output_details[i]["dtype"]
-            mlir_results[i] = mlir_results[i].astype(dtype)
-        tflite_results = tflite_preprocessor.get_raw_model_output()
-        compare_results(mlir_results, tflite_results, output_details)
+        compare_results(mlir_results, tflite_results)
 
         # Case2: Use manually set inputs
-        input_details, output_details = tflite_preprocessor.get_model_details()
+        input_details = [
+            {
+                "shape": [1, 224, 224, 3],
+                "dtype": np.uint8,
+            }
+        ]
         inputs = generate_inputs(input_details)  # device_inputs
         shark_module = SharkInference(
             mlir_module=mlir_model,
@@ -108,8 +97,7 @@ class BirdsV1TfliteModuleTester:
         )
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
-        tflite_results = tflite_preprocessor.get_raw_model_output()
-        compare_results(mlir_results, tflite_results, output_details)
+        compare_results(mlir_results, tflite_results)
         # print(mlir_results)
 
 
@@ -123,9 +111,7 @@ class BirdsV1TfliteModuleTest(unittest.TestCase):
         self.module_tester = BirdsV1TfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
-    import sys
-
-    @pytest.mark.xfail(
+    @pytest.mark.skip(
         reason="known macos tflite install issue & "
         "'tosa.conv2d' op attribute 'quantization_info' failed "
     )

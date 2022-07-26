@@ -3,7 +3,6 @@ import numpy as np
 import os
 import csv
 import urllib.request
-import json
 
 
 class TFLiteModelUtil:
@@ -48,6 +47,8 @@ class TFLiteModelUtil:
             )
 
         for i in range(len(self.output_details)):
+            # print("output_details ", i, "shape", self.output_details[i]["shape"].__name__,
+            #       ", dtype: ", self.output_details[i]["dtype"].__name__)
             out_dtype = self.output_details[i]["dtype"]
             tflite_results[i] = tflite_results[i].astype(out_dtype)
         return tflite_results
@@ -84,6 +85,7 @@ class TFLitePreprocessor:
             None  # could be tflite/tf/torch_interpreter in utils
         )
         self.input_file = None
+        self.output_file = None
 
         # create tmp model file directory
         if self.model_path is None and self.model_name is None:
@@ -127,7 +129,9 @@ class TFLitePreprocessor:
         self.mlir_file = "/".join(
             [tflite_model_name_dir, str(self.model_name) + "_tflite.mlir"]
         )
-        self.input_file = "/".join([tflite_model_name_dir, "input.json"])
+        self.input_file = "/".join([tflite_model_name_dir, "inputs"])
+        self.output_file = "/".join([tflite_model_name_dir, "golden_out"])
+        # np.save("/".join([tflite_model_name_dir, "function_name"]), np.array("main"))
 
         if os.path.exists(self.raw_model_file):
             print(
@@ -165,21 +169,15 @@ class TFLitePreprocessor:
     def generate_inputs(self, input_details):
         self.inputs = []
         for tmp_input in input_details:
-            # print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
+            print(
+                "input_details shape:",
+                str(tmp_input["shape"]),
+                " type:",
+                tmp_input["dtype"].__name__,
+            )
             self.inputs.append(
                 np.ones(shape=tmp_input["shape"], dtype=tmp_input["dtype"])
             )
-        # save inputs into json file
-        tmp_json = []
-        for tmp_input in input_details:
-            # print(str(tmp_input["shape"]), tmp_input["dtype"].__name__)
-            tmp_json.append(
-                np.ones(
-                    shape=tmp_input["shape"], dtype=tmp_input["dtype"]
-                ).tolist()
-            )
-        with open(self.input_file, "w") as f:
-            json.dump(tmp_json, f)
         return self.inputs
 
     def setup_inputs(self, inputs):
@@ -195,8 +193,9 @@ class TFLitePreprocessor:
     def get_inputs(self):
         return self.inputs
 
-    def get_raw_model_output(self):
+    def get_golden_output(self):
         self.output_tensor = self.interpreter.invoke_tflite(self.inputs)
+        np.savez(self.output_file, *self.output_tensor)
         return self.output_tensor
 
     def get_model_details(self):

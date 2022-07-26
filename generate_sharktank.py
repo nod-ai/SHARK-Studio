@@ -115,6 +115,7 @@ def save_tflite_model(tflite_model_list):
     with open(tflite_model_list) as csvfile:
         tflite_reader = csv.reader(csvfile, delimiter=",")
         for row in tflite_reader:
+            print("\n")
             tflite_model_name = row[0]
             tflite_model_link = row[1]
             print("tflite_model_name", tflite_model_name)
@@ -124,13 +125,6 @@ def save_tflite_model(tflite_model_list):
             )
             os.makedirs(tflite_model_name_dir, exist_ok=True)
             print(f"TMP_TFLITE_MODELNAME_DIR = {tflite_model_name_dir}")
-
-            tflite_tosa_file = "/".join(
-                [
-                    tflite_model_name_dir,
-                    str(tflite_model_name) + "_tflite.mlir",
-                ]
-            )
 
             # Preprocess to get SharkImporter input args
             tflite_preprocessor = TFLitePreprocessor(str(tflite_model_name))
@@ -145,15 +139,11 @@ def save_tflite_model(tflite_model_list):
                 frontend="tflite",
                 raw_model_file=raw_model_file_path,
             )
-            mlir_model, func_name = my_shark_importer.import_mlir()
-
-            if os.path.exists(tflite_tosa_file):
-                print("Exists", tflite_tosa_file)
-            else:
-                mlir_str = mlir_model.decode("utf-8")
-                with open(tflite_tosa_file, "w") as f:
-                    f.write(mlir_str)
-                print(f"Saved mlir in {tflite_tosa_file}")
+            my_shark_importer.import_debug(
+                dir=tflite_model_name_dir,
+                model_name=tflite_model_name,
+                func_name="main",
+            )
 
 
 # Validates whether the file is present or not.
@@ -170,7 +160,7 @@ if __name__ == "__main__":
         "--torch_model_csv",
         type=lambda x: is_valid_file(x),
         default="./tank/pytorch/torch_model_list.csv",
-        help="""Contains the file with torch_model name and args. 
+        help="""Contains the file with torch_model name and args.
              Please see: https://github.com/nod-ai/SHARK/blob/main/tank/pytorch/torch_model_list.csv""",
     )
     parser.add_argument(
