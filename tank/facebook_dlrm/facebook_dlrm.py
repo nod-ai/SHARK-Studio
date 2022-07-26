@@ -73,17 +73,15 @@ class DLRM_Net(nn.Module):
             n = n.item()
 
             if self.qr_flag and n > self.qr_threshold:
-                print("This flow is not used")
                 EE = QREmbeddingBag(
                     n,
                     m,
                     self.qr_collisions,
                     operation=self.qr_operation,
                     mode="sum",
-                    sparse=True,
+                    sparse=False,
                 )
             elif self.md_flag and n > self.md_threshold:
-                print("This embedding is not used")
                 base = max(m)
                 _m = m[i] if n > self.md_threshold else base
                 EE = PrEmbeddingBag(n, _m, base)
@@ -93,8 +91,7 @@ class DLRM_Net(nn.Module):
                 ).astype(np.float32)
                 EE.embs.weight.data = torch.tensor(W, requires_grad=True)
             else:
-                print("This embedding bag is used")
-                EE = nn.EmbeddingBag(n, m, mode="sum", sparse=True)
+                EE = nn.EmbeddingBag(n, m, mode="sum", sparse=False)
                 W = np.random.uniform(
                     low=-np.sqrt(1 / n), high=np.sqrt(1 / n), size=(n, m)
                 ).astype(np.float32)
@@ -851,10 +848,6 @@ mlir_importer = SharkImporter(
          frontend="torch",
         )
 
-#print(mlir_importer)
-
 torch_mlir, func_name = mlir_importer.import_mlir(tracing_required=True)
 
 print(torch_mlir)
-print(func_name)
-
