@@ -18,6 +18,7 @@ from shark.iree_utils.compile_utils import (
     export_iree_module_to_vmfb,
 )
 from shark.iree_utils._common import check_device_drivers, device_driver_info
+from shark.parser import shark_args
 import os
 import sys
 
@@ -61,12 +62,12 @@ class SharkRunner:
         self,
         mlir_module: str,
         function_name: str = "forward",
-        device: str = "cpu",
+        device: str = "none",
         mlir_dialect: str = "linalg",
     ):
         self.mlir_module = mlir_module
         self.function_name = function_name
-        self.device = device
+        self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
 
         if check_device_drivers(self.device):

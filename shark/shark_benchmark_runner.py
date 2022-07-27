@@ -31,11 +31,11 @@ class SharkBenchmarkRunner(SharkRunner):
         self,
         mlir_module: str,
         function_name: str = "forward",
-        device: str = "cpu",
+        device: str = "none",
         mlir_dialect: str = "linalg",
         frontend: str = "torch",
     ):
-        self.device = device
+        self.device = shark_args.device if device == "none" else device
         self.frontend = frontend
         self.frontend_model = None
         self.vmfb_file = None

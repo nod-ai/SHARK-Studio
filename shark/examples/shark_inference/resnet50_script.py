@@ -68,9 +68,7 @@ labels = load_labels()
 ## Can pass any img or input to the forward module.
 mlir_model, func_name, inputs, golden_out = download_torch_model("resnet50")
 
-shark_module = SharkInference(
-    mlir_model, func_name, device="cpu", mlir_dialect="linalg"
-)
+shark_module = SharkInference(mlir_model, func_name, mlir_dialect="linalg")
 shark_module.compile()
 result = shark_module.forward((img.detach().numpy(),))
 
