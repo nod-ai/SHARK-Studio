@@ -29,6 +29,14 @@ from torch.utils.data import Dataset
 from numpy import random as ra
 
 from shark.shark_importer import SharkImporter
+from shark.shark_inference import SharkInference
+from shark.iree_utils._common import check_device_drivers, device_driver_info
+from tank.model_utils import compare_tensors
+from shark.parser import shark_args
+
+import unittest
+import pytest
+
 
 def unpack_batch(b):
     return b[0], b[1], b[2], b[3], torch.ones(b[3].size()), None
@@ -834,20 +842,56 @@ def generate_dlrm_model_and_inputs():
     for i in range(len(lS_i)):
         model_inputs.append(lS_i[i])
 
-    return dlrm, model_inputs
+    actual_out = dlrm(*model_inputs)
 
+    return dlrm, model_inputs, actual_out
 
-model, model_inputs = generate_dlrm_model_and_inputs()
+class DlrmModuleTester:
+    def __init__(
+        self,
+        dynamic=False,
+        device="cpu",
+        save_mlir=False,
+        save_vmfb=False,
+    ):
+        self.dynamic = dynamic
+        self.device = device
+        self.save_mlir = save_mlir
+        self.save_vmfb = save_vmfb
 
-#y = torch.jit.trace(model, model_inputs)
-#z = torch_mlir.compile(model, model_inputs, output_type=torch_mlir.OutputType.TORCH, use_tracing=True)
+    def create_and_check_module(self):
+        model, input, act_out = generate_dlrm_model_and_inputs()
+        shark_args.save_mlir = self.save_mlir
+        shark_args.save_vmfb = self.save_vmfb
+        mlir_importer = SharkImporter(
+            model,
+            (input),
+            frontend="torch",
+        )
+        minilm_mlir, func_name = mlir_importer.import_mlir(tracing_required=True)
 
-mlir_importer = SharkImporter(
-         model,
-         (model_inputs),
-         frontend="torch",
+        shark_module = SharkInference(
+            minilm_mlir, func_name, device=self.device, mlir_dialect="linalg"
         )
 
-torch_mlir, func_name = mlir_importer.import_mlir(tracing_required=True)
+        shark_module.compile()
+        results = shark_module.forward((input))
+        assert True == compare_tensors(act_out, results)
 
-print(torch_mlir)
+
+class DlrmModuleTest(unittest.TestCase):
+    @pytest.fixture(autouse=True)
+    def configure(self, pytestconfig):
+        self.save_mlir = pytestconfig.getoption("save_mlir")
+        self.save_vmfb = pytestconfig.getoption("save_vmfb")
+
+    def setUp(self):
+        self.module_tester = DlrmModuleTester(self)
+
+    def test_module_static_cpu(self):
+        self.module_tester.dynamic = False
+        self.module_tester.device = "cpu"
+        self.module_tester.create_and_check_module()
+
+if __name__ == "__main__":
+    unittest.main()
