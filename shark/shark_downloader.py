@@ -129,7 +129,7 @@ def download_tf_model(model_name):
             raise Exception("model not present in the tank. Contact Nod Admin")
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
-    with open(os.path.join(model_dir, model_name + ".mlir")) as f:
+    with open(os.path.join(model_dir, model_name + "_tf.mlir")) as f:
         mlir_file = f.read()
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))

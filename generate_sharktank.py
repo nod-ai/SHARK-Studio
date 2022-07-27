@@ -4,15 +4,11 @@
 # will generate local shark tank folder like this:
 #   /SHARK
 #     /gen_shark_tank
-#       /tflite
-#         /albert_lite_base
-#         /...model_name...
-#       /tf
-#       /pytorch
+#       /albert_lite_base
+#       /...model_name...
 #
 
 import os
-import urllib.request
 import csv
 import argparse
 from shark.shark_importer import SharkImporter
@@ -35,7 +31,6 @@ WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
 def save_torch_model(torch_model_list):
     from tank.model_utils import get_hf_model
     from tank.model_utils import get_vision_model
-    import torch
 
     with open(torch_model_list) as csvfile:
         torch_reader = csv.reader(csvfile, delimiter=",")
@@ -79,8 +74,8 @@ def save_torch_model(torch_model_list):
 
 
 def save_tf_model(tf_model_list):
-    from tank.masked_lm_tf import get_causal_lm_model
-    from tank.tf.automodelimageclassification import get_causal_image_model
+    from tank.model_utils_tf import get_causal_lm_model
+    from tank.model_utils_tf import get_causal_image_model
 
     with open(tf_model_list) as csvfile:
         tf_reader = csv.reader(csvfile, delimiter=",")
@@ -187,8 +182,8 @@ if __name__ == "__main__":
     if args.tf_model_csv:
         save_tf_model(args.tf_model_csv)
 
-    # if args.tflite_model_csv:
-    #     save_tflite_model(args.tflite_model_csv)
+    if args.tflite_model_csv:
+        save_tflite_model(args.tflite_model_csv)
 
     if args.upload:
         print("uploading files to gs://shark_tank/")
