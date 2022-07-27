@@ -80,6 +80,7 @@ def save_torch_model(torch_model_list):
 
 def save_tf_model(tf_model_list):
     from tank.masked_lm_tf import get_causal_lm_model
+    from tank.tf.automodelimageclassification import get_causal_image_model
 
     with open(tf_model_list) as csvfile:
         tf_reader = csv.reader(csvfile, delimiter=",")
@@ -93,6 +94,8 @@ def save_tf_model(tf_model_list):
             print(model_type)
             if model_type == "hf":
                 model, input, _ = get_causal_lm_model(tf_model_name)
+            if model_type == "img":
+                model, input, _ = get_causal_image_model(tf_model_name)
 
             tf_model_name = tf_model_name.replace("/", "_")
             tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
@@ -184,8 +187,8 @@ if __name__ == "__main__":
     if args.tf_model_csv:
         save_tf_model(args.tf_model_csv)
 
-    if args.tflite_model_csv:
-        save_tflite_model(args.tflite_model_csv)
+    # if args.tflite_model_csv:
+    #     save_tflite_model(args.tflite_model_csv)
 
     if args.upload:
         print("uploading files to gs://shark_tank/")
