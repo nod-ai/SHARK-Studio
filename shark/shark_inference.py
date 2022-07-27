@@ -59,7 +59,7 @@ class SharkInference:
         self,
         mlir_module: str,
         function_name: str = "forward",
-        device: str = "cpu",
+        device: str = "none",
         mlir_dialect: str = "linalg",
         is_benchmark: bool = False,
     ):
