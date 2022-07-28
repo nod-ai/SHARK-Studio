@@ -6,7 +6,6 @@
 #     /gen_shark_tank
 #       /albert_lite_base
 #       /...model_name...
-#
 
 import os
 import csv
