@@ -85,8 +85,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        chmod u+rx tank/gpu_suite.sh
-        ./tank/gpu_suite.sh
+        pytest -k "gpu" --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
 
     - name: Validate Vulkan Models
       if: matrix.suite == 'vulkan'
