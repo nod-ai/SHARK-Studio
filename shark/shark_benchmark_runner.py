@@ -19,14 +19,12 @@ from shark.iree_utils.benchmark_utils import (
     run_benchmark_module,
 )
 from shark.parser import shark_args
+from tank.model_utils import get_torch_model
 from datetime import datetime
 import time
 import csv
 import os
 
-use_gpu = lambda x=True: torch.set_default_tensor_type(torch.cuda.FloatTensor 
-                                if torch.cuda.is_available() and x
-                                else torch.FloatTensor)
 
 class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
@@ -62,22 +60,33 @@ class SharkBenchmarkRunner(SharkRunner):
             mlir_dialect=self.mlir_dialect,
         )
 
-    def benchmark_frontend(self, inputs):
+    def benchmark_frontend(self, inputs, modelname):
         if self.frontend in ["pytorch", "torch"]:
-            return self.benchmark_torch(inputs)
+            return self.benchmark_torch(modelname)
         elif self.frontend in ["tensorflow", "tf"]:
-            return self.benchmark_tf(inputs)
+            return self.benchmark_tf(inputs, modelname)
 
-    def benchmark_torch(self, input_tuple):
+    def benchmark_torch(self, modelname):
+        import torch
+
         if self.device == "gpu":
-            use_gpu()
-        inputs = input_tuple[0]
+            torch.set_default_tensor_type(torch.cuda.FloatTensor)
+        else:
+            torch.set_default_tensor_type(torch.FloatTensor)
+        torch_device = torch.device(
+            "cuda:0" if self.device == "gpu" else "cpu"
+        )
+        HFmodel, input, act_out = get_torch_model(modelname)
+        frontend_model = HFmodel.model
+        frontend_model.to(torch_device)
+        input.to(torch_device)
+
         for i in range(shark_args.num_warmup_iterations):
-            self.frontend_model.forward(inputs)
+            frontend_model.forward(input)
 
         begin = time.time()
         for i in range(shark_args.num_iterations):
-            out = self.frontend_model.forward(inputs)
+            out = frontend_model.forward(input)
             if i == shark_args.num_iterations - 1:
                 end = time.time()
                 break
@@ -89,13 +98,13 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{((end-begin)/shark_args.num_iterations)*1000}",
         ]
 
-    def benchmark_tf(self, inputs):
+    def benchmark_tf(self, frontend_model, inputs):
         for i in range(shark_args.num_warmup_iterations):
-            self.frontend_model.forward(*inputs)
+            frontend_model.forward(*inputs)
 
         begin = time.time()
         for i in range(shark_args.num_iterations):
-            out = self.frontend_model.forward(*inputs)
+            out = frontend_model.forward(*inputs)
             if i == shark_args.num_iterations - 1:
                 end = time.time()
                 break
@@ -167,12 +176,12 @@ class SharkBenchmarkRunner(SharkRunner):
             for p in platforms:
                 if p == "frontend":
                     bench_result["platform"] = frontend
-                    bench_result["iter/sec"] = self.benchmark_frontend(inputs)[
-                        0
-                    ]
-                    bench_result["ms/iter"] = self.benchmark_frontend(inputs)[
-                        1
-                    ]
+                    bench_result["iter/sec"] = self.benchmark_frontend(
+                        inputs, modelname
+                    )[0]
+                    bench_result["ms/iter"] = self.benchmark_frontend(
+                        inputs, modelname
+                    )[1]
                 elif p == "shark_python":
                     bench_result["platform"] = "shark_python"
                     bench_result["iter/sec"] = self.benchmark_python(inputs)[0]
