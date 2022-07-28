@@ -13,6 +13,8 @@ import csv
 import argparse
 from shark.shark_importer import SharkImporter
 import tensorflow as tf
+import hashlib
+import numpy as np
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
@@ -26,6 +28,15 @@ except:
 
 # All generated models and metadata will be saved under this directory.
 WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+
+
+def create_hash(file_name):
+    with open(file_name, "rb") as f:
+        file_hash = hashlib.blake2b()
+        while chunk := f.read(2**20):
+            file_hash.update(chunk)
+
+    return file_hash.hexdigest()
 
 
 def save_torch_model(torch_model_list):
@@ -64,6 +75,12 @@ def save_torch_model(torch_model_list):
                 dir=torch_model_dir,
                 model_name=torch_model_name,
             )
+            mlir_hash = create_hash(
+                os.path.join(
+                    torch_model_dir, torch_model_name + "_torch" + ".mlir"
+                )
+            )
+            np.save(os.path.join(torch_model_dir, "hash"), np.array(mlir_hash))
             # Generate torch dynamic models.
             mlir_importer.import_debug(
                 is_dynamic=True,

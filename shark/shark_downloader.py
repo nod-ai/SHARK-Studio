@@ -16,6 +16,8 @@ import numpy as np
 import os
 import urllib.request
 import json
+import hashlib
+from pathlib import Path
 
 input_type_to_np_dtype = {
     "float32": np.float32,
@@ -27,7 +29,11 @@ input_type_to_np_dtype = {
     "int8": np.int8,
 }
 
-WORKDIR = os.path.join(os.path.dirname(__file__), "./../gen_shark_tank")
+
+# Save the model in the home local so it needn't be fetched everytime in the CI.
+home = str(Path.home())
+WORKDIR = os.path.join(home, ".local/shark_tank/")
+print(WORKDIR)
 
 # Checks whether the directory and files exists.
 def check_dir_exists(model_name, frontend="torch", dynamic=""):
@@ -59,7 +65,8 @@ def download_torch_model(model_name, dynamic=False):
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
-    if not check_dir_exists(model_name, dyn_str):
+
+    def gs_download_model():
         gs_command = (
             'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
             + "/"
@@ -69,6 +76,27 @@ def download_torch_model(model_name, dynamic=False):
         )
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
+
+    if not check_dir_exists(model_name, dyn_str):
+        gs_download_model()
+    else:
+        model_dir = os.path.join(WORKDIR, model_name)
+        local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
+        gs_hash = (
+            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank'
+            + "/"
+            + model_name
+            + "/hash.npy"
+            + " "
+            + os.path.join(model_dir, "upstream_hash.npy")
+        )
+        if os.system(gs_hash) != 0:
+            raise Exception("hash of the model not present in the tank.")
+        upstream_hash = str(
+            np.load(os.path.join(model_dir, "upstream_hash.npy"))
+        )
+        if local_hash != upstream_hash:
+            gs_download_model()
 
     model_dir = os.path.join(WORKDIR, model_name)
     with open(os.path.join(model_dir, model_name + dyn_str + ".mlir")) as f:
