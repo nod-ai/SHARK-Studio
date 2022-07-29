@@ -15,12 +15,14 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [a100, MacStudio, ubuntu-latest]
+        os: [a100, MI100, MacStudio, ubuntu-latest]
         suite: [cpu,gpu,vulkan]
         python-version: ["3.10"]
         include:
           - os: ubuntu-latest
             suite: lint
+          - os: MI100
+            suite: rocm
         exclude:
           - os: ubuntu-latest
             suite: vulkan
@@ -31,6 +33,10 @@ jobs:
           - os: MacStudio
             suite: gpu
           - os: MacStudio
+            suite: vulkan
+          - os: MI100
+            suite: gpu
+          - os: MI100
             suite: vulkan
 
     runs-on: ${{ matrix.os }}
@@ -79,7 +85,7 @@ jobs:
         source shark.venv/bin/activate
         pytest -k 'cpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
 
-    - name: Validate GPU Models
+    - name: Validate GPU/CUDA Models
       if: matrix.suite == 'gpu'
       run: |
         cd $GITHUB_WORKSPACE
@@ -95,3 +101,11 @@ jobs:
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest -k 'vulkan' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py
+        
+    - name: Validate GPU/ROCM Models
+      if: matrix.suite == 'rocm'
+      run: |
+        cd $GITHUB_WORKSPACE
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
+        source shark.venv/bin/activate
+        pytest -k 'rocm' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py
