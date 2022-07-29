@@ -10,3 +10,4 @@ gsutil
 # Testing
 pytest
 pytest-xdist
+Pillow
