@@ -61,7 +61,9 @@ def save_torch_model(torch_model_list):
                 model, input, _ = get_hf_model(torch_model_name)
 
             torch_model_name = torch_model_name.replace("/", "_")
-            torch_model_dir = os.path.join(WORKDIR, str(torch_model_name))
+            torch_model_dir = os.path.join(
+                WORKDIR, str(torch_model_name) + "_torch"
+            )
             os.makedirs(torch_model_dir, exist_ok=True)
 
             mlir_importer = SharkImporter(
@@ -136,7 +138,7 @@ def save_tflite_model(tflite_model_list):
             print("tflite_model_name", tflite_model_name)
             print("tflite_model_link", tflite_model_link)
             tflite_model_name_dir = os.path.join(
-                WORKDIR, str(tflite_model_name)
+                WORKDIR, str(tflite_model_name) + "_tflite"
             )
             os.makedirs(tflite_model_name_dir, exist_ok=True)
             print(f"TMP_TFLITE_MODELNAME_DIR = {tflite_model_name_dir}")
