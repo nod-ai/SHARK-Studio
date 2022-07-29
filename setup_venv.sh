@@ -113,11 +113,11 @@ if [[ ! -z "${CUDA_BENCHMARKS}" ]]; then
   if [[ $(uname -s) = 'Linux' ]]; then
     echo "${Yellow}Linux detected.. installing Linux benchmarking tools"
     $PYTHON -m pip uninstall -y torch torchvision
-    $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+    $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu${CUDA_VERSION}
     if [ $? -eq 0 ];then
-      echo "Successfully Installed torch-mlir + cu116"
+      echo "Successfully Installed torch + cu${CUDA_VERSION}"
     else
-      echo "Could not install torch-mlir" >&2
+      echo "Could not install torch + cu${CUDA_VERSION}, please check that CUDA_VERSION='XY' is set." >&2
     fi
   fi
 fi
