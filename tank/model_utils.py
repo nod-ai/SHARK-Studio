@@ -2,8 +2,26 @@ from shark.shark_inference import SharkInference
 
 import torch
 import numpy as np
+import sys
 
 torch.manual_seed(0)
+
+vision_models = [
+    "alexnet",
+    "resnet101",
+    "resnet18",
+    "resnet50",
+    "squeezenet1_0",
+    "wide_resnet50_2",
+]
+
+
+def get_torch_model(modelname):
+    if modelname in vision_models:
+        return get_vision_model(modelname)
+    else:
+        return get_hf_model(modelname)
+
 
 ##################### Hugging Face LM Models ###################################
 
@@ -12,7 +30,10 @@ class HuggingFaceLanguage(torch.nn.Module):
     def __init__(self, hf_model_name):
         super().__init__()
         from transformers import AutoModelForSequenceClassification
+        import transformers as trf
 
+        transformers_path = trf.__path__[0]
+        hf_model_path = f"{transformers_path}/models/{hf_model_name}"
         self.model = AutoModelForSequenceClassification.from_pretrained(
             hf_model_name,  # The pretrained model.
             num_labels=2,  # The number of output labels--2 for binary classification.

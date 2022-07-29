@@ -1,10 +1,9 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
-from tank.model_utils import get_hf_model, compare_tensors
+from tank.model_utils import compare_tensors
 from shark.parser import shark_args
 from shark.shark_downloader import download_torch_model
 
-import torch
 import unittest
 import numpy as np
 import pytest
@@ -13,20 +12,14 @@ import pytest
 class DistilBertModuleTester:
     def __init__(
         self,
-        save_mlir=False,
-        save_vmfb=False,
         benchmark=False,
     ):
-        self.save_mlir = save_mlir
-        self.save_vmfb = save_vmfb
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
         model_mlir, func_name, input, act_out = download_torch_model(
             "distilbert-base-uncased", dynamic
         )
-        shark_args.save_mlir = self.save_mlir
-        shark_args.save_vmfb = self.save_vmfb
 
         # from shark.shark_importer import SharkImporter
         # mlir_importer = SharkImporter(
@@ -50,14 +43,8 @@ class DistilBertModuleTester:
         assert True == compare_tensors(act_out, results)
 
         if self.benchmark == True:
-            import torch
-
-            torch.manual_seed(0)
-
-            model, input, act_out = get_hf_model("distilbert-base-uncased")
-            shark_module.shark_runner.frontend_model = model
             shark_module.shark_runner.benchmark_all_csv(
-                (input,),
+                (input),
                 "distilbert-base-uncased",
                 dynamic,
                 device,
@@ -73,19 +60,25 @@ class DistilBertModuleTest(unittest.TestCase):
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    @pytest.mark.skip(reason="DistilBert needs to be uploaded to cloud.")
+    @pytest.mark.skip(
+        reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"
+    )
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="DistilBert needs to be uploaded to cloud.")
+    @pytest.mark.skip(
+        reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"
+    )
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="DistilBert needs to be uploaded to cloud.")
+    @pytest.mark.skip(
+        reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"
+    )
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
