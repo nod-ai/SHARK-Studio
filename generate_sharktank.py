@@ -124,6 +124,10 @@ def save_tf_model(tf_model_list):
                 dir=tf_model_dir,
                 model_name=tf_model_name,
             )
+            mlir_hash = create_hash(
+                os.path.join(tf_model_dir, tf_model_name + "_tf" + ".mlir")
+            )
+            np.save(os.path.join(tf_model_dir, "hash"), np.array(mlir_hash))
 
 
 def save_tflite_model(tflite_model_list):
@@ -160,6 +164,16 @@ def save_tflite_model(tflite_model_list):
                 dir=tflite_model_name_dir,
                 model_name=tflite_model_name,
                 func_name="main",
+            )
+            mlir_hash = create_hash(
+                os.path.join(
+                    tflite_model_name_dir,
+                    tflite_model_name + "_tflite" + ".mlir",
+                )
+            )
+            np.save(
+                os.path.join(tflite_model_name_dir, "hash"),
+                np.array(mlir_hash),
             )
 
 
