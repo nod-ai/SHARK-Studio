@@ -108,7 +108,7 @@ fi
 
 $PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/${RUNTIME}/releases
 
-if [[ $(uname -s) = 'Linux' ]]; then
+if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
   if [ $? -eq 0 ];then
