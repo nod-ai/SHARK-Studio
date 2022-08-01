@@ -59,6 +59,7 @@ def check_dir_exists(model_name, frontend="torch", dynamic=""):
             and os.path.isfile(os.path.join(model_dir, "function_name.npy"))
             and os.path.isfile(os.path.join(model_dir, "inputs.npz"))
             and os.path.isfile(os.path.join(model_dir, "golden_out.npz"))
+            and os.path.isfile(os.path.join(model_dir, "hash.npy"))
         ):
             print(
                 f"""The models are present in the {WORKDIR}. If you want a fresh 
