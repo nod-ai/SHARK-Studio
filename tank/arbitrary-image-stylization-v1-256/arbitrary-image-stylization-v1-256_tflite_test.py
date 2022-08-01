@@ -77,9 +77,10 @@ class ArbitraryImageStylizationV1TfliteModuleTest(unittest.TestCase):
         )
         self.module_tester.save_mlir = self.save_mlir
 
-    @pytest.mark.skip(
-        reason="known macos tflite install issue & "
-        "'tosa.conv2d' op attribute 'quantization_info' failed "
+    import sys
+
+    @pytest.mark.xfail(
+        reason="'tosa.conv2d' op attribute 'quantization_info' failed ",
     )
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
