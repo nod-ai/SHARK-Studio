@@ -69,7 +69,7 @@ jobs:
         source shark.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --extra-index-url https://download.pytorch.org/whl/nightly/cu116 -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
+        pip wheel -v -w wheelhouse . --pre --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
