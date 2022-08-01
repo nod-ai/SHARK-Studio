@@ -128,9 +128,8 @@ def download_tflite_model(model_name, dynamic=False):
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
     model_dir_name = model_name + "_tflite"
-    if not check_dir_exists(
-        model_dir_name, frontend="tflite", dynamic=dyn_str
-    ):
+
+    def gs_download_model():
         gs_command = (
             'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
             + "/"
@@ -140,6 +139,29 @@ def download_tflite_model(model_name, dynamic=False):
         )
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
+
+    if not check_dir_exists(
+        model_dir_name, frontend="tflite", dynamic=dyn_str
+    ):
+        gs_download_model()
+    else:
+        model_dir = os.path.join(WORKDIR, model_dir_name)
+        local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
+        gs_hash = (
+            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank'
+            + "/"
+            + model_dir_name
+            + "/hash.npy"
+            + " "
+            + os.path.join(model_dir, "upstream_hash.npy")
+        )
+        if os.system(gs_hash) != 0:
+            raise Exception("hash of the model not present in the tank.")
+        upstream_hash = str(
+            np.load(os.path.join(model_dir, "upstream_hash.npy"))
+        )
+        if local_hash != upstream_hash:
+            gs_download_model()
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
@@ -160,7 +182,8 @@ def download_tf_model(model_name):
     model_name = model_name.replace("/", "_")
     os.makedirs(WORKDIR, exist_ok=True)
     model_dir_name = model_name + "_tf"
-    if not check_dir_exists(model_dir_name, frontend="tf"):
+
+    def gs_download_model():
         gs_command = (
             'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
             + "/"
@@ -170,6 +193,27 @@ def download_tf_model(model_name):
         )
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
+
+    if not check_dir_exists(model_dir_name, frontend="tf"):
+        gs_download_model()
+    else:
+        model_dir = os.path.join(WORKDIR, model_dir_name)
+        local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
+        gs_hash = (
+            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank'
+            + "/"
+            + model_dir_name
+            + "/hash.npy"
+            + " "
+            + os.path.join(model_dir, "upstream_hash.npy")
+        )
+        if os.system(gs_hash) != 0:
+            raise Exception("hash of the model not present in the tank.")
+        upstream_hash = str(
+            np.load(os.path.join(model_dir, "upstream_hash.npy"))
+        )
+        if local_hash != upstream_hash:
+            gs_download_model()
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(os.path.join(model_dir, model_name + "_tf.mlir")) as f:
