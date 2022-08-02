@@ -73,7 +73,6 @@ class NasnetTfliteModuleTest(unittest.TestCase):
         self.module_tester = NasnetTfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
-    @pytest.mark.skip(reason="nasnet tflite model too big")
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"
