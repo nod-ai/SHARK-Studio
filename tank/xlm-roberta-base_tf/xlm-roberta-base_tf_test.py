@@ -39,6 +39,15 @@ class XLMRobertaModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail(reason="expected numerical inconsistency for roberta on OCL-SPIRV/IntelGPU")
+    @pytest.mark.skipif(
+        check_device_drivers("intel-gpu"), reason=device_driver_info("intel-gpu")
+    )
+    def test_module_static_intelgpu(self):
+        dynamic = False
+        device = "intel-gpu"
+        self.module_tester.create_and_check_module(dynamic, device)
+
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )

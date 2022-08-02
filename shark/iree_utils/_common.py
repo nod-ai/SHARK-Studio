@@ -44,6 +44,7 @@ IREE_DEVICE_MAP = {
     "vulkan": "vulkan",
     "metal": "vulkan",
     "rocm": "rocm",
+    "intel-gpu" : "level_zero",
 }
 
 IREE_TARGET_MAP = {
@@ -53,6 +54,7 @@ IREE_TARGET_MAP = {
     "vulkan": "vulkan",
     "metal": "vulkan",
     "rocm": "rocm",
+    "intel-gpu" : "opencl-spirv",
 }
 
 # Finds whether the required drivers are installed for the given device.
@@ -68,6 +70,9 @@ def check_device_drivers(device):
             subprocess.check_output("vulkaninfo")
         except Exception:
             return True
+    elif device in ["intel-gpu"]:
+        # TODO: Add intel gpu check.
+        return False
     elif device == "cpu":
         return False
     # Unknown device.
