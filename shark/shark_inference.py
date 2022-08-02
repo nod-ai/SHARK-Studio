@@ -40,6 +40,7 @@ class SharkInference:
     mlir_dialect: str
         The dialect in which the given mlir_module is in.
         Refer to {https://mlir.llvm.org/docs/Dialects/}
+        tf:"mhlo", torch:"linalg", tflite:"tflite"
     is_benchmark: bool
         Whether this SharkInference module should be benchmark-enabled.
 

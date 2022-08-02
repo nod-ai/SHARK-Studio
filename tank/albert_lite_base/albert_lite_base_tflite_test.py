@@ -67,11 +67,13 @@ class AlbertTfliteModuleTester:
         device="cpu",
         save_mlir=False,
         save_vmfb=False,
+        benchmark=False,
     ):
         self.dynamic = dynamic
         self.device = device
         self.save_mlir = save_mlir
         self.save_vmfb = save_vmfb
+        self.benchmark = benchmark
 
     def create_and_check_module(self):
         shark_args.save_mlir = self.save_mlir
@@ -89,11 +91,21 @@ class AlbertTfliteModuleTester:
             function_name="main",
             device=self.device,
             mlir_dialect="tflite",
+            is_benchmark=self.benchmark,
         )
         shark_module.compile()
         mlir_results = shark_module.forward(inputs)
         # print(shark_results)
         compare_results(mlir_results, tflite_results)
+
+        if self.benchmark == True:
+            shark_module.shark_runner.benchmark_all_csv(
+                (inputs),
+                "albert_lite_base",
+                self.dynamic,
+                self.device,
+                "tflite",
+            )
 
 
 class AlbertTfliteModuleTest(unittest.TestCase):
@@ -101,6 +113,7 @@ class AlbertTfliteModuleTest(unittest.TestCase):
     def configure(self, pytestconfig):
         self.save_mlir = pytestconfig.getoption("save_mlir")
         self.save_vmfb = pytestconfig.getoption("save_vmfb")
+        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     def setUp(self):
         self.module_tester = AlbertTfliteModuleTester(self)
@@ -115,4 +128,5 @@ class AlbertTfliteModuleTest(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
     # module_tester = AlbertTfliteModuleTester()
+    # module_tester.benchmark = True
     # module_tester.create_and_check_module()

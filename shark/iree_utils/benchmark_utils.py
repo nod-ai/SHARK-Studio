@@ -32,11 +32,13 @@ def tensor_to_type_str(input_tensors: tuple, mlir_dialect: str):
         type_string = "x".join([str(dim) for dim in input_tensor.shape])
         if mlir_dialect in ["linalg", "tosa"]:
             dtype_string = str(input_tensor.dtype).replace("torch.", "")
-        elif mlir_dialect in ["mhlo", "tflite"]:
+        elif mlir_dialect in ["mhlo"]:
             dtype = input_tensor.dtype
             dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace(
                 "'", ""
             )
+        elif mlir_dialect in ["tflite"]:
+            dtype_string = str(input_tensor.dtype).replace("tosa.", "")
         regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
         match = regex_split.match(dtype_string)
         mlir_type_string = str(match.group(1)[0]) + str(match.group(2))
@@ -62,6 +64,8 @@ def build_benchmark_args(
     benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
     # TODO: The function named can be passed as one of the args.
     fn_name = "forward"
+    if mlir_dialect == "tflite":
+        fn_name = "main"
     if training == True:
         # TODO: Replace name of train with actual train fn name.
         fn_name = "train"

@@ -38,6 +38,8 @@ class SharkBenchmarkRunner(SharkRunner):
     ):
         self.device = shark_args.device if device == "none" else device
         self.frontend = frontend
+        if mlir_dialect == "tflite":
+            self.frontend = "tflite"
         self.frontend_model = None
         self.vmfb_file = None
         SharkRunner.__init__(
@@ -65,6 +67,8 @@ class SharkBenchmarkRunner(SharkRunner):
             return self.benchmark_torch(modelname)
         elif self.frontend in ["tensorflow", "tf"]:
             return self.benchmark_tf(inputs, modelname)
+        elif self.frontend in ["tflite"]:
+            return self.benchmark_tflite()
 
     def benchmark_torch(self, modelname):
         import torch
@@ -115,6 +119,12 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
         ]
+
+    def benchmark_tflite(self):
+        print(
+            "Shark-tflite-tosa Tflite-benchmark not implemented yet. 0 iter/second, Total Iterations: 0"
+        )
+        return [0, 0]
 
     def benchmark_c(self):
         result = run_benchmark_module(self.benchmark_cl)
