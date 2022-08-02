@@ -50,6 +50,9 @@ class ConvBertModuleTest(unittest.TestCase):
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
+    @pytest.mark.xfail(
+        reason="Issue: https://github.com/iree-org/iree/issues/9971",
+    )
     def test_module_static_vulkan(self):
         dynamic = False
         device = "vulkan"

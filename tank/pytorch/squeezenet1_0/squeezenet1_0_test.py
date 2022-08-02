@@ -96,6 +96,9 @@ class SqueezenetModuleTest(unittest.TestCase):
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
+    @pytest.mark.xfail(
+        reason="Issue: https://github.com/iree-org/iree/issues/9972",
+    )
     def test_module_dynamic_vulkan(self):
         dynamic = True
         device = "vulkan"
