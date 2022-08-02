@@ -30,8 +30,6 @@ jobs:
             suite: cpu
           - os: MacStudio
             suite: gpu
-          - os: MacStudio
-            suite: vulkan
 
     runs-on: ${{ matrix.os }}
 
