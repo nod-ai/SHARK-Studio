@@ -20,8 +20,11 @@ from shark.iree_utils._common import run_cmd
 def get_vulkan_triple_flag():
     vulkan_device_cmd = "vulkaninfo | grep deviceName | awk 'END{{print $NF}}'"
     vulkan_device = run_cmd(vulkan_device_cmd).strip()
-    if vulkan_device == "M1":
-        print("Found Apple Device. Using m1-moltenvk-macos")
+    if vulkan_device == "M2":
+        print("Found Apple M2 Device. Using m1-moltenvk-macos;  m2-moltenvk-macos not defined yet")
+        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
+    elif vulkan_device == "M1":
+        print("Found Apple M1 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
     elif vulkan_device == "A100-SXM4-40GB":
         print("Found Nvidia Device. Using ampere-rtx3080-linux")
