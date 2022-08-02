@@ -38,6 +38,7 @@ def get_vulkan_triple_flag():
             Contact SHARK Admin on discord[https://discord.com/invite/RUqY2h2s9u]
             or pull up an issue."""
         )
+	print(f'Target : {vulkan_device}')
         return None
 
 
