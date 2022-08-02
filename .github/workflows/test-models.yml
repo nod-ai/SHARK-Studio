@@ -30,6 +30,8 @@ jobs:
             suite: cpu
           - os: MacStudio
             suite: gpu
+          - os: MacStudio
+            suite: cpu
 
     runs-on: ${{ matrix.os }}
 
