@@ -64,7 +64,6 @@ class WideResnet50ModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="google storage issues")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
@@ -86,7 +85,6 @@ class WideResnet50ModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="google storage issues")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
@@ -95,7 +93,6 @@ class WideResnet50ModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="google storage issues")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
