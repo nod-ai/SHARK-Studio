@@ -32,7 +32,7 @@ def compare_results(mlir_results, tflite_results):
         tflite_result = tflite_results[i]
         mlir_result = mlir_result.astype(np.single)
         tflite_result = tflite_result.astype(np.single)
-        mlir_result = np.expand_dims(mlir_result, axis=0)
+        # mlir_result = np.expand_dims(mlir_result, axis=0)
         print("mlir_result.shape", mlir_result.shape)
         print("tflite_result.shape", tflite_result.shape)
         assert mlir_result.shape == tflite_result.shape, "shape doesnot match"
@@ -104,7 +104,6 @@ class GptTfliteModuleTest(unittest.TestCase):
         self.module_tester = GptTfliteModuleTester(self)
         self.module_tester.save_mlir = self.save_mlir
 
-    @pytest.mark.skip(reason="gpt2-64.tflite model too big")
     def test_module_static_cpu(self):
         self.module_tester.dynamic = False
         self.module_tester.device = "cpu"
