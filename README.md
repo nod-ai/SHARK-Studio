@@ -95,8 +95,6 @@ pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_m
 ```
 
 
-
-
 </details>
 
 
@@ -107,7 +105,7 @@ pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_m
 ```shell
 pytest tank
 
-# If on Linux for quicker results:
+# If on Linux for multithreading on CPU (faster results):
 pytest tank -n auto
 ```
 
@@ -117,18 +115,19 @@ pytest tank -n auto
 pytest tank/<MODEL_NAME> #i.e., pytest tank/bert-base-uncased
 
 # Run tests for a specific case:
-pytest tank/<MODEL_NAME>/<MODEL_TEST>.py::<MODEL>ModuleTest::<CASE>
-# i.e., pytest tank/bert-base-uncased/bert-base-uncased_test.py::BertModuleTest::test_module_static_cpu
-# For frontends other than pytorch, if available for a model, add frontend to filename: tank/bert-base-uncased/bert-base-uncased_tf_test.py
+pytest tank/<MODEL_NAME> -k "keyword" 
+# i.e., pytest tank/bert-base-uncased/bert-base-uncased_test.py -k "static_gpu"
 
-# Run all tests, including tests for benchmarking and SHARK modules:
-# From base SHARK directory,
-pytest
 ```
 
-### Run all model benchmark tests on CPU/GPU/VULKAN/Metal
+### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
+  
+(requires source installation with `IMPORTER=1 ./setup_venv.sh`)
 ```shell
-pytest benchmarks
+pytest --benchmark tank
+  
+# Just do static GPU benchmarks for PyTorch tests:
+pytest --benchmark tank --ignore-glob="_tf*" -k "static_gpu"
 ```
 </details>
 
