@@ -2,6 +2,7 @@ model_name, use_tracing, model_type
 microsoft/MiniLM-L12-H384-uncased,True,hf
 albert-base-v2,True,hf
 bert-base-uncased,True,hf
+bert-base-cased,True,hf
 google/mobilebert-uncased,True,hf
 alexnet,False,vision
 resnet18,False,vision
