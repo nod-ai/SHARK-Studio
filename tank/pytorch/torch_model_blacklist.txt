@@ -1,0 +1,419 @@
+model_name, use_tracing, model_type
+valhalla/bart-large-sst2,True,hf
+l-yohai/bigbird-roberta-base-mnli,True,hf
+hf-internal-testing/tiny-random-bigbird_pegasus,True,hf
+bigscience/bloom-350m,True,hf
+google/canine-s,True,hf
+YituTech/conv-bert-base,True,hf
+ctrl,True,hf
+facebook/data2vec-text-base,True,hf
+microsoft/deberta-base,True,hf
+distilbert-base-uncased,True,hf
+microsoft/deberta-v2-xlarge,True,hf
+distilbert-base-uncased,True,hf
+bhadresh-savani/electra-base-emotion,True,hf
+xlm-mlm-en-2048,True,hf
+
+
+
+Here is the debug info, each model name follow with a Traceback  when run python generate_sharktank.py
+models is from list of Huggingface AutoModelForSequenceClassification
+https://huggingface.co/docs/transformers/main/en/model_doc/auto#transformers.AutoModelForSequenceClassification:~:text=config%0A...%20)-,AutoModelForSequenceClassification,-class%20transformers.
+
+
+######################################################################################################################################
+valhalla/bart-large-sst2,True,hf
+
+➜  SHARK git:(add-torch-tests) ✗ python generate_sharktank.py
+2022-08-04 09:59:55.845686: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory
+2022-08-04 09:59:55.845702: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+2022-08-04 09:59:56.927814: E tensorflow/stream_executor/cuda/cuda_driver.cc:271] failed call to cuInit: CUDA_ERROR_COMPAT_NOT_SUPPORTED_ON_DEVICE: forward compatibility was attempted on non supported HW
+2022-08-04 09:59:56.927841: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:169] retrieving CUDA diagnostic information for host: nod
+2022-08-04 09:59:56.927846: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:176] hostname: nod
+2022-08-04 09:59:56.927886: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:200] libcuda reported version is: 470.141.3
+2022-08-04 09:59:56.927904: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:204] kernel reported version is: 470.129.6
+2022-08-04 09:59:56.927909: E tensorflow/stream_executor/cuda/cuda_diagnostics.cc:313] kernel version 470.129.6 does not match DSO version 470.141.3 -- cannot find working devices in this configuration
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 63, in save_torch_model
+    model, input, _ = get_hf_model(torch_model_name)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 58, in get_hf_model
+    actual_out = model(test_input)
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1131, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 46, in forward
+    return self.model.forward(tokens)[0]
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/models/bart/modeling_bart.py", line 1513, in forward
+    sentence_representation = hidden_states[eos_mask, :].view(hidden_states.size(0), -1, hidden_states.size(-1))[
+IndexError: index -1 is out of bounds for dimension 1 with size 0
+
+
+
+
+
+
+
+
+######################################################################################################################################
+l-yohai/bigbird-roberta-base-mnli,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 63, in save_torch_model
+    model, input, _ = get_hf_model(torch_model_name)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 55, in get_hf_model
+    model = HuggingFaceLanguage(name)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 37, in __init__
+    self.model = AutoModelForSequenceClassification.from_pretrained(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/models/auto/auto_factory.py", line 446, in from_pretrained
+    return model_class.from_pretrained(pretrained_model_name_or_path, *model_args, config=config, **kwargs)
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/modeling_utils.py", line 1882, in from_pretrained
+    model, missing_keys, unexpected_keys, mismatched_keys, error_msgs = cls._load_pretrained_model(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2045, in _load_pretrained_model
+    raise RuntimeError(f"Error(s) in loading state_dict for {model.__class__.__name__}:\n\t{error_msg}")
+RuntimeError: Error(s) in loading state_dict for BigBirdForSequenceClassification:
+	size mismatch for classifier.out_proj.weight: copying a param with shape torch.Size([3, 768]) from checkpoint, the shape in current model is torch.Size([2, 768]).
+	size mismatch for classifier.out_proj.bias: copying a param with shape torch.Size([3]) from checkpoint, the shape in current model is torch.Size([2]).
+
+
+
+
+
+
+
+
+######################################################################################################################################
+hf-internal-testing/tiny-random-bigbird_pegasus,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 76, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    module = torch_mlir.compile(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 149, in compile
+    run_pipeline_with_repro_report(mb.module,
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 49, in run_pipeline_with_repro_report
+    raise Exception(f"""
+Exception:
+Lowering TorchScript IR -> Torch Backend IR failed with the following diagnostics:
+error: 'func.call' op operand type mismatch: expected operand type '!torch.float', but provided '!torch.number' for operand number 1
+note: see current operation: %499 = "func.call"(%493, %249, %494, %495, %496, %497, %498) {callee = @__torch_mlir_shape_fn.aten.arange.start_step} : (!torch.float, !torch.number, !torch.float, !torch.optional<int>, !torch.optional<int>, !torch.optional<Device>, !torch.optional<bool>) -> !torch.list<int>
+
+Error can be reproduced with:
+$ torch-mlir-opt -pass-pipeline='torchscript-module-to-torch-backend-pipeline' /tmp/HuggingFaceLanguage.mlir
+Add '-mlir-print-ir-after-all -mlir-disable-threading' to get the IR dump for debugging purpose.
+
+
+
+
+
+
+
+
+######################################################################################################################################
+bigscience/bloom-350m,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 63, in save_torch_model
+    model, input, _ = get_hf_model(torch_model_name)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 55, in get_hf_model
+    model = HuggingFaceLanguage(name)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 37, in __init__
+    self.model = AutoModelForSequenceClassification.from_pretrained(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/models/auto/auto_factory.py", line 423, in from_pretrained
+    config, kwargs = AutoConfig.from_pretrained(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/models/auto/configuration_auto.py", line 672, in from_pretrained
+    config_class = CONFIG_MAPPING[config_dict["model_type"]]
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/models/auto/configuration_auto.py", line 387, in __getitem__
+    raise KeyError(key)
+KeyError: 'bloom'
+
+
+
+
+
+
+
+
+
+######################################################################################################################################
+google/canine-s,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 213, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 74, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    module = torch_mlir.compile(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 149, in compile
+    run_pipeline_with_repro_report(mb.module,
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 49, in run_pipeline_with_repro_report
+    raise Exception(f"""
+Exception: 
+Lowering TorchScript IR -> Torch Backend IR failed with the following diagnostics:
+error: operand types should have the same type as the list contained type
+note: see current operation: %495 = "torch.prim.ListConstruct"(%493, %494) : (!torch.vtensor<[1,1,768],f32>, !torch.vtensor<[1,31,768],f32>) -> !torch.list<vtensor<[1,1,768],f32>>
+
+
+
+
+
+
+
+
+
+######################################################################################################################################
+YituTech/conv-bert-base,True,hf
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 76, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    module = torch_mlir.compile(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 149, in compile
+    run_pipeline_with_repro_report(mb.module,
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 49, in run_pipeline_with_repro_report
+    raise Exception(f"""
+Exception:
+Lowering TorchScript IR -> Torch Backend IR failed with the following diagnostics:
+error: failed to legalize operation 'torch.aten.reshape' that was explicitly marked illegal
+note: see current operation: %393 = "torch.aten.reshape"(%391, %392) : (!torch.tensor<[1,128,384],f32>, !torch.list<int>) -> !torch.tensor<[1,128,384],f32>
+
+Error can be reproduced with:
+$ torch-mlir-opt -pass-pipeline='torchscript-module-to-torch-backend-pipeline' /tmp/HuggingFaceLanguage.mlir
+Add '-mlir-print-ir-after-all -mlir-disable-threading' to get the IR dump for debugging purpose.
+
+
+
+
+
+
+
+
+######################################################################################################################################
+ctrl,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 76, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    module = torch_mlir.compile(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 149, in compile
+    run_pipeline_with_repro_report(mb.module,
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 49, in run_pipeline_with_repro_report
+    raise Exception(f"""
+Exception:
+Lowering TorchScript IR -> Torch Backend IR failed with the following diagnostics:
+error: 'func.call' op operand type mismatch: expected operand type '!torch.float', but provided '!torch.number' for operand number 1
+note: see current operation: %3055 = "func.call"(%3049, %801, %3050, %3051, %3052, %3053, %3054) {callee = @__torch_mlir_shape_fn.aten.arange.start_step} : (!torch.float, !torch.number, !torch.float, !torch.optional<int>, !torch.optional<int>, !torch.optional<Device>, !torch.optional<bool>) -> !torch.list<int>
+
+Error can be reproduced with:
+$ torch-mlir-opt -pass-pipeline='torchscript-module-to-torch-backend-pipeline' /tmp/HuggingFaceLanguage.mlir
+Add '-mlir-print-ir-after-all -mlir-disable-threading' to get the IR dump for debugging purpose.
+
+
+
+
+
+
+
+
+######################################################################################################################################
+facebook/data2vec-text-base,True,hf
+
+Some weights of Data2VecTextForSequenceClassification were not initialized from the model checkpoint at facebook/data2vec-text-base and are newly initialized: ['classifier.out_proj.weight', 'classifier.dense.bias', 'classifier.dense.weight', 'classifier.out_proj.bias']
+You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
+Fatal Python error: Segmentation fault
+Current thread 0x00007f8b8a2de740 (most recent call first):
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 30 in run_pipeline_with_repro_report
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 164 in compile
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123 in get_torch_mlir_module
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74 in _torch_mlir
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109 in import_mlir
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163 in import_debug
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 76 in save_torch_model
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215 in <module>
+
+
+
+
+
+
+
+######################################################################################################################################
+microsoft/deberta-base,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 76, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    module = torch_mlir.compile(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 149, in compile
+    run_pipeline_with_repro_report(mb.module,
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 49, in run_pipeline_with_repro_report
+    raise Exception(f"""
+Exception:
+Lowering TorchScript IR -> Torch Backend IR failed with the following diagnostics:
+error: 'torch.derefine' op operand type '!torch.number' and result type '!torch.optional<float>' are cast incompatible
+note: see current operation: %1828 = "torch.derefine"(%329) : (!torch.number) -> !torch.optional<float>
+
+Error can be reproduced with:
+$ torch-mlir-opt -pass-pipeline='torchscript-module-to-torch-backend-pipeline' /tmp/HuggingFaceLanguage.mlir
+Add '-mlir-print-ir-after-all -mlir-disable-threading' to get the IR dump for debugging purpose.
+
+
+
+
+
+
+
+######################################################################################################################################
+microsoft/deberta-v2-xlarge,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 76, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    module = torch_mlir.compile(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 149, in compile
+    run_pipeline_with_repro_report(mb.module,
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 49, in run_pipeline_with_repro_report
+    raise Exception(f"""
+Exception:
+Lowering TorchScript IR -> Torch Backend IR failed with the following diagnostics:
+error: failed to legalize operation 'torch.aten.to.dtype_layout' that was explicitly marked illegal
+note: see current operation: %489 = "torch.aten.to.dtype_layout"(%488, %411, %403, %427, %413, %412, %412, %413) : (!torch.tensor<[1,1,128,128],si64>, !torch.int, !torch.int, !torch.Device, !torch.none, !torch.bool, !torch.bool, !torch.none) -> !torch.tensor<[1,1,128,128],si64>
+
+
+
+
+
+
+######################################################################################################################################
+distilbert-base-uncased,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 89, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 150, in get_torch_mlir_module
+    pm.run(mb.module)
+RuntimeError: Failure while executing pass pipeline.
+
+
+
+
+
+
+######################################################################################################################################
+bhadresh-savani/electra-base-emotion,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 63, in save_torch_model
+    model, input, _ = get_hf_model(torch_model_name)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 55, in get_hf_model
+    model = HuggingFaceLanguage(name)
+  File "/home/chi/src/ubuntu20/shark/SHARK/tank/model_utils.py", line 37, in __init__
+    self.model = AutoModelForSequenceClassification.from_pretrained(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/models/auto/auto_factory.py", line 446, in from_pretrained
+    return model_class.from_pretrained(pretrained_model_name_or_path, *model_args, config=config, **kwargs)
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/modeling_utils.py", line 1882, in from_pretrained
+    model, missing_keys, unexpected_keys, mismatched_keys, error_msgs = cls._load_pretrained_model(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2045, in _load_pretrained_model
+    raise RuntimeError(f"Error(s) in loading state_dict for {model.__class__.__name__}:\n\t{error_msg}")
+RuntimeError: Error(s) in loading state_dict for ElectraForSequenceClassification:
+	size mismatch for classifier.out_proj.weight: copying a param with shape torch.Size([6, 256]) from checkpoint, the shape in current model is torch.Size([2, 256]).
+	size mismatch for classifier.out_proj.bias: copying a param with shape torch.Size([6]) from checkpoint, the shape in current model is torch.Size([2]).
+
+
+
+
+
+
+######################################################################################################################################
+xlm-mlm-en-2048,True,hf
+
+Traceback (most recent call last):
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 215, in <module>
+    save_torch_model(args.torch_model_csv)
+  File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 76, in save_torch_model
+    mlir_importer.import_debug(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    imported_mlir = self.import_mlir(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    return self._torch_mlir(is_dynamic, tracing_required), func_name
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    return get_torch_mlir_module(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    module = torch_mlir.compile(
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 149, in compile
+    run_pipeline_with_repro_report(mb.module,
+  File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/compiler_utils.py", line 49, in run_pipeline_with_repro_report
+    raise Exception(f"""
+Exception:
+Lowering TorchScript IR -> Torch Backend IR failed with the following diagnostics:
+error: 'func.call' op operand type mismatch: expected operand type '!torch.float', but provided '!torch.number' for operand number 0
+note: see current operation: %793 = "func.call"(%221, %789, %790, %791, %792) {callee = @__torch_mlir_shape_fn.aten.arange} : (!torch.number, !torch.optional<int>, !torch.optional<int>, !torch.optional<Device>, !torch.optional<bool>) -> !torch.list<int>
+
+
+
+
