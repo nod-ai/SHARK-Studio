@@ -41,7 +41,8 @@ jobs:
     - name: Set Environment Variables
       run: |
         echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
-        echo "DATE::$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        
     - name: Set up Python Version File ${{ matrix.python-version }}
       if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
       run: |
