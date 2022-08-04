@@ -26,6 +26,12 @@ def get_vulkan_triple_flag():
     elif vulkan_device == "M2":
         print("Found Apple M2 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
+    elif vulkan_device == "Max":
+        print("Found Apple M1 Max Device. Using m1-moltenvk-macos")
+        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
+    elif vulkan_device == "Pro":
+        print("Found Apple M1 Pro Device. Using m1-moltenvk-macos")
+        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
     elif vulkan_device == "M1":
         print("Found Apple M1 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
