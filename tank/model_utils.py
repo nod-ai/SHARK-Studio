@@ -3,6 +3,8 @@ from shark.shark_inference import SharkInference
 import torch
 import numpy as np
 import sys
+from torch.fx.experimental.proxy_tensor import make_fx
+from torch._decomp import get_decompositions
 
 torch.manual_seed(0)
 
@@ -57,7 +59,80 @@ def get_hf_model(name):
     # TODO: Currently the test input is set to (1,128)
     test_input = torch.randint(2, (1, 128))
     actual_out = model(test_input)
+
+    # fx_g = make_fx(
+    #     model(test_input),
+    #     decomposition_table=get_decompositions(
+    #         [
+    #             torch.ops.aten.embedding_dense_backward,
+    #             torch.ops.aten.native_layer_norm_backward,
+    #             torch.ops.aten.slice_backward,
+    #             torch.ops.aten.select_backward,
+    #             torch.ops.aten.norm.ScalarOpt_dim,
+    #             torch.ops.aten.native_group_norm,
+    #             torch.ops.aten.upsample_bilinear2d.vec,
+    #             torch.ops.aten.split.Tensor,
+    #             torch.ops.aten.split_with_sizes,
+    #         ]
+    #     ),
+    # )(test_input)
+    #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/experimental/proxy_tensor.py", line 225, in wrapped
+    #     t = dispatch_trace(wrap_key(f, args), concrete_args=tuple(phs),
+    #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/experimental/proxy_tensor.py", line 167, in dispatch_trace
+    #     graph = tracer.trace(root, concrete_args)
+    #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/_symbolic_trace.py", line 559, in trace
+    #     fn, args = self.create_args_for_root(fn, isinstance(root, torch.nn.Module), concrete_args)
+    #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/_symbolic_trace.py", line 388, in create_args_for_root
+    #     co = fn_for_analysis.__code__
+    # AttributeError: 'Tensor' object has no attribute '__code__'. Did you mean: '__mod__'?
     return model, test_input, actual_out
+
+    # fx_g = make_fx(
+    #     model,
+    #     decomposition_table=get_decompositions(
+    #         [
+    #             torch.ops.aten.embedding_dense_backward,
+    #             torch.ops.aten.native_layer_norm_backward,
+    #             torch.ops.aten.slice_backward,
+    #             torch.ops.aten.select_backward,
+    #             torch.ops.aten.norm.ScalarOpt_dim,
+    #             torch.ops.aten.native_group_norm,
+    #             torch.ops.aten.upsample_bilinear2d.vec,
+    #             torch.ops.aten.split.Tensor,
+    #             torch.ops.aten.split_with_sizes,
+    #         ]
+    #     ),
+    # )
+    # return fx_g, test_input, actual_out
+
+    # # Traceback (most recent call last):
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 214, in <module>
+    # #     save_torch_model(args.torch_model_csv)
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/generate_sharktank.py", line 74, in save_torch_model
+    # #     mlir_importer.import_debug(
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 163, in import_debug
+    # #     imported_mlir = self.import_mlir(
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 109, in import_mlir
+    # #     return self._torch_mlir(is_dynamic, tracing_required), func_name
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark/shark_importer.py", line 74, in _torch_mlir
+    # #     return get_torch_mlir_module(
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark/torch_mlir_utils.py", line 123, in get_torch_mlir_module
+    # #     module = torch_mlir.compile(
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch_mlir/__init__.py", line 120, in compile
+    # #     scripted = torch.jit.trace(model, tuple(example_args))
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/jit/_trace.py", line 795, in trace
+    # #     traced = torch._C._create_function_from_trace(
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/experimental/proxy_tensor.py", line 225, in wrapped
+    # #     t = dispatch_trace(wrap_key(f, args), concrete_args=tuple(phs),
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/experimental/proxy_tensor.py", line 167, in dispatch_trace
+    # #     graph = tracer.trace(root, concrete_args)
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/_symbolic_trace.py", line 559, in trace
+    # #     fn, args = self.create_args_for_root(fn, isinstance(root, torch.nn.Module), concrete_args)
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/fx/_symbolic_trace.py", line 388, in create_args_for_root
+    # #     co = fn_for_analysis.__code__
+    # #   File "/home/chi/src/ubuntu20/shark/SHARK/shark.venv/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1208, in __getattr__
+    # #     raise AttributeError("'{}' object has no attribute '{}'".format(
+    # # AttributeError: 'HuggingFaceLanguage' object has no attribute '__code__'. Did you mean: '__call__'?
 
 
 ################################################################################
