@@ -38,6 +38,11 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     
+    - name: Set Environment Variables
+      run: |
+        echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        
     - name: Set up Python Version File ${{ matrix.python-version }}
       if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
       run: |
@@ -75,17 +80,21 @@ jobs:
       if: matrix.suite == 'cpu'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -k 'cpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+        pytest --benchmark -k 'cpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+        gsutil cp ./bench_results.csv gs://iree-shared-files/nod-perf/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv
+        rm bench_results.csv
 
     - name: Validate GPU Models
       if: matrix.suite == 'gpu'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -k "gpu" --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+        pytest --benchmark -k "gpu" --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+        gsutil cp ./bench_results.csv gs://iree-shared-files/nod-perf/bench_results/${DATE}/bench_results_gpu_${SHORT_SHA}.csv
+        rm bench_results.csv
 
     - name: Validate Vulkan Models
       if: matrix.suite == 'vulkan'

@@ -149,8 +149,8 @@ class SharkBenchmarkRunner(SharkRunner):
     ):
         self.setup_cl(inputs)
         field_names = [
-            "platform",
             "model",
+            "platform",
             "dynamic",
             "device",
             "iter/sec",
