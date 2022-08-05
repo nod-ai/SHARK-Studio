@@ -10,3 +10,4 @@ resnet50,False,vision
 resnet101,False,vision
 squeezenet1_0,False,vision
 wide_resnet50_2,False,vision
+mobilenet_v3_small,False,vision
