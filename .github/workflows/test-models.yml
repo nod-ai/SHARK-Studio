@@ -84,7 +84,6 @@ jobs:
         source shark.venv/bin/activate
         pytest --benchmark -k 'cpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
         gsutil cp ./bench_results.csv gs://iree-shared-files/nod-perf/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv
-        rm bench_results.csv
 
     - name: Validate GPU Models
       if: matrix.suite == 'gpu'
@@ -94,7 +93,6 @@ jobs:
         source shark.venv/bin/activate
         pytest --benchmark -k "gpu" --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
         gsutil cp ./bench_results.csv gs://iree-shared-files/nod-perf/bench_results/${DATE}/bench_results_gpu_${SHORT_SHA}.csv
-        rm bench_results.csv
 
     - name: Validate Vulkan Models
       if: matrix.suite == 'vulkan'
