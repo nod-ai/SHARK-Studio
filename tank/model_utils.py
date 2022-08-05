@@ -13,6 +13,7 @@ vision_models = [
     "resnet50",
     "squeezenet1_0",
     "wide_resnet50_2",
+    "mobilenet_v3_small",
 ]
 
 
@@ -84,6 +85,7 @@ def get_vision_model(torch_model):
         "resnet101": models.resnet101(pretrained=True),
         "squeezenet1_0": models.squeezenet1_0(pretrained=True),
         "wide_resnet50_2": models.wide_resnet50_2(pretrained=True),
+        "mobilenet_v3_small": models.mobilenet_v3_small(pretrained=True),
     }
     if isinstance(torch_model, str):
         torch_model = vision_models_dict[torch_model]
