@@ -62,7 +62,21 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude shark.venv,lit.cfg.py 
 
-    - name: Build and validate the package
+    - name: Build and validate the IREE package
+      run: |
+        cd $GITHUB_WORKSPACE
+        USE_IREE=1 VENV_DIR=iree.venv ./setup_venv.sh
+        source iree.venv/bin/activate
+        package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
+        SHARK_PACKAGE_VERSION=${package_version} \
+        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://github.com/llvm/torch-mlir/releases -f https://github.com/iree-org/iree/releases
+        # Install the built wheel
+        pip install ./wheelhouse/nodai*
+        # Validate the Models
+        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
+        rm -rf ./wheelhouse/nodai*
+
+    - name: Build and validate the SHARK Runtime package
       run: |
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
