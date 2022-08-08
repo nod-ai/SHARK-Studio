@@ -1281,3 +1281,10 @@ class PREmbeddingBagModuleTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+    #comment unittest.main() and uncomment code below to compile directly via torch_mlir.compile
+    #model, inputs, actual_inputs = generate_dlrm_model_and_inputs()
+    #script_module = torch.jit.script(model, inputs)
+    #linalg_module = torch_mlir.compile(script_module, inputs, output_type=torch_mlir.OutputType.LINALG_ON_TENSORS)
+    #print(linalg_module)
+
