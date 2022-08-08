@@ -85,7 +85,7 @@ class WideResnet50ModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skipif(
+    @pytest.mark.xfail(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_static_vulkan(self):
@@ -93,7 +93,7 @@ class WideResnet50ModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skipif(
+    @pytest.mark.xfail(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_dynamic_vulkan(self):
