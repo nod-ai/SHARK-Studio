@@ -88,7 +88,6 @@ class Resnet101ModuleTest(unittest.TestCase):
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
-    @pytest.mark.xfail(reason="Weird xfail on MacStudio vulkan")
     def test_module_static_vulkan(self):
         dynamic = False
         device = "vulkan"
@@ -97,7 +96,6 @@ class Resnet101ModuleTest(unittest.TestCase):
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
-    @pytest.mark.xfail(reason="Weird xfail on MacStudio vulkan")
     def test_module_dynamic_vulkan(self):
         dynamic = True
         device = "vulkan"
