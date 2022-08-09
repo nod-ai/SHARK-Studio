@@ -17,6 +17,7 @@ python -m pip install --upgrade pip
 ### Install v-diffusion model and its dependencies
 
 ```shell
+cd tank/pytorch/v_diffusion/
 ./setup_diffusion.sh
 ```
 
