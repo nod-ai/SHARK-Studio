@@ -60,25 +60,17 @@ class DistilBertModuleTest(unittest.TestCase):
         self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    @pytest.mark.skip(
-        reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"
-    )
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(
-        reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"
-    )
+    @pytest.mark.skip(reason="failing for dynamic dimensions.")
     def test_module_dynamic_cpu(self):
         dynamic = True
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(
-        reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"
-    )
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
@@ -87,7 +79,7 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="DistilBert needs to be uploaded to cloud.")
+    @pytest.mark.skip(reason="failing for dynamic dimensions.")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
@@ -96,7 +88,6 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="DistilBert needs to be uploaded to cloud.")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
@@ -105,7 +96,7 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="DistilBert needs to be uploaded to cloud.")
+    @pytest.mark.skip(reason="failing for dynamic dimensions.")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
