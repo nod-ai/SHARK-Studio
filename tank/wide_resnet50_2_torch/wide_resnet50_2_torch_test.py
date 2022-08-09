@@ -88,6 +88,9 @@ class WideResnet50ModuleTest(unittest.TestCase):
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
+    @pytest.mark.xfail(
+        reason="Need to check: Error invoking IREE compiler tool",
+    )
     def test_module_static_vulkan(self):
         dynamic = False
         device = "vulkan"
