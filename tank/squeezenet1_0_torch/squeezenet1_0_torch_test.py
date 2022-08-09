@@ -2,6 +2,7 @@ from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import get_vision_model, compare_tensors
 from shark.shark_downloader import download_torch_model
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 import unittest
 import numpy as np
@@ -97,7 +98,8 @@ class SqueezenetModuleTest(unittest.TestCase):
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     @pytest.mark.xfail(
-        reason="Issue: https://github.com/iree-org/iree/issues/9972",
+        "m1-moltenvk-macos" in get_vulkan_triple_flag(),
+        reason="https://github.com/iree-org/iree/issues/9972",
     )
     def test_module_dynamic_vulkan(self):
         dynamic = True

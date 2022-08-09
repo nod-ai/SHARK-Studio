@@ -1,6 +1,7 @@
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_tf_model
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 import iree.compiler as ireec
 import unittest
@@ -52,6 +53,10 @@ class DistilBertModuleTest(unittest.TestCase):
     @pytest.mark.xfail(reason="shark_tank hash issues -- awaiting triage")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
+    )
+    @pytest.mark.xfail(
+        "m1-moltenvk-macos" in get_vulkan_triple_flag(),
+        reason="Checking: Error invoking IREE compiler tool (no repro on M2)",
     )
     def test_module_static_vulkan(self):
         dynamic = False

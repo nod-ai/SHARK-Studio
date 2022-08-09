@@ -2,6 +2,7 @@ from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_downloader import download_tf_model
 from shark.parser import shark_args
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 import unittest
 import numpy as np
@@ -62,6 +63,10 @@ class Resnet50ModuleTest(unittest.TestCase):
 
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
+    )
+    @pytest.mark.xfail(
+        "m1-moltenvk-macos" in get_vulkan_triple_flag(),
+        reason="M2: Assert error & M1: CompilerToolError",
     )
     def test_module_static_vulkan(self):
         dynamic = False

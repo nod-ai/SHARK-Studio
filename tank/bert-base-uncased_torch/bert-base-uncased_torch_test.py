@@ -3,6 +3,7 @@ from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import compare_tensors
 from shark.shark_downloader import download_torch_model
 from shark.parser import shark_args
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 import torch
 import unittest
@@ -89,6 +90,10 @@ class BertBaseUncasedModuleTest(unittest.TestCase):
 
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
+    )
+    @pytest.mark.xfail(
+        "m1-moltenvk-macos" in get_vulkan_triple_flag(),
+        reason="Checking: Error invoking IREE compiler tool (no repro on M2)",
     )
     def test_module_dynamic_vulkan(self):
         dynamic = True
