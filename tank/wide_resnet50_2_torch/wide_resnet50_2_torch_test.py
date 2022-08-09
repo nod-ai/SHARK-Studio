@@ -85,17 +85,19 @@ class WideResnet50ModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
+    @pytest.mark.xfail(reason="Weird xfail on MacStudio vulkan")
     def test_module_static_vulkan(self):
         dynamic = False
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.xfail(
+    @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
+    @pytest.mark.xfail(reason="Weird xfail on MacStudio vulkan")
     def test_module_dynamic_vulkan(self):
         dynamic = True
         device = "vulkan"
