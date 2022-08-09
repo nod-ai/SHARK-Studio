@@ -42,7 +42,6 @@ class DistilBertModuleTest(unittest.TestCase):
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
-    @pytest.mark.xfail(reason="Weird xfail on GPU")
     def test_module_static_gpu(self):
         dynamic = False
         device = "gpu"
@@ -51,7 +50,6 @@ class DistilBertModuleTest(unittest.TestCase):
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
-    @pytest.mark.xfail(reason="Weird xfail on MacStudio vulkan")
     def test_module_static_vulkan(self):
         dynamic = False
         device = "vulkan"

@@ -206,7 +206,6 @@ if __name__ == "__main__":
         default="./tank/tflite/tflite_model_list.csv",
         help="Contains the file with tf model name and args.",
     )
-    # import faulthandler; faulthandler.enable()
     parser.add_argument("--upload", type=bool, default=False)
 
     args = parser.parse_args()
