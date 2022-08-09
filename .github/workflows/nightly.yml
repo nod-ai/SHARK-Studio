@@ -73,7 +73,10 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
+        /bin/bash populate_sharktank.sh
+        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
         rm -rf ./wheelhouse/nodai*
 
     - name: Build and validate the SHARK Runtime package
@@ -87,7 +90,13 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
+        /bin/bash populate_sharktank.sh
+        pytest -k 'not benchmark' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
+        if !(grep -Fxq "failed" results.txt); then python generate_sharktank.py --upload=True; fi
+
+        
     
     - name: Upload Release Assets
       id: upload-release-assets

@@ -29,6 +29,8 @@ input_type_to_np_dtype = {
     "int8": np.int8,
 }
 
+#default hash is updated when nightly populate_sharktank_ci is successful
+shark_default_sha = "274650f"
 
 # Save the model in the home local so it needn't be fetched everytime in the CI.
 home = str(Path.home())
@@ -78,7 +80,8 @@ def download_torch_model(model_name, dynamic=False):
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank/'
+            + shark_default_sha
             + "/"
             + model_dir_name
             + " "
@@ -93,7 +96,8 @@ def download_torch_model(model_name, dynamic=False):
         model_dir = os.path.join(WORKDIR, model_dir_name)
         local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
         gs_hash = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank'
+            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank/'
+            + shark_default_sha
             + "/"
             + model_dir_name
             + "/hash.npy"
@@ -131,7 +135,8 @@ def download_tflite_model(model_name, dynamic=False):
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank/'
+            + shark_default_sha
             + "/"
             + model_dir_name
             + " "
@@ -185,7 +190,8 @@ def download_tf_model(model_name):
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank'
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank/'
+            + shark_default_sha
             + "/"
             + model_dir_name
             + " "
@@ -200,7 +206,8 @@ def download_tf_model(model_name):
         model_dir = os.path.join(WORKDIR, model_dir_name)
         local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
         gs_hash = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank'
+            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank/'
+            + shark_default_sha
             + "/"
             + model_dir_name
             + "/hash.npy"

@@ -13,9 +13,10 @@ import csv
 import argparse
 from shark.shark_importer import SharkImporter
 import tensorflow as tf
+import subprocess as sp
 import hashlib
 import numpy as np
-
+from datetime import date
 visible_default = tf.config.list_physical_devices("GPU")
 try:
     tf.config.set_visible_devices([], "GPU")
@@ -219,5 +220,7 @@ if __name__ == "__main__":
         save_tflite_model(args.tflite_model_csv)
 
     if args.upload:
-        print("uploading files to gs://shark_tank/")
-        os.system("gsutil cp -r ./gen_shark_tank/* gs://shark_tank/")
+        git_hash = sp.getoutput("git log -1 --format='%h'")+"/"
+        print("uploading files to gs://shark_tank/"+git_hash)
+        os.system("gsutil cp -r ./gen_shark_tank/* gs://shark_tank/"+git_hash)
+
