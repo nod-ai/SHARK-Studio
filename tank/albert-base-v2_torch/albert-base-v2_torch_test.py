@@ -1,11 +1,12 @@
 from shark.shark_inference import SharkInference
-from shark.iree_utils._common import check_device_drivers, device_driver_info
+from shark.iree_utils._common import check_device_drivers, device_driver_info, IREE_DEVICE_MAP
 from tank.model_utils import compare_tensors
 from shark.shark_downloader import download_torch_model
 
 import unittest
 import numpy as np
 import pytest
+from parameterized import parameterized
 
 
 class AlbertModuleTester:
@@ -50,53 +51,27 @@ class AlbertModuleTester:
                 "torch",
             )
 
-
+    
 class AlbertModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.module_tester = AlbertModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    def test_module_static_cpu(self):
+    device_list = tuple(IREE_DEVICE_MAP.keys())
+
+    @parameterized.expand(device_list)
+    def test_module_static(self, device):
         dynamic = False
-        device = "cpu"
+        if(check_device_drivers(device)):
+            pytest.skip(device_driver_info(device))
         self.module_tester.create_and_check_module(dynamic, device)
 
-    def test_module_dynamic_cpu(self):
+    @parameterized.expand(device_list)
+    def test_module_dynamic(self, device):
         dynamic = True
-        device = "cpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason=device_driver_info("gpu")
-    )
-    def test_module_static_gpu(self):
-        dynamic = False
-        device = "gpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason=device_driver_info("gpu")
-    )
-    def test_module_dynamic_gpu(self):
-        dynamic = True
-        device = "gpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
-    )
-    def test_module_static_vulkan(self):
-        dynamic = False
-        device = "vulkan"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
-    )
-    def test_module_dynamic_vulkan(self):
-        dynamic = True
-        device = "vulkan"
+        if(check_device_drivers(device)):
+            pytest.skip(device_driver_info(device))
         self.module_tester.create_and_check_module(dynamic, device)
 
 
