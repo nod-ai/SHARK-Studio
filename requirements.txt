@@ -11,3 +11,4 @@ gsutil
 pytest
 pytest-xdist
 Pillow
+parameterized
