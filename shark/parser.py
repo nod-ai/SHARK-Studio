@@ -48,9 +48,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--enable_tf32",
-    default=False,
-    action="store_true",
-    help="Enables TF32 precision calculations on supported GPUs.",
+    default=True,
+    action="store_false",
+    help="Enables TF32 precision calculations on supported GPUs. True by default.",
 )
 parser.add_argument(
     "--model_config_path",

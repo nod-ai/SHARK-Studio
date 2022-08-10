@@ -1,6 +1,7 @@
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_tf_model
+from shark.parser import shark_args
 
 import iree.compiler as ireec
 import unittest
@@ -25,7 +26,13 @@ class MobileBertModuleTester:
         )
         shark_module.compile()
         result = shark_module.forward(inputs)
-        np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=1e-03)
+
+        if shark_args.enable_tf32 == True:
+            atol = 1e-01
+        else:
+            atol = 1e-03
+
+        np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=atol)
 
 
 class MobileBertModuleTest(unittest.TestCase):

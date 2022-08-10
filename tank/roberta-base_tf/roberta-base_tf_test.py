@@ -7,8 +7,6 @@ import iree.compiler as ireec
 import unittest
 import pytest
 import numpy as np
-import tempfile
-import os
 
 
 class RobertaBaseModuleTester:
@@ -28,7 +26,13 @@ class RobertaBaseModuleTester:
         )
         shark_module.compile()
         result = shark_module.forward(inputs)
-        np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=1e-03)
+
+        if shark_args.enable_tf32 == True:
+            atol = 1e-01
+        else:
+            atol = 1e-03
+
+        np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=atol)
 
 
 class RobertaBaseModuleTest(unittest.TestCase):
