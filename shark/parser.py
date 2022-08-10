@@ -47,16 +47,10 @@ parser.add_argument(
     default="./shark_tmp",
 )
 parser.add_argument(
-    "--save_mlir",
+    "--enable_tf32",
     default=False,
     action="store_true",
-    help="Saves input MLIR module to /tmp/ directory.",
-)
-parser.add_argument(
-    "--save_vmfb",
-    default=False,
-    action="store_true",
-    help="Saves iree .vmfb module to /tmp/ directory.",
+    help="Enables TF32 precision calculations on supported GPUs.",
 )
 parser.add_argument(
     "--model_config_path",
