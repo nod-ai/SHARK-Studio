@@ -1,13 +1,13 @@
 from shark.shark_inference import SharkInference
-from shark.iree_utils._common import check_device_drivers, device_driver_info, IREE_DEVICE_MAP
+from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import compare_tensors
+from tank.test_utils import get_valid_test_params, shark_test_name_func
 from shark.shark_downloader import download_torch_model
 
 import unittest
 import numpy as np
 import pytest
 from parameterized import parameterized
-
 
 class AlbertModuleTester:
     def __init__(
@@ -58,20 +58,9 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester = AlbertModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    device_list = tuple(IREE_DEVICE_MAP.keys())
-
-    @parameterized.expand(device_list)
-    def test_module_static(self, device):
-        dynamic = False
-        if(check_device_drivers(device)):
-            pytest.skip(device_driver_info(device))
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @parameterized.expand(device_list)
-    def test_module_dynamic(self, device):
-        dynamic = True
-        if(check_device_drivers(device)):
-            pytest.skip(device_driver_info(device))
+    param_list = get_valid_test_params()
+    @parameterized.expand(param_list, name_func=shark_test_name_func)
+    def test_module(self, dynamic, device):
         self.module_tester.create_and_check_module(dynamic, device)
 
 
