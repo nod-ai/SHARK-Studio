@@ -36,7 +36,6 @@ class SharkBenchmarkRunner(SharkRunner):
         mlir_dialect: str = "linalg",
     ):
         self.device = shark_args.device if device == "none" else device
-        self.frontend = "tensorflow"
         self.frontend_model = None
         self.vmfb_file = None
         self.mlir_dialect = mlir_dialect
@@ -49,7 +48,7 @@ class SharkBenchmarkRunner(SharkRunner):
         )
         if self.vmfb_file == None:
             self.vmfb_file = export_iree_module_to_vmfb(
-                mlir_module, device, shark_args.repro_dir, self.frontend
+                mlir_module, device, shark_args.repro_dir, self.mlir_dialect
             )
 
     def setup_cl(self, input_tensors):
@@ -62,9 +61,9 @@ class SharkBenchmarkRunner(SharkRunner):
         print(self.benchmark_cl)
 
     def benchmark_frontend(self, inputs, modelname):
-        if self.frontend in ["pytorch", "torch"]:
+        if self.mlir_dialect in ["linalg", "torch"]:
             return self.benchmark_torch(modelname)
-        elif self.frontend in ["tensorflow", "tf"]:
+        elif self.mlir_dialect in ["mhlo", "tf"]:
             return self.benchmark_tf(inputs, modelname)
 
     def benchmark_torch(self, modelname):
@@ -120,7 +119,7 @@ class SharkBenchmarkRunner(SharkRunner):
 
     def benchmark_c(self):
         result = run_benchmark_module(self.benchmark_cl)
-        print(f"Shark-{self.frontend} C-benchmark:{result} iter/second")
+        print(f"Shark-IREE-C benchmark:{result} iter/second")
         return [f"{result}", f"{1000/result}"]
 
     def benchmark_python(self, inputs):
@@ -134,7 +133,7 @@ class SharkBenchmarkRunner(SharkRunner):
             if i == shark_args.num_iterations - 1:
                 end = time.time()
         print(
-            f"Shark-{self.frontend} Python-benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
+            f"Shark-IREE Python benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
         return [
             f"{shark_args.num_iterations/(end-begin)}",
