@@ -147,9 +147,6 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
     return model, test_input, actual_out
 
 ##################### TensorFlow Keras Resnet Models #########################################################
-from PIL import Image
-#@title Construct a pretrained ResNet model with ImageNet weights
-
 # Static shape, including batch size (1).
 # Can be dynamic once dynamic shape support is ready.
 INPUT_SHAPE = [1, 224, 224, 3]
@@ -181,7 +178,8 @@ def get_keras_model(modelname):
         'YellowLabradorLooking_new.jpg',
         'https://storage.googleapis.com/download.tensorflow.org/example_images/YellowLabradorLooking_new.jpg')
     content_image = load_image(content_path)
-    input_data = tf.keras.applications.resnet50.preprocess_input(content_image)
+    input_tensor = tf.keras.applications.resnet50.preprocess_input(content_image)
+    input_data = tf.expand_dims(input_tensor, 0)
     actual_out = model.forward(*input_data)
     return model, input_data, actual_out
 
