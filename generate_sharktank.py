@@ -93,8 +93,11 @@ def save_torch_model(torch_model_list):
 
 
 def save_tf_model(tf_model_list):
-    from tank.model_utils_tf import get_causal_lm_model
-    from tank.model_utils_tf import get_causal_image_model
+    from tank.model_utils_tf import (
+        get_causal_image_model,
+        get_causal_lm_model,
+        get_keras_model,
+    )
 
     with open(tf_model_list) as csvfile:
         tf_reader = csv.reader(csvfile, delimiter=",")
@@ -110,7 +113,8 @@ def save_tf_model(tf_model_list):
                 model, input, _ = get_causal_lm_model(tf_model_name)
             if model_type == "img":
                 model, input, _ = get_causal_image_model(tf_model_name)
-
+            if model_type == "keras":
+                model, input, _ = get_keras_model(tf_model_name)
             tf_model_name = tf_model_name.replace("/", "_")
             tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
             os.makedirs(tf_model_dir, exist_ok=True)

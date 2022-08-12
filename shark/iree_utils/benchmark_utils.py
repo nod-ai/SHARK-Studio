@@ -34,9 +34,12 @@ def tensor_to_type_str(input_tensors: tuple, mlir_dialect: str):
             dtype_string = str(input_tensor.dtype).replace("torch.", "")
         elif mlir_dialect in ["mhlo", "tflite"]:
             dtype = input_tensor.dtype
-            dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace(
-                "'", ""
-            )
+            try:
+                dtype_string = re.findall("'[^\"]*'", str(dtype))[0].replace(
+                    "'", ""
+                )
+            except IndexError:
+                dtype_string = str(dtype)
         regex_split = re.compile("([a-zA-Z]+)([0-9]+)")
         match = regex_split.match(dtype_string)
         mlir_type_string = str(match.group(1)[0]) + str(match.group(2))
