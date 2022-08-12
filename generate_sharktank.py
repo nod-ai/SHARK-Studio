@@ -94,10 +94,10 @@ def save_torch_model(torch_model_list):
 
 def save_tf_model(tf_model_list):
     from tank.model_utils_tf import (
-            get_causal_image_model,
-            get_causal_lm_model,
-            get_keras_model
-            )
+        get_causal_image_model,
+        get_causal_lm_model,
+        get_keras_model,
+    )
 
     with open(tf_model_list) as csvfile:
         tf_reader = csv.reader(csvfile, delimiter=",")
