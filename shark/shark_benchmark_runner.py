@@ -100,22 +100,22 @@ class SharkBenchmarkRunner(SharkRunner):
         ]
 
     def benchmark_tf(self, frontend_model, inputs):
-        #for i in range(shark_args.num_warmup_iterations):
+        # for i in range(shark_args.num_warmup_iterations):
         #    frontend_model.forward(*inputs)
 
-        #begin = time.time()
-        #for i in range(shark_args.num_iterations):
+        # begin = time.time()
+        # for i in range(shark_args.num_iterations):
         #    out = frontend_model.forward(*inputs)
         #    if i == shark_args.num_iterations - 1:
         #        end = time.time()
         #        break
-        #print(
+        # print(
         #    f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
-        #)
-        #return [
+        # )
+        # return [
         #    f"{shark_args.num_iterations/(end-begin)}",
         #    f"{((end-begin)/shark_args.num_iterations)*1000}",
-        #]
+        # ]
         return ["n/a", "n/a"]
 
     def benchmark_c(self):

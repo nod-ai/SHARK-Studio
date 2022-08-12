@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 import numpy as np
 
+
 class Resnet50ModuleTester:
     def __init__(
         self,
@@ -15,9 +16,7 @@ class Resnet50ModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, func_name, inputs, golden_out = download_tf_model(
-            "resnet50"
-            )
+        model, func_name, inputs, golden_out = download_tf_model("resnet50")
 
         shark_module = SharkInference(
             model,
@@ -32,11 +31,7 @@ class Resnet50ModuleTester:
 
         if self.benchmark == True:
             shark_module.shark_runner.benchmark_all_csv(
-                (input),
-                "resnet50",
-                dynamic,
-                device,
-                "tensorflow"
+                (input), "resnet50", dynamic, device, "tensorflow"
             )
 
 
@@ -51,11 +46,6 @@ class Resnet50ModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    def test_module_dynamic_cpu(self):
-        dynamic = True
-        device = "cpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
@@ -65,26 +55,10 @@ class Resnet50ModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason=device_driver_info("gpu")
-    )
-    def test_module_dynamic_gpu(self):
-        dynamic = True
-        device = "gpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
     def test_module_static_vulkan(self):
         dynamic = False
-        device = "vulkan"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
-    )
-    def test_module_dynamic_vulkan(self):
-        dynamic = True
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
 
