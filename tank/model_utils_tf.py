@@ -147,6 +147,50 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
     return model, test_input, actual_out
 
 
+##################### TensorFlow Keras Resnet Models #########################################################
+# Static shape, including batch size (1).
+# Can be dynamic once dynamic shape support is ready.
+INPUT_SHAPE = [1, 224, 224, 3]
+
+tf_model = tf.keras.applications.resnet50.ResNet50(
+    weights="imagenet", include_top=True, input_shape=tuple(INPUT_SHAPE[1:])
+)
+
+
+class ResNetModule(tf.Module):
+    def __init__(self):
+        super(ResNetModule, self).__init__()
+        self.m = tf_model
+        self.m.predict = lambda x: self.m.call(x, training=False)
+
+    @tf.function(input_signature=[tf.TensorSpec(INPUT_SHAPE, tf.float32)])
+    def forward(self, inputs):
+        return self.m.predict(inputs)
+
+
+def load_image(path_to_image):
+    image = tf.io.read_file(path_to_image)
+    image = tf.image.decode_image(image, channels=3)
+    image = tf.image.resize(image, (224, 224))
+    image = image[tf.newaxis, :]
+    return image
+
+
+def get_keras_model(modelname):
+    model = ResNetModule()
+    content_path = tf.keras.utils.get_file(
+        "YellowLabradorLooking_new.jpg",
+        "https://storage.googleapis.com/download.tensorflow.org/example_images/YellowLabradorLooking_new.jpg",
+    )
+    content_image = load_image(content_path)
+    input_tensor = tf.keras.applications.resnet50.preprocess_input(
+        content_image
+    )
+    input_data = tf.expand_dims(input_tensor, 0)
+    actual_out = model.forward(*input_data)
+    return model, input_data, actual_out
+
+
 ##################### Tensorflow Hugging Face  Image Classification Models ###################################
 from transformers import TFAutoModelForImageClassification
 from transformers import ConvNextFeatureExtractor, ViTFeatureExtractor

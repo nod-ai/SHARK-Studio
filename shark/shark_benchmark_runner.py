@@ -34,18 +34,18 @@ class SharkBenchmarkRunner(SharkRunner):
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
-        frontend: str = "torch",
     ):
         self.device = shark_args.device if device == "none" else device
-        self.frontend = frontend
+        self.frontend = "tensorflow"
         self.frontend_model = None
         self.vmfb_file = None
+        self.mlir_dialect = mlir_dialect
         SharkRunner.__init__(
             self,
             mlir_module,
             function_name,
             device,
-            mlir_dialect,
+            self.mlir_dialect,
         )
         if self.vmfb_file == None:
             self.vmfb_file = export_iree_module_to_vmfb(
@@ -59,6 +59,7 @@ class SharkBenchmarkRunner(SharkRunner):
             input_tensors,
             mlir_dialect=self.mlir_dialect,
         )
+        print(self.benchmark_cl)
 
     def benchmark_frontend(self, inputs, modelname):
         if self.frontend in ["pytorch", "torch"]:
@@ -99,22 +100,23 @@ class SharkBenchmarkRunner(SharkRunner):
         ]
 
     def benchmark_tf(self, frontend_model, inputs):
-        for i in range(shark_args.num_warmup_iterations):
-            frontend_model.forward(*inputs)
+        # for i in range(shark_args.num_warmup_iterations):
+        #    frontend_model.forward(*inputs)
 
-        begin = time.time()
-        for i in range(shark_args.num_iterations):
-            out = frontend_model.forward(*inputs)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
-                break
-        print(
-            f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
-        return [
-            f"{shark_args.num_iterations/(end-begin)}",
-            f"{((end-begin)/shark_args.num_iterations)*1000}",
-        ]
+        # begin = time.time()
+        # for i in range(shark_args.num_iterations):
+        #    out = frontend_model.forward(*inputs)
+        #    if i == shark_args.num_iterations - 1:
+        #        end = time.time()
+        #        break
+        # print(
+        #    f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
+        # )
+        # return [
+        #    f"{shark_args.num_iterations/(end-begin)}",
+        #    f"{((end-begin)/shark_args.num_iterations)*1000}",
+        # ]
+        return ["n/a", "n/a"]
 
     def benchmark_c(self):
         result = run_benchmark_module(self.benchmark_cl)
