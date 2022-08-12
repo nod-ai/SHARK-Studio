@@ -26,12 +26,12 @@ class Resnet50ModuleTester:
             is_benchmark=self.benchmark,
         )
         shark_module.compile()
-        result = shark_module.forward(input)
+        result = shark_module.forward(inputs)
         np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=1e-03)
 
         if self.benchmark == True:
             shark_module.shark_runner.benchmark_all_csv(
-                (input), "resnet50", dynamic, device, "tensorflow"
+                (inputs), "resnet50", dynamic, device, "tensorflow"
             )
 
 
