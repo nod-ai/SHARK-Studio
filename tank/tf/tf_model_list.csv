@@ -11,6 +11,7 @@ microsoft/layoutlm-base-uncased,hf
 google/mobilebert-uncased,hf
 microsoft/mpnet-base,hf
 roberta-base,hf
+resnet50,keras
 xlm-roberta-base,hf
 microsoft/MiniLM-L12-H384-uncased,hf
 funnel-transformer/small,hf
