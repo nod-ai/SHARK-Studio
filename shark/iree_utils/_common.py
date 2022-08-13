@@ -47,7 +47,7 @@ IREE_DEVICE_MAP = {
 }
 
 IREE_TARGET_MAP = {
-    "cpu": "cpu",
+    "cpu": "llvm-cpu",
     "gpu": "cuda",
     "cuda": "cuda",
     "vulkan": "vulkan",
