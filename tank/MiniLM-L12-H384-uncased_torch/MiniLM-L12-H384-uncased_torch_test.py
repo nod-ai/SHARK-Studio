@@ -2,6 +2,7 @@ from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import compare_tensors
 from shark.shark_downloader import download_torch_model
+from shark.parser import shark_args
 
 import unittest
 import numpy as np
@@ -19,17 +20,7 @@ class MiniLMModuleTester:
         model_mlir, func_name, input, act_out = download_torch_model(
             "microsoft/MiniLM-L12-H384-uncased", dynamic
         )
-
-        # from shark.shark_importer import SharkImporter
-        # mlir_importer = SharkImporter(
-        #    model,
-        #    (input,),
-        #    frontend="torch",
-        # )
-        # minilm_mlir, func_name = mlir_importer.import_mlir(
-        #    is_dynamic=dynamic, tracing_required=True
-        # )
-
+        shark_args.enable_tf32 = self.benchmark
         shark_module = SharkInference(
             model_mlir,
             func_name,
@@ -49,6 +40,7 @@ class MiniLMModuleTester:
                 device,
                 "torch",
             )
+            shark_args.enable_tf32 = False
 
 
 class MiniLMModuleTest(unittest.TestCase):

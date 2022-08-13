@@ -48,8 +48,8 @@ parser.add_argument(
 )
 parser.add_argument(
     "--enable_tf32",
+    type=bool,
     default=False,
-    action="store_true",
     help="Enables TF32 precision calculations on supported GPUs.",
 )
 parser.add_argument(

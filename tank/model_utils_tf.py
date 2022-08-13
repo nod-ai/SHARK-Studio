@@ -16,10 +16,50 @@ except:
     # Invalid device or cannot modify virtual devices once initialized.
     pass
 
-##################### Tensorflow Hugging Face LM Models ###################################
-MAX_SEQUENCE_LENGTH = 512
 BATCH_SIZE = 1
+MAX_SEQUENCE_LENGTH = 128
 
+################################## MHLO/TF models #########################################
+# TODO : Generate these lists or fetch model source from tank/tf/tf_model_list.csv
+keras_models = [
+    "resnet50",
+]
+maskedlm_models = [
+    "albert-base-v2",
+    "bert-base-uncased",
+    "camembert-base",
+    "convbert-base-turkish-cased",
+    "deberta-base",
+    "distilbert-base-uncased",
+    "electra-small-discriminator",
+    "funnel-transformer",
+    "layoutlm-base-uncased",
+    "longformer-base-4096",
+    "mobilebert-uncased",
+    "mpnet-base",
+    "rembert",
+    "roberta-base",
+    "tapas-base",
+    "tiny-random-flaubert",
+    "xlm-roberta",
+]
+tfhf_models = [
+    "microsoft/MiniLM-L12-H384-uncased",
+]
+
+
+def get_tf_model(name):
+    if name in keras_models:
+        return get_keras_model(name)
+    elif name in maskedlm_models:
+        return get_causal_lm_model(name)
+    elif name in tfhf_models:
+        return get_TFhf_model(name)
+    else:
+        return get_causal_image_model(name)
+
+
+##################### Tensorflow Hugging Face LM Models ###################################
 # Create a set of 2-dimensional inputs
 tf_bert_input = [
     tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
@@ -83,7 +123,25 @@ def compare_tensors_tf(tf_tensor, numpy_tensor):
 
 ##################### Tensorflow Hugging Face Masked LM Models ###################################
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
-import tensorflow as tf
+
+# Create a set of input signature.
+inputs_signature = [
+    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+]
+
+# For supported models please see here:
+# Utility function for comparing two tensors (tensorflow).
+def compare_tensors_tf(tf_tensor, numpy_tensor):
+    # setting the absolute and relative tolerance
+    rtol = 1e-02
+    atol = 1e-03
+    tf_to_numpy = tf_tensor.numpy()
+    return np.allclose(tf_to_numpy, numpy_tensor, rtol, atol)
+
+
+##################### Tensorflow Hugging Face Masked LM Models ###################################
+from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
@@ -96,11 +154,9 @@ except:
     pass
 
 # The max_sequence_length is set small for testing purpose.
-BATCH_SIZE = 1
-MAX_SEQUENCE_LENGTH = 16
 
 # Create a set of input signature.
-inputs_signature = [
+input_signature_maskedlm = [
     tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
     tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
 ]
@@ -131,15 +187,12 @@ class MaskedLM(tf.Module):
         )
         self.m.predict = lambda x, y: self.m(input_ids=x, attention_mask=y)[0]
 
-    @tf.function(input_signature=inputs_signature)
+    @tf.function(input_signature=input_signature_maskedlm)
     def forward(self, input_ids, attention_mask):
         return self.m.predict(input_ids, attention_mask)
 
 
 def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
-    #    gpus = tf.config.experimental.list_physical_devices("GPU")
-    #    for gpu in gpus:
-    #        tf.config.experimental.set_memory_growth(gpu, True)
     model = MaskedLM(hf_name)
     encoded_input = preprocess_input(hf_name, text)
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
@@ -195,12 +248,11 @@ def get_keras_model(modelname):
 from transformers import TFAutoModelForImageClassification
 from transformers import ConvNextFeatureExtractor, ViTFeatureExtractor
 from transformers import BeitFeatureExtractor, AutoFeatureExtractor
-import tensorflow as tf
 from PIL import Image
 import requests
 
 # Create a set of input signature.
-inputs_signature = [
+input_signature_img_cls = [
     tf.TensorSpec(shape=[1, 3, 224, 224], dtype=tf.float32),
 ]
 
@@ -213,7 +265,7 @@ class AutoModelImageClassfication(tf.Module):
         )
         self.m.predict = lambda x: self.m(x)
 
-    @tf.function(input_signature=inputs_signature)
+    @tf.function(input_signature=input_signature_img_cls)
     def forward(self, inputs):
         return self.m.predict(inputs)
 

@@ -1,4 +1,5 @@
 from shark.shark_inference import SharkInference
+from shark.parser import shark_args
 
 import torch
 import numpy as np
@@ -102,5 +103,8 @@ def compare_tensors(torch_tensor, numpy_tensor):
     # setting the absolute and relative tolerance
     rtol = 1e-02
     atol = 1e-03
+    if shark_args.enable_tf32 == True:
+        rtol = 1e-01
+        atol = 1e-02
     # torch_to_numpy = torch_tensor.detach().numpy()
     return np.allclose(torch_tensor, numpy_tensor, rtol, atol)
