@@ -67,7 +67,7 @@ parser.add_argument(
 parser.add_argument(
     "--num_iterations",
     type=int,
-    default=1,
+    default=100,
     help="Run the model for the specified number of iterations.",
 )
 parser.add_argument(

@@ -219,8 +219,8 @@ def download_tf_model(model_name):
         upstream_hash = str(
             np.load(os.path.join(model_dir, "upstream_hash.npy"))
         )
-        if local_hash != upstream_hash:
-            gs_download_model()
+        #if local_hash != upstream_hash:
+        #    gs_download_model()
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(os.path.join(model_dir, model_name + "_tf.mlir")) as f:
