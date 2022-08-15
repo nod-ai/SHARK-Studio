@@ -61,7 +61,6 @@ jobs:
         flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude shark.venv,lit.cfg.py 
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude shark.venv,lit.cfg.py 
-
     - name: Build and validate the IREE package
       run: |
         cd $GITHUB_WORKSPACE
@@ -73,9 +72,16 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest -k 'cpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
-        # pytest -k 'gpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
-        # pytest -k 'vulkan' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
+        /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
+        pytest -k 'cpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
+        pytest -k 'gpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
+        pytest -k 'vulkan' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
         rm -rf ./wheelhouse/nodai*
 
     - name: Build and validate the SHARK Runtime package
@@ -89,10 +95,24 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest -k 'cpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
-        # pytest -k 'gpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
-        # pytest -k 'vulkan' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/
+        pytest -k 'cpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
+        pytest -k 'gpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
+        pytest -k 'vulkan' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+          tail -n 1 |
+          tee -a pytest_results.txt
+        if !(grep -Fxq "failed" results.txt) 
+          then 
+            export SHA=$(git log -1 --format='%h')
+            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
+            gsutil -m cp -r gs://shark_tank/$SHA gs://shark_tank/latest
+        fi
+        rm pytest_results.txt
         rm -rf ./wheelhouse/nodai*
+
     
     - name: Upload Release Assets
       id: upload-release-assets
