@@ -1,8 +1,8 @@
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_tf_model
+from shark.parser import shark_args
 
-import iree.compiler as ireec
 import unittest
 import pytest
 import numpy as np
@@ -12,8 +12,10 @@ class BertBaseUncasedModuleTester:
     def __init__(
         self,
         benchmark=False,
+        onnx_bench=False,
     ):
         self.benchmark = benchmark
+        self.onnx_bench = onnx_bench
 
     def create_and_check_module(self, dynamic, device):
         model, func_name, inputs, golden_out = download_tf_model(
@@ -32,6 +34,7 @@ class BertBaseUncasedModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.module_tester = BertBaseUncasedModuleTester(self)
+        self.module_tester.benchmark = pytestconfig.getoption("benchmark")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     def test_module_static_cpu(self):

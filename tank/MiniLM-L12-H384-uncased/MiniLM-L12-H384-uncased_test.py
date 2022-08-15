@@ -17,6 +17,7 @@ class MiniLMModuleTester:
     ):
         self.benchmark = benchmark
         self.onnx_bench = onnx_bench
+
     def create_and_check_module(self, dynamic, device):
         model, func_name, inputs, golden_out = download_tf_model(
             "microsoft/MiniLM-L12-H384-uncased"
@@ -59,7 +60,7 @@ class MiniLMModuleTest(unittest.TestCase):
         self.module_tester = MiniLMModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
         self.module_tester.onnx_bench = pytestconfig.getoption("onnx_bench")
-    
+
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"

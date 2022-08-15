@@ -25,6 +25,20 @@ import csv
 import os
 
 
+class OnnxFusionOptions(object):
+    def __init__(self):
+        self.disable_gelu = False
+        self.disable_layer_norm = False
+        self.disable_attention = False
+        self.disable_skip_layer_norm = False
+        self.disable_embed_layer_norm = False
+        self.disable_bias_skip_layer_norm = False
+        self.disable_bias_gelu = False
+        self.enable_gelu_approximation = False
+        self.use_mask_index = False
+        self.no_attention_mask = False
+
+
 class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
     def __init__(
@@ -148,6 +162,80 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{((end-begin)/shark_args.num_iterations)*1000}",
         ]
 
+    def benchmark_onnx(self, modelname, inputs):
+        if self.device == "gpu":
+            print(
+                "Currently GPU benchmarking on ONNX is not supported in SHARK."
+            )
+            return ["N/A", "N/A"]
+        else:
+            from onnxruntime.transformers.benchmark import run_onnxruntime
+            from onnxruntime.transformers.huggingface_models import MODELS
+            from onnxruntime.transformers.benchmark_helper import (
+                ConfigModifier,
+                Precision,
+            )
+            import psutil
+
+            if modelname == "microsoft/MiniLM-L12-H384-uncased":
+                modelname = "bert-base-uncased"
+            if modelname not in MODELS:
+                print(
+                    f"{modelname} is currently not supported in ORT's HF. Check \
+https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/python/tools/transformers/huggingface_models.py \
+for currently supported models. Exiting benchmark ONNX."
+                )
+                return ["N/A", "N/A"]
+            use_gpu = self.device == "gpu"
+            num_threads = psutil.cpu_count(logical=False)
+            batch_sizes = [1]
+            sequence_lengths = [128]
+            cache_dir = os.path.join(".", "cache_models")
+            onnx_dir = os.path.join(".", "onnx_models")
+            verbose = False
+            input_counts = [1]
+            optimize_onnx = True
+            validate_onnx = False
+            disable_ort_io_binding = False
+            use_raw_attention_mask = True
+            model_fusion_statistics = {}
+            overwrite = False
+            model_source = "pt"  # Either "pt" or "tf"
+            provider = None
+            config_modifier = ConfigModifier(None)
+            onnx_args = OnnxFusionOptions()
+            result = run_onnxruntime(
+                use_gpu,
+                provider,
+                (modelname,),
+                None,
+                config_modifier,
+                Precision.FLOAT32,
+                num_threads,
+                batch_sizes,
+                sequence_lengths,
+                shark_args.num_iterations,
+                input_counts,
+                optimize_onnx,
+                validate_onnx,
+                cache_dir,
+                onnx_dir,
+                verbose,
+                overwrite,
+                disable_ort_io_binding,
+                use_raw_attention_mask,
+                model_fusion_statistics,
+                model_source,
+                onnx_args,
+            )
+            print(
+                f"ONNX ORT-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
+            )
+            return [
+                result[0]["QPS"],
+                result[0]["average_latency_ms"],
+            ]
+
     def benchmark_all_csv(
         self, inputs: tuple, modelname, dynamic, device_str, frontend
     ):
@@ -173,9 +261,9 @@ class SharkBenchmarkRunner(SharkRunner):
         with open("bench_results.csv", mode="a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=field_names)
             bench_result = {}
-            bench_result["model"] = modelname
+            bench_result["Model"] = modelname
             if dynamic == True:
-                bench_result["dynamic"] = "True"
+                bench_result["Dynamic"] = "True"
             else:
                 bench_result["dynamic"] = "False"
             bench_result["device"] = device_str
@@ -185,7 +273,7 @@ class SharkBenchmarkRunner(SharkRunner):
                     bench_result["iter/sec"] = self.benchmark_frontend(
                         modelname
                     )[0]
-                    bench_result["ms/iter"] = self.benchmark_frontend(
+                    bench_result["Avg. Latency"] = self.benchmark_frontend(
                         modelname
                     )[1]
                 elif e == "shark_python":

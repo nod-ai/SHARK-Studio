@@ -7,10 +7,10 @@ def pytest_addoption(parser):
         help="Pass option to benchmark and write results.csv",
     )
     parser.addoption(
-        "--onnx_bench"
+        "--onnx_bench",
         action="store_true",
         default="False",
-        help="Add ONNX benchmark results to pytest benchmarks."
+        help="Add ONNX benchmark results to pytest benchmarks.",
     )
     # The following options are deprecated and pending removal.
     parser.addoption(
