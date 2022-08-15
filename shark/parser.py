@@ -70,5 +70,10 @@ parser.add_argument(
     default=1,
     help="Run the model for the specified number of iterations.",
 )
+parser.add_argument(
+    "--onnx_bench",
+    default=False,
+    action="store_true",
+    help="When enabled, pytest bench results will include ONNX benchmark results.",
 
 shark_args, unknown = parser.parse_known_args()
