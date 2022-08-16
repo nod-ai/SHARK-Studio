@@ -76,7 +76,7 @@ class SharkBenchmarkRunner(SharkRunner):
         torch_device = torch.device(
             "cuda:0" if self.device == "gpu" else "cpu"
         )
-        HFmodel, input, expected_output = get_torch_model(modelname)[:2]
+        HFmodel, input = get_torch_model(modelname)[:2]
         frontend_model = HFmodel.model
         frontend_model.to(torch_device)
         input.to(torch_device)
@@ -102,7 +102,9 @@ class SharkBenchmarkRunner(SharkRunner):
         import tensorflow as tf
         from tank.model_utils_tf import get_tf_model
 
-        model, input, expected_output = get_tf_model(modelname)
+        model, input, = get_tf_model(
+            modelname
+        )[:2]
         frontend_model = model
 
         for i in range(shark_args.num_warmup_iterations):
