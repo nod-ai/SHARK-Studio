@@ -19,7 +19,6 @@ from shark.iree_utils.benchmark_utils import (
     run_benchmark_module,
 )
 from shark.parser import shark_args
-from tank.model_utils import get_torch_model
 from datetime import datetime
 import time
 import csv
@@ -58,16 +57,17 @@ class SharkBenchmarkRunner(SharkRunner):
             input_tensors,
             mlir_dialect=self.mlir_dialect,
         )
-        print(self.benchmark_cl)
+        # print(self.benchmark_cl)
 
-    def benchmark_frontend(self, inputs, modelname):
+    def benchmark_frontend(self, modelname):
         if self.mlir_dialect in ["linalg", "torch"]:
             return self.benchmark_torch(modelname)
         elif self.mlir_dialect in ["mhlo", "tf"]:
-            return self.benchmark_tf(inputs, modelname)
+            return self.benchmark_tf(modelname)
 
     def benchmark_torch(self, modelname):
         import torch
+        from tank.model_utils import get_torch_model
 
         if self.device == "gpu":
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
@@ -76,7 +76,7 @@ class SharkBenchmarkRunner(SharkRunner):
         torch_device = torch.device(
             "cuda:0" if self.device == "gpu" else "cpu"
         )
-        HFmodel, input, act_out = get_torch_model(modelname)
+        HFmodel, input = get_torch_model(modelname)[:2]
         frontend_model = HFmodel.model
         frontend_model.to(torch_device)
         input.to(torch_device)
@@ -98,26 +98,34 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{((end-begin)/shark_args.num_iterations)*1000}",
         ]
 
-    def benchmark_tf(self, frontend_model, inputs):
-        # for i in range(shark_args.num_warmup_iterations):
-        #    frontend_model.forward(*inputs)
+    def benchmark_tf(self, modelname):
+        import tensorflow as tf
+        from tank.model_utils_tf import get_tf_model
 
-        # begin = time.time()
-        # for i in range(shark_args.num_iterations):
-        #    out = frontend_model.forward(*inputs)
-        #    if i == shark_args.num_iterations - 1:
-        #        end = time.time()
-        #        break
-        # print(
-        #    f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
-        # )
-        # return [
-        #    f"{shark_args.num_iterations/(end-begin)}",
-        #    f"{((end-begin)/shark_args.num_iterations)*1000}",
-        # ]
-        return ["n/a", "n/a"]
+        model, input, = get_tf_model(
+            modelname
+        )[:2]
+        frontend_model = model
+
+        for i in range(shark_args.num_warmup_iterations):
+            frontend_model.forward(*input)
+
+        begin = time.time()
+        for i in range(shark_args.num_iterations):
+            out = frontend_model.forward(*input)
+            if i == shark_args.num_iterations - 1:
+                end = time.time()
+                break
+        print(
+            f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
+        )
+        return [
+            f"{shark_args.num_iterations/(end-begin)}",
+            f"{((end-begin)/shark_args.num_iterations)*1000}",
+        ]
 
     def benchmark_c(self):
+        print(self.benchmark_cl)
         result = run_benchmark_module(self.benchmark_cl)
         print(f"Shark-IREE-C benchmark:{result} iter/second")
         return [f"{result}", f"{1000/result}"]
@@ -140,25 +148,22 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{((end-begin)/shark_args.num_iterations)*1000}",
         ]
 
-    def benchmark_all(self, inputs: tuple):
-        self.benchmark_frontend(inputs)
-        self.benchmark_python(inputs)
-        self.benchmark_c()
-
     def benchmark_all_csv(
         self, inputs: tuple, modelname, dynamic, device_str, frontend
     ):
         self.setup_cl(inputs)
         field_names = [
             "model",
-            "platform",
+            "engine",
             "dynamic",
+            "dialect",
             "device",
             "iter/sec",
             "ms/iter",
+            "iterations",
             "datetime",
         ]
-        platforms = ["frontend", "shark_python", "shark_iree_c"]
+        engines = ["frontend", "shark_python", "shark_iree_c"]
 
         if not os.path.exists("bench_results.csv"):
             with open("bench_results.csv", mode="w", newline="") as f:
@@ -174,22 +179,24 @@ class SharkBenchmarkRunner(SharkRunner):
             else:
                 bench_result["dynamic"] = "False"
             bench_result["device"] = device_str
-            for p in platforms:
-                if p == "frontend":
-                    bench_result["platform"] = frontend
+            for e in engines:
+                if e == "frontend":
+                    bench_result["engine"] = frontend
                     bench_result["iter/sec"] = self.benchmark_frontend(
-                        inputs, modelname
+                        modelname
                     )[0]
                     bench_result["ms/iter"] = self.benchmark_frontend(
-                        inputs, modelname
+                        modelname
                     )[1]
-                elif p == "shark_python":
-                    bench_result["platform"] = "shark_python"
+                elif e == "shark_python":
+                    bench_result["engine"] = "shark_python"
                     bench_result["iter/sec"] = self.benchmark_python(inputs)[0]
                     bench_result["ms/iter"] = self.benchmark_python(inputs)[1]
                 else:
-                    bench_result["platform"] = "shark_iree_c"
+                    bench_result["engine"] = "shark_iree_c"
                     bench_result["iter/sec"] = self.benchmark_c()[0]
                     bench_result["ms/iter"] = self.benchmark_c()[1]
+                bench_result["dialect"] = self.mlir_dialect
+                bench_result["iterations"] = shark_args.num_iterations
                 bench_result["datetime"] = str(datetime.now())
                 writer.writerow(bench_result)

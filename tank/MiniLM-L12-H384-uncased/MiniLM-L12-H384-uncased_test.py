@@ -1,6 +1,7 @@
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_tf_model
+from shark.parser import shark_args
 
 import iree.compiler as ireec
 import unittest
@@ -19,13 +20,36 @@ class MiniLMModuleTester:
         model, func_name, inputs, golden_out = download_tf_model(
             "microsoft/MiniLM-L12-H384-uncased"
         )
+        shark_args.enable_tf32 = self.benchmark
 
         shark_module = SharkInference(
-            model, func_name, device=device, mlir_dialect="mhlo"
+            model,
+            func_name,
+            device=device,
+            mlir_dialect="mhlo",
+            is_benchmark=self.benchmark,
         )
-        shark_module.compile()
+        if self.benchmark == True:
+            shark_args.enable_tf32 = True
+            shark_module.compile()
+            rtol = 1e-01
+            atol = 1e-02
+            shark_module.shark_runner.benchmark_all_csv(
+                (inputs),
+                "microsoft/MiniLM-L12-H384-uncased",
+                dynamic,
+                device,
+                "tensorflow",
+            )
+            shark_args.enable_tf32 = False
+
+        else:
+            shark_module.compile()
+            rtol = 1e-02
+            atol = 1e-03
+
         result = shark_module.forward(inputs)
-        np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=1e-03)
+        np.testing.assert_allclose(golden_out, result, rtol=rtol, atol=atol)
 
 
 class MiniLMModuleTest(unittest.TestCase):
@@ -39,7 +63,6 @@ class MiniLMModuleTest(unittest.TestCase):
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skip(reason="MiniLM numerics issues on gpu")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
