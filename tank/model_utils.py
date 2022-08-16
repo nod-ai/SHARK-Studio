@@ -99,12 +99,6 @@ def get_vision_model(torch_model):
 ################################################################################
 
 # Utility function for comparing two tensors (torch).
-def compare_tensors(torch_tensor, numpy_tensor):
-    # setting the absolute and relative tolerance
-    rtol = 1e-02
-    atol = 1e-03
-    if shark_args.enable_tf32 == True:
-        rtol = 1e-01
-        atol = 1e-02
+def compare_tensors(torch_tensor, numpy_tensor, rtol=1e-02, atol=1e-03):
     # torch_to_numpy = torch_tensor.detach().numpy()
     return np.allclose(torch_tensor, numpy_tensor, rtol, atol)

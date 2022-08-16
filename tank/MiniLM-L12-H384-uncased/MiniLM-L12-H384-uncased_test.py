@@ -29,11 +29,9 @@ class MiniLMModuleTester:
             mlir_dialect="mhlo",
             is_benchmark=self.benchmark,
         )
-        shark_module.compile()
-        result = shark_module.forward(inputs)
-        rtol = 1e-02
-        atol = 1e-03
         if self.benchmark == True:
+            shark_args.enable_tf32 = True
+            shark_module.compile()
             rtol = 1e-01
             atol = 1e-02
             shark_module.shark_runner.benchmark_all_csv(
@@ -45,6 +43,12 @@ class MiniLMModuleTester:
             )
             shark_args.enable_tf32 = False
 
+        else:
+            shark_module.compile()
+            rtol = 1e-02
+            atol = 1e-03
+
+        result = shark_module.forward(inputs)
         np.testing.assert_allclose(golden_out, result, rtol=rtol, atol=atol)
 
 

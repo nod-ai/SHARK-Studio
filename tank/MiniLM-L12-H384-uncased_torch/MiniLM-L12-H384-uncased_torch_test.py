@@ -20,7 +20,6 @@ class MiniLMModuleTester:
         model_mlir, func_name, input, act_out = download_torch_model(
             "microsoft/MiniLM-L12-H384-uncased", dynamic
         )
-        shark_args.enable_tf32 = self.benchmark
         shark_module = SharkInference(
             model_mlir,
             func_name,
@@ -28,11 +27,9 @@ class MiniLMModuleTester:
             mlir_dialect="linalg",
             is_benchmark=self.benchmark,
         )
-        shark_module.compile()
-        results = shark_module.forward(input)
-        assert True == compare_tensors(act_out, results)
-
         if self.benchmark == True:
+            shark_args.enable_tf32 = True
+            shark_module.compile()
             shark_module.shark_runner.benchmark_all_csv(
                 (input),
                 "microsoft/MiniLM-L12-H384-uncased",
@@ -41,6 +38,13 @@ class MiniLMModuleTester:
                 "torch",
             )
             shark_args.enable_tf32 = False
+            rtol = 1e-01
+            atol = 1e-02
+        else:
+            shark_module.compile()
+
+        results = shark_module.forward(input)
+        assert True == compare_tensors(act_out, results, rtol, atol)
 
 
 class MiniLMModuleTest(unittest.TestCase):
