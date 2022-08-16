@@ -123,7 +123,7 @@ from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 import tensorflow as tf
 
 # Create a set of input signature.
-inputs_signature = [
+input_signature_maskedlm = [
     tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
     tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
 ]
