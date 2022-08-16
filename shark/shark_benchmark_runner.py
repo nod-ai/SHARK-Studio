@@ -272,18 +272,28 @@ for currently supported models. Exiting benchmark ONNX."
             for e in engines:
                 if e == "frontend":
                     bench_result["engine"] = frontend
-                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_frontend(
-                        modelname
-                    )
+                    (
+                        bench_result["iter/sec"],
+                        bench_result["ms/iter"],
+                    ) = self.benchmark_frontend(modelname)
                 elif e == "shark_python":
                     bench_result["engine"] = "shark_python"
-                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_python(inputs)
+                    (
+                        bench_result["iter/sec"],
+                        bench_result["ms/iter"],
+                    ) = self.benchmark_python(inputs)
                 elif e == "shark_iree_c":
                     bench_result["engine"] = "shark_iree_c"
-                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_c()
+                    (
+                        bench_result["iter/sec"],
+                        bench_result["ms/iter"],
+                    ) = self.benchmark_c()
                 elif e == "onnxruntime":
                     bench_result["engine"] = "onnxruntime"
-                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_onnx(modelname, inputs)
+                    (
+                        bench_result["iter/sec"],
+                        bench_result["ms/iter"],
+                    ) = self.benchmark_onnx(modelname, inputs)
 
                 bench_result["dialect"] = self.mlir_dialect
                 bench_result["iterations"] = shark_args.num_iterations

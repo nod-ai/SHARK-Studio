@@ -117,6 +117,7 @@ def compare_tensors_tf(tf_tensor, numpy_tensor):
     tf_to_numpy = tf_tensor.numpy()
     return np.allclose(tf_to_numpy, numpy_tensor, rtol, atol)
 
+
 ##################### Tensorflow Hugging Face Masked LM Models ###################################
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
 import tensorflow as tf
@@ -174,6 +175,7 @@ INPUT_SHAPE = [1, 224, 224, 3]
 tf_model = tf.keras.applications.resnet50.ResNet50(
     weights="imagenet", include_top=True, input_shape=tuple(INPUT_SHAPE[1:])
 )
+
 
 class ResNetModule(tf.Module):
     def __init__(self):
