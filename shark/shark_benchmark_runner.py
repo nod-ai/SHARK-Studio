@@ -252,6 +252,8 @@ for currently supported models. Exiting benchmark ONNX."
             "datetime",
         ]
         engines = ["frontend", "shark_python", "shark_iree_c"]
+        if shark_args.onnx_bench == True:
+            engines.append("onnxruntime")
 
         if not os.path.exists("bench_results.csv"):
             with open("bench_results.csv", mode="w", newline="") as f:
@@ -261,29 +263,28 @@ for currently supported models. Exiting benchmark ONNX."
         with open("bench_results.csv", mode="a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=field_names)
             bench_result = {}
-            bench_result["Model"] = modelname
+            bench_result["model"] = modelname
             if dynamic == True:
-                bench_result["Dynamic"] = "True"
+                bench_result["dynamic"] = "True"
             else:
                 bench_result["dynamic"] = "False"
             bench_result["device"] = device_str
             for e in engines:
                 if e == "frontend":
                     bench_result["engine"] = frontend
-                    bench_result["iter/sec"] = self.benchmark_frontend(
+                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_frontend(
                         modelname
-                    )[0]
-                    bench_result["Avg. Latency"] = self.benchmark_frontend(
-                        modelname
-                    )[1]
+                    )
                 elif e == "shark_python":
                     bench_result["engine"] = "shark_python"
-                    bench_result["iter/sec"] = self.benchmark_python(inputs)[0]
-                    bench_result["ms/iter"] = self.benchmark_python(inputs)[1]
-                else:
+                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_python(inputs)
+                elif e == "shark_iree_c":
                     bench_result["engine"] = "shark_iree_c"
-                    bench_result["iter/sec"] = self.benchmark_c()[0]
-                    bench_result["ms/iter"] = self.benchmark_c()[1]
+                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_c()
+                elif e == "onnxruntime":
+                    bench_result["engine"] = "onnxruntime"
+                    bench_result["iter/sec"], bench_result["ms/iter"] = self.benchmark_onnx(modelname, inputs)
+
                 bench_result["dialect"] = self.mlir_dialect
                 bench_result["iterations"] = shark_args.num_iterations
                 bench_result["datetime"] = str(datetime.now())

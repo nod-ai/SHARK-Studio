@@ -61,7 +61,7 @@ parser.add_argument(
 parser.add_argument(
     "--num_warmup_iterations",
     type=int,
-    default=2,
+    default=5,
     help="Run the model for the specified number of warmup iterations.",
 )
 parser.add_argument(
