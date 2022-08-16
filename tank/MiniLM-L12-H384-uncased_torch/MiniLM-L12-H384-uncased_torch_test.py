@@ -42,6 +42,8 @@ class MiniLMModuleTester:
             atol = 1e-02
         else:
             shark_module.compile()
+            rtol = 1e-02
+            atol = 1e-03
 
         results = shark_module.forward(input)
         assert True == compare_tensors(act_out, results, rtol, atol)
