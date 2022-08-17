@@ -136,7 +136,7 @@ pytest --benchmark tank --ignore-glob="_tf*" -k "static_gpu"
 (requires source installation with `IMPORTER=1 ./setup_venv.sh`)  
   
 ```shell
-# We suggest running the following commands as root before running benchmarks:
+# We suggest running the following commands as root before running benchmarks on CPU:
   
 cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | awk -F, '{print $2}' | sort -n | uniq | ( while read X ; do echo $X ; echo 0 > /sys/devices/system/cpu/cpu$X/online ; done )
 echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
