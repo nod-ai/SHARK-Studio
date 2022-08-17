@@ -50,7 +50,12 @@ class MiniLMModuleTester:
             rtol = 1e-02
             atol = 1e-03
 
-        result = shark_module.forward(inputs)
+        if device in ["cpu", "gpu"]:
+            result = shark_module.forward(inputs)[0][1].to_host()
+
+        else:
+            result = shark_module.forward(inputs)
+
         np.testing.assert_allclose(golden_out, result, rtol=rtol, atol=atol)
 
 

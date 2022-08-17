@@ -47,6 +47,7 @@ class MpNetModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.skipif(reason="https://github.com/nod-ai/SHARK/issues/203")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
