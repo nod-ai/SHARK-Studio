@@ -104,11 +104,11 @@ jobs:
         pytest -k 'vulkan' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
           tail -n 1 |
           tee -a pytest_results.txt
-        if !(grep -Fxq "failed" results.txt) 
+        if !(grep -Fxq " failed" pytest_results.txt) 
           then 
             export SHA=$(git log -1 --format='%h')
             gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
-            gsutil -m cp -r gs://shark_tank/$SHA gs://shark_tank/latest
+            gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
         fi
         rm pytest_results.txt
         rm -rf ./wheelhouse/nodai*
