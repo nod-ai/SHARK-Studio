@@ -121,14 +121,40 @@ pytest tank/<MODEL_NAME> -k "keyword"
 ```
 
 ### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
-  
+
 (requires source installation with `IMPORTER=1 ./setup_venv.sh`)
+
 ```shell
 pytest --benchmark tank
   
 # Just do static GPU benchmarks for PyTorch tests:
 pytest --benchmark tank --ignore-glob="_tf*" -k "static_gpu"
 ```
+  
+### Benchmark Resnet50, MiniLM on CPU
+
+(requires source installation with `IMPORTER=1 ./setup_venv.sh`)  
+  
+```shell
+# We suggest running the following commands as root before running benchmarks on CPU:
+  
+cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | awk -F, '{print $2}' | sort -n | uniq | ( while read X ; do echo $X ; echo 0 > /sys/devices/system/cpu/cpu$X/online ; done )
+echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
+
+# Benchmark canonical Resnet50 on CPU via pytest
+pytest --benchmark tank/resnet50/ -k "cpu"
+
+# Benchmark canonical MiniLM on CPU via pytest
+pytest --benchmark tank/MiniLM-L12-H384-uncased/ -k "cpu"
+
+# Benchmark MiniLM on CPU via transformer-benchmarks:
+git clone --recursive https://github.com/nod-ai/transformer-benchmarks.git
+cd transformer-benchmarks
+./perf-ci.sh -n
+# Check detail.csv for MLIR/IREE results.
+
+```
+
 </details>
 
 
