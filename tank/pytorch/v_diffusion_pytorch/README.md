@@ -17,16 +17,17 @@ python -m pip install --upgrade pip
 ### Install v-diffusion model and its dependencies
 
 ```shell
-./setup_diffusion.sh
+cd tank/pytorch/v_diffusion/
+Run the script setup_v_diffusion_pytorch.sh
 ```
 
 ### Run v-diffusion-pytorch model
 
 ```shell
-./v-diffusion-pytorch/cfg_sample.py "the rise of consciousness":5 -n 5 -bs 5 --seed 0
+./v-diffusion-pytorch/cfg_sample.py "New York City, oil on canvas":5 -n 5 -bs 5
 ```
 
-### Compile v-diffusion model via torch-mlir
+### Run the v-diffusion model via torch-mlir
 ```shell
-python v_diffusion.py 2> v_diffusion_ir.mlir
+./cfg_sample.py "New York City, oil on canvas":5 -n 1 -bs 1 --steps 2
 ```
