@@ -118,6 +118,16 @@ if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   fi
 fi
 
+if [[ ! -z "${ONNX}" ]]; then
+  echo "${Yellow}Installing ONNX and onnxruntime for benchmarks..."
+  $PYTHON -m pip install onnx onnxruntime psutil
+  if [ $? -eq 0 ];then
+    echo "Successfully installed ONNX and ONNX runtime."
+  else
+    echo "Could not install ONNX." >&2
+  fi
+fi
+
 if [[ -z "${CONDA_PREFIX}" ]]; then
   echo "${Green}Before running examples activate venv with:"
   echo "  ${Green}source $VENV_DIR/bin/activate"

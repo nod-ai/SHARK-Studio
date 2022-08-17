@@ -14,11 +14,9 @@ echo "Python: $PYTHON"
 echo "Python version: $PYTHON_VERSION_X_Y"
 
 git clone --recursive https://github.com/crowsonkb/v-diffusion-pytorch.git
-
-pip install -r v-diffusion-pytorch/requirements.txt
 pip install ftfy regex tqdm
-pip install git+https://github.com/openai/CLIP.git
+pip uninstall -y torch torchvision
+pip install -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html --pre torch torchvision
 
-
-mkdir v-diffusion-pytorch/checkpoints
-wget https://the-eye.eu/public/AI/models/v-diffusion/cc12m_1_cfg.pth -P v-diffusion-pytorch/checkpoints/
+mkdir checkpoints
+wget https://the-eye.eu/public/AI/models/v-diffusion/cc12m_1_cfg.pth -P checkpoints/

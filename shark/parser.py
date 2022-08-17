@@ -61,14 +61,20 @@ parser.add_argument(
 parser.add_argument(
     "--num_warmup_iterations",
     type=int,
-    default=2,
+    default=5,
     help="Run the model for the specified number of warmup iterations.",
 )
 parser.add_argument(
     "--num_iterations",
     type=int,
-    default=1,
+    default=100,
     help="Run the model for the specified number of iterations.",
+)
+parser.add_argument(
+    "--onnx_bench",
+    default=False,
+    action="store_true",
+    help="When enabled, pytest bench results will include ONNX benchmark results.",
 )
 
 shark_args, unknown = parser.parse_known_args()
