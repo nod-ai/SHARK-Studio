@@ -85,9 +85,6 @@ class TFHuggingFaceLanguage(tf.Module):
 
 
 def get_TFhf_model(name):
-    #    gpus = tf.config.experimental.list_physical_devices("GPU")
-    #    for gpu in gpus:
-    #        tf.config.experimental.set_memory_growth(gpu, True)
     model = TFHuggingFaceLanguage(name)
     tokenizer = BertTokenizer.from_pretrained(
         "microsoft/MiniLM-L12-H384-uncased"
@@ -123,37 +120,7 @@ def compare_tensors_tf(tf_tensor, numpy_tensor):
 
 ##################### Tensorflow Hugging Face Masked LM Models ###################################
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
-
-# Create a set of input signature.
-inputs_signature = [
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-]
-
-# For supported models please see here:
-# Utility function for comparing two tensors (tensorflow).
-def compare_tensors_tf(tf_tensor, numpy_tensor):
-    # setting the absolute and relative tolerance
-    rtol = 1e-02
-    atol = 1e-03
-    tf_to_numpy = tf_tensor.numpy()
-    return np.allclose(tf_to_numpy, numpy_tensor, rtol, atol)
-
-
-##################### Tensorflow Hugging Face Masked LM Models ###################################
-from transformers import TFAutoModelForMaskedLM, AutoTokenizer
-
-visible_default = tf.config.list_physical_devices("GPU")
-try:
-    tf.config.set_visible_devices([], "GPU")
-    visible_devices = tf.config.get_visible_devices()
-    for device in visible_devices:
-        assert device.device_type != "GPU"
-except:
-    # Invalid device or cannot modify virtual devices once initialized.
-    pass
-
-# The max_sequence_length is set small for testing purpose.
+import tensorflow as tf
 
 # Create a set of input signature.
 input_signature_maskedlm = [

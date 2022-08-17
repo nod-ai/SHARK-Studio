@@ -2,6 +2,7 @@ from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import compare_tensors
 from shark.shark_downloader import download_torch_model
+from shark.parser import shark_args
 
 import torch
 import unittest
@@ -12,28 +13,16 @@ import pytest
 class BertBaseUncasedModuleTester:
     def __init__(
         self,
-        save_mlir=False,
-        save_vmfb=False,
         benchmark=False,
+        onnx_bench=False,
     ):
-        self.save_mlir = save_mlir
-        self.save_vmfb = save_vmfb
         self.benchmark = benchmark
+        self.onnx_bench = onnx_bench
 
     def create_and_check_module(self, dynamic, device):
         model_mlir, func_name, input, act_out = download_torch_model(
             "bert-base-uncased", dynamic
         )
-
-        # from shark.shark_importer import SharkImporter
-        # mlir_importer = SharkImporter(
-        #    model,
-        #    (input,),
-        #    frontend="torch",
-        # )
-        # minilm_mlir, func_name = mlir_importer.import_mlir(
-        #    is_dynamic=dynamic, tracing_required=True
-        # )
 
         shark_module = SharkInference(
             model_mlir,
@@ -47,6 +36,7 @@ class BertBaseUncasedModuleTester:
         assert True == compare_tensors(act_out, results)
 
         if self.benchmark == True:
+            shark_args.onnx_bench = self.onnx_bench
             shark_module.shark_runner.benchmark_all_csv(
                 (input),
                 "bert-base-uncased",
@@ -61,6 +51,7 @@ class BertBaseUncasedModuleTest(unittest.TestCase):
     def configure(self, pytestconfig):
         self.module_tester = BertBaseUncasedModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
+        self.module_tester.onnx_bench = pytestconfig.getoption("onnx_bench")
 
     def test_module_static_cpu(self):
         dynamic = False

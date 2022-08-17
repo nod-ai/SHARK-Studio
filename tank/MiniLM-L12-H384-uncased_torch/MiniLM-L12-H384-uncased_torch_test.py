@@ -13,8 +13,10 @@ class MiniLMModuleTester:
     def __init__(
         self,
         benchmark=False,
+        onnx_bench=False,
     ):
         self.benchmark = benchmark
+        self.onnx_bench = onnx_bench
 
     def create_and_check_module(self, dynamic, device):
         model_mlir, func_name, input, act_out = download_torch_model(
@@ -30,6 +32,7 @@ class MiniLMModuleTester:
         if self.benchmark == True:
             shark_args.enable_tf32 = True
             shark_module.compile()
+            shark_args.onnx_bench = self.onnx_bench
             shark_module.shark_runner.benchmark_all_csv(
                 (input),
                 "microsoft/MiniLM-L12-H384-uncased",
@@ -54,6 +57,7 @@ class MiniLMModuleTest(unittest.TestCase):
     def configure(self, pytestconfig):
         self.module_tester = MiniLMModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
+        self.module_tester.onnx_bench = pytestconfig.getoption("onnx_bench")
 
     def test_module_static_cpu(self):
         dynamic = False
