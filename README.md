@@ -148,7 +148,7 @@ pytest --benchmark tank/resnet50/ -k "cpu"
 pytest --benchmark tank/MiniLM-L12-H384-uncased/ -k "cpu"
 
 # Benchmark MiniLM on CPU via transformer-benchmarks:
-git clone https://github.com/nod-ai/transformer-benchmarks.git
+git clone --recursive https://github.com/nod-ai/transformer-benchmarks.git
 cd transformer-benchmarks
 ./perf-ci.sh -n
 # Check detail.csv for MLIR/IREE results.
