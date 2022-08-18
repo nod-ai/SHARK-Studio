@@ -153,7 +153,8 @@ def download_tflite_model(model_name, dynamic=False):
         model_dir = os.path.join(WORKDIR, model_dir_name)
         local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
         gs_hash = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank'
+            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank/'
+            + shark_default_sha
             + "/"
             + model_dir_name
             + "/hash.npy"
