@@ -34,11 +34,13 @@ class MpNetModuleTest(unittest.TestCase):
         self.module_tester = MpNetModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
+    @pytest.mark.xfail(reason="https://github.com/nod-ai/SHARK/issues/203")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail(reason="https://github.com/nod-ai/SHARK/issues/203")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
@@ -47,7 +49,7 @@ class MpNetModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
-    @pytest.mark.skipif(reason="https://github.com/nod-ai/SHARK/issues/203")
+    @pytest.mark.xfail(reason="https://github.com/nod-ai/SHARK/issues/203")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )
