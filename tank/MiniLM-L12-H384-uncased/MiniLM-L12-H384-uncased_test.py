@@ -50,7 +50,13 @@ class MiniLMModuleTester:
             rtol = 1e-02
             atol = 1e-03
 
-        result = shark_module.forward(inputs)
+        # TODO: Remove catch once new MiniLM stable
+        try:
+            result = shark_module.forward(inputs)[0][1].to_host()
+
+        except:
+            result = shark_module.forward(inputs)
+
         np.testing.assert_allclose(golden_out, result, rtol=rtol, atol=atol)
 
 

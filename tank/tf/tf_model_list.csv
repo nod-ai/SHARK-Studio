@@ -13,7 +13,7 @@ microsoft/mpnet-base,hf
 roberta-base,hf
 resnet50,keras
 xlm-roberta-base,hf
-microsoft/MiniLM-L12-H384-uncased,hf
+microsoft/MiniLM-L12-H384-uncased,TFhf
 funnel-transformer/small,hf
 microsoft/mpnet-base,hf
 facebook/convnext-tiny-224,img

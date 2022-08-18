@@ -199,9 +199,11 @@ class SharkImporter:
                 )
             elif golden_out is tuple:
                 golden_out = self.convert_to_numpy(golden_out)
-            else:
+            elif hasattr(golden_out, "logits"):
                 # from transformers import TFSequenceClassifierOutput
                 golden_out = golden_out.logits
+            else:
+                golden_out = golden_out.last_hidden_state
             # Save the artifacts in the directory dir.
             self.save_data(
                 dir,

@@ -34,11 +34,13 @@ class DistilBertModuleTest(unittest.TestCase):
         self.module_tester = DistilBertModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
+    @pytest.mark.xfail(reason="shark_tank hash issues -- awaiting triage")
     def test_module_static_cpu(self):
         dynamic = False
         device = "cpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail(reason="shark_tank hash issues -- awaiting triage")
     @pytest.mark.skipif(
         check_device_drivers("gpu"), reason=device_driver_info("gpu")
     )
@@ -47,6 +49,7 @@ class DistilBertModuleTest(unittest.TestCase):
         device = "gpu"
         self.module_tester.create_and_check_module(dynamic, device)
 
+    @pytest.mark.xfail(reason="shark_tank hash issues -- awaiting triage")
     @pytest.mark.skipif(
         check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
     )

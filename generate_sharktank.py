@@ -98,6 +98,7 @@ def save_tf_model(tf_model_list):
         get_causal_image_model,
         get_causal_lm_model,
         get_keras_model,
+        get_TFhf_model,
     )
 
     with open(tf_model_list) as csvfile:
@@ -109,13 +110,16 @@ def save_tf_model(tf_model_list):
 
             model = None
             input = None
-            print(model_type)
+            print(f"Generating artifacts for model {tf_model_name}")
             if model_type == "hf":
                 model, input, _ = get_causal_lm_model(tf_model_name)
             if model_type == "img":
                 model, input, _ = get_causal_image_model(tf_model_name)
             if model_type == "keras":
                 model, input, _ = get_keras_model(tf_model_name)
+            if model_type == "TFhf":
+                model, input, _ = get_TFhf_model(tf_model_name)
+
             tf_model_name = tf_model_name.replace("/", "_")
             tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
             os.makedirs(tf_model_dir, exist_ok=True)
