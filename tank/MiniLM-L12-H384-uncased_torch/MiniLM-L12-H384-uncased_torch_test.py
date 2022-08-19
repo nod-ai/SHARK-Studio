@@ -100,6 +100,14 @@ class MiniLMModuleTest(unittest.TestCase):
         dynamic = True
         device = "vulkan"
         self.module_tester.create_and_check_module(dynamic, device)
+    @pytest.mark.skipif(
+        check_device_drivers("intel-gpu"),
+        reason=device_driver_info("intel-gpu"),
+    )
+    def test_module_static_intel_gpu(self):
+        dynamic = False
+        device = "intel-gpu"
+        self.module_tester.create_and_check_module(dynamic, device)
 
 
 if __name__ == "__main__":
