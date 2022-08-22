@@ -1,13 +1,18 @@
-model_name, use_tracing, model_type
-microsoft/MiniLM-L12-H384-uncased,True,hf
-albert-base-v2,True,hf
-bert-base-uncased,True,hf
-bert-base-cased,True,hf
-google/mobilebert-uncased,True,hf
-alexnet,False,vision
-resnet18,False,vision
-resnet50,False,vision
-resnet101,False,vision
-squeezenet1_0,False,vision
-wide_resnet50_2,False,vision
-mobilenet_v3_small,False,vision
+model_name, use_tracing, model_type, dynamic
+microsoft/MiniLM-L12-H384-uncased,True,hf,True
+albert-base-v2,True,hf,True
+bert-base-uncased,True,hf,True
+bert-base-cased,True,hf,True
+google/mobilebert-uncased,True,hf,True
+alexnet,False,vision,True
+resnet18,False,vision,True
+resnet50,False,vision,True
+resnet101,False,vision,True
+squeezenet1_0,False,vision,True
+wide_resnet50_2,False,vision,True
+mobilenet_v3_small,False,vision,True
+google/vit-base-patch16-224,True,hf_img_cls,False
+microsoft/resnet-50,True,hf_img_cls,False
+facebook/deit-small-distilled-patch16-224,True,hf_img_cls,False
+microsoft/beit-base-patch16-224-pt22k-ft22k,True,hf_img_cls,False
+nvidia/mit-b0,True,hf_img_cls,False
