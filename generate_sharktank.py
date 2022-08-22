@@ -239,5 +239,5 @@ if __name__ == "__main__":
         git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
         print("uploading files to gs://shark_tank/" + git_hash)
         os.system(
-            "gsutil cp -r ./gen_shark_tank/* gs://shark_tank/" + git_hash
+            "gsutil cp -r ~/.local/shark_tank/* gs://shark_tank/" + git_hash
         )
