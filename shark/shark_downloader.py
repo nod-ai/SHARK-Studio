@@ -110,7 +110,9 @@ def download_torch_model(model_name, dynamic=False):
             np.load(os.path.join(model_dir, "upstream_hash.npy"))
         )
         if local_hash != upstream_hash:
-            gs_download_model()
+            print(
+                "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
+            )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
@@ -167,7 +169,9 @@ def download_tflite_model(model_name, dynamic=False):
             np.load(os.path.join(model_dir, "upstream_hash.npy"))
         )
         if local_hash != upstream_hash:
-            gs_download_model()
+            print(
+                "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
+            )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
@@ -221,7 +225,9 @@ def download_tf_model(model_name):
             np.load(os.path.join(model_dir, "upstream_hash.npy"))
         )
         if local_hash != upstream_hash:
-            gs_download_model()
+            print(
+                "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
+            )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(os.path.join(model_dir, model_name + "_tf.mlir")) as f:

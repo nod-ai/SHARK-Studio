@@ -16,6 +16,7 @@ import tensorflow as tf
 import subprocess as sp
 import hashlib
 import numpy as np
+from pathlib import Path
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
@@ -28,7 +29,8 @@ except:
     pass
 
 # All generated models and metadata will be saved under this directory.
-WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+home = str(Path.home())
+WORKDIR = os.path.join(home, ".local/shark_tank/")
 
 
 def create_hash(file_name):
