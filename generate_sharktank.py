@@ -2,10 +2,11 @@
 """SHARK Tank"""
 # python generate_sharktank.py, you have to give a csv tile with [model_name, model_download_url]
 # will generate local shark tank folder like this:
-#   /SHARK
-#     /gen_shark_tank
-#       /albert_lite_base
-#       /...model_name...
+#   HOME
+#     /.local
+#       /shark_tank
+#           /albert_lite_base
+#           /...model_name...
 #
 
 import os
