@@ -1,13 +1,14 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 from tank.model_utils import compare_tensors
-from tank.test_utils import get_valid_test_params, shark_test_name_func
 from shark.shark_downloader import download_torch_model
 
+from tank.test_utils import get_valid_test_params, shark_test_name_func
+from parameterized import parameterized
 import unittest
 import numpy as np
 import pytest
-from parameterized import parameterized
 
 class AlbertModuleTester:
     def __init__(
@@ -61,6 +62,13 @@ class AlbertModuleTest(unittest.TestCase):
     param_list = get_valid_test_params()
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
+        if dynamic == False and device == 'vulkan':
+            self.skipTest('Static Vulkan will not be supported coz I said so! Hehehe Just testing :P')
+        if dynamic == True and device == 'vulkan':
+            if (check_device_drivers('vulkan')):
+                pytest.skip(reason="check if skip or fail")
+            # pytest.xfail('Dynammic CPU will not be supported coz I said so! Hehehe Just testing :P')
+
         self.module_tester.create_and_check_module(dynamic, device)
 
 

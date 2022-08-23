@@ -2,7 +2,9 @@ from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import compare_tensors
 from shark.shark_downloader import download_torch_model
+from tank.test_utils import get_valid_test_params, shark_test_name_func
 
+from parameterized import parameterized
 import unittest
 import numpy as np
 import pytest
@@ -57,49 +59,18 @@ class AlexnetModuleTest(unittest.TestCase):
         self.module_tester = AlexnetModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    def test_module_static_cpu(self):
-        dynamic = False
-        device = "cpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    def test_module_dynamic_cpu(self):
-        dynamic = True
-        device = "cpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason=device_driver_info("gpu")
-    )
-    def test_module_static_gpu(self):
-        dynamic = False
-        device = "gpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason=device_driver_info("gpu")
-    )
-    def test_module_dynamic_gpu(self):
-        dynamic = True
-        device = "gpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
-    )
-    @pytest.mark.xfail(
-        reason="Issue known, WIP",
-    )
-    def test_module_static_vulkan(self):
-        dynamic = False
-        device = "vulkan"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
-    )
-    def test_module_dynamic_vulkan(self):
-        dynamic = True
-        device = "vulkan"
+    param_list = get_valid_test_params()
+    @parameterized.expand(param_list, name_func=shark_test_name_func)
+    def test_module(self, dynamic, device):
+        if device == "gpu":
+            if (check_device_drivers("gpu")):
+                pytest.skip(reason=device_driver_info("gpu"))
+        elif device == "vulkan":
+            if (check_device_drivers("vulkan")):
+                pytest.skip(reason=device_driver_info("vulkan"))
+            else:
+                if dynamic == False:
+                    pytest.xfail(reason="Issue known, WIP")
         self.module_tester.create_and_check_module(dynamic, device)
 
 
