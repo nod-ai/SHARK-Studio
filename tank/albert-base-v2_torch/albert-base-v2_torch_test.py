@@ -1,13 +1,14 @@
 from shark.shark_inference import SharkInference
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from tank.model_utils import compare_tensors
-from tank.test_utils import get_valid_test_params, shark_test_name_func
 from shark.shark_downloader import download_torch_model
+from tank.test_utils import get_valid_test_params, shark_test_name_func
+from parameterized import parameterized
 
 import unittest
 import numpy as np
 import pytest
-from parameterized import parameterized
+
 
 class AlbertModuleTester:
     def __init__(
@@ -51,7 +52,7 @@ class AlbertModuleTester:
                 "torch",
             )
 
-    
+
 class AlbertModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
@@ -59,6 +60,7 @@ class AlbertModuleTest(unittest.TestCase):
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     param_list = get_valid_test_params()
+
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
         self.module_tester.create_and_check_module(dynamic, device)
