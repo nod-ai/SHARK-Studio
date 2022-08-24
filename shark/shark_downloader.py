@@ -188,7 +188,7 @@ def download_tflite_model(model_name, dynamic=False):
     return mlir_file, function_name, inputs_tuple, golden_out_tuple
 
 
-def download_tf_model(model_name):
+def download_tf_model(model_name, tuned=None):
     model_name = model_name.replace("/", "_")
     os.makedirs(WORKDIR, exist_ok=True)
     model_dir_name = model_name + "_tf"
@@ -230,7 +230,12 @@ def download_tf_model(model_name):
             )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
-    with open(os.path.join(model_dir, model_name + "_tf.mlir")) as f:
+    suffix = "_tf.mlir" if tuned is None else "_tf_" + tuned + ".mlir"
+    filename = os.path.join(model_dir, model_name + suffix)
+    if not os.path.isfile(filename):
+        filename = os.path.join(model_dir, model_name + "_tf.mlir")
+
+    with open(filename) as f:
         mlir_file = f.read()
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))

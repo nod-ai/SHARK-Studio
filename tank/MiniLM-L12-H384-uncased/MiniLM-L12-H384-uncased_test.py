@@ -20,7 +20,7 @@ class MiniLMModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         model, func_name, inputs, golden_out = download_tf_model(
-            "microsoft/MiniLM-L12-H384-uncased"
+            "microsoft/MiniLM-L12-H384-uncased", device
         )
 
         shark_module = SharkInference(
