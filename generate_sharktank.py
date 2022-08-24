@@ -2,10 +2,11 @@
 """SHARK Tank"""
 # python generate_sharktank.py, you have to give a csv tile with [model_name, model_download_url]
 # will generate local shark tank folder like this:
-#   /SHARK
-#     /gen_shark_tank
-#       /albert_lite_base
-#       /...model_name...
+#   HOME
+#     /.local
+#       /shark_tank
+#           /albert_lite_base
+#           /...model_name...
 #
 
 import os
@@ -16,6 +17,7 @@ import tensorflow as tf
 import subprocess as sp
 import hashlib
 import numpy as np
+from pathlib import Path
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
@@ -28,7 +30,8 @@ except:
     pass
 
 # All generated models and metadata will be saved under this directory.
-WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+home = str(Path.home())
+WORKDIR = os.path.join(home, ".local/shark_tank/")
 
 
 def create_hash(file_name):
@@ -237,5 +240,5 @@ if __name__ == "__main__":
         git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
         print("uploading files to gs://shark_tank/" + git_hash)
         os.system(
-            "gsutil cp -r ./gen_shark_tank/* gs://shark_tank/" + git_hash
+            "gsutil cp -r ~/.local/shark_tank/* gs://shark_tank/" + git_hash
         )
