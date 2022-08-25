@@ -8,7 +8,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.4"
 backend_deps = []
-if os.environ["NO_BACKEND"] is None:
+if "NO_BACKEND" in os.environ.keys():
     backend_deps = [
         "iree-compiler>=20220427.13",
         "iree-runtime>=20220427.13",
