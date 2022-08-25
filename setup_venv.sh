@@ -7,6 +7,7 @@
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
 # IMPORTER=1 #Install importer deps
+# NO_BACKEND=1 #Don't install iree or shark backend
 # if you run the script from a conda env it will install in your conda env
 
 TD="$(cd $(dirname $0) && pwd)"
@@ -91,9 +92,12 @@ if [[ -z "${USE_IREE}" ]]; then
 else
   RUNTIME="google/iree"
 fi
-echo "Installing ${RUNTIME}..."
-$PYTHON -m pip install --find-links https://github.com/${RUNTIME}/releases iree-compiler iree-runtime
-
+if [[ -z "${NO_BACKEND}" ]]; then
+  echo "Installing ${RUNTIME}..."
+  $PYTHON -m pip install --find-links https://github.com/${RUNTIME}/releases iree-compiler iree-runtime
+else
+  echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
+fi
 if [[ ! -z "${IMPORTER}" ]]; then
   echo "${Yellow}Installing importer tools.."
   if [[ $(uname -s) = 'Linux' ]]; then

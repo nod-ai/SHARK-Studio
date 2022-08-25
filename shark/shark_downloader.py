@@ -230,11 +230,11 @@ def download_tf_model(model_name, tuned=None):
             )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
-    suffix = "_tf.mlir" if tuned is None else "_tf_"+tuned+".mlir"
+    suffix = "_tf.mlir" if tuned is None else "_tf_" + tuned + ".mlir"
     filename = os.path.join(model_dir, model_name + suffix)
     if not os.path.isfile(filename):
         filename = os.path.join(model_dir, model_name + "_tf.mlir")
-        
+
     with open(filename) as f:
         mlir_file = f.read()
 
