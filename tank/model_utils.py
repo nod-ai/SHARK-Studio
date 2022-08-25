@@ -24,6 +24,45 @@ def get_torch_model(modelname):
     else:
         return get_hf_model(modelname)
 
+##################### Hugging Face Audio Classification Models ###################################
+from transformers import  AutoModelForAudioClassification, AutoProcessor
+from transformers import AutoFeatureExtractor, Wav2Vec2Processor, Wav2Vec2ForCTC, Wav2Vec2Model
+
+def preprocess_input_audio(model_name):
+    from datasets import load_dataset
+    processor = AutoProcessor.from_pretrained(model_name)
+    ds = load_dataset("patrickvonplaten/librispeech_asr_dummy", "clean", split="validation")
+    input_values = processor(ds[0]["audio"]["array"], return_tensors="pt",
+                             padding="longest").input_values  # Batch size 1
+    return input_values
+
+class HuggingFaceAudioClassification(torch.nn.Module):
+    def __init__(self, hf_model_name):
+        super().__init__()
+        self.model = AutoModelForAudioClassification.from_pretrained(
+            hf_model_name,  # The pretrained model.
+            output_attentions=False,  # Whether the model returns attentions weights.
+            return_dict=False,  # https://github.com/huggingface/transformers/issues/9095
+            torchscript=True,
+        )
+
+    def forward(self, inputs):
+        return self.model.forward(inputs)[0]
+
+def get_hf_speech_cls_model(name):
+    model = HuggingFaceAudioClassification(name)
+    # you can use preprocess_input_image to get the test_input or just random value.
+    test_input = preprocess_input_audio(name)
+    # test_input = torch.FloatTensor(1, 174160).uniform_(-1, 1)
+    print("test_input: ", test_input)  # tensor([[-0.0014, -0.0037, -0.0019,  ..., -0.0467, -0.0585, -0.0571]])
+    print("test_input.type: ", test_input.dtype) # torch.float32
+    print("test_input.shape: ", test_input.shape)
+    # test_input.shape:  torch.Size([1, 174160])
+    actual_out = model(test_input)
+    print("actual_out： ", actual_out)
+    print("actual_out.shape： ", actual_out.shape)
+    # actual_out.shape：  torch.Size([1, 544, 32])
+    return model, test_input, actual_out
 
 ##################### Hugging Face Image Classification Models ###################################
 from transformers import AutoModelForImageClassification

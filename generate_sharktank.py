@@ -47,6 +47,7 @@ def save_torch_model(torch_model_list):
     from tank.model_utils import get_hf_model
     from tank.model_utils import get_vision_model
     from tank.model_utils import get_hf_img_cls_model
+    from tank.model_utils import get_hf_speech_cls_model
 
     with open(torch_model_list) as csvfile:
         torch_reader = csv.reader(csvfile, delimiter=",")
@@ -68,6 +69,8 @@ def save_torch_model(torch_model_list):
                 model, input, _ = get_hf_model(torch_model_name)
             elif model_type == "hf_img_cls":
                 model, input, _ = get_hf_img_cls_model(torch_model_name)
+            elif model_type == "hf_speech_cls":
+                model, input, _ = get_hf_speech_cls_model(torch_model_name)
 
             torch_model_name = torch_model_name.replace("/", "_")
             torch_model_dir = os.path.join(
@@ -230,11 +233,11 @@ if __name__ == "__main__":
     if args.torch_model_csv:
         save_torch_model(args.torch_model_csv)
 
-    if args.tf_model_csv:
-        save_tf_model(args.tf_model_csv)
-
-    if args.tflite_model_csv:
-        save_tflite_model(args.tflite_model_csv)
+    # if args.tf_model_csv:
+    #     save_tf_model(args.tf_model_csv)
+    #
+    # if args.tflite_model_csv:
+    #     save_tflite_model(args.tflite_model_csv)
 
     if args.upload:
         git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
