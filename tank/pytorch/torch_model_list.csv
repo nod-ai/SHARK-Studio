@@ -16,3 +16,4 @@ microsoft/resnet-50,True,hf_img_cls,False
 facebook/deit-small-distilled-patch16-224,True,hf_img_cls,False
 microsoft/beit-base-patch16-224-pt22k-ft22k,True,hf_img_cls,False
 nvidia/mit-b0,True,hf_img_cls,False
+facebook/wav2vec2-base-960h,True,hf_speech_cls,False
