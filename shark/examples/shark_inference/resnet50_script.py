@@ -88,9 +88,10 @@ def thread_function(device_idx):
     print(top3_possibilities(torch.from_numpy(result)))
     print('Device {} executed successfully'.format(device_idx))
 
-x1 = threading.Thread(target=thread_function, args =(0,))
-x2 = threading.Thread(target=thread_function, args = (1,))
-x1.start()
-x2.start()
+threading_functions = [threading.Thread(target=thread_function, args = (x,)) for x in range(cudart.cudaGetDeviceCount()[1])]
+
+for f in threading_functions:
+    f.start()
+
 
 
