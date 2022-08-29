@@ -25,6 +25,59 @@ def get_torch_model(modelname):
         return get_hf_model(modelname)
 
 
+##################### Hugging Face Image Classification Models ###################################
+from transformers import AutoModelForImageClassification
+from transformers import AutoFeatureExtractor
+from PIL import Image
+import requests
+
+
+def preprocess_input_image(model_name):
+    # from datasets import load_dataset
+    # dataset = load_dataset("huggingface/cats-image")
+    # image1 = dataset["test"]["image"][0]
+    # # print("image1: ", image1) # <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=640x480 at 0x7FA0B86BB6D0>
+    url = "http://images.cocodataset.org/val2017/000000039769.jpg"
+    # <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=640x480 at 0x7FA0B86BB6D0>
+    image = Image.open(requests.get(url, stream=True).raw)
+    # feature_extractor = img_models_fe_dict[model_name].from_pretrained(
+    #     model_name
+    # )
+    feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
+    inputs = feature_extractor(images=image, return_tensors="pt")
+    # inputs = {'pixel_values': tensor([[[[ 0.1137..., -0.2000, -0.4275, -0.5294]]]])}
+    #           torch.Size([1, 3, 224, 224]), torch.FloatTensor
+
+    return inputs[str(*inputs)]
+
+
+class HuggingFaceImageClassification(torch.nn.Module):
+    def __init__(self, hf_model_name):
+        super().__init__()
+        self.model = AutoModelForImageClassification.from_pretrained(
+            hf_model_name,  # The pretrained model.
+            output_attentions=False,  # Whether the model returns attentions weights.
+            return_dict=False,  # https://github.com/huggingface/transformers/issues/9095
+            torchscript=True,
+        )
+
+    def forward(self, inputs):
+        return self.model.forward(inputs)[0]
+
+
+def get_hf_img_cls_model(name):
+    model = HuggingFaceImageClassification(name)
+    # you can use preprocess_input_image to get the test_input or just random value.
+    # test_input = preprocess_input_image(name)
+    test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
+    print("test_input.shape: ", test_input.shape)
+    # test_input.shape:  torch.Size([1, 3, 224, 224])
+    actual_out = model(test_input)
+    print("actual_out.shape： ", actual_out.shape)
+    # actual_out.shape：  torch.Size([1, 1000])
+    return model, test_input, actual_out
+
+
 ##################### Hugging Face LM Models ###################################
 
 

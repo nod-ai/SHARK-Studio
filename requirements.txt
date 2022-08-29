@@ -7,7 +7,11 @@ tqdm
 # SHARK Downloader
 gsutil
 
+# generate_sharktank
+transformers==4.18.0
+
 # Testing
 pytest
 pytest-xdist
 Pillow
+parameterized

@@ -2,10 +2,11 @@
 """SHARK Tank"""
 # python generate_sharktank.py, you have to give a csv tile with [model_name, model_download_url]
 # will generate local shark tank folder like this:
-#   /SHARK
-#     /gen_shark_tank
-#       /albert_lite_base
-#       /...model_name...
+#   HOME
+#     /.local
+#       /shark_tank
+#           /albert_lite_base
+#           /...model_name...
 #
 
 import os
@@ -16,6 +17,7 @@ import tensorflow as tf
 import subprocess as sp
 import hashlib
 import numpy as np
+from pathlib import Path
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
@@ -28,7 +30,8 @@ except:
     pass
 
 # All generated models and metadata will be saved under this directory.
-WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+home = str(Path.home())
+WORKDIR = os.path.join(home, ".local/shark_tank/")
 
 
 def create_hash(file_name):
@@ -43,6 +46,7 @@ def create_hash(file_name):
 def save_torch_model(torch_model_list):
     from tank.model_utils import get_hf_model
     from tank.model_utils import get_vision_model
+    from tank.model_utils import get_hf_img_cls_model
 
     with open(torch_model_list) as csvfile:
         torch_reader = csv.reader(csvfile, delimiter=",")
@@ -51,8 +55,10 @@ def save_torch_model(torch_model_list):
             torch_model_name = row[0]
             tracing_required = row[1]
             model_type = row[2]
+            is_dynamic = row[3]
 
             tracing_required = False if tracing_required == "False" else True
+            is_dynamic = False if is_dynamic == "False" else True
 
             model = None
             input = None
@@ -60,6 +66,8 @@ def save_torch_model(torch_model_list):
                 model, input, _ = get_vision_model(torch_model_name)
             elif model_type == "hf":
                 model, input, _ = get_hf_model(torch_model_name)
+            elif model_type == "hf_img_cls":
+                model, input, _ = get_hf_img_cls_model(torch_model_name)
 
             torch_model_name = torch_model_name.replace("/", "_")
             torch_model_dir = os.path.join(
@@ -85,12 +93,13 @@ def save_torch_model(torch_model_list):
             )
             np.save(os.path.join(torch_model_dir, "hash"), np.array(mlir_hash))
             # Generate torch dynamic models.
-            mlir_importer.import_debug(
-                is_dynamic=True,
-                tracing_required=tracing_required,
-                dir=torch_model_dir,
-                model_name=torch_model_name + "_dynamic",
-            )
+            if is_dynamic:
+                mlir_importer.import_debug(
+                    is_dynamic=True,
+                    tracing_required=tracing_required,
+                    dir=torch_model_dir,
+                    model_name=torch_model_name + "_dynamic",
+                )
 
 
 def save_tf_model(tf_model_list):
@@ -231,5 +240,5 @@ if __name__ == "__main__":
         git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
         print("uploading files to gs://shark_tank/" + git_hash)
         os.system(
-            "gsutil cp -r ./gen_shark_tank/* gs://shark_tank/" + git_hash
+            "gsutil cp -r ~/.local/shark_tank/* gs://shark_tank/" + git_hash
         )

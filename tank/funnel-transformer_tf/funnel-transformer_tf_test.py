@@ -1,6 +1,8 @@
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_tf_model
+from tank.test_utils import get_valid_test_params, shark_test_name_func
+from parameterized import parameterized
 
 import iree.compiler as ireec
 import unittest
@@ -34,31 +36,14 @@ class FunnelModuleTest(unittest.TestCase):
         self.module_tester = FunnelModuleTester(self)
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
-    def test_module_static_cpu(self):
-        dynamic = False
-        device = "cpu"
-        self.module_tester.create_and_check_module(dynamic, device)
+    param_list = get_valid_test_params()
 
-    @pytest.mark.xfail(
-        reason="failing in the iree-compiler passes, see https://github.com/nod-ai/SHARK/issues/201"
-    )
-    @pytest.mark.skipif(
-        check_device_drivers("gpu"), reason=device_driver_info("gpu")
-    )
-    def test_module_static_gpu(self):
-        dynamic = False
-        device = "gpu"
-        self.module_tester.create_and_check_module(dynamic, device)
-
-    @pytest.mark.xfail(
-        reason="failing in the iree-compiler passes, see https://github.com/nod-ai/SHARK/issues/201"
-    )
-    @pytest.mark.skipif(
-        check_device_drivers("vulkan"), reason=device_driver_info("vulkan")
-    )
-    def test_module_static_vulkan(self):
-        dynamic = False
-        device = "vulkan"
+    @parameterized.expand(param_list, name_func=shark_test_name_func)
+    def test_module(self, dynamic, device):
+        if device in ["gpu", "metal", "vulkan"]:
+            pytest.xfail(
+                reason="failing in the iree-compiler passes, see https://github.com/nod-ai/SHARK/issues/201"
+            )
         self.module_tester.create_and_check_module(dynamic, device)
 
 

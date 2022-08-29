@@ -7,6 +7,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.4"
+backend_deps = []
+if "NO_BACKEND" in os.environ.keys():
+    backend_deps = [
+        "iree-compiler>=20220427.13",
+        "iree-runtime>=20220427.13",
+    ]
 
 setup(
     name="nodai-SHARK",
@@ -32,7 +38,6 @@ setup(
         "numpy",
         "PyYAML",
         "torch-mlir>=20220428.420",
-        "iree-compiler>=20220427.13",
-        "iree-runtime>=20220427.13",
-    ],
+    ]
+    + backend_deps,
 )

@@ -47,7 +47,7 @@ If you are on an Intel macOS machine you need this [workaround](https://github.c
 ```shell
 curl -O https://raw.githubusercontent.com/nod-ai/SHARK/main/shark/examples/shark_inference/resnet50_script.py
 #Install deps for test script
-pip install --pre torch torchvision torchaudio tqdm pillow --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install --pre torch torchvision torchaudio tqdm pillow gsutil --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 python ./resnet50_script.py --device="cpu"  #use cuda or vulkan or metal
 ```
 
