@@ -6,7 +6,11 @@ from torchvision import transforms
 import sys
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_torch_model
-
+import threading
+from cuda import cudart
+import copy
+import numpy as np
+import time
 
 ################################## Preprocessing inputs and model ############
 def load_and_preprocess_image(url: str):
@@ -66,16 +70,27 @@ labels = load_labels()
 
 
 ## Can pass any img or input to the forward module.
+
 mlir_model, func_name, inputs, golden_out = download_torch_model("resnet50")
 
-shark_module = SharkInference(mlir_model, func_name, mlir_dialect="linalg")
-shark_module.compile()
-result = shark_module.forward((img.detach().numpy(),))
+def thread_function(device_idx):
 
-print("The top 3 results obtained via shark_runner is:")
-print(top3_possibilities(torch.from_numpy(result)))
+    cudart.cudaSetDevice(device_idx)
+    print('in thread {}'.format(device_idx))
+    
+    shark_module = SharkInference(mlir_model, func_name,  mlir_dialect="linalg", device_idx=device_idx)
+    shark_module.compile()
+    print('device {} compiled'.format(device_idx))
+    in_ = (img.detach().numpy(),)
 
-print()
+    result = shark_module.forward(in_)
 
-print("The top 3 results obtained via torch is:")
-print(top3_possibilities(Resnet50Module()(img)))
+    print(top3_possibilities(torch.from_numpy(result)))
+    print('Device {} executed successfully'.format(device_idx))
+
+x1 = threading.Thread(target=thread_function, args =(0,))
+x2 = threading.Thread(target=thread_function, args = (1,))
+x1.start()
+x2.start()
+
+

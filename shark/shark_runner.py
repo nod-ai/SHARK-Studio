@@ -64,11 +64,13 @@ class SharkRunner:
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
+        device_idx: int = None,
     ):
         self.mlir_module = mlir_module
         self.function_name = function_name
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
+        self.device_idx = device_idx
 
         if check_device_drivers(self.device):
             device_driver_info(self.device)
@@ -83,6 +85,7 @@ class SharkRunner:
             self.device,
             self.mlir_dialect,
             func_name=self.function_name,
+            device_idx=self.device_idx,
         )
 
     def run(self, inputs: tuple):
@@ -90,6 +93,7 @@ class SharkRunner:
             self.iree_compilation_module,
             inputs,
             self.iree_config,
+            self.device_idx,
             self.mlir_dialect,
         )
 

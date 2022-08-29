@@ -62,12 +62,14 @@ class SharkInference:
         device: str = "none",
         mlir_dialect: str = "linalg",
         is_benchmark: bool = False,
+        device_idx: int = None
     ):
         self.mlir_module = mlir_module
         self.function_name = function_name
         self.device = device
         self.mlir_dialect = mlir_dialect
         self.is_benchmark = is_benchmark
+        self.device_idx = device_idx
 
         self.shark_runner = None
 
@@ -89,6 +91,7 @@ class SharkInference:
                 self.function_name,
                 self.device,
                 self.mlir_dialect,
+                self.device_idx
             )
 
     # inputs are considered to be tuple of np.array.

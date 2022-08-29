@@ -87,8 +87,10 @@ def download_torch_model(model_name, dynamic=False):
             + " "
             + WORKDIR
         )
+        print("GS COMMAND: " + gs_command)
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
+    
 
     if not check_dir_exists(model_dir_name, frontend="torch", dynamic=dyn_str):
         gs_download_model()
@@ -104,6 +106,7 @@ def download_torch_model(model_name, dynamic=False):
             + " "
             + os.path.join(model_dir, "upstream_hash.npy")
         )
+        print("GS COMMAND: " + gs_hash)
         if os.system(gs_hash) != 0:
             raise Exception("hash of the model not present in the tank.")
         upstream_hash = str(
