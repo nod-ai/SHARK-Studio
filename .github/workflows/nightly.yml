@@ -11,7 +11,7 @@ on:
 jobs:
   build:
 
-    runs-on: a100
+    runs-on: icelake
     strategy:
       fail-fast: false
       matrix:
