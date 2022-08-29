@@ -111,7 +111,6 @@ jobs:
             gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
         fi
         rm pytest_results.txt
-        rm -rf ./wheelhouse/nodai*
 
     
     - name: Upload Release Assets

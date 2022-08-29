@@ -20,3 +20,5 @@ pip install -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html -
 
 mkdir checkpoints
 wget https://the-eye.eu/public/AI/models/v-diffusion/cc12m_1_cfg.pth -P checkpoints/
+
+cp -r checkpoints/ v-diffusion-pytorch/

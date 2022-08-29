@@ -28,6 +28,7 @@ Pillow
 # Testing and support.
 lit
 pyyaml
+python-dateutil
 
 #ONNX and ORT for benchmarking
 #--extra-index-url https://test.pypi.org/simple/
