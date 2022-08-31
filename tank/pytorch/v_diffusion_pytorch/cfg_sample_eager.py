@@ -15,6 +15,7 @@ from torchvision.transforms import functional as TF
 from tqdm import trange
 
 from shark.shark_inference import SharkInference
+from shark.torch_mlir_lockstep_tensor import TorchMLIRLockstepTensor
 
 import sys
 
@@ -224,28 +225,26 @@ strip_overloads(fx_g)
 
 ts_g = torch.jit.script(fx_g)
 
-module = torch_mlir.compile(
-    ts_g,
-    [x_in, t_in],
-    torch_mlir.OutputType.LINALG_ON_TENSORS,
-    use_tracing=False,
-)
-
-mlir_model = module
-func_name = "forward"
-
-shark_module = SharkInference(
-    mlir_model, func_name, device="gpu", mlir_dialect="linalg"
-)
-shark_module.compile()
+# module = torch_mlir.compile(
+#    ts_g,
+#    [x_in, t_in],
+#    torch_mlir.OutputType.LINALG_ON_TENSORS,
+#    use_tracing=False,
+# )
+#
+# mlir_model = module
+# func_name = "forward"
+#
+# shark_module = SharkInference(
+#    mlir_model, func_name, device="gpu", mlir_dialect="linalg"
+# )
+# shark_module.compile()
 
 
 def compiled_cfg_model_fn(x, t):
-    x_ny = x.detach().numpy()
-    t_ny = t.detach().numpy()
-    inputs = (x_ny, t_ny)
-    result = shark_module.forward(inputs)
-    return torch.from_numpy(result)
+    x_in_eager = TorchMLIRLockstepTensor(x.clone())
+    t_in_eager = TorchMLIRLockstepTensor(t.clone())
+    return ts_g(x_in_eager, t_in_eager)
 
 
 def run(x, steps):
@@ -280,5 +279,7 @@ def run_all(x, t, steps, n, batch_size):
         for j, out in enumerate(outs):
             utils.to_pil_image(out).save(f"out_{i + j:05}.png")
 
+
+steps = 1
 
 run_all(x, t, steps, args.n, args.batch_size)
