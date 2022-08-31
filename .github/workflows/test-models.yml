@@ -38,6 +38,8 @@ jobs:
             suite: vulkan
           - os: icelake
             suite: gpu
+          - os: a100
+            suite: cpu
 
     runs-on: ${{ matrix.os }}
 
