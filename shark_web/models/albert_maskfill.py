@@ -7,6 +7,7 @@ import numpy as np
 MAX_SEQUENCE_LENGTH = 512
 BATCH_SIZE = 1
 
+
 class AlbertModule(torch.nn.Module):
     def __init__(self):
         super().__init__()
@@ -23,6 +24,7 @@ class AlbertModule(torch.nn.Module):
 
 tokenizer = AutoTokenizer.from_pretrained("albert-base-v2")
 
+
 def preprocess_data(text):
     # Preparing Data
     encoded_inputs = tokenizer(
@@ -35,10 +37,9 @@ def preprocess_data(text):
     inputs = (encoded_inputs["input_ids"], encoded_inputs["attention_mask"])
     return inputs
 
+
 def top5_possibilities(text, inputs, token_logits):
-    mask_id = torch.where(
-        inputs[0] == tokenizer.mask_token_id
-    )[1]
+    mask_id = torch.where(inputs[0] == tokenizer.mask_token_id)[1]
     mask_token_logits = token_logits[0, mask_id, :]
     percentage = torch.nn.functional.softmax(mask_token_logits, dim=1)[0]
     top_5_tokens = torch.topk(mask_token_logits, 5, dim=1).indices[0].tolist()
@@ -48,7 +49,9 @@ def top5_possibilities(text, inputs, token_logits):
         top5[label] = percentage[token].item()
     return top5
 
+
 ##############################################################################
+
 
 def albert_maskfill_inf(masked_text):
     inputs = preprocess_data(masked_text)
@@ -66,4 +69,3 @@ def albert_maskfill_inf(masked_text):
     shark_module.compile()
     token_logits = torch.tensor(shark_module.forward(inputs))
     return top5_possibilities(masked_text, inputs, token_logits)
-

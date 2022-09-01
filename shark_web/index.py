@@ -17,4 +17,3 @@ with shark_web:
     albert_mask.click(albert_maskfill_inf, inputs=text, outputs=label2)
 
 shark_web.launch(share=True)
-
