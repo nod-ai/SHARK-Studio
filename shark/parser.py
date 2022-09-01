@@ -76,5 +76,10 @@ parser.add_argument(
     action="store_true",
     help="When enabled, pytest bench results will include ONNX benchmark results.",
 )
+parser.add_argument(
+    "--shark_prefix",
+    default="latest",
+    help="gs://shark_tank/<this_flag>/model_directories",
+)
 
 shark_args, unknown = parser.parse_known_args()
