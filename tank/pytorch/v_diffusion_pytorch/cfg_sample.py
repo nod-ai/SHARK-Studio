@@ -248,6 +248,17 @@ def compiled_cfg_model_fn(x, t):
     return torch.from_numpy(result)
 
 
+from typing import Dict
+
+
+def save_intermediate_images(args: Dict):
+    x = args["x"]
+    num_iter = args["i"]
+    for j, out in enumerate(x):
+        utils.to_pil_image(out).save(f"out_iter_" + str(num_iter) + ".png")
+    return
+
+
 def run(x, steps):
     if args.method == "ddpm":
         return sampling.sample(compiled_cfg_model_fn, x, steps, 1.0, {})
@@ -256,7 +267,13 @@ def run(x, steps):
     if args.method == "prk":
         return sampling.prk_sample(compiled_cfg_model_fn, x, steps, {})
     if args.method == "plms":
-        return sampling.plms_sample(compiled_cfg_model_fn, x, steps, {})
+        return sampling.plms_sample(
+            compiled_cfg_model_fn,
+            x,
+            steps,
+            {},
+            callback=save_intermediate_images,
+        )
     if args.method == "pie":
         return sampling.pie_sample(compiled_cfg_model_fn, x, steps, {})
     if args.method == "plms2":

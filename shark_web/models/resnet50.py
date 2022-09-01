@@ -7,6 +7,7 @@ from shark.shark_downloader import download_torch_model
 
 ################################## Preprocessing inputs and model ############
 
+
 def preprocess_image(img):
     image = Image.fromarray(img)
     preprocess = transforms.Compose(
@@ -36,15 +37,21 @@ def top3_possibilities(res):
     labels = load_labels()
     _, indexes = torch.sort(res, descending=True)
     percentage = torch.nn.functional.softmax(res, dim=1)[0]
-    top3 = dict([(labels[idx], percentage[idx].item()) for idx in indexes[0][:3]])
+    top3 = dict(
+        [(labels[idx], percentage[idx].item()) for idx in indexes[0][:3]]
+    )
     return top3
 
+
 ##############################################################################
+
 
 def resnet_inf(numpy_img):
     img = preprocess_image(numpy_img)
     ## Can pass any img or input to the forward module.
-    mlir_model, func_name, inputs, golden_out = download_torch_model("resnet50")
+    mlir_model, func_name, inputs, golden_out = download_torch_model(
+        "resnet50"
+    )
 
     shark_module = SharkInference(mlir_model, func_name, mlir_dialect="linalg")
     shark_module.compile()
