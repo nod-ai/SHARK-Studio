@@ -69,6 +69,11 @@ class Resnet50ModuleTest(unittest.TestCase):
         if device in ["metal", "vulkan"]:
             if "m1-moltenvk-macos" in get_vulkan_triple_flag():
                 pytest.xfail(reason="M1: CompilerToolError | M2: Pass")
+            if dynamic == True:
+                pytest.xfail(
+                    reason="https://github.com/nod-ai/SHARK/issues/309"
+                )
+
         self.module_tester.create_and_check_module(dynamic, device)
 
 
