@@ -23,16 +23,6 @@ class SqueezenetModuleTester:
             "squeezenet1_0", dynamic
         )
 
-        # from shark.shark_importer import SharkImporter
-        # mlir_importer = SharkImporter(
-        #    model,
-        #    (input,),
-        #    frontend="torch",
-        # )
-        # minilm_mlir, func_name = mlir_importer.import_mlir(
-        #    is_dynamic=dynamic, tracing_required=True
-        # )
-
         shark_module = SharkInference(
             model_mlir,
             func_name,
@@ -58,8 +48,6 @@ class SqueezenetModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.module_tester = SqueezenetModuleTester(self)
-        self.module_tester.save_mlir = pytestconfig.getoption("save_mlir")
-        self.module_tester.save_vmfb = pytestconfig.getoption("save_vmfb")
         self.module_tester.benchmark = pytestconfig.getoption("benchmark")
 
     param_list = get_valid_test_params()
@@ -68,6 +56,9 @@ class SqueezenetModuleTest(unittest.TestCase):
     def test_module(self, dynamic, device):
         if device in ["metal", "vulkan"]:
             if dynamic == True:
+                pytest.xfail(
+                    reason="https://github.com/nod-ai/SHARK/issues/309"
+                )
                 if "m1-moltenvk-macos" in get_vulkan_triple_flag():
                     pytest.xfail(
                         reason="https://github.com/iree-org/iree/issues/9972"

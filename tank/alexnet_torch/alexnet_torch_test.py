@@ -70,6 +70,11 @@ class AlexnetModuleTest(unittest.TestCase):
                     pytest.xfail(
                         reason="Assert Error:https://github.com/iree-org/iree/issues/10075"
                     )
+            if dynamic == True:
+                pytest.xfail(
+                    reason="https://github.com/nod-ai/SHARK/issues/309"
+                )
+
         self.module_tester.create_and_check_module(dynamic, device)
 
 

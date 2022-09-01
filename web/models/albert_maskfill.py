@@ -6,6 +6,7 @@ import numpy as np
 
 MAX_SEQUENCE_LENGTH = 512
 BATCH_SIZE = 1
+COMPILE_MODULE = None
 
 
 class AlbertModule(torch.nn.Module):
@@ -54,18 +55,23 @@ def top5_possibilities(text, inputs, token_logits):
 
 
 def albert_maskfill_inf(masked_text):
+    global COMPILE_MODULE
     inputs = preprocess_data(masked_text)
-    mlir_importer = SharkImporter(
-        AlbertModule(),
-        inputs,
-        frontend="torch",
-    )
-    minilm_mlir, func_name = mlir_importer.import_mlir(
-        is_dynamic=False, tracing_required=True
-    )
-    shark_module = SharkInference(
-        minilm_mlir, func_name, mlir_dialect="linalg"
-    )
-    shark_module.compile()
-    token_logits = torch.tensor(shark_module.forward(inputs))
+    if COMPILE_MODULE == None:
+        print("module compiled")
+        mlir_importer = SharkImporter(
+            AlbertModule(),
+            inputs,
+            frontend="torch",
+        )
+        minilm_mlir, func_name = mlir_importer.import_mlir(
+            is_dynamic=False, tracing_required=True
+        )
+        shark_module = SharkInference(
+            minilm_mlir, func_name, mlir_dialect="linalg", device="intel-gpu"
+        )
+        shark_module.compile()
+        COMPILE_MODULE = shark_module
+
+    token_logits = torch.tensor(COMPILE_MODULE.forward(inputs))
     return top5_possibilities(masked_text, inputs, token_logits)
