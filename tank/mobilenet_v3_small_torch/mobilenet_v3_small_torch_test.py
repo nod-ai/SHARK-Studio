@@ -67,6 +67,8 @@ class MobileNetV3ModuleTest(unittest.TestCase):
         elif device in ["vulkan", "metal"]:
             if dynamic == False:
                 pytest.xfail(reason="stuck in the pipeline.")
+            else:
+                pytest.xfail(reason="Not supported arith.floordivsi")
         self.module_tester.create_and_check_module(dynamic, device)
 
 

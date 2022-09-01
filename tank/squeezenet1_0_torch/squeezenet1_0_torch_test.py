@@ -68,10 +68,7 @@ class SqueezenetModuleTest(unittest.TestCase):
     def test_module(self, dynamic, device):
         if device in ["metal", "vulkan"]:
             if dynamic == True:
-                if "m1-moltenvk-macos" in get_vulkan_triple_flag():
-                    pytest.xfail(
-                        reason="https://github.com/iree-org/iree/issues/9972"
-                    )
+                pytest.xfail(reason="Not supported arith.floordivsi")
         self.module_tester.create_and_check_module(dynamic, device)
 
 

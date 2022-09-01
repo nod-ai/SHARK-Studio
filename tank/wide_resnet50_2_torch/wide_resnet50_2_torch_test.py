@@ -65,6 +65,9 @@ class WideResnet50ModuleTest(unittest.TestCase):
 
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
+        if device in ["vulkan", "metal"]:
+            if dynamic == True:
+                pytest.xfail(reason="Not supported arith.floordivsi")
         self.module_tester.create_and_check_module(dynamic, device)
 
 
