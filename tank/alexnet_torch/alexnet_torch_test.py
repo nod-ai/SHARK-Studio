@@ -70,6 +70,9 @@ class AlexnetModuleTest(unittest.TestCase):
                     pytest.xfail(
                         reason="Assert Error:https://github.com/iree-org/iree/issues/10075"
                     )
+            else:
+                pytest.xfail(reason="Not supported arith.floordivsi")
+
         self.module_tester.create_and_check_module(dynamic, device)
 
 

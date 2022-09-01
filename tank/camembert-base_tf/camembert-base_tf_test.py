@@ -3,6 +3,7 @@ from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_tf_model
 from tank.test_utils import get_valid_test_params, shark_test_name_func
 from parameterized import parameterized
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 import iree.compiler as ireec
 import unittest
@@ -40,6 +41,11 @@ class CamemBertModuleTest(unittest.TestCase):
 
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
+        if device in ["vulkan", "metal"]:
+            if "m1-moltenvk-macos" in get_vulkan_triple_flag():
+                pytest.xfail(
+                    reason="chlo.broadcast_compare attr failed to satisfy constraint"
+                )
         self.module_tester.create_and_check_module(dynamic, device)
 
 

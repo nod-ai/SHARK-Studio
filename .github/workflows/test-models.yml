@@ -32,8 +32,6 @@ jobs:
             suite: gpu
           - os: MacStudio
             suite: cpu
-          - os: MacStudio
-            suite: vulkan
           - os: icelake
             suite: vulkan
           - os: icelake
