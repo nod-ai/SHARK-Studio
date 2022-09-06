@@ -106,6 +106,7 @@ class SharkInference:
         func_header = None
         for line in str(self.mlir_module).splitlines():
             if func_key in line:
+                print("FUNCTION KEY: ", line)
                 func_header = line
                 break
         if func_header is None:

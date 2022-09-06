@@ -98,26 +98,30 @@ def compile_module_to_flatbuffer(
 
 
 def get_iree_module(flatbuffer_blob, device, func_name, device_idx = None):
-    # Returns the compiled module and the configs.
-    # if device_idx is not None:
-    #     if device == "gpu":
-    #         ireert.flags.parse_flags("--cuda_default_index=" + str(device_idx))
-    #         print(device_idx)
-    #     else:
-    #         print("device_idx was specified but device is: " + device +
-    #               ". Only gpu currently supported")
-    haldriver = ireert.get_driver('cuda')
-    haldevice = haldriver.create_device(device_idx + 1) #device ids not zero indexed for some reason?
-    #config = ireert.Config(IREE_DEVICE_MAP[device])
-    #print("URI: ", os.environ.get("IREE_DEFAULT_DEVICE"))
-    config = ireert.Config(device=haldevice)
-    vm_module = ireert.VmModule.from_flatbuffer(
-        config.vm_instance, flatbuffer_blob
-    )
+    #Returns the compiled module and the configs.
+    if device_idx is not None:
+        if device == "gpu":
+            haldriver = ireert.get_driver('cuda')
+            haldevice = haldriver.create_device(device_idx + 1) #device ids not zero indexed for some reason?
+            config = ireert.Config(device=haldevice)
+            vm_module = ireert.VmModule.from_flatbuffer(
+                config.vm_instance, flatbuffer_blob
+            )
+
+        else:
+            print("device_idx was specified but device is: " + device +
+                  ". Only gpu currently supported")
+
+    else:
+        config = ireert.Config(IREE_DEVICE_MAP[device])
+        vm_module = ireert.VmModule.from_flatbuffer(
+            config.vm_instance, flatbuffer_blob
+        )
     ctx = ireert.SystemContext(config=config)
     ctx.add_vm_module(vm_module)
     ModuleCompiled = ctx.modules.module[func_name]
     return ModuleCompiled, config
+    
 
 
 def get_iree_compiled_module(
@@ -171,10 +175,7 @@ def export_module_to_mlir_file(module, frontend, directory: str):
 
 def get_results(compiled_vm, input, config, device_idx, frontend="torch"):
     """Runs a .vmfb file given inputs and config and returns output."""
-    print("GET RESULTS", device_idx)
     device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
-
-    print(device_inputs, config.device)
     
     result = compiled_vm(*device_inputs)
     result_tensors = []
