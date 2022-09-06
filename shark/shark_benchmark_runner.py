@@ -71,7 +71,7 @@ class SharkBenchmarkRunner(SharkRunner):
             input_tensors,
             mlir_dialect=self.mlir_dialect,
         )
-        # print(self.benchmark_cl)
+        print(self.benchmark_cl)
 
     def benchmark_frontend(self, modelname):
         if self.mlir_dialect in ["linalg", "torch"]:
@@ -236,6 +236,34 @@ for currently supported models. Exiting benchmark ONNX."
                 result[0]["average_latency_ms"],
             ]
 
+    def get_metadata(self, modelname):
+        with open("./tank/pytorch/torch_model_list.csv", mode="r") as csvfile:
+            torch_reader = csv.reader(csvfile, delimiter=",")
+            fields = next(torch_reader)
+            for row in torch_reader:
+                torch_model_name = row[0]
+                param_count = row[4]
+                model_tags = row[5]
+                model_notes = row[6]
+                if torch_model_name == modelname:
+                    return [param_count, model_tags, model_notes]
+
+    def compare_bench_results(self, baseline: str, result: str):
+        # Takes two numbers represented as strings and returns "<n>x slower/faster", as in "result is <n>x slower than baseline".
+        a = float(baseline)
+        b = float(result)
+        if a < b:
+            # result slower than baseline
+            comparison = (b - a) / a
+            comp_str = f"{round(comparison, 2)}x slower"
+        elif a > b:
+            # result faster than baseline
+            comparison = a / b
+            comp_str = f"{round(comparison, 2)}x faster"
+        else:
+            comp_str = "equal"
+        return comp_str
+
     def benchmark_all_csv(
         self, inputs: tuple, modelname, dynamic, device_str, frontend
     ):
@@ -243,12 +271,17 @@ for currently supported models. Exiting benchmark ONNX."
         field_names = [
             "model",
             "engine",
-            "dynamic",
             "dialect",
             "device",
+            "shape_type",
+            "data_type",
             "iter/sec",
             "ms/iter",
+            "vs. PyTorch/TF",
             "iterations",
+            "param_count",
+            "tags",
+            "notes",
             "datetime",
         ]
         engines = ["frontend", "shark_python", "shark_iree_c"]
@@ -265,10 +298,11 @@ for currently supported models. Exiting benchmark ONNX."
             bench_result = {}
             bench_result["model"] = modelname
             if dynamic == True:
-                bench_result["dynamic"] = "True"
+                bench_result["shape_type"] = "dynamic"
             else:
-                bench_result["dynamic"] = "False"
+                bench_result["shape_type"] = "static"
             bench_result["device"] = device_str
+            bench_result["data_type"] = inputs[0].dtype
             for e in engines:
                 if e == "frontend":
                     bench_result["engine"] = frontend
@@ -276,18 +310,50 @@ for currently supported models. Exiting benchmark ONNX."
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
                     ) = self.benchmark_frontend(modelname)
+                    self.frontend_result = bench_result["ms/iter"]
+                    bench_result["vs. PyTorch/TF"] = "="
+                    (
+                        bench_result["param_count"],
+                        bench_result["tags"],
+                        bench_result["notes"],
+                    ) = self.get_metadata(modelname)
+
                 elif e == "shark_python":
                     bench_result["engine"] = "shark_python"
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
                     ) = self.benchmark_python(inputs)
+
+                    bench_result[
+                        "vs. PyTorch/TF"
+                    ] = self.compare_bench_results(
+                        self.frontend_result, bench_result["ms/iter"]
+                    )
+                    (
+                        bench_result["param_count"],
+                        bench_result["tags"],
+                        bench_result["notes"],
+                    ) = ["", "", ""]
+
                 elif e == "shark_iree_c":
                     bench_result["engine"] = "shark_iree_c"
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
                     ) = self.benchmark_c()
+
+                    bench_result[
+                        "vs. PyTorch/TF"
+                    ] = self.compare_bench_results(
+                        self.frontend_result, bench_result["ms/iter"]
+                    )
+                    (
+                        bench_result["param_count"],
+                        bench_result["tags"],
+                        bench_result["notes"],
+                    ) = ["", "", ""]
+
                 elif e == "onnxruntime":
                     bench_result["engine"] = "onnxruntime"
                     (
