@@ -13,6 +13,7 @@ from torch.nn import functional as F
 from torchvision import transforms
 from torchvision.transforms import functional as TF
 from tqdm import trange
+import numpy as np
 
 from shark.shark_inference import SharkInference
 
@@ -21,6 +22,7 @@ import sys
 sys.path.append("v-diffusion-pytorch")
 from CLIP import clip
 from diffusion import get_model, get_models, sampling, utils
+from torch.nn import functional as F
 
 MODULE_DIR = Path(__file__).resolve().parent
 
@@ -164,15 +166,13 @@ weights = torch.tensor([1 - sum(weights), *weights], device=device)
 torch.manual_seed(args.seed)
 
 
-def cfg_model_fn(x, t):
-    n = x.shape[0]
-    n_conds = len(target_embeds)
-    x_in = x.repeat([n_conds, 1, 1, 1])
-    t_in = t.repeat([n_conds])
-    clip_embed_in = torch.cat([*target_embeds]).repeat([n, 1])
-    vs = model(x_in, t_in, clip_embed_in).view([n_conds, n, *x.shape[1:]])
-    v = vs.mul(weights[:, None, None, None, None]).sum(0)
-    return v
+def cfg_model_fn(x, timestep_embed, selfcond):
+    vs = model(x, timestep_embed, selfcond)
+    return vs
+
+
+def expand_to_planes(input, shape):
+    return input[..., None, None].repeat([1, 1, shape[2], shape[3]])
 
 
 x = torch.randn([args.n, 3, side_y, side_x], device=device)
@@ -182,6 +182,31 @@ min_batch_size = min(args.n, args.batch_size)
 x_in = x[0:min_batch_size, :, :, :]
 ts = x_in.new_ones([x_in.shape[0]])
 t_in = t[0] * ts
+
+n_conds = len(target_embeds)
+x_in = x.repeat([n_conds, 1, 1, 1])
+t_in = t.repeat([n_conds])
+clip_embed_in = torch.cat([*target_embeds]).repeat([args.n, 1])
+
+x_in = torch.randn(2, 3, 256, 256)
+t_in = torch.randn(2)
+clip_embed_in = torch.randn(2, 512)
+
+clip_embed = (
+    F.normalize(clip_embed_in, dim=-1) * clip_embed_in.shape[-1] ** 0.5
+)
+mapping_timestep_embed = model.mapping_timestep_embed(t_in[:, None])
+selfcond = model.mapping(
+    torch.cat([clip_embed, mapping_timestep_embed], dim=1)
+)
+timestep_embed = expand_to_planes(
+    model.timestep_embed(t_in[:, None]), x_in.shape
+)
+
+# x_in = torch.randn(2, 3, 256, 256)
+# selfcond = torch.randn(2, 1024)
+# timestep_embed = torch.randn(2, 512)
+
 
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
@@ -202,7 +227,7 @@ fx_g = make_fx(
             torch.ops.aten.split_with_sizes,
         ]
     ),
-)(x_in, t_in)
+)(x_in, timestep_embed, selfcond)
 
 fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
 fx_g.recompile()
@@ -226,7 +251,7 @@ ts_g = torch.jit.script(fx_g)
 
 module = torch_mlir.compile(
     ts_g,
-    [x_in, t_in],
+    [x_in, timestep_embed, selfcond],
     torch_mlir.OutputType.LINALG_ON_TENSORS,
     use_tracing=False,
 )
@@ -235,17 +260,40 @@ mlir_model = module
 func_name = "forward"
 
 shark_module = SharkInference(
-    mlir_model, func_name, device="gpu", mlir_dialect="linalg"
+    mlir_model, func_name, device="intel-gpu", mlir_dialect="linalg"
 )
 shark_module.compile()
 
 
 def compiled_cfg_model_fn(x, t):
-    x_ny = x.detach().numpy()
-    t_ny = t.detach().numpy()
-    inputs = (x_ny, t_ny)
+    # Preprocessing previously found in cfg_model_fn
+    n = x.shape[0]
+    n_conds = len(target_embeds)
+    x_in = x.repeat([n_conds, 1, 1, 1])
+    t_in = t.repeat([n_conds])
+    clip_embed_in = torch.cat([*target_embeds]).repeat([n, 1])
+
+    # Initial setup found in base v-diffusion
+    clip_embed = (
+        F.normalize(clip_embed_in, dim=-1) * clip_embed_in.shape[-1] ** 0.5
+    )
+    mapping_timestep_embed = model.mapping_timestep_embed(t_in[:, None])
+    selfcond = model.mapping(
+        torch.cat([clip_embed, mapping_timestep_embed], dim=1)
+    )
+    timestep_embed = expand_to_planes(
+        model.timestep_embed(t_in[:, None]), x_in.shape
+    )
+
+    x_ny = x_in.detach().numpy()
+    timestep_embed_ny = timestep_embed.detach().numpy()
+    selfcond_ny = selfcond.detach().numpy()
+    inputs = (x_ny, timestep_embed_ny, selfcond_ny)
     result = shark_module.forward(inputs)
-    return torch.from_numpy(result)
+
+    vs = torch.from_numpy(result).view([n_conds, n, *x.shape[1:]])
+    v = vs.mul(weights[:, None, None, None, None]).sum(0)
+    return v
 
 
 from typing import Dict

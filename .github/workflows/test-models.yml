@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [a100, MacStudio, ubuntu-latest]
+        os: [icelake, a100, MacStudio, ubuntu-latest]
         suite: [cpu,gpu,vulkan]
         python-version: ["3.10"]
         include:
@@ -31,6 +31,14 @@ jobs:
           - os: MacStudio
             suite: gpu
           - os: MacStudio
+            suite: cpu
+          - os: MacStudio
+            suite: vulkan
+          - os: icelake
+            suite: vulkan
+          - os: icelake
+            suite: gpu
+          - os: a100
             suite: cpu
 
     runs-on: ${{ matrix.os }}
