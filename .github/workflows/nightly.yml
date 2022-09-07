@@ -16,6 +16,7 @@ jobs:
       fail-fast: false
       matrix:
         python-version: ["3.10"]
+        backend: [IREE, SHARK]
 
     steps:
     - uses: actions/checkout@v3
@@ -62,6 +63,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude shark.venv,lit.cfg.py 
     - name: Build and validate the IREE package
+      if: matrix.backend == IREE
       run: |
         cd $GITHUB_WORKSPACE
         USE_IREE=1 VENV_DIR=iree.venv ./setup_venv.sh
@@ -85,6 +87,7 @@ jobs:
         rm -rf ./wheelhouse/nodai*
 
     - name: Build and validate the SHARK Runtime package
+      if: matrix.backend == SHARK
       run: |
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
@@ -114,6 +117,7 @@ jobs:
 
     
     - name: Upload Release Assets
+      if: matrix.backend == SHARK
       id: upload-release-assets
       uses: dwenegar/upload-release-assets@v1
       env:
@@ -123,6 +127,7 @@ jobs:
         assets_path: ./wheelhouse/nodai_*.whl
 
     - name: Publish Release
+      if: matrix.backend == SHARK
       id: publish_release
       uses: eregon/publish-release@v1
       env:
