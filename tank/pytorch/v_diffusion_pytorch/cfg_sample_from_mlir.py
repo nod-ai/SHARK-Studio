@@ -15,6 +15,8 @@ from torchvision.transforms import functional as TF
 from tqdm import trange
 
 from shark.shark_inference import SharkInference
+from shark.shark_downloader import download_torch_model
+import numpy as np
 
 import sys
 
@@ -183,59 +185,10 @@ x_in = x[0:min_batch_size, :, :, :]
 ts = x_in.new_ones([x_in.shape[0]])
 t_in = t[0] * ts
 
-from torch.fx.experimental.proxy_tensor import make_fx
-from torch._decomp import get_decompositions
-import torch_mlir
-
-fx_g = make_fx(
-    cfg_model_fn,
-    decomposition_table=get_decompositions(
-        [
-            torch.ops.aten.embedding_dense_backward,
-            torch.ops.aten.native_layer_norm_backward,
-            torch.ops.aten.slice_backward,
-            torch.ops.aten.select_backward,
-            torch.ops.aten.norm.ScalarOpt_dim,
-            torch.ops.aten.native_group_norm,
-            torch.ops.aten.upsample_bilinear2d.vec,
-            torch.ops.aten.split.Tensor,
-            torch.ops.aten.split_with_sizes,
-        ]
-    ),
-)(x_in, t_in)
-
-fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
-fx_g.recompile()
-
-
-def strip_overloads(gm):
-    """
-    Modifies the target of graph nodes in :attr:`gm` to strip overloads.
-    Args:
-        gm(fx.GraphModule): The input Fx graph module to be modified
-    """
-    for node in gm.graph.nodes:
-        if isinstance(node.target, torch._ops.OpOverload):
-            node.target = node.target.overloadpacket
-    gm.recompile()
-
-
-strip_overloads(fx_g)
-
-ts_g = torch.jit.script(fx_g)
-
-module = torch_mlir.compile(
-    ts_g,
-    [x_in, t_in],
-    torch_mlir.OutputType.LINALG_ON_TENSORS,
-    use_tracing=False,
-)
-
-mlir_model = module
-func_name = "forward"
+mlir_model, func_name, inputs, golden_out = download_torch_model("v_diffusion")
 
 shark_module = SharkInference(
-    mlir_model, func_name, device="gpu", mlir_dialect="linalg"
+    mlir_model, func_name, device="cpu", mlir_dialect="linalg"
 )
 shark_module.compile()
 

@@ -67,6 +67,11 @@ class MobileNetV3ModuleTest(unittest.TestCase):
         elif device in ["vulkan", "metal"]:
             if dynamic == False:
                 pytest.xfail(reason="stuck in the pipeline.")
+            if dynamic == True:
+                pytest.xfail(
+                    reason="https://github.com/nod-ai/SHARK/issues/309"
+                )
+
         self.module_tester.create_and_check_module(dynamic, device)
 
 
