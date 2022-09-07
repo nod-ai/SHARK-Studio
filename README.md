@@ -122,10 +122,6 @@ pytest tank/<MODEL_NAME> -k "keyword"
 
 ### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
 
-Note: Latest benchmarks on our canonical machines can be found here:
-https://storage.googleapis.com/shark-public/builder/bench_results/latest/bench_results_cpu_latest.csv
-https://storage.googleapis.com/shark-public/builder/bench_results/latest/bench_results_gpu_latest.csv
-  
 (the following requires source installation with `IMPORTER=1 ./setup_venv.sh`)
 
 ```shell
