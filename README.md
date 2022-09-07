@@ -99,7 +99,7 @@ pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_m
 
 
 <details>
-  <summary>Testing</summary>
+  <summary>Testing and Benchmarks</summary>
 
 ### Run all model tests on CPU/GPU/VULKAN/Metal
 ```shell
@@ -122,7 +122,11 @@ pytest tank/<MODEL_NAME> -k "keyword"
 
 ### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
 
-(requires source installation with `IMPORTER=1 ./setup_venv.sh`)
+Note: Latest benchmarks on our canonical machines can be found here:
+https://storage.googleapis.com/shark-public/builder/bench_results/latest/bench_results_cpu_latest.csv
+https://storage.googleapis.com/shark-public/builder/bench_results/latest/bench_results_gpu_latest.csv
+  
+(the following requires source installation with `IMPORTER=1 ./setup_venv.sh`)
 
 ```shell
 pytest --benchmark tank

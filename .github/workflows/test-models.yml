@@ -52,13 +52,13 @@ jobs:
         echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         
     - name: Set up Python Version File ${{ matrix.python-version }}
-      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest' ||  matrix.os == 'icelake'
       run: |
         # See https://github.com/actions/setup-python/issues/433
         echo ${{ matrix.python-version }} >> $GITHUB_WORKSPACE/.python-version
     
     - name: Set up Python ${{ matrix.python-version }}
-      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'a100' ||  matrix.os == 'ubuntu-latest' ||  matrix.os == 'icelake'
       uses: actions/setup-python@v4
       with:
         python-version: '${{ matrix.python-version }}'
@@ -90,7 +90,9 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest -k 'cpu' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+        pytest --benchmark tank/ -k cpu
+        gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv
+        gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cpu_latest.csv
 
     - name: Validate GPU Models
       if: matrix.suite == 'gpu'
@@ -100,6 +102,7 @@ jobs:
         source shark.venv/bin/activate
         pytest --benchmark -k "gpu" --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_gpu_${SHORT_SHA}.csv
+        gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_gpu_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_gpu_latest.csv
 
     - name: Validate Vulkan Models
       if: matrix.suite == 'vulkan'
