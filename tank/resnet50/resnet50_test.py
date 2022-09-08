@@ -55,8 +55,10 @@ class Resnet50ModuleTest(unittest.TestCase):
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
         if device in ["metal", "vulkan"]:
-            if "m1-moltenvk-macos" in get_vulkan_triple_flag():
-                pytest.xfail(reason="M2: Assert error & M1: CompilerToolError")
+            if get_vulkan_triple_flag() is not None:
+                if "m1-moltenvk-macos" in get_vulkan_triple_flag():
+                    pytest.xfail(reason="M2: Assert error & M1: CompilerToolError")
+        
         self.module_tester.create_and_check_module(dynamic, device)
 
 
