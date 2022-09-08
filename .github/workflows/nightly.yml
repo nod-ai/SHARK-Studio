@@ -63,7 +63,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude shark.venv,lit.cfg.py 
     - name: Build and validate the IREE package
-      if: matrix.backend == 'IREE'
+      if: ${{ matrix.backend == 'IREE' }}
       run: |
         cd $GITHUB_WORKSPACE
         USE_IREE=1 VENV_DIR=iree.venv ./setup_venv.sh
@@ -75,19 +75,13 @@ jobs:
         pip install ./wheelhouse/nodai*
         # Validate the Models
         /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
-        pytest -k 'cpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
-          tail -n 1 |
-          tee -a pytest_results.txt
-        pytest -k 'gpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
-          tail -n 1 |
-          tee -a pytest_results.txt
-        pytest -k 'vulkan' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+        pytest tank |
           tail -n 1 |
           tee -a pytest_results.txt
         rm -rf ./wheelhouse/nodai*
 
     - name: Build and validate the SHARK Runtime package
-      if: matrix.backend == 'SHARK'
+      if: ${{ matrix.backend == 'SHARK' }}
       run: |
         cd $GITHUB_WORKSPACE
         ./setup_venv.sh
@@ -98,26 +92,20 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest -k 'cpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
-          tail -n 1 |
-          tee -a pytest_results.txt
-        pytest -k 'gpu' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
-          tail -n 1 |
-          tee -a pytest_results.txt
-        pytest -k 'vulkan' --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py --ignore=shark/tests/test_shark_importer.py --ignore=tank/tf/ |
+        pytest tank |
           tail -n 1 |
           tee -a pytest_results.txt
         if !(grep -Fxq " failed" pytest_results.txt) 
           then 
             export SHA=$(git log -1 --format='%h')
-            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
+            gsutil -m cp -r ~/.local/shark_tank/* gs://shark_tank/$SHA
             gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
         fi
         rm pytest_results.txt
 
     
     - name: Upload Release Assets
-      if: matrix.backend == 'SHARK'
+      if: ${{ matrix.backend == 'SHARK' }
       id: upload-release-assets
       uses: dwenegar/upload-release-assets@v1
       env:
@@ -127,7 +115,7 @@ jobs:
         assets_path: ./wheelhouse/nodai_*.whl
 
     - name: Publish Release
-      if: matrix.backend == 'SHARK'
+      if: ${{ matrix.backend == 'SHARK' }}
       id: publish_release
       uses: eregon/publish-release@v1
       env:
