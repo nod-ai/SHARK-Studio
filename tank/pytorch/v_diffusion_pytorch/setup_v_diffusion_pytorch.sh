@@ -1,3 +1,5 @@
+#!/bin/bash
+
 TD="$(cd $(dirname $0) && pwd)"
 if [ -z "$PYTHON" ]; then
   PYTHON="$(which python3)"
@@ -22,3 +24,4 @@ mkdir checkpoints
 wget https://the-eye.eu/public/AI/models/v-diffusion/cc12m_1_cfg.pth -P checkpoints/
 
 cp -r checkpoints/ v-diffusion-pytorch/
+cp cc12m_1.py v-diffusion-pytorch/diffusion/models/.
