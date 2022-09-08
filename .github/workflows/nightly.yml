@@ -105,7 +105,7 @@ jobs:
 
     
     - name: Upload Release Assets
-      if: ${{ matrix.backend == 'SHARK' }
+      if: ${{ matrix.backend == 'SHARK' }}
       id: upload-release-assets
       uses: dwenegar/upload-release-assets@v1
       env:
