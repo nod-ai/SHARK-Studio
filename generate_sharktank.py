@@ -32,8 +32,8 @@ except:
 
 # All generated models and metadata will be saved under this directory.
 home = str(Path.home())
-if tank_dir is not None:
-    WORKDIR = tank_dir
+if args.ci_tank_dir:
+    WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
 else:
     WORKDIR = os.path.join(home, ".local/shark_tank/")
 
@@ -236,11 +236,6 @@ if __name__ == "__main__":
     parser.add_argument("--upload", type=bool, default=False)
 
     args = parser.parse_args()
-    if args.ci_tank_dir:
-        tank_dir = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
-    else:
-        tank_dir = None
-
     if args.torch_model_csv:
         save_torch_model(args.torch_model_csv)
 
