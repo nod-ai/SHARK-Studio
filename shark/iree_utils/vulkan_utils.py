@@ -32,7 +32,9 @@ def get_vulkan_triple_flag():
     elif all(x in vulkan_device for x = ["RTX", "3090"]):
         print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
-    elif ("AMD Radeon RX" in vulkan_device) && (any(x in vulkan_device for x = 
+    elif any(x in vulkan_device for x = ["Radeon RX 5", "Radeon RX 6"]):
+        print("Found AMD Radeon RX 5/6000 series device. Using rdna1-5700xt-linux")
+        return "-iree-vulkan-target-triple=rdna1-5700xt-linux"
     else:
         print(
             """Optimized kernel for your target device is not added yet.
