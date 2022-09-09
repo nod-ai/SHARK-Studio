@@ -18,6 +18,7 @@ import urllib.request
 import json
 import hashlib
 from pathlib import Path
+from shark.parser import shark_args
 
 input_type_to_np_dtype = {
     "float32": np.float32,
@@ -32,7 +33,14 @@ input_type_to_np_dtype = {
 
 # Save the model in the home local so it needn't be fetched everytime in the CI.
 home = str(Path.home())
-WORKDIR = os.path.join(home, ".local/shark_tank/")
+alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
+if os.path.exists(alt_path):
+    WORKDIR = alt_path
+    print(
+        f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
+    )
+else:
+    WORKDIR = os.path.join(home, ".local/shark_tank/")
 print(WORKDIR)
 
 
@@ -110,9 +118,12 @@ def download_torch_model(
             np.load(os.path.join(model_dir, "upstream_hash.npy"))
         )
         if local_hash != upstream_hash:
-            print(
-                "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
-            )
+            if shark_args.update_tank == True:
+                gs_download_model()
+            else:
+                print(
+                    "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
+                )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
@@ -171,9 +182,12 @@ def download_tflite_model(
             np.load(os.path.join(model_dir, "upstream_hash.npy"))
         )
         if local_hash != upstream_hash:
-            print(
-                "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
-            )
+            if shark_args.update_tank == True:
+                gs_download_model()
+            else:
+                print(
+                    "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
+                )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
@@ -227,9 +241,12 @@ def download_tf_model(model_name, tuned=None, shark_default_sha="latest"):
             np.load(os.path.join(model_dir, "upstream_hash.npy"))
         )
         if local_hash != upstream_hash:
-            print(
-                "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
-            )
+            if shark_args.update_tank == True:
+                gs_download_model()
+            else:
+                print(
+                    "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
+                )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     suffix = "_tf.mlir" if tuned is None else "_tf_" + tuned + ".mlir"
