@@ -61,8 +61,6 @@ def to_list(key_jagged, combined_keys):
         prev_values, prev_offsets = calculate_offsets(
             key_jagged_dict[key].to_dense(), None, None
         )
-        print(prev_values)
-        print(prev_offsets)
         combined_list.append(prev_values)
         combined_list.append(prev_offsets)
         combined_list.append(torch.tensor(combined_keys[key]))
@@ -160,7 +158,7 @@ def test_sparse_arch() -> None:
     test_results = sparse_archi(*inputs)
     sparse_features = sparse_arch(features)
 
-    torch.allclose(
+    bool_val = torch.allclose(
         sparse_features,
         test_results,
         rtol=1e-4,
@@ -282,9 +280,6 @@ def test_dlrm() -> None:
     )
     logits_nod = sparse_nn_nod(dense_features, *x)
 
-    # print(logits)
-    # print(logits_nod)
-
     # Import the module and print.
     mlir_importer = SharkImporter(
         sparse_nn_nod,
@@ -296,14 +291,12 @@ def test_dlrm() -> None:
         tracing_required=True
     )
 
-    shark_module = SharkInference(
-        dlrm_mlir, func_name, device="cpu", mlir_dialect="linalg"
-    )
+    shark_module = SharkInference(dlrm_mlir, func_name, mlir_dialect="linalg")
     shark_module.compile()
     result = shark_module.forward(inputs)
     np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=1e-03)
 
-    torch.allclose(
+    bool_val = torch.allclose(
         logits,
         logits_nod,
         rtol=1e-4,
