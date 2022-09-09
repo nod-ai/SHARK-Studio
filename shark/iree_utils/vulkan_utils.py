@@ -18,29 +18,21 @@ from shark.iree_utils._common import run_cmd
 
 
 def get_vulkan_triple_flag():
-    vulkan_device_cmd = "vulkaninfo | grep deviceName | awk 'END{{print $NF}}'"
+    vulkan_device_cmd = "vulkaninfo | grep deviceName"
     vulkan_device = run_cmd(vulkan_device_cmd).strip()
-    if vulkan_device == "Ultra":
-        print("Found MacStudio M1 Device. Using m1-moltenvk-macos")
+    if all(x in vulkan_device for x = ["Apple", "M1"]):
+        print(f"Found {vulkan_device} Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "M2":
+    elif all(x in vulkan_device for x = ["Apple", "M2"]):
         print("Found Apple M2 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "Max":
-        print("Found Apple M1 Max Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "Pro":
-        print("Found Apple M1 Pro Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "M1":
-        print("Found Apple M1 Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "A100-SXM4-40GB":
-        print("Found Nvidia Device. Using ampere-rtx3080-linux")
+    elif all(x in vulkan_device for x = ["A100","SXM4"]):
+        print(f"Found {vulkan_device} Device. Using ampere-rtx3080-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
-    elif vulkan_device == "3090":
-        print("Found Nvidia Device. Using ampere-rtx3090-linux")
+    elif all(x in vulkan_device for x = ["RTX", "3090"]):
+        print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
+    elif ("AMD Radeon RX" in vulkan_device) && (any(x in vulkan_device for x = 
     else:
         print(
             """Optimized kernel for your target device is not added yet.
