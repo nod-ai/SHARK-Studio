@@ -78,6 +78,12 @@ jobs:
         pytest tank |
           tail -n 1 |
           tee -a pytest_results.txt
+        if !(grep -Fxq " failed" pytest_results.txt) 
+          then 
+            export SHA=$(git log -1 --format='%h')
+            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
+            gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
+        fi
         rm -rf ./wheelhouse/nodai*
 
     - name: Build and validate the SHARK Runtime package
@@ -95,14 +101,6 @@ jobs:
         pytest tank |
           tail -n 1 |
           tee -a pytest_results.txt
-        if !(grep -Fxq " failed" pytest_results.txt) 
-          then 
-            export SHA=$(git log -1 --format='%h')
-            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
-            gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
-        fi
-        rm pytest_results.txt
-
     
     - name: Upload Release Assets
       if: ${{ matrix.backend == 'SHARK' }}

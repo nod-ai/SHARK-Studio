@@ -30,13 +30,6 @@ except:
     # Invalid device or cannot modify virtual devices once initialized.
     pass
 
-# All generated models and metadata will be saved under this directory.
-home = str(Path.home())
-if args.ci_tank_dir:
-    WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
-else:
-    WORKDIR = os.path.join(home, ".local/shark_tank/")
-
 
 def create_hash(file_name):
     with open(file_name, "rb") as f:
@@ -236,6 +229,13 @@ if __name__ == "__main__":
     parser.add_argument("--upload", type=bool, default=False)
 
     args = parser.parse_args()
+
+    home = str(Path.home())
+    if args.ci_tank_dir == True:
+        WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+    else:
+        WORKDIR = os.path.join(home, ".local/shark_tank/")
+
     if args.torch_model_csv:
         save_torch_model(args.torch_model_csv)
 

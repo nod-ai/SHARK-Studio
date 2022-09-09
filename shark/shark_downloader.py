@@ -36,6 +36,9 @@ home = str(Path.home())
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
 if os.path.exists(alt_path):
     WORKDIR = alt_path
+    print(
+        f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
+    )
 else:
     WORKDIR = os.path.join(home, ".local/shark_tank/")
 print(WORKDIR)
