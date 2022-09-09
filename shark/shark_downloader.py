@@ -122,7 +122,6 @@ def download_torch_model(
                     "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
                 )
 
-
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
         os.path.join(model_dir, model_name + dyn_str + "_torch.mlir")
