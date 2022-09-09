@@ -98,7 +98,7 @@ jobs:
         if !(grep -Fxq " failed" pytest_results.txt) 
           then 
             export SHA=$(git log -1 --format='%h')
-            gsutil -m cp -r ~/.local/shark_tank/* gs://shark_tank/$SHA
+            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
             gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
         fi
         rm pytest_results.txt
