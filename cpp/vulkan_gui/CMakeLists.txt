@@ -90,12 +90,12 @@ target_sources(${_NAME}
 )
 set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "iree-samples-vulkan-gui")
 target_include_directories(${_NAME} PUBLIC
+    /usr/include/SDL2
     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
 )
 target_link_libraries(${_NAME}
-  SDL2::SDL2
+  SDL2
   Vulkan::Vulkan
-  #
   iree_runtime_runtime
   iree_base_internal_main
   iree_hal_drivers_vulkan_registration_registration
