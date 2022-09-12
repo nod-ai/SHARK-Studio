@@ -37,7 +37,7 @@ def get_vulkan_triple_flag():
             "Found AMD Radeon RX 5000 series device. Using rdna1-5700xt-linux"
         )
         return "-iree-vulkan-target-triple=rdna1-5700xt-linux"
-    elif all(x in vulkan_device for x in ("Radeon", "RX 6"):
+    elif all(x in vulkan_device for x in ("Radeon", "RX 6")):
         print(
             "Found AMD Radeon RX 6000 series device. Using rdna2-unknown-linux"
         )
