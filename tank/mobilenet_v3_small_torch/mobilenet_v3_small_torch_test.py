@@ -45,7 +45,7 @@ class MobileNetV3ModuleTester:
         if self.benchmark == True:
             shark_module.shark_runner.benchmark_all_csv(
                 (input),
-                "alexnet",
+                "mobilenet_v3_small",
                 dynamic,
                 device,
                 "torch",
