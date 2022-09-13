@@ -47,19 +47,6 @@ list(APPEND _EMBED_ARGS "--output_impl=simple_mul_bytecode_module_c.c")
 list(APPEND _EMBED_ARGS "--identifier=iree_samples_vulkan_gui_simple_mul_bytecode_module")
 list(APPEND _EMBED_ARGS "--flatten")
 list(APPEND _EMBED_ARGS "${CMAKE_CURRENT_BINARY_DIR}/simple_mul.vmfb")
-add_custom_command(
-  OUTPUT "simple_mul_bytecode_module_c.h" "simple_mul_bytecode_module_c.c"
-  COMMAND ${_EMBED_DATA_EXECUTABLE} ${_EMBED_ARGS}
-  DEPENDS ${_EMBED_DATA_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/simple_mul.vmfb
-)
-# Define a library target for simple_mul_bytecode_module_c.
-add_library(iree_samples_vulkan_gui_simple_mul_bytecode_module_c OBJECT)
-target_sources(iree_samples_vulkan_gui_simple_mul_bytecode_module_c
-  PRIVATE
-    simple_mul_bytecode_module_c.h
-    simple_mul_bytecode_module_c.c
-)
-
 
 FetchContent_Declare(
   imgui
@@ -100,7 +87,6 @@ target_link_libraries(${_NAME}
   iree_base_internal_main
   iree_hal_drivers_vulkan_registration_registration
   iree_modules_hal_hal
-  iree_samples_vulkan_gui_simple_mul_bytecode_module_c
   iree_vm_vm
   iree_vm_bytecode_module
   iree_vm_cc

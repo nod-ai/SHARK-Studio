@@ -30,8 +30,41 @@
 // Other dependencies (helpers, etc.)
 #include "iree/base/internal/main.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 // Compiled module embedded here to avoid file IO:
-#include "simple_mul_bytecode_module_c.h"
+//#include "simple_mul_bytecode_module_c.h"
+
+
+typedef struct iree_file_toc_t {
+  const char* name;             // the file's original name
+  char* data;             // beginning of the file
+  size_t size;                  // length of the file
+} iree_file_toc_t;
+
+
+bool load_file(const char* filename, char** pOut, size_t* pSize)
+{
+    FILE* f = fopen(filename, "rb");
+    if (f == NULL)
+    {
+        printf("Can't open %s\n", filename);
+        return false;
+    }
+
+    fseek(f, 0L, SEEK_END);
+    *pSize = ftell(f);
+    fseek(f, 0L, SEEK_SET);
+
+    *pOut = (char*)malloc(*pSize);
+
+    size_t size = fread(*pOut, *pSize, 1, f);
+
+    fclose(f);
+
+    return *pSize==size;
+}
 
 static VkAllocationCallbacks* g_Allocator = NULL;
 static VkInstance g_Instance = VK_NULL_HANDLE;
@@ -52,6 +85,225 @@ static void check_vk_result(VkResult err) {
   if (err == 0) return;
   fprintf(stderr, "VkResult: %d\n", err);
   abort();
+}
+
+// Helper function to find Vulkan memory type bits. See ImGui_ImplVulkan_MemoryType() in imgui_impl_vulkan.cpp
+uint32_t findMemoryType(uint32_t type_filter, VkMemoryPropertyFlags properties)
+{
+  VkPhysicalDeviceMemoryProperties mem_properties;
+  vkGetPhysicalDeviceMemoryProperties(g_PhysicalDevice, &mem_properties);
+
+  for (uint32_t i = 0; i < mem_properties.memoryTypeCount; i++)
+  {
+    if ((type_filter & (1 << i)) && (mem_properties.memoryTypes[i].propertyFlags & properties) == properties)
+    {
+      return i;
+    }
+  }
+
+  return 0xFFFFFFFF; // Unable to find memoryType
+}
+
+// Helper function to load an image with common settings and return a VkDescriptorSet as a sort of Vulkan pointer
+bool LoadTextureFromFile(const char* filename, VkDescriptorSet* img_ds, int* image_width, int* image_height)
+{
+  // Specifying 4 channels forces stb to load the image in RGBA which is an easy format for Vulkan
+  int image_channels = 4;
+  unsigned char* image_data = stbi_load(filename, image_width, image_height, 0, image_channels);
+
+  if (image_data == NULL)
+  {
+    return false;
+  }
+
+  // Calculate allocation size (in number of bytes)
+  size_t image_size = (*image_width)*(*image_height)*image_channels;
+
+  VkResult err;
+
+  // Create the Vulkan image.
+  VkImage texture_image;
+  VkDeviceMemory texture_image_memory;
+  {
+    VkImageCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    info.imageType = VK_IMAGE_TYPE_2D;
+    info.format = VK_FORMAT_R8G8B8A8_UNORM;
+    info.extent.width = *image_width;
+    info.extent.height = *image_height;
+    info.extent.depth = 1;
+    info.mipLevels = 1;
+    info.arrayLayers = 1;
+    info.samples = VK_SAMPLE_COUNT_1_BIT;
+    info.tiling = VK_IMAGE_TILING_OPTIMAL;
+    info.usage = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    err = vkCreateImage(g_Device, &info, g_Allocator, &texture_image);
+    check_vk_result(err);
+    VkMemoryRequirements req;
+    vkGetImageMemoryRequirements(g_Device, texture_image, &req);
+    VkMemoryAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info.allocationSize = req.size;
+    alloc_info.memoryTypeIndex = findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+    err = vkAllocateMemory(g_Device, &alloc_info, g_Allocator, &texture_image_memory);
+    check_vk_result(err);
+    err = vkBindImageMemory(g_Device, texture_image, texture_image_memory, 0);
+    check_vk_result(err);
+  }
+
+  // Create the Image View
+  VkImageView image_view;
+  {
+    VkImageViewCreateInfo info = {};
+    info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+    info.image = texture_image;
+    info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+    info.format = VK_FORMAT_R8G8B8A8_UNORM;
+    info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    info.subresourceRange.levelCount = 1;
+    info.subresourceRange.layerCount = 1;
+    err = vkCreateImageView(g_Device, &info, g_Allocator, &image_view);
+    check_vk_result(err);
+  }
+
+  // Create Sampler
+  VkSampler sampler;
+  {
+    VkSamplerCreateInfo sampler_info{};
+    sampler_info.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter = VK_FILTER_LINEAR;
+    sampler_info.minFilter = VK_FILTER_LINEAR;
+    sampler_info.mipmapMode  = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    sampler_info.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT; // outside image bounds just use border color
+    sampler_info.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.minLod = -1000;
+    sampler_info.maxLod = 1000;
+    sampler_info.maxAnisotropy = 1.0f;
+    err = vkCreateSampler(g_Device, &sampler_info, g_Allocator, &sampler);
+    check_vk_result(err);
+  }
+
+  // Create Descriptor Set using ImGUI's implementation
+  *img_ds = ImGui_ImplVulkan_AddTexture(sampler, image_view, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+  // Create Upload Buffer
+  VkBuffer upload_buffer;
+  VkDeviceMemory upload_buffer_memory;
+  {
+    VkBufferCreateInfo buffer_info = {};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size = image_size;
+    buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    err = vkCreateBuffer(g_Device, &buffer_info, g_Allocator, &upload_buffer);
+    check_vk_result(err);
+    VkMemoryRequirements req;
+    vkGetBufferMemoryRequirements(g_Device, upload_buffer, &req);
+    VkMemoryAllocateInfo alloc_info = {};
+    alloc_info.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info.allocationSize = req.size;
+    alloc_info.memoryTypeIndex = findMemoryType(req.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT);
+    err = vkAllocateMemory(g_Device, &alloc_info, g_Allocator, &upload_buffer_memory);
+    check_vk_result(err);
+    err = vkBindBufferMemory(g_Device, upload_buffer, upload_buffer_memory, 0);
+    check_vk_result(err);
+  }
+
+  // Upload to Buffer:
+  {
+    void* map = NULL;
+    err = vkMapMemory(g_Device, upload_buffer_memory, 0, image_size, 0, &map);
+    check_vk_result(err);
+    memcpy(map, image_data, image_size);
+    VkMappedMemoryRange range[1] = {};
+    range[0].sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+    range[0].memory = upload_buffer_memory;
+    range[0].size = image_size;
+    err = vkFlushMappedMemoryRanges(g_Device, 1, range);
+    check_vk_result(err);
+    vkUnmapMemory(g_Device, upload_buffer_memory);
+  }
+
+  // Release image memory using stb
+  stbi_image_free(image_data);
+
+  // Create a command buffer that will perform following steps when hit in the command queue.
+  // TODO: this works in the example, but may need input if this is an acceptable way to access the pool/create the command buffer.
+  VkCommandPool command_pool = g_MainWindowData.Frames[g_MainWindowData.FrameIndex].CommandPool;
+  VkCommandBuffer command_buffer;
+  {
+    VkCommandBufferAllocateInfo alloc_info{};
+    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandPool = command_pool;
+    alloc_info.commandBufferCount = 1;
+
+    err = vkAllocateCommandBuffers(g_Device, &alloc_info, &command_buffer);
+    check_vk_result(err);
+
+    VkCommandBufferBeginInfo begin_info = {};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags |= VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    err = vkBeginCommandBuffer(command_buffer, &begin_info);
+    check_vk_result(err);
+  }
+
+  // Copy to Image
+  {
+    VkImageMemoryBarrier copy_barrier[1] = {};
+    copy_barrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    copy_barrier[0].dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    copy_barrier[0].oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    copy_barrier[0].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    copy_barrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    copy_barrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    copy_barrier[0].image = texture_image;
+    copy_barrier[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy_barrier[0].subresourceRange.levelCount = 1;
+    copy_barrier[0].subresourceRange.layerCount = 1;
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_HOST_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, copy_barrier);
+
+    VkBufferImageCopy region = {};
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.layerCount = 1;
+    region.imageExtent.width = *image_width;
+    region.imageExtent.height = *image_height;
+    region.imageExtent.depth = 1;
+    vkCmdCopyBufferToImage(command_buffer, upload_buffer, texture_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+    VkImageMemoryBarrier use_barrier[1] = {};
+    use_barrier[0].sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    use_barrier[0].srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    use_barrier[0].dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    use_barrier[0].oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    use_barrier[0].newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    use_barrier[0].srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    use_barrier[0].dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    use_barrier[0].image = texture_image;
+    use_barrier[0].subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    use_barrier[0].subresourceRange.levelCount = 1;
+    use_barrier[0].subresourceRange.layerCount = 1;
+    vkCmdPipelineBarrier(command_buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, use_barrier);
+  }
+
+  // End command buffer
+  {
+    VkSubmitInfo end_info = {};
+    end_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    end_info.commandBufferCount = 1;
+    end_info.pCommandBuffers = &command_buffer;
+    err = vkEndCommandBuffer(command_buffer);
+    check_vk_result(err);
+    err = vkQueueSubmit(g_Queue, 1, &end_info, VK_NULL_HANDLE);
+    check_vk_result(err);
+    err = vkDeviceWaitIdle(g_Device);
+    check_vk_result(err);
+  }
+
+  return true;
 }
 
 // Returns the names of the Vulkan layers used for the given IREE
@@ -571,7 +823,6 @@ extern "C" int iree_main(int argc, char** argv) {
   }
 
   // Demo state.
-  bool show_demo_window = true;
   bool show_iree_window = true;
   // --------------------------------------------------------------------------
 
@@ -638,14 +889,42 @@ extern "C" int iree_main(int argc, char** argv) {
 
   // Load bytecode module from embedded data.
   fprintf(stdout, "Loading simple_mul.mlir...\n");
+  /*
   const struct iree_file_toc_t* module_file_toc =
       iree_samples_vulkan_gui_simple_mul_bytecode_module_create();
+  */
+
+  iree_file_toc_t module_file_toc;
+  load_file("amd-resnet50.vmfb", &module_file_toc.data, &module_file_toc.size);
+  fprintf(stdout, "module size: %lu\n", module_file_toc.size);
+
+  static float input_res50[224*224*3];
+  static float output_res50[1000];
+
+  char filename[] = "dog_imagenet.jpg";
+  fprintf(stdout, "loading: %s\n", filename);
+  int x,y,n;
+  unsigned char *image_raw = stbi_load(filename, &x, &y, &n, 0);
+  fprintf(stdout, "res: %i x %i x %i\n", x, y, n);
+
+  for(int i=0;i<224*224*3;i++)
+  {
+    input_res50[i]= ((float)image_raw[i])/255.0f;
+  }
+
+  int my_image_width = 0;
+  int my_image_height = 0;
+  VkDescriptorSet my_image_texture = 0;
+  bool ret = LoadTextureFromFile(filename, &my_image_texture, &my_image_width, &my_image_height);
+  fprintf(stdout, "creating vulkan image: %s\n", ret ?"OK":"FAIL");
+  IM_ASSERT(ret);
+
   iree_vm_module_t* bytecode_module = nullptr;
   IREE_CHECK_OK(iree_vm_bytecode_module_create(
       iree_instance,
       iree_const_byte_span_t{
-          reinterpret_cast<const uint8_t*>(module_file_toc->data),
-          module_file_toc->size},
+          reinterpret_cast<const uint8_t*>(module_file_toc.data),
+          module_file_toc.size},
       iree_allocator_null(), iree_allocator_system(), &bytecode_module));
   // Query for details about what is in the loaded module.
   iree_vm_module_signature_t bytecode_module_signature =
@@ -675,7 +954,7 @@ extern "C" int iree_main(int argc, char** argv) {
 
   // Lookup the entry point function.
   iree_vm_function_t main_function;
-  const char kMainFunctionName[] = "module.simple_mul";
+  const char kMainFunctionName[] = "module.predict";
   IREE_CHECK_OK(iree_vm_context_resolve_function(
       iree_context,
       iree_string_view_t{kMainFunctionName, sizeof(kMainFunctionName) - 1},
@@ -722,43 +1001,20 @@ extern "C" int iree_main(int argc, char** argv) {
     ImGui_ImplSDL2_NewFrame(window);
     ImGui::NewFrame();
 
-    // Demo window.
-    if (show_demo_window) ImGui::ShowDemoWindow(&show_demo_window);
-
     // Custom window.
     {
-      ImGui::Begin("IREE Vulkan Integration Demo", &show_iree_window,
-                   ImGuiWindowFlags_AlwaysAutoResize);
+      ImGui::Begin("IREE Vulkan Integration Demo", &show_iree_window);
 
-      ImGui::Checkbox("Show ImGui Demo Window", &show_demo_window);
       ImGui::Separator();
 
       // ImGui Inputs for two input tensors.
       // Run computation whenever any of the values changes.
       static bool dirty = true;
-      static float input_x[] = {4.0f, 4.0f, 4.0f, 4.0f};
-      static float input_y[] = {2.0f, 2.0f, 2.0f, 2.0f};
-      static float latest_output[] = {0.0f, 0.0f, 0.0f, 0.0f};
-      ImGui::Text("Multiply numbers using IREE");
-      ImGui::PushItemWidth(60);
-      // clang-format off
-      if (ImGui::DragFloat("= x[0]", &input_x[0], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; } ImGui::SameLine();  // NOLINT
-      if (ImGui::DragFloat("= x[1]", &input_x[1], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; } ImGui::SameLine();  // NOLINT
-      if (ImGui::DragFloat("= x[2]", &input_x[2], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; } ImGui::SameLine();  // NOLINT
-      if (ImGui::DragFloat("= x[3]", &input_x[3], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; }                     // NOLINT
-      if (ImGui::DragFloat("= y[0]", &input_y[0], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; } ImGui::SameLine();  // NOLINT
-      if (ImGui::DragFloat("= y[1]", &input_y[1], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; } ImGui::SameLine();  // NOLINT
-      if (ImGui::DragFloat("= y[2]", &input_y[2], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; } ImGui::SameLine();  // NOLINT
-      if (ImGui::DragFloat("= y[3]", &input_y[3], 0.5f, 0.f, 0.f, "%.1f")) { dirty = true; }                     // NOLINT
-      // clang-format on
-      ImGui::PopItemWidth();
-
       if (dirty) {
         // Some input values changed, run the computation.
         // This is synchronous and doesn't reuse buffers for now.
 
         // Write inputs into mappable buffers.
-        constexpr iree_hal_dim_t kElementCount = 4;
         iree_hal_allocator_t* allocator =
             iree_hal_device_allocator(iree_vk_device);
         iree_hal_memory_type_t input_memory_type =
@@ -770,42 +1026,29 @@ extern "C" int iree_main(int argc, char** argv) {
         iree_hal_buffer_params_t buffer_params;
         buffer_params.type = input_memory_type;
         buffer_params.usage = input_buffer_usage;
-        // Wrap input buffers in buffer views.
+
+       // Wrap input buffers in buffer views.
+
         iree_hal_buffer_view_t* input0_buffer_view = nullptr;
-        iree_hal_buffer_view_t* input1_buffer_view = nullptr;
+        constexpr iree_hal_dim_t input_buffer_shape[] = {1, 224, 224, 3};
         IREE_CHECK_OK(iree_hal_buffer_view_allocate_buffer(
             allocator,
-            /*shape_rank=*/1, /*shape=*/&kElementCount,
+            /*shape_rank=*/4, /*shape=*/input_buffer_shape,
             IREE_HAL_ELEMENT_TYPE_FLOAT_32,
             IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR, buffer_params,
-            iree_make_const_byte_span(&input_x, sizeof(input_x)),
+            iree_make_const_byte_span(&input_res50, sizeof(input_res50)),
             &input0_buffer_view));
-        IREE_CHECK_OK(iree_hal_buffer_view_allocate_buffer(
-            allocator,
-            /*shape_rank=*/1, /*shape=*/&kElementCount,
-            IREE_HAL_ELEMENT_TYPE_FLOAT_32,
-            IREE_HAL_ENCODING_TYPE_DENSE_ROW_MAJOR, buffer_params,
-            iree_make_const_byte_span(&input_y, sizeof(input_y)),
-            &input1_buffer_view));
-        // Marshal inputs through a VM variant list.
-        // [arg0|arg1]
+
         vm::ref<iree_vm_list_t> inputs;
-        IREE_CHECK_OK(iree_vm_list_create(/*element_type=*/nullptr, 6,
-                                          iree_allocator_system(), &inputs));
-        auto input0_buffer_view_ref =
-            iree_hal_buffer_view_move_ref(input0_buffer_view);
-        auto input1_buffer_view_ref =
-            iree_hal_buffer_view_move_ref(input1_buffer_view);
-        IREE_CHECK_OK(
-            iree_vm_list_push_ref_move(inputs.get(), &input0_buffer_view_ref));
-        IREE_CHECK_OK(
-            iree_vm_list_push_ref_move(inputs.get(), &input1_buffer_view_ref));
+        IREE_CHECK_OK(iree_vm_list_create(/*element_type=*/nullptr, 6, iree_allocator_system(), &inputs));
+        auto input0_buffer_view_ref = iree_hal_buffer_view_move_ref(input0_buffer_view);
+        IREE_CHECK_OK(iree_vm_list_push_ref_move(inputs.get(), &input0_buffer_view_ref));
 
         // Prepare outputs list to accept results from the invocation.
+
         vm::ref<iree_vm_list_t> outputs;
-        IREE_CHECK_OK(iree_vm_list_create(/*element_type=*/nullptr,
-                                          kElementCount * sizeof(float),
-                                          iree_allocator_system(), &outputs));
+        constexpr iree_hal_dim_t kOutputCount = 1000;
+        IREE_CHECK_OK(iree_vm_list_create(/*element_type=*/nullptr, kOutputCount * sizeof(float), iree_allocator_system(), &outputs));
 
         // Synchronously invoke the function.
         IREE_CHECK_OK(iree_vm_invoke(iree_context, main_function,
@@ -815,22 +1058,39 @@ extern "C" int iree_main(int argc, char** argv) {
 
         // Read back the results.
         auto* output_buffer_view = reinterpret_cast<iree_hal_buffer_view_t*>(
-            iree_vm_list_get_ref_deref(outputs.get(), 0,
-                                       iree_hal_buffer_view_get_descriptor()));
+            iree_vm_list_get_ref_deref(outputs.get(),
+            0,
+            iree_hal_buffer_view_get_descriptor()));
         IREE_CHECK_OK(iree_hal_device_transfer_d2h(
-            iree_vk_device, iree_hal_buffer_view_buffer(output_buffer_view), 0,
-            latest_output, sizeof(latest_output),
+            iree_vk_device,
+            iree_hal_buffer_view_buffer(output_buffer_view),
+            0,
+            output_res50, sizeof(output_res50),
             IREE_HAL_TRANSFER_BUFFER_FLAG_DEFAULT, iree_infinite_timeout()));
 
-        dirty = false;
+        dirty = true;
       }
 
+      float max = 0.0f;
+      int max_idx = -1;
+      for(int i=0;i<1000;i++)
+      {
+        if (output_res50[i] > max)
+        {
+          max = output_res50[i];
+          max_idx = i;
+        }
+      }
+
+      ImGui::Text("pointer = %p", my_image_texture);
+      ImGui::Text("size = %d x %d", my_image_width, my_image_height);
+      ImGui::Image((ImTextureID)my_image_texture, ImVec2(my_image_width, my_image_height));
+
       // Display the latest computation output.
-      ImGui::Text("X * Y = [%f, %f, %f, %f]",
-                  latest_output[0],  //
-                  latest_output[1],  //
-                  latest_output[2],  //
-                  latest_output[3]);
+      ImGui::Text("Max   idx = [%i]", max_idx);
+      ImGui::Text("Max value = [%f]", max);
+
+      ImGui::PlotHistogram("Histogram", output_res50, IM_ARRAYSIZE(output_res50), 0, NULL, 0.0f, 1.0f, ImVec2(0,80));
       ImGui::Separator();
 
       // Framerate counter.
