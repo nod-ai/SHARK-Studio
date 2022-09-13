@@ -45,7 +45,7 @@ class RobertaBaseModuleTest(unittest.TestCase):
 
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
-        if device == "gpu":
+        if device == "cuda":
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/274")
         self.module_tester.create_and_check_module(dynamic, device)
 

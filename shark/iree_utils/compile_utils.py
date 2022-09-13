@@ -23,7 +23,7 @@ def get_iree_device_args(device):
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
         return get_iree_cpu_args()
-    if device in ["gpu", "cuda"]:
+    if device == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
