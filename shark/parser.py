@@ -38,7 +38,7 @@ parser.add_argument(
     "--device",
     type=str,
     default="cpu",
-    help="Device on which shark_runner runs. options are cpu, gpu, and vulkan",
+    help="Device on which shark_runner runs. options are cpu, cuda, and vulkan",
 )
 parser.add_argument(
     "--repro_dir",

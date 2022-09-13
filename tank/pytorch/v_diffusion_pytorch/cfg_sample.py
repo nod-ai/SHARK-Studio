@@ -235,7 +235,7 @@ mlir_model = module
 func_name = "forward"
 
 shark_module = SharkInference(
-    mlir_model, func_name, device="gpu", mlir_dialect="linalg"
+    mlir_model, func_name, device="cuda", mlir_dialect="linalg"
 )
 shark_module.compile()
 
