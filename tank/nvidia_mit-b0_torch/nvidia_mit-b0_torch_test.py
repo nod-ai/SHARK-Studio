@@ -49,7 +49,7 @@ class MitModuleTest(unittest.TestCase):
                 reason="Dynamic tests not supported. mlir file not found."
             )
 
-        if device in ["gpu", "cuda"]:
+        if device in ["cuda"]:
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
 
         self.module_tester.create_and_check_module(dynamic, device)

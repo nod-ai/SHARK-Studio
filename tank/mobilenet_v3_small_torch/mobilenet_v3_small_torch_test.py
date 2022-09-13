@@ -62,7 +62,7 @@ class MobileNetV3ModuleTest(unittest.TestCase):
 
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
-        if device == "gpu":
+        if device == "cuda":
             pytest.xfail(reason="golden results don't match.")
         elif device in ["vulkan", "metal"]:
             if dynamic == False:
