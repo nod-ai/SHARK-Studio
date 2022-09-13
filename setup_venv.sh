@@ -75,7 +75,9 @@ fi
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
-  $PYTHON -m pip install --find-links https://github.com/llvm/torch-mlir/releases torch-mlir --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+	$PYTHON -m pip install "$(python3 -c "import urllib.request, json, sys; \
+	        u=json.loads(urllib.request.urlopen('https://api.github.com/repos/llvm/torch-mlir/releases/latest').read().decode()).get('assets', False)[0]['browser_download_url'];\
+	 print(u) if u else sys.exit(1);")" 
   if [ $? -eq 0 ];then
     echo "Successfully Installed torch-mlir"
   else
@@ -110,7 +112,7 @@ if [[ ! -z "${IMPORTER}" ]]; then
   fi
 fi
 
-$PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/llvm/torch-mlir/releases -f https://github.com/${RUNTIME}/releases
+$PYTHON -m pip install -e . --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://github.com/${RUNTIME}/releases
 
 if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
