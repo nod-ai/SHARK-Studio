@@ -39,7 +39,6 @@ def run_cmd(cmd):
 
 IREE_DEVICE_MAP = {
     "cpu": "local-task",
-    "gpu": "cuda",
     "cuda": "cuda",
     "vulkan": "vulkan",
     "metal": "vulkan",
@@ -49,7 +48,6 @@ IREE_DEVICE_MAP = {
 
 IREE_TARGET_MAP = {
     "cpu": "llvm-cpu",
-    "gpu": "cuda",
     "cuda": "cuda",
     "vulkan": "vulkan",
     "metal": "vulkan",
@@ -60,7 +58,7 @@ IREE_TARGET_MAP = {
 # Finds whether the required drivers are installed for the given device.
 def check_device_drivers(device):
     """Checks necessary drivers present for gpu and vulkan devices"""
-    if device in ["gpu", "cuda"]:
+    if device == "cuda":
         try:
             subprocess.check_output("nvidia-smi")
         except Exception:
@@ -87,7 +85,7 @@ def check_device_drivers(device):
 
 # Installation info for the missing device drivers.
 def device_driver_info(device):
-    if device in ["gpu", "cuda"]:
+    if device == "cuda":
         return "nvidia-smi not found, please install the required drivers from https://www.nvidia.in/Download/index.aspx?lang=en-in"
     elif device in ["metal", "vulkan"]:
         return "vulkaninfo not found, Install from https://vulkan.lunarg.com/sdk/home or your distribution"
