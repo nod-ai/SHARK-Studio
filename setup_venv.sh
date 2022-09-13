@@ -117,7 +117,7 @@ if [[ ! -z "${IMPORTER}" ]]; then
   fi
 fi
 
-$PYTHON -m pip install -e . -f ${${TM_RELEASE_DIR}} -f https://github.com/${RUNTIME}/releases
+$PYTHON -m pip install -e . -f ${TM_RELEASE_DIR} -f https://github.com/${RUNTIME}/releases
 
 if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
