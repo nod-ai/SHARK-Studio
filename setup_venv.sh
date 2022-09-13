@@ -74,10 +74,8 @@ fi
 TM_HTML_URL="$(python3 -c "import urllib.request, json, sys; \
 	u=json.loads(urllib.request.urlopen('https://api.github.com/repos/llvm/torch-mlir/releases/latest').read().decode()).get('html_url', False);\
 	print(u) if u else sys.exit(1);")"
-TM_RELEASE_DOWNLOAD_DIR=`dirname ${TM_RELEASE_URL}`
-TM_RELEASE_DIR=${TM_HTML_URL/"tag/"/"expanded_assets"/}
-echo "TM_RELEASE_URL=${TM_RELEASE_URL}"
-echo "TM_RELEASE_DOWNLOAD_DIR=${TM_RELEASE_DOWNLOAD_DIR}"
+TM_RELEASE_DIR=${TM_HTML_URL/"tag"/"expanded_assets"}
+echo "TM_HTML_URL=${TM_HTML_URL}"
 echo "TM_RELEASE_DIR=${TM_RELEASE_DIR}"
 
 # Upgrade pip and install requirements.
