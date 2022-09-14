@@ -895,13 +895,13 @@ extern "C" int iree_main(int argc, char** argv) {
   */
 
   iree_file_toc_t module_file_toc;
-  load_file("amd-resnet50.vmfb", &module_file_toc.data, &module_file_toc.size);
+  load_file("resnet50_tf.vmfb", &module_file_toc.data, &module_file_toc.size);
   fprintf(stdout, "module size: %lu\n", module_file_toc.size);
 
   static float input_res50[224*224*3];
   static float output_res50[1000];
 
-  char filename[] = "dog_imagenet.jpg";
+  char filename[] = "vulkan_gui/dog_imagenet.jpg";
   fprintf(stdout, "loading: %s\n", filename);
   int x,y,n;
   unsigned char *image_raw = stbi_load(filename, &x, &y, &n, 0);
@@ -954,7 +954,7 @@ extern "C" int iree_main(int argc, char** argv) {
 
   // Lookup the entry point function.
   iree_vm_function_t main_function;
-  const char kMainFunctionName[] = "module.predict";
+  const char kMainFunctionName[] = "module.forward";
   IREE_CHECK_OK(iree_vm_context_resolve_function(
       iree_context,
       iree_string_view_t{kMainFunctionName, sizeof(kMainFunctionName) - 1},
