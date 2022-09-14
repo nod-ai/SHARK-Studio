@@ -28,7 +28,7 @@ include(FetchContent)
 FetchContent_Declare(
   iree
   GIT_REPOSITORY https://github.com/nod-ai/shark-runtime.git
-  GIT_TAG f5d84869cf4b745cc2461396978886e503861a88
+  GIT_TAG f394af17d00332621afdd422e8b05e7084d9141f
   GIT_SUBMODULES_RECURSE OFF
   GIT_SHALLOW OFF
   GIT_PROGRESS ON
