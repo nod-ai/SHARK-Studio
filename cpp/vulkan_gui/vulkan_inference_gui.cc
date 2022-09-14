@@ -723,7 +723,7 @@ namespace iree {
 extern "C" int iree_main(int argc, char** argv) {
 
   fprintf(stdout, "starting yo\n");
-  
+
   // --------------------------------------------------------------------------
   // Create a window.
   if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0) {
@@ -747,7 +747,7 @@ extern "C" int iree_main(int argc, char** argv) {
     abort();
     return 1;
   }
-  
+
   // Setup Vulkan
   iree_hal_vulkan_features_t iree_vulkan_features =
       static_cast<iree_hal_vulkan_features_t>(
@@ -898,10 +898,10 @@ extern "C" int iree_main(int argc, char** argv) {
                                        iree_allocator_system(), &hal_module));
 
 
-  // Load bytecode module 
+  // Load bytecode module
   iree_file_toc_t module_file_toc;
-  const char network_model[] = "amd-resnet50.vmfb";
-  fprintf(stdout, "Loading: %s\n", network_model); 
+  const char network_model[] = "resnet50_tf.vmfb";
+  fprintf(stdout, "Loading: %s\n", network_model);
   if (load_file(network_model, &module_file_toc.data, &module_file_toc.size) == false)
   {
       abort();
@@ -967,7 +967,7 @@ extern "C" int iree_main(int argc, char** argv) {
 
   // Lookup the entry point function.
   iree_vm_function_t main_function;
-  const char kMainFunctionName[] = "module.predict";
+  const char kMainFunctionName[] = "module.forward";
   IREE_CHECK_OK(iree_vm_context_resolve_function(
       iree_context,
       iree_string_view_t{kMainFunctionName, sizeof(kMainFunctionName) - 1},
@@ -975,7 +975,7 @@ extern "C" int iree_main(int argc, char** argv) {
   iree_string_view_t main_function_name = iree_vm_function_name(&main_function);
   fprintf(stdout, "Resolved main function named '%.*s'\n",
           (int)main_function_name.size, main_function_name.data);
-          
+
   // --------------------------------------------------------------------------
 
         // Write inputs into mappable buffers.
