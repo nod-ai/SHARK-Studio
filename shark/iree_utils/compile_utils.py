@@ -31,6 +31,10 @@ def get_iree_device_args(device):
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
         return get_iree_vulkan_args()
+    if device == "rocm":
+        from shark.iree_utils.gpu_utils import get_iree_rocm_args
+
+        return get_iree_rocm_args()
     return []
 
 
@@ -72,6 +76,8 @@ def compile_module_to_flatbuffer(
         input_type = frontend
     elif frontend in ["tflite", "tflite-tosa"]:
         input_type = "tosa"
+    elif frontend in ["tm_tensor"]:
+        input_type = frontend
 
     # TODO: make it simpler.
     # Compile according to the input type, else just try compiling.

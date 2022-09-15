@@ -35,6 +35,16 @@ def get_iree_gpu_args():
         return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
 
 
+# Get the default gpu args given the architecture.
+def get_iree_rocm_args():
+    ireert.flags.FUNCTION_INPUT_VALIDATION = False
+    # TODO: find a way to get arch from code.
+    rocm_arch = "gfx908"
+    return [f"--iree-rocm-target-chip={rocm_arch}",
+            "--iree-rocm-link-bc=true",
+            "--iree-rocm-bc-dir=/opt/rocm/amdgcn/bitcode"
+    ]
+
 # Some constants taken from cuda.h
 CUDA_SUCCESS = 0
 CU_DEVICE_ATTRIBUTE_MULTIPROCESSOR_COUNT = 16
