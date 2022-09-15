@@ -24,9 +24,9 @@ def get_iree_gpu_args():
     ireert.flags.parse_flags("--cuda_allow_inline_execution")
     # TODO: Give the user_interface to pass the sm_arch.
     sm_arch = get_cuda_sm_cc()
-    if (
-        sm_arch in ["sm_70", "sm_72", "sm_75", "sm_80", "sm_84", "sm_86"]
-    ) and (shark_args.enable_tf32 == True):
+    if (sm_arch in ["sm_70", "sm_72", "sm_75", "sm_80", "sm_84", "sm_86"]) and (
+        shark_args.enable_tf32 == True
+    ):
         return [
             "--iree-hal-cuda-disable-loop-nounroll-wa",
             f"--iree-hal-cuda-llvm-target-arch={sm_arch}",
@@ -40,10 +40,12 @@ def get_iree_rocm_args():
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
     # TODO: find a way to get arch from code.
     rocm_arch = "gfx908"
-    return [f"--iree-rocm-target-chip={rocm_arch}",
-            "--iree-rocm-link-bc=true",
-            "--iree-rocm-bc-dir=/opt/rocm/amdgcn/bitcode"
+    return [
+        f"--iree-rocm-target-chip={rocm_arch}",
+        "--iree-rocm-link-bc=true",
+        "--iree-rocm-bc-dir=/opt/rocm/amdgcn/bitcode",
     ]
+
 
 # Some constants taken from cuda.h
 CUDA_SUCCESS = 0
@@ -79,8 +81,7 @@ def get_cuda_sm_cc():
     if result != CUDA_SUCCESS:
         cuda.cuGetErrorString(result, ctypes.byref(error_str))
         print(
-            "cuInit failed with error code %d: %s"
-            % (result, error_str.value.decode())
+            "cuInit failed with error code %d: %s" % (result, error_str.value.decode())
         )
         return 1
     result = cuda.cuDeviceGetCount(ctypes.byref(nGpus))
@@ -113,9 +114,6 @@ def get_cuda_sm_cc():
             )
             == CUDA_SUCCESS
         ):
-            print(
-                "  Compute Capability: %d.%d"
-                % (cc_major.value, cc_minor.value)
-            )
+            print("  Compute Capability: %d.%d" % (cc_major.value, cc_minor.value))
     sm = f"sm_{cc_major.value}{cc_minor.value}"
     return sm
