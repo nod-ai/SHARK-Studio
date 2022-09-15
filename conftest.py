@@ -54,3 +54,27 @@ def pytest_addoption(parser):
         default="gs://shark_tank/latest",
         help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/latest",
     )
+    parser.addoption(
+        "--tuner_config",
+        type=str,
+        default=None,
+        help="Look for SHARK-tuned model MLIR with this tuning config. Either cpu, cuda, vulkan, or a target triple.",
+    )
+    parser.addoption(
+        "--set_fw_intraop_thread_count",
+        type=int,
+        default=1,
+        help="Ask PyTorch/TF to use this number of threads for intraop parallelism.",
+    )
+    parser.addoption(
+        "--set_fw_interop_thread_count",
+        type=int,
+        default=1,
+        help="Ask PyTorch/TF to use this number of threads for interop parallelism.",
+    )
+    parser.addoption(
+        "--set_iree_thread_count",
+        type=int,
+        default=None,
+        help="sets thread count for IREE benchmarks.",
+    )

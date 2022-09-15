@@ -98,6 +98,8 @@ class SharkBenchmarkRunner(SharkRunner):
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)
 
+        intra_thread_count = torch.get_num_threads()
+        inter_thread_count = torch.get_num_interop_threads()
         begin = time.time()
         for i in range(shark_args.num_iterations):
             out = frontend_model.forward(input)
@@ -110,6 +112,8 @@ class SharkBenchmarkRunner(SharkRunner):
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
+            f"{intra_thread_count}",
+            f"{inter_thread_count}",
         ]
 
     def benchmark_tf(self, modelname):
@@ -124,6 +128,12 @@ class SharkBenchmarkRunner(SharkRunner):
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(*input)
 
+        intra_thread_count = (
+            tf.config.threading.get_intra_op_parallelism_threads()
+        )
+        inter_thread_count = (
+            tf.config.threading.get_inter_op_parallelism_threads()
+        )
         begin = time.time()
         for i in range(shark_args.num_iterations):
             out = frontend_model.forward(*input)
@@ -136,13 +146,20 @@ class SharkBenchmarkRunner(SharkRunner):
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
+            f"{intra_thread_count}",
+            f"{inter_thread_count}",
         ]
 
     def benchmark_c(self):
         print(self.benchmark_cl)
         result = run_benchmark_module(self.benchmark_cl)
         print(f"Shark-IREE-C benchmark:{result} iter/second")
-        return [f"{result}", f"{1000/result}"]
+        return [
+            f"{result}",
+            f"{1000/result}",
+            f"{shark_args.iree_intraop_thread_count}",
+            f"{shark_args.iree_interop_thread_count}",
+        ]
 
     def benchmark_python(self, inputs):
         input_list = [x for x in inputs]
@@ -160,6 +177,8 @@ class SharkBenchmarkRunner(SharkRunner):
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
+            f"{shark_args.iree_intraop_thread_count}",
+            f"{shark_args.iree_interop_thread_count}",
         ]
 
     def benchmark_onnx(self, modelname, inputs):
@@ -249,19 +268,11 @@ for currently supported models. Exiting benchmark ONNX."
                     return [param_count, model_tags, model_notes]
 
     def compare_bench_results(self, baseline: str, result: str):
-        # Takes two numbers represented as strings and returns "<n>x slower/faster", as in "result is <n>x slower than baseline".
+        # Takes two numbers represented as strings and returns "Nx", meaning "is N times the speed of baseline".
         a = float(baseline)
         b = float(result)
-        if a < b:
-            # result slower than baseline
-            comparison = (b - a) / a
-            comp_str = f"{round(comparison, 2)}x slower"
-        elif a > b:
-            # result faster than baseline
-            comparison = a / b
-            comp_str = f"{round(comparison, 2)}x faster"
-        else:
-            comp_str = "equal"
+        compare = a / b
+        comp_str = f"{round(compare, 2)}x speed"
         return comp_str
 
     def benchmark_all_csv(
@@ -279,6 +290,8 @@ for currently supported models. Exiting benchmark ONNX."
             "ms/iter",
             "vs. PyTorch/TF",
             "iterations",
+            "intraop_thread_count",
+            "interop_thread_count",
             "param_count",
             "tags",
             "notes",
@@ -314,6 +327,8 @@ for currently supported models. Exiting benchmark ONNX."
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
+                        bench_result["intraop_thread_count"],
+                        bench_result["interop_thread_count"],
                     ) = self.benchmark_frontend(modelname)
                     self.frontend_result = bench_result["ms/iter"]
                     bench_result["vs. PyTorch/TF"] = "="
@@ -328,6 +343,8 @@ for currently supported models. Exiting benchmark ONNX."
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
+                        bench_result["intraop_thread_count"],
+                        bench_result["interop_thread_count"],
                     ) = self.benchmark_python(inputs)
 
                     bench_result[
@@ -341,6 +358,8 @@ for currently supported models. Exiting benchmark ONNX."
                     (
                         bench_result["iter/sec"],
                         bench_result["ms/iter"],
+                        bench_result["intraop_thread_count"],
+                        bench_result["interop_thread_count"],
                     ) = self.benchmark_c()
 
                     bench_result[

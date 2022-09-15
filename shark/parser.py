@@ -92,5 +92,47 @@ parser.add_argument(
     default="",
     help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
 )
+parser.add_argument(
+    "--tf_interop_thread_count",
+    default=1,
+    type=int,
+    action="store",
+    help="For benchmarks. Set the number of threads to be used for interop parallelism when generating TensorFlow baseline perf numbers.",
+)
+parser.add_argument(
+    "--tf_intraop_thread_count",
+    default=1,
+    type=int,
+    action="store",
+    help="For benchmarks. Set the number of threads to be used for intraop parallelism when generating TensorFlow baseline perf numbers.",
+)
+parser.add_argument(
+    "--torch_interop_thread_count",
+    default=1,
+    type=int,
+    action="store",
+    help="For benchmarks. Set the number of threads to be used for interop parallelism when generating PyTorch baseline perf numbers.",
+)
+parser.add_argument(
+    "--torch_intraop_thread_count",
+    default=1,
+    type=int,
+    action="store",
+    help="For benchmarks. Set the number of threads to be used for intraop parallelism when generating PyTorch baseline perf numbers.",
+)
+parser.add_argument(
+    "--iree_interop_thread_count",
+    default=None,
+    type=int,
+    action="store",
+    help="For benchmarks. Set the number of threads to be used for interop parallelism when generating IREE/SHARK perf numbers.",
+)
+parser.add_argument(
+    "--iree_intraop_thread_count",
+    default=None,
+    type=int,
+    action="store",
+    help="For benchmarks. Set the number of threads to be used for intraop parallelism when generating IREE/SHARK perf numbers.",
+)
 
 shark_args, unknown = parser.parse_known_args()

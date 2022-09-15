@@ -53,6 +53,7 @@ else:
         f"shark_tank local cache is located at {WORKDIR} . You may change this by setting the --local_tank_cache="
         " pytest flag"
     )
+print(WORKDIR)
 
 # Checks whether the directory and files exists.
 def check_dir_exists(model_name, frontend="torch", dynamic=""):
@@ -87,9 +88,28 @@ def check_dir_exists(model_name, frontend="torch", dynamic=""):
     return False
 
 
+def download_shark_model(
+    model_name,
+    dynamic=False,
+    tuned=None,
+    tank_url="gs://shark_tank/latest",
+    framework="",
+):
+    if framework == "torch":
+        return download_torch_model(model_name, dynamic, tuned, tank_url)
+    elif framework == "tf":
+        return download_tf_model(model_name, tuned, tank_url)
+    elif framework == "tflite":
+        return download_tflite_model(model_name, dynamic, tank_url)
+    else:
+        raise AssertionError(
+            "Framework not found. Please contact us on discord or file an issue."
+        )
+
+
 # Downloads the torch model from gs://shark_tank dir.
 def download_torch_model(
-    model_name, dynamic=False, tank_url="gs://shark_tank/latest"
+    model_name, dynamic=False, tuned=None, tank_url="gs://shark_tank/latest"
 ):
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""
@@ -136,9 +156,18 @@ def download_torch_model(
                 )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
-    with open(
-        os.path.join(model_dir, model_name + dyn_str + "_torch.mlir")
-    ) as f:
+    suffix = (
+        "_torch.mlir"
+        if tuned is None
+        else dyn_str + "_torch_" + tuned + ".mlir"
+    )
+    filename = os.path.join(model_dir, model_name + suffix)
+    if not os.path.isfile(filename):
+        filename = os.path.join(
+            model_dir, model_name + dyn_str + "_torch.mlir"
+        )
+
+    with open(filename) as f:
         mlir_file = f.read()
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))

@@ -5,6 +5,7 @@ from transformers import (
     BertTokenizer,
     TFBertModel,
 )
+from shark.parser import shark_args
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
@@ -53,6 +54,17 @@ img_models = [
 
 
 def get_tf_model(name):
+    from tensorflow.python.eager import context
+
+    context._context = None
+    context._create_context()
+
+    tf.config.threading.set_inter_op_parallelism_threads(
+        shark_args.tf_interop_thread_count
+    )
+    tf.config.threading.set_intra_op_parallelism_threads(
+        shark_args.tf_intraop_thread_count
+    )
     if name in keras_models:
         return get_keras_model(name)
     elif name in maskedlm_models:

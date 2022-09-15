@@ -17,6 +17,7 @@ from shark.iree_utils._common import run_cmd, IREE_DEVICE_MAP
 import numpy as np
 import os
 import re
+from shark.parser import shark_args
 
 UNIT_TO_SECOND_MAP = {"ms": 0.001, "s": 1}
 
@@ -70,6 +71,13 @@ def build_benchmark_args(
         fn_name = "train"
     benchmark_cl.append(f"--entry_function={fn_name}")
     benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
+    if shark_args.iree_intraop_thread_count is not None:
+        benchmark_cl.append(
+            f"--iree-codegen-llvm-number-of-threads={shark_args.iree_intraop_thread_count}"
+        )
+        benchmark_cl.append(
+            f"--task_topology_group_count={shark_args.iree_intraop_thread_count}"
+        )
     mlir_input_types = tensor_to_type_str(input_tensors, mlir_dialect)
     for mlir_input in mlir_input_types:
         benchmark_cl.append(f"--function_input={mlir_input}")

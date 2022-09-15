@@ -5,11 +5,7 @@ from shark.iree_utils._common import (
 )
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 from parameterized import parameterized
-from shark.shark_downloader import (
-    download_tf_model,
-    download_torch_model,
-    download_tflite_model,
-)
+from shark.shark_downloader import download_shark_model
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
 import iree.compiler as ireec
@@ -131,20 +127,13 @@ class SharkModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         shark_args.local_tank_cache = self.local_tank_cache
-        if self.config["framework"] == "tf":
-            model, func_name, inputs, golden_out = download_tf_model(
+        if self.config["framework"] in ["tf", "torch", "tflite"]:
+            model, func_name, inputs, golden_out = download_shark_model(
                 self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        elif self.config["framework"] == "torch":
-            model, func_name, inputs, golden_out = download_torch_model(
-                self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        elif self.config["framework"] == "tflite":
-            model, func_name, inputs, golden_out = download_tflite_model(
-                model_name=self.config["model_name"],
-                tank_url=self.tank_url,
+                dynamic,
+                self.tuner_config,
+                self.tank_url,
+                self.config["framework"],
             )
         else:
             model, func_name, inputs, golden_out = None, None, None, None
@@ -191,6 +180,11 @@ class SharkModuleTester:
             self.save_reproducers()
 
     def benchmark_module(self, shark_module, inputs, dynamic, device):
+        shark_args.torch_intraop_thread_count = self.intraop_thread_count
+        shark_args.torch_interop_thread_count = self.interop_thread_count
+        shark_args.tf_intraop_thread_count = self.intraop_thread_count
+        shark_args.tf_interop_thread_count = self.interop_thread_count
+        shark_args.iree_intraop_thread_count = self.iree_thread_count
         shark_args.enable_tf32 = self.tf32
         if shark_args.enable_tf32 == True:
             shark_module.compile()
@@ -267,6 +261,18 @@ class SharkModuleTest(unittest.TestCase):
             "local_tank_cache"
         )
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
+        self.module_tester.tuner_config = self.pytestconfig.getoption(
+            "tuner_config"
+        )
+        self.module_tester.intraop_thread_count = self.pytestconfig.getoption(
+            "set_fw_intraop_thread_count"
+        )
+        self.module_tester.interop_thread_count = self.pytestconfig.getoption(
+            "set_fw_interop_thread_count"
+        )
+        self.module_tester.iree_thread_count = self.pytestconfig.getoption(
+            "set_iree_thread_count"
+        )
         if (
             config["model_name"] == "distilbert-base-uncased"
             and config["framework"] == "torch"
