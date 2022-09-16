@@ -4,6 +4,8 @@ from shark.parser import shark_args
 import torch
 import numpy as np
 import sys
+from torch.fx.experimental.proxy_tensor import make_fx
+from torch._decomp import get_decompositions
 
 torch.manual_seed(0)
 
@@ -88,6 +90,16 @@ def get_hf_img_cls_model(name):
 
 
 ##################### Hugging Face LM Models ###################################
+def strip_overloads(gm):
+    """
+    Modifies the target of graph nodes in :attr:`gm` to strip overloads.
+    Args:
+        gm(fx.GraphModule): The input Fx graph module to be modified
+    """
+    for node in gm.graph.nodes:
+        if isinstance(node.target, torch._ops.OpOverload):
+            node.target = node.target.overloadpacket
+    gm.recompile()
 
 
 class HuggingFaceLanguage(torch.nn.Module):
@@ -120,6 +132,30 @@ def get_hf_model(name):
     # TODO: Currently the test input is set to (1,128)
     test_input = torch.randint(2, (1, 128))
     actual_out = model(test_input)
+
+    if name == "gpt2":
+        fx_g = make_fx(
+            model,
+            decomposition_table=get_decompositions(
+                [
+                    torch.ops.aten.embedding_dense_backward,
+                    torch.ops.aten.native_layer_norm_backward,
+                    torch.ops.aten.slice_backward,
+                    torch.ops.aten.select_backward,
+                    torch.ops.aten.norm.ScalarOpt_dim,
+                    torch.ops.aten.native_group_norm,
+                    torch.ops.aten.upsample_bilinear2d.vec,
+                    torch.ops.aten.split.Tensor,
+                    torch.ops.aten.split_with_sizes,
+                ]
+            ),
+        )(test_input)
+        # print(fx_g.graph)
+        fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
+        fx_g.recompile()
+        strip_overloads(fx_g)
+        model = torch.jit.script(fx_g)
+
     return model, test_input, actual_out
 
 
