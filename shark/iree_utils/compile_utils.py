@@ -72,6 +72,8 @@ def compile_module_to_flatbuffer(
         input_type = frontend
     elif frontend in ["tflite", "tflite-tosa"]:
         input_type = "tosa"
+    elif frontend in ["tm_tensor"]:
+        input_type = frontend
 
     # TODO: make it simpler.
     # Compile according to the input type, else just try compiling.

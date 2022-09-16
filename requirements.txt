@@ -8,7 +8,7 @@ tqdm
 gsutil
 
 # generate_sharktank
-transformers==4.18.0
+transformers==4.21.2
 
 # Testing
 pytest

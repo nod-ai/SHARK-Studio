@@ -16,3 +16,4 @@ microsoft/resnet-50,True,hf_img_cls,False,23M,"image-classification,cnn,residual
 facebook/deit-small-distilled-patch16-224,True,hf_img_cls,False,22M,"image-classification,vision-transformer,cnn",N/A
 microsoft/beit-base-patch16-224-pt22k-ft22k,True,hf_img_cls,False,86M,"image-classification,transformer-encoder,bert-variant,vision-transformer",N/A
 nvidia/mit-b0,True,hf_img_cls,False,3.7M,"image-classification,transformer-encoder",SegFormer
+bigscience/bloom-560m,True,hf,False,560M,"nlp,bloom-variant,transformer-encoder","bigscience bloom 560m"
