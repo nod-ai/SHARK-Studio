@@ -76,6 +76,11 @@ def check_device_drivers(device):
             return True
     elif device == "cpu":
         return False
+    elif device == "rocm":
+        try:
+            subprocess.check_output("rocminfo")
+        except Exception:
+            return True
     # Unknown device.
     else:
         return True
@@ -89,5 +94,7 @@ def device_driver_info(device):
         return "nvidia-smi not found, please install the required drivers from https://www.nvidia.in/Download/index.aspx?lang=en-in"
     elif device in ["metal", "vulkan"]:
         return "vulkaninfo not found, Install from https://vulkan.lunarg.com/sdk/home or your distribution"
+    elif device == "rocm":
+        return "rocm info not found. Please install rocm"
     else:
         return f"{device} is not supported."
