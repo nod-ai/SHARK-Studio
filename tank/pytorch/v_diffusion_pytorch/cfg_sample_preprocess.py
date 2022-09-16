@@ -70,6 +70,12 @@ p.add_argument(
 p.add_argument("--checkpoint", type=str, help="the checkpoint to use")
 p.add_argument("--device", type=str, help="the device to use")
 p.add_argument(
+    "--runtime_device",
+    type=str,
+    help="the device to use with SHARK",
+    default="intel-gpu",
+)
+p.add_argument(
     "--eta",
     type=float,
     default=0.0,
@@ -260,7 +266,7 @@ mlir_model = module
 func_name = "forward"
 
 shark_module = SharkInference(
-    mlir_model, func_name, device="intel-gpu", mlir_dialect="linalg"
+    mlir_model, func_name, device=args.runtime_device, mlir_dialect="linalg"
 )
 shark_module.compile()
 
