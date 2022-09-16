@@ -83,12 +83,12 @@ class SharkBenchmarkRunner(SharkRunner):
         import torch
         from tank.model_utils import get_torch_model
 
-        if self.device == "gpu":
+        if self.device == "cuda":
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
         else:
             torch.set_default_tensor_type(torch.FloatTensor)
         torch_device = torch.device(
-            "cuda:0" if self.device == "gpu" else "cpu"
+            "cuda:0" if self.device == "cuda" else "cpu"
         )
         HFmodel, input = get_torch_model(modelname)[:2]
         frontend_model = HFmodel.model
@@ -163,7 +163,7 @@ class SharkBenchmarkRunner(SharkRunner):
         ]
 
     def benchmark_onnx(self, modelname, inputs):
-        if self.device == "gpu":
+        if self.device == "cuda":
             print(
                 "Currently GPU benchmarking on ONNX is not supported in SHARK."
             )
@@ -186,7 +186,7 @@ https://github.com/microsoft/onnxruntime/blob/master/onnxruntime/python/tools/tr
 for currently supported models. Exiting benchmark ONNX."
                 )
                 return ["N/A", "N/A"]
-            use_gpu = self.device == "gpu"
+            use_gpu = self.device == "cuda"
             num_threads = psutil.cpu_count(logical=False)
             batch_sizes = [1]
             sequence_lengths = [128]

@@ -40,7 +40,7 @@ class FunnelModuleTest(unittest.TestCase):
 
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device):
-        if device in ["gpu", "metal", "vulkan"]:
+        if device in ["cuda", "metal", "vulkan"]:
             pytest.xfail(
                 reason="failing in the iree-compiler passes, see https://github.com/nod-ai/SHARK/issues/201"
             )

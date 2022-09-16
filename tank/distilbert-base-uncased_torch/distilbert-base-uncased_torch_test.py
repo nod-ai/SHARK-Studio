@@ -70,7 +70,7 @@ class DistilBertModuleTest(unittest.TestCase):
             pytest.skip(
                 reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"
             )
-        elif device == "gpu":
+        elif device == "cuda":
             if dynamic == False:
                 pytest.skip(
                     reason="Fails to lower in torch-mlir. See https://github.com/nod-ai/SHARK/issues/222"

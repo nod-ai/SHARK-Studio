@@ -38,7 +38,7 @@ parser.add_argument(
     "--device",
     type=str,
     default="cpu",
-    help="Device on which shark_runner runs. options are cpu, gpu, and vulkan",
+    help="Device on which shark_runner runs. options are cpu, cuda, and vulkan",
 )
 parser.add_argument(
     "--repro_dir",
@@ -80,6 +80,12 @@ parser.add_argument(
     "--shark_prefix",
     default="latest",
     help="gs://shark_tank/<this_flag>/model_directories",
+)
+parser.add_argument(
+    "--update_tank",
+    default=False,
+    action="store_true",
+    help="When enabled, SHARK downloader will update local shark_tank if local hash is different from latest upstream hash.",
 )
 
 shark_args, unknown = parser.parse_known_args()

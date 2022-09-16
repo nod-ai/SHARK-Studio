@@ -16,7 +16,7 @@ jobs:
       fail-fast: true
       matrix:
         os: [icelake, a100, MacStudio, ubuntu-latest]
-        suite: [cpu,gpu,vulkan]
+        suite: [cpu,cuda,vulkan]
         python-version: ["3.10"]
         include:
           - os: ubuntu-latest
@@ -25,11 +25,11 @@ jobs:
           - os: ubuntu-latest
             suite: vulkan
           - os: ubuntu-latest
-            suite: gpu
+            suite: cuda
           - os: ubuntu-latest
             suite: cpu
           - os: MacStudio
-            suite: gpu
+            suite: cuda
           - os: MacStudio
             suite: cpu
           - os: MacStudio
@@ -37,7 +37,7 @@ jobs:
           - os: icelake
             suite: vulkan
           - os: icelake
-            suite: gpu
+            suite: cuda
           - os: a100
             suite: cpu
 
@@ -84,7 +84,7 @@ jobs:
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py
 
-    - name: Validate CPU Models
+    - name: Validate Models on CPU
       if: matrix.suite == 'cpu'
       run: |
         cd $GITHUB_WORKSPACE
@@ -94,20 +94,20 @@ jobs:
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cpu_latest.csv
 
-    - name: Validate GPU Models
-      if: matrix.suite == 'gpu'
+    - name: Validate Models on NVIDIA GPU
+      if: matrix.suite == 'cuda'
       run: |
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --benchmark -k "gpu" --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
-        gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_gpu_${SHORT_SHA}.csv
-        gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_gpu_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_gpu_latest.csv
+        pytest --benchmark -k "cuda" --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py 
+        gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
+        gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cuda_latest.csv
 
     - name: Validate Vulkan Models
       if: matrix.suite == 'vulkan'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest -k 'vulkan' --ignore=shark/tests/test_shark_importer.py --ignore=benchmarks/tests/test_hf_benchmark.py --ignore=benchmarks/tests/test_benchmark.py

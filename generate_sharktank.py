@@ -13,6 +13,7 @@ import os
 import csv
 import argparse
 from shark.shark_importer import SharkImporter
+from shark.parser import shark_args
 import tensorflow as tf
 import subprocess as sp
 import hashlib
@@ -28,10 +29,6 @@ try:
 except:
     # Invalid device or cannot modify virtual devices once initialized.
     pass
-
-# All generated models and metadata will be saved under this directory.
-home = str(Path.home())
-WORKDIR = os.path.join(home, ".local/shark_tank/")
 
 
 def create_hash(file_name):
@@ -224,9 +221,21 @@ if __name__ == "__main__":
         default="./tank/tflite/tflite_model_list.csv",
         help="Contains the file with tf model name and args.",
     )
+    parser.add_argument(
+        "--ci_tank_dir",
+        type=bool,
+        default=False,
+    )
     parser.add_argument("--upload", type=bool, default=False)
 
     args = parser.parse_args()
+
+    home = str(Path.home())
+    if args.ci_tank_dir == True:
+        WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+    else:
+        WORKDIR = os.path.join(home, ".local/shark_tank/")
+
     if args.torch_model_csv:
         save_torch_model(args.torch_model_csv)
 
@@ -239,6 +248,4 @@ if __name__ == "__main__":
     if args.upload:
         git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
         print("uploading files to gs://shark_tank/" + git_hash)
-        os.system(
-            "gsutil cp -r ~/.local/shark_tank/* gs://shark_tank/" + git_hash
-        )
+        os.system(f"gsutil cp -r {WORKDIR}* gs://shark_tank/" + git_hash)
