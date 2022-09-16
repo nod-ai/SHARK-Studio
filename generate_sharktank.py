@@ -19,6 +19,8 @@ import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
+# import faulthandler
+# faulthandler.enable()
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
