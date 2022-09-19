@@ -1,7 +1,7 @@
 resnet50,mhlo,tf,1e-02,1e-3
 albert-base-v2,mhlo,tf,1e-02,1e-3
 roberta-base,mhlo,tf,1e-02,1e-3
-rembert,mhlo,tf,1e-02,1e-3
+google_rembert,mhlo,tf,1e-02,1e-3
 bert-base-uncased,mhlo,tf,1e-2,1e-3
 camembert-base,mhlo,tf,1e-2,1e-3
 dbmdz_convbert-base-turkish-cased,mhlo,tf,1e-2,1e-3
@@ -14,4 +14,4 @@ google_vit-base-patch16-224,mhlo,tf,1e-2,1e-3
 hf-internal-testing_tiny-random-flaubert,mhlo,tf,1e-2,1e-3
 microsoft_MiniLM-L12-H384-uncased,mhlo,tf,1e-2,1e-3
 microsoft_layoutlm-base-uncased,mhlo,tf,1e-2,1e-3
-microsoft_mpnet-base_tf,mhlo,tf,1e-2,1e-3
+microsoft_mpnet-base,mhlo,tf,1e-2,1e-3

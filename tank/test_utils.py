@@ -3,10 +3,11 @@ from shark.iree_utils._common import (
     device_driver_info,
     IREE_DEVICE_MAP,
 )
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 from parameterized import parameterized
 from shark.shark_downloader import download_tf_model
 from shark.shark_inference import SharkInference
-from shark.iree_utils._common import check_device_drivers, device_driver_info
+from shark.parser import shark_args
 import pytest
 import unittest
 import numpy as np
@@ -105,6 +106,8 @@ class SharkModuleTester():
         )
         shark_module.compile()
         result = shark_module.forward(inputs)
+        golden_out, result = self.postprocess_outputs(golden_out, result)
+
         np.testing.assert_allclose(golden_out, result, rtol=self.config["rtol"], atol=self.config["atol"])
 
         if self.benchmark == True:
@@ -114,9 +117,25 @@ class SharkModuleTester():
                 (inputs), self.config["model_name"], dynamic, device, "tensorflow"
             )
 
+    def postprocess_outputs(self, golden_out, result):
+        # Prepares result tensors of forward pass and golden values for comparison, when needed.
+        if self.config["model_name"] in ["google_vit-base-patch16-224", "facebook_convnext-tiny-224"]:
+            ir_device_array = result[0][1]
+            logits = ir_device_array.astype(ir_device_array.dtype)
+            logits = np.squeeze(logits, axis=0)
+            expected = golden_out[0]
+        elif self.config["model_name"] == "microsoft_MiniLM-L12-H384-uncased":
+            logits = result[0][1].to_host()
+            expected = golden_out
+        else:
+            logits = result
+            expected = golden_out
+    
+        return expected, logits
+
 class SharkModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
-    def configure(self, pytestconfig):
+    def configure(self, pytestconfig):    
         self.pytestconfig = pytestconfig
     param_list = get_valid_test_params()
 
@@ -125,7 +144,29 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester = SharkModuleTester(config)
         self.module_tester.benchmark = self.pytestconfig.getoption("benchmark")
         self.module_tester.onnx_bench = self.pytestconfig.getoption("onnx_bench")
-        if device in ["metal", "vulkan"]:
+        
+        if config["model_name"] == "facebook_convnext-tiny-224" and device == "cuda":
+            pytest.xfail(reason = "https://github.com/nod-ai/SHARK/issues/311")
+        if config["model_name"] == "google_vit-base-patch16-224" and device == "cuda":
+            pytest.xfail(reason = "https://github.com/nod-ai/SHARK/issues/311")
+        if config["model_name"] == "resnet50" and device in ["metal", "vulkan"]:
             if "m1-moltenvk-macos" in get_vulkan_triple_flag():
-                pytest.xfail(reason="M2: Assert error & M1: CompilerToolError")
+                pytest.xfail(reason = "M2: Assert Error & M1: CompilerToolError")
+        if config["model_name"] == "roberta-base" and device == "cuda":
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/274")
+        if config["model_name"] == "google_rembert":
+            pytest.skip(reason="Model too large to convert.")
+        if config["model_name"] == "dbmdz_convbert-base-turkish-cased" and device in ["metal", "vulkan"]:
+            pytest.xfail(
+                reason="Issue: https://github.com/iree-org/iree/issues/9971"
+            )
+        if config["model_name"] == "facebook/convnext-tiny-224" and device in ["cuda", "metal", "vulkan"]:
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311, https://github.com/nod-ai/SHARK/issues/342")
+        if config["model_name"] == "funnel-transformer_small" and device in ["cuda", "metal", "vulkan"]:
+            pytest.xfail(reason="failing in the iree-compiler passes, see https://github.com/nod-ai/SHARK/issues/201")
+        if config["model_name"] == "google_vit-base-patch16-224" and device == "cuda":
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
+        if config["model_name"] == "microsoft_mpnet-base":
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/203")
+
         self.module_tester.create_and_check_module(dynamic, device)
