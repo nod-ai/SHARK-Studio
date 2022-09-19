@@ -24,4 +24,3 @@ mkdir checkpoints
 wget https://the-eye.eu/public/AI/models/v-diffusion/cc12m_1_cfg.pth -P checkpoints/
 
 cp -r checkpoints/ v-diffusion-pytorch/
-cp cc12m_1.py v-diffusion-pytorch/diffusion/models/.

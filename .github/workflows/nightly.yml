@@ -50,12 +50,18 @@ jobs:
         body: |
           Automatic snapshot release of nod.ai SHARK.
         draft: true
-        prerelease: false        
+        prerelease: false
+    - name: Find Torch-MLIR Release
+      run: |
+        TM_HTML_URL="$(python3 -c "import urllib.request, json, sys; u=json.loads(urllib.request.urlopen('https://api.github.com/repos/llvm/torch-mlir/releases/latest').read().decode()).get('html_url', False); print(u) if u else sys.exit(1);")"
+        TM_RELEASE_DIR=${TM_HTML_URL/"tag"/"expanded_assets"}
+        echo "TM_RELEASE_DIR=${TM_RELEASE_DIR}" >> $GITHUB_ENV
     - name: Install dependencies
       run: |
+        echo "Torch-MLIR Release DIR is ${{ env.TM_RELEASE_DIR }}"
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest toml
-        if [ -f requirements.txt ]; then pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/nightly/cpu  -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases; fi
+        if [ -f requirements.txt ]; then pip install -r requirements.txt -f ${{ env.TM_RELEASE_DIR }} -f https://github.com/nod-ai/SHARK-Runtime/releases; fi
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -70,7 +76,7 @@ jobs:
         source iree.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://github.com/llvm/torch-mlir/releases -f https://github.com/iree-org/iree/releases
+        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f ${{ env.TM_RELEASE_DIR }} -f https://github.com/iree-org/iree/releases
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
@@ -94,7 +100,7 @@ jobs:
         source shark.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/SHARK-Runtime/releases
+        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f ${{ env.TM_RELEASE_DIR }} -f https://github.com/nod-ai/SHARK-Runtime/releases
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models

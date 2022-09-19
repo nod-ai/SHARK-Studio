@@ -31,6 +31,10 @@ def get_iree_device_args(device):
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
         return get_iree_vulkan_args()
+    if device == "rocm":
+        from shark.iree_utils.gpu_utils import get_iree_rocm_args
+
+        return get_iree_rocm_args()
     return []
 
 
