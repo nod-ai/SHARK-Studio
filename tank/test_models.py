@@ -114,15 +114,15 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
-        if self.config["framework"] is "tf":
+        if self.config["framework"] == "tf":
             model, func_name, inputs, golden_out = download_tf_model(
                 self.config["model_name"]
             )
-        elif self.config["framework"] is "torch":
+        elif self.config["framework"] == "torch":
             model, func_name, inputs, golden_out = download_torch_model(
                 self.config["model_name"]
             )
-        elif self.config["framework"] is "tflite":
+        elif self.config["framework"] == "tflite":
             model, func_name, inputs, golden_out = download_tflite_model(
                 model_name=self.config["model_name"]
             )
