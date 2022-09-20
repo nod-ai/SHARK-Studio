@@ -13,6 +13,7 @@ import os
 import csv
 import argparse
 from shark.shark_importer import SharkImporter
+from shark.examples.shark_training.bert_training import get_model_and_test_values
 from shark.parser import shark_args
 import tensorflow as tf
 import subprocess as sp
@@ -59,30 +60,59 @@ def save_torch_model(torch_model_list):
 
             model = None
             input = None
-            if model_type == "vision":
-                model, input, _ = get_vision_model(torch_model_name)
-            elif model_type == "hf":
-                model, input, _ = get_hf_model(torch_model_name)
-            elif model_type == "hf_img_cls":
-                model, input, _ = get_hf_img_cls_model(torch_model_name)
+            if model_type == "Training":
+                asm, np_inputs, train_func, func_name = None, None, None, None
+                #TODO {Dan}: replace this with a generic AutoModelForMaskedLM generator
+                if torch_model_name == "bert-large-uncased_training":
+                    (
+                        asm,
+                        np_inputs,
+                        train_func,
+                        func_name,
+                    ) = get_model_and_test_values()
 
-            torch_model_name = torch_model_name.replace("/", "_")
-            torch_model_dir = os.path.join(
-                WORKDIR, str(torch_model_name) + "_torch"
-            )
-            os.makedirs(torch_model_dir, exist_ok=True)
+                torch_model_name = torch_model_name.replace("/", "_")
+                torch_model_dir = os.path.join(
+                    WORKDIR, str(torch_model_name) + "_torch"
+                )
+                os.makedirs(torch_model_dir, exist_ok=True)
+                print("saving to:") 
+                print(torch_model_dir)
+                model_path = os.path.join(
+                    torch_model_dir, torch_model_name + "_torch" + ".mlir"
+                )
+                with open(model_path, "w+") as f:
+                    f.write(asm)
+                with open(os.path.join(torch_model_dir, "inputs.npz"), "wb") as f:
+                    [np.save(f, x.numpy()) for x in np_inputs]
+                np.save(os.path.join(torch_model_dir, "function_name"), np.array(func_name)) 
 
-            mlir_importer = SharkImporter(
-                model,
-                (input,),
-                frontend="torch",
-            )
-            mlir_importer.import_debug(
-                is_dynamic=False,
-                tracing_required=tracing_required,
-                dir=torch_model_dir,
-                model_name=torch_model_name,
-            )
+            else:
+                if model_type == "vision":
+                    model, input, _ = get_vision_model(torch_model_name)
+                elif model_type == "hf":
+                    model, input, _ = get_hf_model(torch_model_name)
+                elif model_type == "hf_img_cls":
+                    model, input, _ = get_hf_img_cls_model(torch_model_name)
+
+                torch_model_name = torch_model_name.replace("/", "_")
+                torch_model_dir = os.path.join(
+                    WORKDIR, str(torch_model_name) + "_torch"
+                )
+                os.makedirs(torch_model_dir, exist_ok=True)
+                print(torch_model_name)
+                print(model_type)
+                mlir_importer = SharkImporter(
+                    model,
+                    (input,),
+                    frontend="torch",
+                )
+                mlir_importer.import_debug(
+                    is_dynamic=False,
+                    tracing_required=tracing_required,
+                    dir=torch_model_dir,
+                    model_name=torch_model_name,
+                )
             mlir_hash = create_hash(
                 os.path.join(
                     torch_model_dir, torch_model_name + "_torch" + ".mlir"
@@ -239,11 +269,11 @@ if __name__ == "__main__":
     if args.torch_model_csv:
         save_torch_model(args.torch_model_csv)
 
-    if args.tf_model_csv:
-        save_tf_model(args.tf_model_csv)
+    # if args.tf_model_csv:
+    #    save_tf_model(args.tf_model_csv)
 
-    if args.tflite_model_csv:
-        save_tflite_model(args.tflite_model_csv)
+    # if args.tflite_model_csv:
+    #    save_tflite_model(args.tflite_model_csv)
 
     if args.upload:
         git_hash = sp.getoutput("git log -1 --format='%h'") + "/"

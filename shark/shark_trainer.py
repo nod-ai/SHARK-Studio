@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from shark.shark_importer import SharkImporter
 from shark.parser import shark_args
 from shark.shark_runner import SharkRunner
 from shark.backward_makefx import MakeFxModule
@@ -76,14 +77,15 @@ class SharkTrainer:
             # Returns the backward graph.
             training_graph = aot_module.training_graph
             weights = self.get_torch_params()
+            mlir_importer = SharkImporter(
+                training_graph, weights + self.input, "torch"
+            )
+
+            self.imported_mlir, func_name = mlir_importer.import_mlir(
+                is_dynamic=self.dynamic, tracing_required=self.jit_trace
+            )
             self.shark_runner = SharkRunner(
-                training_graph,
-                weights + self.input,
-                self.dynamic,
-                self.device,
-                self.jit_trace,
-                self.from_aot,
-                self.frontend,
+                self.imported_mlir, func_name, self.device, "tm_tensor"
             )
         elif self.frontend in ["tensorflow", "tf", "mhlo"]:
             self.shark_runner = SharkRunner(

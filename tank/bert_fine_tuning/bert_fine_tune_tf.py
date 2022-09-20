@@ -1,7 +1,6 @@
 import numpy as np
 
 from iree import runtime as ireert
-from iree.tf.support import module_utils
 from iree.compiler import tf as tfc
 from iree.compiler import compile_str
 
@@ -165,18 +164,21 @@ if __name__ == "__main__":
     BertCompiled = ctx.modules.module
 
     # compare output losses:
-
-    iterations = 10
+    start = time.time()
+    iterations = 100
     for i in range(iterations):
         example_inputs, example_labels = next(iter(glue_train))
         example_labels = tf.cast(example_labels, tf.int32)
         example_inputs = [value for key, value in example_inputs.items()]
 
         # iree version
-        iree_loss = BertCompiled.learn(
-            example_inputs, example_labels
-        ).to_host()
+        #        iree_loss = BertCompiled.learn(
+        #            example_inputs, example_labels
+        #        ).to_host()
 
         # base tensorflow
         tf_loss = np.array(bert_model.learn(example_inputs, example_labels))
-        print(np.allclose(iree_loss, tf_loss))
+    #        print(np.allclose(iree_loss, tf_loss))
+    end = time.time()
+    total = (end - start) * 1000
+    print("total time/iter (ms): " + str(total / iterations))

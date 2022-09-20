@@ -15,6 +15,7 @@
 import torch
 from torch._decomp import get_decompositions
 from torch.fx.experimental.proxy_tensor import make_fx
+from functorch._src.compile_utils import strip_overloads
 from torch.nn.utils import _stateless
 
 from torch import fx
@@ -69,6 +70,7 @@ class MakeFxModule:
         fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
         fx_g.recompile()
         fx_g = self.change_fx_graph_return_to_tuple(fx_g)
+        strip_overloads(fx_g)
         ts_g = torch.jit.script(fx_g)
         temp = tempfile.NamedTemporaryFile(
             suffix="_shark_ts", prefix="temp_ts_"
