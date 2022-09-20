@@ -72,7 +72,19 @@ def get_valid_test_params():
         for device in device_list
         for config in config_list
     ]
-    return param_list
+
+    filtered_param_list = [
+        params for params in param_list if is_valid_case(params)
+    ]
+
+    return filtered_param_list
+
+
+def is_valid_case(test_params):
+    if test_params[0] == True and test_params[2]["framework"] == "tf":
+        return False
+    else:
+        return True
 
 
 def shark_test_name_func(testcase_func, param_num, param):
