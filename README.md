@@ -97,38 +97,44 @@ pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_m
 
 </details>
 
-
 <details>
   <summary>Testing and Benchmarks</summary>
 
 ### Run all model tests on CPU/GPU/VULKAN/Metal
 ```shell
-pytest tank
+pytest tank/test_models.py
 
 # If on Linux for multithreading on CPU (faster results):
-pytest tank -n auto
+pytest tank/test_models.py -n auto
 ```
 
 ### Running specific tests
 ```shell
-# Run tests for a specific model:
-pytest tank/<MODEL_NAME> #i.e., pytest tank/bert-base-uncased
 
-# Run tests for a specific case:
-pytest tank/<MODEL_NAME> -k "keyword" 
-# i.e., pytest tank/bert-base-uncased/bert-base-uncased_test.py -k "static_gpu"
+# Search for test cases by including a keyword that matches all or part of the test case's name;
+pytest tank/test_models.py -k "keyword" 
 
-```
+# Test cases are named uniformly by format test_module_<model_name_underscores_only>_<torch/tf>_<static/dynamic>_<device>.
+
+# Example: Test all models on nvidia gpu:
+pytest tank/test_models.py -k "cuda"
+
+# Example: Test all tensorflow resnet models on Vulkan backend:
+pytest tank/test_models.py -k "resnet and tf and vulkan"
+
+# Exclude a test case:
+pytest tank/test_models.py -k "not ..."
 
 ### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
 
 (the following requires source installation with `IMPORTER=1 ./setup_venv.sh`)
 
 ```shell
-pytest --benchmark tank
+pytest --benchmark tank/test_models.py
   
 # Just do static GPU benchmarks for PyTorch tests:
-pytest --benchmark tank --ignore-glob="_tf*" -k "static_gpu"
+pytest --benchmark tank/test_models.py -k "pytorch and static and cuda"
+
 ```
   
 ### Benchmark Resnet50, MiniLM on CPU
@@ -142,10 +148,10 @@ cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | awk -F, '{print
 echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
 
 # Benchmark canonical Resnet50 on CPU via pytest
-pytest --benchmark tank/resnet50/ -k "cpu"
+pytest --benchmark tank/test_models -k "resnet50 and tf_static_cpu"
 
 # Benchmark canonical MiniLM on CPU via pytest
-pytest --benchmark tank/MiniLM-L12-H384-uncased/ -k "cpu"
+pytest --benchmark tank/test_models -k "MiniLM and cpu"
 
 # Benchmark MiniLM on CPU via transformer-benchmarks:
 git clone --recursive https://github.com/nod-ai/transformer-benchmarks.git
