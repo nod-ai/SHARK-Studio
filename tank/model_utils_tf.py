@@ -28,23 +28,27 @@ maskedlm_models = [
     "albert-base-v2",
     "bert-base-uncased",
     "camembert-base",
-    "convbert-base-turkish-cased",
+    "dbmdz/convbert-base-turkish-cased",
     "deberta-base",
     "distilbert-base-uncased",
-    "electra-small-discriminator",
-    "funnel-transformer",
-    "layoutlm-base-uncased",
+    "google/electra-small-discriminator",
+    "funnel-transformer/small",
+    "microsoft/layoutlm-base-uncased",
     "longformer-base-4096",
-    "mobilebert-uncased",
-    "mpnet-base",
-    "rembert",
+    "google/mobilebert-uncased",
+    "microsoft/mpnet-base",
+    "google/rembert",
     "roberta-base",
     "tapas-base",
-    "tiny-random-flaubert",
+    "hf-internal-testing/tiny-random-flaubert",
     "xlm-roberta",
 ]
 tfhf_models = [
     "microsoft/MiniLM-L12-H384-uncased",
+]
+img_models = [
+    "google/vit-base-patch16-224",
+    "facebook/convnext-tiny-224",
 ]
 
 
@@ -55,8 +59,12 @@ def get_tf_model(name):
         return get_causal_lm_model(name)
     elif name in tfhf_models:
         return get_TFhf_model(name)
-    else:
+    elif name in img_models:
         return get_causal_image_model(name)
+    else:
+        raise Exception(
+            "TF model not found! Please check that the modelname has been input correctly."
+        )
 
 
 ##################### Tensorflow Hugging Face LM Models ###################################

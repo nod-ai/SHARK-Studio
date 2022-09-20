@@ -16,11 +16,20 @@ vision_models = [
     "wide_resnet50_2",
     "mobilenet_v3_small",
 ]
+hf_img_cls_models = [
+    "google/vit-base-patch16-224",
+    "microsoft/resnet-50",
+    "facebook/deit-small-distilled-patch16-224",
+    "microsoft/beit-base-patch16-224-pt22k-ft22k",
+    "nvidia/mit-b0",
+]
 
 
 def get_torch_model(modelname):
     if modelname in vision_models:
         return get_vision_model(modelname)
+    elif modelname in hf_img_cls_models:
+        return get_hf_img_cls_model(modelname)
     else:
         return get_hf_model(modelname)
 
@@ -68,8 +77,8 @@ class HuggingFaceImageClassification(torch.nn.Module):
 def get_hf_img_cls_model(name):
     model = HuggingFaceImageClassification(name)
     # you can use preprocess_input_image to get the test_input or just random value.
-    # test_input = preprocess_input_image(name)
-    test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
+    test_input = preprocess_input_image(name)
+    # test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
     print("test_input.shape: ", test_input.shape)
     # test_input.shape:  torch.Size([1, 3, 224, 224])
     actual_out = model(test_input)
