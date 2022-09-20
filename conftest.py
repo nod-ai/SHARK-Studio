@@ -12,6 +12,12 @@ def pytest_addoption(parser):
         default="False",
         help="Add ONNX benchmark results to pytest benchmarks.",
     )
+    parser.addoption(
+        "--tf32",
+        action="store_true",
+        default="False",
+        help="Use TensorFloat-32 calculations.",
+    )
     # The following options are deprecated and pending removal.
     parser.addoption(
         "--save_mlir",

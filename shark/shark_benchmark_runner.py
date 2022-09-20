@@ -237,15 +237,15 @@ for currently supported models. Exiting benchmark ONNX."
             ]
 
     def get_metadata(self, modelname):
-        with open("./tank/pytorch/torch_model_list.csv", mode="r") as csvfile:
+        with open("./tank/model_metadata.csv", mode="r") as csvfile:
             torch_reader = csv.reader(csvfile, delimiter=",")
             fields = next(torch_reader)
             for row in torch_reader:
                 torch_model_name = row[0]
-                param_count = row[4]
-                model_tags = row[5]
-                model_notes = row[6]
                 if torch_model_name == modelname:
+                    param_count = row[3]
+                    model_tags = row[4]
+                    model_notes = row[5]
                     return [param_count, model_tags, model_notes]
 
     def compare_bench_results(self, baseline: str, result: str):
@@ -304,6 +304,11 @@ for currently supported models. Exiting benchmark ONNX."
             bench_result["device"] = device_str
             bench_result["data_type"] = inputs[0].dtype
             for e in engines:
+                (
+                    bench_result["param_count"],
+                    bench_result["tags"],
+                    bench_result["notes"],
+                ) = ["", "", ""]
                 if e == "frontend":
                     bench_result["engine"] = frontend
                     (
@@ -330,11 +335,6 @@ for currently supported models. Exiting benchmark ONNX."
                     ] = self.compare_bench_results(
                         self.frontend_result, bench_result["ms/iter"]
                     )
-                    (
-                        bench_result["param_count"],
-                        bench_result["tags"],
-                        bench_result["notes"],
-                    ) = ["", "", ""]
 
                 elif e == "shark_iree_c":
                     bench_result["engine"] = "shark_iree_c"
@@ -348,11 +348,6 @@ for currently supported models. Exiting benchmark ONNX."
                     ] = self.compare_bench_results(
                         self.frontend_result, bench_result["ms/iter"]
                     )
-                    (
-                        bench_result["param_count"],
-                        bench_result["tags"],
-                        bench_result["notes"],
-                    ) = ["", "", ""]
 
                 elif e == "onnxruntime":
                     bench_result["engine"] = "onnxruntime"
