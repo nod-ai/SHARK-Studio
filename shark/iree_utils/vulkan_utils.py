@@ -18,29 +18,30 @@ from shark.iree_utils._common import run_cmd
 
 
 def get_vulkan_triple_flag():
-    vulkan_device_cmd = "vulkaninfo | grep deviceName | awk 'END{{print $NF}}'"
+    vulkan_device_cmd = "vulkaninfo | grep deviceName"
     vulkan_device = run_cmd(vulkan_device_cmd).strip()
-    if vulkan_device == "Ultra":
-        print("Found MacStudio M1 Device. Using m1-moltenvk-macos")
+    if all(x in vulkan_device for x in ("Apple", "M1")):
+        print(f"Found {vulkan_device} Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "M2":
+    elif all(x in vulkan_device for x in ("Apple", "M2")):
         print("Found Apple M2 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "Max":
-        print("Found Apple M1 Max Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "Pro":
-        print("Found Apple M1 Pro Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "M1":
-        print("Found Apple M1 Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif vulkan_device == "A100-SXM4-40GB":
-        print("Found Nvidia Device. Using ampere-rtx3080-linux")
+    elif all(x in vulkan_device for x in ("A100", "SXM4")):
+        print(f"Found {vulkan_device} Device. Using ampere-rtx3080-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
-    elif vulkan_device == "3090":
-        print("Found Nvidia Device. Using ampere-rtx3090-linux")
+    elif all(x in vulkan_device for x in ("RTX", "3090")):
+        print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
+    elif any(x in vulkan_device for x in ("Radeon", "RX 5")):
+        print(
+            "Found AMD Radeon RX 5000 series device. Using rdna1-5700xt-linux"
+        )
+        return "-iree-vulkan-target-triple=rdna1-5700xt-linux"
+    elif all(x in vulkan_device for x in ("Radeon", "RX 6")):
+        print(
+            "Found AMD Radeon RX 6000 series device. Using rdna2-unknown-linux"
+        )
+        return "-iree-vulkan-target-triple=rdna2-unknown-linux"
     else:
         print(
             """Optimized kernel for your target device is not added yet.
