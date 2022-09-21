@@ -156,10 +156,10 @@ class SharkModuleTester:
         try:
             shark_module.compile()
         except:
-            if any([self.ci, self.save_repro]) == True:
+            if any([self.ci, self.save_repro, self.save_fails]) == True:
                 self.save_reproducers()
             if self.ci == True:
-                self.upload_repro()
+                self.upload_repro(self.ci_sha)
             raise
 
         result = shark_module.forward(inputs)
@@ -172,7 +172,7 @@ class SharkModuleTester:
                 atol=self.config["atol"],
             )
         except AssertionError:
-            if any([self.ci, self.save_repro]) == True:
+            if any([self.ci, self.save_repro, self.save_fails]) == True:
                 self.save_reproducers()
             if self.ci == True:
                 self.upload_repro()
@@ -250,11 +250,15 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.save_repro = self.pytestconfig.getoption(
             "save_repro"
         )
+        self.module_tester.save_fails = self.pytestconfig.getoption(
+            "save_fails"
+        )
         self.module_tester.onnx_bench = self.pytestconfig.getoption(
             "onnx_bench"
         )
         self.module_tester.tf32 = self.pytestconfig.getoption("tf32")
         self.module_tester.ci = self.pytestconfig.getoption("ci")
+        self.module_tester.ci_sha = self.pytestconfig.getoption("ci_sha")
         if (
             config["model_name"] == "facebook/convnext-tiny-224"
             and device == "cuda"

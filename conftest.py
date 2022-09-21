@@ -25,8 +25,20 @@ def pytest_addoption(parser):
         help="Pass option to save reproduction artifacts to SHARK/shark_tmp/test_case/",
     )
     parser.addoption(
+        "--save_fails",
+        action="store_true",
+        default="False",
+        help="Save reproduction artifacts for a test case only if it fails. Default is False.",
+    )
+    parser.addoption(
         "--ci",
         action="store_true",
         default="False",
-        help="Enables uploading of reproduction artifacts upon test case failure during iree-compile or validation.",
+        help="Enables uploading of reproduction artifacts upon test case failure during iree-compile or validation. Must be passed with --ci_sha option ",
+    )
+    parser.addoption(
+        "--ci_sha",
+        action="store",
+        default="None",
+        help="Passes the github SHA of the CI workflow to include in google storage directory for reproduction artifacts.",
     )
