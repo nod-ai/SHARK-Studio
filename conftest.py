@@ -18,22 +18,15 @@ def pytest_addoption(parser):
         default="False",
         help="Use TensorFloat-32 calculations.",
     )
-    # The following options are deprecated and pending removal.
     parser.addoption(
-        "--save_mlir",
+        "--save_repro",
         action="store_true",
         default="False",
-        help="Pass option to save input MLIR",
+        help="Pass option to save reproduction artifacts to SHARK/shark_tmp/test_case/",
     )
     parser.addoption(
-        "--save_vmfb",
+        "--ci",
         action="store_true",
         default="False",
-        help="Pass option to save IREE output .vmfb",
-    )
-    parser.addoption(
-        "--save_temps",
-        action="store_true",
-        default="False",
-        help="Saves IREE reproduction artifacts for filing upstream issues.",
+        help="Enables uploading of reproduction artifacts upon test case failure during iree-compile or validation.",
     )

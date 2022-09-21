@@ -12,10 +12,14 @@ from shark.shark_downloader import (
 )
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
+import iree.compiler as ireec
 import pytest
 import unittest
 import numpy as np
 import csv
+import tempfile
+import os
+import shutil
 
 
 def load_csv_and_convert(filename, gen=False):
@@ -148,31 +152,72 @@ class SharkModuleTester:
             mlir_dialect=self.config["dialect"],
             is_benchmark=self.benchmark,
         )
-        shark_module.compile()
+
+        try:
+            shark_module.compile()
+        except:
+            if any([self.ci, self.save_repro]) == True:
+                self.save_reproducers()
+            if self.ci == True:
+                self.upload_repro()
+            raise
+
         result = shark_module.forward(inputs)
         golden_out, result = self.postprocess_outputs(golden_out, result)
-
-        np.testing.assert_allclose(
-            golden_out,
-            result,
-            rtol=self.config["rtol"],
-            atol=self.config["atol"],
-        )
+        try:
+            np.testing.assert_allclose(
+                golden_out,
+                result,
+                rtol=self.config["rtol"],
+                atol=self.config["atol"],
+            )
+        except AssertionError:
+            if any([self.ci, self.save_repro]) == True:
+                self.save_reproducers()
+            if self.ci == True:
+                self.upload_repro()
+            if self.benchmark == True:
+                self.benchmark_module(shark_module, inputs, dynamic, device)
+            raise
 
         if self.benchmark == True:
-            shark_args.enable_tf32 = self.tf32
-            if shark_args.enable_tf32 == True:
-                shark_module.compile()
-                shark_args.enable_tf32 = False
+            self.benchmark_module(shark_module, inputs, dynamic, device)
 
-            shark_args.onnx_bench = self.onnx_bench
-            shark_module.shark_runner.benchmark_all_csv(
-                (inputs),
-                self.config["model_name"],
-                dynamic,
-                device,
-                self.config["framework"],
-            )
+        if self.save_repro == True:
+            self.save_reproducers()
+
+    def benchmark_module(self, shark_module, inputs, dynamic, device):
+        shark_args.enable_tf32 = self.tf32
+        if shark_args.enable_tf32 == True:
+            shark_module.compile()
+            shark_args.enable_tf32 = False
+
+        shark_args.onnx_bench = self.onnx_bench
+        shark_module.shark_runner.benchmark_all_csv(
+            (inputs),
+            self.config["model_name"],
+            dynamic,
+            device,
+            self.config["framework"],
+        )
+
+    def save_reproducers(self):
+        # Saves contents of IREE TempFileSaver temporary directory to ./shark_tmp/saved/<test_case>.
+        src = self.temp_dir
+        trg = f"./shark_tmp/saved/{self.tmp_prefix}"
+        if not os.path.isdir("./shark_tmp/saved/"):
+            os.mkdir("./shark_tmp/saved/")
+        if not os.path.isdir(trg):
+            os.mkdir(trg)
+        files = os.listdir(src)
+        for fname in files:
+            shutil.copy2(os.path.join(src, fname), trg)
+
+    def upload_repro(self):
+        import subprocess
+
+        bashCommand = f"gsutil cp -r ./shark_tmp/saved/{self.tmp_prefix}/* gs://shark-public/builder/repro_artifacts/"
+        process = subprocess.run(bashCommand.split())
 
     def postprocess_outputs(self, golden_out, result):
         # Prepares result tensors of forward pass and golden values for comparison, when needed.
@@ -202,11 +247,14 @@ class SharkModuleTest(unittest.TestCase):
     def test_module(self, dynamic, device, config):
         self.module_tester = SharkModuleTester(config)
         self.module_tester.benchmark = self.pytestconfig.getoption("benchmark")
+        self.module_tester.save_repro = self.pytestconfig.getoption(
+            "save_repro"
+        )
         self.module_tester.onnx_bench = self.pytestconfig.getoption(
             "onnx_bench"
         )
         self.module_tester.tf32 = self.pytestconfig.getoption("tf32")
-
+        self.module_tester.ci = self.pytestconfig.getoption("ci")
         if (
             config["model_name"] == "facebook/convnext-tiny-224"
             and device == "cuda"
@@ -277,4 +325,18 @@ class SharkModuleTest(unittest.TestCase):
                 reason="Dynamic shapes not supported for this framework."
             )
 
-        self.module_tester.create_and_check_module(dynamic, device)
+        safe_name = (
+            f"{config['model_name']}_{config['framework']}_{dynamic}_{device}"
+        )
+        self.module_tester.tmp_prefix = safe_name.replace("/", "_")
+
+        if not os.path.isdir("./shark_tmp/"):
+            os.mkdir("./shark_tmp/")
+
+        tempdir = tempfile.TemporaryDirectory(
+            prefix=self.module_tester.tmp_prefix, dir="./shark_tmp/"
+        )
+        self.module_tester.temp_dir = tempdir.name
+
+        with ireec.tools.TempFileSaver(tempdir.name):
+            self.module_tester.create_and_check_module(dynamic, device)
