@@ -177,16 +177,16 @@ class SharkModuleTester:
             if self.ci == True:
                 self.upload_repro()
             if self.benchmark == True:
-                self.benchmark_module(inputs, dynamic, device)
+                self.benchmark_module(shark_module, inputs, dynamic, device)
             raise
 
         if self.benchmark == True:
-            self.benchmark_module(inputs, dynamic, device)
+            self.benchmark_module(shark_module, inputs, dynamic, device)
 
         if self.save_repro == True:
             self.save_reproducers()
 
-    def benchmark_module(self, inputs, dynamic, device):
+    def benchmark_module(self, shark_module, inputs, dynamic, device):
         shark_args.enable_tf32 = self.tf32
         if shark_args.enable_tf32 == True:
             shark_module.compile()
