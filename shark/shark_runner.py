@@ -16,6 +16,7 @@ from shark.iree_utils.compile_utils import (
     get_iree_compiled_module,
     get_results,
     export_iree_module_to_vmfb,
+    load_flatbuffer,
 )
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.parser import shark_args
@@ -60,10 +61,11 @@ class SharkRunner:
 
     def __init__(
         self,
-        mlir_module: str,
+        mlir_module: str = "none",
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
+        compile_vmfb: bool = True,
     ):
         self.mlir_module = mlir_module
         self.function_name = function_name
@@ -74,16 +76,17 @@ class SharkRunner:
             device_driver_info(self.device)
             sys.exit(1)
 
-        # Compile the module to get the .vmfb.
-        (
-            self.iree_compilation_module,
-            self.iree_config,
-        ) = get_iree_compiled_module(
-            self.mlir_module,
-            self.device,
-            self.mlir_dialect,
-            func_name=self.function_name,
-        )
+        if compile_vmfb == True:
+            # Compile the module to get the .vmfb.
+            (
+                self.iree_compilation_module,
+                self.iree_config,
+            ) = get_iree_compiled_module(
+                self.mlir_module,
+                self.device,
+                self.mlir_dialect,
+                func_name=self.function_name,
+            )
 
     def run(self, inputs: tuple):
         return get_results(
@@ -91,11 +94,4 @@ class SharkRunner:
             inputs,
             self.iree_config,
             self.mlir_dialect,
-        )
-
-    # TODO: Instead of passing directory and having names decided by the module
-    # , user may want to save the module with manual names.
-    def save_module(self, dir=os.getcwd()):
-        return export_iree_module_to_vmfb(
-            self.model, self.device, dir, self.mlir_dialect
         )
