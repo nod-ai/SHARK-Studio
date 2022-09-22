@@ -9,7 +9,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from shark.iree_utils.compile_utils import (
+    export_iree_module_to_vmfb,
+    load_flatbuffer,
+)
+import os
 from shark.shark_runner import SharkRunner
+from shark.parser import shark_args
 import numpy as np
 
 
@@ -65,7 +71,7 @@ class SharkInference:
     ):
         self.mlir_module = mlir_module
         self.function_name = function_name
-        self.device = device
+        self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.is_benchmark = is_benchmark
 
@@ -135,3 +141,31 @@ class SharkInference:
                 )
             )
         return tuple(inputs)
+
+    # TODO: Instead of passing directory and having names decided by the module
+    # , user may want to save the module with manual names.
+    def save_module(self, dir=os.getcwd()):
+        return export_iree_module_to_vmfb(
+            self.mlir_module,
+            self.device,
+            dir,
+            self.mlir_dialect,
+            self.function_name,
+        )
+
+    # load and return the module.
+    def load_module(self, path):
+        self.shark_runner = SharkRunner(
+            function_name=self.function_name,
+            device=self.device,
+            compile_vmfb=False,
+        )
+        (
+            self.shark_runner.iree_compilation_module,
+            self.shark_runner.iree_config,
+        ) = load_flatbuffer(
+            path,
+            self.device,
+            self.function_name,
+        )
+        return

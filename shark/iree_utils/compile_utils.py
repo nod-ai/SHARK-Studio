@@ -128,6 +128,16 @@ def get_iree_compiled_module(
     return get_iree_module(flatbuffer_blob, device, func_name)
 
 
+def load_flatbuffer(
+    flatbuffer_path: str, device: str, func_name: str = "forward"
+):
+
+    with open(os.path.join(flatbuffer_path), "rb") as f:
+        flatbuffer_blob = f.read()
+
+    return get_iree_module(flatbuffer_blob, device, func_name)
+
+
 def export_iree_module_to_vmfb(
     module,
     device: str,
