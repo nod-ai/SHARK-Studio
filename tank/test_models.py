@@ -260,6 +260,11 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.ci = self.pytestconfig.getoption("ci")
         self.module_tester.ci_sha = self.pytestconfig.getoption("ci_sha")
         if (
+            config["model_name"] == "distilbert-base-uncased" 
+            and config["framework"] == "torch"
+        ):
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/354")
+        if (
             config["model_name"] == "facebook/convnext-tiny-224"
             and device == "cuda"
         ):
