@@ -17,6 +17,7 @@
 #include <cstring>
 #include <set>
 #include <vector>
+#include <fstream>
 
 #include "iree/hal/drivers/vulkan/api.h"
 
@@ -915,14 +916,20 @@ extern "C" int iree_main(int argc, char** argv) {
   char filename[] = "dog_imagenet.jpg";
   fprintf(stdout, "loading: %s\n", filename);
   int x,y,n;
-  unsigned char *image_raw = stbi_load(filename, &x, &y, &n, 3);
+  //unsigned char *image_raw = stbi_load(filename, &x, &y, &n, 3);
+  stbi_load(filename, &x, &y, &n, 3);
   fprintf(stdout, "res: %i x %i x %i\n", x, y, n);
+
+  /* Preprocessing needs to go here. For now use a buffer preprocessed in python.
 
   //convert image into floating point format
   for(int i=0;i<224*224*3;i++)
   {
     input_res50[i]= ((float)image_raw[i])/255.0f;
-  }
+  }*/
+
+  std::ifstream fin("dog.bin", std::ifstream::in | std::ifstream::binary);
+  fin.read((char*)input_res50, 224*224*3*sizeof(float));
 
   // load image again so imgui can display it
   int my_image_width = 0;
@@ -1060,7 +1067,7 @@ extern "C" int iree_main(int argc, char** argv) {
 
       // ImGui Inputs for two input tensors.
       // Run computation whenever any of the values changes.
-      static bool dirty = false;
+      static bool dirty = true;
       if (dirty) {
 
         // Synchronously invoke the function.

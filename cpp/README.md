@@ -42,6 +42,16 @@ cmake --build build/
 wget https://storage.googleapis.com/shark_tank/latest/resnet50_tf/resnet50_tf.mlir
 iree-compile --iree-input-type=mhlo --iree-vm-bytecode-module-output-format=flatbuffer-binary --iree-hal-target-backends=vulkan --iree-llvm-embedded-linker-path=`python3 -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])'`/iree/compiler/tools/../_mlir_libs/iree-lld --mlir-print-debuginfo --mlir-print-op-on-diagnostic=false --mlir-pass-pipeline-crash-reproducer=ist/core-reproducer.mlir --iree-llvm-target-cpu-features=host -iree-vulkan-target-triple=rdna2-unknown-linux --iree-stream-resource-index-bits=64 --iree-vm-target-index-bits=64 resnet50_tf.mlir -o resnet50_tf.vmfb
 ```
+*Prepare the input*
+
+```bash
+python save_img.py
+```
+Note that this requires tensorflow, e.g.
+```bash
+python -m pip install tensorflow
+```
+
 *Run the vulkan_gui*
 ```bash
 ./build/vulkan_gui/iree-samples-vulkan-gui
