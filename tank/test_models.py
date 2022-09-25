@@ -132,15 +132,18 @@ class SharkModuleTester:
     def create_and_check_module(self, dynamic, device):
         if self.config["framework"] == "tf":
             model, func_name, inputs, golden_out = download_tf_model(
-                self.config["model_name"]
+                self.config["model_name"],
+                tank_url=self.tank_url,
             )
         elif self.config["framework"] == "torch":
             model, func_name, inputs, golden_out = download_torch_model(
-                self.config["model_name"]
+                self.config["model_name"],
+                tank_url=self.tank_url,
             )
         elif self.config["framework"] == "tflite":
             model, func_name, inputs, golden_out = download_tflite_model(
-                model_name=self.config["model_name"]
+                model_name=self.config["model_name"],
+                tank_url=self.tank_url,
             )
         else:
             model, func_name, inputs, golden_out = None, None, None, None
@@ -259,6 +262,7 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.tf32 = self.pytestconfig.getoption("tf32")
         self.module_tester.ci = self.pytestconfig.getoption("ci")
         self.module_tester.ci_sha = self.pytestconfig.getoption("ci_sha")
+        self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
         if (
             config["model_name"] == "facebook/convnext-tiny-224"
             and device == "cuda"
