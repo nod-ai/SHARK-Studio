@@ -6,14 +6,15 @@ import gradio as gr
 shark_web = gr.Blocks()
 
 with shark_web:
-    with gr.Row():
-        with gr.Column():
+    gr.Markdown("Shark Models Demo.")
+    with gr.Tabs():
+        with gr.TabItem("ResNet50"):
             with gr.Group():
                 image = gr.Image(label="Image")
                 label = gr.Label(label="Output")
                 resnet = gr.Button("Recognize Image")
                 resnet.click(resnet_inf, inputs=image, outputs=label)
-        with gr.Column():
+        with gr.TabItem("Albert MaskFill"):
             with gr.Group():
                 masked_text = gr.Textbox(
                     label="Masked Text",
@@ -26,7 +27,7 @@ with shark_web:
                     inputs=masked_text,
                     outputs=decoded_res,
                 )
-        with gr.Column():
+        with gr.TabItem("V-Diffusion"):
             with gr.Group():
                 prompt = gr.Textbox(
                     label="Prompt", value="New York City, oil on canvas:5"
@@ -34,12 +35,13 @@ with shark_web:
                 sample_count = gr.Number(label="Sample Count", value=1)
                 batch_size = gr.Number(label="Batch Size", value=1)
                 iters = gr.Number(label="Steps", value=2)
+                device = gr.Textbox(label="Device", value="gpu")
                 v_diffusion = gr.Button("Generate image from prompt")
                 generated_img = gr.Image(type="pil", shape=(100, 100))
                 v_diffusion.click(
                     vdiff_inf,
-                    inputs=[prompt, sample_count, batch_size, iters],
+                    inputs=[prompt, sample_count, batch_size, iters, device],
                     outputs=generated_img,
                 )
 
-shark_web.launch(share=True, server_port=8080)
+shark_web.launch(share=True, server_port=8080, enable_queue=True)

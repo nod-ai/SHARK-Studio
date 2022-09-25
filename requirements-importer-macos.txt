@@ -26,6 +26,9 @@ tensorflow-probability
 # tflitehub dependencies.
 Pillow
 
+# web dependecies.
+gradio
+
 # Testing and support.
 #lit
 #pyyaml

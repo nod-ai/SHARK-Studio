@@ -30,6 +30,9 @@ lit
 pyyaml
 python-dateutil
 
+# web dependecies.
+gradio
+
 #ONNX and ORT for benchmarking
 #--extra-index-url https://test.pypi.org/simple/
 #protobuf
