@@ -278,8 +278,6 @@ class SharkModuleTest(unittest.TestCase):
                     pytest.xfail(
                         reason="M2: Assert Error & M1: CompilerToolError"
                     )
-        if config["model_name"] == "roberta-base" and device == "cuda":
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/274")
         if config["model_name"] == "google/rembert":
             pytest.skip(reason="Model too large to convert.")
         if config[
