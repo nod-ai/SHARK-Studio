@@ -30,6 +30,7 @@ p.add_argument(
 p.add_argument("--device", type=str, default="cpu", help="the device to use")
 p.add_argument("--steps", type=int, default=10, help="the device to use")
 p.add_argument("--mlir_loc", type=str, default=None, help="the device to use")
+p.add_argument("--vae_loc", type=str, default=None, help="the device to use")
 args = p.parse_args()
 
 #####################################################
@@ -46,7 +47,7 @@ def load_mlir(mlir_loc):
     return mlir_module
 
 
-def compile_through_fx(model, inputs, mlir_loc=None):
+def compile_through_fx(model, inputs, mlir_loc=None, extra_args=[]):
 
     module = load_mlir(mlir_loc)
     if mlir_loc == None:
@@ -97,9 +98,12 @@ def compile_through_fx(model, inputs, mlir_loc=None):
     func_name = "forward"
 
     shark_module = SharkInference(
-        mlir_model, func_name, device=args.device, mlir_dialect="tm_tensor"
+        mlir_model,
+        func_name,
+        device=args.device,
+        mlir_dialect="tm_tensor",
     )
-    shark_module.compile()
+    shark_module.compile(extra_args)
 
     return shark_module
 
@@ -135,7 +139,7 @@ if __name__ == "__main__":
 
     vae = VaeModel()
     vae_input = torch.rand(1, 4, 64, 64)
-    shark_vae = compile_through_fx(vae, (vae_input,))
+    shark_vae = compile_through_fx(vae, (vae_input,), args.vae_loc)
 
     # Wrap the unet model to return tuples.
     class UnetModel(torch.nn.Module):
@@ -160,6 +164,7 @@ if __name__ == "__main__":
         unet,
         (latent_model_input, torch.tensor([1.0]), text_embeddings),
         args.mlir_loc,
+        ["--iree-flow-enable-conv-nchw-to-nhwc-transform"],
     )
 
     # torch.jit.script(unet)

@@ -130,17 +130,22 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
+        shark_args.local_tank_cache = self.local_tank_cache
+        shark_args.update_tank = self.update_tank
         if self.config["framework"] == "tf":
             model, func_name, inputs, golden_out = download_tf_model(
-                self.config["model_name"]
+                self.config["model_name"],
+                tank_url=self.tank_url,
             )
         elif self.config["framework"] == "torch":
             model, func_name, inputs, golden_out = download_torch_model(
-                self.config["model_name"]
+                self.config["model_name"],
+                tank_url=self.tank_url,
             )
         elif self.config["framework"] == "tflite":
             model, func_name, inputs, golden_out = download_tflite_model(
-                model_name=self.config["model_name"]
+                model_name=self.config["model_name"],
+                tank_url=self.tank_url,
             )
         else:
             model, func_name, inputs, golden_out = None, None, None, None
@@ -159,7 +164,7 @@ class SharkModuleTester:
             if any([self.ci, self.save_repro, self.save_fails]) == True:
                 self.save_reproducers()
             if self.ci == True:
-                self.upload_repro(self.ci_sha)
+                self.upload_repro()
             raise
 
         result = shark_module.forward(inputs)
@@ -216,7 +221,7 @@ class SharkModuleTester:
     def upload_repro(self):
         import subprocess
 
-        bashCommand = f"gsutil cp -r ./shark_tmp/saved/{self.tmp_prefix}/* gs://shark-public/builder/repro_artifacts/"
+        bashCommand = f"gsutil cp -r ./shark_tmp/saved/{self.tmp_prefix}/* gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         process = subprocess.run(bashCommand.split())
 
     def postprocess_outputs(self, golden_out, result):
@@ -259,6 +264,13 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.tf32 = self.pytestconfig.getoption("tf32")
         self.module_tester.ci = self.pytestconfig.getoption("ci")
         self.module_tester.ci_sha = self.pytestconfig.getoption("ci_sha")
+        self.module_tester.local_tank_cache = self.pytestconfig.getoption(
+            "local_tank_cache"
+        )
+        self.module_tester.update_tank = self.pytestconfig.getoption(
+            "update_tank"
+        )
+        self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
         if (
             config["model_name"] == "distilbert-base-uncased"
             and config["framework"] == "torch"
@@ -283,8 +295,6 @@ class SharkModuleTest(unittest.TestCase):
                     pytest.xfail(
                         reason="M2: Assert Error & M1: CompilerToolError"
                     )
-        if config["model_name"] == "roberta-base" and device == "cuda":
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/274")
         if config["model_name"] == "google/rembert":
             pytest.skip(reason="Model too large to convert.")
         if config[
@@ -305,6 +315,7 @@ class SharkModuleTest(unittest.TestCase):
                 reason="https://github.com/nod-ai/SHARK/issues/311, https://github.com/nod-ai/SHARK/issues/342"
             )
         if config["model_name"] == "funnel-transformer/small" and device in [
+            "cpu",
             "cuda",
             "metal",
             "vulkan",
@@ -329,6 +340,68 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(
                 reason="Numerics issues -- https://github.com/nod-ai/SHARK/issues/344"
             )
+        if (
+            config["model_name"] == "facebook/deit-small-distilled-patch16-224"
+            and device == "cuda"
+        ):
+            pytest.xfail(
+                reason="Fails during iree-compile without reporting diagnostics."
+            )
+        if (
+            config["model_name"]
+            == "microsoft/beit-base-patch16-224-pt22k-ft22k"
+            and device == "cuda"
+        ):
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/390")
+        if config["model_name"] == "squeezenet1_0" and device in [
+            "cpu",
+            "metal",
+            "vulkan",
+        ]:
+            pytest.xfail(
+                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
+            )
+        if config["model_name"] == "mobilenet_v3_small" and device in [
+            "metal",
+            "vulkan",
+        ]:
+            pytest.xfail(
+                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
+            )
+        if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
+            pytest.xfail(reason="Transformers API mismatch")
+        if config["model_name"] == "alexnet" and device in ["metal", "vulkan"]:
+            pytest.xfail(reason="Assertion Error: Zeros Output")
+        if (
+            config["model_name"] == "camembert-base"
+            and dynamic == False
+            and device in ["metal", "vulkan"]
+        ):
+            pytest.xfail(
+                reason="chlo.broadcast_compare failed to satify constraint"
+            )
+        if (
+            config["model_name"] == "roberta-base"
+            and dynamic == False
+            and device in ["metal", "vulkan"]
+        ):
+            pytest.xfail(
+                reason="chlo.broadcast_compare failed to satify constraint"
+            )
+        if config["model_name"] in [
+            "microsoft/MiniLM-L12-H384-uncased",
+            "wide_resnet50_2",
+            "resnet50",
+            "resnet18",
+            "resnet101",
+            "microsoft/resnet-50",
+        ] and device in ["metal", "vulkan"]:
+            pytest.xfail(reason="Vulkan Numerical Error (mostly conv)")
+        if config["model_name"] == "mobilenet_v3_small" and device in [
+            "cuda",
+            "cpu",
+        ]:
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/424")
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."

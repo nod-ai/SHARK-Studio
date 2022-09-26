@@ -39,6 +39,10 @@ jobs:
         tag_name="${package_version}"
         echo "package_version=${package_version}" >> $GITHUB_ENV
         echo "tag_name=${tag_name}" >> $GITHUB_ENV    
+    - name: Set Environment Variables
+      run: |
+        echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -51,17 +55,11 @@ jobs:
           Automatic snapshot release of nod.ai SHARK.
         draft: true
         prerelease: false
-    - name: Find Torch-MLIR Release
-      run: |
-        TM_HTML_URL="$(python3 -c "import urllib.request, json, sys; u=json.loads(urllib.request.urlopen('https://api.github.com/repos/llvm/torch-mlir/releases/latest').read().decode()).get('html_url', False); print(u) if u else sys.exit(1);")"
-        TM_RELEASE_DIR=${TM_HTML_URL/"tag"/"expanded_assets"}
-        echo "TM_RELEASE_DIR=${TM_RELEASE_DIR}" >> $GITHUB_ENV
     - name: Install dependencies
       run: |
-        echo "Torch-MLIR Release DIR is ${{ env.TM_RELEASE_DIR }}"
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest toml
-        if [ -f requirements.txt ]; then pip install -r requirements.txt -f ${{ env.TM_RELEASE_DIR }} -f https://github.com/nod-ai/SHARK-Runtime/releases; fi
+        if [ -f requirements.txt ]; then pip install -r requirements.txt -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html; fi
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -76,19 +74,19 @@ jobs:
         source iree.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f ${{ env.TM_RELEASE_DIR }} -f https://github.com/iree-org/iree/releases
+        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://iree-org.github.io/iree/pip-release-links.html
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
         /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
-        pytest tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
         if !(grep -Fxq " failed" pytest_results.txt) 
           then 
             export SHA=$(git log -1 --format='%h')
-            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
-            gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
+            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/${DATE}_$SHA
+            gsutil -m cp -r gs://shark_tank/${DATE}_$SHA/* gs://shark_tank/latest/
         fi
         rm -rf ./wheelhouse/nodai*
 
@@ -100,11 +98,11 @@ jobs:
         source shark.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f ${{ env.TM_RELEASE_DIR }} -f https://github.com/nod-ai/SHARK-Runtime/releases
+        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
     

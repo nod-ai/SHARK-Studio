@@ -1,8 +1,8 @@
--f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
+-f https://download.pytorch.org/whl/nightly/cpu/
 --pre
 
 numpy
-torch
+torch==1.14.0.dev20221021
 torchvision
 
 tqdm
@@ -19,7 +19,7 @@ tensorflow-macos
 tensorflow-metal
 #tf-models-nightly
 #tensorflow-text-nightly
-transformers==4.18.0
+transformers
 tensorflow-probability
 #jax[cpu]
 

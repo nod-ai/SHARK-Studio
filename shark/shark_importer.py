@@ -75,14 +75,17 @@ class SharkImporter:
             self.module, self.inputs, is_dynamic, tracing_required
         )
 
-    def _tf_mlir(self, func_name):
+    def _tf_mlir(self, func_name, save_dir="./shark_tmp/"):
         from iree.compiler import tf as tfc
 
         return tfc.compile_module(
-            self.module, exported_names=[func_name], import_only=True
+            self.module,
+            exported_names=[func_name],
+            import_only=True,
+            output_file=save_dir,
         )
 
-    def _tflite_mlir(self, func_name):
+    def _tflite_mlir(self, func_name, save_dir="./shark_tmp/"):
         from iree.compiler import tflite as tflitec
         from shark.iree_utils._common import IREE_TARGET_MAP
 
@@ -90,6 +93,7 @@ class SharkImporter:
             self.raw_model_file,  # in tflite, it is a path to .tflite file, not a tflite interpreter
             input_type="tosa",
             import_only=True,
+            output_file=save_dir,
         )
         return self.mlir_model
 
@@ -99,6 +103,7 @@ class SharkImporter:
         is_dynamic=False,
         tracing_required=False,
         func_name="forward",
+        save_dir="./shark_tmp/",
     ):
         if self.frontend in ["torch", "pytorch"]:
             if self.inputs == None:
@@ -108,15 +113,15 @@ class SharkImporter:
                 sys.exit(1)
             return self._torch_mlir(is_dynamic, tracing_required), func_name
         if self.frontend in ["tf", "tensorflow"]:
-            return self._tf_mlir(func_name), func_name
+            return self._tf_mlir(func_name, save_dir), func_name
         if self.frontend in ["tflite", "tf-lite"]:
             func_name = "main"
-            return self._tflite_mlir(func_name), func_name
+            return self._tflite_mlir(func_name, save_dir), func_name
 
     # Converts the frontend specific tensors into np array.
     def convert_to_numpy(self, array_tuple: tuple):
         if self.frontend in ["torch", "pytorch"]:
-            return [x.detach().numpy() for x in array_tuple]
+            return [x.detach().cpu().numpy() for x in array_tuple]
         if self.frontend in ["tf", "tensorflow"]:
             return [x.numpy() for x in array_tuple]
 
@@ -130,19 +135,20 @@ class SharkImporter:
         outputs_name = "golden_out.npz"
         func_file_name = "function_name"
         model_name_mlir = model_name + "_" + self.frontend + ".mlir"
+        try:
+            inputs = [x.cpu().detach() for x in inputs]
+        except AttributeError:
+            try:
+                inputs = [x.numpy() for x in inputs]
+            except AttributeError:
+                inputs = [x for x in inputs]
         np.savez(os.path.join(dir, inputs_name), *inputs)
         np.savez(os.path.join(dir, outputs_name), *outputs)
         np.save(os.path.join(dir, func_file_name), np.array(func_name))
 
-        mlir_str = mlir_data
         if self.frontend == "torch":
-            mlir_str = mlir_data.operation.get_asm()
-        elif self.frontend == "tf":
-            mlir_str = mlir_data.decode("utf-8")
-        elif self.frontend == "tflite":
-            mlir_str = mlir_data.decode("utf-8")
-        with open(os.path.join(dir, model_name_mlir), "w") as mlir_file:
-            mlir_file.write(mlir_str)
+            with open(os.path.join(dir, model_name_mlir), "wb") as mlir_file:
+                mlir_file.write(mlir_data)
 
         return
 
@@ -159,9 +165,13 @@ class SharkImporter:
                 f"There is no input provided: {self.inputs}, please provide inputs or simply run import_mlir."
             )
             sys.exit(1)
-
+        model_name_mlir = model_name + "_" + self.frontend + ".mlir"
+        artifact_path = os.path.join(dir, model_name_mlir)
         imported_mlir = self.import_mlir(
-            is_dynamic, tracing_required, func_name
+            is_dynamic,
+            tracing_required,
+            func_name,
+            save_dir=artifact_path,
         )
         # TODO: Make sure that any generic function name is accepted. Currently takes in the default function names.
         # TODO: Check for multiple outputs.
@@ -171,7 +181,7 @@ class SharkImporter:
             golden_out = self.module(*self.inputs)
             if torch.is_tensor(golden_out):
                 golden_out = tuple(
-                    golden_out.detach().numpy(),
+                    golden_out.detach().cpu().numpy(),
                 )
             else:
                 golden_out = self.convert_to_numpy(golden_out)

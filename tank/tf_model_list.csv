@@ -5,7 +5,6 @@ camembert-base,hf
 dbmdz/convbert-base-turkish-cased,hf
 distilbert-base-uncased,hf
 google/electra-small-discriminator,hf
-hf-internal-testing/tiny-random-flaubert,hf
 funnel-transformer/small,hf
 microsoft/layoutlm-base-uncased,hf
 google/mobilebert-uncased,hf

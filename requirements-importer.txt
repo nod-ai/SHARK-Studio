@@ -14,10 +14,12 @@ iree-tools-tf
 
 # TensorFlow and JAX.
 gin-config
-tensorflow
+tensorflow==2.10
+keras==2.10
 #tf-models-nightly
 #tensorflow-text-nightly
-transformers==4.18.0
+transformers
+diffusers
 #tensorflow-probability
 #jax[cpu]
 
@@ -29,9 +31,11 @@ Pillow
 lit
 pyyaml
 python-dateutil
+sacremoses
 
 # web dependecies.
 gradio
+scipy
 
 #ONNX and ORT for benchmarking
 #--extra-index-url https://test.pypi.org/simple/

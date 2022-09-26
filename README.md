@@ -38,9 +38,15 @@ python -m pip install --upgrade pip
 This step pip installs SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
 
 ```shell
-pip install nodai-shark -f https://github.com/nod-ai/SHARK/releases -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 If you are on an Intel macOS machine you need this [workaround](https://github.com/nod-ai/SHARK/issues/102) for an upstream issue.
+
+### Run shark tank model tests.
+```shell
+pytest tank/test_models.py
+```
+See tank/README.md for a more detailed walkthrough of our pytest suite and CLI.
 
 ### Download and run Resnet50 sample
 
@@ -76,93 +82,75 @@ git clone https://github.com/nod-ai/SHARK.git
 ./setup_venv.sh
 source shark.venv/bin/activate
 ```
-For example if you want to use Python3.10 and upstream IREE with TF Import tools you can use the environment variables like:
+For example if you want to use Python3.10 and with TF Import tools you can use the environment variables like:
+Set `USE_IREE=1` to use upstream IREE
 ```
-# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 USE_IREE=1 ./setup_venv.sh 
+# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
 ```
 
-If you are a Torch-mlir developer or an IREE developer and want to test local changes you can uninstall
+If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
 with Python bindings and set your PYTHONPATH as mentioned [here](https://google.github.io/iree/bindings/python/)
 for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
 for Torch-MLIR.
 
+### How to use your locally built Torch-MLIR with SHARK
+```shell
+1.) Run `./setup_venv.sh in SHARK` and activate `shark.venv` virtual env.
+2.) Run `pip uninstall torch-mlir`.
+3.) Go to your local Torch-MLIR directory.
+4.) Activate mlir_venv virtual envirnoment.
+5.) Run `pip uninstall -r requirements.txt`.
+6.) Run `pip install -r requirements.txt`.
+7.) Build Torch-MLIR.
+8.) Activate shark.venv virtual environment from the Torch-MLIR directory.
+8.) Run `export PYTHONPATH=`pwd`/build/tools/torch-mlir/python_packages/torch_mlir:`pwd`/examples` in the Torch-MLIR directory.
+9.) Go to the SHARK directory.
+```
+Now the SHARK will use your locally build Torch-MLIR repo.
+
 ### Run a demo script
 ```shell
 python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
 # Or a pytest
-pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_module_static_cpu
+pytest tank/test_models.py -k "MiniLM"
 ```
-
 
 </details>
 
 <details>
   <summary>Testing and Benchmarks</summary>
 
-### Run all model tests on CPU/GPU/VULKAN/Metal
-```shell
-pytest tank/test_models.py
+## Benchmarking Dispatches
 
-# If on Linux for multithreading on CPU (faster results):
-pytest tank/test_models.py -n auto
-```
+To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your command line argument.  
+If you only want to compile specific dispatches, you can specify them with a space seperated string instead of `"All"`.  E.G. `--dispatch_benchmarks="0 1 2 10"`
 
-### Running specific tests
-```shell
-
-# Search for test cases by including a keyword that matches all or part of the test case's name;
-pytest tank/test_models.py -k "keyword" 
-
-# Test cases are named uniformly by format test_module_<model_name_underscores_only>_<torch/tf>_<static/dynamic>_<device>.
-
-# Example: Test all models on nvidia gpu:
-pytest tank/test_models.py -k "cuda"
-
-# Example: Test all tensorflow resnet models on Vulkan backend:
-pytest tank/test_models.py -k "resnet and tf and vulkan"
-
-# Exclude a test case:
-pytest tank/test_models.py -k "not ..."
-
-### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
-
-(the following requires source installation with `IMPORTER=1 ./setup_venv.sh`)
-
-```shell
-pytest --benchmark tank/test_models.py
-  
-# Just do static GPU benchmarks for PyTorch tests:
-pytest --benchmark tank/test_models.py -k "pytorch and static and cuda"
+if you want to instead incorporate this into a python script, you can pass the `dispatch_benchmarks` and `dispatch_benchmarks_dir` commands when initializing `SharkInference`, and the benchmarks will be generated when compiled.  E.G:
 
 ```
-  
-### Benchmark Resnet50, MiniLM on CPU
-
-(requires source installation with `IMPORTER=1 ./setup_venv.sh`)  
-  
-```shell
-# We suggest running the following commands as root before running benchmarks on CPU:
-  
-cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | awk -F, '{print $2}' | sort -n | uniq | ( while read X ; do echo $X ; echo 0 > /sys/devices/system/cpu/cpu$X/online ; done )
-echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
-
-# Benchmark canonical Resnet50 on CPU via pytest
-pytest --benchmark tank/test_models -k "resnet50 and tf_static_cpu"
-
-# Benchmark canonical MiniLM on CPU via pytest
-pytest --benchmark tank/test_models -k "MiniLM and cpu"
-
-# Benchmark MiniLM on CPU via transformer-benchmarks:
-git clone --recursive https://github.com/nod-ai/transformer-benchmarks.git
-cd transformer-benchmarks
-./perf-ci.sh -n
-# Check detail.csv for MLIR/IREE results.
-
+shark_module = SharkInference(
+        mlir_model,
+        func_name,
+        device=args.device,
+        mlir_dialect="tm_tensor",
+        dispatch_benchmarks="all",
+        dispatch_benchmarks_dir="results"
+    )
 ```
+
+Output will include:
+- Inside the specified directory, there will be a directory for each dispatch (there will be mlir files for all dispatches, but only compiled binaries and benchmark data for the specified dispatches)
+- An .mlir file containing the dispatch benchmark 
+- A compiled .vmfb file containing the dispatch benchmark
+- An .mlir file containing just the hal executable
+- A compiled .vmfb file of the hal executable
+- A .txt file containing benchmark output
+
+
+See tank/README.md for instructions on how to run model tests and benchmarks from the SHARK tank.
 
 </details>
-
 
 <details>
   <summary>API Reference</summary>
@@ -214,160 +202,21 @@ result = shark_module.forward((arg0, arg1))
 ```
 </details>
 
-
 ## Supported and Validated Models
 
-<details>
-  <summary>PyTorch Models</summary>
+SHARK is maintained to support the latest innovations in ML Models: 
 
-### Huggingface PyTorch Models
+| TF HuggingFace Models | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------|----------|-------------|
+| BERT                | :green_heart:         | :green_heart:         | :green_heart:            |
+| DistilBERT         | :green_heart:         | :green_heart:         | :green_heart:            |
+| GPT2         | :green_heart:         | :green_heart:         | :green_heart:            |
+| BLOOM         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Stable Diffusion         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Vision Transformer       | :green_heart:         | :green_heart:         | :green_heart:            |
+| ResNet50         | :green_heart:         | :green_heart:         | :green_heart:            |
 
-| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :green_heart: (JIT)          | :green_heart:         | :green_heart:         | :green_heart:            |
-| Albert              | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
-| BigBird             | :green_heart: (AOT)            |          |          |             |
-| DistilBERT          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
-| GPT2                | :broken_heart: (AOT)            |          |          |             |
-| MobileBert          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
-
-### Torchvision  Models
-
-| TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|--------------------|----------------------|----------|----------|-------------|
-| AlexNet            | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| DenseNet121        | :green_heart: (Script)         |          |          |             |
-| MNasNet1_0         | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| MobileNetV2        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| MobileNetV3        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Unet               | :broken_heart: (Script)         |          |          |             |
-| Resnet18           | :green_heart: (Script)         | :green_heart:         |  :green_heart:        | :green_heart:            |
-| Resnet50           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| Resnet101           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| Resnext50_32x4d    | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| ShuffleNet_v2      | :broken_heart: (Script)         |          |          |             |
-| SqueezeNet         | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| EfficientNet       | :green_heart: (Script)         |          |          |             |
-| Regnet             | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Resnest            | :broken_heart: (Script)         |          |          |             |
-| Vision Transformer | :green_heart: (Script)         |          |          |             |
-| VGG 16             | :green_heart: (Script)         | :green_heart:         |   :green_heart:       |             |
-| Wide Resnet        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| RAFT               | :broken_heart: (JIT)            |          |          |             |
-
-For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
-
-### PyTorch Training Models
-
-| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :broken_heart:           | :broken_heart:         |          |             |
-| FullyConnected                | :green_heart:           | :green_heart:         |          |             |
-
-</details>
-
-<details>
-  <summary>JAX Models</summary>
-
-
-### JAX  Models
-
-| Models | JAX-MHLO lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| DALL-E                | :broken_heart:           | :broken_heart:         |          |             |
-| FullyConnected                | :green_heart:           | :green_heart:         |          |             |
-
-</details>
-
-<details>
-  <summary>TFLite Models</summary>
-
-### TFLite Models
-
-| Models | TOSA/LinAlg  | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :broken_heart:           | :broken_heart:         |          |             |
-| FullyConnected      | :green_heart:           | :green_heart:         |          |             |
-| albert | :green_heart:           | :green_heart:         |          |             |
-| asr_conformer | :green_heart:           | :green_heart:         |          |             |
-| bird_classifier | :green_heart:           | :green_heart:         |          |             |
-| cartoon_gan | :green_heart:           | :green_heart:         |          |             |
-| craft_text | :green_heart:           | :green_heart:         |          |             |
-| deeplab_v3 | :green_heart:           | :green_heart:         |          |             |
-| densenet | :green_heart:           | :green_heart:         |          |             |
-| east_text_detector | :green_heart:           | :green_heart:         |          |             |
-| efficientnet_lite0_int8 | :green_heart:           | :green_heart:         |          |             |
-| efficientnet | :green_heart:           | :green_heart:         |          |             |
-| gpt2 | :green_heart:           | :green_heart:         |          |             |
-| image_stylization | :green_heart:           | :green_heart:         |          |             |
-| inception_v4 | :green_heart:           | :green_heart:         |          |             |
-| inception_v4_uint8 | :green_heart:           | :green_heart:         |          |             |
-| lightning_fp16 | :green_heart:           | :green_heart:         |          |             |
-| lightning_i8 | :green_heart:           | :green_heart:         |          |             |
-| lightning | :green_heart:           | :green_heart:         |          |             |
-| magenta | :green_heart:           | :green_heart:         |          |             |
-| midas | :green_heart:           | :green_heart:         |          |             |
-| mirnet | :green_heart:           | :green_heart:         |          |             |
-| mnasnet | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_edgetpu_s_float | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_edgetpu_s_quant | :green_heart:           | :green_heart:         |          |             |
-| mobilebert | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_tf2_float | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_tf2_quant | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_ssd_quant | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v1 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v1_uint8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v2_int8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v2 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v2_uint8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v3-large | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v3-large_uint8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v35-int8 | :green_heart:           | :green_heart:         |          |             |
-| nasnet | :green_heart:           | :green_heart:         |          |             |
-| person_detect | :green_heart:           | :green_heart:         |          |             |
-| posenet | :green_heart:           | :green_heart:         |          |             |
-| resnet_50_int8 | :green_heart:           | :green_heart:         |          |             |
-| rosetta | :green_heart:           | :green_heart:         |          |             |
-| spice | :green_heart:           | :green_heart:         |          |             |
-| squeezenet | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v1 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v1_uint8 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2_fpnlite | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2_fpnlite_uint8 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2_int8 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2 | :green_heart:           | :green_heart:         |          |             |
-| ssd_spaghettinet_large | :green_heart:           | :green_heart:         |          |             |
-| ssd_spaghettinet_large_uint8 | :green_heart:           | :green_heart:         |          |             |
-| visual_wake_words_i8 | :green_heart:           | :green_heart:         |          |             |
-
-</details>
-
-<details>
-  <summary>TF Models</summary>
-
-### Tensorflow Models (Inference)
-
-| Hugging Face Models | tf-mhlo lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| albert-base-v2              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| DistilBERT          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| CamemBert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| ConvBert              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| Deberta              |            |         |          |             |
-| electra          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| funnel              |            |         |          |             |
-| layoutlm              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| longformer              |            |         |          |             |
-| mobile-bert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| remembert              |            |         |          |             |
-| tapas              |            |         |          |             |
-| flaubert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| roberta                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| xlm-roberta              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| mpnet              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-
-</details>
+For a complete list of the models supported in SHARK, please refer to [tank/README.md](https://github.com/nod-ai/SHARK/blob/main/tank/README.md).
 
 ## Related Projects
 

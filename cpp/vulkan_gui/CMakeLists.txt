@@ -40,45 +40,77 @@ set(IMGUI_DIR ${CMAKE_BINARY_DIR}/_deps/imgui-src)
 message("Looking for Imgui in ${IMGUI_DIR}")
 include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 
-# Define the sample executable.
-set(_NAME "iree-samples-vulkan-gui")
-add_executable(${_NAME} "")
-target_sources(${_NAME}
-  PRIVATE
-    vulkan_inference_gui.cc
-    "${IMGUI_DIR}/backends/imgui_impl_sdl.cpp"
-    "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
-    "${IMGUI_DIR}/imgui.cpp"
-    "${IMGUI_DIR}/imgui_draw.cpp"
-    "${IMGUI_DIR}/imgui_demo.cpp"
-    "${IMGUI_DIR}/imgui_tables.cpp"
-    "${IMGUI_DIR}/imgui_widgets.cpp"
-)
-set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "iree-samples-vulkan-gui")
-target_include_directories(${_NAME} PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
-)
-target_link_libraries(${_NAME}
-  SDL2::SDL2
-  Vulkan::Vulkan
-  iree_runtime_runtime
-  iree_base_internal_main
-  iree_hal_drivers_vulkan_registration_registration
-  iree_modules_hal_hal
-  iree_vm_vm
-  iree_vm_bytecode_module
-  iree_vm_cc
+
+function(iree_vulkan_sample)
+
+  cmake_parse_arguments(
+    _RULE
+    ""
+    "NAME"
+    "SRCS"
+    ${ARGN}
+  )
+
+
+  # Define the sample executable.
+  set(_NAME "${_RULE_NAME}")
+  set(SRCS "${_RULE_SRCS}")
+  add_executable(${_NAME} "")
+  target_sources(${_NAME}
+    PRIVATE
+      ${SRCS}
+      "${IMGUI_DIR}/backends/imgui_impl_sdl.cpp"
+      "${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp"
+      "${IMGUI_DIR}/imgui.cpp"
+      "${IMGUI_DIR}/imgui_draw.cpp"
+      "${IMGUI_DIR}/imgui_demo.cpp"
+      "${IMGUI_DIR}/imgui_tables.cpp"
+      "${IMGUI_DIR}/imgui_widgets.cpp"
+  )
+  set_target_properties(${_NAME} PROPERTIES OUTPUT_NAME "${_NAME}")
+  target_include_directories(${_NAME} PUBLIC
+      $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+  )
+  target_link_libraries(${_NAME}
+    SDL2::SDL2
+    Vulkan::Vulkan
+    iree_runtime_runtime
+    iree_base_internal_main
+    iree_hal_drivers_vulkan_registration_registration
+    iree_modules_hal_hal
+    iree_vm_vm
+    iree_vm_bytecode_module
+    iree_vm_cc
+    iree_tooling_vm_util_cc
+    iree_tooling_context_util
+  )
+
+  if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
+    set(_GUI_LINKOPTS "-SUBSYSTEM:CONSOLE")
+  else()
+    set(_GUI_LINKOPTS "")
+  endif()
+
+  target_link_options(${_NAME}
+    PRIVATE
+      ${_GUI_LINKOPTS}
+  )
+endfunction()
+
+iree_vulkan_sample(
+    NAME
+      iree-samples-resnet-vulkan-gui
+
+    SRCS
+      vulkan_resnet_inference_gui.cc
 )
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Windows")
-  set(_GUI_LINKOPTS "-SUBSYSTEM:CONSOLE")
-else()
-  set(_GUI_LINKOPTS "")
-endif()
+iree_vulkan_sample(
+    NAME
+      iree-vulkan-gui
 
-target_link_options(${_NAME}
-  PRIVATE
-    ${_GUI_LINKOPTS}
+    SRCS
+      vulkan_inference_gui.cc
 )
 
 message(STATUS "Configured vulkan_gui sample successfully")

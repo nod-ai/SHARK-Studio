@@ -37,8 +37,26 @@ def pytest_addoption(parser):
         help="Enables uploading of reproduction artifacts upon test case failure during iree-compile or validation. Must be passed with --ci_sha option ",
     )
     parser.addoption(
+        "--update_tank",
+        action="store_true",
+        default="False",
+        help="Update local shark tank with latest artifacts.",
+    )
+    parser.addoption(
         "--ci_sha",
         action="store",
         default="None",
         help="Passes the github SHA of the CI workflow to include in google storage directory for reproduction artifacts.",
+    )
+    parser.addoption(
+        "--local_tank_cache",
+        action="store",
+        default="",
+        help="Specify the directory in which all downloaded shark_tank artifacts will be cached.",
+    )
+    parser.addoption(
+        "--tank_url",
+        type=str,
+        default="gs://shark_tank/latest",
+        help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/latest",
     )

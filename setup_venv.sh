@@ -7,6 +7,7 @@
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
 # IMPORTER=1 #Install importer deps
+# BENCHMARK=1 #Install benchmark deps
 # NO_BACKEND=1 #Don't install iree or shark backend
 # if you run the script from a conda env it will install in your conda env
 
@@ -71,22 +72,19 @@ else
   echo "${Red}OS not detected. Pray and Play"
 fi
 
-TM_HTML_URL="$(python3 -c "import urllib.request, json, sys; \
-	u=json.loads(urllib.request.urlopen('https://api.github.com/repos/llvm/torch-mlir/releases/latest').read().decode()).get('html_url', False);\
-	print(u) if u else sys.exit(1);")"
-TM_RELEASE_DIR=${TM_HTML_URL/"tag"/"expanded_assets"}
-echo "TM_HTML_URL=${TM_HTML_URL}"
-echo "TM_RELEASE_DIR=${TM_RELEASE_DIR}"
-
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
-  $PYTHON -m pip install --find-links ${TM_RELEASE_DIR} torch-mlir --extra-index-url ${TM_RELEASE_DIR}
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed torch-mlir"
+  if [[ $(uname -s) = 'Darwin' ]]; then
+    echo "MacOS detected. Please install torch-mlir from source or .whl, as dependency problems may occur otherwise."
   else
-    echo "Could not install torch-mlir" >&2
+    $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
+    if [ $? -eq 0 ];then
+      echo "Successfully Installed torch-mlir"
+    else
+      echo "Could not install torch-mlir" >&2
+    fi
   fi
 else
   echo "${Red}No binaries found for Python $PYTHON_VERSION_X_Y on $(uname -s)"
@@ -95,13 +93,13 @@ else
   exit 1
 fi
 if [[ -z "${USE_IREE}" ]]; then
-  RUNTIME="nod-ai/SHARK-Runtime"
+  RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
 else
-  RUNTIME="google/iree"
+  RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
-  $PYTHON -m pip install --find-links https://github.com/${RUNTIME}/releases iree-compiler iree-runtime
+  $PYTHON -m pip install --upgrade --find-links ${RUNTIME} iree-compiler iree-runtime
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
@@ -109,17 +107,19 @@ if [[ ! -z "${IMPORTER}" ]]; then
   echo "${Yellow}Installing importer tools.."
   if [[ $(uname -s) = 'Linux' ]]; then
     echo "${Yellow}Linux detected.. installing Linux importer tools"
-    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/${RUNTIME}/releases --extra-index-url https://test.pypi.org/simple/ --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+    #Always get the importer tools from upstream IREE
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://iree-org.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   elif [[ $(uname -s) = 'Darwin' ]]; then
     echo "${Yellow}macOS detected.. installing macOS importer tools"
     #Conda seems to have some problems installing these packages and hope they get resolved upstream.
-    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f https://github.com/${RUNTIME}/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install https://github.com/llvm/torch-mlir/releases/download/snapshot-20221024.636/torch_mlir-20221024.636-cp310-cp310-macosx_11_0_universal2.whl
   fi
 fi
 
-$PYTHON -m pip install -e . -f ${TM_RELEASE_DIR} -f https://github.com/${RUNTIME}/releases
+$PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME}
 
-if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
+if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
   if [ $? -eq 0 ];then
