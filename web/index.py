@@ -84,7 +84,7 @@ with gr.Blocks() as shark_web:
                     iters = gr.Number(label="Steps", value=2)
                     mlir_loc = gr.Textbox(
                         label="Location of MLIR(Relative to SHARK/web/)",
-                        value="./models_mlir/stable_diffusion.mlir",
+                        value="./stable_diffusion.mlir",
                     )
                     device = gr.Textbox(label="Device", value="vulkan")
                     stable_diffusion = gr.Button("Generate image from prompt")
