@@ -18,6 +18,7 @@ tensorflow
 #tf-models-nightly
 #tensorflow-text-nightly
 transformers
+diffusers
 #tensorflow-probability
 #jax[cpu]
 
@@ -32,6 +33,7 @@ python-dateutil
 
 # web dependecies.
 gradio
+scipy
 
 #ONNX and ORT for benchmarking
 #--extra-index-url https://test.pypi.org/simple/
