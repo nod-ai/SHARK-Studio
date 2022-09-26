@@ -121,6 +121,22 @@ if __name__ == "__main__":
         "openai/clip-vit-large-patch14"
     )
 
+    class VaeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                "CompVis/stable-diffusion-v1-4",
+                subfolder="vae",
+                use_auth_token=YOUR_TOKEN,
+            )
+
+        def forward(self, input):
+            return self.vae.decode(input, return_dict=False)[0]
+
+    vae = VaeModel()
+    vae_input = torch.rand(1, 4, 64, 64)
+    shark_vae = compile_through_fx(vae, (vae_input,))
+
     # Wrap the unet model to return tuples.
     class UnetModel(torch.nn.Module):
         def __init__(self):
@@ -240,8 +256,9 @@ if __name__ == "__main__":
 
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
-    print(latents.shape)
-    image = vae.decode(latents).sample
+    latents_numpy = latents.detach().numpy()
+    image = shark_vae.forward((latents_numpy,))
+    image = torch.from_numpy(image)
 
     image = (image / 2 + 0.5).clamp(0, 1)
     image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
