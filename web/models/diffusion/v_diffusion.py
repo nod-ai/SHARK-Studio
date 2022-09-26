@@ -103,10 +103,12 @@ def cache_model():
 
 
 def vdiff_inf(prompts: str, n, bs, steps, _device):
+
     global device
     global model
     global checkpoint
     global clip_model
+
     args = {}
     target_embeds = []
     weights = []
@@ -197,14 +199,17 @@ def vdiff_inf(prompts: str, n, bs, steps, _device):
         mlir_model, func_name, device=args["device"], mlir_dialect="linalg"
     )
     shark_module.compile()
-    return run_all(
-        x,
-        t,
-        args["steps"],
-        args["n"],
-        args["batch_size"],
-        side_x,
-        side_y,
-        shark_module,
-        args,
+    return (
+        run_all(
+            x,
+            t,
+            args["steps"],
+            args["n"],
+            args["batch_size"],
+            side_x,
+            side_y,
+            shark_module,
+            args,
+        ),
+        "Testing..",
     )

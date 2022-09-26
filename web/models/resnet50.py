@@ -5,9 +5,7 @@ from torchvision import transforms
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_torch_model
 
-################################## Preprocessing inputs and model ############
-
-COMPILE_MODULE = None
+################################## Preprocessing inputs and helper functions ########
 
 
 def preprocess_image(img):
@@ -47,23 +45,31 @@ def top3_possibilities(res):
 
 ##############################################################################
 
+compiled_module = {}
 
-def resnet_inf(numpy_img):
-    img = preprocess_image(numpy_img)
-    ## Can pass any img or input to the forward module.
-    global COMPILE_MODULE
-    if COMPILE_MODULE == None:
+
+def resnet_inf(numpy_img, device):
+
+    global compiled_module
+
+    std_output = ""
+
+    if device not in compiled_module.keys():
+        std_output += "Compiling the Resnet50 module.\n"
         mlir_model, func_name, inputs, golden_out = download_torch_model(
             "resnet50"
         )
 
         shark_module = SharkInference(
-            mlir_model, func_name, device="intel-gpu", mlir_dialect="linalg"
+            mlir_model, func_name, device=device, mlir_dialect="linalg"
         )
         shark_module.compile()
-        COMPILE_MODULE = shark_module
+        std_output += "Compilation successful.\n"
+        compiled_module[device] = shark_module
 
-    result = COMPILE_MODULE.forward((img.detach().numpy(),))
+    img = preprocess_image(numpy_img)
+    result = compiled_module[device].forward((img.detach().numpy(),))
 
     #  print("The top 3 results obtained via shark_runner is:")
-    return top3_possibilities(torch.from_numpy(result))
+    std_output += "Retrieving top 3 possible outcomes.\n"
+    return top3_possibilities(torch.from_numpy(result)), std_output
