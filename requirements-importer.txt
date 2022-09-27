@@ -30,6 +30,7 @@ Pillow
 lit
 pyyaml
 python-dateutil
+sacremoses
 
 # web dependecies.
 gradio
