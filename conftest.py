@@ -48,3 +48,9 @@ def pytest_addoption(parser):
         default="",
         help="Specify the directory in which all downloaded shark_tank artifacts will be cached.",
     )
+    parser.addoption(
+        "--tank_url",
+        type=str,
+        default="gs://shark_tank/latest",
+        help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/latest",
+    )

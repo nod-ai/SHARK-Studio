@@ -89,7 +89,7 @@ def check_dir_exists(model_name, frontend="torch", dynamic=""):
 
 # Downloads the torch model from gs://shark_tank dir.
 def download_torch_model(
-    model_name, dynamic=False, shark_default_sha="latest"
+    model_name, dynamic=False, tank_url="gs://shark_tank/latest"
 ):
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""
@@ -98,8 +98,8 @@ def download_torch_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank/'
-            + shark_default_sha
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r '
+            + tank_url
             + "/"
             + model_dir_name
             + " "
@@ -114,8 +114,8 @@ def download_torch_model(
         model_dir = os.path.join(WORKDIR, model_dir_name)
         local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
         gs_hash = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank/'
-            + shark_default_sha
+            'gsutil -o "GSUtil:parallel_process_count=1" cp '
+            + tank_url
             + "/"
             + model_dir_name
             + "/hash.npy"
@@ -152,7 +152,7 @@ def download_torch_model(
 
 # Downloads the tflite model from gs://shark_tank dir.
 def download_tflite_model(
-    model_name, dynamic=False, shark_default_sha="latest"
+    model_name, dynamic=False, tank_url="gs://shark_tank/latest"
 ):
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
@@ -160,8 +160,8 @@ def download_tflite_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank/'
-            + shark_default_sha
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r '
+            + tank_url
             + "/"
             + model_dir_name
             + " "
@@ -178,8 +178,8 @@ def download_tflite_model(
         model_dir = os.path.join(WORKDIR, model_dir_name)
         local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
         gs_hash = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank/'
-            + shark_default_sha
+            'gsutil -o "GSUtil:parallel_process_count=1" cp '
+            + tank_url
             + "/"
             + model_dir_name
             + "/hash.npy"
@@ -214,15 +214,17 @@ def download_tflite_model(
     return mlir_file, function_name, inputs_tuple, golden_out_tuple
 
 
-def download_tf_model(model_name, tuned=None, shark_default_sha="latest"):
+def download_tf_model(
+    model_name, tuned=None, tank_url="gs://shark_tank/latest"
+):
     model_name = model_name.replace("/", "_")
     os.makedirs(WORKDIR, exist_ok=True)
     model_dir_name = model_name + "_tf"
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r gs://shark_tank/'
-            + shark_default_sha
+            'gsutil -o "GSUtil:parallel_process_count=1" cp -r '
+            + tank_url
             + "/"
             + model_dir_name
             + " "
@@ -237,8 +239,8 @@ def download_tf_model(model_name, tuned=None, shark_default_sha="latest"):
         model_dir = os.path.join(WORKDIR, model_dir_name)
         local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
         gs_hash = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp gs://shark_tank/'
-            + shark_default_sha
+            'gsutil -o "GSUtil:parallel_process_count=1" cp '
+            + tank_url
             + "/"
             + model_dir_name
             + "/hash.npy"
