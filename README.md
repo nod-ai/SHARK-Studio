@@ -87,13 +87,27 @@ with Python bindings and set your PYTHONPATH as mentioned [here](https://google.
 for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
 for Torch-MLIR.
 
+### How to use your locally build Torch-MLIR with SHARK
+```shell
+1.) Run `./setup_venv.sh in SHARK` and activate `shark.venv` virtual env.
+2.) Run `pip uninstall torch-mlir`.
+3.) Go to your local Torch-MLIR directory.
+4.) Activate mlir_venv virtual envirnoment.
+5.) Run `pip uninstall -r requirements.txt`.
+6.) Run `pip install -r requirements.txt`.
+7.) Build Torch-MLIR.
+8.) Activate shark.venv virtual environment from the Torch-MLIR directory.
+8.) Run `export PYTHONPATH=`pwd`/build/tools/torch-mlir/python_packages/torch_mlir:`pwd`/examples` in the Torch-MLIR directory.
+9.) Go to the SHARK directory.
+```
+Now the SHARK will use your locally build Torch-MLIR repo.
+
 ### Run a demo script
 ```shell
 python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
 # Or a pytest
 pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_module_static_cpu
 ```
-
 
 </details>
 
