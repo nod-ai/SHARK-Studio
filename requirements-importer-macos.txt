@@ -19,7 +19,7 @@ tensorflow-macos
 tensorflow-metal
 #tf-models-nightly
 #tensorflow-text-nightly
-transformers==4.18.0
+transformers
 tensorflow-probability
 #jax[cpu]
 
