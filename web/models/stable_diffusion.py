@@ -10,16 +10,14 @@ from torch._decomp import get_decompositions
 import torch_mlir
 import tempfile
 import numpy as np
+import os
 
 ##############################################################################
 
 
 def load_mlir(mlir_loc):
-    import os
-
     if mlir_loc == None:
         return None
-    print(f"Trying to load the model from {mlir_loc}.")
     with open(os.path.join(mlir_loc)) as f:
         mlir_module = f.read()
     return mlir_module
@@ -85,21 +83,30 @@ def compile_through_fx(model, inputs, device, mlir_loc=None):
 
 ##############################################################################
 
+DEBUG = False
 compiled_module = {}
 
 
-def stable_diff_inf(prompt: str, steps, mlir_loc: str, device: str):
+def stable_diff_inf(prompt: str, steps, device: str):
 
     args = {}
     args["prompt"] = [prompt]
     args["steps"] = steps
     args["device"] = device
-    args["mlir_loc"] = mlir_loc
+    args["mlir_loc"] = "./stable_diffusion.mlir"
+    output_loc = (
+        f"stored_results/stable_diffusion/{prompt}_{int(steps)}_{device}.jpg"
+    )
 
+    global DEBUG
     global compiled_module
 
-    if args["device"] not in compiled_module.keys():
+    DEBUG = False
+    log_write = open(r"logs/stable_diffusion_log.txt", "w")
+    if log_write:
+        DEBUG = True
 
+    if args["device"] not in compiled_module.keys():
         YOUR_TOKEN = "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"
 
         # 1. Load the autoencoder model which will be used to decode the latents into image space.
@@ -116,6 +123,8 @@ def stable_diff_inf(prompt: str, steps, mlir_loc: str, device: str):
         compiled_module["text_encoder"] = CLIPTextModel.from_pretrained(
             "openai/clip-vit-large-patch14"
         )
+        if DEBUG:
+            log_write.write("Compiling the Unet module.\n")
 
         # Wrap the unet model to return tuples.
         class UnetModel(torch.nn.Module):
@@ -143,14 +152,16 @@ def stable_diff_inf(prompt: str, steps, mlir_loc: str, device: str):
             args["mlir_loc"],
         )
         compiled_module[args["device"]] = shark_unet
+        if DEBUG:
+            log_write.write("Compilation successful.\n")
 
+        compiled_module["unet"] = unet
         compiled_module["scheduler"] = LMSDiscreteScheduler(
             beta_start=0.00085,
             beta_end=0.012,
             beta_schedule="scaled_linear",
             num_train_timesteps=1000,
         )
-        compiled_module["unet"] = unet
 
     shark_unet = compiled_module[args["device"]]
     vae = compiled_module["vae"]
@@ -202,7 +213,8 @@ def stable_diff_inf(prompt: str, steps, mlir_loc: str, device: str):
 
     for i, t in tqdm(enumerate(scheduler.timesteps)):
 
-        print(f"i = {i} t = {t}")
+        if DEBUG:
+            log_write.write(f"i = {i} t = {t}\n")
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
         latent_model_input = torch.cat([latents] * 2)
         sigma = scheduler.sigmas[i]
@@ -232,11 +244,19 @@ def stable_diff_inf(prompt: str, steps, mlir_loc: str, device: str):
 
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
-    print(latents.shape)
     image = vae.decode(latents).sample
 
     image = (image / 2 + 0.5).clamp(0, 1)
     image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
     images = (image * 255).round().astype("uint8")
     pil_images = [Image.fromarray(image) for image in images]
-    return pil_images[0], "Testing.."
+    output = pil_images[0]
+    # save the output image with the prompt name.
+    output.save(os.path.join(output_loc))
+    log_write.close()
+
+    std_output = ""
+    with open(r"logs/stable_diffusion_log.txt", "r") as log_read:
+        std_output = log_read.read()
+
+    return output, std_output

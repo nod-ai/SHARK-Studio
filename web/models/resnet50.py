@@ -7,6 +7,9 @@ from shark.shark_downloader import download_torch_model
 
 ################################## Preprocessing inputs and helper functions ########
 
+DEBUG = False
+compiled_module = {}
+
 
 def preprocess_image(img):
     image = Image.fromarray(img)
@@ -33,43 +36,57 @@ def load_labels():
     return labels
 
 
-def top3_possibilities(res):
+def top3_possibilities(res, log_write):
+
+    global DEBUG
+
+    if DEBUG:
+        log_write.write("Retrieving top 3 possible outcomes.\n")
     labels = load_labels()
     _, indexes = torch.sort(res, descending=True)
     percentage = torch.nn.functional.softmax(res, dim=1)[0]
     top3 = dict(
         [(labels[idx], percentage[idx].item()) for idx in indexes[0][:3]]
     )
+    if DEBUG:
+        log_write.write("Done.\n")
     return top3
 
 
 ##############################################################################
 
-compiled_module = {}
-
 
 def resnet_inf(numpy_img, device):
 
+    global DEBUG
     global compiled_module
 
-    std_output = ""
+    DEBUG = False
+    log_write = open(r"logs/resnet50_log.txt", "w")
+    if log_write:
+        DEBUG = True
 
     if device not in compiled_module.keys():
-        std_output += "Compiling the Resnet50 module.\n"
+        if DEBUG:
+            log_write.write("Compiling the Resnet50 module.\n")
         mlir_model, func_name, inputs, golden_out = download_torch_model(
             "resnet50"
         )
-
         shark_module = SharkInference(
             mlir_model, func_name, device=device, mlir_dialect="linalg"
         )
         shark_module.compile()
-        std_output += "Compilation successful.\n"
         compiled_module[device] = shark_module
+        if DEBUG:
+            log_write.write("Compilation successful.\n")
 
     img = preprocess_image(numpy_img)
     result = compiled_module[device].forward((img.detach().numpy(),))
+    output = top3_possibilities(torch.from_numpy(result), log_write)
+    log_write.close()
 
-    #  print("The top 3 results obtained via shark_runner is:")
-    std_output += "Retrieving top 3 possible outcomes.\n"
-    return top3_possibilities(torch.from_numpy(result)), std_output
+    std_output = ""
+    with open(r"logs/resnet50_log.txt", "r") as log_read:
+        std_output = log_read.read()
+
+    return output, std_output
