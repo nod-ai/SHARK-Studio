@@ -87,5 +87,10 @@ parser.add_argument(
     action="store_true",
     help="When enabled, SHARK downloader will update local shark_tank if local hash is different from latest upstream hash.",
 )
+parser.add_argument(
+    "--local_tank_cache",
+    default="",
+    help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
+)
 
 shark_args, unknown = parser.parse_known_args()

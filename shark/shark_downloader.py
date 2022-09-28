@@ -34,15 +34,25 @@ input_type_to_np_dtype = {
 # Save the model in the home local so it needn't be fetched everytime in the CI.
 home = str(Path.home())
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
+custom_path = shark_args.local_tank_cache
 if os.path.exists(alt_path):
     WORKDIR = alt_path
     print(
         f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
     )
+if custom_path:
+    if not os.path.exists(custom_path):
+        os.mkdir(custom_path)
+
+    WORKDIR = custom_path
+
+    print(f"Using {WORKDIR} as local shark_tank cache directory.")
 else:
     WORKDIR = os.path.join(home, ".local/shark_tank/")
-print(WORKDIR)
-
+    print(
+        f"shark_tank local cache is located at {WORKDIR} . You may change this by setting the --local_tank_cache="
+        " pytest flag"
+    )
 
 # Checks whether the directory and files exists.
 def check_dir_exists(model_name, frontend="torch", dynamic=""):

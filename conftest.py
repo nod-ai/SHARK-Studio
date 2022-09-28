@@ -43,6 +43,12 @@ def pytest_addoption(parser):
         help="Passes the github SHA of the CI workflow to include in google storage directory for reproduction artifacts.",
     )
     parser.addoption(
+        "--local_tank_cache",
+        action="store",
+        default="",
+        help="Specify the directory in which all downloaded shark_tank artifacts will be cached.",
+    )
+    parser.addoption(
         "--tank_url",
         type=str,
         default="gs://shark_tank/latest",

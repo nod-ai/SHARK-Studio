@@ -130,6 +130,7 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
+        shark_args.local_tank_cache = self.local_tank_cache
         if self.config["framework"] == "tf":
             model, func_name, inputs, golden_out = download_tf_model(
                 self.config["model_name"],
@@ -262,6 +263,9 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.tf32 = self.pytestconfig.getoption("tf32")
         self.module_tester.ci = self.pytestconfig.getoption("ci")
         self.module_tester.ci_sha = self.pytestconfig.getoption("ci_sha")
+        self.module_tester.local_tank_cache = self.pytestconfig.getoption(
+            "local_tank_cache"
+        )
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
         if (
             config["model_name"] == "distilbert-base-uncased"
