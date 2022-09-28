@@ -106,7 +106,7 @@ Now the SHARK will use your locally build Torch-MLIR repo.
 ```shell
 python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
 # Or a pytest
-pytest tank/tf/hf_masked_lm/albert-base-v2_test.py::AlbertBaseModuleTest::test_module_static_cpu
+pytest tank/test_models.py -k "MiniLM"
 ```
 
 </details>
