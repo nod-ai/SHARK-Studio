@@ -107,7 +107,10 @@ jobs:
         pytest tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
-    
+  publish:
+    runs-on: a100
+    needs: build 
+    steps:
     - name: Upload Release Assets
       if: ${{ matrix.backend == 'SHARK' }}
       id: upload-release-assets
@@ -116,7 +119,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         release_id: ${{ steps.create_release.outputs.id }}
-        assets_path: ./wheelhouse/nodai_*.whl
+        assets_path: ${GITHUB_WORKSPACE}/wheelhouse/nodai_*.whl
 
     - name: Publish Release
       if: ${{ matrix.backend == 'SHARK' }}
