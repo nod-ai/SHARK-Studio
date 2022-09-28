@@ -63,7 +63,7 @@ if [[ $(uname -s) = 'Darwin' ]]; then
     torch_mlir_bin=true
   fi
 elif [[ $(uname -s) = 'Linux' ]]; then
-  echo "${Yellow}Linux detected"
+  echo "${Yellow}Linux detected. If you are using Ubuntu <20.04, binary installation of SHARK runtime is not supported -- consider upgrading."
   if [ "$PYTHON_VERSION_X_Y" == "3.7" ] || [ "$PYTHON_VERSION_X_Y" == "3.8" ]  || [ "$PYTHON_VERSION_X_Y" == "3.9" ] || [ "$PYTHON_VERSION_X_Y" == "3.10" ] ; then
     torch_mlir_bin=true
   fi
