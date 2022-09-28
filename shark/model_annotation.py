@@ -90,6 +90,8 @@ def add_attributes(op: ir.Operation, config: Dict):
         workgroup_size,
         split_k,
         pipeline_depth,
+        devices,
+        shard_sizes,
     ) = parse_config(config)
 
     add_compilation_info(
@@ -102,7 +104,10 @@ def add_attributes(op: ir.Operation, config: Dict):
 
     if split_k:
         add_attribute_by_name(op, "iree_flow_split_k", split_k)
-
+    if devices:
+        add_attribute_by_name(op, "devices", devices)
+    if shard_sizes:
+        add_attribute_by_name(op, "shard_sizes", shard_sizes)
 
 def parse_config(config: Dict):
     if config["pipeline"] == "GPU" or config["pipeline"] == "GPU_TENSORCORE":
@@ -121,6 +126,14 @@ def parse_config(config: Dict):
             split_k = config["split_k"]
         except:
             split_k = None
+        try:
+            devices = config["devices"]
+        except:
+            devices = None
+        try:
+            shard_sizes = config["shard_sizes"]
+        except:
+            shard_sizes = None
     else:
         pipeline = config["pipeline"]
         tile_sizes = [
@@ -131,7 +144,9 @@ def parse_config(config: Dict):
         workgroup_size = []
         split_k = None
         pipeline_depth = None
-    return tile_sizes, pipeline, workgroup_size, split_k, pipeline_depth
+        devices = None
+        shard_sizes = None
+    return tile_sizes, pipeline, workgroup_size, split_k, pipeline_depth, devices, shard_sizes
 
 
 def add_compilation_info(
@@ -161,9 +176,22 @@ def add_compilation_info(
 
 
 def add_attribute_by_name(op: ir.Operation, name: str, val: int):
-    attr = ir.IntegerAttr.get(ir.IntegerType.get_signless(64), val)
+    if isinstance(val, list):
+        attr = ir.ArrayAttr.get(array_from_list(val))    
+    else:
+        attr = ir.IntegerAttr.get(ir.IntegerType.get_signless(64), val)
     op.attributes[name] = attr
 
+def array_from_list(val_list):
+    item_list = []
+    for arr in val_list:
+        if isinstance(arr, list):
+            attr = ir.ArrayAttr.get(array_from_list(arr))
+            item_list.append(attr)
+        else:
+            attr = ir.IntegerAttr.get(ir.IntegerType.get_signless(64), arr)
+            item_list.append(attr)
+    return item_list
 
 def create_context() -> ir.Context:
     context = ir.Context()
