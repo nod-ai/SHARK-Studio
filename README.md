@@ -76,6 +76,8 @@ git clone https://github.com/nod-ai/SHARK.git
 ./setup_venv.sh
 source shark.venv/bin/activate
 ```
+NOTE: SHARK Runtime pre-built binaries are not generated for Ubuntu versions prior to 20.04.
+
 For example if you want to use Python3.10 and upstream IREE with TF Import tools you can use the environment variables like:
 ```
 # PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 USE_IREE=1 ./setup_venv.sh 
