@@ -21,6 +21,7 @@ class AlbertModule(torch.nn.Module):
 
 ################################## Preprocessing inputs ####################
 
+DEBUG = False
 compiled_module = {}
 compiled_module["tokenizer"] = AutoTokenizer.from_pretrained("albert-base-v2")
 
@@ -42,10 +43,13 @@ def preprocess_data(text):
     return inputs
 
 
-def top5_possibilities(text, inputs, token_logits):
+def top5_possibilities(text, inputs, token_logits, log_write):
 
+    global DEBUG
     global compiled_module
 
+    if DEBUG:
+        log_write.write("Retrieving top 5 possible outcomes.\n")
     tokenizer = compiled_module["tokenizer"]
     mask_id = torch.where(inputs[0] == tokenizer.mask_token_id)[1]
     mask_token_logits = token_logits[0, mask_id, :]
@@ -55,6 +59,8 @@ def top5_possibilities(text, inputs, token_logits):
     for token in top_5_tokens:
         label = text.replace(tokenizer.mask_token, tokenizer.decode(token))
         top5[label] = percentage[token].item()
+    if DEBUG:
+        log_write.write("Done.\n")
     return top5
 
 
@@ -63,10 +69,18 @@ def top5_possibilities(text, inputs, token_logits):
 
 def albert_maskfill_inf(masked_text, device):
 
+    global DEBUG
     global compiled_module
+
+    DEBUG = False
+    log_write = open(r"logs/albert_maskfill_log.txt", "w")
+    if log_write:
+        DEBUG = True
 
     inputs = preprocess_data(masked_text)
     if device not in compiled_module.keys():
+        if DEBUG:
+            log_write.write("Compiling the Albert Maskfill module.\n")
         mlir_importer = SharkImporter(
             AlbertModule(),
             inputs,
@@ -80,6 +94,15 @@ def albert_maskfill_inf(masked_text, device):
         )
         shark_module.compile()
         compiled_module[device] = shark_module
+        if DEBUG:
+            log_write.write("Compilation successful.\n")
 
     token_logits = torch.tensor(compiled_module[device].forward(inputs))
-    return top5_possibilities(masked_text, inputs, token_logits), "Testing.."
+    output = top5_possibilities(masked_text, inputs, token_logits, log_write)
+    log_write.close()
+
+    std_output = ""
+    with open(r"logs/albert_maskfill_log.txt", "r") as log_read:
+        std_output = log_read.read()
+
+    return output, std_output
