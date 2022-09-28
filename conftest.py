@@ -14,7 +14,7 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--tf32",
-        action="store_true",
+        action="store",
         default="False",
         help="Use TensorFloat-32 calculations.",
     )

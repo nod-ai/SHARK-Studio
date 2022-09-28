@@ -158,7 +158,7 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{result}",
             f"{1000/result}",
             f"{shark_args.iree_intraop_thread_count}",
-            f"{shark_args.iree_interop_thread_count}",
+            f"{shark_args.iree_intraop_thread_count}",
         ]
 
     def benchmark_python(self, inputs):
@@ -178,7 +178,7 @@ class SharkBenchmarkRunner(SharkRunner):
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
             f"{shark_args.iree_intraop_thread_count}",
-            f"{shark_args.iree_interop_thread_count}",
+            f"{shark_args.iree_intraop_thread_count}",
         ]
 
     def benchmark_onnx(self, modelname, inputs):

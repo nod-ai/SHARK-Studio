@@ -121,18 +121,11 @@ parser.add_argument(
     help="For benchmarks. Set the number of threads to be used for intraop parallelism when generating PyTorch baseline perf numbers.",
 )
 parser.add_argument(
-    "--iree_interop_thread_count",
-    default=None,
-    type=int,
-    action="store",
-    help="For benchmarks. Set the number of threads to be used for interop parallelism when generating IREE/SHARK perf numbers.",
-)
-parser.add_argument(
     "--iree_intraop_thread_count",
     default=None,
     type=int,
     action="store",
-    help="For benchmarks. Set the number of threads to be used for intraop parallelism when generating IREE/SHARK perf numbers.",
+    help="For benchmarks. Sets the --task_topology_group_count runtime param and --iree-codegen-llvm-number-of-threads compiler param when generating IREE/SHARK perf numbers.",
 )
 
 shark_args, unknown = parser.parse_known_args()

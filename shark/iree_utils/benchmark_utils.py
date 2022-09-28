@@ -73,9 +73,6 @@ def build_benchmark_args(
     benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
     if shark_args.iree_intraop_thread_count is not None:
         benchmark_cl.append(
-            f"--iree-codegen-llvm-number-of-threads={shark_args.iree_intraop_thread_count}"
-        )
-        benchmark_cl.append(
             f"--task_topology_group_count={shark_args.iree_intraop_thread_count}"
         )
     mlir_input_types = tensor_to_type_str(input_tensors, mlir_dialect)

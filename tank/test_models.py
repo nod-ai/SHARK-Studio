@@ -127,6 +127,7 @@ class SharkModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         shark_args.local_tank_cache = self.local_tank_cache
+        shark_args.device = device
         if self.config["framework"] in ["tf", "torch", "tflite"]:
             model, func_name, inputs, golden_out = download_shark_model(
                 self.config["model_name"],
@@ -180,12 +181,11 @@ class SharkModuleTester:
             self.save_reproducers()
 
     def benchmark_module(self, shark_module, inputs, dynamic, device):
-        shark_args.torch_intraop_thread_count = self.intraop_thread_count
-        shark_args.torch_interop_thread_count = self.interop_thread_count
-        shark_args.tf_intraop_thread_count = self.intraop_thread_count
-        shark_args.tf_interop_thread_count = self.interop_thread_count
-        shark_args.iree_intraop_thread_count = self.iree_thread_count
-        shark_args.enable_tf32 = self.tf32
+        if shark_args.device == "cpu":
+            shark_args.torch_intraop_thread_count = self.intraop_thread_count
+            shark_args.torch_interop_thread_count = self.interop_thread_count
+            shark_args.tf_intraop_thread_count = self.intraop_thread_count
+            shark_args.tf_interop_thread_count = self.interop_thread_count
         if shark_args.enable_tf32 == True:
             shark_module.compile()
             shark_args.enable_tf32 = False
@@ -270,7 +270,7 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.interop_thread_count = self.pytestconfig.getoption(
             "set_fw_interop_thread_count"
         )
-        self.module_tester.iree_thread_count = self.pytestconfig.getoption(
+        shark_args.iree_intraop_thread_count = self.pytestconfig.getoption(
             "set_iree_thread_count"
         )
         if (

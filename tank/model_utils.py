@@ -5,8 +5,9 @@ import torch
 import numpy as np
 import sys
 
-torch.set_num_threads(shark_args.torch_intraop_thread_count)
-torch.set_num_interop_threads(shark_args.torch_interop_thread_count)
+if shark_args.device == "cpu":
+    torch.set_num_threads(shark_args.torch_intraop_thread_count)
+    torch.set_num_interop_threads(shark_args.torch_interop_thread_count)
 
 torch.manual_seed(0)
 
