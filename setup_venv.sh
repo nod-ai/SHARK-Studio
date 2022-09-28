@@ -63,7 +63,14 @@ if [[ $(uname -s) = 'Darwin' ]]; then
     torch_mlir_bin=true
   fi
 elif [[ $(uname -s) = 'Linux' ]]; then
-  echo "${Yellow}Linux detected. If you are using Ubuntu <20.04, binary installation of SHARK runtime is not supported -- consider upgrading."
+  echo "${Yellow}Linux detected."
+  os_version="$(lsb_release -d)"
+  if echo "$os_version" | grep -i "ubuntu"; then
+  if ! echo "$os_version" | grep -i "22.04"; then
+    echo "${Orange}Detected Ubuntu version older than 22.04 -- SHARK Runtime pre-built binaries may not be found for your distribution."
+  fi
+  fi
+
   if [ "$PYTHON_VERSION_X_Y" == "3.7" ] || [ "$PYTHON_VERSION_X_Y" == "3.8" ]  || [ "$PYTHON_VERSION_X_Y" == "3.9" ] || [ "$PYTHON_VERSION_X_Y" == "3.10" ] ; then
     torch_mlir_bin=true
   fi
