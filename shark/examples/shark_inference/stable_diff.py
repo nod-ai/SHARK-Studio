@@ -30,6 +30,7 @@ p.add_argument(
 p.add_argument("--device", type=str, default="cpu", help="the device to use")
 p.add_argument("--steps", type=int, default=10, help="the device to use")
 p.add_argument("--mlir_loc", type=str, default=None, help="the device to use")
+p.add_argument("--vae_loc", type=str, default=None, help="the device to use")
 args = p.parse_args()
 
 #####################################################
@@ -135,7 +136,7 @@ if __name__ == "__main__":
 
     vae = VaeModel()
     vae_input = torch.rand(1, 4, 64, 64)
-    shark_vae = compile_through_fx(vae, (vae_input,))
+    shark_vae = compile_through_fx(vae, (vae_input,), args.vae_loc)
 
     # Wrap the unet model to return tuples.
     class UnetModel(torch.nn.Module):
