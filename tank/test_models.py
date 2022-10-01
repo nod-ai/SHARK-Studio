@@ -163,7 +163,7 @@ class SharkModuleTester:
             if any([self.ci, self.save_repro, self.save_fails]) == True:
                 self.save_reproducers()
             if self.ci == True:
-                self.upload_repro(self.ci_sha)
+                self.upload_repro()
             raise
 
         result = shark_module.forward(inputs)
@@ -220,7 +220,7 @@ class SharkModuleTester:
     def upload_repro(self):
         import subprocess
 
-        bashCommand = f"gsutil cp -r ./shark_tmp/saved/{self.tmp_prefix}/* gs://shark-public/builder/repro_artifacts/"
+        bashCommand = f"gsutil cp -r ./shark_tmp/saved/{self.tmp_prefix}/* gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         process = subprocess.run(bashCommand.split())
 
     def postprocess_outputs(self, golden_out, result):
@@ -334,6 +334,21 @@ class SharkModuleTest(unittest.TestCase):
         ):
             pytest.xfail(
                 reason="Numerics issues -- https://github.com/nod-ai/SHARK/issues/344"
+            )
+        if (
+            config["model_name"] == "facebook/deit-small-distilled-patch16-224"
+            and device == "cuda"
+        ):
+            pytest.xfail(
+                reason="Fails during iree-compile without reporting diagnostics."
+            )
+        if (
+            config["model_name"]
+            == "microsoft/beit-base-patch16-224-pt22k-ft22k"
+            and device == "cuda"
+        ):
+            pytest.xfail(
+                reason="Fails during iree-compile without reporting diagnostics."
             )
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
