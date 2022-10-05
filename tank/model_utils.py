@@ -22,6 +22,7 @@ hf_img_cls_models = [
     "facebook/deit-small-distilled-patch16-224",
     "microsoft/beit-base-patch16-224-pt22k-ft22k",
     "nvidia/mit-b0",
+    "esc-bench/conformer-rnnt-chime4"
 ]
 
 
