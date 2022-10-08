@@ -7,6 +7,7 @@
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
 # IMPORTER=1 #Install importer deps
+# BENCHMARK=1 #Install benchmark deps
 # NO_BACKEND=1 #Don't install iree or shark backend
 # if you run the script from a conda env it will install in your conda env
 
@@ -112,7 +113,7 @@ fi
 
 $PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f https://github.com/${RUNTIME}/releases
 
-if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
+if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
   if [ $? -eq 0 ];then
