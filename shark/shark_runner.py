@@ -25,7 +25,7 @@ import sys
 
 
 # supported dialects by the shark-runtime.
-supported_dialects = {"linalg", "mhlo", "tosa", "tf-lite"}
+supported_dialects = {"linalg", "mhlo", "tosa", "tf-lite", "tm_tensor"}
 
 
 class SharkRunner:
