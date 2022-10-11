@@ -121,6 +121,33 @@ pytest tank/test_models.py -k "MiniLM"
 <details>
   <summary>Testing and Benchmarks</summary>
 
+## Benchmarking Dispatches
+
+To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your command line argument.  
+If you only want to compile specific dispatches, you can specify them with a space seperated string instead of `"All"`.  E.G. `--dispatch_benchmarks="0 1 2 10"`
+
+if you want to instead incorporate this into a python script, you can pass the `dispatch_benchmarks` and `dispatch_benchmarks_dir` commands when initializing `SharkInference`, and the benchmarks will be generated when compiled.  E.G:
+
+```
+shark_module = SharkInference(
+        mlir_model,
+        func_name,
+        device=args.device,
+        mlir_dialect="tm_tensor",
+        dispatch_benchmarks="all",
+        dispatch_benchmarks_dir="results"
+    )
+```
+
+Output will include:
+- Inside the specified directory, there will be a directory for each dispatch (there will be mlir files for all dispatches, but only compiled binaries and benchmark data for the specified dispatches)
+- An .mlir file containing the dispatch benchmark 
+- A compiled .vmfb file containing the dispatch benchmark
+- An .mlir file containing just the hal executable
+- A compiled .vmfb file of the hal executable
+- A .txt file containing benchmark output
+
+
 See tank/README.md for instructions on how to run model tests and benchmarks from the SHARK tank.
 
 </details>
@@ -174,7 +201,6 @@ shark_module.compile()
 result = shark_module.forward((arg0, arg1))
 ```
 </details>
-
 
 ## Supported and Validated Models
 

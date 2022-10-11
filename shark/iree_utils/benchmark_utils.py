@@ -78,6 +78,31 @@ def build_benchmark_args(
     return benchmark_cl
 
 
+def build_benchmark_args_non_tensor_input(
+    input_file: str,
+    device: str,
+    inputs: tuple,
+    mlir_dialect: str,
+    function_name: str,
+):
+    """
+    Inputs: input_file leading to vmfb, input_tensor to function, target device,
+    and whether it is training or not.
+    Outputs: string that execute benchmark-module on target model.
+    """
+    path = benchmark_module.__path__[0]
+    benchmarker_path = os.path.join(path, "..", "..", "iree-benchmark-module")
+    benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
+    # TODO: The function named can be passed as one of the args.
+    benchmark_cl.append(f"--entry_function={function_name}")
+    benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
+    for input in inputs:
+        benchmark_cl.append(f"--function_input={input}")
+    time_extractor = "| awk 'END{{print $2 $3}}'"
+    benchmark_cl.append(time_extractor)
+    return benchmark_cl
+
+
 def run_benchmark_module(benchmark_cl):
     """
     Run benchmark command, extract result and return iteration/seconds.

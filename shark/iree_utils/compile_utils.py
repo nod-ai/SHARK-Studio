@@ -14,8 +14,10 @@
 import iree.runtime as ireert
 import iree.compiler as ireec
 from shark.iree_utils._common import IREE_DEVICE_MAP, IREE_TARGET_MAP
+from shark.iree_utils.benchmark_utils import *
 import numpy as np
 import os
+import re
 
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
@@ -60,6 +62,125 @@ def get_iree_common_args():
         "--iree-vm-target-index-bits=64",
         "--iree-util-zero-fill-elided-attrs",
     ]
+
+
+def create_dispatch_dirs(bench_dir, device):
+    bench_dir_path = bench_dir.split("/")
+    bench_dir_path[-1] = "temp_" + bench_dir_path[-1]
+    tmp_bench_dir = "/".join(bench_dir_path)
+    for f_ in os.listdir(bench_dir):
+        if os.path.isfile(f"{bench_dir}/{f_}"):
+            dir_name = re.sub("\.\S*$", "", f_)
+            if os.path.exists(f"{bench_dir}/{dir_name}"):
+                os.system(f"rm -rf {bench_dir}/{dir_name}")
+            os.system(f"mkdir {bench_dir}/{dir_name}")
+            os.system(f"mv {bench_dir}/{f_} {bench_dir}/{dir_name}/{f_}")
+    for f_ in os.listdir(tmp_bench_dir):
+        if os.path.isfile(f"{tmp_bench_dir}/{f_}"):
+            dir_name = ""
+            for d_ in os.listdir(bench_dir):
+                if re.search(f"{d_}(?=\D)", f_):
+                    dir_name = d_
+            if dir_name != "":
+                os.system(
+                    f"mv {tmp_bench_dir}/{f_} {bench_dir}/{dir_name}/{dir_name}_benchmark.mlir"
+                )
+
+
+def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
+    dispatch_list = []
+    all_dispatches = False
+
+    if dispatch_benchmarks.lower().strip() == "all":
+        all_dispatches = True
+    else:
+        try:
+            dispatch_list = [
+                int(dispatch_index)
+                for dispatch_index in dispatch_benchmarks.split(" ")
+            ]
+        except:
+            print("ERROR: Invalid dispatch benchmarks")
+            return None
+    for d_ in os.listdir(bench_dir):
+        in_dispatches = False
+        for dispatch in dispatch_list:
+            if str(dispatch) in d_:
+                in_dispatches = True
+        if all_dispatches or in_dispatches:
+            for f_ in os.listdir(f"{bench_dir}/{d_}"):
+
+                if "benchmark.mlir" in f_:
+                    dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
+                    module = dispatch_file.read()
+                    dispatch_file.close()
+
+                    flatbuffer_blob = ireec.compile_str(
+                        module, target_backends=[IREE_TARGET_MAP[device]]
+                    )
+
+                    vmfb_file = open(
+                        f"{bench_dir}/{d_}/{d_}_benchmark.vmfb", "wb"
+                    )
+                    vmfb_file.write(flatbuffer_blob)
+                    vmfb_file.close()
+
+                    config = ireert.Config(IREE_DEVICE_MAP[device])
+                    vm_module = ireert.VmModule.from_flatbuffer(
+                        config.vm_instance, flatbuffer_blob
+                    )
+
+                    benchmark_cl = build_benchmark_args_non_tensor_input(
+                        input_file=f"{bench_dir}/{d_}/{d_}_benchmark.vmfb",
+                        device=device,
+                        inputs=(0,),
+                        mlir_dialect="linalg",
+                        function_name=vm_module.function_names[0],
+                    )
+
+                    benchmark_bash = open(
+                        f"{bench_dir}/{d_}/{d_}_benchmark.sh", "w+"
+                    )
+                    benchmark_bash.write("#!/bin/bash\n")
+                    benchmark_bash.write(" ".join(benchmark_cl))
+                    benchmark_bash.close()
+
+                    benchmark_data = run_benchmark_module(benchmark_cl)
+
+                    benchmark_file = open(
+                        f"{bench_dir}/{d_}/{d_}_data.txt", "w+"
+                    )
+                    benchmark_file.write(f"DISPATCH: {d_}\n")
+                    benchmark_file.write(str(benchmark_data) + "\n")
+                    benchmark_file.write(
+                        "SHARK BENCHMARK RESULT: "
+                        + str(1 / (benchmark_data * 0.001))
+                        + "\n"
+                    )
+                    benchmark_file.close()
+
+                elif ".mlir" in f_ and "benchmark" not in f_:
+                    dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
+                    module = dispatch_file.read()
+                    dispatch_file.close()
+
+                    module = re.sub(
+                        "hal.executable private",
+                        "hal.executable public",
+                        module,
+                    )
+
+                    flatbuffer_blob = ireec.compile_str(
+                        module,
+                        target_backends=[IREE_TARGET_MAP[device]],
+                        extra_args=["--compile-mode=hal-executable"],
+                    )
+
+                    spirv_file = open(
+                        f"{bench_dir}/{d_}/{d_}_spirv.vmfb", "wb"
+                    )
+                    spirv_file.write(flatbuffer_blob)
+                    spirv_file.close()
 
 
 def compile_module_to_flatbuffer(

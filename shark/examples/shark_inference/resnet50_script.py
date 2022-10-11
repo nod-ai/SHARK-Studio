@@ -69,7 +69,7 @@ labels = load_labels()
 mlir_model, func_name, inputs, golden_out = download_torch_model("resnet50")
 
 shark_module = SharkInference(mlir_model, func_name, mlir_dialect="linalg")
-# shark_module.compile()
+shark_module.compile()
 path = shark_module.save_module()
 shark_module.load_module(path)
 result = shark_module.forward((img.detach().numpy(),))
