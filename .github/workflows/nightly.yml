@@ -111,10 +111,7 @@ jobs:
         pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
-  publish:
-    runs-on: a100
-    needs: build 
-    steps:
+    
     - name: Upload Release Assets
       if: ${{ matrix.backend == 'SHARK' }}
       id: upload-release-assets

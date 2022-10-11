@@ -16,7 +16,7 @@ jobs:
       - name: Checking out repository
         uses: actions/checkout@v2
         with:
-          token: ${{ secrets.WORKFLOW_INVOCATION_TOKEN }}
+          token: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       - name: Run scrape releases script
         run: python ./build_tools/scrape_releases.py nod-ai SHARK > /tmp/index.html
         shell: bash
@@ -33,5 +33,5 @@ jobs:
       - name: GitHub Push
         uses: ad-m/github-push-action@v0.6.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.NODAI_INVOCATION_TOKEN }}
           branch: github-pages
