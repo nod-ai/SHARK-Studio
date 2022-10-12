@@ -311,6 +311,7 @@ class SharkModuleTest(unittest.TestCase):
                 reason="https://github.com/nod-ai/SHARK/issues/311, https://github.com/nod-ai/SHARK/issues/342"
             )
         if config["model_name"] == "funnel-transformer/small" and device in [
+            "cpu",
             "cuda",
             "metal",
             "vulkan",
@@ -347,8 +348,20 @@ class SharkModuleTest(unittest.TestCase):
             == "microsoft/beit-base-patch16-224-pt22k-ft22k"
             and device == "cuda"
         ):
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/390")
+        if config["model_name"] == "squeezenet1_0" and device in [
+            "metal",
+            "vulkan",
+        ]:
             pytest.xfail(
-                reason="Fails during iree-compile without reporting diagnostics."
+                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
+            )
+        if config["model_name"] == "mobilenet_v3_small" and device in [
+            "metal",
+            "vulkan",
+        ]:
+            pytest.xfail(
+                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
             )
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
