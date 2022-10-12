@@ -89,13 +89,13 @@ else
   exit 1
 fi
 if [[ -z "${USE_IREE}" ]]; then
-  RUNTIME="nod-ai/SHARK-Runtime"
+  RUNTIME="https://github.com/nod-ai/SHARK-Runtime/releases/"
 else
-  RUNTIME="google/iree"
+  RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
-  $PYTHON -m pip install --find-links https://github.com/${RUNTIME}/releases iree-compiler iree-runtime
+  $PYTHON -m pip install --find-links ${RUNTIME} iree-compiler iree-runtime
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
@@ -103,15 +103,15 @@ if [[ ! -z "${IMPORTER}" ]]; then
   echo "${Yellow}Installing importer tools.."
   if [[ $(uname -s) = 'Linux' ]]; then
     echo "${Yellow}Linux detected.. installing Linux importer tools"
-    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://github.com/${RUNTIME}/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   elif [[ $(uname -s) = 'Darwin' ]]; then
     echo "${Yellow}macOS detected.. installing macOS importer tools"
     #Conda seems to have some problems installing these packages and hope they get resolved upstream.
-    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f https://github.com/${RUNTIME}/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   fi
 fi
 
-$PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f https://github.com/${RUNTIME}/releases
+$PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME}
 
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
