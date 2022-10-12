@@ -363,6 +363,8 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(
                 reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
             )
+        if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
+            pytest.xfail(reason="Transformers API mismatch")
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
