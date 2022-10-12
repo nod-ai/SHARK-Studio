@@ -1,4 +1,0 @@
-[submodule "inference/thirdparty/shark-runtime"]
-	path = inference/thirdparty/shark-runtime
-	url =https://github.com/nod-ai/SHARK-Runtime.git
-	branch = shark-06032022
