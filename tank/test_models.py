@@ -396,6 +396,22 @@ class SharkModuleTest(unittest.TestCase):
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
             )
+        if config["model_name"] == "bigscience/bloom-560m" and dynamic == True:
+            pytest.skip(reason="Dynamic shapes not supported for this bloom.")
+        if (
+            config["model_name"] == "bigscience/bloom-560m"
+            and device == "vulkan"
+        ):
+            pytest.xfail(
+                reason="vulkan not supported with tm_tensor in bloom, https://github.com/nod-ai/SHARK/issues/380"
+            )
+        if (
+            config["model_name"] == "bigscience/bloom-560m"
+            and self.module_tester.benchmark == True
+        ):
+            pytest.xfail(
+                reason="tm_tensor dialect in bloom not supported for benchmark. https://github.com/nod-ai/SHARK/issues/379"
+            )
 
         safe_name = (
             f"{config['model_name']}_{config['framework']}_{dynamic}_{device}"
