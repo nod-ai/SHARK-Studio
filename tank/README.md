@@ -1,4 +1,117 @@
-## SHARK Tank
+## Supported and Validated Models
+
+For a list of models included in our pytest model suite, see all_models.csv
+
+### Huggingface PyTorch Models
+
+| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :green_heart: (JIT)          | :green_heart:         | :green_heart:         | :green_heart:            |
+| Albert              | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
+| BigBird             | :green_heart: (AOT)            |          |          |             |
+| DistilBERT          | :broken_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
+| GPT2                | :green_heart:            | :green_heart:         |  :green_heart:        | :green_heart:            |
+| MobileBert          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
+
+### Torchvision  Models
+
+| TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|--------------------|----------------------|----------|----------|-------------|
+| AlexNet            | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| DenseNet121        | :green_heart: (Script)         |          |          |             |
+| MNasNet1_0         | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| MobileNetV2        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| MobileNetV3        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Unet               | :green_heart: (Script)         |          |          |             |
+| Resnet18           | :green_heart: (Script)         | :green_heart:         |  :green_heart:        | :green_heart:            |
+| Resnet50           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
+| Resnet101           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
+| Resnext50_32x4d    | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| ShuffleNet_v2      | :broken_heart: (Script)         |          |          |             |
+| SqueezeNet         | :green_heart: (Script)         | :green_heart:         |   :broken_heart:       | :broken_heart:            |
+| EfficientNet       | :green_heart: (Script)         |          |          |             |
+| Regnet             | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Resnest            | :broken_heart: (Script)         |          |          |             |
+| Vision Transformer | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| VGG 16             | :green_heart: (Script)         | :green_heart:         |   :green_heart:       |             |
+| Wide Resnet        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| RAFT               | :broken_heart: (JIT)            |          |          |             |
+
+For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
+
+### PyTorch Training Models
+
+| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :green_heart:           | :green_heart:         |          |             |
+| FullyConnected                | :green_heart:           | :green_heart:         |          |             |
+
+### JAX  Models
+
+| Models | JAX-MHLO lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| DALL-E                | :broken_heart:           | :broken_heart:         |          |             |
+| FullyConnected                | :green_heart:           | :green_heart:         |          |             |
+
+### TFLite Models
+
+| Models | TOSA/LinAlg  | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :broken_heart:           | :broken_heart:         |          |             |
+| FullyConnected      | :green_heart:           | :green_heart:         |          |             |
+| albert | :green_heart:           | :green_heart:         |          |             |
+| asr_conformer | :green_heart:           | :green_heart:         |          |             |
+| bird_classifier | :green_heart:           | :green_heart:         |          |             |
+| cartoon_gan | :green_heart:           | :green_heart:         |          |             |
+| craft_text | :green_heart:           | :green_heart:         |          |             |
+| deeplab_v3 | :green_heart:           | :green_heart:         |          |             |
+| densenet | :green_heart:           | :green_heart:         |          |             |
+| east_text_detector | :green_heart:           | :green_heart:         |          |             |
+| efficientnet_lite0_int8 | :green_heart:           | :green_heart:         |          |             |
+| efficientnet | :green_heart:           | :green_heart:         |          |             |
+| gpt2 | :green_heart:           | :green_heart:         |          |             |
+| image_stylization | :green_heart:           | :green_heart:         |          |             |
+| inception_v4 | :green_heart:           | :green_heart:         |          |             |
+| inception_v4_uint8 | :green_heart:           | :green_heart:         |          |             |
+| lightning_fp16 | :green_heart:           | :green_heart:         |          |             |
+| lightning_i8 | :green_heart:           | :green_heart:         |          |             |
+| lightning | :green_heart:           | :green_heart:         |          |             |
+| magenta | :green_heart:           | :green_heart:         |          |             |
+| midas | :green_heart:           | :green_heart:         |          |             |
+| mirnet | :green_heart:           | :green_heart:         |          |             |
+| mnasnet | :green_heart:           | :green_heart:         |          |             |
+| mobilebert_edgetpu_s_float | :green_heart:           | :green_heart:         |          |             |
+| mobilebert_edgetpu_s_quant | :green_heart:           | :green_heart:         |          |             |
+| mobilebert | :green_heart:           | :green_heart:         |          |             |
+| mobilebert_tf2_float | :green_heart:           | :green_heart:         |          |             |
+| mobilebert_tf2_quant | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_ssd_quant | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v1 | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v1_uint8 | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v2_int8 | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v2 | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v2_uint8 | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v3-large | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v3-large_uint8 | :green_heart:           | :green_heart:         |          |             |
+| mobilenet_v35-int8 | :green_heart:           | :green_heart:         |          |             |
+| nasnet | :green_heart:           | :green_heart:         |          |             |
+| person_detect | :green_heart:           | :green_heart:         |          |             |
+| posenet | :green_heart:           | :green_heart:         |          |             |
+| resnet_50_int8 | :green_heart:           | :green_heart:         |          |             |
+| rosetta | :green_heart:           | :green_heart:         |          |             |
+| spice | :green_heart:           | :green_heart:         |          |             |
+| squeezenet | :green_heart:           | :green_heart:         |          |             |
+| ssd_mobilenet_v1 | :green_heart:           | :green_heart:         |          |             |
+| ssd_mobilenet_v1_uint8 | :green_heart:           | :green_heart:         |          |             |
+| ssd_mobilenet_v2_fpnlite | :green_heart:           | :green_heart:         |          |             |
+| ssd_mobilenet_v2_fpnlite_uint8 | :green_heart:           | :green_heart:         |          |             |
+| ssd_mobilenet_v2_int8 | :green_heart:           | :green_heart:         |          |             |
+| ssd_mobilenet_v2 | :green_heart:           | :green_heart:         |          |             |
+| ssd_spaghettinet_large | :green_heart:           | :green_heart:         |          |             |
+| ssd_spaghettinet_large_uint8 | :green_heart:           | :green_heart:         |          |             |
+| visual_wake_words_i8 | :green_heart:           | :green_heart:         |          |             |
+
+
 <details>
   <summary>Testing and Benchmarks</summary>
 
@@ -65,8 +178,6 @@ cd transformer-benchmarks
 
 ```
 
-</details>
-
 To run the fine tuning example, from the root SHARK directory, run:
 
 ```shell
@@ -80,156 +191,6 @@ if running from a google vm, you can view jupyter notebooks on your local system
 gcloud compute ssh <YOUR_INSTANCE_DETAILS> --ssh-flag="-N -L localhost:8888:localhost:8888"
 ```
 
-## Supported and Validated Models
-
-<details>
-  <summary>PyTorch Models</summary>
-
-### Huggingface PyTorch Models
-
-| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :green_heart: (JIT)          | :green_heart:         | :green_heart:         | :green_heart:            |
-| Albert              | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
-| BigBird             | :green_heart: (AOT)            |          |          |             |
-| DistilBERT          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
-| GPT2                | :broken_heart: (AOT)            |          |          |             |
-| MobileBert          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
-
-### Torchvision  Models
-
-| TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|--------------------|----------------------|----------|----------|-------------|
-| AlexNet            | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| DenseNet121        | :green_heart: (Script)         |          |          |             |
-| MNasNet1_0         | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| MobileNetV2        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| MobileNetV3        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Unet               | :broken_heart: (Script)         |          |          |             |
-| Resnet18           | :green_heart: (Script)         | :green_heart:         |  :green_heart:        | :green_heart:            |
-| Resnet50           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| Resnet101           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| Resnext50_32x4d    | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| ShuffleNet_v2      | :broken_heart: (Script)         |          |          |             |
-| SqueezeNet         | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| EfficientNet       | :green_heart: (Script)         |          |          |             |
-| Regnet             | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Resnest            | :broken_heart: (Script)         |          |          |             |
-| Vision Transformer | :green_heart: (Script)         |          |          |             |
-| VGG 16             | :green_heart: (Script)         | :green_heart:         |   :green_heart:       |             |
-| Wide Resnet        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| RAFT               | :broken_heart: (JIT)            |          |          |             |
-
-For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
-
-### PyTorch Training Models
-
-| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :broken_heart:           | :broken_heart:         |          |             |
-| FullyConnected                | :green_heart:           | :green_heart:         |          |             |
-
 </details>
 
-<details>
-  <summary>JAX Models</summary>
 
-
-### JAX  Models
-
-| Models | JAX-MHLO lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| DALL-E                | :broken_heart:           | :broken_heart:         |          |             |
-| FullyConnected                | :green_heart:           | :green_heart:         |          |             |
-
-</details>
-
-<details>
-  <summary>TFLite Models</summary>
-
-### TFLite Models
-
-| Models | TOSA/LinAlg  | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :broken_heart:           | :broken_heart:         |          |             |
-| FullyConnected      | :green_heart:           | :green_heart:         |          |             |
-| albert | :green_heart:           | :green_heart:         |          |             |
-| asr_conformer | :green_heart:           | :green_heart:         |          |             |
-| bird_classifier | :green_heart:           | :green_heart:         |          |             |
-| cartoon_gan | :green_heart:           | :green_heart:         |          |             |
-| craft_text | :green_heart:           | :green_heart:         |          |             |
-| deeplab_v3 | :green_heart:           | :green_heart:         |          |             |
-| densenet | :green_heart:           | :green_heart:         |          |             |
-| east_text_detector | :green_heart:           | :green_heart:         |          |             |
-| efficientnet_lite0_int8 | :green_heart:           | :green_heart:         |          |             |
-| efficientnet | :green_heart:           | :green_heart:         |          |             |
-| gpt2 | :green_heart:           | :green_heart:         |          |             |
-| image_stylization | :green_heart:           | :green_heart:         |          |             |
-| inception_v4 | :green_heart:           | :green_heart:         |          |             |
-| inception_v4_uint8 | :green_heart:           | :green_heart:         |          |             |
-| lightning_fp16 | :green_heart:           | :green_heart:         |          |             |
-| lightning_i8 | :green_heart:           | :green_heart:         |          |             |
-| lightning | :green_heart:           | :green_heart:         |          |             |
-| magenta | :green_heart:           | :green_heart:         |          |             |
-| midas | :green_heart:           | :green_heart:         |          |             |
-| mirnet | :green_heart:           | :green_heart:         |          |             |
-| mnasnet | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_edgetpu_s_float | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_edgetpu_s_quant | :green_heart:           | :green_heart:         |          |             |
-| mobilebert | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_tf2_float | :green_heart:           | :green_heart:         |          |             |
-| mobilebert_tf2_quant | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_ssd_quant | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v1 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v1_uint8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v2_int8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v2 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v2_uint8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v3-large | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v3-large_uint8 | :green_heart:           | :green_heart:         |          |             |
-| mobilenet_v35-int8 | :green_heart:           | :green_heart:         |          |             |
-| nasnet | :green_heart:           | :green_heart:         |          |             |
-| person_detect | :green_heart:           | :green_heart:         |          |             |
-| posenet | :green_heart:           | :green_heart:         |          |             |
-| resnet_50_int8 | :green_heart:           | :green_heart:         |          |             |
-| rosetta | :green_heart:           | :green_heart:         |          |             |
-| spice | :green_heart:           | :green_heart:         |          |             |
-| squeezenet | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v1 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v1_uint8 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2_fpnlite | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2_fpnlite_uint8 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2_int8 | :green_heart:           | :green_heart:         |          |             |
-| ssd_mobilenet_v2 | :green_heart:           | :green_heart:         |          |             |
-| ssd_spaghettinet_large | :green_heart:           | :green_heart:         |          |             |
-| ssd_spaghettinet_large_uint8 | :green_heart:           | :green_heart:         |          |             |
-| visual_wake_words_i8 | :green_heart:           | :green_heart:         |          |             |
-
-</details>
-
-<details>
-  <summary>TF Models</summary>
-
-### Tensorflow Models (Inference)
-
-| Hugging Face Models | tf-mhlo lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| albert-base-v2              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| DistilBERT          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| CamemBert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| ConvBert              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| Deberta              |            |         |          |             |
-| electra          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| funnel              |            |         |          |             |
-| layoutlm              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| longformer              |            |         |          |             |
-| mobile-bert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| remembert              |            |         |          |             |
-| tapas              |            |         |          |             |
-| flaubert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| roberta                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| xlm-roberta              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| mpnet              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-
-</details>
