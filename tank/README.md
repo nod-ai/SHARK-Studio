@@ -1,36 +1,35 @@
 ## Supported and Validated Models
 
-For a list of models included in our pytest model suite, see all_models.csv
+### PyTorch HuggingFace Models
 
-### Huggingface PyTorch Models
-
-| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| PyTorch Language Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :green_heart: (JIT)          | :green_heart:         | :green_heart:         | :green_heart:            |
 | Albert              | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
 | BigBird             | :green_heart: (AOT)            |          |          |             |
-| DistilBERT          | :broken_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
+| dbmdz/ConvBERT      | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| DistilBERT          | :broken_heart: (JIT)            |          |          |             |
 | GPT2                | :green_heart:            | :green_heart:         |  :green_heart:        | :green_heart:            |
 | MobileBert          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
+| microsoft/beit      | :green_heart:                  | :green_heart:         | :broken_heart:         | :broken_heart:            |
+| facebook/deit       | :green_heart:          | :green_heart:         | :broken_heart:         | :broken_heart:            |
+| facebook/convnext   | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
 
 ### Torchvision  Models
 
 | TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| DenseNet121        | :green_heart: (Script)         |          |          |             |
-| MNasNet1_0         | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | MobileNetV2        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | MobileNetV3        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Unet               | :green_heart: (Script)         |          |          |             |
+| Unet               | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | Resnet18           | :green_heart: (Script)         | :green_heart:         |  :green_heart:        | :green_heart:            |
 | Resnet50           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
 | Resnet101           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| Resnext50_32x4d    | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| ShuffleNet_v2      | :broken_heart: (Script)         |          |          |             |
+| Resnext50_32x4d    | :green_heart: (Script)         |          |          |             |
 | SqueezeNet         | :green_heart: (Script)         | :green_heart:         |   :broken_heart:       | :broken_heart:            |
 | EfficientNet       | :green_heart: (Script)         |          |          |             |
-| Regnet             | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Regnet             | :green_heart: (Script)         |          |          |             |
 | Resnest            | :broken_heart: (Script)         |          |          |             |
 | Vision Transformer | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | VGG 16             | :green_heart: (Script)         | :green_heart:         |   :green_heart:       |             |
@@ -38,6 +37,29 @@ For a list of models included in our pytest model suite, see all_models.csv
 | RAFT               | :broken_heart: (JIT)            |          |          |             |
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
+
+### Tensorflow Models (Inference)
+
+| Hugging Face Models | tf-mhlo lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| MiniLM                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| albert-base-v2              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| DistilBERT          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| CamemBert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| ConvBert              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| Deberta              |            |         |          |             |
+| electra          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| funnel              |            |         |          |             |
+| layoutlm              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| longformer              |            |         |          |             |
+| mobile-bert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| rembert              |            |         |          |             |
+| tapas              |            |         |          |             |
+| flaubert                | :broken_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| roberta                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| xlm-roberta              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| mpnet              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
 
 ### PyTorch Training Models
 
@@ -52,6 +74,9 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 |---------------------|----------------------|----------|----------|-------------|
 | DALL-E                | :broken_heart:           | :broken_heart:         |          |             |
 | FullyConnected                | :green_heart:           | :green_heart:         |          |             |
+
+<details>
+  <summary>TFLite Models</summary>
 
 ### TFLite Models
 
@@ -111,11 +136,14 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 | ssd_spaghettinet_large_uint8 | :green_heart:           | :green_heart:         |          |             |
 | visual_wake_words_i8 | :green_heart:           | :green_heart:         |          |             |
 
+</details>
 
-<details>
-  <summary>Testing and Benchmarks</summary>
+## Testing and Benchmarks
 
 ### Run all model tests on CPU/GPU/VULKAN/Metal
+
+For a list of models included in our pytest model suite, see https://github.com/nod-ai/SHARK/blob/main/tank/all_models.csv
+
 ```shell
 pytest tank/test_models.py
 
@@ -191,6 +219,5 @@ if running from a google vm, you can view jupyter notebooks on your local system
 gcloud compute ssh <YOUR_INSTANCE_DETAILS> --ssh-flag="-N -L localhost:8888:localhost:8888"
 ```
 
-</details>
 
 
