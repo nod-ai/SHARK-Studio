@@ -122,6 +122,8 @@ pytest tank/test_models.py -k "MiniLM"
 
 See tank/README.md for instructions on how to run model tests and benchmarks from the SHARK tank.
 
+</details>
+
 <details>
   <summary>API Reference</summary>
 
