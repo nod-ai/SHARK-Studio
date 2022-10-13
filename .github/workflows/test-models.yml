@@ -10,6 +10,14 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Ensure that only a single job or workflow using the same
+# concurrency group will run at a time. This would cancel
+# any in-progress jobs in the same github workflow and github
+# ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-validate:
     strategy:
@@ -102,7 +110,7 @@ jobs:
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cuda_latest.csv
 
-    - name: Validate Vulkan Models MacOS
+    - name: Validate Vulkan Models (MacOS)
       if: matrix.suite == 'vulkan' && matrix.os == 'MacStudio'
       run: |
         cd $GITHUB_WORKSPACE
@@ -123,7 +131,7 @@ jobs:
         pip list | grep -E "torch|iree"
         pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush" tank/test_models.py -k vulkan
 
-    - name: Validate Vulkan Models (icelake, a100, ubuntu)
+    - name: Validate Vulkan Models (a100)
       if: matrix.suite == 'vulkan' && matrix.os != 'MacStudio'
       run: |
         cd $GITHUB_WORKSPACE
