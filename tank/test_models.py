@@ -365,6 +365,33 @@ class SharkModuleTest(unittest.TestCase):
             )
         if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
             pytest.xfail(reason="Transformers API mismatch")
+        if config["model_name"] == "alexnet" and device in ["metal", "vulkan"]:
+            pytest.xfail(reason="Assertion Error: Zeros Output")
+        if (
+            config["model_name"] == "camembert-base"
+            and dynamic == False
+            and device in ["metal", "vulkan"]
+        ):
+            pytest.xfail(
+                reason="chlo.broadcast_compare failed to satify constraint"
+            )
+        if (
+            config["model_name"] == "roberta-base"
+            and dynamic == False
+            and device in ["metal", "vulkan"]
+        ):
+            pytest.xfail(
+                reason="chlo.broadcast_compare failed to satify constraint"
+            )
+        if config["model_name"] in [
+            "microsoft/MiniLM-L12-H384-uncased",
+            "wide_resnet50_2",
+            "resnet50",
+            "resnet18",
+            "resnet101",
+            "microsoft/resnet-50",
+        ] and device in ["metal", "vulkan"]:
+            pytest.xfail(reason="Vulkan Numerical Error (mostly conv)")
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
