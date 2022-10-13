@@ -39,6 +39,10 @@ jobs:
         tag_name="${package_version}"
         echo "package_version=${package_version}" >> $GITHUB_ENV
         echo "tag_name=${tag_name}" >> $GITHUB_ENV    
+    - name: Set Environment Variables
+      run: |
+        echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -81,7 +85,7 @@ jobs:
         pip install ./wheelhouse/nodai*
         # Validate the Models
         /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
-        pytest tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
         if !(grep -Fxq " failed" pytest_results.txt) 
@@ -104,7 +108,7 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
     
@@ -116,7 +120,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         release_id: ${{ steps.create_release.outputs.id }}
-        assets_path: ./wheelhouse/nodai_*.whl
+        assets_path: $GITHUB_WORKSPACE/wheelhouse/nodai_*.whl
 
     - name: Publish Release
       if: ${{ matrix.backend == 'SHARK' }}

@@ -38,7 +38,7 @@ python -m pip install --upgrade pip
 This step pip installs SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
 
 ```shell
-pip install nodai-shark -f https://github.com/nod-ai/SHARK/releases -f https://github.com/llvm/torch-mlir/releases -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 If you are on an Intel macOS machine you need this [workaround](https://github.com/nod-ai/SHARK/issues/102) for an upstream issue.
 
@@ -83,13 +83,13 @@ For example if you want to use Python3.10 and upstream IREE with TF Import tools
 # PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 USE_IREE=1 ./setup_venv.sh 
 ```
 
-If you are a Torch-mlir developer or an IREE developer and want to test local changes you can uninstall
+If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
 with Python bindings and set your PYTHONPATH as mentioned [here](https://google.github.io/iree/bindings/python/)
 for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
 for Torch-MLIR.
 
-### How to use your locally build Torch-MLIR with SHARK
+### How to use your locally built Torch-MLIR with SHARK
 ```shell
 1.) Run `./setup_venv.sh in SHARK` and activate `shark.venv` virtual env.
 2.) Run `pip uninstall torch-mlir`.
