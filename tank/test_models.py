@@ -286,26 +286,8 @@ class SharkModuleTest(unittest.TestCase):
             and device == "cuda"
         ):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
-        if config["model_name"] == "resnet50" and device in [
-            "metal",
-            "vulkan",
-        ]:
-            if get_vulkan_triple_flag() is not None:
-                if "m1-moltenvk-macos" in get_vulkan_triple_flag():
-                    pytest.xfail(
-                        reason="M2: Assert Error & M1: CompilerToolError"
-                    )
         if config["model_name"] == "google/rembert":
             pytest.skip(reason="Model too large to convert.")
-        if config[
-            "model_name"
-        ] == "dbmdz/convbert-base-turkish-cased" and device in [
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="Issue: https://github.com/iree-org/iree/issues/9971"
-            )
         if config["model_name"] == "facebook/convnext-tiny-224" and device in [
             "cuda",
             "metal",
@@ -333,14 +315,6 @@ class SharkModuleTest(unittest.TestCase):
         if config["model_name"] == "nvidia/mit-b0":
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/343")
         if (
-            config["model_name"] == "google/mobilebert-uncased"
-            and device in ["metal", "vulkan"]
-            and config["framework"] == "torch"
-        ):
-            pytest.xfail(
-                reason="Numerics issues -- https://github.com/nod-ai/SHARK/issues/344"
-            )
-        if (
             config["model_name"] == "facebook/deit-small-distilled-patch16-224"
             and device == "cuda"
         ):
@@ -353,50 +327,12 @@ class SharkModuleTest(unittest.TestCase):
             and device == "cuda"
         ):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/390")
-        if config["model_name"] == "squeezenet1_0" and device in [
-            "cpu",
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
-            )
-        if config["model_name"] == "mobilenet_v3_small" and device in [
-            "metal",
-            "vulkan",
-        ]:
+        if config["model_name"] == "squeezenet1_0" and device in ["cpu"]:
             pytest.xfail(
                 reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
             )
         if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
             pytest.xfail(reason="Transformers API mismatch")
-        if config["model_name"] == "alexnet" and device in ["metal", "vulkan"]:
-            pytest.xfail(reason="Assertion Error: Zeros Output")
-        if (
-            config["model_name"] == "camembert-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
-        if (
-            config["model_name"] == "roberta-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
-        if config["model_name"] in [
-            "microsoft/MiniLM-L12-H384-uncased",
-            "wide_resnet50_2",
-            "resnet50",
-            "resnet18",
-            "resnet101",
-            "microsoft/resnet-50",
-        ] and device in ["metal", "vulkan"]:
-            pytest.xfail(reason="Vulkan Numerical Error (mostly conv)")
         if config["model_name"] == "mobilenet_v3_small" and device in [
             "cuda",
             "cpu",
@@ -407,6 +343,8 @@ class SharkModuleTest(unittest.TestCase):
             and device == "cpu"
         ):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/463")
+        if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
+            pytest.xfail(reason="Transformers API mismatch")
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."

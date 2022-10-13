@@ -37,17 +37,21 @@ jobs:
           - os: ubuntu-latest
             suite: cpu
           - os: MacStudio
-            suite: vulkan
-          - os: MacStudio
             suite: cuda
           - os: MacStudio
             suite: cpu
           - os: icelake
             suite: vulkan
+          - os: icelake
+            suite: cpu
           - os: icelake
             suite: cuda
           - os: a100
             suite: cpu
+          - os: a100
+            suite: cuda
+          - os: a100
+            suite: vulkan
 
     runs-on: ${{ matrix.os }}
 
