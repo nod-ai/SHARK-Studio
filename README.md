@@ -122,6 +122,8 @@ pytest tank/test_models.py -k "MiniLM"
 
 See tank/README.md for instructions on how to run model tests and benchmarks from the SHARK tank.
 
+</details>
+
 <details>
   <summary>API Reference</summary>
 
@@ -175,7 +177,19 @@ result = shark_module.forward((arg0, arg1))
 
 ## Supported and Validated Models
 
-For a comprehensive list of the models supported in SHARK, please see tank/README.md.
+SHARK is maintained to support the latest innovations in ML Models: 
+
+| TF HuggingFace Models | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------|----------|-------------|
+| BERT                | :green_heart:         | :green_heart:         | :green_heart:            |
+| DistilBERT         | :green_heart:         | :green_heart:         | :green_heart:            |
+| GPT2         | :green_heart:         | :green_heart:         | :green_heart:            |
+| BLOOM         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Stable Diffusion         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Vision Transformer       | :green_heart:         | :green_heart:         | :green_heart:            |
+| ResNet50         | :green_heart:         | :green_heart:         | :green_heart:            |
+
+For a complete list of the models supported in SHARK, please refer to [tank/README.md](https://github.com/nod-ai/SHARK/blob/main/tank/README.md).
 
 ## Related Projects
 

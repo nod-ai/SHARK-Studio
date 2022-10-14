@@ -1,139 +1,72 @@
-## SHARK Tank
-<details>
-  <summary>Testing and Benchmarks</summary>
-
-### Run all model tests on CPU/GPU/VULKAN/Metal
-```shell
-pytest tank/test_models.py
-
-# Models included in the pytest suite can be found listed in all_models.csv.
-
-# If on Linux for multithreading on CPU (faster results):
-pytest tank/test_models.py -n auto
-```
-
-### Running specific tests
-```shell
-
-# Search for test cases by including a keyword that matches all or part of the test case's name;
-pytest tank/test_models.py -k "keyword" 
-
-# Test cases are named uniformly by format test_module_<model_name_underscores_only>_<torch/tf>_<static/dynamic>_<device>.
-
-# Example: Test all models on nvidia gpu:
-pytest tank/test_models.py -k "cuda"
-
-# Example: Test all tensorflow resnet models on Vulkan backend:
-pytest tank/test_models.py -k "resnet and tf and vulkan"
-
-# Exclude a test case:
-pytest tank/test_models.py -k "not ..."
-
-### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
-
-(the following requires source installation with `IMPORTER=1 ./setup_venv.sh`)
-
-```shell
-pytest --benchmark tank/test_models.py
-  
-# Just do static GPU benchmarks for PyTorch tests:
-pytest --benchmark tank/test_models.py -k "pytorch and static and cuda"
-
-```
-  
-### Benchmark Resnet50, MiniLM on CPU
-
-(requires source installation with `IMPORTER=1 ./setup_venv.sh`)  
-  
-```shell
-# We suggest running the following commands as root before running benchmarks on CPU:
-  
-cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | awk -F, '{print $2}' | sort -n | uniq | ( while read X ; do echo $X ; echo 0 > /sys/devices/system/cpu/cpu$X/online ; done )
-echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
-
-# Benchmark canonical Resnet50 on CPU via pytest
-pytest --benchmark tank/test_models -k "resnet50 and tf_static_cpu"
-
-# Benchmark canonical MiniLM on CPU via pytest
-pytest --benchmark tank/test_models -k "MiniLM and cpu"
-
-# Benchmark MiniLM on CPU via transformer-benchmarks:
-git clone --recursive https://github.com/nod-ai/transformer-benchmarks.git
-cd transformer-benchmarks
-./perf-ci.sh -n
-# Check detail.csv for MLIR/IREE results.
-
-```
-
-</details>
-
-To run the fine tuning example, from the root SHARK directory, run:
-
-```shell
-IMPORTER=1 ./setup_venv.sh
-source shark.venv/bin/activate
-pip install jupyter tf-models-nightly tf-datasets
-jupyter-notebook
-```
-if running from a google vm, you can view jupyter notebooks on your local system with:
-```shell
-gcloud compute ssh <YOUR_INSTANCE_DETAILS> --ssh-flag="-N -L localhost:8888:localhost:8888"
-```
-
 ## Supported and Validated Models
 
-<details>
-  <summary>PyTorch Models</summary>
+### PyTorch HuggingFace Models
 
-### Huggingface PyTorch Models
-
-| Hugging Face Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| PyTorch Language Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :green_heart: (JIT)          | :green_heart:         | :green_heart:         | :green_heart:            |
 | Albert              | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
 | BigBird             | :green_heart: (AOT)            |          |          |             |
-| DistilBERT          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
-| GPT2                | :broken_heart: (AOT)            |          |          |             |
+| dbmdz/ConvBERT      | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| DistilBERT          | :broken_heart: (JIT)            |          |          |             |
+| GPT2                | :green_heart:            | :green_heart:         |  :green_heart:        | :green_heart:            |
 | MobileBert          | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
+| microsoft/beit      | :green_heart:                  | :green_heart:         | :broken_heart:         | :broken_heart:            |
+| facebook/deit       | :green_heart:          | :green_heart:         | :broken_heart:         | :broken_heart:            |
+| facebook/convnext   | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
 
 ### Torchvision  Models
 
 | TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| DenseNet121        | :green_heart: (Script)         |          |          |             |
-| MNasNet1_0         | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | MobileNetV2        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | MobileNetV3        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Unet               | :broken_heart: (Script)         |          |          |             |
+| Unet               | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | Resnet18           | :green_heart: (Script)         | :green_heart:         |  :green_heart:        | :green_heart:            |
 | Resnet50           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
 | Resnet101           | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
-| Resnext50_32x4d    | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
-| ShuffleNet_v2      | :broken_heart: (Script)         |          |          |             |
-| SqueezeNet         | :green_heart: (Script)         | :green_heart:         |   :green_heart:       | :green_heart:            |
+| Resnext50_32x4d    | :green_heart: (Script)         |          |          |             |
+| SqueezeNet         | :green_heart: (Script)         | :green_heart:         |   :broken_heart:       | :broken_heart:            |
 | EfficientNet       | :green_heart: (Script)         |          |          |             |
-| Regnet             | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
+| Regnet             | :green_heart: (Script)         |          |          |             |
 | Resnest            | :broken_heart: (Script)         |          |          |             |
-| Vision Transformer | :green_heart: (Script)         |          |          |             |
+| Vision Transformer | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | VGG 16             | :green_heart: (Script)         | :green_heart:         |   :green_heart:       |             |
 | Wide Resnet        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | RAFT               | :broken_heart: (JIT)            |          |          |             |
 
 For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spreadsheets/d/15PcjKeHZIrB5LfDyuw7DGEEE8XnQEX2aX8lm8qbxV8A/edit#gid=0)
 
+### Tensorflow Models (Inference)
+
+| Hugging Face Models | tf-mhlo lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+|---------------------|----------------------|----------|----------|-------------|
+| BERT                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| MiniLM                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| albert-base-v2              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| DistilBERT          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| CamemBert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| ConvBert              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| Deberta              |            |         |          |             |
+| electra          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| funnel              |            |         |          |             |
+| layoutlm              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| longformer              |            |         |          |             |
+| mobile-bert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| rembert              |            |         |          |             |
+| tapas              |            |         |          |             |
+| flaubert                | :broken_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| roberta                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
+| xlm-roberta              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+| mpnet              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+
 ### PyTorch Training Models
 
 | Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
-| BERT                | :broken_heart:           | :broken_heart:         |          |             |
+| BERT                | :green_heart:           | :green_heart:         |          |             |
 | FullyConnected                | :green_heart:           | :green_heart:         |          |             |
-
-</details>
-
-<details>
-  <summary>JAX Models</summary>
-
 
 ### JAX  Models
 
@@ -141,8 +74,6 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 |---------------------|----------------------|----------|----------|-------------|
 | DALL-E                | :broken_heart:           | :broken_heart:         |          |             |
 | FullyConnected                | :green_heart:           | :green_heart:         |          |             |
-
-</details>
 
 <details>
   <summary>TFLite Models</summary>
@@ -207,29 +138,86 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 
 </details>
 
-<details>
-  <summary>TF Models</summary>
+## Testing and Benchmarks
 
-### Tensorflow Models (Inference)
+### Run all model tests on CPU/GPU/VULKAN/Metal
 
-| Hugging Face Models | tf-mhlo lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------------------|----------|----------|-------------|
-| BERT                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| albert-base-v2              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| DistilBERT          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| CamemBert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| ConvBert              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| Deberta              |            |         |          |             |
-| electra          | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| funnel              |            |         |          |             |
-| layoutlm              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| longformer              |            |         |          |             |
-| mobile-bert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| remembert              |            |         |          |             |
-| tapas              |            |         |          |             |
-| flaubert                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| roberta                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
-| xlm-roberta              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
-| mpnet              | :green_heart:            | :green_heart:         | :green_heart:         | :green_heart:            |
+For a list of models included in our pytest model suite, see https://github.com/nod-ai/SHARK/blob/main/tank/all_models.csv
 
-</details>
+```shell
+pytest tank/test_models.py
+
+# Models included in the pytest suite can be found listed in all_models.csv.
+
+# If on Linux for multithreading on CPU (faster results):
+pytest tank/test_models.py -n auto
+```
+
+### Running specific tests
+```shell
+
+# Search for test cases by including a keyword that matches all or part of the test case's name;
+pytest tank/test_models.py -k "keyword" 
+
+# Test cases are named uniformly by format test_module_<model_name_underscores_only>_<torch/tf>_<static/dynamic>_<device>.
+
+# Example: Test all models on nvidia gpu:
+pytest tank/test_models.py -k "cuda"
+
+# Example: Test all tensorflow resnet models on Vulkan backend:
+pytest tank/test_models.py -k "resnet and tf and vulkan"
+
+# Exclude a test case:
+pytest tank/test_models.py -k "not ..."
+
+### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
+
+(the following requires source installation with `IMPORTER=1 ./setup_venv.sh`)
+
+```shell
+pytest --benchmark tank/test_models.py
+  
+# Just do static GPU benchmarks for PyTorch tests:
+pytest --benchmark tank/test_models.py -k "pytorch and static and cuda"
+
+```
+  
+### Benchmark Resnet50, MiniLM on CPU
+
+(requires source installation with `IMPORTER=1 ./setup_venv.sh`)  
+  
+```shell
+# We suggest running the following commands as root before running benchmarks on CPU:
+  
+cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | awk -F, '{print $2}' | sort -n | uniq | ( while read X ; do echo $X ; echo 0 > /sys/devices/system/cpu/cpu$X/online ; done )
+echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
+
+# Benchmark canonical Resnet50 on CPU via pytest
+pytest --benchmark tank/test_models -k "resnet50 and tf_static_cpu"
+
+# Benchmark canonical MiniLM on CPU via pytest
+pytest --benchmark tank/test_models -k "MiniLM and cpu"
+
+# Benchmark MiniLM on CPU via transformer-benchmarks:
+git clone --recursive https://github.com/nod-ai/transformer-benchmarks.git
+cd transformer-benchmarks
+./perf-ci.sh -n
+# Check detail.csv for MLIR/IREE results.
+
+```
+
+To run the fine tuning example, from the root SHARK directory, run:
+
+```shell
+IMPORTER=1 ./setup_venv.sh
+source shark.venv/bin/activate
+pip install jupyter tf-models-nightly tf-datasets
+jupyter-notebook
+```
+if running from a google vm, you can view jupyter notebooks on your local system with:
+```shell
+gcloud compute ssh <YOUR_INSTANCE_DETAILS> --ssh-flag="-N -L localhost:8888:localhost:8888"
+```
+
+
+
