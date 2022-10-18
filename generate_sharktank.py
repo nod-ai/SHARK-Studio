@@ -205,14 +205,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--torch_model_csv",
         type=lambda x: is_valid_file(x),
-        default="./tank/pytorch/torch_model_list.csv",
+        default="./tank/torch_model_list.csv",
         help="""Contains the file with torch_model name and args.
-             Please see: https://github.com/nod-ai/SHARK/blob/main/tank/pytorch/torch_model_list.csv""",
+             Please see: https://github.com/nod-ai/SHARK/blob/main/tank/torch_model_list.csv""",
     )
     parser.add_argument(
         "--tf_model_csv",
         type=lambda x: is_valid_file(x),
-        default="./tank/tf/tf_model_list.csv",
+        default="./tank/tf_model_list.csv",
         help="Contains the file with tf model name and args.",
     )
     parser.add_argument(
