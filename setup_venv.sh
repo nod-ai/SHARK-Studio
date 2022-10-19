@@ -89,13 +89,13 @@ else
   exit 1
 fi
 if [[ -z "${USE_IREE}" ]]; then
-  RUNTIME="https://github.com/nod-ai/SHARK-Runtime/releases/"
+  RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
 else
   RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
-  $PYTHON -m pip install --find-links ${RUNTIME} iree-compiler iree-runtime
+  $PYTHON -m pip install --upgrade --find-links ${RUNTIME} iree-compiler iree-runtime
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
@@ -103,7 +103,8 @@ if [[ ! -z "${IMPORTER}" ]]; then
   echo "${Yellow}Installing importer tools.."
   if [[ $(uname -s) = 'Linux' ]]; then
     echo "${Yellow}Linux detected.. installing Linux importer tools"
-    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    #Always get the importer tools from upstream IREE
+    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://iree-org.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   elif [[ $(uname -s) = 'Darwin' ]]; then
     echo "${Yellow}macOS detected.. installing macOS importer tools"
     #Conda seems to have some problems installing these packages and hope they get resolved upstream.
