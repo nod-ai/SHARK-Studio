@@ -23,7 +23,7 @@ def load_mlir(mlir_loc):
     return mlir_module
 
 
-def compile_through_fx(model, inputs, device, mlir_loc=None):
+def compile_through_fx(model, inputs, device, mlir_loc=None, extra_args=[]):
 
     module = load_mlir(mlir_loc)
     if mlir_loc == None:
@@ -74,9 +74,12 @@ def compile_through_fx(model, inputs, device, mlir_loc=None):
     func_name = "forward"
 
     shark_module = SharkInference(
-        mlir_model, func_name, device=device, mlir_dialect="tm_tensor"
+        mlir_model,
+        func_name,
+        device=device,
+        mlir_dialect="tm_tensor",
     )
-    shark_module.compile()
+    shark_module.compile(extra_args)
 
     return shark_module
 
@@ -150,6 +153,7 @@ def stable_diff_inf(prompt: str, steps, device: str):
             (latent_model_input, torch.tensor([1.0]), text_embeddings),
             args["device"],
             args["mlir_loc"],
+            ["--iree-flow-enable-conv-nchw-to-nhwc-transform"],
         )
         compiled_module[args["device"]] = shark_unet
         if DEBUG:

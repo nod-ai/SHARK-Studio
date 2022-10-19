@@ -63,13 +63,14 @@ def get_iree_common_args():
 
 
 def compile_module_to_flatbuffer(
-    module, device, frontend, func_name, model_config_path
+    module, device, frontend, func_name, model_config_path, extra_args
 ):
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
     args += get_iree_device_args(device)
     args += get_iree_common_args()
+    args += extra_args
 
     if frontend in ["tensorflow", "tf"]:
         input_type = "mhlo"
@@ -121,10 +122,11 @@ def get_iree_compiled_module(
     frontend: str = "torch",
     func_name: str = "forward",
     model_config_path: str = None,
+    extra_args: list = [],
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, frontend, func_name, model_config_path
+        module, device, frontend, func_name, model_config_path, extra_args
     )
     return get_iree_module(flatbuffer_blob, device, func_name)
 
@@ -146,10 +148,11 @@ def export_iree_module_to_vmfb(
     mlir_dialect: str = "linalg",
     func_name: str = "forward",
     model_config_path: str = None,
+    extra_args: list = [],
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, mlir_dialect, func_name, model_config_path
+        module, device, mlir_dialect, func_name, model_config_path, extra_args
     )
     module_name = f"{mlir_dialect}_{func_name}_{device}"
     filename = os.path.join(directory, module_name + ".vmfb")
