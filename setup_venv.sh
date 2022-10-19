@@ -89,7 +89,7 @@ else
   exit 1
 fi
 if [[ -z "${USE_IREE}" ]]; then
-  RUNTIME="https://github.com/nod-ai/SHARK-Runtime/releases/"
+  RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
 else
   RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
 fi
