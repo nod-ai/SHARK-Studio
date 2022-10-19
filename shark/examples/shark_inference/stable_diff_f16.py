@@ -35,14 +35,16 @@ args = p.parse_args()
 
 #####################################################
 
+
 def fp16_unet():
     from shark.shark_downloader import download_torch_model
+
     mlir_model, func_name, inputs, golden_out = download_torch_model(
-        "stable_diff_f16_18_OCT", tank_url="gs://shark_tank/prashant_nod")
-    shark_module = SharkInference(mlir_model,
-                                  func_name,
-                                  device=args.device,
-                                  mlir_dialect="linalg")
+        "stable_diff_f16_18_OCT", tank_url="gs://shark_tank/prashant_nod"
+    )
+    shark_module = SharkInference(
+        mlir_model, func_name, device=args.device, mlir_dialect="linalg"
+    )
     shark_module.compile()
     return shark_module
 
@@ -154,9 +156,9 @@ if __name__ == "__main__":
         def __init__(self):
             super().__init__()
             self.unet = UNet2DConditionModel.from_pretrained(
-            "CompVis/stable-diffusion-v1-4",
-            subfolder="unet",
-            use_auth_token=YOUR_TOKEN,
+                "CompVis/stable-diffusion-v1-4",
+                subfolder="unet",
+                use_auth_token=YOUR_TOKEN,
             )
             self.in_channels = self.unet.in_channels
             self.train(False)
@@ -236,8 +238,12 @@ if __name__ == "__main__":
         # with torch.no_grad():
         # noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)
 
-        latent_model_input_numpy = latent_model_input.detach().numpy().astype(np.half)
-        text_embeddings_numpy = text_embeddings.detach().numpy().astype(np.half)
+        latent_model_input_numpy = (
+            latent_model_input.detach().numpy().astype(np.half)
+        )
+        text_embeddings_numpy = (
+            text_embeddings.detach().numpy().astype(np.half)
+        )
 
         noise_pred = shark_unet.forward(
             (

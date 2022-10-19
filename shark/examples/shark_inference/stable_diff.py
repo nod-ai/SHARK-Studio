@@ -47,7 +47,7 @@ def load_mlir(mlir_loc):
     return mlir_module
 
 
-def compile_through_fx(model, inputs, mlir_loc=None):
+def compile_through_fx(model, inputs, mlir_loc=None, extra_args=[]):
 
     module = load_mlir(mlir_loc)
     if mlir_loc == None:
@@ -98,9 +98,12 @@ def compile_through_fx(model, inputs, mlir_loc=None):
     func_name = "forward"
 
     shark_module = SharkInference(
-        mlir_model, func_name, device=args.device, mlir_dialect="tm_tensor"
+        mlir_model,
+        func_name,
+        device=args.device,
+        mlir_dialect="tm_tensor",
     )
-    shark_module.compile()
+    shark_module.compile(extra_args)
 
     return shark_module
 
@@ -161,6 +164,7 @@ if __name__ == "__main__":
         unet,
         (latent_model_input, torch.tensor([1.0]), text_embeddings),
         args.mlir_loc,
+        ["--iree-flow-enable-conv-nchw-to-nhwc-transform"],
     )
 
     # torch.jit.script(unet)

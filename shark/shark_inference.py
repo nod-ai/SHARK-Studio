@@ -77,7 +77,7 @@ class SharkInference:
 
         self.shark_runner = None
 
-    def compile(self):
+    def compile(self, extra_args=[]):
 
         if self.is_benchmark == True:
             from shark.shark_benchmark_runner import SharkBenchmarkRunner
@@ -87,6 +87,7 @@ class SharkInference:
                 self.function_name,
                 self.device,
                 self.mlir_dialect,
+                extra_args=extra_args,
             )
 
         else:
@@ -95,6 +96,7 @@ class SharkInference:
                 self.function_name,
                 self.device,
                 self.mlir_dialect,
+                extra_args=extra_args,
             )
 
     # inputs are considered to be tuple of np.array.
