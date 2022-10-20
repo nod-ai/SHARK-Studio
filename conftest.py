@@ -37,6 +37,12 @@ def pytest_addoption(parser):
         help="Enables uploading of reproduction artifacts upon test case failure during iree-compile or validation. Must be passed with --ci_sha option ",
     )
     parser.addoption(
+        "--update_tank",
+        action="store_true",
+        default="False",
+        help="Update local shark tank with latest artifacts.",
+    )
+    parser.addoption(
         "--ci_sha",
         action="store",
         default="None",
