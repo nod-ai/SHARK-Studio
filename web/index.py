@@ -1,6 +1,6 @@
 from models.resnet50 import resnet_inf
 from models.albert_maskfill import albert_maskfill_inf
-from models.stable_diffusion import stable_diff_inf
+from models.stable_diffusion.main import stable_diff_inf
 
 #  from models.diffusion.v_diffusion import vdiff_inf
 import gradio as gr
@@ -29,7 +29,11 @@ with gr.Blocks() as shark_web:
             with gr.Row():
                 with gr.Column(scale=1, min_width=600):
                     image = gr.Image(label="Image")
-                    device = gr.Textbox(label="Device", value="cpu")
+                    device = gr.Radio(
+                        label="Device",
+                        value="cpu",
+                        choices=["cpu", "cuda", "vulkan"],
+                    )
                     debug = gr.Checkbox(label="DEBUG", value=False)
                     resnet = gr.Button("Recognize Image").style(
                         full_width=True
@@ -63,7 +67,11 @@ with gr.Blocks() as shark_web:
                         label="Masked Text",
                         placeholder="Give me a sentence with [MASK] to fill",
                     )
-                    device = gr.Textbox(label="Device", value="cpu")
+                    device = gr.Radio(
+                        label="Device",
+                        value="cpu",
+                        choices=["cpu", "cuda", "vulkan"],
+                    )
                     debug = gr.Checkbox(label="DEBUG", value=False)
                     albert_mask = gr.Button("Decode Mask")
                 with gr.Column(scale=1, min_width=600):
@@ -111,6 +119,8 @@ with gr.Blocks() as shark_web:
                 iters
             ) = (
                 device
+            ) = (
+                precision
             ) = debug = stable_diffusion = generated_img = std_output = None
             with gr.Row():
                 with gr.Column(scale=1, min_width=600):
@@ -118,8 +128,17 @@ with gr.Blocks() as shark_web:
                         label="Prompt",
                         value="a photograph of an astronaut riding a horse",
                     )
-                    iters = gr.Number(label="Steps", value=2)
-                    device = gr.Textbox(label="Device", value="vulkan")
+                    iters = gr.Number(label="Steps", value=10)
+                    precision = gr.Radio(
+                        label="Precision",
+                        value="fp32",
+                        choices=["fp16", "fp32"],
+                    )
+                    device = gr.Radio(
+                        label="Device",
+                        value="vulkan",
+                        choices=["cuda", "vulkan"],
+                    )
                     debug = gr.Checkbox(label="DEBUG", value=False)
                     stable_diffusion = gr.Button("Generate image from prompt")
                 with gr.Column(scale=1, min_width=600):
@@ -135,7 +154,7 @@ with gr.Blocks() as shark_web:
             )
             stable_diffusion.click(
                 stable_diff_inf,
-                inputs=[prompt, iters, device],
+                inputs=[prompt, iters, precision, device],
                 outputs=[generated_img, std_output],
             )
 
