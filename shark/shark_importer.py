@@ -116,7 +116,7 @@ class SharkImporter:
     # Converts the frontend specific tensors into np array.
     def convert_to_numpy(self, array_tuple: tuple):
         if self.frontend in ["torch", "pytorch"]:
-            return [x.detach().numpy() for x in array_tuple]
+            return [x.detach().cpu().numpy() for x in array_tuple]
         if self.frontend in ["tf", "tensorflow"]:
             return [x.numpy() for x in array_tuple]
 
@@ -130,6 +130,7 @@ class SharkImporter:
         outputs_name = "golden_out.npz"
         func_file_name = "function_name"
         model_name_mlir = model_name + "_" + self.frontend + ".mlir"
+        inputs = [x.cpu().detach() for x in inputs]
         np.savez(os.path.join(dir, inputs_name), *inputs)
         np.savez(os.path.join(dir, outputs_name), *outputs)
         np.save(os.path.join(dir, func_file_name), np.array(func_name))
@@ -138,9 +139,9 @@ class SharkImporter:
         if self.frontend == "torch":
             mlir_str = mlir_data.operation.get_asm()
         elif self.frontend == "tf":
-            mlir_str = mlir_data.decode("utf-8")
+            mlir_str = mlir_data.decode("latin-1")
         elif self.frontend == "tflite":
-            mlir_str = mlir_data.decode("utf-8")
+            mlir_str = mlir_data.decode("latin-1")
         with open(os.path.join(dir, model_name_mlir), "w") as mlir_file:
             mlir_file.write(mlir_str)
 
@@ -171,7 +172,7 @@ class SharkImporter:
             golden_out = self.module(*self.inputs)
             if torch.is_tensor(golden_out):
                 golden_out = tuple(
-                    golden_out.detach().numpy(),
+                    golden_out.detach().cpu().numpy(),
                 )
             else:
                 golden_out = self.convert_to_numpy(golden_out)

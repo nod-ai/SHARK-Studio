@@ -47,21 +47,30 @@ class SharkBenchmarkRunner(SharkRunner):
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
+        extra_args: list = [],
     ):
         self.device = shark_args.device if device == "none" else device
         self.frontend_model = None
         self.vmfb_file = None
         self.mlir_dialect = mlir_dialect
+        self.extra_args = extra_args
         SharkRunner.__init__(
             self,
             mlir_module,
             function_name,
             device,
             self.mlir_dialect,
+            self.extra_args,
+            compile_vmfb=True,
         )
         if self.vmfb_file == None:
             self.vmfb_file = export_iree_module_to_vmfb(
-                mlir_module, device, shark_args.repro_dir, self.mlir_dialect
+                mlir_module,
+                device,
+                shark_args.repro_dir,
+                self.mlir_dialect,
+                function_name,
+                extra_args=self.extra_args,
             )
 
     def setup_cl(self, input_tensors):

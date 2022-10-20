@@ -10,20 +10,57 @@ from torch._decomp import get_decompositions
 import torch_mlir
 import tempfile
 import numpy as np
-import os
 
-##############################################################################
+# pip install diffusers
+# pip install scipy
+
+############### Parsing args #####################
+import argparse
+
+p = argparse.ArgumentParser(
+    description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
+)
+
+p.add_argument(
+    "--prompt",
+    type=str,
+    default="a photograph of an astronaut riding a horse",
+    help="the text prompt to use",
+)
+p.add_argument("--device", type=str, default="cpu", help="the device to use")
+p.add_argument("--steps", type=int, default=50, help="the device to use")
+p.add_argument("--mlir_loc", type=str, default=None, help="the device to use")
+p.add_argument("--vae_loc", type=str, default=None, help="the device to use")
+args = p.parse_args()
+
+#####################################################
+
+
+def fp16_unet():
+    from shark.shark_downloader import download_torch_model
+
+    mlir_model, func_name, inputs, golden_out = download_torch_model(
+        "stable_diff_f16_18_OCT", tank_url="gs://shark_tank/prashant_nod"
+    )
+    shark_module = SharkInference(
+        mlir_model, func_name, device=args.device, mlir_dialect="linalg"
+    )
+    shark_module.compile()
+    return shark_module
 
 
 def load_mlir(mlir_loc):
+    import os
+
     if mlir_loc == None:
         return None
+    print(f"Trying to load the model from {mlir_loc}.")
     with open(os.path.join(mlir_loc)) as f:
         mlir_module = f.read()
     return mlir_module
 
 
-def compile_through_fx(model, inputs, device, mlir_loc=None, extra_args=[]):
+def compile_through_fx(model, inputs, mlir_loc=None):
 
     module = load_mlir(mlir_loc)
     if mlir_loc == None:
@@ -74,110 +111,79 @@ def compile_through_fx(model, inputs, device, mlir_loc=None, extra_args=[]):
     func_name = "forward"
 
     shark_module = SharkInference(
-        mlir_model,
-        func_name,
-        device=device,
-        mlir_dialect="tm_tensor",
+        mlir_model, func_name, device=args.device, mlir_dialect="linalg"
     )
-    shark_module.compile(extra_args)
+    shark_module.compile()
 
     return shark_module
 
 
-##############################################################################
+if __name__ == "__main__":
 
-DEBUG = False
-compiled_module = {}
+    YOUR_TOKEN = "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"
 
-
-def stable_diff_inf(prompt: str, steps, device: str):
-
-    args = {}
-    args["prompt"] = [prompt]
-    args["steps"] = steps
-    args["device"] = device
-    args["mlir_loc"] = "./stable_diffusion.mlir"
-    output_loc = (
-        f"stored_results/stable_diffusion/{prompt}_{int(steps)}_{device}.jpg"
+    # 1. Load the autoencoder model which will be used to decode the latents into image space.
+    vae = AutoencoderKL.from_pretrained(
+        "CompVis/stable-diffusion-v1-4",
+        subfolder="vae",
+        use_auth_token=YOUR_TOKEN,
     )
 
-    global DEBUG
-    global compiled_module
+    # 2. Load the tokenizer and text encoder to tokenize and encode the text.
+    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
+    text_encoder = CLIPTextModel.from_pretrained(
+        "openai/clip-vit-large-patch14"
+    )
 
-    DEBUG = False
-    log_write = open(r"logs/stable_diffusion_log.txt", "w")
-    if log_write:
-        DEBUG = True
+    class VaeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                "CompVis/stable-diffusion-v1-4",
+                subfolder="vae",
+                use_auth_token=YOUR_TOKEN,
+            )
 
-    if args["device"] not in compiled_module.keys():
-        YOUR_TOKEN = "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"
+        def forward(self, input):
+            return self.vae.decode(input, return_dict=False)[0]
 
-        # 1. Load the autoencoder model which will be used to decode the latents into image space.
-        compiled_module["vae"] = AutoencoderKL.from_pretrained(
-            "CompVis/stable-diffusion-v1-4",
-            subfolder="vae",
-            use_auth_token=YOUR_TOKEN,
-        )
+    vae = VaeModel()
+    vae_input = torch.rand(1, 4, 64, 64)
+    shark_vae = compile_through_fx(vae, (vae_input,), args.vae_loc)
 
-        # 2. Load the tokenizer and text encoder to tokenize and encode the text.
-        compiled_module["tokenizer"] = CLIPTokenizer.from_pretrained(
-            "openai/clip-vit-large-patch14"
-        )
-        compiled_module["text_encoder"] = CLIPTextModel.from_pretrained(
-            "openai/clip-vit-large-patch14"
-        )
-        if DEBUG:
-            log_write.write("Compiling the Unet module.\n")
+    # Wrap the unet model to return tuples.
+    class UnetModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.unet = UNet2DConditionModel.from_pretrained(
+                "CompVis/stable-diffusion-v1-4",
+                subfolder="unet",
+                use_auth_token=YOUR_TOKEN,
+            )
+            self.in_channels = self.unet.in_channels
+            self.train(False)
 
-        # Wrap the unet model to return tuples.
-        class UnetModel(torch.nn.Module):
-            def __init__(self):
-                super().__init__()
-                self.unet = UNet2DConditionModel.from_pretrained(
-                    "CompVis/stable-diffusion-v1-4",
-                    subfolder="unet",
-                    use_auth_token=YOUR_TOKEN,
-                )
-                self.in_channels = self.unet.in_channels
-                self.train(False)
+    def forward(self, x, y, z):
+        return self.unet.forward(x, y, z, return_dict=False)[0]
 
-            def forward(self, x, y, z):
-                return self.unet.forward(x, y, z, return_dict=False)[0]
+    # # 3. The UNet model for generating the latents.
+    unet = UnetModel()
 
-        # 3. The UNet model for generating the latents.
-        unet = UnetModel()
-        latent_model_input = torch.rand([2, 4, 64, 64])
-        text_embeddings = torch.rand([2, 77, 768])
-        shark_unet = compile_through_fx(
-            unet,
-            (latent_model_input, torch.tensor([1.0]), text_embeddings),
-            args["device"],
-            args["mlir_loc"],
-            ["--iree-flow-enable-conv-nchw-to-nhwc-transform"],
-        )
-        compiled_module[args["device"]] = shark_unet
-        if DEBUG:
-            log_write.write("Compilation successful.\n")
+    shark_unet = fp16_unet()
 
-        compiled_module["unet"] = unet
-        compiled_module["scheduler"] = LMSDiscreteScheduler(
-            beta_start=0.00085,
-            beta_end=0.012,
-            beta_schedule="scaled_linear",
-            num_train_timesteps=1000,
-        )
+    scheduler = LMSDiscreteScheduler(
+        beta_start=0.00085,
+        beta_end=0.012,
+        beta_schedule="scaled_linear",
+        num_train_timesteps=1000,
+    )
 
-    shark_unet = compiled_module[args["device"]]
-    vae = compiled_module["vae"]
-    unet = compiled_module["unet"]
-    tokenizer = compiled_module["tokenizer"]
-    text_encoder = compiled_module["text_encoder"]
-    scheduler = compiled_module["scheduler"]
+    prompt = [args.prompt]
 
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
 
-    num_inference_steps = int(args["steps"])  # Number of denoising steps
+    num_inference_steps = args.steps  # Number of denoising steps
 
     guidance_scale = 7.5  # Scale for classifier-free guidance
 
@@ -185,10 +191,10 @@ def stable_diff_inf(prompt: str, steps, device: str):
         42
     )  # Seed generator to create the inital latent noise
 
-    batch_size = len(args["prompt"])
+    batch_size = len(prompt)
 
     text_input = tokenizer(
-        args["prompt"],
+        prompt,
         padding="max_length",
         max_length=tokenizer.model_max_length,
         truncation=True,
@@ -212,30 +218,41 @@ def stable_diff_inf(prompt: str, steps, device: str):
         (batch_size, unet.in_channels, height // 8, width // 8),
         generator=generator,
     )
+    # latents = latents.to(torch_device)
+
     scheduler.set_timesteps(num_inference_steps)
+
     latents = latents * scheduler.sigmas[0]
+    # print(latents, latents.shape)
 
     for i, t in tqdm(enumerate(scheduler.timesteps)):
 
-        if DEBUG:
-            log_write.write(f"i = {i} t = {t}\n")
+        print(f"i = {i} t = {t}")
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
         latent_model_input = torch.cat([latents] * 2)
         sigma = scheduler.sigmas[i]
         latent_model_input = latent_model_input / ((sigma**2 + 1) ** 0.5)
 
         # predict the noise residual
-        latent_model_input_numpy = latent_model_input.detach().numpy()
-        text_embeddings_numpy = text_embeddings.detach().numpy()
+
+        # with torch.no_grad():
+        # noise_pred = unet(latent_model_input, t, encoder_hidden_states=text_embeddings)
+
+        latent_model_input_numpy = (
+            latent_model_input.detach().numpy().astype(np.half)
+        )
+        text_embeddings_numpy = (
+            text_embeddings.detach().numpy().astype(np.half)
+        )
 
         noise_pred = shark_unet.forward(
             (
                 latent_model_input_numpy,
-                np.array([t]).astype(np.float32),
+                np.array([t]).astype(np.half),
                 text_embeddings_numpy,
             )
         )
-        noise_pred = torch.from_numpy(noise_pred)
+        noise_pred = torch.from_numpy(noise_pred).to(torch.float32)
 
         # perform guidance
         noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
@@ -246,21 +263,16 @@ def stable_diff_inf(prompt: str, steps, device: str):
         # compute the previous noisy sample x_t -> x_t-1
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
 
+    # print("Latents shape : ", latents.shape)
+
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
-    image = vae.decode(latents).sample
+    latents_numpy = latents.detach().numpy()
+    image = shark_vae.forward((latents_numpy,))
+    image = torch.from_numpy(image)
 
     image = (image / 2 + 0.5).clamp(0, 1)
     image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
     images = (image * 255).round().astype("uint8")
     pil_images = [Image.fromarray(image) for image in images]
-    output = pil_images[0]
-    # save the output image with the prompt name.
-    output.save(os.path.join(output_loc))
-    log_write.close()
-
-    std_output = ""
-    with open(r"logs/stable_diffusion_log.txt", "r") as log_read:
-        std_output = log_read.read()
-
-    return output, std_output
+    pil_images[0].save("astro.jpg")
