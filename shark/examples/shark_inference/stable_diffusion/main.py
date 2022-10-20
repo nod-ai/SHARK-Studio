@@ -23,7 +23,7 @@ UNET_FP32 = "unet_fp32"
 def get_models():
     if args.precision == "fp16":
         if args.import_mlir == True:
-            return get_unet16_wrapped(), get_vae16()
+            return get_vae16(), get_unet16_wrapped() 
         else:
             return get_shark_model(GCLOUD_BUCKET, VAE_FP16), get_shark_model(
                 GCLOUD_BUCKET, UNET_FP16
