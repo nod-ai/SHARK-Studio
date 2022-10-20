@@ -65,8 +65,8 @@ class SharkRunner:
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
-        compile_vmfb: bool = True,
         extra_args: list = [],
+        compile_vmfb: bool = True,
     ):
         self.mlir_module = mlir_module
         self.function_name = function_name
