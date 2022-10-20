@@ -61,6 +61,7 @@ class SharkBenchmarkRunner(SharkRunner):
             device,
             self.mlir_dialect,
             self.extra_args,
+            compile_vmfb=True,
         )
         if self.vmfb_file == None:
             self.vmfb_file = export_iree_module_to_vmfb(
@@ -68,7 +69,8 @@ class SharkBenchmarkRunner(SharkRunner):
                 device,
                 shark_args.repro_dir,
                 self.mlir_dialect,
-                self.extra_args,
+                function_name,
+                extra_args=self.extra_args,
             )
 
     def setup_cl(self, input_tensors):

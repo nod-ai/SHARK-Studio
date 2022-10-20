@@ -85,8 +85,8 @@ jobs:
         if !(grep -Fxq " failed" pytest_results.txt) 
           then 
             export SHA=$(git log -1 --format='%h')
-            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/$SHA
-            gsutil -m cp -r gs://shark_tank/$SHA/* gs://shark_tank/latest/
+            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/${DATE}_$SHA
+            gsutil -m cp -r gs://shark_tank/${DATE}_$SHA/* gs://shark_tank/latest/
         fi
         rm -rf ./wheelhouse/nodai*
 
@@ -102,7 +102,7 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
     
