@@ -12,6 +12,7 @@ from model_wrappers import (
     get_unet32_wrapped,
 )
 from utils import get_shark_model
+import time
 
 GCLOUD_BUCKET = "gs://shark_tank/prashant_nod"
 VAE_FP16 = "vae_fp16"
@@ -23,7 +24,7 @@ UNET_FP32 = "unet_fp32"
 def get_models():
     if args.precision == "fp16":
         if args.import_mlir == True:
-            return get_vae16(), get_unet16_wrapped() 
+            return get_vae16(), get_unet16_wrapped()
         else:
             return get_shark_model(GCLOUD_BUCKET, VAE_FP16), get_shark_model(
                 GCLOUD_BUCKET, UNET_FP16
@@ -34,7 +35,13 @@ def get_models():
             return get_vae32(), get_unet32_wrapped()
         else:
             return get_shark_model(GCLOUD_BUCKET, VAE_FP32), get_shark_model(
-                GCLOUD_BUCKET, UNET_FP32
+                GCLOUD_BUCKET,
+                UNET_FP32,
+                [
+                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+                    "--iree-flow-enable-padding-linalg-ops",
+                    "--iree-flow-linalg-ops-padding-size=16",
+                ],
             )
 
 
@@ -70,6 +77,8 @@ if __name__ == "__main__":
         num_train_timesteps=1000,
     )
 
+    start = time.time()
+
     text_input = tokenizer(
         prompt,
         padding="max_length",
@@ -100,10 +109,11 @@ if __name__ == "__main__":
 
     latents = latents * scheduler.sigmas[0]
     text_embeddings_numpy = text_embeddings.detach().numpy()
+    avg_ms = 0
 
     for i, t in tqdm(enumerate(scheduler.timesteps)):
-
-        print(f"i = {i} t = {t}")
+        step_start = time.time()
+        print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latents_numpy = latents.detach().numpy()
         sigma_numpy = np.array(scheduler.sigmas[i]).astype(np.float32)
@@ -112,7 +122,14 @@ if __name__ == "__main__":
             (latents_numpy, timestep, text_embeddings_numpy, sigma_numpy)
         )
         noise_pred = torch.from_numpy(noise_pred)
+        step_time = time.time() - step_start
+        avg_ms += step_time
+        step_ms = int((step_time) * 1000)
+        print(f" ({step_ms}ms)")
+
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
+    avg_ms = 1000 * avg_ms / args.steps
+    print(f"Average step time: {avg_ms}ms/it")
 
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
@@ -121,5 +138,8 @@ if __name__ == "__main__":
     image = torch.from_numpy(image)
     image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
     images = (image * 255).round().astype("uint8")
+
+    print("Total image generation runtime (s): {}".format(time.time() - start))
+
     pil_images = [Image.fromarray(image) for image in images]
     pil_images[0].save(f"{args.prompt}.jpg")
