@@ -4,15 +4,15 @@ from PIL import Image
 from diffusers import LMSDiscreteScheduler
 from tqdm.auto import tqdm
 import numpy as np
-from stable_args import args
-from model_wrappers import (
+from models.stable_diffusion.model_wrappers import (
     get_vae32,
     get_vae16,
     get_unet16_wrapped,
     get_unet32_wrapped,
 )
-from utils import get_shark_model
+from models.stable_diffusion.utils import get_shark_model
 import time
+import os
 
 GCLOUD_BUCKET = "gs://shark_tank/prashant_nod"
 VAE_FP16 = "vae_fp16"
@@ -20,33 +20,64 @@ VAE_FP32 = "vae_fp32"
 UNET_FP16 = "unet_fp16"
 UNET_FP32 = "unet_fp32"
 
+args = None
+DEBUG = False
+
+
+class Arguments:
+    def __init__(
+        self,
+        prompt="a boy riding a bicycle",
+        steps=10,
+        precision="fp32",
+        device="cpu",
+        import_mlir=False,
+        max_length=77,
+    ):
+        self.prompt = prompt
+        self.steps = steps
+        self.precision = precision
+        self.device = device
+        self.import_mlir = import_mlir
+        self.max_length = max_length
+
 
 def get_models():
     if args.precision == "fp16":
         if args.import_mlir == True:
-            return get_vae16(), get_unet16_wrapped()
-        else:
-            return get_shark_model(GCLOUD_BUCKET, VAE_FP16), get_shark_model(
-                GCLOUD_BUCKET, UNET_FP16
-            )
+            return get_unet16_wrapped(args), get_vae16(args)
+        return get_shark_model(args, GCLOUD_BUCKET, VAE_FP16), get_shark_model(
+            args, GCLOUD_BUCKET, UNET_FP16
+        )
 
     elif args.precision == "fp32":
         if args.import_mlir == True:
-            return get_vae32(), get_unet32_wrapped()
-        else:
-            return get_shark_model(GCLOUD_BUCKET, VAE_FP32), get_shark_model(
-                GCLOUD_BUCKET,
-                UNET_FP32,
-                [
-                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-                    "--iree-flow-enable-padding-linalg-ops",
-                    "--iree-flow-linalg-ops-padding-size=16",
-                ],
-            )
+            return (get_vae32(args), get_unet32_wrapped(args))
+        return get_shark_model(args, GCLOUD_BUCKET, VAE_FP32), get_shark_model(
+            args,
+            GCLOUD_BUCKET,
+            UNET_FP32,
+            [
+                "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+                "--iree-flow-enable-padding-linalg-ops",
+                "--iree-flow-linalg-ops-padding-size=16",
+            ],
+        )
+    return None, None
 
 
-if __name__ == "__main__":
+def stable_diff_inf(prompt: str, steps, precision, device: str):
 
+    global args
+    global DEBUG
+
+    output_loc = f"stored_results/stable_diffusion/{prompt}_{int(steps)}_{precision}_{device}.jpg"
+    DEBUG = False
+    log_write = open(r"logs/stable_diffusion_log.txt", "w")
+    if log_write:
+        DEBUG = True
+
+    args = Arguments(prompt, steps, precision, device)
     dtype = torch.float32 if args.precision == "fp32" else torch.half
 
     prompt = [args.prompt]
@@ -54,7 +85,7 @@ if __name__ == "__main__":
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
 
-    num_inference_steps = args.steps  # Number of denoising steps
+    num_inference_steps = int(args.steps)  # Number of denoising steps
 
     guidance_scale = 7.5  # Scale for classifier-free guidance
 
@@ -109,11 +140,13 @@ if __name__ == "__main__":
 
     latents = latents * scheduler.sigmas[0]
     text_embeddings_numpy = text_embeddings.detach().numpy()
-    avg_ms = 0
 
+    avg_ms = 0
     for i, t in tqdm(enumerate(scheduler.timesteps)):
+
+        if DEBUG:
+            log_write.write(f"\ni = {i} t = {t} ")
         step_start = time.time()
-        print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latents_numpy = latents.detach().numpy()
         sigma_numpy = np.array(scheduler.sigmas[i]).astype(np.float32)
@@ -125,11 +158,13 @@ if __name__ == "__main__":
         step_time = time.time() - step_start
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
-        print(f" ({step_ms}ms)")
-
+        if DEBUG:
+            log_write.write(f"time/itr={step_ms}ms")
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
+
     avg_ms = 1000 * avg_ms / args.steps
-    print(f"Average step time: {avg_ms}ms/it")
+    if DEBUG:
+        log_write.write(f"\nAverage step time: {avg_ms}ms/it")
 
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
@@ -138,8 +173,13 @@ if __name__ == "__main__":
     image = torch.from_numpy(image)
     image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
     images = (image * 255).round().astype("uint8")
-
-    print("Total image generation runtime (s): {}".format(time.time() - start))
-
     pil_images = [Image.fromarray(image) for image in images]
-    pil_images[0].save(f"{args.prompt}.jpg")
+    output = pil_images[0]
+    # save the output image with the prompt name.
+    output.save(os.path.join(output_loc))
+    log_write.close()
+
+    std_output = ""
+    with open(r"logs/stable_diffusion_log.txt", "r") as log_read:
+        std_output = log_read.read()
+    return pil_images[0], std_output
