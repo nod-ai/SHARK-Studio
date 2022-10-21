@@ -59,7 +59,7 @@ if __name__ == "__main__":
     guidance_scale = args.guidance_scale  # Scale for classifier-free guidance
 
     generator = torch.manual_seed(
-      args.seed
+        args.seed
     )  # Seed generator to create the inital latent noise
 
     batch_size = len(prompt)
