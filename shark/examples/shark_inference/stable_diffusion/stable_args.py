@@ -19,6 +19,18 @@ p.add_argument(
     default=10,
     help="the no. of steps to do the sampling.",
 )
+p.add_argument(
+    "--seed",
+    type=int,
+    default=42,
+    help="the seed to use.",
+)
+p.add_argument(
+    "--guidance_scale",
+    type=float,
+    default=7.5,
+    help="the value to be used for guidance scaling.",
+)
 
 p.add_argument(
     "--import_mlir",
