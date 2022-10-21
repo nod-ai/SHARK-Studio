@@ -28,7 +28,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--precision", type=str, default="f32", help="precision to run the model."
+    "--precision", type=str, default="fp32", help="precision to run the model."
 )
 
 p.add_argument(
