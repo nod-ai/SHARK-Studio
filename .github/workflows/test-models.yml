@@ -37,6 +37,8 @@ jobs:
           - os: ubuntu-latest
             suite: cpu
           - os: MacStudio
+            suite: vulkan
+          - os: MacStudio
             suite: cuda
           - os: MacStudio
             suite: cpu
@@ -114,7 +116,7 @@ jobs:
       if: matrix.suite == 'vulkan' && matrix.os == 'MacStudio'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         echo "VULKAN SDK PATH wo setup: $VULKAN_SDK"
         cd /Users/anush/VulkanSDK/1.3.224.1/
@@ -122,11 +124,6 @@ jobs:
         cd $GITHUB_WORKSPACE
         echo "VULKAN SDK PATH with setup: $VULKAN_SDK"
         echo $PATH
-        pip list | grep -E "torch|iree"
-        pip uninstall -y torch iree-compiler iree-runtime
-        pip install torch torchvision -f https://download.pytorch.org/whl/nightly/cpu/
-        pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
-        pip install --pre iree-compiler iree-runtime -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
         pip list | grep -E "torch|iree"
         pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" tank/test_models.py -k vulkan --update_tank
 

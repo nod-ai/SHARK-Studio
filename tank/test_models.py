@@ -354,6 +354,7 @@ class SharkModuleTest(unittest.TestCase):
         ):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/390")
         if config["model_name"] == "squeezenet1_0" and device in [
+            "cpu",
             "metal",
             "vulkan",
         ]:

@@ -4,8 +4,8 @@ requires = [
     "wheel",
     "packaging",
 
-    "numpy==1.22.4",
-    "torch-mlir>=20221022.634",
+    "numpy>=1.22.4",
+    "torch-mlir>=20221021.633",
     "iree-compiler>=20221022.190",
     "iree-runtime>=20221022.190",
 ]

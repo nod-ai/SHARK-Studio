@@ -33,11 +33,11 @@ setup(
         "Operating System :: OS Independent",
     ],
     packages=find_packages(exclude=("examples")),
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     install_requires=[
         "numpy",
         "PyYAML",
-        "torch-mlir>=20221022.634",
+        "torch-mlir>=20221021.633",
     ]
     + backend_deps,
 )
