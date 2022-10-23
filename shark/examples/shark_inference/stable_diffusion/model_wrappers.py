@@ -6,7 +6,7 @@ import torch
 YOUR_TOKEN = "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"
 
 
-def get_vae32():
+def get_vae32(model_name="vae_fp32"):
     class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -25,11 +25,12 @@ def get_vae32():
     shark_vae = compile_through_fx(
         vae,
         (vae_input,),
+        model_name,
     )
     return shark_vae
 
 
-def get_vae16():
+def get_vae16(model_name="vae_fp16"):
     class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -50,11 +51,12 @@ def get_vae16():
     shark_vae = compile_through_fx(
         vae,
         (vae_input,),
+        model_name,
     )
     return shark_vae
 
 
-def get_unet32():
+def get_unet32(model_name="unet_fp32"):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -75,11 +77,12 @@ def get_unet32():
     shark_unet = compile_through_fx(
         unet,
         (latent_model_input, torch.tensor([1.0]), text_embeddings),
+        model_name,
     )
     return shark_unet
 
 
-def get_unet16():
+def get_unet16(model_name="unet_fp16"):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -105,12 +108,13 @@ def get_unet16():
             latent_model_input,
             torch.tensor([1.0]).half().cuda(),
             text_embeddings,
+            model_name,
         ),
     )
     return shark_unet
 
 
-def get_unet16_wrapped(guidance_scale=7.5):
+def get_unet16_wrapped(guidance_scale=7.5, model_name="unet_fp16_wrapped"):
     class UnetModel(torch.nn.Module):
         def __init__(self, guidance_scale=guidance_scale):
             super().__init__()
@@ -149,12 +153,13 @@ def get_unet16_wrapped(guidance_scale=7.5):
             torch.tensor([1.0]).half().cuda(),
             text_embeddings,
             sigma,
+            model_name,
         ),
     )
     return shark_unet
 
 
-def get_unet32_wrapped(guidance_scale=7.5):
+def get_unet32_wrapped(guidance_scale=7.5, model_name="unet_fp32_wrapped"):
     class UnetModel(torch.nn.Module):
         def __init__(self, guidance_scale=guidance_scale):
             super().__init__()
@@ -186,5 +191,6 @@ def get_unet32_wrapped(guidance_scale=7.5):
     shark_unet = compile_through_fx(
         unet,
         (latent_model_input, torch.tensor([1.0]), text_embeddings, sigma),
+        model_name,
     )
     return shark_unet
