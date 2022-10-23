@@ -114,7 +114,7 @@ jobs:
       if: matrix.suite == 'vulkan' && matrix.os == 'MacStudio'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} BENCHMARK=1 IMPORTER=1 ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
         echo "VULKAN SDK PATH wo setup: $VULKAN_SDK"
         cd /Users/anush/VulkanSDK/1.3.224.1/
@@ -124,10 +124,9 @@ jobs:
         echo $PATH
         pip list | grep -E "torch|iree"
         pip uninstall -y torch iree-compiler iree-runtime
-        pip install https://download.pytorch.org/whl/nightly/cpu/torch-1.14.0.dev20221010-cp310-none-macosx_11_0_arm64.whl
-        pip install https://github.com/llvm/torch-mlir/releases/download/oneshot-20221011.55/torch_mlir-20221011.55-cp310-cp310-macosx_11_0_universal2.whl
-        pip install https://github.com/nod-ai/SHARK-Runtime/releases/download/candidate-20221011.179/iree_compiler-20221011.179-cp310-cp310-macosx_11_0_universal2.whl
-        pip install https://github.com/nod-ai/SHARK-Runtime/releases/download/candidate-20221011.179/iree_runtime-20221011.179-cp310-cp310-macosx_11_0_universal2.whl
+        pip install torch torchvision -f https://download.pytorch.org/whl/nightly/cpu/
+        pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
+        pip install --pre iree-compiler iree-runtime -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
         pip list | grep -E "torch|iree"
         pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" tank/test_models.py -k vulkan --update_tank
 

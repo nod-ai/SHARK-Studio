@@ -396,6 +396,11 @@ class SharkModuleTest(unittest.TestCase):
             "microsoft/resnet-50",
         ] and device in ["metal", "vulkan"]:
             pytest.xfail(reason="Vulkan Numerical Error (mostly conv)")
+        if config["model_name"] == "mobilenet_v3_small" and device in [
+            "cuda",
+            "cpu",
+        ]:
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/424")
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
