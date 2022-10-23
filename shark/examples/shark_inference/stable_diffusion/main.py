@@ -26,15 +26,37 @@ def get_models():
         if args.import_mlir == True:
             return get_vae16(), get_unet16_wrapped()
         else:
-            return get_shark_model(GCLOUD_BUCKET, VAE_FP16), get_shark_model(
-                GCLOUD_BUCKET, UNET_FP16
+            return get_shark_model(
+                GCLOUD_BUCKET,
+                VAE_FP16,
+                [
+                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+                    "--iree-flow-enable-padding-linalg-ops",
+                    "--iree-flow-linalg-ops-padding-size=16",
+                ],
+            ), get_shark_model(
+                GCLOUD_BUCKET,
+                UNET_FP16,
+                [
+                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+                    "--iree-flow-enable-padding-linalg-ops",
+                    "--iree-flow-linalg-ops-padding-size=16",
+                ],
             )
 
     elif args.precision == "fp32":
         if args.import_mlir == True:
             return get_vae32(), get_unet32_wrapped()
         else:
-            return get_shark_model(GCLOUD_BUCKET, VAE_FP32), get_shark_model(
+            return get_shark_model(
+                GCLOUD_BUCKET,
+                VAE_FP32,
+                [
+                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+                    "--iree-flow-enable-padding-linalg-ops",
+                    "--iree-flow-linalg-ops-padding-size=16",
+                ],
+            ), get_shark_model(
                 GCLOUD_BUCKET,
                 UNET_FP32,
                 [
@@ -56,10 +78,10 @@ if __name__ == "__main__":
 
     num_inference_steps = args.steps  # Number of denoising steps
 
-    guidance_scale = 7.5  # Scale for classifier-free guidance
+    guidance_scale = args.guidance_scale  # Scale for classifier-free guidance
 
     generator = torch.manual_seed(
-        42
+        args.seed
     )  # Seed generator to create the inital latent noise
 
     batch_size = len(prompt)
