@@ -116,19 +116,66 @@ with gr.Blocks() as shark_web:
 
         with gr.TabItem("Stable-Diffusion"):
             prompt = (
-                iters
+                scheduler
             ) = (
-                device
+                iters_count
+            ) = (
+                batch_size
+            ) = (
+                steps
+            ) = (
+                guidance
+            ) = (
+                height
+            ) = (
+                width
+            ) = (
+                seed
             ) = (
                 precision
+            ) = (
+                device
             ) = debug = stable_diffusion = generated_img = std_output = None
             with gr.Row():
                 with gr.Column(scale=1, min_width=600):
                     prompt = gr.Textbox(
                         label="Prompt",
                         value="a photograph of an astronaut riding a horse",
+                        lines=2,
                     )
-                    iters = gr.Number(label="Steps", value=10)
+                    scheduler = gr.Radio(
+                        label="Scheduler",
+                        value="LMS",
+                        choices=["PNDM", "LMS", "DDIM"],
+                        visible=False,
+                    )
+                    iters_count = gr.Slider(
+                        1,
+                        24,
+                        value=1,
+                        step=1,
+                        label="Iteration Count",
+                        visible=False,
+                    )
+                    batch_size = gr.Slider(
+                        1,
+                        4,
+                        value=1,
+                        step=1,
+                        label="Batch Size",
+                        visible=False,
+                    )
+                    steps = gr.Slider(1, 100, value=20, step=1, label="Steps")
+                    guidance = gr.Slider(
+                        0, 50, value=7.5, step=0.1, label="Guidance Scale"
+                    )
+                    height = gr.Slider(
+                        384, 768, value=512, step=64, label="Height"
+                    )
+                    width = gr.Slider(
+                        384, 768, value=512, step=64, label="Width"
+                    )
+                    seed = gr.Textbox(value="42", max_lines=1, label="Seed")
                     precision = gr.Radio(
                         label="Precision",
                         value="fp32",
@@ -137,14 +184,17 @@ with gr.Blocks() as shark_web:
                     device = gr.Radio(
                         label="Device",
                         value="vulkan",
-                        choices=["cuda", "vulkan"],
+                        choices=["cpu", "cuda", "vulkan"],
                     )
                     debug = gr.Checkbox(label="DEBUG", value=False)
                     stable_diffusion = gr.Button("Generate image from prompt")
                 with gr.Column(scale=1, min_width=600):
                     generated_img = gr.Image(type="pil", shape=(100, 100))
                     std_output = gr.Textbox(
-                        label="Std Output", value="Nothing.", visible=False
+                        label="Std Output",
+                        value="Nothing.",
+                        lines=10,
+                        visible=False,
                     )
             debug.change(
                 debug_event,
@@ -154,7 +204,19 @@ with gr.Blocks() as shark_web:
             )
             stable_diffusion.click(
                 stable_diff_inf,
-                inputs=[prompt, iters, precision, device],
+                inputs=[
+                    prompt,
+                    scheduler,
+                    iters_count,
+                    batch_size,
+                    steps,
+                    guidance,
+                    height,
+                    width,
+                    seed,
+                    precision,
+                    device,
+                ],
                 outputs=[generated_img, std_output],
             )
 

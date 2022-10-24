@@ -50,5 +50,19 @@ p.add_argument(
     help="max length of the tokenizer output.",
 )
 
+p.add_argument(
+    "--load_vmfb",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="attempts to load the model from a precompiled flatbuffer and compiles + saves it if not found.",
+)
+
+p.add_argument(
+    "--save_vmfb",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="saves the compiled flatbuffer to the local directory",
+)
+
 
 args = p.parse_args()

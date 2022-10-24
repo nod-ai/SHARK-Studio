@@ -148,13 +148,15 @@ def export_iree_module_to_vmfb(
     mlir_dialect: str = "linalg",
     func_name: str = "forward",
     model_config_path: str = None,
+    module_name: str = None,
     extra_args: list = [],
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
         module, device, mlir_dialect, func_name, model_config_path, extra_args
     )
-    module_name = f"{mlir_dialect}_{func_name}_{device}"
+    if module_name is None:
+        module_name = f"{mlir_dialect}_{func_name}_{device}"
     filename = os.path.join(directory, module_name + ".vmfb")
     print(f"Saved vmfb in {filename}.")
     with open(filename, "wb") as f:

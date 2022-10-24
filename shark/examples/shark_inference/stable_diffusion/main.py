@@ -24,7 +24,9 @@ UNET_FP32 = "unet_fp32"
 def get_models():
     if args.precision == "fp16":
         if args.import_mlir == True:
-            return get_vae16(), get_unet16_wrapped()
+            return get_vae16(model_name=VAE_FP16), get_unet16_wrapped(
+                model_name=UNET_FP16
+            )
         else:
             return get_shark_model(
                 GCLOUD_BUCKET,
@@ -46,7 +48,9 @@ def get_models():
 
     elif args.precision == "fp32":
         if args.import_mlir == True:
-            return get_vae32(), get_unet32_wrapped()
+            return get_vae32(model_name=VAE_FP32), get_unet32_wrapped(
+                model_name=UNET_FP32
+            )
         else:
             return get_shark_model(
                 GCLOUD_BUCKET,
@@ -87,6 +91,7 @@ if __name__ == "__main__":
     batch_size = len(prompt)
 
     vae, unet = get_models()
+
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     text_encoder = CLIPTextModel.from_pretrained(
         "openai/clip-vit-large-patch14"
@@ -128,6 +133,7 @@ if __name__ == "__main__":
     )
 
     scheduler.set_timesteps(num_inference_steps)
+    scheduler.is_scale_input_called = True
 
     latents = latents * scheduler.sigmas[0]
     text_embeddings_numpy = text_embeddings.detach().numpy()
