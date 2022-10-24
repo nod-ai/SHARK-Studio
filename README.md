@@ -82,9 +82,10 @@ git clone https://github.com/nod-ai/SHARK.git
 ./setup_venv.sh
 source shark.venv/bin/activate
 ```
-For example if you want to use Python3.10 and upstream IREE with TF Import tools you can use the environment variables like:
+For example if you want to use Python3.10 and with TF Import tools you can use the environment variables like:
+Set `USE_IREE=1` to use upstream IREE
 ```
-# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 USE_IREE=1 ./setup_venv.sh 
+# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
 ```
 
 If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
