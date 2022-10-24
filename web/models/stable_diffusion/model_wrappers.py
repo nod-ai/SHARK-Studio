@@ -113,9 +113,9 @@ def get_unet16(args):
     return shark_unet
 
 
-def get_unet16_wrapped(args, guidance_scale=7.5):
+def get_unet16_wrapped(args):
     class UnetModel(torch.nn.Module):
-        def __init__(self, guidance_scale=guidance_scale):
+        def __init__(self):
             super().__init__()
             self.unet = UNet2DConditionModel.from_pretrained(
                 "CompVis/stable-diffusion-v1-4",
@@ -124,7 +124,7 @@ def get_unet16_wrapped(args, guidance_scale=7.5):
                 revision="fp16",
             )
             self.in_channels = self.unet.in_channels
-            self.guidance_scale = guidance_scale
+            self.guidance_scale = args.guidance_scale
             self.train(False)
 
         def forward(self, latent, timestep, text_embedding, sigma):
@@ -158,9 +158,9 @@ def get_unet16_wrapped(args, guidance_scale=7.5):
     return shark_unet
 
 
-def get_unet32_wrapped(args, guidance_scale=7.5):
+def get_unet32_wrapped(args):
     class UnetModel(torch.nn.Module):
-        def __init__(self, guidance_scale=guidance_scale):
+        def __init__(self):
             super().__init__()
             self.unet = UNet2DConditionModel.from_pretrained(
                 "CompVis/stable-diffusion-v1-4",
@@ -168,7 +168,7 @@ def get_unet32_wrapped(args, guidance_scale=7.5):
                 use_auth_token=YOUR_TOKEN,
             )
             self.in_channels = self.unet.in_channels
-            self.guidance_scale = guidance_scale
+            self.guidance_scale = args.guidance_scale
             self.train(False)
 
         def forward(self, latent, timestep, text_embedding, sigma):
