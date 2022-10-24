@@ -19,10 +19,17 @@ VAE_FP16 = "vae_fp16"
 VAE_FP32 = "vae_fp32"
 UNET_FP16 = "unet_fp16"
 UNET_FP32 = "unet_fp32"
+IREE_EXTRA_ARGS = []
 
 
 def get_models():
+    global IREE_EXTRA_ARGS
     if args.precision == "fp16":
+        IREE_EXTRA_ARGS += [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16",
+        ]
         if args.import_mlir == True:
             return get_vae16(model_name=VAE_FP16), get_unet16_wrapped(
                 model_name=UNET_FP16
@@ -31,22 +38,19 @@ def get_models():
             return get_shark_model(
                 GCLOUD_BUCKET,
                 VAE_FP16,
-                [
-                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-                    "--iree-flow-enable-padding-linalg-ops",
-                    "--iree-flow-linalg-ops-padding-size=16",
-                ],
+                IREE_EXTRA_ARGS,
             ), get_shark_model(
                 GCLOUD_BUCKET,
                 UNET_FP16,
-                [
-                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-                    "--iree-flow-enable-padding-linalg-ops",
-                    "--iree-flow-linalg-ops-padding-size=16",
-                ],
+                IREE_EXTRA_ARGS,
             )
 
     elif args.precision == "fp32":
+        IREE_EXTRA_ARGS += [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16",
+        ]
         if args.import_mlir == True:
             return get_vae32(model_name=VAE_FP32), get_unet32_wrapped(
                 model_name=UNET_FP32
@@ -55,25 +59,21 @@ def get_models():
             return get_shark_model(
                 GCLOUD_BUCKET,
                 VAE_FP32,
-                [
-                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-                    "--iree-flow-enable-padding-linalg-ops",
-                    "--iree-flow-linalg-ops-padding-size=16",
-                ],
+                IREE_EXTRA_ARGS,
             ), get_shark_model(
                 GCLOUD_BUCKET,
                 UNET_FP32,
-                [
-                    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-                    "--iree-flow-enable-padding-linalg-ops",
-                    "--iree-flow-linalg-ops-padding-size=16",
-                ],
+                IREE_EXTRA_ARGS,
             )
 
 
 if __name__ == "__main__":
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
+    if len(args.iree_vulkan_target_triple) > 0:
+        IREE_EXTRA_ARGS.append(
+            f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+        )
 
     prompt = [args.prompt]
 

@@ -18,7 +18,7 @@ import numpy as np
 import os
 
 # Get the iree-compile arguments given device.
-def get_iree_device_args(device):
+def get_iree_device_args(device, extra_args=[]):
     if device == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
@@ -30,7 +30,7 @@ def get_iree_device_args(device):
     if device in ["metal", "vulkan"]:
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
-        return get_iree_vulkan_args()
+        return get_iree_vulkan_args(extra_args=extra_args)
     if device == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
@@ -68,7 +68,7 @@ def compile_module_to_flatbuffer(
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
-    args += get_iree_device_args(device)
+    args += get_iree_device_args(device, extra_args)
     args += get_iree_common_args()
     args += extra_args
 
