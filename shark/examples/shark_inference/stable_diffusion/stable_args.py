@@ -64,5 +64,11 @@ p.add_argument(
     help="saves the compiled flatbuffer to the local directory",
 )
 
+p.add_argument(
+    "--iree-vulkan-target-triple",
+    type=str,
+    default="",
+    help="Specify target triple for vulkan",
+)
 
 args = p.parse_args()

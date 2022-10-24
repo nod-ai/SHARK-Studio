@@ -17,7 +17,11 @@
 from shark.iree_utils._common import run_cmd
 
 
-def get_vulkan_triple_flag():
+def get_vulkan_triple_flag(extra_args=[]):
+    if "-iree-vulkan-target-triple=" in " ".join(extra_args):
+        print(f"Using target triple from command line args")
+        return None
+
     vulkan_device_cmd = "vulkaninfo | grep deviceName"
     vulkan_device = run_cmd(vulkan_device_cmd).strip()
     if all(x in vulkan_device for x in ("Apple", "M1")):
@@ -52,10 +56,10 @@ def get_vulkan_triple_flag():
         return None
 
 
-def get_iree_vulkan_args():
+def get_iree_vulkan_args(extra_args=[]):
     # vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
     vulkan_flag = []
-    vulkan_triple_flag = get_vulkan_triple_flag()
+    vulkan_triple_flag = get_vulkan_triple_flag(extra_args)
     if vulkan_triple_flag is not None:
         vulkan_flag.append(vulkan_triple_flag)
     return vulkan_flag
