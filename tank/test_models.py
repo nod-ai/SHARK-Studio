@@ -131,6 +131,7 @@ class SharkModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         shark_args.local_tank_cache = self.local_tank_cache
+        shark_args.update_tank = self.update_tank
         if self.config["framework"] == "tf":
             model, func_name, inputs, golden_out = download_tf_model(
                 self.config["model_name"],
@@ -266,6 +267,9 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.local_tank_cache = self.pytestconfig.getoption(
             "local_tank_cache"
         )
+        self.module_tester.update_tank = self.pytestconfig.getoption(
+            "update_tank"
+        )
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
         if (
             config["model_name"] == "distilbert-base-uncased"
@@ -350,6 +354,7 @@ class SharkModuleTest(unittest.TestCase):
         ):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/390")
         if config["model_name"] == "squeezenet1_0" and device in [
+            "cpu",
             "metal",
             "vulkan",
         ]:
@@ -392,6 +397,11 @@ class SharkModuleTest(unittest.TestCase):
             "microsoft/resnet-50",
         ] and device in ["metal", "vulkan"]:
             pytest.xfail(reason="Vulkan Numerical Error (mostly conv)")
+        if config["model_name"] == "mobilenet_v3_small" and device in [
+            "cuda",
+            "cpu",
+        ]:
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/424")
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."

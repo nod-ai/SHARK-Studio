@@ -76,11 +76,15 @@ fi
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
-  $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed torch-mlir"
+  if [[ $(uname -s) = 'Darwin' ]]; then
+    echo "MacOS detected. Please install torch-mlir from source or .whl, as dependency problems may occur otherwise."
   else
-    echo "Could not install torch-mlir" >&2
+    $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
+    if [ $? -eq 0 ];then
+      echo "Successfully Installed torch-mlir"
+    else
+      echo "Could not install torch-mlir" >&2
+    fi
   fi
 else
   echo "${Red}No binaries found for Python $PYTHON_VERSION_X_Y on $(uname -s)"
@@ -109,6 +113,7 @@ if [[ ! -z "${IMPORTER}" ]]; then
     echo "${Yellow}macOS detected.. installing macOS importer tools"
     #Conda seems to have some problems installing these packages and hope they get resolved upstream.
     $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install https://github.com/llvm/torch-mlir/releases/download/snapshot-20221024.636/torch_mlir-20221024.636-cp310-cp310-macosx_11_0_universal2.whl
   fi
 fi
 

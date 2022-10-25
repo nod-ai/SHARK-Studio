@@ -32,7 +32,6 @@ lit
 pyyaml
 python-dateutil
 sacremoses
-chardet
 
 # web dependecies.
 gradio
