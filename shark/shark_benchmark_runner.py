@@ -43,7 +43,7 @@ class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
     def __init__(
         self,
-        mlir_module: str,
+        mlir_module: list,
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
@@ -65,7 +65,7 @@ class SharkBenchmarkRunner(SharkRunner):
         )
         if self.vmfb_file == None:
             self.vmfb_file = export_iree_module_to_vmfb(
-                mlir_module,
+                mlir_module[0],
                 device,
                 shark_args.repro_dir,
                 self.mlir_dialect,

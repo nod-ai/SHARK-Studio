@@ -36,8 +36,8 @@ class SharkInference:
 
     Attributes
     ----------
-    mlir_module : str
-        mlir_module represented in string.
+    mlir_module : list
+        mlir_module represented in a list of (one) string.
     function_name : str
         function to execute in the given mlir_module.
     device : str
@@ -63,7 +63,7 @@ class SharkInference:
 
     def __init__(
         self,
-        mlir_module: str,
+        mlir_module: list,
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
@@ -109,7 +109,7 @@ class SharkInference:
         # func_key to get the line which contains the function.
         func_key = "func.func @" + self.function_name
         func_header = None
-        for line in str(self.mlir_module).splitlines():
+        for line in str(self.mlir_module[0]).splitlines():
             if func_key in line:
                 func_header = line
                 break
@@ -148,7 +148,7 @@ class SharkInference:
     # , user may want to save the module with manual names.
     def save_module(self, dir=os.getcwd(), module_name=None, extra_args=[]):
         return export_iree_module_to_vmfb(
-            self.mlir_module,
+            self.mlir_module[0],
             self.device,
             dir,
             self.mlir_dialect,

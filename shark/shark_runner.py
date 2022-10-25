@@ -37,8 +37,8 @@ class SharkRunner:
 
     Attributes
     ----------
-    mlir_module : str
-        mlir_module represented in string.
+    mlir_module : list
+        mlir_module represented in a list of (one) string.
     function_name : str
         function to execute in the given mlir_module.
     device : str
@@ -61,7 +61,7 @@ class SharkRunner:
 
     def __init__(
         self,
-        mlir_module: str = "none",
+        mlir_module: list = ["none"],
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
@@ -84,7 +84,7 @@ class SharkRunner:
                 self.iree_compilation_module,
                 self.iree_config,
             ) = get_iree_compiled_module(
-                self.mlir_module,
+                self.mlir_module[0],
                 self.device,
                 self.mlir_dialect,
                 func_name=self.function_name,
