@@ -129,8 +129,8 @@ if __name__ == "__main__":
     latents = torch.randn(
         (batch_size, 4, height // 8, width // 8),
         generator=generator,
-        dtype=dtype,
-    )
+        dtype=torch.float32,
+    ).to(dtype)
 
     scheduler.set_timesteps(num_inference_steps)
     scheduler.is_scale_input_called = True
