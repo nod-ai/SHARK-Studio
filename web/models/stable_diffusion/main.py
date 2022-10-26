@@ -20,6 +20,7 @@ VAE_FP32 = "vae_fp32"
 UNET_FP16 = "unet_fp16"
 UNET_FP32 = "unet_fp32"
 
+IREE_EXTRA_ARGS = []
 args = None
 DEBUG = False
 
@@ -38,6 +39,9 @@ class Arguments:
         seed: int,
         precision: str,
         device: str,
+        load_vmfb: bool,
+        save_vmfb: bool,
+        iree_vulkan_target_triple: str,
         import_mlir: bool = False,
         max_length: int = 77,
     ):
@@ -52,34 +56,47 @@ class Arguments:
         self.seed = seed
         self.precision = precision
         self.device = device
+        self.load_vmfb = load_vmfb
+        self.save_vmfb = save_vmfb
+        self.iree_vulkan_target_triple = iree_vulkan_target_triple
         self.import_mlir = import_mlir
         self.max_length = max_length
 
 
 def get_models():
 
+    global IREE_EXTRA_ARGS
     global args
 
     if args.precision == "fp16":
+        IREE_EXTRA_ARGS += [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-iterator-space-fusion",
+        ]
         if args.import_mlir == True:
-            return get_vae16(args), get_unet16_wrapped(args)
-        return get_shark_model(args, GCLOUD_BUCKET, VAE_FP16), get_shark_model(
-            args, GCLOUD_BUCKET, UNET_FP16
-        )
+            return get_vae16(args, model_name=VAE_FP16), get_unet16_wrapped(
+                args, model_name=UNET_FP16
+            )
+        return get_shark_model(
+            args, GCLOUD_BUCKET, VAE_FP16, IREE_EXTRA_ARGS
+        ), get_shark_model(args, GCLOUD_BUCKET, UNET_FP16, IREE_EXTRA_ARGS)
 
     elif args.precision == "fp32":
+        IREE_EXTRA_ARGS += [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16",
+        ]
         if args.import_mlir == True:
-            return (get_vae32(args), get_unet32_wrapped(args))
-        return get_shark_model(args, GCLOUD_BUCKET, VAE_FP32), get_shark_model(
-            args,
-            GCLOUD_BUCKET,
-            UNET_FP32,
-            [
-                "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-                "--iree-flow-enable-padding-linalg-ops",
-                "--iree-flow-linalg-ops-padding-size=16",
-            ],
-        )
+            return (
+                get_vae32(args, model_name=VAE_FP32),
+                get_unet32_wrapped(args, model_name=UNET_FP32),
+            )
+        return get_shark_model(
+            args, GCLOUD_BUCKET, VAE_FP32, IREE_EXTRA_ARGS
+        ), get_shark_model(args, GCLOUD_BUCKET, UNET_FP32, IREE_EXTRA_ARGS)
     return None, None
 
 
@@ -95,8 +112,12 @@ def stable_diff_inf(
     seed: str,
     precision: str,
     device: str,
+    load_vmfb: bool,
+    save_vmfb: bool,
+    iree_vulkan_target_triple: str,
 ):
 
+    global IREE_EXTRA_ARGS
     global args
     global DEBUG
 
@@ -155,8 +176,15 @@ def stable_diff_inf(
         seed,
         precision,
         device,
+        load_vmfb,
+        save_vmfb,
+        iree_vulkan_target_triple,
     )
     dtype = torch.float32 if args.precision == "fp32" else torch.half
+    if len(args.iree_vulkan_target_triple) > 0:
+        IREE_EXTRA_ARGS.append(
+            f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+        )
     num_inference_steps = int(args.steps)  # Number of denoising steps
     generator = torch.manual_seed(
         args.seed
@@ -191,17 +219,20 @@ def stable_diff_inf(
     latents = torch.randn(
         (batch_size, 4, args.height // 8, args.width // 8),
         generator=generator,
-        dtype=dtype,
-    )
+        dtype=torch.float32,
+    ).to(dtype)
 
     scheduler.set_timesteps(num_inference_steps)
+    scheduler.is_scale_input_called = True
 
     latents = latents * scheduler.sigmas[0]
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
     avg_ms = 0
+    pil_images = []
     for i, t in tqdm(enumerate(scheduler.timesteps)):
 
+        time.sleep(0.1)
         if DEBUG:
             log_write.write(f"\ni = {i} t = {t} ")
         step_start = time.time()
@@ -219,19 +250,20 @@ def stable_diff_inf(
         if DEBUG:
             log_write.write(f"time={step_ms}ms")
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
+        # scale and decode the image latents with vae
+        latents = 1 / 0.18215 * latents
+        latents_numpy = latents.detach().numpy()
+        image = vae.forward((latents_numpy,))
+        image = torch.from_numpy(image)
+        image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+        images = (image * 255).round().astype("uint8")
+        pil_images = [Image.fromarray(image) for image in images]
+        yield pil_images[0], ""
 
     avg_ms = 1000 * avg_ms / args.steps
     if DEBUG:
         log_write.write(f"\nAverage step time: {avg_ms}ms/it")
 
-    # scale and decode the image latents with vae
-    latents = 1 / 0.18215 * latents
-    latents_numpy = latents.detach().numpy()
-    image = vae.forward((latents_numpy,))
-    image = torch.from_numpy(image)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
-    pil_images = [Image.fromarray(image) for image in images]
     print("total images:", len(pil_images))
     output = pil_images[0]
     # save the output image with the prompt name.
@@ -241,4 +273,4 @@ def stable_diff_inf(
     std_output = ""
     with open(r"logs/stable_diffusion_log.txt", "r") as log_read:
         std_output = log_read.read()
-    return pil_images[0], std_output
+    yield output, std_output

@@ -135,6 +135,12 @@ with gr.Blocks() as shark_web:
                 precision
             ) = (
                 device
+            ) = (
+                load_vmfb
+            ) = (
+                save_vmfb
+            ) = (
+                iree_vulkan_target_triple
             ) = debug = stable_diffusion = generated_img = std_output = None
             with gr.Row():
                 with gr.Column(scale=1, min_width=600):
@@ -186,6 +192,13 @@ with gr.Blocks() as shark_web:
                         value="vulkan",
                         choices=["cpu", "cuda", "vulkan"],
                     )
+                    load_vmfb = gr.Checkbox(label="Load vmfb", value=True)
+                    save_vmfb = gr.Checkbox(label="Save vmfb", value=False)
+                    iree_vulkan_target_triple = gr.Textbox(
+                        value="",
+                        max_lines=1,
+                        label="IREE VULKAN TARGET TRIPLE",
+                    )
                     debug = gr.Checkbox(label="DEBUG", value=False)
                     stable_diffusion = gr.Button("Generate image from prompt")
                 with gr.Column(scale=1, min_width=600):
@@ -216,8 +229,12 @@ with gr.Blocks() as shark_web:
                     seed,
                     precision,
                     device,
+                    load_vmfb,
+                    save_vmfb,
+                    iree_vulkan_target_triple,
                 ],
                 outputs=[generated_img, std_output],
             )
 
+shark_web.queue()
 shark_web.launch(share=True, server_port=8080, enable_queue=True)
