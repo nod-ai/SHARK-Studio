@@ -146,11 +146,9 @@ class SharkImporter:
         np.savez(os.path.join(dir, outputs_name), *outputs)
         np.save(os.path.join(dir, func_file_name), np.array(func_name))
 
-        mlir_str = mlir_data
         if self.frontend == "torch":
-            mlir_str = mlir_data.operation.get_asm()
-            with open(os.path.join(dir, model_name_mlir), "w") as mlir_file:
-                mlir_file.write(mlir_str)
+            with open(os.path.join(dir, model_name_mlir), "wb") as mlir_file:
+                mlir_file.write(mlir_data)
 
         return
 

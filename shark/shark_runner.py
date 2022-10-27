@@ -61,7 +61,7 @@ class SharkRunner:
 
     def __init__(
         self,
-        mlir_module: str = "none",
+        mlir_module: bytes = None,
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",

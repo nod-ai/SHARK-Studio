@@ -79,12 +79,10 @@ def compile_module_to_flatbuffer(
     elif frontend in ["tflite", "tflite-tosa"]:
         input_type = "tosa"
     elif frontend in ["tm_tensor"]:
-        input_type = frontend
+        input_type = ireec.InputType.TM_TENSOR
 
     # TODO: make it simpler.
     # Compile according to the input type, else just try compiling.
-    if input_type not in ["mhlo", "tosa"]:
-        module = str(module)
     if input_type != "":
         # Currently for MHLO/TOSA.
         flatbuffer_blob = ireec.compile_str(
@@ -96,7 +94,7 @@ def compile_module_to_flatbuffer(
     else:
         # Currently for Torch.
         flatbuffer_blob = ireec.compile_str(
-            str(module),
+            module,
             target_backends=[IREE_TARGET_MAP[device]],
             extra_args=args,
         )
