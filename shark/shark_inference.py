@@ -37,7 +37,7 @@ class SharkInference:
     Attributes
     ----------
     mlir_module : str
-        mlir_module represented in string.
+        mlir_module represented in string; modules from torch-mlir are serialized in bytecode format.
     function_name : str
         function to execute in the given mlir_module.
     device : str
@@ -63,7 +63,7 @@ class SharkInference:
 
     def __init__(
         self,
-        mlir_module: str,
+        mlir_module,
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
