@@ -16,9 +16,9 @@ with gr.Blocks() as shark_web:
     with gr.Row():
         with gr.Group():
             with gr.Column(scale=1):
-                img = Image.open("./Nod_logo.jpg")
+                img = Image.open("./logos/Nod_logo.jpg")
                 gr.Image(value=img, show_label=False, interactive=False).style(
-                    height=70, width=70
+                    height=300, width=400
                 )
             with gr.Column(scale=9):
                 gr.Label(value="Shark Models Demo.")
