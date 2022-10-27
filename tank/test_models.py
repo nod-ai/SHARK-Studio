@@ -1,7 +1,7 @@
 from shark.iree_utils._common import (
     check_device_drivers,
     device_driver_info,
-    IREE_DEVICE_MAP,
+    get_supported_device_list,
 )
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 from parameterized import parameterized
@@ -59,7 +59,7 @@ def get_valid_test_params():
     """
     device_list = [
         device
-        for device in IREE_DEVICE_MAP.keys()
+        for device in get_supported_device_list()
         if not check_device_drivers(device)
     ]
     dynamic_list = (True, False)
