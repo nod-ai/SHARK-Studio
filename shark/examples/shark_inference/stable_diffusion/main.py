@@ -28,8 +28,8 @@ def get_models():
         IREE_EXTRA_ARGS += [
             "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=16",
-            "--iree-flow-enable-iterator-space-fusion",
+            "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-spirv-unify-aliased-resources=false",
         ]
         if args.import_mlir == True:
             return get_vae16(model_name=VAE_FP16), get_unet16_wrapped(
