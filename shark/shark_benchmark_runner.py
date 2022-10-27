@@ -43,7 +43,7 @@ class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
     def __init__(
         self,
-        mlir_module: str,
+        mlir_module: bytes,
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",

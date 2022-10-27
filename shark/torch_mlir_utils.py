@@ -17,6 +17,7 @@ import torch_mlir
 from torch_mlir_e2e_test.linalg_on_tensors_backends import refbackend
 import tempfile
 from shark.parser import shark_args
+import io
 
 
 def get_module_name_for_asm_dump(module):
@@ -66,11 +67,14 @@ def get_torch_mlir_module(
 
     tempfile.tempdir = shark_args.repro_dir
 
-    module = torch_mlir.compile(
+    mlir_module = torch_mlir.compile(
         module,
         input,
         output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
         use_tracing=jit_trace,
         ignore_traced_shapes=ignore_traced_shapes,
     )
-    return module
+    bytecode_stream = io.BytesIO()
+    mlir_module.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+    return bytecode

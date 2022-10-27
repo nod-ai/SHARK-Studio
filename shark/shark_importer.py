@@ -147,13 +147,8 @@ class SharkImporter:
         np.save(os.path.join(dir, func_file_name), np.array(func_name))
 
         if self.frontend == "torch":
-            import io
-
-            bytecode_stream = io.BytesIO()
-            mlir_data.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
             with open(os.path.join(dir, model_name_mlir), "wb") as mlir_file:
-                mlir_file.write(bytecode)
+                mlir_file.write(mlir_data)
 
         return
 

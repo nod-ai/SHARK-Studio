@@ -137,7 +137,8 @@ def download_torch_model(
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
-        os.path.join(model_dir, model_name + dyn_str + "_torch.mlir")
+        os.path.join(model_dir, model_name + dyn_str + "_torch.mlir"),
+        mode="rb",
     ) as f:
         mlir_file = f.read()
 
@@ -201,7 +202,8 @@ def download_tflite_model(
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     with open(
-        os.path.join(model_dir, model_name + dyn_str + "_tflite.mlir")
+        os.path.join(model_dir, model_name + dyn_str + "_tflite.mlir"),
+        mode="rb",
     ) as f:
         mlir_file = f.read()
 
@@ -266,7 +268,7 @@ def download_tf_model(
     if not os.path.isfile(filename):
         filename = os.path.join(model_dir, model_name + "_tf.mlir")
 
-    with open(filename) as f:
+    with open(filename, mode="rb") as f:
         mlir_file = f.read()
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))

@@ -63,7 +63,7 @@ class SharkInference:
 
     def __init__(
         self,
-        mlir_module,
+        mlir_module: bytes,
         function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
