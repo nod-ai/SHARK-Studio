@@ -71,4 +71,11 @@ p.add_argument(
     help="Specify target triple for vulkan",
 )
 
+p.add_argument(
+    "--vulkan_debug_utils",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Profiles vulkan device and collects the .rdc info",
+)
+
 args = p.parse_args()
