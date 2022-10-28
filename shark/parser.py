@@ -93,4 +93,16 @@ parser.add_argument(
     help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
 )
 
+parser.add_argument(
+    "--dispatch_benchmarks",
+    default=None,
+    help='dispatches to return benchamrk data on.  use "All" for all, and None for none.',
+)
+
+parser.add_argument(
+    "--dispatch_benchmarks_dir",
+    default="temp_dispatch_benchmarks",
+    help='directory where you want to store dispatch data generated with "--dispatch_benchmarks"',
+)
+
 shark_args, unknown = parser.parse_known_args()
