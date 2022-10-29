@@ -78,4 +78,11 @@ p.add_argument(
     help="Profiles vulkan device and collects the .rdc info",
 )
 
+p.add_argument(
+    "--use_tuned",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="Download and use the tuned version of the model if available",
+)
+
 args = p.parse_args()
