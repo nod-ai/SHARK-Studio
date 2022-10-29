@@ -14,7 +14,20 @@
 
 # All the iree_vulkan related functionalities go here.
 
+from os import linesep
 from shark.iree_utils._common import run_cmd
+
+
+def get_vulkan_device_name():
+    vulkaninfo_dump = run_cmd("vulkaninfo").split(linesep)
+    vulkaninfo_list = [s.strip() for s in vulkaninfo_dump if "deviceName" in s]
+    if len(vulkaninfo_list) == 0:
+        raise ValueError("No device name found in VulkanInfo!")
+    if len(vulkaninfo_list) > 1:
+        print(
+            f"Found {len(vulkaninfo_list)} device names. choosing first one: {vulkaninfo_list[0]}"
+        )
+    return vulkaninfo_list[0]
 
 
 def get_vulkan_triple_flag(extra_args=[]):
@@ -22,8 +35,7 @@ def get_vulkan_triple_flag(extra_args=[]):
         print(f"Using target triple from command line args")
         return None
 
-    vulkan_device_cmd = "vulkaninfo | grep deviceName"
-    vulkan_device = run_cmd(vulkan_device_cmd).strip()
+    vulkan_device = get_vulkan_device_name()
     if all(x in vulkan_device for x in ("Apple", "M1")):
         print(f"Found {vulkan_device} Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
