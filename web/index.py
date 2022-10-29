@@ -16,82 +16,82 @@ with gr.Blocks() as shark_web:
     with gr.Row():
         with gr.Group():
             with gr.Column(scale=1):
-                img = Image.open("./Nod_logo.jpg")
+                img = Image.open("./Nod_logo.png")
                 gr.Image(value=img, show_label=False, interactive=False).style(
-                    height=70, width=70
+                    height=80, width=150
                 )
-            with gr.Column(scale=9):
+            with gr.Column(scale=1):
                 gr.Label(value="Shark Models Demo.")
 
     with gr.Tabs():
-        with gr.TabItem("ResNet50"):
-            image = device = debug = resnet = output = std_output = None
-            with gr.Row():
-                with gr.Column(scale=1, min_width=600):
-                    image = gr.Image(label="Image")
-                    device = gr.Radio(
-                        label="Device",
-                        value="cpu",
-                        choices=["cpu", "cuda", "vulkan"],
-                    )
-                    debug = gr.Checkbox(label="DEBUG", value=False)
-                    resnet = gr.Button("Recognize Image").style(
-                        full_width=True
-                    )
-                with gr.Column(scale=1, min_width=600):
-                    output = gr.Label(label="Output")
-                    std_output = gr.Textbox(
-                        label="Std Output",
-                        value="Nothing to show.",
-                        visible=False,
-                    )
-            debug.change(
-                debug_event,
-                inputs=[debug],
-                outputs=[std_output],
-                show_progress=False,
-            )
-            resnet.click(
-                resnet_inf,
-                inputs=[image, device],
-                outputs=[output, std_output],
-            )
-
-        with gr.TabItem("Albert MaskFill"):
-            masked_text = (
-                device
-            ) = debug = albert_mask = decoded_res = std_output = None
-            with gr.Row():
-                with gr.Column(scale=1, min_width=600):
-                    masked_text = gr.Textbox(
-                        label="Masked Text",
-                        placeholder="Give me a sentence with [MASK] to fill",
-                    )
-                    device = gr.Radio(
-                        label="Device",
-                        value="cpu",
-                        choices=["cpu", "cuda", "vulkan"],
-                    )
-                    debug = gr.Checkbox(label="DEBUG", value=False)
-                    albert_mask = gr.Button("Decode Mask")
-                with gr.Column(scale=1, min_width=600):
-                    decoded_res = gr.Label(label="Decoded Results")
-                    std_output = gr.Textbox(
-                        label="Std Output",
-                        value="Nothing to show.",
-                        visible=False,
-                    )
-            debug.change(
-                debug_event,
-                inputs=[debug],
-                outputs=[std_output],
-                show_progress=False,
-            )
-            albert_mask.click(
-                albert_maskfill_inf,
-                inputs=[masked_text, device],
-                outputs=[decoded_res, std_output],
-            )
+        #  with gr.TabItem("ResNet50"):
+        #      image = device = debug = resnet = output = std_output = None
+        #      with gr.Row():
+        #          with gr.Column(scale=1, min_width=600):
+        #              image = gr.Image(label="Image")
+        #              device = gr.Radio(
+        #                  label="Device",
+        #                  value="cpu",
+        #                  choices=["cpu", "cuda", "vulkan"],
+        #              )
+        #              debug = gr.Checkbox(label="DEBUG", value=False)
+        #              resnet = gr.Button("Recognize Image").style(
+        #                  full_width=True
+        #              )
+        #          with gr.Column(scale=1, min_width=600):
+        #              output = gr.Label(label="Output")
+        #              std_output = gr.Textbox(
+        #                  label="Std Output",
+        #                  value="Nothing to show.",
+        #                  visible=False,
+        #              )
+        #      debug.change(
+        #          debug_event,
+        #          inputs=[debug],
+        #          outputs=[std_output],
+        #          show_progress=False,
+        #      )
+        #      resnet.click(
+        #          resnet_inf,
+        #          inputs=[image, device],
+        #          outputs=[output, std_output],
+        #      )
+        #
+        #  with gr.TabItem("Albert MaskFill"):
+        #      masked_text = (
+        #          device
+        #      ) = debug = albert_mask = decoded_res = std_output = None
+        #      with gr.Row():
+        #          with gr.Column(scale=1, min_width=600):
+        #              masked_text = gr.Textbox(
+        #                  label="Masked Text",
+        #                  placeholder="Give me a sentence with [MASK] to fill",
+        #              )
+        #              device = gr.Radio(
+        #                  label="Device",
+        #                  value="cpu",
+        #                  choices=["cpu", "cuda", "vulkan"],
+        #              )
+        #              debug = gr.Checkbox(label="DEBUG", value=False)
+        #              albert_mask = gr.Button("Decode Mask")
+        #          with gr.Column(scale=1, min_width=600):
+        #              decoded_res = gr.Label(label="Decoded Results")
+        #              std_output = gr.Textbox(
+        #                  label="Std Output",
+        #                  value="Nothing to show.",
+        #                  visible=False,
+        #              )
+        #      debug.change(
+        #          debug_event,
+        #          inputs=[debug],
+        #          outputs=[std_output],
+        #          show_progress=False,
+        #      )
+        #      albert_mask.click(
+        #          albert_maskfill_inf,
+        #          inputs=[masked_text, device],
+        #          outputs=[decoded_res, std_output],
+        #      )
 
         #  with gr.TabItem("V-Diffusion"):
         #      prompt = sample_count = batch_size = iters = device = v_diffusion = generated_img = None
@@ -192,12 +192,14 @@ with gr.Blocks() as shark_web:
                         value="vulkan",
                         choices=["cpu", "cuda", "vulkan"],
                     )
-                    load_vmfb = gr.Checkbox(label="Load vmfb", value=True)
-                    save_vmfb = gr.Checkbox(label="Save vmfb", value=False)
+                    with gr.Row():
+                        load_vmfb = gr.Checkbox(label="Load vmfb", value=True)
+                        save_vmfb = gr.Checkbox(label="Save vmfb", value=False)
                     iree_vulkan_target_triple = gr.Textbox(
                         value="",
                         max_lines=1,
                         label="IREE VULKAN TARGET TRIPLE",
+                        visible=False,
                     )
                     debug = gr.Checkbox(label="DEBUG", value=False)
                     stable_diffusion = gr.Button("Generate image from prompt")
@@ -236,5 +238,4 @@ with gr.Blocks() as shark_web:
                 outputs=[generated_img, std_output],
             )
 
-shark_web.queue()
 shark_web.launch(share=True, server_port=8080, enable_queue=True)

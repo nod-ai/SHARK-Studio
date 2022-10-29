@@ -72,8 +72,7 @@ def get_models():
         IREE_EXTRA_ARGS += [
             "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=16",
-            "--iree-flow-enable-iterator-space-fusion",
+            "--iree-flow-linalg-ops-padding-size=32",
         ]
         if args.import_mlir == True:
             return get_vae16(args, model_name=VAE_FP16), get_unet16_wrapped(
@@ -229,10 +228,8 @@ def stable_diff_inf(
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
     avg_ms = 0
-    pil_images = []
     for i, t in tqdm(enumerate(scheduler.timesteps)):
 
-        time.sleep(0.1)
         if DEBUG:
             log_write.write(f"\ni = {i} t = {t} ")
         step_start = time.time()
@@ -250,16 +247,15 @@ def stable_diff_inf(
         if DEBUG:
             log_write.write(f"time={step_ms}ms")
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
-        # scale and decode the image latents with vae
-        latents = 1 / 0.18215 * latents
-        latents_numpy = latents.detach().numpy()
-        image = vae.forward((latents_numpy,))
-        image = torch.from_numpy(image)
-        image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-        images = (image * 255).round().astype("uint8")
-        pil_images = [Image.fromarray(image) for image in images]
-        yield pil_images[0], ""
 
+    # scale and decode the image latents with vae
+    latents = 1 / 0.18215 * latents
+    latents_numpy = latents.detach().numpy()
+    image = vae.forward((latents_numpy,))
+    image = torch.from_numpy(image)
+    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+    images = (image * 255).round().astype("uint8")
+    pil_images = [Image.fromarray(image) for image in images]
     avg_ms = 1000 * avg_ms / args.steps
     if DEBUG:
         log_write.write(f"\nAverage step time: {avg_ms}ms/it")
@@ -273,4 +269,4 @@ def stable_diff_inf(
     std_output = ""
     with open(r"logs/stable_diffusion_log.txt", "r") as log_read:
         std_output = log_read.read()
-    yield output, std_output
+    return output, std_output
