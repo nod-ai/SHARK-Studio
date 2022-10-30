@@ -141,67 +141,96 @@ with gr.Blocks() as shark_web:
                 save_vmfb
             ) = (
                 iree_vulkan_target_triple
+            ) = (
+                live_preview
             ) = debug = stable_diffusion = generated_img = std_output = None
+            examples = [
+                ["A high tech solarpunk utopia in the Amazon rainforest"],
+                ["A pikachu fine dining with a view to the Eiffel Tower"],
+                ["A mecha robot in a favela in expressionist style"],
+                ["an insect robot preparing a delicious meal"],
+                [
+                    "A small cabin on top of a snowy mountain in the style of Disney, artstation"
+                ],
+            ]
+
             with gr.Row():
                 with gr.Column(scale=1, min_width=600):
-                    prompt = gr.Textbox(
-                        label="Prompt",
-                        value="a photograph of an astronaut riding a horse",
-                        lines=2,
-                    )
-                    scheduler = gr.Radio(
-                        label="Scheduler",
-                        value="LMS",
-                        choices=["PNDM", "LMS", "DDIM"],
-                        visible=False,
-                    )
-                    iters_count = gr.Slider(
-                        1,
-                        24,
-                        value=1,
-                        step=1,
-                        label="Iteration Count",
-                        visible=False,
-                    )
-                    batch_size = gr.Slider(
-                        1,
-                        4,
-                        value=1,
-                        step=1,
-                        label="Batch Size",
-                        visible=False,
-                    )
-                    steps = gr.Slider(1, 100, value=20, step=1, label="Steps")
-                    guidance = gr.Slider(
-                        0, 50, value=7.5, step=0.1, label="Guidance Scale"
-                    )
-                    height = gr.Slider(
-                        384, 768, value=512, step=64, label="Height"
-                    )
-                    width = gr.Slider(
-                        384, 768, value=512, step=64, label="Width"
-                    )
-                    seed = gr.Textbox(value="42", max_lines=1, label="Seed")
-                    precision = gr.Radio(
-                        label="Precision",
-                        value="fp32",
-                        choices=["fp16", "fp32"],
-                    )
-                    device = gr.Radio(
-                        label="Device",
-                        value="vulkan",
-                        choices=["cpu", "cuda", "vulkan"],
-                    )
+                    with gr.Group():
+                        prompt = gr.Textbox(
+                            label="Prompt",
+                            value="a photograph of an astronaut riding a horse",
+                        )
+                        ex = gr.Examples(
+                            examples=examples,
+                            inputs=prompt,
+                            cache_examples=False,
+                        )
+                    with gr.Row():
+                        iters_count = gr.Slider(
+                            1,
+                            24,
+                            value=1,
+                            step=1,
+                            label="Iteration Count",
+                            visible=False,
+                        )
+                        batch_size = gr.Slider(
+                            1,
+                            4,
+                            value=1,
+                            step=1,
+                            label="Batch Size",
+                            visible=False,
+                        )
+                    with gr.Row():
+                        steps = gr.Slider(
+                            1, 100, value=20, step=1, label="Steps"
+                        )
+                        guidance = gr.Slider(
+                            0, 50, value=7.5, step=0.1, label="Guidance Scale"
+                        )
+                    with gr.Row():
+                        height = gr.Slider(
+                            384, 768, value=512, step=64, label="Height"
+                        )
+                        width = gr.Slider(
+                            384, 768, value=512, step=64, label="Width"
+                        )
+                    with gr.Row():
+                        precision = gr.Radio(
+                            label="Precision",
+                            value="fp32",
+                            choices=["fp16", "fp32"],
+                        )
+                        device = gr.Radio(
+                            label="Device",
+                            value="vulkan",
+                            choices=["cpu", "cuda", "vulkan"],
+                        )
+                    with gr.Row():
+                        scheduler = gr.Radio(
+                            label="Scheduler",
+                            value="LMS",
+                            choices=["PNDM", "LMS", "DDIM"],
+                            interactive=False,
+                        )
+                        seed = gr.Textbox(
+                            value="42", max_lines=1, label="Seed"
+                        )
                     with gr.Row():
                         load_vmfb = gr.Checkbox(label="Load vmfb", value=True)
                         save_vmfb = gr.Checkbox(label="Save vmfb", value=False)
+                        debug = gr.Checkbox(label="DEBUG", value=False)
+                        live_preview = gr.Checkbox(
+                            label="live preview", value=False
+                        )
                     iree_vulkan_target_triple = gr.Textbox(
                         value="",
                         max_lines=1,
                         label="IREE VULKAN TARGET TRIPLE",
                         visible=False,
                     )
-                    debug = gr.Checkbox(label="DEBUG", value=False)
                     stable_diffusion = gr.Button("Generate image from prompt")
                 with gr.Column(scale=1, min_width=600):
                     generated_img = gr.Image(type="pil", shape=(100, 100))
@@ -211,6 +240,7 @@ with gr.Blocks() as shark_web:
                         lines=10,
                         visible=False,
                     )
+
             debug.change(
                 debug_event,
                 inputs=[debug],
@@ -234,8 +264,10 @@ with gr.Blocks() as shark_web:
                     load_vmfb,
                     save_vmfb,
                     iree_vulkan_target_triple,
+                    live_preview,
                 ],
                 outputs=[generated_img, std_output],
             )
 
+shark_web.queue()
 shark_web.launch(share=True, server_port=8080, enable_queue=True)
