@@ -20,6 +20,9 @@ VAE_FP32 = "vae_fp32"
 UNET_FP16 = "unet_fp16"
 UNET_FP32 = "unet_fp32"
 
+TUNED_GCLOUD_BUCKET = "gs://shark_tank/quinn"
+UNET_FP16_TUNED = "unet_fp16_tunedv2"
+
 IREE_EXTRA_ARGS = []
 args = None
 
@@ -43,6 +46,7 @@ class Arguments:
         live_preview: bool,
         import_mlir: bool = False,
         max_length: int = 77,
+        use_tuned: bool = True,
     ):
         self.prompt = prompt
         self.scheduler = scheduler
@@ -60,6 +64,7 @@ class Arguments:
         self.live_preview = live_preview
         self.import_mlir = import_mlir
         self.max_length = max_length
+        self.use_tuned = use_tuned
 
 
 def get_models():
@@ -69,17 +74,45 @@ def get_models():
 
     if args.precision == "fp16":
         IREE_EXTRA_ARGS += [
-            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
         ]
+        if args.use_tuned:
+            unet_gcloud_bucket = TUNED_GCLOUD_BUCKET
+            vae_gcloud_bucket = GCLOUD_BUCKET
+            unet_args = IREE_EXTRA_ARGS
+            vae_args = IREE_EXTRA_ARGS + [
+                "--iree-flow-enable-conv-nchw-to-nhwc-transform"
+            ]
+            unet_name = UNET_FP16_TUNED
+            vae_name = VAE_FP16
+        else:
+            unet_gcloud_bucket = GCLOUD_BUCKET
+            vae_gcloud_bucket = GCLOUD_BUCKET
+            IREE_EXTRA_ARGS += [
+                "--iree-flow-enable-conv-nchw-to-nhwc-transform"
+            ]
+            unet_args = IREE_EXTRA_ARGS
+            vae_args = IREE_EXTRA_ARGS
+            unet_name = UNET_FP16
+            vae_name = VAE_FP16
+
         if args.import_mlir == True:
             return get_vae16(args, model_name=VAE_FP16), get_unet16_wrapped(
                 args, model_name=UNET_FP16
             )
-        return get_shark_model(
-            args, GCLOUD_BUCKET, VAE_FP16, IREE_EXTRA_ARGS
-        ), get_shark_model(args, GCLOUD_BUCKET, UNET_FP16, IREE_EXTRA_ARGS)
+        else:
+            return get_shark_model(
+                args,
+                vae_gcloud_bucket,
+                vae_name,
+                vae_args,
+            ), get_shark_model(
+                args,
+                unet_gcloud_bucket,
+                unet_name,
+                unet_args,
+            )
 
     elif args.precision == "fp32":
         IREE_EXTRA_ARGS += [
@@ -88,14 +121,21 @@ def get_models():
             "--iree-flow-linalg-ops-padding-size=16",
         ]
         if args.import_mlir == True:
-            return (
-                get_vae32(args, model_name=VAE_FP32),
-                get_unet32_wrapped(args, model_name=UNET_FP32),
+            return get_vae32(args, model_name=VAE_FP32), get_unet32_wrapped(
+                args, model_name=UNET_FP32
             )
-        return get_shark_model(
-            args, GCLOUD_BUCKET, VAE_FP32, IREE_EXTRA_ARGS
-        ), get_shark_model(args, GCLOUD_BUCKET, UNET_FP32, IREE_EXTRA_ARGS)
-    return None, None
+        else:
+            return get_shark_model(
+                args,
+                GCLOUD_BUCKET,
+                VAE_FP32,
+                IREE_EXTRA_ARGS,
+            ), get_shark_model(
+                args,
+                GCLOUD_BUCKET,
+                UNET_FP32,
+                IREE_EXTRA_ARGS,
+            )
 
 
 schedulers = dict()
@@ -121,6 +161,7 @@ schedulers["DDIM"] = DDIMScheduler(
 )
 
 cache_obj = dict()
+# cache tokenizer and text_encoder
 cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
     "openai/clip-vit-large-patch14"
 )
@@ -193,7 +234,7 @@ def stable_diff_inf(
     tokenizer = cache_obj["tokenizer"]
     text_encoder = cache_obj["text_encoder"]
     text_input = tokenizer(
-        [args.prompt] * batch_size,
+        [args.prompt],
         padding="max_length",
         max_length=args.max_length,
         truncation=True,
