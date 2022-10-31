@@ -42,6 +42,7 @@ class Arguments:
         load_vmfb: bool,
         save_vmfb: bool,
         iree_vulkan_target_triple: str,
+        live_preview: bool,
         import_mlir: bool = False,
         max_length: int = 77,
     ):
@@ -59,6 +60,7 @@ class Arguments:
         self.load_vmfb = load_vmfb
         self.save_vmfb = save_vmfb
         self.iree_vulkan_target_triple = iree_vulkan_target_triple
+        self.live_preview = live_preview
         self.import_mlir = import_mlir
         self.max_length = max_length
 
@@ -114,6 +116,7 @@ def stable_diff_inf(
     load_vmfb: bool,
     save_vmfb: bool,
     iree_vulkan_target_triple: str,
+    live_preview: bool,
 ):
 
     global IREE_EXTRA_ARGS
@@ -178,6 +181,7 @@ def stable_diff_inf(
         load_vmfb,
         save_vmfb,
         iree_vulkan_target_triple,
+        live_preview,
     )
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     if len(args.iree_vulkan_target_triple) > 0:
@@ -228,6 +232,7 @@ def stable_diff_inf(
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
     avg_ms = 0
+    out_img = None
     for i, t in tqdm(enumerate(scheduler.timesteps)):
 
         if DEBUG:
@@ -248,25 +253,38 @@ def stable_diff_inf(
             log_write.write(f"time={step_ms}ms")
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
 
+        if live_preview:
+            time.sleep(0.1)
+            scaled_latents = 1 / 0.18215 * latents
+            latents_numpy = scaled_latents.detach().numpy()
+            image = vae.forward((latents_numpy,))
+            image = torch.from_numpy(image)
+            image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+            images = (image * 255).round().astype("uint8")
+            pil_images = [Image.fromarray(image) for image in images]
+            out_img = pil_images[0]
+            yield out_img, ""
+
     # scale and decode the image latents with vae
-    latents = 1 / 0.18215 * latents
-    latents_numpy = latents.detach().numpy()
-    image = vae.forward((latents_numpy,))
-    image = torch.from_numpy(image)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
-    pil_images = [Image.fromarray(image) for image in images]
+    if not live_preview:
+        latents = 1 / 0.18215 * latents
+        latents_numpy = latents.detach().numpy()
+        image = vae.forward((latents_numpy,))
+        image = torch.from_numpy(image)
+        image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+        images = (image * 255).round().astype("uint8")
+        pil_images = [Image.fromarray(image) for image in images]
+        out_img = pil_images[0]
+
     avg_ms = 1000 * avg_ms / args.steps
     if DEBUG:
         log_write.write(f"\nAverage step time: {avg_ms}ms/it")
 
-    print("total images:", len(pil_images))
-    output = pil_images[0]
     # save the output image with the prompt name.
-    output.save(os.path.join(output_loc))
+    out_img.save(os.path.join(output_loc))
     log_write.close()
 
     std_output = ""
     with open(r"logs/stable_diffusion_log.txt", "r") as log_read:
         std_output = log_read.read()
-    return output, std_output
+    yield out_img, std_output
