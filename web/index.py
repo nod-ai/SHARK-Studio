@@ -192,17 +192,27 @@ with gr.Blocks() as shark_web:
                         )
                     with gr.Row():
                         steps = gr.Slider(
-                            1, 100, value=20, step=1, label="Steps"
+                            1, 100, value=50, step=1, label="Steps"
                         )
                         guidance = gr.Slider(
                             0, 50, value=7.5, step=0.1, label="Guidance Scale"
                         )
                     with gr.Row():
                         height = gr.Slider(
-                            384, 768, value=512, step=64, label="Height"
+                            384,
+                            768,
+                            value=512,
+                            step=64,
+                            label="Height",
+                            interactive=False,
                         )
                         width = gr.Slider(
-                            384, 768, value=512, step=64, label="Width"
+                            384,
+                            768,
+                            value=512,
+                            step=64,
+                            label="Width",
+                            interactive=False,
                         )
                     with gr.Row():
                         scheduler = gr.Radio(
@@ -278,4 +288,4 @@ with gr.Blocks() as shark_web:
             )
 
 shark_web.queue()
-shark_web.launch(server_port=8080, enable_queue=True)
+shark_web.launch(server_name="0.0.0.0", server_port=8080, enable_queue=True)
