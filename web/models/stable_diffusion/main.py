@@ -245,8 +245,7 @@ def stable_diff_inf(
         text_output = text_output + f"time={step_ms}ms"
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
 
-        if live_preview:
-            time.sleep(0.1)
+        if live_preview and i % 5 == 0:
             scaled_latents = 1 / 0.18215 * latents
             latents_numpy = scaled_latents.detach().numpy()
             image = vae.forward((latents_numpy,))
@@ -258,15 +257,14 @@ def stable_diff_inf(
             yield out_img, text_output
 
     # scale and decode the image latents with vae
-    if not live_preview:
-        latents = 1 / 0.18215 * latents
-        latents_numpy = latents.detach().numpy()
-        image = vae.forward((latents_numpy,))
-        image = torch.from_numpy(image)
-        image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-        images = (image * 255).round().astype("uint8")
-        pil_images = [Image.fromarray(image) for image in images]
-        out_img = pil_images[0]
+    latents = 1 / 0.18215 * latents
+    latents_numpy = latents.detach().numpy()
+    image = vae.forward((latents_numpy,))
+    image = torch.from_numpy(image)
+    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
+    images = (image * 255).round().astype("uint8")
+    pil_images = [Image.fromarray(image) for image in images]
+    out_img = pil_images[0]
 
     avg_ms = 1000 * avg_ms / args.steps
     text_output = text_output + f"\nAverage step time: {avg_ms}ms/it"
