@@ -14,7 +14,7 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 ## Installation
 
 <details>
-  <summary>Installation (Linux and macOS)</summary>
+  <summary>Installation (Linux, macOS and Windows)</summary>
 
 ### Setup a new pip Virtual Environment
 
