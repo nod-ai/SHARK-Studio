@@ -1,5 +1,6 @@
 import torch
 from shark.shark_inference import SharkInference
+from shark.shark_importer import SharkImporter
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
 import torch_mlir
@@ -71,19 +72,16 @@ def compile_through_fx(args, model, inputs, model_name, extra_args=[]):
 
     ts_g = torch.jit.trace(fx_g, inputs)
 
-    module = torch_mlir.compile(
+    mlir_importer = SharkImporter(
         ts_g,
         inputs,
-        torch_mlir.OutputType.LINALG_ON_TENSORS,
-        use_tracing=False,
-        verbose=False,
+        frontend="torch",
     )
 
-    mlir_model = module
-    func_name = "forward"
+    (mlir_module, func_name), _, _ = mlir_importer.import_debug()
 
     shark_module = SharkInference(
-        mlir_model,
+        mlir_module,
         func_name,
         device=args.device,
         mlir_dialect="linalg",
