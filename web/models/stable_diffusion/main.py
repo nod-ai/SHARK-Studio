@@ -22,7 +22,6 @@ UNET_FP32 = "unet_fp32"
 
 IREE_EXTRA_ARGS = []
 args = None
-DEBUG = False
 
 
 class Arguments:
@@ -39,8 +38,7 @@ class Arguments:
         seed: int,
         precision: str,
         device: str,
-        load_vmfb: bool,
-        save_vmfb: bool,
+        cache: bool,
         iree_vulkan_target_triple: str,
         live_preview: bool,
         import_mlir: bool = False,
@@ -57,8 +55,7 @@ class Arguments:
         self.seed = seed
         self.precision = precision
         self.device = device
-        self.load_vmfb = load_vmfb
-        self.save_vmfb = save_vmfb
+        self.cache = cache
         self.iree_vulkan_target_triple = iree_vulkan_target_triple
         self.live_preview = live_preview
         self.import_mlir = import_mlir
@@ -101,6 +98,37 @@ def get_models():
     return None, None
 
 
+schedulers = dict()
+# set scheduler value
+schedulers["PNDM"] = PNDMScheduler(
+    beta_start=0.00085,
+    beta_end=0.012,
+    beta_schedule="scaled_linear",
+    num_train_timesteps=1000,
+)
+schedulers["LMS"] = LMSDiscreteScheduler(
+    beta_start=0.00085,
+    beta_end=0.012,
+    beta_schedule="scaled_linear",
+    num_train_timesteps=1000,
+)
+schedulers["DDIM"] = DDIMScheduler(
+    beta_start=0.00085,
+    beta_end=0.012,
+    beta_schedule="scaled_linear",
+    clip_sample=False,
+    set_alpha_to_one=False,
+)
+
+cache_obj = dict()
+cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
+    "openai/clip-vit-large-patch14"
+)
+cache_obj["text_encoder"] = CLIPTextModel.from_pretrained(
+    "openai/clip-vit-large-patch14"
+)
+
+
 def stable_diff_inf(
     prompt: str,
     scheduler: str,
@@ -113,21 +141,17 @@ def stable_diff_inf(
     seed: str,
     precision: str,
     device: str,
-    load_vmfb: bool,
-    save_vmfb: bool,
+    cache: bool,
     iree_vulkan_target_triple: str,
     live_preview: bool,
 ):
 
     global IREE_EXTRA_ARGS
     global args
-    global DEBUG
+    global schedulers
+    global cache_obj
 
-    output_loc = f"stored_results/stable_diffusion/{prompt}_{int(steps)}_{precision}_{device}.jpg"
-    DEBUG = False
-    log_write = open(r"logs/stable_diffusion_log.txt", "w")
-    if log_write:
-        DEBUG = True
+    output_loc = f"stored_results/stable_diffusion/{time.time()}_{int(steps)}_{precision}_{device}.jpg"
 
     # set seed value
     if seed == "":
@@ -138,34 +162,7 @@ def stable_diff_inf(
         except ValueError:
             seed = hash(seed)
 
-    # set scheduler value
-    if scheduler == "PNDM":
-        scheduler = PNDMScheduler(
-            beta_start=0.00085,
-            beta_end=0.012,
-            beta_schedule="scaled_linear",
-            num_train_timesteps=1000,
-        )
-    elif scheduler == "LMS":
-        scheduler = LMSDiscreteScheduler(
-            beta_start=0.00085,
-            beta_end=0.012,
-            beta_schedule="scaled_linear",
-            num_train_timesteps=1000,
-        )
-    elif scheduler == "DDIM":
-        scheduler = DDIMScheduler(
-            beta_start=0.00085,
-            beta_end=0.012,
-            beta_schedule="scaled_linear",
-            clip_sample=False,
-            set_alpha_to_one=False,
-        )
-    else:
-        raise Exception(
-            f"Does not support scheduler with name {args.scheduler}."
-        )
-
+    scheduler = schedulers[scheduler]
     args = Arguments(
         prompt,
         scheduler,
@@ -178,8 +175,7 @@ def stable_diff_inf(
         seed,
         precision,
         device,
-        load_vmfb,
-        save_vmfb,
+        cache,
         iree_vulkan_target_triple,
         live_preview,
     )
@@ -194,11 +190,8 @@ def stable_diff_inf(
     )  # Seed generator to create the inital latent noise
 
     vae, unet = get_models()
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    text_encoder = CLIPTextModel.from_pretrained(
-        "openai/clip-vit-large-patch14"
-    )
-
+    tokenizer = cache_obj["tokenizer"]
+    text_encoder = cache_obj["text_encoder"]
     text_input = tokenizer(
         [args.prompt] * batch_size,
         padding="max_length",
@@ -233,10 +226,10 @@ def stable_diff_inf(
 
     avg_ms = 0
     out_img = None
+    text_output = ""
     for i, t in tqdm(enumerate(scheduler.timesteps)):
 
-        if DEBUG:
-            log_write.write(f"\ni = {i} t = {t} ")
+        text_output = text_output + f"\ni = {i} t = {t} "
         step_start = time.time()
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latents_numpy = latents.detach().numpy()
@@ -249,8 +242,7 @@ def stable_diff_inf(
         step_time = time.time() - step_start
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
-        if DEBUG:
-            log_write.write(f"time={step_ms}ms")
+        text_output = text_output + f"time={step_ms}ms"
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
 
         if live_preview:
@@ -263,7 +255,7 @@ def stable_diff_inf(
             images = (image * 255).round().astype("uint8")
             pil_images = [Image.fromarray(image) for image in images]
             out_img = pil_images[0]
-            yield out_img, ""
+            yield out_img, text_output
 
     # scale and decode the image latents with vae
     if not live_preview:
@@ -277,14 +269,8 @@ def stable_diff_inf(
         out_img = pil_images[0]
 
     avg_ms = 1000 * avg_ms / args.steps
-    if DEBUG:
-        log_write.write(f"\nAverage step time: {avg_ms}ms/it")
+    text_output = text_output + f"\nAverage step time: {avg_ms}ms/it"
 
     # save the output image with the prompt name.
     out_img.save(os.path.join(output_loc))
-    log_write.close()
-
-    std_output = ""
-    with open(r"logs/stable_diffusion_log.txt", "r") as log_read:
-        std_output = log_read.read()
-    yield out_img, std_output
+    yield out_img, text_output
