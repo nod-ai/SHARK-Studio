@@ -16,12 +16,20 @@ with gr.Blocks() as shark_web:
     with gr.Row():
         with gr.Group():
             with gr.Column(scale=1):
-                img = Image.open("./Nod_logo.png")
-                gr.Image(value=img, show_label=False, interactive=False).style(
-                    height=80, width=150
-                )
+                nod_logo = Image.open("./logos/Nod_logo.png")
+                gr.Image(
+                    value=nod_logo, show_label=False, interactive=False
+                ).style(height=80, width=150)
             with gr.Column(scale=1):
-                gr.Label(value="Shark Models Demo.")
+                logo2 = Image.open("./logos/other_logo.png")
+                gr.Image(
+                    value=logo2,
+                    show_label=False,
+                    interactive=False,
+                    visible=False,
+                ).style(height=80, width=150)
+            with gr.Column(scale=1):
+                gr.Label(value="Ultra fast Stable Diffusion")
 
     with gr.Tabs():
         #  with gr.TabItem("ResNet50"):
@@ -136,9 +144,7 @@ with gr.Blocks() as shark_web:
             ) = (
                 device
             ) = (
-                load_vmfb
-            ) = (
-                save_vmfb
+                cache
             ) = (
                 iree_vulkan_target_triple
             ) = (
@@ -160,6 +166,7 @@ with gr.Blocks() as shark_web:
                         prompt = gr.Textbox(
                             label="Prompt",
                             value="a photograph of an astronaut riding a horse",
+                            lines=5,
                         )
                         ex = gr.Examples(
                             examples=examples,
@@ -219,11 +226,10 @@ with gr.Blocks() as shark_web:
                             value="42", max_lines=1, label="Seed"
                         )
                     with gr.Row():
-                        load_vmfb = gr.Checkbox(label="Load vmfb", value=True)
-                        save_vmfb = gr.Checkbox(label="Save vmfb", value=False)
+                        cache = gr.Checkbox(label="Cache", value=True)
                         debug = gr.Checkbox(label="DEBUG", value=False)
                         live_preview = gr.Checkbox(
-                            label="live preview", value=False
+                            label="Live Preview", value=False
                         )
                     iree_vulkan_target_triple = gr.Textbox(
                         value="",
@@ -231,7 +237,7 @@ with gr.Blocks() as shark_web:
                         label="IREE VULKAN TARGET TRIPLE",
                         visible=False,
                     )
-                    stable_diffusion = gr.Button("Generate image from prompt")
+                    stable_diffusion = gr.Button("Generate Image")
                 with gr.Column(scale=1, min_width=600):
                     generated_img = gr.Image(type="pil", shape=(100, 100))
                     std_output = gr.Textbox(
@@ -261,8 +267,7 @@ with gr.Blocks() as shark_web:
                     seed,
                     precision,
                     device,
-                    load_vmfb,
-                    save_vmfb,
+                    cache,
                     iree_vulkan_target_triple,
                     live_preview,
                 ],
@@ -270,4 +275,4 @@ with gr.Blocks() as shark_web:
             )
 
 shark_web.queue()
-shark_web.launch(share=True, server_port=8080, enable_queue=True)
+shark_web.launch(server_port=8080, enable_queue=True)
