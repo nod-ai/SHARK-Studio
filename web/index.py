@@ -1,8 +1,8 @@
-from models.resnet50 import resnet_inf
-from models.albert_maskfill import albert_maskfill_inf
+# from models.resnet50 import resnet_inf
+# from models.albert_maskfill import albert_maskfill_inf
 from models.stable_diffusion.main import stable_diff_inf
 
-#  from models.diffusion.v_diffusion import vdiff_inf
+# from models.diffusion.v_diffusion import vdiff_inf
 import gradio as gr
 from PIL import Image
 
@@ -205,22 +205,25 @@ with gr.Blocks() as shark_web:
                             384, 768, value=512, step=64, label="Width"
                         )
                     with gr.Row():
-                        precision = gr.Radio(
-                            label="Precision",
-                            value="fp32",
-                            choices=["fp16", "fp32"],
-                        )
-                        device = gr.Radio(
-                            label="Device",
-                            value="vulkan",
-                            choices=["cpu", "cuda", "vulkan"],
-                        )
-                    with gr.Row():
                         scheduler = gr.Radio(
                             label="Scheduler",
                             value="LMS",
                             choices=["PNDM", "LMS", "DDIM"],
                             interactive=False,
+                            visible=False,
+                        )
+                        device = gr.Radio(
+                            label="Device",
+                            value="vulkan",
+                            choices=["cpu", "cuda", "vulkan"],
+                            interactive=False,
+                            visible=False,
+                        )
+                    with gr.Row():
+                        precision = gr.Radio(
+                            label="Precision",
+                            value="fp32",
+                            choices=["fp16", "fp32"],
                         )
                         seed = gr.Textbox(
                             value="42", max_lines=1, label="Seed"
