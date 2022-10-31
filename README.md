@@ -21,9 +21,9 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 This step sets up a new VirtualEnv for Python
 
 ```shell
-python --version #Check you have 3.7->3.10 on Linux or 3.10 on macOS
+python --version #Check you have 3.10 on Linux, macOS or Windows Powershell
 python -m venv shark_venv
-source shark_venv/bin/activate
+source shark_venv/bin/activate   # Use shark_venv/Scripts/activate on Windows
 
 # If you are using conda create and activate a new conda env
 
@@ -38,9 +38,8 @@ python -m pip install --upgrade pip
 This step pip installs SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
 
 ```shell
-pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f https://github.com/nod-ai/shark-runtime/releases --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
-If you are on an Intel macOS machine you need this [workaround](https://github.com/nod-ai/SHARK/issues/102) for an upstream issue.
 
 ### Run shark tank model tests.
 ```shell
@@ -77,12 +76,38 @@ git clone https://github.com/nod-ai/SHARK.git
 ```
 
 ## Setup your Python VirtualEnvironment and Dependencies
+
+### Windows Users
+
+```shell
+# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...). 
+# Requires Python 3.10 and Powershell
+./setup_venv.ps1
+shark.venv/Scripts/activate
+```
+
+### Linux / macOS Users
+
 ```shell
 # Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...).
 ./setup_venv.sh
 source shark.venv/bin/activate
 ```
-For example if you want to use Python3.10 and with TF Import tools you can use the environment variables like:
+
+
+### Run a demo script
+```shell
+python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
+# Or a pytest
+pytest tank/test_models.py -k "MiniLM"
+```
+
+</details>
+
+<details>
+  <summary>Development, Testing and Benchmarks</summary>
+
+If you want to use Python3.10 and with TF Import tools you can use the environment variables like:
 Set `USE_IREE=1` to use upstream IREE
 ```
 # PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
@@ -109,17 +134,6 @@ for Torch-MLIR.
 ```
 Now the SHARK will use your locally build Torch-MLIR repo.
 
-### Run a demo script
-```shell
-python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
-# Or a pytest
-pytest tank/test_models.py -k "MiniLM"
-```
-
-</details>
-
-<details>
-  <summary>Testing and Benchmarks</summary>
 
 ## Benchmarking Dispatches
 
