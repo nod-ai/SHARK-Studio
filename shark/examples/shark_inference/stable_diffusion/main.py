@@ -22,7 +22,7 @@ UNET_FP32 = "unet_fp32"
 IREE_EXTRA_ARGS = []
 
 TUNED_GCLOUD_BUCKET = "gs://shark_tank/quinn"
-UNET_FP16_TUNED = "unet_fp16_tuned"
+UNET_FP16_TUNED = "unet_fp16_tunedv2"
 
 BATCH_SIZE = len(args.prompts)
 
