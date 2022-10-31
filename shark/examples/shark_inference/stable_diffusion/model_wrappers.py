@@ -6,6 +6,9 @@ import torch
 YOUR_TOKEN = "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"
 
 
+BATCH_SIZE = len(args.prompts)
+
+
 def get_vae32(model_name="vae_fp32"):
     class VaeModel(torch.nn.Module):
         def __init__(self):
@@ -21,7 +24,7 @@ def get_vae32(model_name="vae_fp32"):
             return (x / 2 + 0.5).clamp(0, 1)
 
     vae = VaeModel()
-    vae_input = torch.rand(1, 4, 64, 64)
+    vae_input = torch.rand(BATCH_SIZE, 4, 64, 64)
     shark_vae = compile_through_fx(
         vae,
         (vae_input,),
@@ -47,7 +50,7 @@ def get_vae16(model_name="vae_fp16"):
 
     vae = VaeModel()
     vae = vae.half().cuda()
-    vae_input = torch.rand(1, 4, 64, 64, dtype=torch.half).cuda()
+    vae_input = torch.rand(BATCH_SIZE, 4, 64, 64, dtype=torch.half).cuda()
     shark_vae = compile_through_fx(
         vae,
         (vae_input,),
@@ -143,8 +146,10 @@ def get_unet16_wrapped(guidance_scale=7.5, model_name="unet_fp16_wrapped"):
 
     unet = UnetModel()
     unet = unet.half().cuda()
-    latent_model_input = torch.rand([1, 4, 64, 64]).half().cuda()
-    text_embeddings = torch.rand([2, args.max_length, 768]).half().cuda()
+    latent_model_input = torch.rand([BATCH_SIZE, 4, 64, 64]).half().cuda()
+    text_embeddings = (
+        torch.rand([2 * BATCH_SIZE, args.max_length, 768]).half().cuda()
+    )
     sigma = torch.tensor(1).to(torch.float32)
     shark_unet = compile_through_fx(
         unet,
@@ -185,8 +190,8 @@ def get_unet32_wrapped(guidance_scale=7.5, model_name="unet_fp32_wrapped"):
             return noise_pred
 
     unet = UnetModel()
-    latent_model_input = torch.rand([1, 4, 64, 64])
-    text_embeddings = torch.rand([2, args.max_length, 768])
+    latent_model_input = torch.rand([BATCH_SIZE, 4, 64, 64])
+    text_embeddings = torch.rand([2 * BATCH_SIZE, args.max_length, 768])
     sigma = torch.tensor(1).to(torch.float32)
     shark_unet = compile_through_fx(
         unet,

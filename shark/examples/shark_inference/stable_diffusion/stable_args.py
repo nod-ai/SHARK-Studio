@@ -5,10 +5,10 @@ p = argparse.ArgumentParser(
 )
 
 p.add_argument(
-    "--prompt",
-    type=str,
-    default="a photograph of an astronaut riding a horse",
-    help="the text to generate image of.",
+    "--prompts",
+    nargs="+",
+    default=["a photograph of an astronaut riding a horse"],
+    help="text of which images to be generated.",
 )
 p.add_argument(
     "--device", type=str, default="cpu", help="device to run the model."
