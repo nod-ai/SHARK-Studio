@@ -169,6 +169,30 @@ cache_obj["text_encoder"] = CLIPTextModel.from_pretrained(
     "openai/clip-vit-large-patch14"
 )
 
+# cache vae and unet.
+args = Arguments(
+    prompt="load unet/vmfb",
+    scheduler="LMS",
+    iteration_count=1,
+    batch_size=1,
+    steps=50,
+    guidance=7.5,
+    height=512,
+    width=512,
+    seed=42,
+    precision="fp16",
+    device="vulkan",
+    cache=True,
+    iree_vulkan_target_triple="",
+    live_preview=False,
+    import_mlir=False,
+    max_length=77,
+    use_tuned=True,
+)
+cache_obj["vae_fp16_vulkan"], cache_obj["unet_fp16_vulkan"] = get_models()
+args.precision = "fp32"
+cache_obj["vae_fp32_vulkan"], cache_obj["unet_fp32_vulkan"] = get_models()
+
 
 def stable_diff_inf(
     prompt: str,
@@ -230,7 +254,23 @@ def stable_diff_inf(
         args.seed
     )  # Seed generator to create the inital latent noise
 
-    vae, unet = get_models()
+    # Initialize vae and unet models.
+    is_model_initialized = False
+    if (
+        args.cache
+        and args.use_tuned
+        and args.device == "vulkan"
+        and not args.import_mlir
+    ):
+        vae_key = f"vae_{args.precision}_vulkan"
+        unet_key = f"unet_{args.precision}_vulkan"
+        cached_keys = cache_obj.keys()
+        if vae_key in cached_keys and unet_key in cached_keys:
+            vae, unet = cache_obj[vae_key], cache_obj[unet_key]
+            is_model_initialized = True
+    if not is_model_initialized:
+        vae, unet = get_models()
+
     tokenizer = cache_obj["tokenizer"]
     text_encoder = cache_obj["text_encoder"]
     text_input = tokenizer(
