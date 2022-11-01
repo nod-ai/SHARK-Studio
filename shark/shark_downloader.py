@@ -30,9 +30,7 @@ input_type_to_np_dtype = {
     "int8": np.int8,
 }
 
-
-# Save the model in the home local so it needn't be fetched everytime in the CI.
-home = str(Path.home())
+# Save the model so it needn't be fetched everytime in the CI.
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
 custom_path = shark_args.local_tank_cache
 if os.path.exists(alt_path):
@@ -48,7 +46,7 @@ if custom_path:
 
     print(f"Using {WORKDIR} as local shark_tank cache directory.")
 else:
-    WORKDIR = os.path.join(home, ".local/shark_tank/")
+    WORKDIR = os.path.join(os.getcwd(), ".local/shark_tank/")
     print(
         f"shark_tank local cache is located at {WORKDIR} . You may change this by setting the --local_tank_cache="
         " pytest flag"
