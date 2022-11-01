@@ -91,7 +91,7 @@ def compile_through_fx(model, inputs, model_name, extra_args=[]):
         frontend="torch",
     )
 
-    mlir_module, func_name = mlir_importer.import_mlir()
+    (mlir_module, func_name), _, _ = mlir_importer.import_debug()
 
     shark_module = SharkInference(
         mlir_module,

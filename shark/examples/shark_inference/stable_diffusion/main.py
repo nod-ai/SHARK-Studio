@@ -22,7 +22,23 @@ UNET_FP32 = "unet_fp32"
 IREE_EXTRA_ARGS = []
 
 TUNED_GCLOUD_BUCKET = "gs://shark_tank/quinn"
-UNET_FP16_TUNED = "unet_fp16_tuned"
+UNET_FP16_TUNED = "unet_fp16_tunedv2"
+
+BATCH_SIZE = len(args.prompts)
+
+if BATCH_SIZE not in [1, 2]:
+    import sys
+
+    sys.exit("Only batch size 1 and 2 are supported.")
+
+if BATCH_SIZE > 1 and args.precision != "fp16":
+    sys.exit("batch size > 1 is supported for fp16 model.")
+
+
+if BATCH_SIZE != 1:
+    TUNED_GCLOUD_BUCKET = "gs://shark_tank/prashant_nod"
+    UNET_FP16_TUNED = f"unet_fp16_{BATCH_SIZE}"
+    VAE_FP16 = f"vae_fp16_{BATCH_SIZE}"
 
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
@@ -67,6 +83,10 @@ def get_models():
             vae_args = IREE_EXTRA_ARGS
             unet_name = UNET_FP16
             vae_name = VAE_FP16
+
+        if batch_size > 1:
+            vae_args = []
+
         if args.import_mlir == True:
             return get_vae16(model_name=VAE_FP16), get_unet16_wrapped(
                 model_name=UNET_FP16
@@ -112,8 +132,7 @@ if __name__ == "__main__":
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
 
-    prompt = [args.prompt]
-
+    prompt = args.prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
 
@@ -211,4 +230,5 @@ if __name__ == "__main__":
     print("Total image generation runtime (s): {}".format(time.time() - start))
 
     pil_images = [Image.fromarray(image) for image in images]
-    pil_images[0].save(f"{args.prompt}.jpg")
+    for i in range(batch_size):
+        pil_images[i].save(f"{args.prompts[i]}_{i}.jpg")

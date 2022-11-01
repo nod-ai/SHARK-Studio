@@ -1,5 +1,6 @@
 import torch
 from shark.shark_inference import SharkInference
+from shark.shark_importer import SharkImporter
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
 import torch_mlir
@@ -7,27 +8,16 @@ import os
 
 
 def _compile_module(args, shark_module, model_name, extra_args=[]):
-    if args.load_vmfb or args.save_vmfb:
-        extended_name = "{}_{}".format(model_name, args.device)
+    extended_name = "{}_{}".format(model_name, args.device)
+    if args.cache:
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
-        if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
+        if os.path.isfile(vmfb_path):
             print("Loading flatbuffer from {}".format(vmfb_path))
             shark_module.load_module(vmfb_path)
-        else:
-            if args.save_vmfb:
-                print("Saving to {}".format(vmfb_path))
-            else:
-                print(
-                    "No vmfb found. Compiling and saving to {}".format(
-                        vmfb_path
-                    )
-                )
-            path = shark_module.save_module(
-                os.getcwd(), extended_name, extra_args
-            )
-            shark_module.load_module(path)
-    else:
-        shark_module.compile(extra_args)
+            return shark_module
+        print("No vmfb found. Compiling and saving to {}".format(vmfb_path))
+    path = shark_module.save_module(os.getcwd(), extended_name, extra_args)
+    shark_module.load_module(path)
     return shark_module
 
 
@@ -82,19 +72,16 @@ def compile_through_fx(args, model, inputs, model_name, extra_args=[]):
 
     ts_g = torch.jit.trace(fx_g, inputs)
 
-    module = torch_mlir.compile(
+    mlir_importer = SharkImporter(
         ts_g,
         inputs,
-        torch_mlir.OutputType.LINALG_ON_TENSORS,
-        use_tracing=False,
-        verbose=False,
+        frontend="torch",
     )
 
-    mlir_model = module
-    func_name = "forward"
+    (mlir_module, func_name), _, _ = mlir_importer.import_debug()
 
     shark_module = SharkInference(
-        mlir_model,
+        mlir_module,
         func_name,
         device=args.device,
         mlir_dialect="linalg",
