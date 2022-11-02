@@ -18,7 +18,7 @@ demo_css = """
 .container {background-color: black !important; padding-top:20px !important; }
 #ui_title {padding: 10px !important; }
 #top_logo {background-color: black; border-radius: 0 !important; border: 0; } 
-#demo_title {background-color: black; border-radius: 0 !important; border: 0; padding-top: 60px; padding-bottom: 30px;} 
+#demo_title {background-color: black; border-radius: 0 !important; border: 0; padding-top: 50px; padding-bottom: 0px; width: 460px !important;} 
 
 #demo_title_outer  {border-radius: 0; } 
 #prompt_box_outer div:first-child  {border-radius: 0 !important}
@@ -32,10 +32,6 @@ demo_css = """
 #img_result+div {display: none !important;}
 
 footer {display: none !important;}
-"""
-
-"""
-#component-5  {border-radius: 0; } 
 """
 
 with gr.Blocks(css=demo_css) as shark_web:
@@ -203,7 +199,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 std_output = gr.Textbox(
                     label="Std Output",
                     value="Nothing.",
-                    lines=5,
+                    lines=10,
                     visible=False,
                     elem_id="ugly_line",
                 )
@@ -215,6 +211,7 @@ with gr.Blocks(css=demo_css) as shark_web:
             show_progress=False,
         )
         """
+
         stable_diffusion.click(
             stable_diff_inf,
             inputs=[
@@ -236,5 +233,6 @@ with gr.Blocks(css=demo_css) as shark_web:
             ],
             outputs=[generated_img, std_output],
         )
+
 shark_web.queue()
 shark_web.launch(server_name="0.0.0.0", server_port=8080, enable_queue=True)
