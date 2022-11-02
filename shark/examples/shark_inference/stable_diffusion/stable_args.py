@@ -85,4 +85,11 @@ p.add_argument(
     help="Download and use the tuned version of the model if available",
 )
 
+p.add_argument(
+    "--enable-rdc-profiling",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Profiles model benchmarking to RDC if available"
+)
+
 args = p.parse_args()
