@@ -1,5 +1,6 @@
 In order to launch SHARK-web, from the root SHARK directory, run:
 
+## Linux
 ```shell
 IMPORTER=1 ./setup_venv.sh
 source shark.venv/bin/activate
@@ -7,5 +8,9 @@ cd web
 python index.py
 ```
 
-This will launch a gradio server with a public URL like:
-Running on public URL: https://xxxxx.gradio.app
+## Windows
+```shell
+./setup_venv.ps1
+cd web
+python index.py --local_tank_cache=<current_working_dir>
+```

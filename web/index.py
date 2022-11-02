@@ -5,6 +5,8 @@ from models.stable_diffusion.main import stable_diff_inf
 # from models.diffusion.v_diffusion import vdiff_inf
 import gradio as gr
 from PIL import Image
+import json
+import os
 
 
 def debug_event(debug):
@@ -149,16 +151,15 @@ with gr.Blocks() as shark_web:
                 iree_vulkan_target_triple
             ) = (
                 live_preview
-            ) = debug = stable_diffusion = generated_img = std_output = None
-            examples = [
-                ["A high tech solarpunk utopia in the Amazon rainforest"],
-                ["A pikachu fine dining with a view to the Eiffel Tower"],
-                ["A mecha robot in a favela in expressionist style"],
-                ["an insect robot preparing a delicious meal"],
-                [
-                    "A small cabin on top of a snowy mountain in the style of Disney, artstation"
-                ],
-            ]
+            ) = (
+                debug
+            ) = save_img = stable_diffusion = generated_img = std_output = None
+            # load prompts.
+            prompt_examples = []
+            prompt_loc = "./prompts.json"
+            if os.path.exists(prompt_loc):
+                fopen = open("./prompts.json")
+                prompt_examples = json.load(fopen)
 
             with gr.Row():
                 with gr.Column(scale=1, min_width=600):
@@ -169,7 +170,7 @@ with gr.Blocks() as shark_web:
                             lines=5,
                         )
                         ex = gr.Examples(
-                            examples=examples,
+                            examples=prompt_examples,
                             inputs=prompt,
                             cache_examples=False,
                         )
@@ -195,7 +196,12 @@ with gr.Blocks() as shark_web:
                             1, 100, value=50, step=1, label="Steps"
                         )
                         guidance = gr.Slider(
-                            0, 50, value=7.5, step=0.1, label="Guidance Scale"
+                            0,
+                            50,
+                            value=7.5,
+                            step=0.1,
+                            label="Guidance Scale",
+                            interactive=False,
                         )
                     with gr.Row():
                         height = gr.Slider(
@@ -232,7 +238,7 @@ with gr.Blocks() as shark_web:
                     with gr.Row():
                         precision = gr.Radio(
                             label="Precision",
-                            value="fp32",
+                            value="fp16",
                             choices=["fp16", "fp32"],
                         )
                         seed = gr.Textbox(
@@ -240,10 +246,11 @@ with gr.Blocks() as shark_web:
                         )
                     with gr.Row():
                         cache = gr.Checkbox(label="Cache", value=True)
-                        debug = gr.Checkbox(label="DEBUG", value=False)
                         live_preview = gr.Checkbox(
                             label="Live Preview", value=False
                         )
+                        debug = gr.Checkbox(label="DEBUG", value=False)
+                        save_img = gr.Checkbox(label="Save Image", value=False)
                     iree_vulkan_target_triple = gr.Textbox(
                         value="",
                         max_lines=1,
@@ -256,7 +263,7 @@ with gr.Blocks() as shark_web:
                     std_output = gr.Textbox(
                         label="Std Output",
                         value="Nothing.",
-                        lines=10,
+                        lines=5,
                         visible=False,
                     )
 
@@ -283,6 +290,7 @@ with gr.Blocks() as shark_web:
                     cache,
                     iree_vulkan_target_triple,
                     live_preview,
+                    save_img,
                 ],
                 outputs=[generated_img, std_output],
             )

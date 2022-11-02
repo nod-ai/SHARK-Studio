@@ -1,4 +1,5 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler
+from transformers import CLIPTextModel
 from utils import compile_through_fx
 from stable_args import args
 import torch
@@ -7,6 +8,27 @@ YOUR_TOKEN = "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"
 
 
 BATCH_SIZE = len(args.prompts)
+
+
+def get_clipped_text(model_name="clip_text"):
+    class CLIPText(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.text_encoder = CLIPTextModel.from_pretrained(
+                "openai/clip-vit-large-patch14"
+            )
+
+        def forward(self, input):
+            return self.text_encoder(input)[0]
+
+    clip_model = CLIPText()
+    clip_input = torch.randint(1, 2, (BATCH_SIZE, 77))
+    shark_clip = compile_through_fx(
+        clip_model,
+        (clip_input,),
+        model_name=model_name,
+    )
+    return shark_clip
 
 
 def get_vae32(model_name="vae_fp32"):
