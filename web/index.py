@@ -13,7 +13,7 @@ def debug_event(debug):
     return gr.Textbox.update(visible=debug)
 
 
-prompt_examples = dict()
+prompt_examples = []
 prompt_loc = "./prompts.json"
 if os.path.exists(prompt_loc):
     with open("./prompts.json", encoding="utf-8") as fopen:
@@ -24,7 +24,7 @@ demo_css = """
 .gradio-container {background-color: black}
 .container {background-color: black !important; padding-top:20px !important; }
 #ui_title {padding: 10px !important; }
-#top_logo {background-color: black; border-radius: 0 !important; border: 0; } 
+#top_logo {background-color: transparent; border-radius: 0 !important; border: 0; } 
 #demo_title {background-color: black; border-radius: 0 !important; border: 0; padding-top: 50px; padding-bottom: 0px; width: 460px !important;} 
 
 #demo_title_outer  {border-radius: 0; } 
@@ -57,9 +57,7 @@ with gr.Blocks(css=demo_css) as shark_web:
             #    gr.Label(value="Ultra fast Stable Diffusion")
 
     with gr.Row(elem_id="ui_body"):
-        hidden_prompt = (
-            prompt
-        ) = (
+        prompt = (
             scheduler
         ) = (
             iters_count
@@ -93,29 +91,17 @@ with gr.Blocks(css=demo_css) as shark_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Group(elem_id="prompt_box_outer"):
-                    hidden_prompt = gr.Textbox(
-                        label="Prompt Keys",
-                        value="It's a hidden prompt containing short keys",
-                        visible=False,
-                    )
                     prompt = gr.Textbox(
                         label="Prompt",
-                        value="An astronaut riding a horse in a photorealistic style",
+                        value="A photograph of an astronaut riding a horse",
                         lines=1,
                         elem_id="prompt_box",
                     )
-                    hidden_prompt.change(
-                        lambda key: prompt_examples[key],
-                        inputs=hidden_prompt,
-                        outputs=prompt,
-                        show_progress=False,
-                    )
                 with gr.Group():
-                    prompt_keys = list(prompt_examples.keys())
                     ex = gr.Examples(
                         label="Examples",
-                        examples=prompt_keys,
-                        inputs=hidden_prompt,
+                        examples=prompt_examples,
+                        inputs=prompt,
                         cache_examples=False,
                         elem_id="prompt_examples",
                     )
@@ -210,7 +196,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 ).style(width=230)
             with gr.Column(scale=1, min_width=600):
                 generated_img = gr.Image(
-                    type="pil", elem_id="img_result"
+                    type="pil", elem_id="img_result", interactive=False
                 ).style(height=768, width=768)
                 std_output = gr.Textbox(
                     label="Std Output",
