@@ -20,17 +20,12 @@ if os.path.exists(prompt_loc):
         prompt_examples = json.load(fopen)
 
 
-def fetch_prompt(key):
-    global prompt_examples
-    return prompt_examples[key]
-
-
 demo_css = """
 .gradio-container {background-color: black}
 .container {background-color: black !important; padding-top:20px !important; }
 #ui_title {padding: 10px !important; }
-#top_logo {border-radius: 0 !important; border: 0; } 
-#demo_title {border-radius: 0 !important; border: 0; padding-top: 50px; padding-bottom: 0px; width: 460px !important;} 
+#top_logo {background-color: black; border-radius: 0 !important; border: 0; } 
+#demo_title {background-color: black; border-radius: 0 !important; border: 0; padding-top: 50px; padding-bottom: 0px; width: 460px !important;} 
 
 #demo_title_outer  {border-radius: 0; } 
 #prompt_box_outer div:first-child  {border-radius: 0 !important}
@@ -47,7 +42,7 @@ footer {display: none !important;}
 """
 
 with gr.Blocks(css=demo_css) as shark_web:
-    # with gr.Blocks() as shark_web:
+    # load prompt examples.
 
     with gr.Row(elem_id="ui_title"):
         with gr.Column(scale=1, elem_id="demo_title_outer"):
@@ -101,7 +96,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                     hidden_prompt = gr.Textbox(
                         label="Prompt Keys",
                         value="It's a hidden prompt containing short keys",
-                        lines=1,
                         visible=False,
                     )
                     prompt = gr.Textbox(
@@ -109,6 +103,12 @@ with gr.Blocks(css=demo_css) as shark_web:
                         value="An astronaut riding a horse in a photorealistic style",
                         lines=1,
                         elem_id="prompt_box",
+                    )
+                    hidden_prompt.change(
+                        lambda key: prompt_examples[key],
+                        inputs=hidden_prompt,
+                        outputs=prompt,
+                        show_progress=False,
                     )
                 with gr.Group():
                     prompt_keys = list(prompt_examples.keys())
@@ -200,8 +200,8 @@ with gr.Blocks(css=demo_css) as shark_web:
                         elem_id="ugly_line",
                     )
                 stable_diffusion = gr.Button("Generate Image")
-                nod_logo = Image.open("./logos/amd-nod-logo.png")
                 # logo
+                nod_logo = Image.open("./logos/amd-nod-logo.png")
                 gr.Image(
                     value=nod_logo,
                     show_label=False,
@@ -219,12 +219,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                     visible=False,
                     elem_id="ugly_line",
                 )
-        hidden_prompt.change(
-            fetch_prompt,
-            inputs=hidden_prompt,
-            outputs=prompt,
-            show_progress=False,
-        )
         """
         debug.change(
             debug_event,
