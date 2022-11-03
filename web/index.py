@@ -13,16 +13,28 @@ def debug_event(debug):
     return gr.Textbox.update(visible=debug)
 
 
+prompt_examples = dict()
+prompt_loc = "./prompts.json"
+if os.path.exists(prompt_loc):
+    with open("./prompts.json", encoding="utf-8") as fopen:
+        prompt_examples = json.load(fopen)
+
+
+def fetch_prompt(key):
+    global prompt_examples
+    return prompt_examples[key]
+
+
 demo_css = """
 .gradio-container {background-color: black}
 .container {background-color: black !important; padding-top:20px !important; }
 #ui_title {padding: 10px !important; }
-#top_logo {background-color: black; border-radius: 0 !important; border: 0; } 
-#demo_title {background-color: black; border-radius: 0 !important; border: 0; padding-top: 50px; padding-bottom: 0px; width: 460px !important;} 
+#top_logo {border-radius: 0 !important; border: 0; } 
+#demo_title {border-radius: 0 !important; border: 0; padding-top: 50px; padding-bottom: 0px; width: 460px !important;} 
 
 #demo_title_outer  {border-radius: 0; } 
 #prompt_box_outer div:first-child  {border-radius: 0 !important}
-#prompt_box_outer textarea  {background-color:#1d1d1d !important}
+#prompt_box textarea  {background-color:#1d1d1d !important}
 #prompt_examples {margin:0 !important}
 #prompt_examples svg {display: none !important;}
 
@@ -38,28 +50,21 @@ with gr.Blocks(css=demo_css) as shark_web:
     # with gr.Blocks() as shark_web:
 
     with gr.Row(elem_id="ui_title"):
-        with gr.Group():
-            with gr.Column(scale=1):
-                nod_logo = Image.open("./logos/amd-nod-logo.png")
-                gr.Image(
-                    value=nod_logo,
-                    show_label=False,
-                    interactive=False,
-                    elem_id="top_logo",
-                ).style(width=230)
-            with gr.Column(scale=1, elem_id="demo_title_outer"):
-                logo2 = Image.open("./logos/navi-3-demo-logo.png")
-                gr.Image(
-                    value=logo2,
-                    show_label=False,
-                    interactive=False,
-                    elem_id="demo_title",
-                ).style(width=230)
+        with gr.Column(scale=1, elem_id="demo_title_outer"):
+            logo2 = Image.open("./logos/sd-demo-logo.png")
+            gr.Image(
+                value=logo2,
+                show_label=False,
+                interactive=False,
+                elem_id="demo_title",
+            ).style(width=230)
             # with gr.Column(scale=1):
             #    gr.Label(value="Ultra fast Stable Diffusion")
 
     with gr.Row(elem_id="ui_body"):
-        prompt = (
+        hidden_prompt = (
+            prompt
+        ) = (
             scheduler
         ) = (
             iters_count
@@ -89,45 +94,30 @@ with gr.Blocks(css=demo_css) as shark_web:
             debug
         ) = save_img = stable_diffusion = generated_img = std_output = None
         # load prompts.
-        prompt_examples = []
-        prompt_loc = "./prompts.json"
-        if os.path.exists(prompt_loc):
-            fopen = open("./prompts.json")
-            prompt_examples = json.load(fopen)
 
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Group(elem_id="prompt_box_outer"):
+                    hidden_prompt = gr.Textbox(
+                        label="Prompt Keys",
+                        value="It's a hidden prompt containing short keys",
+                        lines=1,
+                        visible=False,
+                    )
                     prompt = gr.Textbox(
                         label="Prompt",
-                        value="a photograph of an astronaut riding a horse",
+                        value="An astronaut riding a horse in a photorealistic style",
                         lines=1,
                         elem_id="prompt_box",
                     )
                 with gr.Group():
+                    prompt_keys = list(prompt_examples.keys())
                     ex = gr.Examples(
-                        label="Example Prompts",
-                        examples=prompt_examples,
-                        inputs=prompt,
+                        label="Examples",
+                        examples=prompt_keys,
+                        inputs=hidden_prompt,
                         cache_examples=False,
                         elem_id="prompt_examples",
-                    )
-                with gr.Row():
-                    iters_count = gr.Slider(
-                        1,
-                        24,
-                        value=1,
-                        step=1,
-                        label="Iteration Count",
-                        visible=False,
-                    )
-                    batch_size = gr.Slider(
-                        1,
-                        4,
-                        value=1,
-                        step=1,
-                        label="Batch Size",
-                        visible=False,
                     )
                 with gr.Row():
                     steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
@@ -157,21 +147,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                         interactive=False,
                     )
                 with gr.Row():
-                    scheduler = gr.Radio(
-                        label="Scheduler",
-                        value="LMS",
-                        choices=["PNDM", "LMS", "DDIM"],
-                        interactive=False,
-                        visible=False,
-                    )
-                    device = gr.Radio(
-                        label="Device",
-                        value="vulkan",
-                        choices=["cpu", "cuda", "vulkan"],
-                        interactive=False,
-                        visible=False,
-                    )
-                with gr.Row():
                     precision = gr.Radio(
                         label="Precision",
                         value="fp16",
@@ -185,24 +160,71 @@ with gr.Blocks(css=demo_css) as shark_web:
                     live_preview = gr.Checkbox(
                         label="Live Preview", value=False
                     )
-                iree_vulkan_target_triple = gr.Textbox(
-                    value="",
-                    max_lines=1,
-                    label="IREE VULKAN TARGET TRIPLE",
-                    visible=False,
-                )
+                    # Hidden Items.
+                    scheduler = gr.Radio(
+                        label="Scheduler",
+                        value="LMS",
+                        choices=["PNDM", "LMS", "DDIM"],
+                        interactive=False,
+                        visible=False,
+                    )
+                    device = gr.Radio(
+                        label="Device",
+                        value="vulkan",
+                        choices=["cpu", "cuda", "vulkan"],
+                        interactive=False,
+                        visible=False,
+                        elem_id="ugly_line",
+                    )
+                    iters_count = gr.Slider(
+                        1,
+                        24,
+                        value=1,
+                        step=1,
+                        label="Iteration Count",
+                        visible=False,
+                    )
+                    batch_size = gr.Slider(
+                        1,
+                        4,
+                        value=1,
+                        step=1,
+                        label="Batch Size",
+                        visible=False,
+                    )
+                    iree_vulkan_target_triple = gr.Textbox(
+                        value="",
+                        max_lines=1,
+                        label="IREE VULKAN TARGET TRIPLE",
+                        visible=False,
+                        elem_id="ugly_line",
+                    )
                 stable_diffusion = gr.Button("Generate Image")
+                nod_logo = Image.open("./logos/amd-nod-logo.png")
+                # logo
+                gr.Image(
+                    value=nod_logo,
+                    show_label=False,
+                    interactive=False,
+                    elem_id="top_logo",
+                ).style(width=230)
             with gr.Column(scale=1, min_width=600):
                 generated_img = gr.Image(
-                    type="pil", shape=(100, 100), elem_id="img_result"
-                )
+                    type="pil", elem_id="img_result"
+                ).style(height=768, width=768)
                 std_output = gr.Textbox(
                     label="Std Output",
                     value="Nothing.",
-                    lines=10,
+                    lines=5,
                     visible=False,
                     elem_id="ugly_line",
                 )
+        hidden_prompt.change(
+            fetch_prompt,
+            inputs=hidden_prompt,
+            outputs=prompt,
+            show_progress=False,
+        )
         """
         debug.change(
             debug_event,
@@ -232,6 +254,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 save_img,
             ],
             outputs=[generated_img, std_output],
+            show_progress=False,
         )
 
 shark_web.queue()
