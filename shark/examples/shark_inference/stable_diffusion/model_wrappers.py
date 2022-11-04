@@ -1,9 +1,34 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler
+from transformers import CLIPTextModel
 from utils import compile_through_fx
 from stable_args import args
 import torch
 
 YOUR_TOKEN = "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"
+
+
+BATCH_SIZE = len(args.prompts)
+
+
+def get_clipped_text(model_name="clip_text"):
+    class CLIPText(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.text_encoder = CLIPTextModel.from_pretrained(
+                "openai/clip-vit-large-patch14"
+            )
+
+        def forward(self, input):
+            return self.text_encoder(input)[0]
+
+    clip_model = CLIPText()
+    clip_input = torch.randint(1, 2, (BATCH_SIZE, 77))
+    shark_clip = compile_through_fx(
+        clip_model,
+        (clip_input,),
+        model_name=model_name,
+    )
+    return shark_clip
 
 
 def get_vae32(model_name="vae_fp32"):
@@ -21,7 +46,7 @@ def get_vae32(model_name="vae_fp32"):
             return (x / 2 + 0.5).clamp(0, 1)
 
     vae = VaeModel()
-    vae_input = torch.rand(1, 4, 64, 64)
+    vae_input = torch.rand(BATCH_SIZE, 4, 64, 64)
     shark_vae = compile_through_fx(
         vae,
         (vae_input,),
@@ -47,7 +72,7 @@ def get_vae16(model_name="vae_fp16"):
 
     vae = VaeModel()
     vae = vae.half().cuda()
-    vae_input = torch.rand(1, 4, 64, 64, dtype=torch.half).cuda()
+    vae_input = torch.rand(BATCH_SIZE, 4, 64, 64, dtype=torch.half).cuda()
     shark_vae = compile_through_fx(
         vae,
         (vae_input,),
@@ -143,8 +168,10 @@ def get_unet16_wrapped(guidance_scale=7.5, model_name="unet_fp16_wrapped"):
 
     unet = UnetModel()
     unet = unet.half().cuda()
-    latent_model_input = torch.rand([1, 4, 64, 64]).half().cuda()
-    text_embeddings = torch.rand([2, args.max_length, 768]).half().cuda()
+    latent_model_input = torch.rand([BATCH_SIZE, 4, 64, 64]).half().cuda()
+    text_embeddings = (
+        torch.rand([2 * BATCH_SIZE, args.max_length, 768]).half().cuda()
+    )
     sigma = torch.tensor(1).to(torch.float32)
     shark_unet = compile_through_fx(
         unet,
@@ -185,8 +212,8 @@ def get_unet32_wrapped(guidance_scale=7.5, model_name="unet_fp32_wrapped"):
             return noise_pred
 
     unet = UnetModel()
-    latent_model_input = torch.rand([1, 4, 64, 64])
-    text_embeddings = torch.rand([2, args.max_length, 768])
+    latent_model_input = torch.rand([BATCH_SIZE, 4, 64, 64])
+    text_embeddings = torch.rand([2 * BATCH_SIZE, args.max_length, 768])
     sigma = torch.tensor(1).to(torch.float32)
     shark_unet = compile_through_fx(
         unet,
