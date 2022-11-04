@@ -42,7 +42,7 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
         model_name, tank_url=tank_url
     )
     shark_module = SharkInference(
-        mlir_model, func_name, device=args.device, mlir_dialect="linalg", dispatch_benchmark="All", dispatch_benchmark_dir="SD_Benchmarks"
+        mlir_model, func_name, device=args.device, mlir_dialect="linalg"
     )
     return _compile_module(shark_module, model_name, extra_args)
 

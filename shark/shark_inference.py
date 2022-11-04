@@ -105,8 +105,6 @@ class SharkInference:
                 f"--iree-hal-dump-executable-benchmarks-to={self.temp_dispatch_benchmarks_dir}"
             )
 
-        print(extra_args)
-
         if self.is_benchmark == True:
             from shark.shark_benchmark_runner import SharkBenchmarkRunner
 
