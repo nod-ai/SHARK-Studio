@@ -2,7 +2,7 @@
 --pre
 
 numpy
-torch==1.14.0.dev20221021
+torch
 torchvision
 
 tqdm
