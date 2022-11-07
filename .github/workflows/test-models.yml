@@ -37,8 +37,6 @@ jobs:
           - os: ubuntu-latest
             suite: cpu
           - os: MacStudio
-            suite: vulkan
-          - os: MacStudio
             suite: cuda
           - os: MacStudio
             suite: cpu
