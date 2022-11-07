@@ -154,6 +154,7 @@ shark_module = SharkInference(
 ```
 
 Output will include:
+- An ordered list ordered-dispatches.txt of all the dispatches with their runtime
 - Inside the specified directory, there will be a directory for each dispatch (there will be mlir files for all dispatches, but only compiled binaries and benchmark data for the specified dispatches)
 - An .mlir file containing the dispatch benchmark 
 - A compiled .vmfb file containing the dispatch benchmark
