@@ -6,7 +6,9 @@ from shark.shark_importer import SharkImporter
 from torch.fx.experimental.proxy_tensor import make_fx
 from stable_args import args
 from torch._decomp import get_decompositions
-import torch_mlir
+
+if args.import_mlir:
+    import torch_mlir
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
