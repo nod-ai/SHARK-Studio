@@ -47,6 +47,7 @@ class Arguments:
         import_mlir: bool = False,
         max_length: int = 77,
         use_tuned: bool = True,
+        enable_rtc_profiling: bool = False,
     ):
         self.prompt = prompt
         self.scheduler = scheduler
@@ -66,6 +67,7 @@ class Arguments:
         self.import_mlir = import_mlir
         self.max_length = max_length
         self.use_tuned = use_tuned
+        self.enable_rtc_profiling = enable_rtc_profiling
 
 
 def get_models():
@@ -190,6 +192,7 @@ args = Arguments(
     import_mlir=False,
     max_length=77,
     use_tuned=True,
+    enable_rtc_profiling=False,
 )
 cache_obj["vae_fp16_vulkan"], cache_obj["unet_fp16_vulkan"] = get_models()
 args.precision = "fp32"
@@ -197,6 +200,22 @@ cache_obj["vae_fp32_vulkan"], cache_obj["unet_fp32_vulkan"] = get_models()
 
 output_dir = "./stored_results/stable_diffusion"
 os.makedirs(output_dir, exist_ok=True)
+
+# Helper function to profile the vulkan device.
+def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
+    if args.vulkan_debug_utils and "vulkan" in args.device:
+        import iree
+
+        print(f"Profiling and saving to {file_path}.")
+        vulkan_device = iree.runtime.get_device(args.device)
+        vulkan_device.begin_profiling(mode=profiling_mode, file_path=file_path)
+        return vulkan_device
+    return None
+
+
+def end_profiling(device):
+    if device:
+        return device.end_profiling()
 
 
 def stable_diff_inf(
@@ -311,6 +330,10 @@ def stable_diff_inf(
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
     avg_ms = 0
+
+    if (args.enable_rtc_profiling):
+        profiling_device = start_profiling(file_path="profiling_results.rdc")
+
     out_img = None
     text_output = ""
     for i, t in tqdm(enumerate(scheduler.timesteps)):
@@ -329,6 +352,13 @@ def stable_diff_inf(
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
         text_output += f"Time = {step_ms}ms."
+
+        if (args.enable_rtc_profiling):
+            if (i%3 == 0):
+                print("\nframe**********************************\n")
+                end_profiling(profiling_device)
+                profiling_device = start_profiling(file_path="profiling_results.rdc")
+        
         latents = scheduler.step(noise_pred, i, latents)["prev_sample"]
 
         if live_preview and i % 5 == 0:
@@ -351,6 +381,9 @@ def stable_diff_inf(
     images = (image * 255).round().astype("uint8")
     pil_images = [Image.fromarray(image) for image in images]
     out_img = pil_images[0]
+
+    if (args.enable_rtc_profiling):
+        end_profiling(profiling_device)
 
     avg_ms = 1000 * avg_ms / args.steps
     text_output += f"\n\nAverage step time: {avg_ms}ms/it"
