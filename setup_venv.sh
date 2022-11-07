@@ -77,7 +77,8 @@ $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
   if [[ $(uname -s) = 'Darwin' ]]; then
-    echo "MacOS detected. Please install torch-mlir from source or .whl, as dependency problems may occur otherwise."
+    echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
+    $PYTHON -m pip install --pre --no-cache-dir  torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
   else
     $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
     if [ $? -eq 0 ];then
@@ -103,22 +104,21 @@ if [[ -z "${NO_BACKEND}" ]]; then
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
+
+$PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
+
 if [[ ! -z "${IMPORTER}" ]]; then
   echo "${Yellow}Installing importer tools.."
   if [[ $(uname -s) = 'Linux' ]]; then
     echo "${Yellow}Linux detected.. installing Linux importer tools"
     #Always get the importer tools from upstream IREE
-    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer.txt" -f https://iree-org.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer.txt" -f https://iree-org.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   elif [[ $(uname -s) = 'Darwin' ]]; then
     echo "${Yellow}macOS detected.. installing macOS importer tools"
     #Conda seems to have some problems installing these packages and hope they get resolved upstream.
-    $PYTHON -m pip install --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-    $PYTHON -m pip install https://github.com/llvm/torch-mlir/releases/download/snapshot-20221024.636/torch_mlir-20221024.636-cp310-cp310-macosx_11_0_universal2.whl
+    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   fi
 fi
-
-$PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME}
-
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116

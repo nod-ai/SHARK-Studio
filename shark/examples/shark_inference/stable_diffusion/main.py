@@ -5,40 +5,10 @@ from diffusers import LMSDiscreteScheduler
 from tqdm.auto import tqdm
 import numpy as np
 from stable_args import args
-from model_wrappers import (
-    get_vae32,
-    get_vae16,
-    get_unet16_wrapped,
-    get_unet32_wrapped,
-)
 from utils import get_shark_model
+from opt_params import get_unet, get_vae, get_clip
 import time
 
-GCLOUD_BUCKET = "gs://shark_tank/prashant_nod"
-VAE_FP16 = "vae_fp16"
-VAE_FP32 = "vae_fp32"
-UNET_FP16 = "unet_fp16"
-UNET_FP32 = "unet_fp32"
-IREE_EXTRA_ARGS = []
-
-TUNED_GCLOUD_BUCKET = "gs://shark_tank/quinn"
-UNET_FP16_TUNED = "unet_fp16_tunedv2"
-
-BATCH_SIZE = len(args.prompts)
-
-if BATCH_SIZE not in [1, 2]:
-    import sys
-
-    sys.exit("Only batch size 1 and 2 are supported.")
-
-if BATCH_SIZE > 1 and args.precision != "fp16":
-    sys.exit("batch size > 1 is supported for fp16 model.")
-
-
-if BATCH_SIZE != 1:
-    TUNED_GCLOUD_BUCKET = "gs://shark_tank/prashant_nod"
-    UNET_FP16_TUNED = f"unet_fp16_{BATCH_SIZE}"
-    VAE_FP16 = f"vae_fp16_{BATCH_SIZE}"
 
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
@@ -57,80 +27,9 @@ def end_profiling(device):
         return device.end_profiling()
 
 
-def get_models():
-    global IREE_EXTRA_ARGS
-    if args.precision == "fp16":
-        IREE_EXTRA_ARGS += [
-            "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=32",
-        ]
-        if args.use_tuned:
-            unet_gcloud_bucket = TUNED_GCLOUD_BUCKET
-            vae_gcloud_bucket = GCLOUD_BUCKET
-            unet_args = IREE_EXTRA_ARGS
-            vae_args = IREE_EXTRA_ARGS + [
-                "--iree-flow-enable-conv-nchw-to-nhwc-transform"
-            ]
-            unet_name = UNET_FP16_TUNED
-            vae_name = VAE_FP16
-        else:
-            unet_gcloud_bucket = GCLOUD_BUCKET
-            vae_gcloud_bucket = GCLOUD_BUCKET
-            IREE_EXTRA_ARGS += [
-                "--iree-flow-enable-conv-nchw-to-nhwc-transform"
-            ]
-            unet_args = IREE_EXTRA_ARGS
-            vae_args = IREE_EXTRA_ARGS
-            unet_name = UNET_FP16
-            vae_name = VAE_FP16
-
-        if batch_size > 1:
-            vae_args = []
-
-        if args.import_mlir == True:
-            return get_vae16(model_name=VAE_FP16), get_unet16_wrapped(
-                model_name=UNET_FP16
-            )
-        else:
-            return get_shark_model(
-                vae_gcloud_bucket,
-                vae_name,
-                vae_args,
-            ), get_shark_model(
-                unet_gcloud_bucket,
-                unet_name,
-                unet_args,
-            )
-
-    elif args.precision == "fp32":
-        IREE_EXTRA_ARGS += [
-            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-            "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=16",
-        ]
-        if args.import_mlir == True:
-            return get_vae32(model_name=VAE_FP32), get_unet32_wrapped(
-                model_name=UNET_FP32
-            )
-        else:
-            return get_shark_model(
-                GCLOUD_BUCKET,
-                VAE_FP32,
-                IREE_EXTRA_ARGS,
-            ), get_shark_model(
-                GCLOUD_BUCKET,
-                UNET_FP32,
-                IREE_EXTRA_ARGS,
-            )
-
-
 if __name__ == "__main__":
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
-    if len(args.iree_vulkan_target_triple) > 0:
-        IREE_EXTRA_ARGS.append(
-            f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
-        )
 
     prompt = args.prompts
     height = 512  # default height of Stable Diffusion
@@ -146,12 +45,9 @@ if __name__ == "__main__":
 
     batch_size = len(prompt)
 
-    vae, unet = get_models()
+    unet, vae, clip = get_unet(), get_vae(), get_clip()
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    text_encoder = CLIPTextModel.from_pretrained(
-        "openai/clip-vit-large-patch14"
-    )
 
     scheduler = LMSDiscreteScheduler(
         beta_start=0.00085,
@@ -170,7 +66,8 @@ if __name__ == "__main__":
         return_tensors="pt",
     )
 
-    text_embeddings = text_encoder(text_input.input_ids)[0].to(dtype)
+    text_embeddings = clip.forward((text_input.input_ids,))
+    text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     max_length = text_input.input_ids.shape[-1]
     uncond_input = tokenizer(
         [""] * batch_size,
@@ -178,7 +75,8 @@ if __name__ == "__main__":
         max_length=max_length,
         return_tensors="pt",
     )
-    uncond_embeddings = text_encoder(uncond_input.input_ids)[0].to(dtype)
+    uncond_embeddings = clip.forward((uncond_input.input_ids,))
+    uncond_embeddings = torch.from_numpy(uncond_embeddings).to(dtype)
 
     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 

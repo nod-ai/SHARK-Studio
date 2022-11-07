@@ -65,11 +65,12 @@ def get_iree_common_args():
 
 
 def create_dispatch_dirs(bench_dir, device):
+    protected_files = ["ordered-dispatches.txt"]
     bench_dir_path = bench_dir.split("/")
     bench_dir_path[-1] = "temp_" + bench_dir_path[-1]
     tmp_bench_dir = "/".join(bench_dir_path)
     for f_ in os.listdir(bench_dir):
-        if os.path.isfile(f"{bench_dir}/{f_}"):
+        if os.path.isfile(f"{bench_dir}/{f_}") and f_ not in protected_files:
             dir_name = re.sub("\.\S*$", "", f_)
             if os.path.exists(f"{bench_dir}/{dir_name}"):
                 os.system(f"rm -rf {bench_dir}/{dir_name}")
@@ -88,6 +89,7 @@ def create_dispatch_dirs(bench_dir, device):
 
 
 def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
+    benchmark_runtimes = {}
     dispatch_list = []
     all_dispatches = False
 
@@ -103,84 +105,98 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
             print("ERROR: Invalid dispatch benchmarks")
             return None
     for d_ in os.listdir(bench_dir):
-        in_dispatches = False
-        for dispatch in dispatch_list:
-            if str(dispatch) in d_:
-                in_dispatches = True
-        if all_dispatches or in_dispatches:
-            for f_ in os.listdir(f"{bench_dir}/{d_}"):
+        if os.path.isdir(f"{bench_dir}/{d_}"):
+            in_dispatches = False
+            for dispatch in dispatch_list:
+                if str(dispatch) in d_:
+                    in_dispatches = True
+            if all_dispatches or in_dispatches:
+                for f_ in os.listdir(f"{bench_dir}/{d_}"):
 
-                if "benchmark.mlir" in f_:
-                    dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
-                    module = dispatch_file.read()
-                    dispatch_file.close()
+                    if "benchmark.mlir" in f_:
+                        dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
+                        module = dispatch_file.read()
+                        dispatch_file.close()
 
-                    flatbuffer_blob = ireec.compile_str(
-                        module, target_backends=[IREE_TARGET_MAP[device]]
-                    )
+                        flatbuffer_blob = ireec.compile_str(
+                            module, target_backends=[IREE_TARGET_MAP[device]]
+                        )
 
-                    vmfb_file = open(
-                        f"{bench_dir}/{d_}/{d_}_benchmark.vmfb", "wb"
-                    )
-                    vmfb_file.write(flatbuffer_blob)
-                    vmfb_file.close()
+                        vmfb_file = open(
+                            f"{bench_dir}/{d_}/{d_}_benchmark.vmfb", "wb"
+                        )
+                        vmfb_file.write(flatbuffer_blob)
+                        vmfb_file.close()
 
-                    config = ireert.Config(IREE_DEVICE_MAP[device])
-                    vm_module = ireert.VmModule.from_flatbuffer(
-                        config.vm_instance, flatbuffer_blob
-                    )
+                        config = ireert.Config(IREE_DEVICE_MAP[device])
+                        vm_module = ireert.VmModule.from_flatbuffer(
+                            config.vm_instance, flatbuffer_blob
+                        )
 
-                    benchmark_cl = build_benchmark_args_non_tensor_input(
-                        input_file=f"{bench_dir}/{d_}/{d_}_benchmark.vmfb",
-                        device=device,
-                        inputs=(0,),
-                        mlir_dialect="linalg",
-                        function_name="",
-                    )
+                        benchmark_cl = build_benchmark_args_non_tensor_input(
+                            input_file=f"{bench_dir}/{d_}/{d_}_benchmark.vmfb",
+                            device=device,
+                            inputs=(0,),
+                            mlir_dialect="linalg",
+                            function_name="",
+                        )
 
-                    benchmark_bash = open(
-                        f"{bench_dir}/{d_}/{d_}_benchmark.sh", "w+"
-                    )
-                    benchmark_bash.write("#!/bin/bash\n")
-                    benchmark_bash.write(" ".join(benchmark_cl))
-                    benchmark_bash.close()
+                        benchmark_bash = open(
+                            f"{bench_dir}/{d_}/{d_}_benchmark.sh", "w+"
+                        )
+                        benchmark_bash.write("#!/bin/bash\n")
+                        benchmark_bash.write(" ".join(benchmark_cl))
+                        benchmark_bash.close()
 
-                    benchmark_data = run_benchmark_module(benchmark_cl)
+                        benchmark_data = run_benchmark_module(benchmark_cl)
 
-                    benchmark_file = open(
-                        f"{bench_dir}/{d_}/{d_}_data.txt", "w+"
-                    )
-                    benchmark_file.write(f"DISPATCH: {d_}\n")
-                    benchmark_file.write(str(benchmark_data) + "\n")
-                    benchmark_file.write(
-                        "SHARK BENCHMARK RESULT: "
-                        + str(1 / (benchmark_data * 0.001))
-                        + "\n"
-                    )
-                    benchmark_file.close()
+                        benchmark_file = open(
+                            f"{bench_dir}/{d_}/{d_}_data.txt", "w+"
+                        )
+                        benchmark_file.write(f"DISPATCH: {d_}\n")
+                        benchmark_file.write(str(benchmark_data) + "\n")
+                        benchmark_file.write(
+                            "SHARK BENCHMARK RESULT: "
+                            + str(1 / (benchmark_data * 0.001))
+                            + "\n"
+                        )
+                        benchmark_file.close()
 
-                elif ".mlir" in f_ and "benchmark" not in f_:
-                    dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
-                    module = dispatch_file.read()
-                    dispatch_file.close()
+                        benchmark_runtimes[d_] = 1 / (benchmark_data * 0.001)
 
-                    module = re.sub(
-                        "hal.executable private",
-                        "hal.executable public",
-                        module,
-                    )
+                    elif ".mlir" in f_ and "benchmark" not in f_:
+                        dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
+                        module = dispatch_file.read()
+                        dispatch_file.close()
 
-                    flatbuffer_blob = ireec.compile_str(
-                        module,
-                        target_backends=[IREE_TARGET_MAP[device]],
-                        extra_args=["--compile-mode=hal-executable"],
-                    )
+                        module = re.sub(
+                            "hal.executable private",
+                            "hal.executable public",
+                            module,
+                        )
 
-                    spirv_file = open(
-                        f"{bench_dir}/{d_}/{d_}_spirv.vmfb", "wb"
-                    )
-                    spirv_file.write(flatbuffer_blob)
-                    spirv_file.close()
+                        flatbuffer_blob = ireec.compile_str(
+                            module,
+                            target_backends=[IREE_TARGET_MAP[device]],
+                            extra_args=["--compile-mode=hal-executable"],
+                        )
+
+                        spirv_file = open(
+                            f"{bench_dir}/{d_}/{d_}_spirv.vmfb", "wb"
+                        )
+                        spirv_file.write(flatbuffer_blob)
+                        spirv_file.close()
+
+    ordered_dispatches = [
+        (k, v)
+        for k, v in sorted(
+            benchmark_runtimes.items(), key=lambda item: item[1]
+        )
+    ][::-1]
+    f_ = open(f"{bench_dir}/ordered-dispatches.txt", "w+")
+    for dispatch in ordered_dispatches:
+        f_.write(f"{dispatch[0]}: {dispatch[1]}ms\n")
+    f_.close()
 
 
 def compile_module_to_flatbuffer(
