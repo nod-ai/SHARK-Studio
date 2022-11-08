@@ -138,7 +138,7 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
                             device=device,
                             inputs=(0,),
                             mlir_dialect="linalg",
-                            function_name=vm_module.function_names[0],
+                            function_name="",
                         )
 
                         benchmark_bash = open(

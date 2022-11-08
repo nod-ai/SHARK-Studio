@@ -85,4 +85,16 @@ p.add_argument(
     help="Download and use the tuned version of the model if available",
 )
 
+p.add_argument(
+    "--dispatch_benchmarks",
+    default=None,
+    help='dispatches to return benchamrk data on.  use "All" for all, and None for none.',
+)
+
+p.add_argument(
+    "--dispatch_benchmarks_dir",
+    default="temp_dispatch_benchmarks",
+    help='directory where you want to store dispatch data generated with "--dispatch_benchmarks"',
+)
+
 args = p.parse_args()

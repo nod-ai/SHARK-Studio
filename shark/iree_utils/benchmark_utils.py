@@ -18,7 +18,7 @@ import numpy as np
 import os
 import re
 
-UNIT_TO_SECOND_MAP = {"ms": 0.001, "s": 1}
+UNIT_TO_SECOND_MAP = {"us": 1e-6, "ms": 0.001, "s": 1}
 
 
 def tensor_to_type_str(input_tensors: tuple, mlir_dialect: str):
@@ -94,7 +94,8 @@ def build_benchmark_args_non_tensor_input(
     benchmarker_path = os.path.join(path, "..", "..", "iree-benchmark-module")
     benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
     # TODO: The function named can be passed as one of the args.
-    benchmark_cl.append(f"--entry_function={function_name}")
+    if function_name:
+        benchmark_cl.append(f"--entry_function={function_name}")
     benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
     for input in inputs:
         benchmark_cl.append(f"--function_input={input}")
