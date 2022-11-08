@@ -37,7 +37,8 @@ if __name__ == "__main__":
 
     num_inference_steps = args.steps  # Number of denoising steps
 
-    guidance_scale = args.guidance_scale  # Scale for classifier-free guidance
+    # Scale for classifier-free guidance
+    guidance_scale = torch.tensor(args.guidance_scale).to(torch.float32)
 
     generator = torch.manual_seed(
         args.seed
@@ -45,7 +46,9 @@ if __name__ == "__main__":
 
     batch_size = len(prompt)
 
-    unet, vae, clip = get_unet(), get_vae(), get_clip()
+    unet = get_unet()
+    vae = get_vae()
+    clip = get_clip()
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 
@@ -97,12 +100,20 @@ if __name__ == "__main__":
         step_start = time.time()
         print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
+        if args.precision == "int8":
+            timestep = np.array(t).astype("int64")
         latents_numpy = latents.detach().numpy()
         sigma_numpy = np.array(scheduler.sigmas[i]).astype(np.float32)
 
         profile_device = start_profiling(file_path="unet.rdc")
         noise_pred = unet.forward(
-            (latents_numpy, timestep, text_embeddings_numpy, sigma_numpy)
+            (
+                latents_numpy,
+                timestep,
+                text_embeddings_numpy,
+                sigma_numpy,
+                guidance_scale,
+            )
         )
         end_profiling(profile_device)
         noise_pred = torch.from_numpy(noise_pred)
