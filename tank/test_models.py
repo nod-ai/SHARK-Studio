@@ -407,6 +407,28 @@ class SharkModuleTest(unittest.TestCase):
             and device == "cpu"
         ):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/463")
+        if (
+            config["model_name"]
+            in [
+                "facebook/convnext-tiny-224",
+                "squeezenet1_0",
+            ]
+            and device == "rocm"
+        ):
+            pytest.xfail(
+                reason="iree-compile buffer limit issue: https://github.com/nod-ai/SHARK/issues/475"
+            )
+        if (
+            config["model_name"]
+            in [
+                "funnel-transformer/small",
+                "mobilenet_v3_small",
+            ]
+            and device == "rocm"
+        ):
+            pytest.xfail(
+                reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/476"
+            )
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
