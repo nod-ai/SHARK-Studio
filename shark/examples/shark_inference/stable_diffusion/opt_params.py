@@ -1,3 +1,4 @@
+import sys
 from model_wrappers import (
     get_vae32,
     get_vae16,
@@ -10,8 +11,6 @@ from utils import get_shark_model
 
 BATCH_SIZE = len(args.prompts)
 if BATCH_SIZE != 1:
-    import sys
-
     sys.exit("Only batch size 1 is supported.")
 
 
@@ -24,6 +23,7 @@ def get_unet():
     # Tuned model is present for `fp16` precision.
     if args.precision == "fp16":
         if args.use_tuned:
+            sys.exit("The tuned version is in maintenance, stay tuned.")
             bucket = "gs://shark_tank/quinn"
             model_name = "unet_fp16_tunedv2"
             iree_flags += [
@@ -36,7 +36,7 @@ def get_unet():
             return get_shark_model(bucket, model_name, iree_flags)
         else:
             bucket = "gs://shark_tank/prashant_nod"
-            model_name = "unet_fp16"
+            model_name = "unet_fp16_v2"
             iree_flags += ["--iree-flow-enable-conv-nchw-to-nhwc-transform"]
             if args.import_mlir:
                 return get_unet16_wrapped(model_name=model_name)
@@ -45,7 +45,7 @@ def get_unet():
     # Tuned model is not present for `fp32` case.
     if args.precision == "fp32":
         bucket = "gs://shark_tank/prashant_nod"
-        model_name = "unet_fp32"
+        model_name = "unet_fp32_v2"
         iree_flags += [
             "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
@@ -55,6 +55,20 @@ def get_unet():
             return get_unet32_wrapped(model_name=model_name)
         return get_shark_model(bucket, model_name, iree_flags)
 
+    if args.precision == "int8":
+        bucket = "gs://shark_tank/prashant_nod"
+        model_name = "unet_int8"
+        iree_flags += [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32",
+        ]
+        # TODO: Pass iree_flags to the exported model.
+        if args.import_mlir:
+            sys.exit(
+                "--import_mlir is not supported for the int8 model, try --no-import_mlir flag."
+            )
+        return get_shark_model(bucket, model_name, iree_flags)
+
 
 def get_vae():
     iree_flags = []
@@ -62,7 +76,7 @@ def get_vae():
         iree_flags.append(
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
-    if args.precision == "fp16":
+    if args.precision in ["fp16", "int8"]:
         bucket = "gs://shark_tank/prashant_nod"
         model_name = "vae_fp16"
         iree_flags += [
