@@ -42,19 +42,25 @@ footer {display: none !important;}
 """
 
 with gr.Blocks(css=demo_css) as shark_web:
-    # load prompt examples.
 
     with gr.Row(elem_id="ui_title"):
-        with gr.Column(scale=1, elem_id="demo_title_outer"):
-            logo2 = Image.open("./logos/sd-demo-logo.png")
-            gr.Image(
-                value=logo2,
-                show_label=False,
-                interactive=False,
-                elem_id="demo_title",
-            ).style(width=230)
-            # with gr.Column(scale=1):
-            #    gr.Label(value="Ultra fast Stable Diffusion")
+        nod_logo = Image.open("./logos/nod-logo.png")
+        logo2 = Image.open("./logos/sd-demo-logo.png")
+        with gr.Row():
+            with gr.Column(scale=1, elem_id="demo_title_outer"):
+                gr.Image(
+                    value=nod_logo,
+                    show_label=False,
+                    interactive=False,
+                    elem_id="top_logo",
+                ).style(width=150, height=100)
+            with gr.Column(scale=5, elem_id="demo_title_outer"):
+                gr.Image(
+                    value=logo2,
+                    show_label=False,
+                    interactive=False,
+                    elem_id="demo_title",
+                ).style(width=150, height=100)
 
     with gr.Row(elem_id="ui_body"):
         prompt = (
@@ -141,7 +147,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                     seed = gr.Textbox(value="42", max_lines=1, label="Seed")
                 with gr.Row():
                     cache = gr.Checkbox(label="Cache", value=True)
-                    # debug = gr.Checkbox(label="DEBUG", value=False)
+                    debug = gr.Checkbox(label="DEBUG", value=False)
                     save_img = gr.Checkbox(label="Save Image", value=False)
                     live_preview = gr.Checkbox(
                         label="Live Preview", value=False
@@ -186,18 +192,10 @@ with gr.Blocks(css=demo_css) as shark_web:
                         elem_id="ugly_line",
                     )
                 stable_diffusion = gr.Button("Generate Image")
-                # logo
-                nod_logo = Image.open("./logos/amd-nod-logo.png")
-                gr.Image(
-                    value=nod_logo,
-                    show_label=False,
-                    interactive=False,
-                    elem_id="top_logo",
-                ).style(width=230)
             with gr.Column(scale=1, min_width=600):
                 generated_img = gr.Image(
                     type="pil", elem_id="img_result", interactive=False
-                ).style(height=768, width=768)
+                ).style(height=768)
                 std_output = gr.Textbox(
                     label="Std Output",
                     value="Nothing.",
@@ -205,14 +203,13 @@ with gr.Blocks(css=demo_css) as shark_web:
                     visible=False,
                     elem_id="ugly_line",
                 )
-        """
+
         debug.change(
             debug_event,
             inputs=[debug],
             outputs=[std_output],
             show_progress=False,
         )
-        """
 
         stable_diffusion.click(
             stable_diff_inf,
@@ -234,7 +231,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                 save_img,
             ],
             outputs=[generated_img, std_output],
-            show_progress=False,
         )
 
 shark_web.queue()
