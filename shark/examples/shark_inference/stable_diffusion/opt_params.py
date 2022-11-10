@@ -37,7 +37,11 @@ def get_unet():
         else:
             bucket = "gs://shark_tank/prashant_nod"
             model_name = "unet_fp16_v2"
-            iree_flags += ["--iree-flow-enable-conv-nchw-to-nhwc-transform"]
+            iree_flags += [
+                "--iree-flow-enable-padding-linalg-ops",
+                "--iree-flow-linalg-ops-padding-size=32",
+                "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            ]
             if args.import_mlir:
                 return get_unet16_wrapped(model_name=model_name)
             return get_shark_model(bucket, model_name, iree_flags)
