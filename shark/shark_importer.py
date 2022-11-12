@@ -87,7 +87,6 @@ class SharkImporter:
 
     def _tflite_mlir(self, func_name, save_dir="./shark_tmp/"):
         from iree.compiler import tflite as tflitec
-        from shark.iree_utils._common import IREE_TARGET_MAP
 
         self.mlir_model = tflitec.compile_file(
             self.raw_model_file,  # in tflite, it is a path to .tflite file, not a tflite interpreter

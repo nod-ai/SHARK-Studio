@@ -13,7 +13,7 @@
 # limitations under the License.
 import iree.runtime as ireert
 import iree.compiler as ireec
-from shark.iree_utils._common import IREE_DEVICE_MAP, IREE_TARGET_MAP
+from shark.iree_utils._common import iree_device_map, iree_target_map
 from shark.iree_utils.benchmark_utils import *
 import numpy as np
 import os
@@ -224,7 +224,7 @@ def compile_module_to_flatbuffer(
         # Currently for MHLO/TOSA.
         flatbuffer_blob = ireec.compile_str(
             module,
-            target_backends=[IREE_TARGET_MAP[device]],
+            target_backends=[iree_target_map(device)],
             extra_args=args,
             input_type=input_type,
         )
@@ -232,7 +232,7 @@ def compile_module_to_flatbuffer(
         # Currently for Torch.
         flatbuffer_blob = ireec.compile_str(
             module,
-            target_backends=[IREE_TARGET_MAP[device]],
+            target_backends=[iree_target_map(device)],
             extra_args=args,
         )
 
@@ -241,7 +241,12 @@ def compile_module_to_flatbuffer(
 
 def get_iree_module(flatbuffer_blob, device, func_name):
     # Returns the compiled module and the configs.
-    config = ireert.Config(IREE_DEVICE_MAP[device])
+    device = iree_device_map(device)
+    if type(device) == ireert.HalDevice:
+        config = ireert.Config(device=device)
+    else:
+        driver_name = device.split("://")[0] if "://" in device else device
+        config = ireert.Config(driver_name=driver_name)
     vm_module = ireert.VmModule.from_flatbuffer(
         config.vm_instance, flatbuffer_blob
     )
@@ -291,7 +296,8 @@ def export_iree_module_to_vmfb(
         module, device, mlir_dialect, func_name, model_config_path, extra_args
     )
     if module_name is None:
-        module_name = f"{mlir_dialect}_{func_name}_{device}"
+        device_name = device.split("://")[0]
+        module_name = f"{mlir_dialect}_{func_name}_{device_name}"
     filename = os.path.join(directory, module_name + ".vmfb")
     print(f"Saved vmfb in {filename}.")
     with open(filename, "wb") as f:

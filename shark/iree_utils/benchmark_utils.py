@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import iree.runtime.scripts.iree_benchmark_module as benchmark_module
-from shark.iree_utils._common import run_cmd, IREE_DEVICE_MAP
+from shark.iree_utils._common import run_cmd, iree_device_map
 import numpy as np
 import os
 import re
@@ -69,7 +69,7 @@ def build_benchmark_args(
         # TODO: Replace name of train with actual train fn name.
         fn_name = "train"
     benchmark_cl.append(f"--entry_function={fn_name}")
-    benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
+    benchmark_cl.append(f"--device={iree_device_map(device)}")
     mlir_input_types = tensor_to_type_str(input_tensors, mlir_dialect)
     for mlir_input in mlir_input_types:
         benchmark_cl.append(f"--function_input={mlir_input}")
@@ -96,7 +96,7 @@ def build_benchmark_args_non_tensor_input(
     # TODO: The function named can be passed as one of the args.
     if function_name:
         benchmark_cl.append(f"--entry_function={function_name}")
-    benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
+    benchmark_cl.append(f"--device={iree_device_map(device)}")
     for input in inputs:
         benchmark_cl.append(f"--function_input={input}")
     time_extractor = "| awk 'END{{print $2 $3}}'"

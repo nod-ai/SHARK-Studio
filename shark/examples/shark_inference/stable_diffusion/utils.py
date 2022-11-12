@@ -13,7 +13,12 @@ if args.import_mlir:
 
 def _compile_module(shark_module, model_name, extra_args=[]):
     if args.load_vmfb or args.save_vmfb:
-        extended_name = "{}_{}".format(model_name, args.device)
+        device = (
+            args.device
+            if "://" not in args.device
+            else "-".join(args.device.split("://"))
+        )
+        extended_name = "{}_{}".format(model_name, device)
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
             print("Loading flatbuffer from {}".format(vmfb_path))
