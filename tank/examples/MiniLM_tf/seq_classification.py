@@ -52,7 +52,7 @@ class SeqClassification(tf.Module):
         )
         self.m.predict = lambda x, y: self.m(input_ids=x, attention_mask=y)[0]
 
-    @tf.function(input_signature=inputs_signature)
+    @tf.function(input_signature=inputs_signature, jit_compile=True)
     def forward(self, input_ids, attention_mask):
         return tf.math.softmax(
             self.m.predict(input_ids, attention_mask), axis=-1

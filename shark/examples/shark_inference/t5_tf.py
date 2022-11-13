@@ -18,7 +18,7 @@ class T5Module(tf.Module):
         self.m = TFT5Model.from_pretrained("t5-small")
         self.m.predict = lambda x, y: self.m(input_ids=x, decoder_input_ids=y)
 
-    @tf.function(input_signature=t5_inputs)
+    @tf.function(input_signature=t5_inputs, jit_compile=True)
     def forward(self, input_ids, decoder_input_ids):
         return self.m.predict(input_ids, decoder_input_ids)
 

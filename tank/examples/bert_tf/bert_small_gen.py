@@ -57,7 +57,8 @@ class BertModule(tf.Module):
                 shape=[BATCH_SIZE, SEQUENCE_LENGTH], dtype=tf.int32
             ),  # input2: segment_ids
             tf.TensorSpec([BATCH_SIZE], tf.int32),  # input3: labels
-        ]
+        ],
+        jit_compile=True
     )
     def learn(self, input_word_ids, input_mask, segment_ids, labels):
         with tf.GradientTape() as tape:
@@ -72,7 +73,7 @@ class BertModule(tf.Module):
         self.optimizer.apply_gradients(zip(gradients, variables))
         return loss
 
-    @tf.function(input_signature=bert_input)
+    @tf.function(input_signature=bert_input, jit_compile=True)
     def predict(self, input_word_ids, input_mask, segment_ids):
         inputs = [input_word_ids, input_mask, segment_ids]
         return self.m.predict(inputs)
