@@ -75,7 +75,7 @@ class SharkRunner:
         self.extra_args = extra_args
 
         if check_device_drivers(self.device):
-            device_driver_info(self.device)
+            print(device_driver_info(self.device))
             sys.exit(1)
 
         if compile_vmfb == True:
