@@ -429,6 +429,15 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(
                 reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/476"
             )
+        if (
+            config["model_name"] in ["albert-base-v2"]
+            and device == "cpu"
+            and dynamic == False
+            and config["framework"] == "tf"
+        ):
+            pytest.xfail(
+                reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/489"
+            )
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
