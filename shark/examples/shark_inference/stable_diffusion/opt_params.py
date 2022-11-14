@@ -113,7 +113,7 @@ def get_clip():
         )
     bucket = "gs://shark_tank/prashant_nod"
     model_name = "clip_text"
-    iree_flags = [
+    iree_flags += [
         "--iree-flow-linalg-ops-padding-size=16",
         "--iree-flow-enable-padding-linalg-ops",
     ]
