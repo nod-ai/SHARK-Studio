@@ -21,6 +21,8 @@ import re
 
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
+    if "://" in device:
+        device = device.split("://")[0]
     if device == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
@@ -128,7 +130,7 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
                         vmfb_file.write(flatbuffer_blob)
                         vmfb_file.close()
 
-                        config = ireert.Config(iree_device_map(device))
+                        config = get_iree_runtime_config(device)
                         vm_module = ireert.VmModule.from_flatbuffer(
                             config.vm_instance, flatbuffer_blob
                         )
@@ -241,12 +243,7 @@ def compile_module_to_flatbuffer(
 
 def get_iree_module(flatbuffer_blob, device, func_name):
     # Returns the compiled module and the configs.
-    device = iree_device_map(device)
-    if type(device) == ireert.HalDevice:
-        config = ireert.Config(device=device)
-    else:
-        driver_name = device.split("://")[0] if "://" in device else device
-        config = ireert.Config(driver_name=driver_name)
+    config = get_iree_runtime_config(device)
     vm_module = ireert.VmModule.from_flatbuffer(
         config.vm_instance, flatbuffer_blob
     )
@@ -296,7 +293,9 @@ def export_iree_module_to_vmfb(
         module, device, mlir_dialect, func_name, model_config_path, extra_args
     )
     if module_name is None:
-        device_name = device.split("://")[0]
+        device_name = (
+            device if "://" not in device else "-".join(device.split("://"))
+        )
         module_name = f"{mlir_dialect}_{func_name}_{device_name}"
     filename = os.path.join(directory, module_name + ".vmfb")
     print(f"Saved vmfb in {filename}.")
@@ -334,3 +333,13 @@ def get_results(compiled_vm, input, config, frontend="torch"):
         return np.copy(res)
     else:
         return np.copy(np.asarray(result, dtype=result.dtype))
+
+
+def get_iree_runtime_config(device):
+    device = iree_device_map(device)
+    if type(device) == ireert.HalDevice:
+        config = ireert.Config(device=device)
+    else:
+        driver_name = device.split("://")[0] if "://" in device else device
+        config = ireert.Config(driver_name=driver_name)
+    return config

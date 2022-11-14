@@ -21,8 +21,7 @@ def _compile_module(shark_module, model_name, extra_args=[]):
         extended_name = "{}_{}".format(model_name, device)
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
-            print("Loading flatbuffer from {}".format(vmfb_path))
-            shark_module.load_module(vmfb_path)
+            shark_module.load_module(vmfb_path, extra_args=extra_args)
         else:
             if args.save_vmfb:
                 print("Saving to {}".format(vmfb_path))
@@ -35,7 +34,7 @@ def _compile_module(shark_module, model_name, extra_args=[]):
             path = shark_module.save_module(
                 os.getcwd(), extended_name, extra_args
             )
-            shark_module.load_module(path)
+            shark_module.load_module(path, extra_args=extra_args)
     else:
         shark_module.compile(extra_args)
     return shark_module
