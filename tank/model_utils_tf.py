@@ -191,7 +191,10 @@ class ResNetModule(tf.Module):
         self.m = tf_model
         self.m.predict = lambda x: self.m.call(x, training=False)
 
-    @tf.function(input_signature=[tf.TensorSpec(INPUT_SHAPE, tf.float32)], jit_compile=True)
+    @tf.function(
+        input_signature=[tf.TensorSpec(INPUT_SHAPE, tf.float32)],
+        jit_compile=True,
+    )
     def forward(self, inputs):
         return self.m.predict(inputs)
 
