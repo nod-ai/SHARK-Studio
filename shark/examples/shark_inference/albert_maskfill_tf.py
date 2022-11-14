@@ -28,7 +28,7 @@ class AlbertModule(tf.Module):
         self.m = TFAutoModelForMaskedLM.from_pretrained("albert-base-v2")
         self.m.predict = lambda x, y: self.m(input_ids=x, attention_mask=y)
 
-    @tf.function(input_signature=t5_inputs)
+    @tf.function(input_signature=t5_inputs, jit_compile=True)
     def forward(self, input_ids, attention_mask):
         return self.m.predict(input_ids, attention_mask)
 

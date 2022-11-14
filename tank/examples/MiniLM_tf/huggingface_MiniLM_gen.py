@@ -32,7 +32,7 @@ class BertModule(tf.Module):
             input_ids=x, attention_mask=y, token_type_ids=z, training=False
         )
 
-    @tf.function(input_signature=bert_input)
+    @tf.function(input_signature=bert_input, jit_compile=True)
     def predict(self, input_word_ids, input_mask, segment_ids):
         return self.m.predict(input_word_ids, input_mask, segment_ids)
 

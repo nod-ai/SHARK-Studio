@@ -19,7 +19,7 @@ class GPT2Module(tf.Module):
 
         self.m.predict = lambda x, y: self.m(input_ids=x, attention_mask=y)
 
-    @tf.function(input_signature=gpt2_inputs)
+    @tf.function(input_signature=gpt2_inputs, jit_compile=True)
     def forward(self, input_ids, attention_mask):
         return self.m.predict(input_ids, attention_mask)
 

@@ -22,7 +22,7 @@ class CLIPModule(tf.Module):
             input_ids=x, attention_mask=y, pixel_values=z
         )
 
-    @tf.function(input_signature=clip_vit_inputs)
+    @tf.function(input_signature=clip_vit_inputs, jit_compile=True)
     def forward(self, input_ids, attention_mask, pixel_values):
         return self.m.predict(
             input_ids, attention_mask, pixel_values
