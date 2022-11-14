@@ -119,7 +119,7 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
                         dispatch_file.close()
 
                         flatbuffer_blob = ireec.compile_str(
-                            module, target_backends=[IREE_TARGET_MAP[device]]
+                            module, target_backends=[iree_target_map(device)]
                         )
 
                         vmfb_file = open(
@@ -128,7 +128,7 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
                         vmfb_file.write(flatbuffer_blob)
                         vmfb_file.close()
 
-                        config = ireert.Config(IREE_DEVICE_MAP[device])
+                        config = ireert.Config(iree_device_map(device))
                         vm_module = ireert.VmModule.from_flatbuffer(
                             config.vm_instance, flatbuffer_blob
                         )
@@ -177,7 +177,7 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
 
                         flatbuffer_blob = ireec.compile_str(
                             module,
-                            target_backends=[IREE_TARGET_MAP[device]],
+                            target_backends=[iree_target_map(device)],
                             extra_args=["--compile-mode=hal-executable"],
                         )
 
