@@ -105,8 +105,6 @@ else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
 
-$PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
-
 if [[ ! -z "${IMPORTER}" ]]; then
   echo "${Yellow}Installing importer tools.."
   if [[ $(uname -s) = 'Linux' ]]; then
@@ -119,6 +117,9 @@ if [[ ! -z "${IMPORTER}" ]]; then
     $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   fi
 fi
+
+$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
+
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
