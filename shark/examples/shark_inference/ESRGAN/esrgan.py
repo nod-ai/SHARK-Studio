@@ -5,8 +5,8 @@ import cv2
 import numpy as np
 import torch
 
-from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
+from shark.shark_importer import import_with_fx
 from shark.shark_inference import SharkInference
 import torch_mlir
 import tempfile
@@ -128,57 +128,9 @@ def load_mlir(mlir_loc):
 
 
 def compile_through_fx(model, inputs, mlir_loc=None):
-
-    module = load_mlir(mlir_loc)
-    if module == None:
-        fx_g = make_fx(
-            model,
-            decomposition_table=get_decompositions(
-                [
-                    torch.ops.aten.embedding_dense_backward,
-                    torch.ops.aten.native_layer_norm_backward,
-                    torch.ops.aten.slice_backward,
-                    torch.ops.aten.select_backward,
-                    torch.ops.aten.norm.ScalarOpt_dim,
-                    torch.ops.aten.native_group_norm,
-                    torch.ops.aten.upsample_bilinear2d.vec,
-                    torch.ops.aten.split.Tensor,
-                    torch.ops.aten.split_with_sizes,
-                ]
-            ),
-        )(inputs)
-
-        fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
-        fx_g.recompile()
-
-        def strip_overloads(gm):
-            """
-            Modifies the target of graph nodes in :attr:`gm` to strip overloads.
-            Args:
-                gm(fx.GraphModule): The input Fx graph module to be modified
-            """
-            for node in gm.graph.nodes:
-                if isinstance(node.target, torch._ops.OpOverload):
-                    node.target = node.target.overloadpacket
-            gm.recompile()
-
-        strip_overloads(fx_g)
-
-        ts_g = torch.jit.script(fx_g)
-
-        print("Torchscript graph generated successfully")
-        module = torch_mlir.compile(
-            ts_g,
-            inputs,
-            torch_mlir.OutputType.LINALG_ON_TENSORS,
-            use_tracing=False,
-            verbose=False,
-        )
-
-    mlir_model = str(module)
-    func_name = "forward"
+    mlir_module, func_name = import_with_fx(model, (inputs,))
     shark_module = SharkInference(
-        mlir_model, func_name, device=args.device, mlir_dialect="linalg"
+        mlir_module, func_name, device=args.device, mlir_dialect="linalg"
     )
     shark_module.compile()
 
@@ -186,7 +138,6 @@ def compile_through_fx(model, inputs, mlir_loc=None):
 
 
 model_path = "models/RRDB_ESRGAN_x4.pth"  # models/RRDB_ESRGAN_x4.pth OR models/RRDB_PSNR_x4.pth
-# device = torch.device('cuda')  # if you want to run on CPU, change 'cuda' -> cpu
 device = torch.device("cpu")
 
 test_img_folder = "InputImages/*"
