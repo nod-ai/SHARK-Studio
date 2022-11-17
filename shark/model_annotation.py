@@ -12,6 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+"""
+Usage:
+This function takes the model mlir file and the tuned config file as input,
+and output a new mlir file with lowering configs annotated on certain ops.
+There are two ways to utilize the function:
+1. Call model_annotation function within another python script
+from shark.model_annotation import model_annotation
+with create_context() as ctx:
+   module = model_annotation(ctx, input_contents=..., config_path=..., search_op=...)
+2. Run model_annotation.py directly
+python model_annotation.py path_to_original_mlir path_to_config_file
+"""
+
 import json
 import os
 import sys
@@ -105,7 +118,9 @@ def add_attributes(op: ir.Operation, config: Dict):
 
 
 def parse_config(config: Dict):
-    if config["pipeline"] == "GPU" or config["pipeline"] == "GPU_TENSORCORE":
+    split_k = None
+    pipeline_depth = None
+    if "GPU" in config["pipeline"]:
         pipeline = (
             "LLVMGPUMatmulSimt"
             if config["pipeline"] == "GPU"
@@ -113,24 +128,31 @@ def parse_config(config: Dict):
         )
         tile_sizes = [config["work_group_tile_sizes"]]
         workgroup_size = config["work_group_sizes"]
-        try:
+        if "pipeline_depth" in config.keys():
             pipeline_depth = config["pipeline_depth"]
-        except:
-            pipeline_depth = None
-        try:
+        if "split_k" in config.keys():
             split_k = config["split_k"]
-        except:
-            split_k = None
-    else:
+    elif "SPIRV" in config["pipeline"]:
         pipeline = config["pipeline"]
         tile_sizes = [
             config["work_group_tile_sizes"],
-            config["l1_tile_sizes"],
-            config["vector_tile_sizes"],
+            config["parallel_tile_sizes"],
+            config["reduction_tile_sizes"],
+        ]
+        if "vector_tile_sizes" in config.keys():
+            tile_sizes += [config["vector_tile_sizes"]]
+        if "window_tile_sizes" in config.keys():
+            tile_sizes += [config["window_tile_sizes"]]
+        workgroup_size = config["work_group_sizes"]
+    else:
+        # For IREE CPU pipelines
+        pipeline = config["pipeline"]
+        tile_sizes = [
+            config["work_group_tile_sizes"],
+            config["parallel_tile_sizes"],
+            config["reduction_tile_sizes"],
         ]
         workgroup_size = []
-        split_k = None
-        pipeline_depth = None
     return tile_sizes, pipeline, workgroup_size, split_k, pipeline_depth
 
 
