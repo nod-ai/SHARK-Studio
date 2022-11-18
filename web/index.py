@@ -8,10 +8,10 @@ from PIL import Image
 import json
 import os
 
-
+"""
 def debug_event(debug):
     return gr.Textbox.update(visible=debug)
-
+"""
 
 prompt_examples = []
 prompt_loc = "./prompts.json"
@@ -147,7 +147,9 @@ with gr.Blocks(css=demo_css) as shark_web:
                     seed = gr.Textbox(value="42", max_lines=1, label="Seed")
                 with gr.Row():
                     cache = gr.Checkbox(label="Cache", value=True)
-                    debug = gr.Checkbox(label="DEBUG", value=False)
+                    debug = gr.Checkbox(
+                        label="DEBUG", value=False, visible=False
+                    )
                     save_img = gr.Checkbox(label="Save Image", value=False)
                     live_preview = gr.Checkbox(
                         label="Live Preview", value=False
@@ -166,7 +168,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                         choices=["cpu", "cuda", "vulkan"],
                         interactive=False,
                         visible=False,
-                        elem_id="ugly_line",
                     )
                     iters_count = gr.Slider(
                         1,
@@ -189,7 +190,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                         max_lines=1,
                         label="IREE VULKAN TARGET TRIPLE",
                         visible=False,
-                        elem_id="ugly_line",
                     )
                 stable_diffusion = gr.Button("Generate Image")
             with gr.Column(scale=1, min_width=600):
@@ -201,15 +201,16 @@ with gr.Blocks(css=demo_css) as shark_web:
                     value="Nothing.",
                     lines=5,
                     visible=False,
-                    elem_id="ugly_line",
                 )
 
+        """
         debug.change(
             debug_event,
             inputs=[debug],
             outputs=[std_output],
             show_progress=False,
         )
+        """
 
         stable_diffusion.click(
             stable_diff_inf,
