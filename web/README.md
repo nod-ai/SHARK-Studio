@@ -4,7 +4,9 @@ In order to launch SHARK-web, from the root SHARK directory, run:
 ```shell
 IMPORTER=1 ./setup_venv.sh
 source shark.venv/bin/activate
+pip install opencv-python gdown
 cd web
+gdown 1TPrz5QKd8DHHt1k8SRtm6tMiPjz_Qene
 python index.py
 ```
 
