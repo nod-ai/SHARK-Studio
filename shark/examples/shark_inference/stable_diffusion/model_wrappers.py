@@ -10,7 +10,7 @@ YOUR_TOKEN = "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"
 BATCH_SIZE = len(args.prompts)
 
 
-def get_clipped_text(model_name="clip_text"):
+def get_clipped_text(model_name="clip_text", extra_args=[]):
     class CLIPText(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -27,11 +27,12 @@ def get_clipped_text(model_name="clip_text"):
         clip_model,
         (clip_input,),
         model_name=model_name,
+        extra_args=extra_args,
     )
     return shark_clip
 
 
-def get_vae32(model_name="vae_fp32"):
+def get_vae32(model_name="vae_fp32", extra_args=[]):
     class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -51,11 +52,12 @@ def get_vae32(model_name="vae_fp32"):
         vae,
         (vae_input,),
         model_name=model_name,
+        extra_args=extra_args,
     )
     return shark_vae
 
 
-def get_vae16(model_name="vae_fp16"):
+def get_vae16(model_name="vae_fp16", extra_args=[]):
     class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -77,11 +79,12 @@ def get_vae16(model_name="vae_fp16"):
         vae,
         (vae_input,),
         model_name=model_name,
+        extra_args=extra_args,
     )
     return shark_vae
 
 
-def get_unet16_wrapped(model_name="unet_fp16_wrapped"):
+def get_unet16_wrapped(model_name="unet_fp16_wrapped", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -127,11 +130,12 @@ def get_unet16_wrapped(model_name="unet_fp16_wrapped"):
             guidance_scale,
         ),
         model_name=model_name,
+        extra_args=extra_args,
     )
     return shark_unet
 
 
-def get_unet32_wrapped(model_name="unet_fp32_wrapped"):
+def get_unet32_wrapped(model_name="unet_fp32_wrapped", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -172,5 +176,6 @@ def get_unet32_wrapped(model_name="unet_fp32_wrapped"):
             guidance_scale,
         ),
         model_name=model_name,
+        extra_args=extra_args,
     )
     return shark_unet
