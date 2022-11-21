@@ -5,9 +5,6 @@ from shark.shark_inference import SharkInference
 from stable_args import args
 from shark.shark_importer import import_with_fx
 
-if args.import_mlir:
-    import torch_mlir
-
 
 def _compile_module(shark_module, model_name, extra_args=[]):
     if args.load_vmfb or args.save_vmfb:
