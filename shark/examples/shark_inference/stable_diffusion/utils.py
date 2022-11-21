@@ -4,6 +4,7 @@ import torch
 from shark.shark_inference import SharkInference
 from stable_args import args
 from shark.shark_importer import import_with_fx
+from shark.iree_utils.vulkan_utils import set_iree_vulkan_runtime_flags
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
@@ -16,6 +17,7 @@ def _compile_module(shark_module, model_name, extra_args=[]):
         extended_name = "{}_{}".format(model_name, device)
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
+            print(f"loading existing vmfb from: {vmfb_path}")
             shark_module.load_module(vmfb_path, extra_args=extra_args)
         else:
             if args.save_vmfb:
@@ -61,3 +63,14 @@ def compile_through_fx(model, inputs, model_name, extra_args=[]):
     )
 
     return _compile_module(shark_module, model_name, extra_args)
+
+
+def set_iree_runtime_flags():
+
+    vulkan_runtime_flags = [
+        f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
+    ]
+    if "vulkan" in args.device:
+        set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
+
+    return
