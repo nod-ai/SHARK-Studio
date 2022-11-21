@@ -3,7 +3,6 @@ import os
 import torch
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
-import torch_mlir
 
 
 def _compile_module(args, shark_module, model_name, extra_args=[]):
