@@ -404,7 +404,10 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/424")
         if (
             config["model_name"] == "dbmdz/convbert-base-turkish-cased"
-            and device == "cpu"
+            and device in [
+                "cuda",
+                "cpu"
+            ]    
         ):
             pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/463")
         if (
