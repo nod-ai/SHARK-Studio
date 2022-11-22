@@ -61,6 +61,7 @@ class Arguments:
         iree_vulkan_target_triple: str,
         live_preview: bool,
         save_img: bool,
+        import_mlir: bool,
     ):
         self.prompt = prompt
         self.scheduler = scheduler
@@ -77,6 +78,7 @@ class Arguments:
         self.iree_vulkan_target_triple = iree_vulkan_target_triple
         self.live_preview = live_preview
         self.save_img = save_img
+        self.import_mlir = import_mlir
 
 
 schedulers = dict()
