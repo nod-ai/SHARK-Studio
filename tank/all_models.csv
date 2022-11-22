@@ -32,3 +32,4 @@ resnet18,linalg,torch,1e-2,1e-3,default
 resnet50,linalg,torch,1e-2,1e-3,default
 squeezenet1_0,linalg,torch,1e-2,1e-3,default
 wide_resnet50_2,linalg,torch,1e-2,1e-3,default
+efficientnet-v2-s,mhlo,tf,1e-02,1e-3,default

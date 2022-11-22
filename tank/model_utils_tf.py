@@ -11,9 +11,7 @@ MAX_SEQUENCE_LENGTH = 128
 
 ################################## MHLO/TF models #########################################
 # TODO : Generate these lists or fetch model source from tank/tf/tf_model_list.csv
-keras_models = [
-    "resnet50",
-]
+keras_models = ["resnet50", "efficientnet-v2-s"]
 maskedlm_models = [
     "albert-base-v2",
     "bert-base-uncased",
@@ -168,45 +166,85 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
 ##################### TensorFlow Keras Resnet Models #########################################################
 # Static shape, including batch size (1).
 # Can be dynamic once dynamic shape support is ready.
-INPUT_SHAPE = [1, 224, 224, 3]
+RESNET_INPUT_SHAPE = [1, 224, 224, 3]
+EFFICIENTNET_INPUT_SHAPE = [1, 384, 384, 3]
 
-tf_model = tf.keras.applications.resnet50.ResNet50(
-    weights="imagenet", include_top=True, input_shape=tuple(INPUT_SHAPE[1:])
+tf_resnet_model = tf.keras.applications.resnet50.ResNet50(
+    weights="imagenet",
+    include_top=True,
+    input_shape=tuple(RESNET_INPUT_SHAPE[1:]),
+)
+
+tf_efficientnet_model = tf.keras.applications.efficientnet_v2.EfficientNetV2S(
+    weights="imagenet",
+    include_top=True,
+    input_shape=tuple(EFFICIENTNET_INPUT_SHAPE[1:]),
 )
 
 
 class ResNetModule(tf.Module):
     def __init__(self):
         super(ResNetModule, self).__init__()
-        self.m = tf_model
+        self.m = tf_resnet_model
         self.m.predict = lambda x: self.m.call(x, training=False)
 
     @tf.function(
-        input_signature=[tf.TensorSpec(INPUT_SHAPE, tf.float32)],
+        input_signature=[tf.TensorSpec(RESNET_INPUT_SHAPE, tf.float32)],
         jit_compile=True,
     )
     def forward(self, inputs):
         return self.m.predict(inputs)
 
+    def input_shape(self):
+        return RESNET_INPUT_SHAPE
 
-def load_image(path_to_image):
+    def preprocess_input(self, image):
+        return tf.keras.applications.resnet50.preprocess_input(image)
+
+
+class EfficientNetModule(tf.Module):
+    def __init__(self):
+        super(EfficientNetModule, self).__init__()
+        self.m = tf_efficientnet_model
+        self.m.predict = lambda x: self.m.call(x, training=False)
+
+    @tf.function(
+        input_signature=[tf.TensorSpec(EFFICIENTNET_INPUT_SHAPE, tf.float32)],
+        jit_compile=True,
+    )
+    def forward(self, inputs):
+        return self.m.predict(inputs)
+
+    def input_shape(self):
+        return EFFICIENTNET_INPUT_SHAPE
+
+    def preprocess_input(self, image):
+        return tf.keras.applications.efficientnet_v2.preprocess_input(image)
+
+
+def load_image(path_to_image, width, height, channels):
     image = tf.io.read_file(path_to_image)
-    image = tf.image.decode_image(image, channels=3)
-    image = tf.image.resize(image, (224, 224))
+    image = tf.image.decode_image(image, channels=channels)
+    image = tf.image.resize(image, (width, height))
     image = image[tf.newaxis, :]
     return image
 
 
 def get_keras_model(modelname):
-    model = ResNetModule()
+    if modelname == "efficientnet-v2-s":
+        model = EfficientNetModule()
+    else:
+        model = ResNetModule()
+
     content_path = tf.keras.utils.get_file(
         "YellowLabradorLooking_new.jpg",
         "https://storage.googleapis.com/download.tensorflow.org/example_images/YellowLabradorLooking_new.jpg",
     )
-    content_image = load_image(content_path)
-    input_tensor = tf.keras.applications.resnet50.preprocess_input(
-        content_image
+    input_shape = model.input_shape()
+    content_image = load_image(
+        content_path, input_shape[1], input_shape[2], input_shape[3]
     )
+    input_tensor = model.preprocess_input(content_image)
     input_data = tf.expand_dims(input_tensor, 0)
     actual_out = model.forward(*input_data)
     return model, input_data, actual_out
