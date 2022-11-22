@@ -30,19 +30,17 @@ def stable_diff_inf(
     iree_vulkan_target_triple: str,
     live_preview: bool,
     save_img: bool,
+    import_mlir: bool,
 ):
 
     start = time.time()
     # set seed value
-    if seed == "":
-        seed = int(torch.randint(low=25, high=100, size=()))
-    else:
-        try:
-            seed = int(seed)
-            if seed < 0 or seed > 10000:
-                seed = hash(seed)
-        except (ValueError, OverflowError) as error:
-            seed = hash(seed)
+    try:
+        seed = int(seed)
+        if seed < 0 or seed > 10000:
+            seed = int(torch.randint(low=25, high=100, size=()))
+    except (ValueError, OverflowError) as error:
+        seed = hash(seed)
 
     args.set_params(
         prompt,
@@ -60,6 +58,7 @@ def stable_diff_inf(
         iree_vulkan_target_triple,
         live_preview,
         save_img,
+        import_mlir,
     )
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half

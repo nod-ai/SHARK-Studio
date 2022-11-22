@@ -91,7 +91,9 @@ with gr.Blocks(css=demo_css) as shark_web:
             live_preview
         ) = (
             debug
-        ) = save_img = stable_diffusion = generated_img = std_output = None
+        ) = (
+            save_img
+        ) = import_mlir = stable_diffusion = generated_img = std_output = None
         # load prompts.
 
         with gr.Row():
@@ -119,7 +121,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                         value=7.5,
                         step=0.1,
                         label="Guidance Scale",
-                        interactive=False,
                     )
                 with gr.Row():
                     height = gr.Slider(
@@ -129,6 +130,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                         step=64,
                         label="Height",
                         interactive=False,
+                        visible=False,
                     )
                     width = gr.Slider(
                         384,
@@ -137,6 +139,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                         step=64,
                         label="Width",
                         interactive=False,
+                        visible=False,
                     )
                 with gr.Row():
                     precision = gr.Radio(
@@ -155,6 +158,12 @@ with gr.Blocks(css=demo_css) as shark_web:
                         label="Live Preview", value=False
                     )
                     # Hidden Items.
+                    import_mlir = gr.Checkbox(
+                        label="Import MLIR",
+                        value=False,
+                        interactive=False,
+                        visible=False,
+                    )
                     scheduler = gr.Radio(
                         label="Scheduler",
                         value="LMS",
@@ -193,15 +202,16 @@ with gr.Blocks(css=demo_css) as shark_web:
                     )
                 stable_diffusion = gr.Button("Generate Image")
             with gr.Column(scale=1, min_width=600):
-                generated_img = gr.Image(
-                    type="pil", elem_id="img_result", interactive=False
-                ).style(height=768)
-                std_output = gr.Textbox(
-                    label="Std Output",
-                    value="Nothing.",
-                    lines=5,
-                    visible=False,
-                )
+                with gr.Row():
+                    generated_img = gr.Image(
+                        type="pil", elem_id="img_result", interactive=False
+                    ).style(height=768)
+                    std_output = gr.Textbox(
+                        label="Std Output",
+                        value="Nothing.",
+                        lines=5,
+                        visible=False,
+                    )
 
         """
         debug.change(
@@ -230,6 +240,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 iree_vulkan_target_triple,
                 live_preview,
                 save_img,
+                import_mlir,
             ],
             outputs=[generated_img, std_output],
         )
