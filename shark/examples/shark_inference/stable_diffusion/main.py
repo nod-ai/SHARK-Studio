@@ -5,7 +5,7 @@ from diffusers import LMSDiscreteScheduler
 from tqdm.auto import tqdm
 import numpy as np
 from stable_args import args
-from utils import get_shark_model
+from utils import get_shark_model, set_iree_runtime_flags
 from opt_params import get_unet, get_vae, get_clip
 import time
 
@@ -46,6 +46,7 @@ if __name__ == "__main__":
 
     batch_size = len(prompt)
 
+    set_iree_runtime_flags()
     unet = get_unet()
     vae = get_vae()
     clip = get_clip()

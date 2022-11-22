@@ -97,4 +97,10 @@ p.add_argument(
     help='directory where you want to store dispatch data generated with "--dispatch_benchmarks"',
 )
 
+p.add_argument(
+    "--vulkan_large_heap_block_size",
+    default="4294967296",
+    help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
+)
+
 args = p.parse_args()

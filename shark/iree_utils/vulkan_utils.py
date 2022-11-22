@@ -16,6 +16,7 @@
 
 from os import linesep
 from shark.iree_utils._common import run_cmd
+import iree.runtime as ireert
 
 
 def get_vulkan_device_name():
@@ -68,3 +69,9 @@ def get_iree_vulkan_args(extra_args=[]):
     if vulkan_triple_flag is not None:
         vulkan_flag.append(vulkan_triple_flag)
     return vulkan_flag
+
+
+def set_iree_vulkan_runtime_flags(flags):
+    for flag in flags:
+        ireert.flags.parse_flags(flag)
+    return
