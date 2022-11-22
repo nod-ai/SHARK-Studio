@@ -122,7 +122,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                         step=0.1,
                         label="Guidance Scale",
                     )
-                with gr.Row():
+                    # Hidden Items
                     height = gr.Slider(
                         384,
                         768,
