@@ -23,16 +23,8 @@ def get_unet():
     # Tuned model is present for `fp16` precision.
     if args.precision == "fp16":
         if args.use_tuned:
-            sys.exit("The tuned version is in maintenance, stay tuned.")
             bucket = "gs://shark_tank/quinn"
-            model_name = "unet_fp16_tunedv2"
-            iree_flags += [
-                "--iree-flow-enable-padding-linalg-ops",
-                "--iree-flow-linalg-ops-padding-size=32",
-            ]
-            # TODO: Pass iree_flags to the exported model.
-            if args.import_mlir:
-                return get_unet16_wrapped(model_name, iree_flags)
+            model_name = "unet_22nov_fp16_tuned"
             return get_shark_model(bucket, model_name, iree_flags)
         else:
             bucket = "gs://shark_tank/prashant_nod"
