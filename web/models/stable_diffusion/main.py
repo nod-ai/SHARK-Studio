@@ -7,6 +7,8 @@ from PIL import Image
 from diffusers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
 from tqdm.auto import tqdm
 import numpy as np
+from numpy import iinfo
+from random import randint
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
 from models.stable_diffusion.arguments import args, schedulers, cache_obj
 
@@ -23,7 +25,7 @@ def stable_diff_inf(
     guidance: float,
     height: int,
     width: int,
-    seed: str,
+    seed: int,
     precision: str,
     device: str,
     cache: bool,
@@ -35,12 +37,9 @@ def stable_diff_inf(
 
     start = time.time()
     # set seed value
-    try:
-        seed = int(seed)
-        if seed < 0 or seed > 10000:
-            seed = int(torch.randint(low=25, high=100, size=()))
-    except (ValueError, OverflowError) as error:
-        seed = hash(seed)
+    uint32_info = iinfo(np.uint32)
+    if seed < uint32_info.min and seed >= uint32_info.max:
+        seed = randint(uint32_info.min, uint32_info.max)
 
     args.set_params(
         prompt,
