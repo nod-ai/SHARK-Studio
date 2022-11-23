@@ -84,7 +84,7 @@ def get_vae16(model_name="vae_fp16", extra_args=[]):
     return shark_vae
 
 
-def get_unet16_wrapped(model_name="unet_fp16_wrapped", extra_args=[]):
+def get_unet16_lms(model_name="unet_fp16_wrapped", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -135,7 +135,7 @@ def get_unet16_wrapped(model_name="unet_fp16_wrapped", extra_args=[]):
     return shark_unet
 
 
-def get_unet32_wrapped(model_name="unet_fp32_wrapped", extra_args=[]):
+def get_unet32_lms(model_name="unet_fp32_wrapped", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
@@ -173,6 +173,93 @@ def get_unet32_wrapped(model_name="unet_fp32_wrapped", extra_args=[]):
             torch.tensor([1.0]),
             text_embeddings,
             sigma,
+            guidance_scale,
+        ),
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_unet
+
+
+def get_unet32(model_name="unet_fp32_wrapped", extra_args=[]):
+    class UnetModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.unet = UNet2DConditionModel.from_pretrained(
+                "CompVis/stable-diffusion-v1-4",
+                subfolder="unet",
+                use_auth_token=YOUR_TOKEN,
+            )
+            self.in_channels = self.unet.in_channels
+            self.train(False)
+
+        def forward(self, latent, timestep, text_embedding, guidance_scale):
+            latents = torch.cat([latent] * 2)
+            unet_out = self.unet.forward(
+                latents, timestep, text_embedding, return_dict=False
+            )[0]
+            noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
+            noise_pred = noise_pred_uncond + guidance_scale * (
+                noise_pred_text - noise_pred_uncond
+            )
+            return noise_pred
+
+    unet = UnetModel()
+    latent_model_input = torch.rand([BATCH_SIZE, 4, 64, 64])
+    text_embeddings = torch.rand([2 * BATCH_SIZE, args.max_length, 768])
+    guidance_scale = torch.tensor(1).to(torch.float32)
+    shark_unet = compile_through_fx(
+        unet,
+        (
+            latent_model_input,
+            torch.tensor([1.0]),
+            text_embeddings,
+            guidance_scale,
+        ),
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_unet
+
+
+def get_unet16(model_name="unet_fp16", extra_args=[]):
+    class UnetModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.unet = UNet2DConditionModel.from_pretrained(
+                "CompVis/stable-diffusion-v1-4",
+                subfolder="unet",
+                use_auth_token=YOUR_TOKEN,
+                revision="fp16",
+            )
+            self.in_channels = self.unet.in_channels
+            self.train(False)
+
+        def forward(self, latent, timestep, text_embedding, guidance_scale):
+            # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+            latents = torch.cat([latent] * 2)
+            unet_out = self.unet.forward(
+                latents, timestep, text_embedding, return_dict=False
+            )[0]
+            noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
+            noise_pred = noise_pred_uncond + guidance_scale * (
+                noise_pred_text - noise_pred_uncond
+            )
+            return noise_pred
+
+    unet = UnetModel()
+    unet = unet.half().cuda()
+    latent_model_input = torch.rand([BATCH_SIZE, 4, 64, 64]).half().cuda()
+    text_embeddings = (
+        torch.rand([2 * BATCH_SIZE, args.max_length, 768]).half().cuda()
+    )
+    guidance_scale = torch.tensor(1).to(torch.float32)
+    shark_unet = compile_through_fx(
+        unet,
+        (
+            latent_model_input,
+            torch.tensor([1.0]).half().cuda(),
+            text_embeddings,
             guidance_scale,
         ),
         model_name=model_name,
