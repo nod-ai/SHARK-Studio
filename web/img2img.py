@@ -1,6 +1,6 @@
 # from models.resnet50 import resnet_inf
 # from models.albert_maskfill import albert_maskfill_inf
-from models.stable_diffusion.main import stable_diff_inf
+from models.stable_diffusion.img2img_main import img2img_inf
 
 # from models.diffusion.v_diffusion import vdiff_inf
 import gradio as gr
@@ -10,13 +10,6 @@ import os
 from random import randint
 from numpy import iinfo
 import numpy as np
-
-
-prompt_examples = []
-prompt_loc = "./prompts.json"
-if os.path.exists(prompt_loc):
-    with open("./prompts.json", encoding="utf-8") as fopen:
-        prompt_examples = json.load(fopen)
 
 
 demo_css = """
@@ -39,9 +32,7 @@ demo_css = """
 
 footer {display: none !important;}
 """
-
-with gr.Blocks(css=demo_css) as shark_web:
-
+with gr.Blocks(css=demo_css) as img2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open("./logos/nod-logo.png")
         logo2 = Image.open("./logos/sd-demo-logo.png")
@@ -72,14 +63,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                         lines=1,
                         elem_id="prompt_box",
                     )
-                with gr.Group():
-                    ex = gr.Examples(
-                        label="Examples",
-                        examples=prompt_examples,
-                        inputs=prompt,
-                        cache_examples=False,
-                        elem_id="prompt_examples",
-                    )
+                    init_img = gr.Image(type="pil")
                 with gr.Row():
                     steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
                     guidance = gr.Slider(
@@ -115,7 +99,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                     )
                     scheduler = gr.Radio(
                         label="Scheduler",
-                        value="DPM",
+                        value="DDIM",
                         choices=["PNDM", "LMS", "DDIM", "DPM"],
                         visible=False,
                     )
@@ -125,6 +109,10 @@ with gr.Blocks(css=demo_css) as shark_web:
                         value="vulkan",
                         choices=["cuda", "vulkan"],
                         interactive=False,
+                        visible=False,
+                    )
+                    start_steps = gr.Slider(
+                        1, 100, value=10, step=1, label="Start"
                     )
                     with gr.Group():
                         uint32_info = iinfo(np.uint32)
@@ -139,7 +127,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                             outputs=[seed],
                         )
                     cache = gr.Checkbox(label="Cache", value=True)
-                    debug = gr.Checkbox(label="DEBUG", value=True)
+                    debug = gr.Checkbox(label="DEBUG", value=False)
                     save_img = gr.Checkbox(
                         label="Save", value=False, visible=False
                     )
@@ -187,6 +175,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                     label="Std Output",
                     value="Loading...",
                     lines=5,
+                    visible=False,
                 )
         debug.change(
             lambda x: gr.update(visible=x),
@@ -194,32 +183,11 @@ with gr.Blocks(css=demo_css) as shark_web:
             outputs=[std_output],
         )
 
-        prompt.submit(
-            stable_diff_inf,
-            inputs=[
-                prompt,
-                scheduler,
-                iters_count,
-                batch_size,
-                steps,
-                guidance,
-                height,
-                width,
-                seed,
-                precision,
-                device,
-                cache,
-                iree_vulkan_target_triple,
-                live_preview,
-                save_img,
-                import_mlir,
-            ],
-            outputs=[generated_img, std_output],
-        )
         stable_diffusion.click(
-            stable_diff_inf,
+            img2img_inf,
             inputs=[
                 prompt,
+                init_img,
                 scheduler,
                 iters_count,
                 batch_size,
@@ -235,15 +203,13 @@ with gr.Blocks(css=demo_css) as shark_web:
                 live_preview,
                 save_img,
                 import_mlir,
+                start_steps,
             ],
             outputs=[generated_img, std_output],
         )
 
-shark_web.queue()
-# shark_web.launch(server_name="0.0.0.0", server_port=8080, enable_queue=True)
-from fastapi import FastAPI
-from img2img import img2img_web
-
-app = FastAPI()
-app = gr.mount_gradio_app(app, shark_web, path="/")
-app = gr.mount_gradio_app(app, img2img_web, path="/img2img")
+img2img_web.queue()
+if __name__ == "__main__":
+    img2img_web.launch(
+        share=True, server_name="0.0.0.0", server_port=8080, enable_queue=True
+    )

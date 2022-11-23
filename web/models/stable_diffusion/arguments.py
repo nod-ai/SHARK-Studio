@@ -33,6 +33,7 @@ class Arguments:
         use_tuned: bool = False,
         vulkan_large_heap_block_size: int = 4294967296,
         version: str = "v1.4",
+        start_step: int = 0,
     ):
         self.prompt = prompt
         self.scheduler = scheduler
@@ -54,6 +55,7 @@ class Arguments:
         self.use_tuned = use_tuned
         self.vulkan_large_heap_block_size = vulkan_large_heap_block_size
         self.version = version
+        self.start_step = start_step
 
     def set_params(
         self,
@@ -73,6 +75,7 @@ class Arguments:
         live_preview: bool,
         save_img: bool,
         import_mlir: bool,
+        start_step: int = 0,
     ):
         self.prompt = prompt
         self.scheduler = scheduler
@@ -90,6 +93,7 @@ class Arguments:
         self.live_preview = live_preview
         self.save_img = save_img
         self.import_mlir = import_mlir
+        self.start_step = start_step
 
 
 output_dir = "./stored_results/stable_diffusion"
@@ -113,8 +117,7 @@ schedulers["DDIM"] = DDIMScheduler(
     beta_start=0.00085,
     beta_end=0.012,
     beta_schedule="scaled_linear",
-    clip_sample=False,
-    set_alpha_to_one=False,
+    num_train_timesteps=1000,
 )
 schedulers["DPM"] = DPMSolverMultistepScheduler.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
