@@ -7,6 +7,9 @@ import gradio as gr
 from PIL import Image
 import json
 import os
+from random import randint
+from numpy import iinfo
+import numpy as np
 
 """
 def debug_event(debug):
@@ -147,7 +150,12 @@ with gr.Blocks(css=demo_css) as shark_web:
                         value="fp16",
                         choices=["fp16", "fp32"],
                     )
-                    seed = gr.Textbox(value="42", max_lines=1, label="Seed")
+                    uint32_info = iinfo(np.uint32)
+                    rand_seed = randint(uint32_info.min, uint32_info.max)
+                    seed = gr.Number(
+                        value=rand_seed,
+                        label="Seed",
+                    )
                 with gr.Row():
                     cache = gr.Checkbox(label="Cache", value=True)
                     debug = gr.Checkbox(
