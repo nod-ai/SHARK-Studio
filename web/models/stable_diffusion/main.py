@@ -10,10 +10,12 @@ import numpy as np
 from numpy import iinfo
 from random import randint
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
-from models.stable_diffusion.arguments import args, schedulers, cache_obj
-
-output_dir = "./stored_results/stable_diffusion"
-os.makedirs(output_dir, exist_ok=True)
+from models.stable_diffusion.arguments import (
+    args,
+    schedulers,
+    cache_obj,
+    output_dir,
+)
 
 
 def stable_diff_inf(
@@ -153,6 +155,7 @@ def stable_diff_inf(
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
         text_output += f"Time = {step_ms}ms."
+        print(f" \nIteration = {i}, Time = {step_ms}ms")
         latents = scheduler_obj.step(noise_pred, i, latents)["prev_sample"]
 
         if live_preview and i % 5 == 0:
@@ -178,6 +181,7 @@ def stable_diff_inf(
 
     avg_ms = 1000 * avg_ms / args.steps
     text_output += f"\n\nAverage step time: {avg_ms}ms/it"
+    print(f"\n\nAverage step time: {avg_ms}ms/it")
 
     total_time = time.time() - start
     text_output += f"\n\nTotal image generation time: {total_time}sec"
