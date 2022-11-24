@@ -3,6 +3,16 @@ import os
 import torch
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
+from shark.iree_utils.vulkan_utils import set_iree_vulkan_runtime_flags
+
+
+def set_iree_runtime_flags(args):
+    vulkan_runtime_flags = [
+        f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
+    ]
+    if "vulkan" in args.device:
+        set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
+    return
 
 
 def _compile_module(args, shark_module, model_name, extra_args=[]):

@@ -1,6 +1,8 @@
 from transformers import CLIPTokenizer
 from diffusers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
+from models.stable_diffusion.utils import set_iree_runtime_flags
+import os
 
 
 class Arguments:
@@ -24,6 +26,7 @@ class Arguments:
         import_mlir: bool = False,
         max_length: int = 77,
         use_tuned: bool = False,
+        vulkan_large_heap_block_size: int = 4294967296,
     ):
         self.prompt = prompt
         self.scheduler = scheduler
@@ -43,6 +46,7 @@ class Arguments:
         self.import_mlir = import_mlir
         self.max_length = max_length
         self.use_tuned = use_tuned
+        self.vulkan_large_heap_block_size = vulkan_large_heap_block_size
 
     def set_params(
         self,
@@ -81,6 +85,9 @@ class Arguments:
         self.import_mlir = import_mlir
 
 
+output_dir = "./stored_results/stable_diffusion"
+os.makedirs(output_dir, exist_ok=True)
+
 schedulers = dict()
 # set scheduler value
 schedulers["PNDM"] = PNDMScheduler(
@@ -112,6 +119,7 @@ cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
 # cache vae and unet.
 args = Arguments()
 args.device = "vulkan"
+set_iree_runtime_flags(args)
 cache_obj["vae_fp16_vulkan"], cache_obj["unet_fp16_vulkan"] = get_vae(
     args
 ), get_unet(args)
