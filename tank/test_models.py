@@ -448,6 +448,30 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(
                 reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/489"
             )
+        if (
+            config["model_name"]
+            in [
+                "microsoft/resnet-50",
+                "alexnet",
+                "resnet101",
+                "resnet18",
+                "resnet50",
+                "wide_resnet50_2",
+            ]
+            and device
+            in [
+                "cpu",
+                "cuda",
+            ]
+            and config["framework"] == "torch"
+        ):
+            pytest.xfail(
+                reason="tensor dimension issue: https://github.com/nod-ai/SHARK/issues/511"
+            )
+        if config["model_name"] == "squeezenet1_0" and device == "cuda":
+            pytest.xfail(
+                reason="tensor dimension issue: https://github.com/nod-ai/SHARK/issues/511"
+            )
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
