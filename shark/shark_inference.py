@@ -97,6 +97,9 @@ class SharkInference:
             extra_args.append(
                 f"--iree-hal-dump-executable-sources-to={self.dispatch_benchmarks_dir}"
             )
+            extra_args.append(
+                f"--iree-hal-dump-executable-binaries-to={self.dispatch_benchmarks_dir}"
+            )
             temp_dir = self.dispatch_benchmarks_dir.split("/")
             temp_dir[-1] = "temp_" + temp_dir[-1]
             temp_dir = "/".join(temp_dir)
