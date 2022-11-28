@@ -115,7 +115,7 @@ Set `USE_IREE=1` to use upstream IREE
 
 If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
-with Python bindings and set your PYTHONPATH as mentioned [here](https://google.github.io/iree/bindings/python/)
+with Python bindings and set your PYTHONPATH as mentioned [here](https://github.com/iree-org/iree/tree/main/docs/api_docs/python#install-iree-binaries)
 for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
 for Torch-MLIR.
 
