@@ -66,38 +66,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                 ).style(width=150, height=100)
 
     with gr.Row(elem_id="ui_body"):
-        prompt = (
-            scheduler
-        ) = (
-            iters_count
-        ) = (
-            batch_size
-        ) = (
-            steps
-        ) = (
-            guidance
-        ) = (
-            height
-        ) = (
-            width
-        ) = (
-            seed
-        ) = (
-            precision
-        ) = (
-            device
-        ) = (
-            cache
-        ) = (
-            iree_vulkan_target_triple
-        ) = (
-            live_preview
-        ) = (
-            debug
-        ) = (
-            save_img
-        ) = import_mlir = stable_diffusion = generated_img = std_output = None
-        # load prompts.
 
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
@@ -230,6 +198,28 @@ with gr.Blocks(css=demo_css) as shark_web:
         )
         """
 
+        prompt.submit(
+            stable_diff_inf,
+            inputs=[
+                prompt,
+                scheduler,
+                iters_count,
+                batch_size,
+                steps,
+                guidance,
+                height,
+                width,
+                seed,
+                precision,
+                device,
+                cache,
+                iree_vulkan_target_triple,
+                live_preview,
+                save_img,
+                import_mlir,
+            ],
+            outputs=[generated_img, std_output],
+        )
         stable_diffusion.click(
             stable_diff_inf,
             inputs=[
