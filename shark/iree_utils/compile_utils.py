@@ -90,6 +90,17 @@ def create_dispatch_dirs(bench_dir, device):
                 )
 
 
+def dump_isas(bench_dir):
+    for d_ in os.listdir(bench_dir):
+        if os.path.isdir(f"{bench_dir}/{d_}"):
+            for f_ in os.listdir(f"{bench_dir}/{d_}"):
+                if f_.endswith(".spv"):
+                    os.system(
+                        f"amdllpc -gfxip 11.0 {bench_dir}/{d_}/{f_} -v > \
+                         {bench_dir}/{d_}/isa.txt"
+                    )
+
+
 def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
     benchmark_runtimes = {}
     dispatch_list = []
