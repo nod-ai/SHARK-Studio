@@ -1,4 +1,7 @@
 Compile / Run Instructions
+To compile .vmfb for SD (vae, unet, CLIP), run the following commands with the .mlir in your local shark_tank cache (default location for Linux users is `~/.local/shark_tank`). These will be available once the script from [this README] is run once.
+Running the script mentioned above with the `--save_vmfb` flag will also save the .vmfb in your SHARK base directory if you want to skip straight to benchmarks.
+
 Compile Commands FP32/FP16: 
 
 ```shell
@@ -17,32 +20,33 @@ iree-compile --iree-input-type=none --iree-hal-target-backends=llvm-cpu  --iree-
 
 
 
-Run / Benchmark Command (FP32 - NHWC) BS=2:
-(NEED to use BS=2 since we do two forward passes)
+Run / Benchmark Command (FP32 - NCHW):
+(NEED to use BS=2 since we do two forward passes to unet as a result of classifier free guidance.)
 
 ```shell
 ## Vulkan AMD:
-iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan --function_input="2x64x64x4xf32"  --function_input="2x320xf32" --function_input="2x77x768xf32"
+iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
 
 ## CUDA:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=cuda --function_input="2x64x64x4xf32"  --function_input="2x320xf32" --function_input="2x77x768xf32"
+iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=cuda  --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
 
 ## CPU:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=local-task --function_input="2x64x64x4xf32"  --function_input="2x320xf32" --function_input="2x77x768xf32"
+iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=local-task  --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
+
 ```
 
 
-Run / Benchmark Command (FP32 - NCHW) BS=2:
+Run / Benchmark Command (FP32 - NHWC):
 
 ```shell
 Vulkan:
-iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan --function_input=2x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32
+iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan  --function_input=1x64x64x4xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
 
 CUDA:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=cuda --function_input=2x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32
+iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=cuda  --function_input=1x64x64x4xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
 
 CPU:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=local-task --function_input=2x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32
+iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=local-task  --function_input=1x64x64x4xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
 ```
 
 Run via vulkan_gui for RGP Profiling:
