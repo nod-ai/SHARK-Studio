@@ -142,8 +142,8 @@ with gr.Blocks(css=demo_css) as shark_web:
                     )
                     scheduler = gr.Radio(
                         label="Scheduler",
-                        value="LMS",
-                        choices=["PNDM", "LMS", "DDIM"],
+                        value="DPM",
+                        choices=["PNDM", "LMS", "DDIM", "DPM"],
                         interactive=False,
                         visible=False,
                     )

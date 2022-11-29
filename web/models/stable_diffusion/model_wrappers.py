@@ -3,66 +3,71 @@ from transformers import CLIPTextModel
 from models.stable_diffusion.utils import compile_through_fx
 import torch
 
-YOUR_TOKEN = "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"
+
+model_config = {
+    "v2": "stabilityai/stable-diffusion-2",
+    "v1.4": "CompVis/stable-diffusion-v1-4",
+}
+
+model_input = {
+    "v2": {
+        "clip": (torch.randint(1, 2, (1, 77)),),
+        "vae": (torch.randn(1, 4, 96, 96),),
+        "unet": (
+            torch.randn(1, 4, 96, 96),  # latents
+            torch.tensor([1]).to(torch.float32),  # timestep
+            torch.randn(2, 77, 1024),  # embedding
+            torch.tensor(1).to(torch.float32),  # guidance_scale
+        ),
+    },
+    "v1.4": {
+        "clip": (torch.randint(1, 2, (1, 77)),),
+        "vae": (torch.randn(1, 4, 64, 64),),
+        "unet": (
+            torch.randn(1, 4, 64, 64),
+            torch.tensor([1]).to(torch.float32),  # timestep
+            torch.randn(2, 77, 768),
+            torch.tensor(1).to(torch.float32),
+        ),
+    },
+}
 
 
-def get_clipped_text(args, model_name="clip_text", extra_args=[]):
+def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
+    text_encoder = CLIPTextModel.from_pretrained(
+        "openai/clip-vit-large-patch14"
+    )
+    if args.version == "v2":
+        text_encoder = CLIPTextModel.from_pretrained(
+            model_config[args.version], subfolder="text_encoder"
+        )
+
     class CLIPText(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.text_encoder = CLIPTextModel.from_pretrained(
-                "openai/clip-vit-large-patch14"
-            )
+            self.text_encoder = text_encoder
 
         def forward(self, input):
             return self.text_encoder(input)[0]
 
     clip_model = CLIPText()
-    clip_input = torch.randint(1, 2, (args.batch_size, 77))
     shark_clip = compile_through_fx(
         args,
         clip_model,
-        (clip_input,),
+        model_input[args.version]["clip"],
         model_name=model_name,
         extra_args=extra_args,
     )
     return shark_clip
 
 
-def get_vae32(args, model_name="vae_fp32", extra_args=[]):
+def get_vae_mlir(args, model_name="vae", extra_args=[]):
     class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.vae = AutoencoderKL.from_pretrained(
-                "CompVis/stable-diffusion-v1-4",
+                model_config[args.version],
                 subfolder="vae",
-                use_auth_token=YOUR_TOKEN,
-            )
-
-        def forward(self, input):
-            x = self.vae.decode(input, return_dict=False)[0]
-            return (x / 2 + 0.5).clamp(0, 1)
-
-    vae = VaeModel()
-    vae_input = torch.rand(args.batch_size, 4, 64, 64)
-    shark_vae = compile_through_fx(
-        args,
-        vae,
-        (vae_input,),
-        model_name=model_name,
-        extra_args=extra_args,
-    )
-    return shark_vae
-
-
-def get_vae16(args, model_name="vae_fp16", extra_args=[]):
-    class VaeModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.vae = AutoencoderKL.from_pretrained(
-                "CompVis/stable-diffusion-v1-4",
-                subfolder="vae",
-                use_auth_token=YOUR_TOKEN,
                 revision="fp16",
             )
 
@@ -72,36 +77,34 @@ def get_vae16(args, model_name="vae_fp16", extra_args=[]):
 
     vae = VaeModel()
     vae = vae.half().cuda()
-    vae_input = torch.rand(args.batch_size, 4, 64, 64, dtype=torch.half).cuda()
+    inputs = tuple(
+        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
+    )
     shark_vae = compile_through_fx(
         args,
         vae,
-        (vae_input,),
+        inputs,
         model_name=model_name,
         extra_args=extra_args,
     )
     return shark_vae
 
 
-def get_unet16_wrapped(args, model_name="unet_fp16_wrapped", extra_args=[]):
+def get_unet_mlir(args, model_name="unet", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.unet = UNet2DConditionModel.from_pretrained(
-                "CompVis/stable-diffusion-v1-4",
+                model_config[args.version],
                 subfolder="unet",
-                use_auth_token=YOUR_TOKEN,
                 revision="fp16",
             )
             self.in_channels = self.unet.in_channels
             self.train(False)
 
-        def forward(
-            self, latent, timestep, text_embedding, sigma, guidance_scale
-        ):
+        def forward(self, latent, timestep, text_embedding, guidance_scale):
             # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
             latents = torch.cat([latent] * 2)
-            latents = latents / (torch.pow((torch.pow(sigma, 2) + 1), 0.5))
             unet_out = self.unet.forward(
                 latents, timestep, text_embedding, return_dict=False
             )[0]
@@ -113,69 +116,16 @@ def get_unet16_wrapped(args, model_name="unet_fp16_wrapped", extra_args=[]):
 
     unet = UnetModel()
     unet = unet.half().cuda()
-    latent_model_input = torch.rand([args.batch_size, 4, 64, 64]).half().cuda()
-    text_embeddings = (
-        torch.rand([2 * args.batch_size, args.max_length, 768]).half().cuda()
+    inputs = tuple(
+        [
+            inputs.half().cuda() if len(inputs.shape) != 0 else inputs
+            for inputs in model_input[args.version]["unet"]
+        ]
     )
-    sigma = torch.tensor(1).to(torch.float32)
-    guidance_scale = torch.tensor(1).to(torch.float32)
     shark_unet = compile_through_fx(
         args,
         unet,
-        (
-            latent_model_input,
-            torch.tensor([1.0]).half().cuda(),
-            text_embeddings,
-            sigma,
-            guidance_scale,
-        ),
-        model_name=model_name,
-        extra_args=extra_args,
-    )
-    return shark_unet
-
-
-def get_unet32_wrapped(args, model_name="unet_fp32_wrapped", extra_args=[]):
-    class UnetModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.unet = UNet2DConditionModel.from_pretrained(
-                "CompVis/stable-diffusion-v1-4",
-                subfolder="unet",
-                use_auth_token=YOUR_TOKEN,
-            )
-            self.in_channels = self.unet.in_channels
-            self.train(False)
-
-        def forward(
-            self, latent, timestep, text_embedding, sigma, guidance_scale
-        ):
-            latents = torch.cat([latent] * 2)
-            latents = latents / (torch.pow((torch.pow(sigma, 2) + 1), 0.5))
-            unet_out = self.unet.forward(
-                latents, timestep, text_embedding, return_dict=False
-            )[0]
-            noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
-            noise_pred = noise_pred_uncond + guidance_scale * (
-                noise_pred_text - noise_pred_uncond
-            )
-            return noise_pred
-
-    unet = UnetModel()
-    latent_model_input = torch.rand([args.batch_size, 4, 64, 64])
-    text_embeddings = torch.rand([2 * args.batch_size, args.max_length, 768])
-    sigma = torch.tensor(1).to(torch.float32)
-    guidance_scale = torch.tensor(1).to(torch.float32)
-    shark_unet = compile_through_fx(
-        args,
-        unet,
-        (
-            latent_model_input,
-            torch.tensor([1.0]),
-            text_embeddings,
-            sigma,
-            guidance_scale,
-        ),
+        inputs,
         model_name=model_name,
         extra_args=extra_args,
     )

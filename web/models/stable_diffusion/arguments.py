@@ -1,5 +1,10 @@
 from transformers import CLIPTokenizer
-from diffusers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
+from diffusers import (
+    LMSDiscreteScheduler,
+    PNDMScheduler,
+    DDIMScheduler,
+    DPMSolverMultistepScheduler,
+)
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
 from models.stable_diffusion.utils import set_iree_runtime_flags
 import os
@@ -25,8 +30,9 @@ class Arguments:
         save_img: bool = False,
         import_mlir: bool = False,
         max_length: int = 77,
-        use_tuned: bool = False,
+        use_tuned: bool = True,
         vulkan_large_heap_block_size: int = 4294967296,
+        version: str = "v1.4",
     ):
         self.prompt = prompt
         self.scheduler = scheduler
@@ -47,6 +53,7 @@ class Arguments:
         self.max_length = max_length
         self.use_tuned = use_tuned
         self.vulkan_large_heap_block_size = vulkan_large_heap_block_size
+        self.version = version
 
     def set_params(
         self,
@@ -108,6 +115,10 @@ schedulers["DDIM"] = DDIMScheduler(
     beta_schedule="scaled_linear",
     clip_sample=False,
     set_alpha_to_one=False,
+)
+schedulers["DPM"] = DPMSolverMultistepScheduler.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    subfolder="scheduler",
 )
 
 cache_obj = dict()
