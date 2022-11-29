@@ -145,6 +145,7 @@ if __name__ == "__main__":
 
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
+    # latents = latents.
     latents_numpy = latents.detach().numpy()
     profile_device = start_profiling(file_path="vae.rdc")
     image = vae.forward((latents_numpy,))
