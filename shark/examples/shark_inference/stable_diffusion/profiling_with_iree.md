@@ -36,23 +36,9 @@ iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --dev
 
 ```
 
-
-Run / Benchmark Command (FP32 - NHWC):
-
-```shell
-Vulkan:
-iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan  --function_input=1x64x64x4xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
-
-CUDA:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=cuda  --function_input=1x64x64x4xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
-
-CPU:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=local-task  --function_input=1x64x64x4xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
-```
-
 Run via vulkan_gui for RGP Profiling:
 
 To build the vulkan app for profiling UNet follow the instructions [here](https://github.com/nod-ai/SHARK/tree/main/cpp) and then run the following command from the cpp directory with your compiled stable_diff.vmfb
 ```shell
-./build/vulkan_gui/iree-vulkan-gui --module_file=/path/to/unet.vmfb --function_input=2x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32
+./build/vulkan_gui/iree-vulkan-gui --module_file=/path/to/unet.vmfb --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
 ```
