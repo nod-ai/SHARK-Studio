@@ -1,7 +1,12 @@
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
 from PIL import Image
-from diffusers import LMSDiscreteScheduler, PNDMScheduler, DDIMScheduler
+from diffusers import (
+    LMSDiscreteScheduler,
+    PNDMScheduler,
+    DDIMScheduler,
+    DPMSolverMultistepScheduler,
+)
 from tqdm.auto import tqdm
 import numpy as np
 from stable_args import args
@@ -47,17 +52,16 @@ if __name__ == "__main__":
     batch_size = len(prompt)
 
     set_iree_runtime_flags()
-    unet_lms, unet = get_unet()
+    unet = get_unet()
     vae = get_vae()
     clip = get_clip()
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
 
-    scheduler = LMSDiscreteScheduler(
-        beta_start=0.00085,
-        beta_end=0.012,
-        beta_schedule="scaled_linear",
-        num_train_timesteps=1000,
+    # Change the scheduler accordingly.
+    scheduler = DPMSolverMultistepScheduler.from_pretrained(
+        "CompVis/stable-diffusion-v1-4",
+        subfolder="scheduler",
     )
 
     start = time.time()
@@ -101,31 +105,19 @@ if __name__ == "__main__":
         step_start = time.time()
         print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
-        latents_numpy = latents.detach().numpy()
+        latent_model_input = scheduler.scale_model_input(latents, t)
+        latents_numpy = latent_model_input.detach().numpy()
 
         profile_device = start_profiling(file_path="unet.rdc")
 
-        noise_pred = None
-        if isinstance(scheduler, LMSDiscreteScheduler):
-            sigma_numpy = np.array(scheduler.sigmas[i]).astype(np.float32)
-            noise_pred = unet_lms.forward(
-                (
-                    latents_numpy,
-                    timestep,
-                    text_embeddings_numpy,
-                    sigma_numpy,
-                    guidance_scale,
-                )
+        noise_pred = unet.forward(
+            (
+                latents_numpy,
+                timestep,
+                text_embeddings_numpy,
+                guidance_scale,
             )
-        else:
-            noise_pred = unet.forward(
-                (
-                    latents_numpy,
-                    timestep,
-                    text_embeddings_numpy,
-                    guidance_scale,
-                )
-            )
+        )
 
         end_profiling(profile_device)
 
