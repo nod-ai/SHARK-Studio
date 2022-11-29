@@ -130,7 +130,7 @@ def stable_diff_inf(
     scheduler_obj.set_timesteps(args.steps)
     scheduler_obj.is_scale_input_called = True
 
-    latents = latents * scheduler.init_noise_sigma
+    latents = latents * scheduler_obj.init_noise_sigma
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
     avg_ms = 0
@@ -141,7 +141,7 @@ def stable_diff_inf(
         text_output += f"\n Iteration = {i} | Timestep = {t} | "
         step_start = time.time()
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
-        latents_model_input = scheduler.scale_model_input(latents, t)
+        latents_model_input = scheduler_obj.scale_model_input(latents, t)
         latents_numpy = latents_model_input.detach().numpy()
 
         noise_pred = unet.forward(
