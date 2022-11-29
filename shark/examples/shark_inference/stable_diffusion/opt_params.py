@@ -2,9 +2,7 @@ import sys
 from model_wrappers import (
     get_vae32,
     get_vae16,
-    get_unet16_lms,
     get_unet16,
-    get_unet32_lms,
     get_unet32,
     get_clipped_text,
 )
@@ -31,37 +29,27 @@ def get_unet():
         else:
             bucket = "gs://shark_tank/prashant_nod"
             model_name = "unet_23nov_fp16"
-            model_name_lms = model_name + "_lms"
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
                 "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             ]
             if args.import_mlir:
-                return get_unet16_lms(model_name_lms, iree_flags), get_unet16(
-                    model_name, iree_flags
-                )
-            return get_shark_model(
-                bucket, model_name_lms, iree_flags
-            ), get_shark_model(bucket, model_name, iree_flags)
+                return get_unet16(model_name, iree_flags)
+            return get_shark_model(bucket, model_name, iree_flags)
 
     # Tuned model is not present for `fp32` case.
     if args.precision == "fp32":
         bucket = "gs://shark_tank/prashant_nod"
         model_name = "unet_23nov_fp32"
-        model_name_lms = model_name + "_lms"
         iree_flags += [
             "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=16",
         ]
         if args.import_mlir:
-            return get_unet32_lms(model_name + "_lms", iree_flags), get_unet32(
-                model_name, iree_flags
-            )
-        return get_shark_model(
-            bucket, model_name_lms, iree_flags
-        ), get_shark_model(bucket, model_name, iree_flags)
+            return get_unet32(model_name, iree_flags)
+        return get_shark_model(bucket, model_name, iree_flags)
 
     if args.precision == "int8":
         bucket = "gs://shark_tank/prashant_nod"
