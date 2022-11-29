@@ -4,7 +4,12 @@ import time
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
 from PIL import Image
-from diffusers import DDIMScheduler, LMSDiscreteScheduler, PNDMScheduler
+from diffusers import (
+    LMSDiscreteScheduler,
+    PNDMScheduler,
+    DDIMScheduler,
+    DPMSolverMultistepScheduler,
+)
 from tqdm.auto import tqdm
 import numpy as np
 from numpy import iinfo
@@ -125,7 +130,7 @@ def stable_diff_inf(
     scheduler_obj.set_timesteps(args.steps)
     scheduler_obj.is_scale_input_called = True
 
-    latents = latents * scheduler_obj.sigmas[0]
+    latents = latents * scheduler.init_noise_sigma
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
     avg_ms = 0
@@ -136,17 +141,14 @@ def stable_diff_inf(
         text_output += f"\n Iteration = {i} | Timestep = {t} | "
         step_start = time.time()
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
-        if args.precision == "int8":
-            timestep = np.array(t).astype("int64")
-        latents_numpy = latents.detach().numpy()
-        sigma_numpy = np.array(scheduler_obj.sigmas[i]).astype(np.float32)
+        latents_model_input = scheduler.scale_model_input(latents, t)
+        latents_numpy = latents_model_input.detach().numpy()
 
         noise_pred = unet.forward(
             (
                 latents_numpy,
                 timestep,
                 text_embeddings_numpy,
-                sigma_numpy,
                 guidance_scale,
             )
         )
@@ -156,7 +158,7 @@ def stable_diff_inf(
         step_ms = int((step_time) * 1000)
         text_output += f"Time = {step_ms}ms."
         print(f" \nIteration = {i}, Time = {step_ms}ms")
-        latents = scheduler_obj.step(noise_pred, i, latents)["prev_sample"]
+        latents = scheduler_obj.step(noise_pred, t, latents)["prev_sample"]
 
         if live_preview and i % 5 == 0:
             scaled_latents = 1 / 0.18215 * latents
