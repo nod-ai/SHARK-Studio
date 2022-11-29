@@ -13,6 +13,7 @@ from stable_args import args
 from utils import get_shark_model, set_iree_runtime_flags
 from opt_params import get_unet, get_vae, get_clip
 import time
+from model_wrappers import get_vae_mlir
 
 
 # Helper function to profile the vulkan device.
@@ -39,6 +40,9 @@ if __name__ == "__main__":
     prompt = args.prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
+    if args.version == "v2":
+        height = 768
+        width = 768
 
     num_inference_steps = args.steps  # Number of denoising steps
 
@@ -57,12 +61,19 @@ if __name__ == "__main__":
     clip = get_clip()
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-
-    # Change the scheduler accordingly.
     scheduler = DPMSolverMultistepScheduler.from_pretrained(
         "CompVis/stable-diffusion-v1-4",
         subfolder="scheduler",
     )
+    if args.version == "v2":
+        tokenizer = CLIPTokenizer.from_pretrained(
+            "stabilityai/stable-diffusion-2", subfolder="tokenizer"
+        )
+
+        scheduler = DPMSolverMultistepScheduler.from_pretrained(
+            "stabilityai/stable-diffusion-2",
+            subfolder="scheduler",
+        )
 
     start = time.time()
 

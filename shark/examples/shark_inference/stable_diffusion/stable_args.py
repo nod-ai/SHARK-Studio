@@ -19,6 +19,14 @@ p.add_argument(
     default=10,
     help="the no. of steps to do the sampling.",
 )
+
+p.add_argument(
+    "--version",
+    type=str,
+    default="v1.4",
+    help="Specify version of stable diffusion model",
+)
+
 p.add_argument(
     "--seed",
     type=int,

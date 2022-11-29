@@ -1,10 +1,8 @@
 import sys
 from model_wrappers import (
-    get_vae32,
-    get_vae16,
-    get_unet16,
-    get_unet32,
-    get_clipped_text,
+    get_vae_mlir,
+    get_unet_mlir,
+    get_clip_mlir,
 )
 from stable_args import args
 from utils import get_shark_model
@@ -29,13 +27,15 @@ def get_unet():
         else:
             bucket = "gs://shark_tank/prashant_nod"
             model_name = "unet_23nov_fp16"
+            if args.version == "v2":
+                model_name = "unet2_29nov_fp16"
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
                 "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             ]
             if args.import_mlir:
-                return get_unet16(model_name, iree_flags)
+                return get_unet_mlir(model_name, iree_flags)
             return get_shark_model(bucket, model_name, iree_flags)
 
     # Tuned model is not present for `fp32` case.
@@ -48,7 +48,7 @@ def get_unet():
             "--iree-flow-linalg-ops-padding-size=16",
         ]
         if args.import_mlir:
-            return get_unet32(model_name, iree_flags)
+            return get_unet_mlir(model_name, iree_flags)
         return get_shark_model(bucket, model_name, iree_flags)
 
     if args.precision == "int8":
@@ -76,13 +76,15 @@ def get_vae():
     if args.precision in ["fp16", "int8"]:
         bucket = "gs://shark_tank/prashant_nod"
         model_name = "vae_22nov_fp16"
+        if args.version == "v2":
+            model_name = "vae2_29nov_fp16"
         iree_flags += [
             "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
         ]
         if args.import_mlir:
-            return get_vae16(model_name, iree_flags)
+            return get_vae_mlir(model_name, iree_flags)
         return get_shark_model(bucket, model_name, iree_flags)
 
     if args.precision == "fp32":
@@ -94,7 +96,7 @@ def get_vae():
             "--iree-flow-linalg-ops-padding-size=16",
         ]
         if args.import_mlir:
-            return get_vae32(model_name, iree_flags)
+            return get_vae_mlir(model_name, iree_flags)
         return get_shark_model(bucket, model_name, iree_flags)
 
 
@@ -106,10 +108,12 @@ def get_clip():
         )
     bucket = "gs://shark_tank/prashant_nod"
     model_name = "clip_18nov_fp32"
+    if args.version == "v2":
+        model_name = "clip2_29nov_fp32"
     iree_flags += [
         "--iree-flow-linalg-ops-padding-size=16",
         "--iree-flow-enable-padding-linalg-ops",
     ]
     if args.import_mlir:
-        return get_clipped_text(model_name, iree_flags)
+        return get_clip_mlir(model_name, iree_flags)
     return get_shark_model(bucket, model_name, iree_flags)
