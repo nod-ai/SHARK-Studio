@@ -30,7 +30,7 @@ class Arguments:
         save_img: bool = False,
         import_mlir: bool = False,
         max_length: int = 77,
-        use_tuned: bool = True,
+        use_tuned: bool = False,
         vulkan_large_heap_block_size: int = 4294967296,
         version: str = "v1.4",
     ):

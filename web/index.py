@@ -11,10 +11,6 @@ from random import randint
 from numpy import iinfo
 import numpy as np
 
-"""
-def debug_event(debug):
-    return gr.Textbox.update(visible=debug)
-"""
 
 prompt_examples = []
 prompt_loc = "./prompts.json"
@@ -126,14 +122,15 @@ with gr.Blocks(css=demo_css) as shark_web:
                     )
                 with gr.Row():
                     cache = gr.Checkbox(label="Cache", value=True)
-                    debug = gr.Checkbox(
-                        label="DEBUG", value=False, visible=False
-                    )
+                    debug = gr.Checkbox(label="DEBUG", value=False)
                     save_img = gr.Checkbox(label="Save Image", value=False)
-                    live_preview = gr.Checkbox(
-                        label="Live Preview", value=False
-                    )
                     # Hidden Items.
+                    live_preview = gr.Checkbox(
+                        label="Live Preview",
+                        value=False,
+                        interactive=False,
+                        visible=False,
+                    )
                     import_mlir = gr.Checkbox(
                         label="Import MLIR",
                         value=False,
@@ -188,15 +185,11 @@ with gr.Blocks(css=demo_css) as shark_web:
                         lines=5,
                         visible=False,
                     )
-
-        """
         debug.change(
-            debug_event,
+            lambda x: gr.Textbox.update(visible=x),
             inputs=[debug],
             outputs=[std_output],
-            show_progress=False,
         )
-        """
 
         prompt.submit(
             stable_diff_inf,
