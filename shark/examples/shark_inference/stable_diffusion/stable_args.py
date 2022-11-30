@@ -94,6 +94,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--dump_isa",
+    default=False,
+    action="store_true",
+    help="When enabled call amdllpc to get ISA dumps. use with dispatch benchmarks.",
+)
+
+p.add_argument(
     "--dispatch_benchmarks",
     default=None,
     help='dispatches to return benchamrk data on.  use "All" for all, and None for none.',

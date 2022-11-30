@@ -16,6 +16,12 @@ python main.py --precision="fp32"|"fp16" --device="cpu"|"cuda"|"vulkan" --import
 
 ```
 
+## dump all dispatch .spv and isa using amdllpc
+
+```shell
+python main.py --precision="fp16" --device="vulkan" --iree-vulkan-target-triple=rdna3-unknown-linux --no-load_vmfb --dispatch_benchmarks="all" --dispatch_benchmarks_dir="SD_dispatches" --dump_isa
+```
+
 ## Compile and save the .vmfb (using vulkan fp16 as an example):
 
 ```shell

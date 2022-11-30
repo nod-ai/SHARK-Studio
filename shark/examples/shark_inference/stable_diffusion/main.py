@@ -14,7 +14,7 @@ from utils import get_shark_model, set_iree_runtime_flags
 from opt_params import get_unet, get_vae, get_clip
 import time
 from model_wrappers import get_vae_mlir
-
+from shark.iree_utils.compile_utils import dump_isas
 
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
@@ -59,6 +59,8 @@ if __name__ == "__main__":
     unet = get_unet()
     vae = get_vae()
     clip = get_clip()
+    if args.dump_isa:
+        dump_isas(args.dispatch_benchmarks_dir)
 
     tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
     scheduler = DPMSolverMultistepScheduler.from_pretrained(
