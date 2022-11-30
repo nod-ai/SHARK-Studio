@@ -45,11 +45,13 @@ source shark.venv/bin/activate
 
 #### Windows 10/11 Users
 ```powershell
+(shark.venv) PS C:\Users\nod\SHARK> cd web
 (shark.venv) PS C:\Users\nod\SHARK\web> python web\index.py
 ```
 #### Linux Users
 ```shell
-(shark.venv) > python web/index.py
+(shark.venv) > cd web
+(shark.venv) > python index.py
 ```
 
 Access Stable Diffusion on http://localhost:8080
