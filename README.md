@@ -6,10 +6,7 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 [![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
 
 
-## Installation
-
-<details>
-  <summary>Installation (Linux, macOS and Windows)</summary>
+## Installation (Windows, Linux and macOS)
 
 ## Check out the code
 
@@ -19,33 +16,45 @@ git clone https://github.com/nod-ai/SHARK.git
 
 ## Setup your Python VirtualEnvironment and Dependencies
 
-### Windows Users
+### Windows 10/11 Users
 
-```shell
-# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...). 
-# Requires Python 3.10 and Powershell
-./setup_venv.ps1
-shark.venv/Scripts/activate
+* Install the latest Python 3.10.x version from [here](https://www.python.org/downloads/windows/)
+
+* Install Git for Windows from [here](https://git-scm.com/download/win)
+
+#### Allow the install script to run in Powershell
+```powershell
+set-executionpolicy remotesigned.  
+```
+
+#### Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...)
+```powershell
+./setup_venv.ps1 #You can re-run this script to get the latest version
 ```
 
 ### Linux / macOS Users
 
 ```shell
-# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...).
 ./setup_venv.sh
-source shark.venv/bin/activate
 ```
 
-To run Stable Diffusion on your hardware follow the instructions [here](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
+### Run Stable Diffusion on your vulkan device
 
-### Run a demo model via the test framework
+```shell
+python main.py --precision="fp16" --device="vulkan" --no-import_mlir --prompt "Tajmahal, oil on canvas, 4k, sunflowers" 
+```
+
+You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. 
+
+For more options to Stable Diffusion go [here](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
+Find us on Discord if you have any trouble with running it on your hardware. 
+
+### Run any of the hundreds of SHARK tank models via the test framework
 ```shell
 python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
 # Or a pytest
 pytest tank/test_models.py -k "MiniLM"
 ```
-
-</details>
 
 <details>
   <summary>Binary Installation</summary>
