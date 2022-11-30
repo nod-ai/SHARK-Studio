@@ -6,7 +6,7 @@
 
 https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
 
-## Installation (Windows, Linux and macOS)
+## Installation (Windows, Linux)
 
 ## Check out the code
 
@@ -32,7 +32,7 @@ set-executionpolicy remotesigned.
 ./setup_venv.ps1 #You can re-run this script to get the latest version
 ```
 
-### Linux / macOS Users
+### Linux
 
 ```shell
 ./setup_venv.sh
@@ -46,12 +46,10 @@ source shark.venv/bin/activate
 (shark.venv) PS C:\g\shark> python .\shark\examples\shark_inference\stable_diffusion\main.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
 ```
 
-#### Linux / macOS Users
+#### Linux
 ```shell
 python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
-
-You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. 
 
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
 
