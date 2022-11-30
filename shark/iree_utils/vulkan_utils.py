@@ -49,6 +49,9 @@ def get_vulkan_triple_flag(extra_args=[]):
     elif all(x in vulkan_device for x in ("RTX", "3090")):
         print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
+    elif all(x in vulkan_device for x in ("RTX", "4090")):
+        print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
+        return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
     elif "AMD" in vulkan_device:
         print("Found AMD device. Using rdna2-unknown-linux")
         return "-iree-vulkan-target-triple=rdna2-unknown-linux"
