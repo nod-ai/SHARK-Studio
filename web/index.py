@@ -89,6 +89,11 @@ with gr.Blocks(css=demo_css) as shark_web:
                         step=0.1,
                         label="Guidance Scale",
                     )
+                    precision = gr.Radio(
+                        label="Precision",
+                        value="fp16",
+                        choices=["fp16", "fp32"],
+                    )
                     # Hidden Items
                     height = gr.Slider(
                         384,
@@ -108,22 +113,36 @@ with gr.Blocks(css=demo_css) as shark_web:
                         interactive=False,
                         visible=False,
                     )
-                with gr.Row():
-                    precision = gr.Radio(
-                        label="Precision",
-                        value="fp16",
-                        choices=["fp16", "fp32"],
+                    scheduler = gr.Radio(
+                        label="Scheduler",
+                        value="DPM",
+                        choices=["PNDM", "LMS", "DDIM", "DPM"],
+                        visible=False,
                     )
-                    uint32_info = iinfo(np.uint32)
-                    rand_seed = randint(uint32_info.min, uint32_info.max)
-                    seed = gr.Number(
-                        value=rand_seed,
-                        label="Seed",
+                with gr.Row(equal_height=True):
+                    device = gr.Radio(
+                        label="Device",
+                        value="vulkan",
+                        choices=["cuda", "vulkan"],
+                        interactive=False,
                     )
-                with gr.Row():
+                    with gr.Group():
+                        uint32_info = iinfo(np.uint32)
+                        rand_seed = randint(uint32_info.min, uint32_info.max)
+                        random_seed = gr.Button("Random seed").style(
+                            full_width=True
+                        )
+                        seed = gr.Number(value=rand_seed, show_label=False)
+                        random_seed.click(
+                            lambda: randint(uint32_info.min, uint32_info.max),
+                            inputs=[],
+                            outputs=[seed],
+                        )
                     cache = gr.Checkbox(label="Cache", value=True)
-                    debug = gr.Checkbox(label="DEBUG", value=False)
-                    save_img = gr.Checkbox(label="Save Image", value=False)
+                    debug = gr.Checkbox(label="DEBUG", value=True)
+                    save_img = gr.Checkbox(
+                        label="Save", value=False, visible=False
+                    )
                     # Hidden Items.
                     live_preview = gr.Checkbox(
                         label="Live Preview",
@@ -134,20 +153,6 @@ with gr.Blocks(css=demo_css) as shark_web:
                     import_mlir = gr.Checkbox(
                         label="Import MLIR",
                         value=False,
-                        interactive=False,
-                        visible=False,
-                    )
-                    scheduler = gr.Radio(
-                        label="Scheduler",
-                        value="DPM",
-                        choices=["PNDM", "LMS", "DDIM", "DPM"],
-                        interactive=False,
-                        visible=False,
-                    )
-                    device = gr.Radio(
-                        label="Device",
-                        value="vulkan",
-                        choices=["cpu", "cuda", "vulkan"],
                         interactive=False,
                         visible=False,
                     )
@@ -175,18 +180,16 @@ with gr.Blocks(css=demo_css) as shark_web:
                     )
                 stable_diffusion = gr.Button("Generate Image")
             with gr.Column(scale=1, min_width=600):
-                with gr.Row():
-                    generated_img = gr.Image(
-                        type="pil", elem_id="img_result", interactive=False
-                    ).style(height=768)
-                    std_output = gr.Textbox(
-                        label="Std Output",
-                        value="Nothing.",
-                        lines=5,
-                        visible=False,
-                    )
+                generated_img = gr.Image(type="pil", interactive=False).style(
+                    height=768
+                )
+                std_output = gr.Textbox(
+                    label="Std Output",
+                    value="Loading...",
+                    lines=5,
+                )
         debug.change(
-            lambda x: gr.Textbox.update(visible=x),
+            lambda x: gr.update(visible=x),
             inputs=[debug],
             outputs=[std_output],
         )
