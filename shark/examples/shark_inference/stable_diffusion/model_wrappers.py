@@ -34,8 +34,12 @@ model_input = {
     },
 }
 
+# revision param for from_pretrained defaults to "main" => fp32
+model_revision = "fp16" if args.precision == "fp16" else "main"
+
 
 def get_clip_mlir(model_name="clip_text", extra_args=[]):
+
     text_encoder = CLIPTextModel.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
@@ -69,7 +73,7 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
             self.vae = AutoencoderKL.from_pretrained(
                 model_config[args.version],
                 subfolder="vae",
-                revision="fp16",
+                revision=model_revision,
             )
 
         def forward(self, input):
@@ -77,10 +81,17 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
             return (x / 2 + 0.5).clamp(0, 1)
 
     vae = VaeModel()
-    vae = vae.half().cuda()
-    inputs = tuple(
-        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
-    )
+    if args.precision == "fp16":
+        vae = vae.half().cuda()
+        inputs = tuple(
+            [
+                inputs.half().cuda()
+                for inputs in model_input[args.version]["vae"]
+            ]
+        )
+    else:
+        inputs = model_input[args.version]["vae"]
+
     shark_vae = compile_through_fx(
         vae,
         inputs,
@@ -125,7 +136,7 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             self.unet = UNet2DConditionModel.from_pretrained(
                 model_config[args.version],
                 subfolder="unet",
-                revision="fp16",
+                revision=model_revision,
             )
             self.in_channels = self.unet.in_channels
             self.train(False)
@@ -143,13 +154,16 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             return noise_pred
 
     unet = UnetModel()
-    unet = unet.half().cuda()
-    inputs = tuple(
-        [
-            inputs.half().cuda() if len(inputs.shape) != 0 else inputs
-            for inputs in model_input[args.version]["unet"]
-        ]
-    )
+    if args.precision == "fp16":
+        unet = unet.half().cuda()
+        inputs = tuple(
+            [
+                inputs.half().cuda() if len(inputs.shape) != 0 else inputs
+                for inputs in model_input[args.version]["unet"]
+            ]
+        )
+    else:
+        inputs = model_input[args.version]["unet"]
     shark_unet = compile_through_fx(
         unet,
         inputs,
