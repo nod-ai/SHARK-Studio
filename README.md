@@ -5,16 +5,50 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 [![Nightly Release](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml)
 [![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
 
-## Communication Channels
-
-*   [SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the SHARK team and other users
-*   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
-
 
 ## Installation
 
 <details>
   <summary>Installation (Linux, macOS and Windows)</summary>
+
+## Check out the code
+
+```shell
+git clone https://github.com/nod-ai/SHARK.git
+```
+
+## Setup your Python VirtualEnvironment and Dependencies
+
+### Windows Users
+
+```shell
+# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...). 
+# Requires Python 3.10 and Powershell
+./setup_venv.ps1
+shark.venv/Scripts/activate
+```
+
+### Linux / macOS Users
+
+```shell
+# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...).
+./setup_venv.sh
+source shark.venv/bin/activate
+```
+
+To run Stable Diffusion on your hardware follow the instructions [here](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
+
+### Run a demo model via the test framework
+```shell
+python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
+# Or a pytest
+pytest tank/test_models.py -k "MiniLM"
+```
+
+</details>
+
+<details>
+  <summary>Binary Installation</summary>
 
 ### Setup a new pip Virtual Environment
 
@@ -66,43 +100,6 @@ python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal
 </details>
 
 
-<details>
-  <summary>Source Installation</summary>
-
-## Check out the code
-
-```shell
-git clone https://github.com/nod-ai/SHARK.git
-```
-
-## Setup your Python VirtualEnvironment and Dependencies
-
-### Windows Users
-
-```shell
-# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...). 
-# Requires Python 3.10 and Powershell
-./setup_venv.ps1
-shark.venv/Scripts/activate
-```
-
-### Linux / macOS Users
-
-```shell
-# Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...).
-./setup_venv.sh
-source shark.venv/bin/activate
-```
-
-
-### Run a demo script
-```shell
-python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
-# Or a pytest
-pytest tank/test_models.py -k "MiniLM"
-```
-
-</details>
 
 <details>
   <summary>Development, Testing and Benchmarks</summary>
@@ -232,6 +229,11 @@ SHARK is maintained to support the latest innovations in ML Models:
 | ResNet50         | :green_heart:         | :green_heart:         | :green_heart:            |
 
 For a complete list of the models supported in SHARK, please refer to [tank/README.md](https://github.com/nod-ai/SHARK/blob/main/tank/README.md).
+
+## Communication Channels
+
+*   [SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the SHARK team and other users
+*   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
 
 ## Related Projects
 
