@@ -1,10 +1,12 @@
-# Stable Diffusion optimized for AMD RDNA2/RDNA3 GPUs using SHARK
+# Stable Diffusion optimized for AMD RDNA2/RDNA3 GPUs
 
-## Install the latest AMD Drivers for RDNA2/RDNA3 GPUs
+## Install the latest AMD Drivers
 
+### RDNA2 Drivers:
 *AMD Software: Adrenalin Edition 22.11.1 for MLIR/IREE Driver Version 22.20.29.09 for Windows® 10 and Windows® 11 (Windows Driver Store Version 31.0.12029.9003)*
 
 https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
+
 
 ## Installation (Windows, Linux)
 
