@@ -2,14 +2,9 @@
 
 ## Installation
 
-Follow setup instructions in the main README.md for installing from source. Add `IMPORTER=1` before `./setup_venv.sh` or install the following after running `source shark.venv/bin/activate`:
-```shell
-pip install transformers
-pip install diffusers
-pip install scipy
-```
+Follow setup instructions in the main [README.md](https://github.com/nod-ai/SHARK#readme) for regular usage. 
 
-## RUN
+## Debug commands and other advanced usage follows.
 
 ```shell
 python main.py --precision="fp32"|"fp16" --device="cpu"|"cuda"|"vulkan" --import_mlir|--no-import_mlir --prompt "enter the text" 
