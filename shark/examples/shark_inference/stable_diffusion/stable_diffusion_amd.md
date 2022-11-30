@@ -10,12 +10,6 @@ https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
 
 ## Installation (Windows, Linux)
 
-## Check out the code
-
-```shell
-git clone https://github.com/nod-ai/SHARK.git
-```
-
 ## Setup your Python VirtualEnvironment and Dependencies
 
 ### Windows 10/11 Users
@@ -26,17 +20,21 @@ git clone https://github.com/nod-ai/SHARK.git
 
 #### Allow the install script to run in Powershell
 ```powershell
-set-executionpolicy remotesigned.  
+set-executionpolicy remotesigned 
 ```
 
 #### Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...)
 ```powershell
+git clone https://github.com/nod-ai/SHARK.git
+cd SHARK
 ./setup_venv.ps1 #You can re-run this script to get the latest version
 ```
 
 ### Linux
 
 ```shell
+git clone https://github.com/nod-ai/SHARK.git
+cd SHARK
 ./setup_venv.sh
 source shark.venv/bin/activate
 ```
