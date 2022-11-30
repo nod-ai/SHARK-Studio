@@ -25,7 +25,7 @@ def get_unet(args):
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
-                "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+                "--iree-flow-enable-conv-img2col-transform",
             ]
             if args.import_mlir:
                 return get_unet_mlir(args, model_name, iree_flags)
