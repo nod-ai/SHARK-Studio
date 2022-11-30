@@ -39,7 +39,21 @@ set-executionpolicy remotesigned.
 source shark.venv/bin/activate
 ```
 
-### Run Stable Diffusion on your device - command line
+### Run Stable Diffusion on your device - WebUI
+
+#### Windows 10/11 Users
+```powershell
+(shark.venv) PS C:\Users\nod\SHARK\web> python web\index.py
+```
+#### Linux Users
+```shell
+(shark.venv) > python web/index.py
+```
+
+Access Stable Diffusion on http://localhost:8080
+
+
+### Run Stable Diffusion on your device - Commandline
 
 #### Windows 10/11 Users
 ```powershell
@@ -53,19 +67,6 @@ python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=f
 
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
 
-
-### Run Stable Diffusion on your device - WebUI
-
-#### Windows 10/11 Users
-```powershell
-(shark.venv) PS C:\Users\nod\SHARK\web> python web\index.py
-```
-#### Linux / macOS Users
-```shell
-(shark.venv) > python web/index.py
-```
-
-Access Stable Diffusion on http://localhost:8080
 
 
 Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
