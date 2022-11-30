@@ -46,7 +46,7 @@ source shark.venv/bin/activate
 #### Windows 10/11 Users
 ```powershell
 (shark.venv) PS C:\Users\nod\SHARK> cd web
-(shark.venv) PS C:\Users\nod\SHARK\web> python web\index.py
+(shark.venv) PS C:\Users\nod\SHARK\web> python index.py
 ```
 #### Linux Users
 ```shell
