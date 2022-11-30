@@ -36,25 +36,46 @@ set-executionpolicy remotesigned.
 
 ```shell
 ./setup_venv.sh
+source shark.venv/bin/activate
 ```
 
-### Run Stable Diffusion on your vulkan device
+### Run Stable Diffusion on your device - command line
 
+#### [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree)
+
+Other users please ensure you have your latest vendor drivers and Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home) and if you are using vulkan check `vulkaninfo` works in a terminal window
+
+#### Windows 10/11 Users
+```powershell
+(shark.venv) PS C:\g\shark> python .\shark\examples\shark_inference\stable_diffusion\main.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
+```
+
+#### Linux / macOS Users
 ```shell
-python main.py --precision="fp16" --device="vulkan" --no-import_mlir --prompt "Tajmahal, oil on canvas, 4k, sunflowers" 
+python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
 
 You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. 
 
-For more options to Stable Diffusion go [here](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
-Find us on Discord if you have any trouble with running it on your hardware. 
+For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
 
-### Run any of the hundreds of SHARK tank models via the test framework
-```shell
-python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
-# Or a pytest
-pytest tank/test_models.py -k "MiniLM"
+
+### Run Stable Diffusion on your device - WebUI
+
+#### Windows 10/11 Users
+```powershell
+(shark.venv) PS C:\Users\nod\SHARK\web> python web\index.py
 ```
+#### Linux / macOS Users
+```shell
+(shark.venv) > python web/index.py
+```
+
+Access Stable Diffusion on http://localhost:8080
+
+
+Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
+
 
 <details>
   <summary>Binary Installation</summary>
@@ -118,6 +139,14 @@ Set `USE_IREE=1` to use upstream IREE
 ```
 # PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
 ```
+
+### Run any of the hundreds of SHARK tank models via the test framework
+```shell
+python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
+# Or a pytest
+pytest tank/test_models.py -k "MiniLM"
+```
+  
 
 If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
