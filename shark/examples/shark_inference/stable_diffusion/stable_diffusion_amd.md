@@ -67,6 +67,13 @@ Access Stable Diffusion on http://localhost:8080
 python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
 
+Here are some samples generated:
+
+![tajmahal, snow, sunflowers, oil on canvas_0](https://user-images.githubusercontent.com/74956/204933218-e8e8e16e-d83f-4384-83f5-13647b6e35ce.jpg)
+
+![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
+
+
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
 
 
