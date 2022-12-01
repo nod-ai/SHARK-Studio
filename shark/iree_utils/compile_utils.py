@@ -23,7 +23,9 @@ import re
 
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
-    if "://" in device:
+    device_path = device
+    if "://" in device and "vulkan://" not in device:
+        print(f"Specific device selection only supported for vulkan now.")
         device = device.split("://")[0]
     if device == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
@@ -36,7 +38,7 @@ def get_iree_device_args(device, extra_args=[]):
     if device in ["metal", "vulkan"]:
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
-        return get_iree_vulkan_args(extra_args=extra_args)
+        return get_iree_vulkan_args(device_path, extra_args)
     if device == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 

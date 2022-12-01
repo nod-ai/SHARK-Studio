@@ -17,6 +17,7 @@
 import os
 import sys
 import subprocess
+from iree.runtime import get_driver, get_device
 
 
 def run_cmd(cmd):
@@ -37,13 +38,91 @@ def run_cmd(cmd):
         sys.exit("Exiting program due to error running:", cmd)
 
 
+def get_all_devices(driver_name, full_dict=False):
+    """
+    Inputs: driver_name
+    Returns a list of all the available devices for a given driver sorted by
+    the iree path names of the device as in --list_devices option in iree.
+    Set `full_dict` flag to True to get a dict
+    with `path`, `name` and `device_id` for all devices
+    """
+    driver = get_driver(driver_name)
+    device_list_src = driver.query_available_devices()
+    device_list_src.sort(key=lambda d: d["path"])
+    if full_dict:
+        return device_list_src
+    device_list = []
+    for device_dict in device_list_src:
+        device_list.append(f"{driver_name}://{device_dict['path']}")
+    return device_list
+
+
+def _iree_device_map_vulkan(device):
+    def get_selected_device_index():
+        if "://" not in device:
+            return 0
+
+        _, d_index = device.split("://")
+        matched_index = 0
+        match_with_index = False
+        if 0 <= len(d_index) <= 2:
+            try:
+                d_index = int(d_index)
+                if d_index >= len(device_list):
+                    raise IndexError()
+            except ValueError:
+                print(
+                    f"{d_index} is not valid index or uri. Choosing device 0"
+                )
+                return 0
+            except IndexError:
+                print(
+                    f"Only 0 to {len(device_list)-1} devices available and "
+                    f"user requested device {d_index}. Choosing device 0"
+                )
+                return 0
+            match_with_index = True
+
+        # Only called when there are multiple devices
+        for i, d in enumerate(device_list):
+            if (match_with_index and d_index == i) or (
+                not match_with_index and d == device
+            ):
+                matched_index = i
+        return matched_index
+
+    # only supported for vulkan as of now
+    device_list = get_all_devices("vulkan")
+
+    if len(device_list) == 1:
+        print(
+            f"Available vulkan device:\nvulkan://0 => {device_list[0]}\nUsing this device."
+        )
+        return get_device(device_list[0])
+
+    if len(device_list) > 1:
+        matched_index = get_selected_device_index(device, device_list)
+        print("List of available vulkan devices:")
+        for i, d in enumerate(device_list):
+            print(f"vulkan://{i} => {d}")
+        print(
+            f"Choosing device vulkan://{matched_index}\nTo choose another device "
+            f"please specify device index or uri accordingly."
+        )
+        return get_device(device_list[matched_index])
+
+    print(
+        f"No device found! returning device corresponding to driver name: vulkan"
+    )
+    return _IREE_DEVICE_MAP["vulkan"]
+
+
 def iree_device_map(device):
     uri_parts = device.split("://", 2)
     if len(uri_parts) == 1:
         return _IREE_DEVICE_MAP[uri_parts[0]]
     else:
         return f"{_IREE_DEVICE_MAP[uri_parts[0]]}://{uri_parts[1]}"
-
 
 def get_supported_device_list():
     return list(_IREE_DEVICE_MAP.keys())
