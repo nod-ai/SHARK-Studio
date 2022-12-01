@@ -97,6 +97,9 @@ class SharkInference:
             extra_args.append(
                 f"--iree-hal-dump-executable-sources-to={self.dispatch_benchmarks_dir}"
             )
+            extra_args.append(
+                f"--iree-hal-dump-executable-binaries-to={self.dispatch_benchmarks_dir}"
+            )
             temp_dir = self.dispatch_benchmarks_dir.split("/")
             temp_dir[-1] = "temp_" + temp_dir[-1]
             temp_dir = "/".join(temp_dir)
@@ -193,11 +196,12 @@ class SharkInference:
         )
 
     # load and return the module.
-    def load_module(self, path):
+    def load_module(self, path, extra_args=[]):
         self.shark_runner = SharkRunner(
             function_name=self.function_name,
             device=self.device,
             compile_vmfb=False,
+            extra_args=extra_args,
         )
         (
             self.shark_runner.iree_compilation_module,

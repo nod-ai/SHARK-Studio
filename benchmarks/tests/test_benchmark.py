@@ -42,7 +42,7 @@ class TFHuggingFaceLanguage(tf.Module):
             input_ids=x, attention_mask=y, token_type_ids=z, training=False
         )
 
-    @tf.function(input_signature=tf_bert_input)
+    @tf.function(input_signature=tf_bert_input, jit_compile=True)
     def forward(self, input_ids, attention_mask, token_type_ids):
         return self.m.predict(input_ids, attention_mask, token_type_ids)
 

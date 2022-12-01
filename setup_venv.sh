@@ -77,7 +77,8 @@ $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
   if [[ $(uname -s) = 'Darwin' ]]; then
-    echo "MacOS detected. Please install torch-mlir from source or .whl, as dependency problems may occur otherwise."
+    echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
+    $PYTHON -m pip install --pre --no-cache-dir  torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
   else
     $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
     if [ $? -eq 0 ];then
@@ -104,8 +105,6 @@ else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
 
-$PYTHON -m pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME}
-
 if [[ ! -z "${IMPORTER}" ]]; then
   echo "${Yellow}Installing importer tools.."
   if [[ $(uname -s) = 'Linux' ]]; then
@@ -118,6 +117,9 @@ if [[ ! -z "${IMPORTER}" ]]; then
     $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   fi
 fi
+
+$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
+
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116

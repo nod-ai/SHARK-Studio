@@ -87,7 +87,7 @@ class TFHuggingFaceLanguage(tf.Module):
             input_ids=x, attention_mask=y, token_type_ids=z, training=False
         )
 
-    @tf.function(input_signature=tf_bert_input)
+    @tf.function(input_signature=tf_bert_input, jit_compile=True)
     def forward(self, input_ids, attention_mask, token_type_ids):
         return self.m.predict(input_ids, attention_mask, token_type_ids)
 
@@ -162,7 +162,7 @@ class MaskedLM(tf.Module):
         )
         self.m.predict = lambda x, y: self.m(input_ids=x, attention_mask=y)[0]
 
-    @tf.function(input_signature=input_signature_maskedlm)
+    @tf.function(input_signature=input_signature_maskedlm, jit_compile=True)
     def forward(self, input_ids, attention_mask):
         return self.m.predict(input_ids, attention_mask)
 
@@ -191,7 +191,10 @@ class ResNetModule(tf.Module):
         self.m = tf_model
         self.m.predict = lambda x: self.m.call(x, training=False)
 
-    @tf.function(input_signature=[tf.TensorSpec(INPUT_SHAPE, tf.float32)])
+    @tf.function(
+        input_signature=[tf.TensorSpec(INPUT_SHAPE, tf.float32)],
+        jit_compile=True,
+    )
     def forward(self, inputs):
         return self.m.predict(inputs)
 
@@ -240,7 +243,7 @@ class AutoModelImageClassfication(tf.Module):
         )
         self.m.predict = lambda x: self.m(x)
 
-    @tf.function(input_signature=input_signature_img_cls)
+    @tf.function(input_signature=input_signature_img_cls, jit_compile=True)
     def forward(self, inputs):
         return self.m.predict(inputs)
 

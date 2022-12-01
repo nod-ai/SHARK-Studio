@@ -1,14 +1,27 @@
+import os
+
 import torch
 from shark.shark_inference import SharkInference
-from shark.shark_importer import SharkImporter
-from torch.fx.experimental.proxy_tensor import make_fx
-from torch._decomp import get_decompositions
-import torch_mlir
-import os
+from shark.shark_importer import import_with_fx
+from shark.iree_utils.vulkan_utils import set_iree_vulkan_runtime_flags
+
+
+def set_iree_runtime_flags(args):
+    vulkan_runtime_flags = [
+        f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
+    ]
+    if "vulkan" in args.device:
+        set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
+    return
 
 
 def _compile_module(args, shark_module, model_name, extra_args=[]):
-    extended_name = "{}_{}".format(model_name, args.device)
+    device = (
+        args.device
+        if "://" not in args.device
+        else "-".join(args.device.split("://"))
+    )
+    extended_name = "{}_{}".format(model_name, device)
     if args.cache:
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
         if os.path.isfile(vmfb_path):
@@ -37,48 +50,7 @@ def get_shark_model(args, tank_url, model_name, extra_args=[]):
 # Converts the torch-module into shark_module.
 def compile_through_fx(args, model, inputs, model_name, extra_args=[]):
 
-    fx_g = make_fx(
-        model,
-        decomposition_table=get_decompositions(
-            [
-                torch.ops.aten.embedding_dense_backward,
-                torch.ops.aten.native_layer_norm_backward,
-                torch.ops.aten.slice_backward,
-                torch.ops.aten.select_backward,
-                torch.ops.aten.norm.ScalarOpt_dim,
-                torch.ops.aten.native_group_norm,
-                torch.ops.aten.upsample_bilinear2d.vec,
-                torch.ops.aten.split.Tensor,
-                torch.ops.aten.split_with_sizes,
-            ]
-        ),
-    )(*inputs)
-
-    fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
-    fx_g.recompile()
-
-    def strip_overloads(gm):
-        """
-        Modifies the target of graph nodes in :attr:`gm` to strip overloads.
-        Args:
-            gm(fx.GraphModule): The input Fx graph module to be modified
-        """
-        for node in gm.graph.nodes:
-            if isinstance(node.target, torch._ops.OpOverload):
-                node.target = node.target.overloadpacket
-        gm.recompile()
-
-    strip_overloads(fx_g)
-
-    ts_g = torch.jit.trace(fx_g, inputs)
-
-    mlir_importer = SharkImporter(
-        ts_g,
-        inputs,
-        frontend="torch",
-    )
-
-    (mlir_module, func_name), _, _ = mlir_importer.import_debug()
+    mlir_module, func_name = import_with_fx(model, inputs)
 
     shark_module = SharkInference(
         mlir_module,

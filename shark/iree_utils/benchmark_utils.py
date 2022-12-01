@@ -13,12 +13,12 @@
 # limitations under the License.
 
 import iree.runtime.scripts.iree_benchmark_module as benchmark_module
-from shark.iree_utils._common import run_cmd, IREE_DEVICE_MAP
+from shark.iree_utils._common import run_cmd, iree_device_map
 import numpy as np
 import os
 import re
 
-UNIT_TO_SECOND_MAP = {"ms": 0.001, "s": 1}
+UNIT_TO_SECOND_MAP = {"us": 1e-6, "ms": 0.001, "s": 1}
 
 
 def tensor_to_type_str(input_tensors: tuple, mlir_dialect: str):
@@ -69,7 +69,7 @@ def build_benchmark_args(
         # TODO: Replace name of train with actual train fn name.
         fn_name = "train"
     benchmark_cl.append(f"--entry_function={fn_name}")
-    benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
+    benchmark_cl.append(f"--device={iree_device_map(device)}")
     mlir_input_types = tensor_to_type_str(input_tensors, mlir_dialect)
     for mlir_input in mlir_input_types:
         benchmark_cl.append(f"--function_input={mlir_input}")
@@ -94,8 +94,9 @@ def build_benchmark_args_non_tensor_input(
     benchmarker_path = os.path.join(path, "..", "..", "iree-benchmark-module")
     benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
     # TODO: The function named can be passed as one of the args.
-    benchmark_cl.append(f"--entry_function={function_name}")
-    benchmark_cl.append(f"--device={IREE_DEVICE_MAP[device]}")
+    if function_name:
+        benchmark_cl.append(f"--entry_function={function_name}")
+    benchmark_cl.append(f"--device={iree_device_map(device)}")
     for input in inputs:
         benchmark_cl.append(f"--function_input={input}")
     time_extractor = "| awk 'END{{print $2 $3}}'"

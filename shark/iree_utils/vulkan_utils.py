@@ -16,6 +16,7 @@
 
 from os import linesep
 from shark.iree_utils._common import run_cmd
+import iree.runtime as ireert
 
 
 def get_vulkan_device_name():
@@ -48,6 +49,9 @@ def get_vulkan_triple_flag(extra_args=[]):
     elif all(x in vulkan_device for x in ("RTX", "3090")):
         print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
         return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
+    elif all(x in vulkan_device for x in ("RTX", "4090")):
+        print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
+        return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
     elif "AMD" in vulkan_device:
         print("Found AMD device. Using rdna2-unknown-linux")
         return "-iree-vulkan-target-triple=rdna2-unknown-linux"
@@ -68,3 +72,9 @@ def get_iree_vulkan_args(extra_args=[]):
     if vulkan_triple_flag is not None:
         vulkan_flag.append(vulkan_triple_flag)
     return vulkan_flag
+
+
+def set_iree_vulkan_runtime_flags(flags):
+    for flag in flags:
+        ireert.flags.parse_flags(flag)
+    return

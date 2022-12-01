@@ -50,7 +50,8 @@ class BertModule(tf.Module):
         input_signature=[
             bert_input,  # inputs
             tf.TensorSpec(shape=[BATCH_SIZE], dtype=tf.int32),  # labels
-        ]
+        ],
+        jit_compile=True,
     )
     def learn(self, inputs, labels):
         with tf.GradientTape() as tape:

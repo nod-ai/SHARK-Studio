@@ -16,9 +16,17 @@ p.add_argument(
 p.add_argument(
     "--steps",
     type=int,
-    default=10,
+    default=50,
     help="the no. of steps to do the sampling.",
 )
+
+p.add_argument(
+    "--version",
+    type=str,
+    default="v1.4",
+    help="Specify version of stable diffusion model",
+)
+
 p.add_argument(
     "--seed",
     type=int,
@@ -80,9 +88,34 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available",
+)
+
+p.add_argument(
+    "--dump_isa",
+    default=False,
+    action="store_true",
+    help="When enabled call amdllpc to get ISA dumps. use with dispatch benchmarks.",
+)
+
+p.add_argument(
+    "--dispatch_benchmarks",
+    default=None,
+    help='dispatches to return benchamrk data on.  use "All" for all, and None for none.',
+)
+
+p.add_argument(
+    "--dispatch_benchmarks_dir",
+    default="temp_dispatch_benchmarks",
+    help='directory where you want to store dispatch data generated with "--dispatch_benchmarks"',
+)
+
+p.add_argument(
+    "--vulkan_large_heap_block_size",
+    default="4294967296",
+    help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
 )
 
 args = p.parse_args()
