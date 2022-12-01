@@ -52,7 +52,11 @@ source shark.venv/bin/activate
 (shark.venv) > python index.py
 ```
 
-Access Stable Diffusion on http://localhost:8080
+#### Access Stable Diffusion on http://localhost:8080/?__theme=dark
+
+
+<img width="1607" alt="webui" src="https://user-images.githubusercontent.com/74956/204939260-b8308bc2-8dc4-47f6-9ac0-f60b66edab99.png">
+
 
 
 ### Run Stable Diffusion on your device - Commandline
