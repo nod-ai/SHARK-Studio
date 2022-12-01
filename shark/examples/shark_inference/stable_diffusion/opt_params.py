@@ -40,8 +40,8 @@ def get_unet():
 
     # Tuned model is not present for `fp32` case.
     if args.precision == "fp32":
-        bucket = "gs://shark_tank/prashant_nod"
-        model_name = "unet_23nov_fp32"
+        bucket = "gs://shark_tank/stable_diffusion"
+        model_name = "unet_1dec_fp32"
         iree_flags += [
             "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
@@ -88,8 +88,8 @@ def get_vae():
         return get_shark_model(bucket, model_name, iree_flags)
 
     if args.precision == "fp32":
-        bucket = "gs://shark_tank/prashant_nod"
-        model_name = "vae_22nov_fp32"
+        bucket = "gs://shark_tank/stable_diffusion"
+        model_name = "vae_1dec_fp32"
         iree_flags += [
             "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
