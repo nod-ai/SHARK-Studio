@@ -39,28 +39,6 @@ set-executionpolicy remotesigned.
 source shark.venv/bin/activate
 ```
 
-### Run Stable Diffusion on your device - command line
-
-#### [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree)
-#### [macOS Users] Download and install the latest Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home)
-#### [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
-
-Other users please ensure you have your latest vendor drivers and Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home) and if you are using vulkan check `vulkaninfo` works in a terminal window
-
-#### Windows 10/11 Users
-```powershell
-(shark.venv) PS C:\g\shark> python .\shark\examples\shark_inference\stable_diffusion\main.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
-```
-
-#### Linux / macOS Users
-```shell
-python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
-```
-
-You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. 
-
-For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
-
 
 ### Run Stable Diffusion on your device - WebUI
 
@@ -75,8 +53,58 @@ For more options to the Stable Diffusion model read [this](https://github.com/no
 (shark.venv) > python index.py
 ```
 
-Access Stable Diffusion on http://localhost:8080
+#### Access Stable Diffusion on http://localhost:8080/?__theme=dark
 
+
+<img width="1607" alt="webui" src="https://user-images.githubusercontent.com/74956/204939260-b8308bc2-8dc4-47f6-9ac0-f60b66edab99.png">
+
+
+
+### Run Stable Diffusion on your device - Commandline
+
+#### [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree)
+#### [macOS Users] Download and install the latest Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home)
+#### [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
+
+Other users please ensure you have your latest vendor drivers and Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home) and if you are using vulkan check `vulkaninfo` works in a terminal window
+
+
+#### Windows 10/11 Users
+```powershell
+(shark.venv) PS C:\g\shark> python .\shark\examples\shark_inference\stable_diffusion\main.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
+```
+
+#### Linux / macOS Users
+```shell
+python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
+```
+
+You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
+
+The output on a 6900XT would like:
+
+```shell 
+44it [00:08,  5.14it/s]i = 44 t = 120 (191ms)
+45it [00:08,  5.15it/s]i = 45 t = 100 (191ms)
+46it [00:08,  5.16it/s]i = 46 t = 80 (191ms)
+47it [00:09,  5.16it/s]i = 47 t = 60 (193ms)
+48it [00:09,  5.15it/s]i = 48 t = 40 (195ms)
+49it [00:09,  5.12it/s]i = 49 t = 20 (196ms)
+50it [00:09,  5.14it/s]
+Average step time: 192.8154182434082ms/it
+Total image generation runtime (s): 10.390909433364868
+(shark.venv) PS C:\g\shark>
+```
+
+Here are some samples generated:
+
+![tajmahal, snow, sunflowers, oil on canvas_0](https://user-images.githubusercontent.com/74956/204934186-141f7e43-6eb2-4e89-a99c-4704d20444b3.jpg)
+
+![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
+
+
+
+For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
 
 Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
 
