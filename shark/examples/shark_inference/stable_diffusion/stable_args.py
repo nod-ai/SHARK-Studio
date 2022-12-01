@@ -118,4 +118,11 @@ p.add_argument(
     help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
 )
 
+p.add_argument(
+    "--enable_rgp",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for inserting debug frames between iterations for use with rgp.",
+)
+
 args = p.parse_args()
