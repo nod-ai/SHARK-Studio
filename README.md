@@ -12,6 +12,7 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 
 ```shell
 git clone https://github.com/nod-ai/SHARK.git
+cd SHARK
 ```
 
 ## Setup your Python VirtualEnvironment and Dependencies
@@ -24,7 +25,7 @@ git clone https://github.com/nod-ai/SHARK.git
 
 #### Allow the install script to run in Powershell
 ```powershell
-set-executionpolicy remotesigned.  
+set-executionpolicy remotesigned
 ```
 
 #### Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...)
