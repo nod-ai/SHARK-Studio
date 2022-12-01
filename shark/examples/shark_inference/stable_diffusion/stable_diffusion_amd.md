@@ -67,9 +67,24 @@ Access Stable Diffusion on http://localhost:8080
 python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
 
+The output on a 6900XT would like:
+
+```shell 
+44it [00:08,  5.14it/s]i = 44 t = 120 (191ms)
+45it [00:08,  5.15it/s]i = 45 t = 100 (191ms)
+46it [00:08,  5.16it/s]i = 46 t = 80 (191ms)
+47it [00:09,  5.16it/s]i = 47 t = 60 (193ms)
+48it [00:09,  5.15it/s]i = 48 t = 40 (195ms)
+49it [00:09,  5.12it/s]i = 49 t = 20 (196ms)
+50it [00:09,  5.14it/s]
+Average step time: 192.8154182434082ms/it
+Total image generation runtime (s): 10.390909433364868
+(shark.venv) PS C:\g\shark>
+```
+
 Here are some samples generated:
 
-![tajmahal, snow, sunflowers, oil on canvas_0](https://user-images.githubusercontent.com/74956/204933218-e8e8e16e-d83f-4384-83f5-13647b6e35ce.jpg)
+![tajmahal, snow, sunflowers, oil on canvas_0](https://user-images.githubusercontent.com/74956/204934186-141f7e43-6eb2-4e89-a99c-4704d20444b3.jpg)
 
 ![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
 
