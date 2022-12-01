@@ -87,7 +87,9 @@ if __name__ == "__main__":
         return_tensors="pt",
     )
 
+    clip_inf_start = time.time()
     text_embeddings = clip.forward((text_input.input_ids,))
+    clip_inf_end = time.time()
     text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     max_length = text_input.input_ids.shape[-1]
     uncond_input = tokenizer(
@@ -96,7 +98,9 @@ if __name__ == "__main__":
         max_length=max_length,
         return_tensors="pt",
     )
+    uncond_clip_inf_start = time.time()
     uncond_embeddings = clip.forward((uncond_input.input_ids,))
+    uncond_clip_inf_end = time.time()
     uncond_embeddings = torch.from_numpy(uncond_embeddings).to(dtype)
 
     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
@@ -150,13 +154,24 @@ if __name__ == "__main__":
     # latents = latents.
     latents_numpy = latents.detach().numpy()
     profile_device = start_profiling(file_path="vae.rdc")
+    vae_start = time.time()
     image = vae.forward((latents_numpy,))
+    vae_end = time.time()
     end_profiling(profile_device)
     image = torch.from_numpy(image)
     image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
     images = (image * 255).round().astype("uint8")
+    total_end = time.time()
 
-    print("Total image generation runtime (s): {}".format(time.time() - start))
+    clip_inf_time = (clip_inf_end - clip_inf_start) * 1000
+    uncond_clip_inf_time = (uncond_clip_inf_end - uncond_clip_inf_start) * 1000
+    avg_clip_inf = (clip_inf_time + uncond_clip_inf_time) / 2
+    vae_inf_time = (vae_end - vae_start) * 1000
+    print(
+        f"Clip Inference Avg time (ms) = ({clip_inf_time:.3f} + {uncond_clip_inf_time:.3f}) / 2 = {avg_clip_inf:.3f}"
+    )
+    print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
+    print(f"Total image generation runtime (s): {total_end - start:.4f}")
 
     pil_images = [Image.fromarray(image) for image in images]
     for i in range(batch_size):
