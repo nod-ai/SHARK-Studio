@@ -113,18 +113,18 @@ with gr.Blocks(css=demo_css) as shark_web:
                         interactive=False,
                         visible=False,
                     )
-                    scheduler = gr.Radio(
-                        label="Scheduler",
-                        value="DPM",
-                        choices=["PNDM", "LMS", "DDIM", "DPM"],
-                        visible=False,
-                    )
-                with gr.Row(equal_height=True):
+                with gr.Row():
                     device = gr.Radio(
                         label="Device",
                         value="vulkan",
                         choices=["cuda", "vulkan"],
                         interactive=False,
+                        visible=False,
+                    )
+                    scheduler = gr.Dropdown(
+                        label="Scheduler",
+                        value="DPMSolverMultistep",
+                        choices=["PNDM", "LMSDiscrete", "DPMSolverMultistep"],
                     )
                     with gr.Group():
                         uint32_info = iinfo(np.uint32)
@@ -133,13 +133,20 @@ with gr.Blocks(css=demo_css) as shark_web:
                             full_width=True
                         )
                         seed = gr.Number(value=rand_seed, show_label=False)
+                        u32_min = gr.Number(
+                            value=uint32_info.min, visible=False
+                        )
+                        u32_max = gr.Number(
+                            value=uint32_info.max, visible=False
+                        )
                         random_seed.click(
-                            lambda: randint(uint32_info.min, uint32_info.max),
-                            inputs=[],
+                            None,
+                            inputs=[u32_min, u32_max],
                             outputs=[seed],
+                            _js="(min,max) => Math.floor(Math.random() * (max - min)) + min",
                         )
                     cache = gr.Checkbox(label="Cache", value=True)
-                    debug = gr.Checkbox(label="DEBUG", value=True)
+                    debug = gr.Checkbox(label="DEBUG", value=False)
                     save_img = gr.Checkbox(
                         label="Save", value=False, visible=False
                     )
@@ -187,9 +194,10 @@ with gr.Blocks(css=demo_css) as shark_web:
                     label="Std Output",
                     value="Loading...",
                     lines=5,
+                    visible=False,
                 )
         debug.change(
-            lambda x: gr.update(visible=x),
+            lambda x: gr.Textbox.update(visible=x),
             inputs=[debug],
             outputs=[std_output],
         )
@@ -240,4 +248,9 @@ with gr.Blocks(css=demo_css) as shark_web:
         )
 
 shark_web.queue()
-shark_web.launch(server_name="0.0.0.0", server_port=8080, enable_queue=True)
+shark_web.launch(
+    share=False,
+    server_name="0.0.0.0",
+    server_port=8080,
+    enable_queue=True,
+)
