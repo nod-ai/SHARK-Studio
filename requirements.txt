@@ -1,5 +1,6 @@
 setuptools
 wheel
+pyinstaller
 
 # SHARK Runner
 tqdm
