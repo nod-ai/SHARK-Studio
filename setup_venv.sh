@@ -122,11 +122,11 @@ $PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-
 
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
-  $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu116
+  $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
   if [ $? -eq 0 ];then
-    echo "Successfully Installed torch + cu116."
+    echo "Successfully Installed torch + cu117."
   else
-    echo "Could not install torch + cu116." >&2
+    echo "Could not install torch + cu117." >&2
   fi
 fi
 

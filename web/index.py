@@ -7,17 +7,24 @@ import gradio as gr
 from PIL import Image
 import json
 import os
+import sys
 from random import randint
 from numpy import iinfo
 import numpy as np
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 prompt_examples = []
-prompt_loc = "./prompts.json"
+prompt_loc = resource_path("prompts.json")
 if os.path.exists(prompt_loc):
-    with open("./prompts.json", encoding="utf-8") as fopen:
+    with open(prompt_loc, encoding="utf-8") as fopen:
         prompt_examples = json.load(fopen)
 
+nodlogo_loc = resource_path("logos/nod-logo.png")
+sdlogo_loc = resource_path("logos/sd-demo-logo.png")
 
 demo_css = """
 .gradio-container {background-color: black}
@@ -43,8 +50,8 @@ footer {display: none !important;}
 with gr.Blocks(css=demo_css) as shark_web:
 
     with gr.Row(elem_id="ui_title"):
-        nod_logo = Image.open("./logos/nod-logo.png")
-        logo2 = Image.open("./logos/sd-demo-logo.png")
+        nod_logo = Image.open(nodlogo_loc)
+        logo2 = Image.open(sdlogo_loc)
         with gr.Row():
             with gr.Column(scale=1, elem_id="demo_title_outer"):
                 gr.Image(
@@ -113,18 +120,18 @@ with gr.Blocks(css=demo_css) as shark_web:
                         interactive=False,
                         visible=False,
                     )
-                    scheduler = gr.Radio(
-                        label="Scheduler",
-                        value="DPM",
-                        choices=["PNDM", "LMS", "DDIM", "DPM"],
-                        visible=False,
-                    )
-                with gr.Row(equal_height=True):
+                with gr.Row():
                     device = gr.Radio(
                         label="Device",
                         value="vulkan",
                         choices=["cuda", "vulkan"],
                         interactive=False,
+                        visible=False,
+                    )
+                    scheduler = gr.Dropdown(
+                        label="Scheduler",
+                        value="DPMSolverMultistep",
+                        choices=["PNDM", "LMSDiscrete", "DPMSolverMultistep"],
                     )
                     with gr.Group():
                         uint32_info = iinfo(np.uint32)
@@ -133,13 +140,20 @@ with gr.Blocks(css=demo_css) as shark_web:
                             full_width=True
                         )
                         seed = gr.Number(value=rand_seed, show_label=False)
+                        u32_min = gr.Number(
+                            value=uint32_info.min, visible=False
+                        )
+                        u32_max = gr.Number(
+                            value=uint32_info.max, visible=False
+                        )
                         random_seed.click(
-                            lambda: randint(uint32_info.min, uint32_info.max),
-                            inputs=[],
+                            None,
+                            inputs=[u32_min, u32_max],
                             outputs=[seed],
+                            _js="(min,max) => Math.floor(Math.random() * (max - min)) + min",
                         )
                     cache = gr.Checkbox(label="Cache", value=True)
-                    debug = gr.Checkbox(label="DEBUG", value=True)
+                    debug = gr.Checkbox(label="DEBUG", value=False)
                     save_img = gr.Checkbox(
                         label="Save", value=False, visible=False
                     )
@@ -187,9 +201,10 @@ with gr.Blocks(css=demo_css) as shark_web:
                     label="Std Output",
                     value="Loading...",
                     lines=5,
+                    visible=False,
                 )
         debug.change(
-            lambda x: gr.update(visible=x),
+            lambda x: gr.Textbox.update(visible=x),
             inputs=[debug],
             outputs=[std_output],
         )
@@ -240,4 +255,9 @@ with gr.Blocks(css=demo_css) as shark_web:
         )
 
 shark_web.queue()
-shark_web.launch(server_name="0.0.0.0", server_port=8080, enable_queue=True)
+shark_web.launch(
+    share=False,
+    server_name="0.0.0.0",
+    server_port=8080,
+    enable_queue=True,
+)

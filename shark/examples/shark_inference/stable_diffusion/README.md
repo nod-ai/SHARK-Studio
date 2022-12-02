@@ -23,6 +23,12 @@ python main.py --precision="fp16" --device="vulkan" --iree-vulkan-target-triple=
 python shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --steps=50 --save_vmfb
 ```
 
+## Capture an RGP trace
+
+```shell
+python shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --steps=50 --save_vmfb --enable_rgp
+```
+
 ## Run the vae module with iree-benchmark-module (NCHW, fp16, vulkan, for example):
 
 ```shell

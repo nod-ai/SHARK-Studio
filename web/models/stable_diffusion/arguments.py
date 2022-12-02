@@ -103,7 +103,7 @@ schedulers["PNDM"] = PNDMScheduler(
     beta_schedule="scaled_linear",
     num_train_timesteps=1000,
 )
-schedulers["LMS"] = LMSDiscreteScheduler(
+schedulers["LMSDiscrete"] = LMSDiscreteScheduler(
     beta_start=0.00085,
     beta_end=0.012,
     beta_schedule="scaled_linear",
@@ -113,10 +113,9 @@ schedulers["DDIM"] = DDIMScheduler(
     beta_start=0.00085,
     beta_end=0.012,
     beta_schedule="scaled_linear",
-    clip_sample=False,
-    set_alpha_to_one=False,
+    num_train_timesteps=1000,
 )
-schedulers["DPM"] = DPMSolverMultistepScheduler.from_pretrained(
+schedulers["DPMSolverMultistep"] = DPMSolverMultistepScheduler.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
     subfolder="scheduler",
 )
@@ -131,11 +130,8 @@ cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
 args = Arguments()
 args.device = "vulkan"
 set_iree_runtime_flags(args)
-cache_obj["vae_fp16_vulkan"], cache_obj["unet_fp16_vulkan"] = get_vae(
-    args
-), get_unet(args)
-args.precision = "fp32"
-cache_obj["vae_fp32_vulkan"], cache_obj["unet_fp32_vulkan"] = get_vae(
-    args
-), get_unet(args)
-cache_obj["clip_vulkan"] = get_clip(args)
+(
+    cache_obj["vae_fp16_vulkan"],
+    cache_obj["unet_fp16_vulkan"],
+    cache_obj["clip_vulkan"],
+) = (get_vae(args), get_unet(args), get_clip(args))
