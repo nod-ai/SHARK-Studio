@@ -20,6 +20,7 @@ import csv
 import tempfile
 import os
 import shutil
+import multiprocessing
 
 
 def load_csv_and_convert(filename, gen=False):
@@ -239,6 +240,16 @@ class SharkModuleTester:
             expected = golden_out
 
         return expected, logits
+
+
+def run_test(module_tester, dynamic, device):
+    tempdir = tempfile.TemporaryDirectory(
+        prefix=module_tester.tmp_prefix, dir="./shark_tmp/"
+    )
+    module_tester.temp_dir = tempdir.name
+
+    with ireec.tools.TempFileSaver(tempdir.name):
+        module_tester.create_and_check_module(dynamic, device)
 
 
 class SharkModuleTest(unittest.TestCase):
@@ -485,10 +496,11 @@ class SharkModuleTest(unittest.TestCase):
         if not os.path.isdir("./shark_tmp/"):
             os.mkdir("./shark_tmp/")
 
-        tempdir = tempfile.TemporaryDirectory(
-            prefix=self.module_tester.tmp_prefix, dir="./shark_tmp/"
+        # We must create a new process each time we benchmark a model to allow
+        # for Tensorflow to release GPU resources. Using the same process to
+        # benchmark multiple models leads to OOM.
+        p = multiprocessing.Process(
+            target=run_test, args=(self.module_tester, dynamic, device)
         )
-        self.module_tester.temp_dir = tempdir.name
-
-        with ireec.tools.TempFileSaver(tempdir.name):
-            self.module_tester.create_and_check_module(dynamic, device)
+        p.start()
+        p.join()
