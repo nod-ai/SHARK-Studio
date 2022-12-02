@@ -125,27 +125,29 @@ class SharkBenchmarkRunner(SharkRunner):
         import tensorflow as tf
         from tank.model_utils_tf import get_tf_model
 
-        model, input, = get_tf_model(
-            modelname
-        )[:2]
-        frontend_model = model
+        tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
+        with tf.device(tf_device):
+            model, input, = get_tf_model(
+                modelname
+            )[:2]
+            frontend_model = model
 
-        for i in range(shark_args.num_warmup_iterations):
-            frontend_model.forward(*input)
+            for i in range(shark_args.num_warmup_iterations):
+                frontend_model.forward(*input)
 
-        begin = time.time()
-        for i in range(shark_args.num_iterations):
-            out = frontend_model.forward(*input)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
-                break
-        print(
-            f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
-        )
-        return [
-            f"{shark_args.num_iterations/(end-begin)}",
-            f"{((end-begin)/shark_args.num_iterations)*1000}",
-        ]
+            begin = time.time()
+            for i in range(shark_args.num_iterations):
+                out = frontend_model.forward(*input)
+                if i == shark_args.num_iterations - 1:
+                    end = time.time()
+                    break
+            print(
+                f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
+            )
+            return [
+                f"{shark_args.num_iterations/(end-begin)}",
+                f"{((end-begin)/shark_args.num_iterations)*1000}",
+            ]
 
     def benchmark_c(self):
         print(self.benchmark_cl)
