@@ -101,8 +101,9 @@ def download_torch_model(
             + tank_url
             + "/"
             + model_dir_name
-            + " "
+            + ' "'
             + WORKDIR
+            + '"'
         )
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
@@ -165,12 +166,13 @@ def download_tflite_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r '
+            'gsutil -o "GSUtil:parallel_process_count=1" -m cp -r '
             + tank_url
             + "/"
             + model_dir_name
-            + " "
+            + ' "'
             + WORKDIR
+            + '"'
         )
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
@@ -234,12 +236,13 @@ def download_tf_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r '
+            'gsutil -o "GSUtil:parallel_process_count=1" -m cp -r '
             + tank_url
             + "/"
             + model_dir_name
-            + " "
+            + ' "'
             + WORKDIR
+            + '"'
         )
         if os.system(gs_command) != 0:
             raise Exception("model not present in the tank. Contact Nod Admin")
