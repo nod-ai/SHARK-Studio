@@ -7,17 +7,24 @@ import gradio as gr
 from PIL import Image
 import json
 import os
+import sys
 from random import randint
 from numpy import iinfo
 import numpy as np
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 prompt_examples = []
-prompt_loc = "./prompts.json"
+prompt_loc = resource_path("prompts.json")
 if os.path.exists(prompt_loc):
-    with open("./prompts.json", encoding="utf-8") as fopen:
+    with open(prompt_loc, encoding="utf-8") as fopen:
         prompt_examples = json.load(fopen)
 
+nodlogo_loc = resource_path("logos/nod-logo.png")
+sdlogo_loc = resource_path("logos/sd-demo-logo.png")
 
 demo_css = """
 .gradio-container {background-color: black}
@@ -43,8 +50,8 @@ footer {display: none !important;}
 with gr.Blocks(css=demo_css) as shark_web:
 
     with gr.Row(elem_id="ui_title"):
-        nod_logo = Image.open("./logos/nod-logo.png")
-        logo2 = Image.open("./logos/sd-demo-logo.png")
+        nod_logo = Image.open(nodlogo_loc)
+        logo2 = Image.open(sdlogo_loc)
         with gr.Row():
             with gr.Column(scale=1, elem_id="demo_title_outer"):
                 gr.Image(

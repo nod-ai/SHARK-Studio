@@ -19,10 +19,14 @@ datas += copy_metadata('torchvision')
 datas += copy_metadata('torch-mlir')
 datas += copy_metadata('diffusers')
 datas += copy_metadata('transformers')
-datas += copy_metadata('gradio')
+datas += collect_data_files('gradio')
 datas += collect_data_files('iree')
 #datas += copy_metadata('iree')
 datas += collect_data_files('shark')
+datas += [
+         ( 'prompts.json', '.' ),
+         ( 'logos/*', 'logos' )
+         ]
 
 block_cipher = None
 
@@ -32,7 +36,7 @@ a = Analysis(
     pathex=['.'],
     binaries=[],
     datas=datas,
-    hiddenimports=['shark', 'shark.*', 'shark.shark_inference', 'shark_inference', 'iree.tools.core'],
+    hiddenimports=['shark', 'shark.*', 'shark.shark_inference', 'shark_inference', 'iree.tools.core', 'gradio'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -49,7 +53,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='index',
+    name='shark_sd',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -69,5 +73,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='index',
+    name='shark_sd',
 )
