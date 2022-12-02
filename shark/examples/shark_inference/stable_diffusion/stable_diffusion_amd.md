@@ -10,7 +10,7 @@ https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
 
 ## Installation
 
-Download the latest Windows .exe [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd.exe)
+Download the latest Windows .exe [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd.exe) and run it. Accept if Windows warns of an unsigned .exe. 
 
 
 #### Access Stable Diffusion on http://localhost:8080/?__theme=dark
