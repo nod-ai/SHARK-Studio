@@ -50,8 +50,7 @@ if custom_path:
 else:
     WORKDIR = os.path.join(home, ".local/shark_tank/")
     print(
-        f"shark_tank local cache is located at {WORKDIR} . You may change this by setting the --local_tank_cache="
-        " pytest flag"
+        f"shark_tank local cache is located at {WORKDIR} . You may change this by setting the --local_tank_cache= flag"
     )
 
 # Checks whether the directory and files exists.
@@ -98,7 +97,7 @@ def download_torch_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" cp -r '
+            'gsutil -o "GSUtil:parallel_process_count=1" -m cp -r '
             + tank_url
             + "/"
             + model_dir_name
@@ -119,7 +118,7 @@ def download_torch_model(
             model_dir = os.path.join(WORKDIR, model_dir_name)
             local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
             gs_hash = (
-                'gsutil -o "GSUtil:parallel_process_count=1" cp '
+                'gsutil -o "GSUtil:parallel_process_count=1" -m cp '
                 + tank_url
                 + "/"
                 + model_dir_name
