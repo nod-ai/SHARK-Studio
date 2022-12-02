@@ -10,7 +10,7 @@ https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
 
 ## Installation
 
-Download the latest Windows .exe [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd.exe) and run it. Accept if Windows warns of an unsigned .exe. 
+Download the latest Windows `shark_sd.exe` [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd.exe) and also download the latest Google Cloud Storage tool `gsutil.exe` [here](https://storage.googleapis.com/shark-public/anush/windows/gsutil.exe) and place them in the same directory and double click on `stable_sd.exe`. Accept if Windows warns of an unsigned .exe. The requirement to download `gsutil.exe` will be removed in the next few days.
 
 
 #### Access Stable Diffusion on http://localhost:8080/?__theme=dark
