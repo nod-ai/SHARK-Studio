@@ -90,6 +90,34 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
     return shark_vae
 
 
+def get_vae_encode_mlir(model_name="vae_encode", extra_args=[]):
+    class VaeEncodeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                model_config[args.version],
+                subfolder="vae",
+                revision="fp16",
+            )
+
+        def forward(self, x):
+            input = 2 * (x - 0.5)
+            return self.vae.encode(input, return_dict=False)[0]
+
+    vae = VaeEncodeModel()
+    vae = vae.half().cuda()
+    inputs = tuple(
+        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
+    )
+    shark_vae = compile_through_fx(
+        vae,
+        inputs,
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_vae
+
+
 def get_unet_mlir(model_name="unet", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
