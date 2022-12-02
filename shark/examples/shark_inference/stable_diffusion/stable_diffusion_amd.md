@@ -102,7 +102,8 @@ Total image generation runtime (s): 10.390909433364868
 
 
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
-
+</details>
 <details>
-
+  <summary>Discord link</summary>
 Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
+</details>
