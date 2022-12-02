@@ -8,7 +8,26 @@
 https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
 
 
-## Installation (Windows, Linux)
+## Installation
+
+Download the latest Windows .exe [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd.exe)
+
+
+#### Access Stable Diffusion on http://localhost:8080/?__theme=dark
+
+
+<img width="1607" alt="webui" src="https://user-images.githubusercontent.com/74956/204939260-b8308bc2-8dc4-47f6-9ac0-f60b66edab99.png">
+
+
+Here are some samples generated:
+
+![tajmahal, snow, sunflowers, oil on canvas_0](https://user-images.githubusercontent.com/74956/204934186-141f7e43-6eb2-4e89-a99c-4704d20444b3.jpg)
+
+![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
+
+
+<details>
+  <summary>Advanced Installation </summary>
 
 ## Setup your Python VirtualEnvironment and Dependencies
 
@@ -52,11 +71,6 @@ source shark.venv/bin/activate
 (shark.venv) > python index.py
 ```
 
-#### Access Stable Diffusion on http://localhost:8080/?__theme=dark
-
-
-<img width="1607" alt="webui" src="https://user-images.githubusercontent.com/74956/204939260-b8308bc2-8dc4-47f6-9ac0-f60b66edab99.png">
-
 
 
 ### Run Stable Diffusion on your device - Commandline
@@ -86,15 +100,9 @@ Total image generation runtime (s): 10.390909433364868
 (shark.venv) PS C:\g\shark>
 ```
 
-Here are some samples generated:
-
-![tajmahal, snow, sunflowers, oil on canvas_0](https://user-images.githubusercontent.com/74956/204934186-141f7e43-6eb2-4e89-a99c-4704d20444b3.jpg)
-
-![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
-
 
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
 
-
+<details>
 
 Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
