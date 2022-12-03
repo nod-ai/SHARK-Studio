@@ -22,8 +22,8 @@ def get_unet():
     # Tuned model is present for `fp16` precision.
     if args.precision == "fp16":
         if args.use_tuned:
-            bucket = "gs://shark_tank/quinn"
-            model_name = "unet_22nov_fp16_tuned"
+            bucket = "gs://shark_tank/vivian"
+            model_name = "unet_1dec_fp16_tuned"
             return get_shark_model(bucket, model_name, iree_flags)
         else:
             bucket = "gs://shark_tank/stable_diffusion"
@@ -80,9 +80,9 @@ def get_vae():
         if args.version == "v2":
             model_name = "vae2_29nov_fp16"
         iree_flags += [
-            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-flow-enable-conv-img2col-transform",
         ]
         if args.import_mlir:
             return get_vae_mlir(model_name, iree_flags)
