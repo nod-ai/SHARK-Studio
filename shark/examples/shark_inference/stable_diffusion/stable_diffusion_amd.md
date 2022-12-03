@@ -7,6 +7,9 @@
 
 https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
 
+Note that if you previously tried Stable Diffusion with a different driver, it may be necessary to clear vulkan cache after changing drivers.
+
+For Windows users this can be done by clearing the contents of `C:\Users\<username>\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
 
 ## Installation
 
