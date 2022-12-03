@@ -343,7 +343,7 @@ def get_results(compiled_vm, input, config, frontend="torch"):
         res = np.array(data, dtype=object)
         return np.copy(res)
     else:
-        return np.copy(np.asarray(result, dtype=result.dtype))
+        return result.to_host()
 
 
 def get_iree_runtime_config(device):
