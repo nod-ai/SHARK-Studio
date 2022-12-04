@@ -140,28 +140,14 @@ def get_clip():
         iree_flags.append(
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
-    if args.precision == "fp16":
-        bucket = "gs://shark_tank/stable_diffusion"
-        model_name = "clip_1dec_fp16"
-        if args.version == "v2":
-            model_name = "clip2_1dec_fp16"
-        iree_flags += [
-            "--iree-flow-linalg-ops-padding-size=32",
-            "--iree-flow-enable-padding-linalg-ops",
-        ]
-        if args.import_mlir:
-            return get_clip_mlir(model_name, iree_flags)
-        return get_shark_model(bucket, model_name, iree_flags)
-
-    if args.precision == "fp32":
-        bucket = "gs://shark_tank/stable_diffusion"
-        model_name = "clip_1dec_fp32"
-        if args.version == "v2":
-            model_name = "clip2_1dec_fp32"
-        iree_flags += [
-            "--iree-flow-linalg-ops-padding-size=16",
-            "--iree-flow-enable-padding-linalg-ops",
-        ]
-        if args.import_mlir:
-            return get_clip_mlir(model_name, iree_flags)
-        return get_shark_model(bucket, model_name, iree_flags)
+    bucket = "gs://shark_tank/stable_diffusion"
+    model_name = "clip_1dec_fp32"
+    if args.version == "v2":
+        model_name = "clip2_1dec_fp32"
+    iree_flags += [
+        "--iree-flow-linalg-ops-padding-size=16",
+        "--iree-flow-enable-padding-linalg-ops",
+    ]
+    if args.import_mlir:
+        return get_clip_mlir(model_name, iree_flags)
+    return get_shark_model(bucket, model_name, iree_flags)
