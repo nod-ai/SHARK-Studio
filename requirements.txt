@@ -19,3 +19,4 @@ transformers
 diffusers
 scipy
 ftfy
+gradio
