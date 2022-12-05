@@ -19,6 +19,9 @@ import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
+from shark.examples.shark_inference.stable_diffusion import (
+    model_wrappers as mw,
+)
 
 visible_default = tf.config.list_physical_devices("GPU")
 try:
@@ -38,6 +41,21 @@ def create_hash(file_name):
             file_hash.update(chunk)
 
     return file_hash.hexdigest()
+
+
+def get_folder_name(
+    model_basename, device, precision_value, length, version=None
+):
+    return (
+        model_basename
+        + "_"
+        + device
+        + "_"
+        + precision_value
+        + "_maxlen_"
+        + length
+        + "_torch"
+    )
 
 
 def save_torch_model(torch_model_list):
@@ -62,6 +80,69 @@ def save_torch_model(torch_model_list):
 
             model = None
             input = None
+            if model_type == "fx_imported":
+                from shark.examples.shark_inference.stable_diffusion.stable_args import (
+                    args,
+                )
+
+                args.use_tuned = False
+                args.import_mlir = True
+                args.use_tuned = False
+                args.local_tank_cache = WORKDIR
+                base_sd_versions = ["v1_4", "v2_1"]
+                model_variants = [
+                    "stablediffusion",
+                    "anythingv3",
+                    "analogdiffusion",
+                    "openjourney",
+                ]
+
+                scheduler_types = [
+                    "PNDM",
+                    "DDIM",
+                    "LMSDiscrete",
+                    "EulerDiscrete",
+                    "DPMSolverMultistep",
+                    "SharkEulerDiscrete",
+                ]
+                precision_values = ["fp16"]
+                seq_lengths = [64, 77]
+                for device in ["vulkan", "cuda"]:
+                    args.device = device
+                    for model_variant in model_variants:
+                        args.variant = model_variant
+
+                        for base_sd_ver in base_sd_versions:
+                            # model variants not required for non base sd models
+                            if (
+                                base_sd_ver == "v1_4"
+                                and not model_variant == "stablediffusion"
+                            ):
+                                continue
+                            else:
+                                args.version = base_sd_ver
+
+                            for precision_value in precision_values:
+                                args.precision = precision_value
+                                for length in seq_lengths:
+                                    model = mw.SharkifyStableDiffusionModel(
+                                        model_id="stabilityai/stable-diffusion-2-1-base",
+                                        custom_weights="",
+                                        precision=precision_value,
+                                        max_len=length,
+                                        width=512,
+                                        height=512,
+                                        use_base_vae=False,
+                                        debug=True,
+                                        sharktank_dir=WORKDIR,
+                                    )
+                                    args.max_length = length
+                                    model_name = f"{args.variant}/{args.version}/{torch_model_name}/{args.precision}/length_{args.max_length}{args.use_tuned}"
+                                    torch_model_dir = os.path.join(
+                                        WORKDIR, model_name
+                                    )
+                                    model()
+                continue
             if model_type == "vision":
                 model, input, _ = get_vision_model(torch_model_name)
             elif model_type == "hf":
@@ -243,13 +324,13 @@ if __name__ == "__main__":
     if args.torch_model_csv:
         save_torch_model(args.torch_model_csv)
 
-    if args.tf_model_csv:
-        save_tf_model(args.tf_model_csv)
+    #    if args.tf_model_csv:
+    #        save_tf_model(args.tf_model_csv)
 
-    if args.tflite_model_csv:
-        save_tflite_model(args.tflite_model_csv)
+    #    if args.tflite_model_csv:
+    #        save_tflite_model(args.tflite_model_csv)
 
-    if args.upload:
+    if True:
         git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
         print("uploading files to gs://shark_tank/" + git_hash)
         os.system(f"gsutil cp -r {WORKDIR}* gs://shark_tank/" + git_hash)
