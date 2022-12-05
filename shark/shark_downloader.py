@@ -14,11 +14,22 @@
 
 import numpy as np
 import os
-import urllib.request
-import json
-import hashlib
+import sys
 from pathlib import Path
 from shark.parser import shark_args
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
+    return os.path.join(base_path, relative_path)
+
+
+GSUTIL_PATH = resource_path("gsutil")
+GSUTIL_FLAGS = ' -o "GSUtil:parallel_process_count=2" -m cp -r '
+
 
 input_type_to_np_dtype = {
     "float32": np.float32,
@@ -97,7 +108,8 @@ def download_torch_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" -m cp -r '
+            GSUTIL_PATH
+            + GSUTIL_FLAGS
             + tank_url
             + "/"
             + model_dir_name
@@ -119,7 +131,8 @@ def download_torch_model(
             model_dir = os.path.join(WORKDIR, model_dir_name)
             local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
             gs_hash = (
-                'gsutil -o "GSUtil:parallel_process_count=1" -m cp '
+                GSUTIL_PATH
+                + GSUTIL_FLAGS
                 + tank_url
                 + "/"
                 + model_dir_name
@@ -166,7 +179,8 @@ def download_tflite_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" -m cp -r '
+            GSUTIL_PATH
+            + GSUTIL_FLAGS
             + tank_url
             + "/"
             + model_dir_name
@@ -190,7 +204,8 @@ def download_tflite_model(
             model_dir = os.path.join(WORKDIR, model_dir_name)
             local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
             gs_hash = (
-                'gsutil -o "GSUtil:parallel_process_count=1" cp '
+                GSUTIL_PATH
+                + GSUTIL_FLAGS
                 + tank_url
                 + "/"
                 + model_dir_name
@@ -236,7 +251,8 @@ def download_tf_model(
 
     def gs_download_model():
         gs_command = (
-            'gsutil -o "GSUtil:parallel_process_count=1" -m cp -r '
+            GSUTIL_PATH
+            + GSUTIL_FLAGS
             + tank_url
             + "/"
             + model_dir_name
@@ -258,7 +274,8 @@ def download_tf_model(
             model_dir = os.path.join(WORKDIR, model_dir_name)
             local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
             gs_hash = (
-                'gsutil -o "GSUtil:parallel_process_count=1" cp '
+                GSUTIL_PATH
+                + GSUTIL_FLAGS
                 + tank_url
                 + "/"
                 + model_dir_name
