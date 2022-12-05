@@ -164,6 +164,7 @@ class SharkImporter:
         func_name="forward",
         dir=tempfile.gettempdir(),
         model_name="model",
+        golden_values=None,
     ):
         if self.inputs == None:
             print(
@@ -183,7 +184,11 @@ class SharkImporter:
         if self.frontend in ["torch", "pytorch"]:
             import torch
 
-            golden_out = self.module(*self.inputs)
+            golden_out = None
+            if golden_values is not None:
+                golden_out = golden_values
+            else:
+                golden_out = self.module(*self.inputs)
             if torch.is_tensor(golden_out):
                 golden_out = tuple(
                     golden_out.detach().cpu().numpy(),
@@ -364,11 +369,16 @@ def import_with_fx(
     debug=False,
     training=False,
     return_str=False,
+    save_dir=tempfile.gettempdir(),
+    model_name="model",
 ):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
     from torch._decomp import get_decompositions
 
+    golden_values = None
+    if debug:
+        golden_values = model(*inputs)
     # TODO: Control the decompositions.
     fx_g = make_fx(
         model,
@@ -422,8 +432,10 @@ def import_with_fx(
         return_str=return_str,
     )
 
-    if debug and not is_f16:
-        (mlir_module, func_name), _, _ = mlir_importer.import_debug()
+    if debug:  # and not is_f16:
+        (mlir_module, func_name), _, _ = mlir_importer.import_debug(
+            dir=save_dir, model_name=model_name, golden_values=golden_values
+        )
         return mlir_module, func_name
 
     mlir_module, func_name = mlir_importer.import_mlir()
