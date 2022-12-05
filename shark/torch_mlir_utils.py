@@ -70,7 +70,7 @@ def get_torch_mlir_module(
         module,
         input,
         output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
-        use_tracing=jit_trace,
+        use_tracing=True,
         ignore_traced_shapes=ignore_traced_shapes,
     )
     bytecode_stream = io.BytesIO()

@@ -1,7 +1,8 @@
 import os
+import tempfile
 import torch
 from shark.shark_inference import SharkInference
-from stable_args import args
+from shark.examples.shark_inference.stable_diffusion.stable_args import args
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
@@ -71,10 +72,19 @@ def compile_through_fx(
     is_f16=False,
     f16_input_mask=None,
     extra_args=[],
+    save_dir=tempfile.gettempdir(),
+    debug=False,
 ):
-
-    mlir_module, func_name = import_with_fx(
-        model, inputs, is_f16, f16_input_mask
+    save_dir = os.path.join(args.local_tank_cache, model_name)
+    print("SAVE DIR: " + save_dir)
+    mlir_module, func_name, = import_with_fx(
+        model=model,
+        inputs=inputs,
+        is_f16=is_f16,
+        f16_input_mask=f16_input_mask,
+        debug=debug,
+        model_name=model_name,
+        save_dir=save_dir,
     )
     shark_module = SharkInference(
         mlir_module,

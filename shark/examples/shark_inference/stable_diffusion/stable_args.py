@@ -289,5 +289,23 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="Apply Winograd on selected conv ops.",
 )
+##############################################################################
+### CI generation tags
+##############################################################################
+
+#TODO: remove from here once argparse is not required by half of sd
+p.add_argument(
+    "--upload",
+    default=True,
+    action="store_true",
+    help="used for generate_sharktank.py to upload models"
+}
+
+p.add_argument(
+    "--ci_tank_dir",
+    default=True,
+    action="store_true",
+    help="used for CI generation purposes only."
+)
 
 args = p.parse_args()
