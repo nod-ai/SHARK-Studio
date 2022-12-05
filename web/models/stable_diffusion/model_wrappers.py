@@ -1,4 +1,4 @@
-from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler
+from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from models.stable_diffusion.utils import compile_through_fx
 import torch
@@ -37,10 +37,6 @@ def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
     text_encoder = CLIPTextModel.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
-    if args.version == "v2":
-        text_encoder = CLIPTextModel.from_pretrained(
-            model_config[args.version], subfolder="text_encoder"
-        )
 
     class CLIPText(torch.nn.Module):
         def __init__(self):
@@ -76,6 +72,35 @@ def get_vae_mlir(args, model_name="vae", extra_args=[]):
             return (x / 2 + 0.5).clamp(0, 1)
 
     vae = VaeModel()
+    vae = vae.half().cuda()
+    inputs = tuple(
+        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
+    )
+    shark_vae = compile_through_fx(
+        args,
+        vae,
+        inputs,
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_vae
+
+
+def get_vae_encode_mlir(args, model_name="vae_encode", extra_args=[]):
+    class VaeEncodeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                model_config[args.version],
+                subfolder="vae",
+                revision="fp16",
+            )
+
+        def forward(self, x):
+            input = 2 * (x - 0.5)
+            return self.vae.encode(input, return_dict=False)[0]
+
+    vae = VaeEncodeModel()
     vae = vae.half().cuda()
     inputs = tuple(
         [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
