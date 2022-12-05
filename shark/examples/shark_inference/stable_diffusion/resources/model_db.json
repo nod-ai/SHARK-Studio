@@ -1,6 +1,6 @@
 [
   {
-    "stablediffusion/untuned":"gs://shark_tank/stable_diffusion",
+    "stablediffusion/untuned":"gs://shark_tank/latest",
     "stablediffusion/tuned":"gs://shark_tank/sd_tuned",
     "stablediffusion/tuned/cuda":"gs://shark_tank/sd_tuned/cuda",
     "anythingv3/untuned":"gs://shark_tank/sd_anythingv3",
