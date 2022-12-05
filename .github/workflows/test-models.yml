@@ -121,7 +121,7 @@ jobs:
         echo $PATH
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pip list | grep -E "torch|iree"
+        pip list | grep -E "torch|iree|pytest"
         pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" tank/test_models.py -k vulkan --update_tank
 
     - name: Validate Vulkan Models (a100)
