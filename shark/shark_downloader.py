@@ -28,7 +28,7 @@ def resource_path(relative_path):
 
 
 GSUTIL_PATH = resource_path("gsutil")
-GSUTIL_FLAGS = ' -o "GSUtil:parallel_process_count=2" -m cp -r '
+GSUTIL_FLAGS = ' -o "GSUtil:parallel_process_count=1" -m cp -r '
 
 
 input_type_to_np_dtype = {
