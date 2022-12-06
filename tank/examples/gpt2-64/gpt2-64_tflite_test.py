@@ -1,5 +1,5 @@
 import numpy as np
-from shark.shark_downloader import download_model
+from shark.shark_downloader import download_tflite_model
 from shark.shark_inference import SharkInference
 import pytest
 import unittest
@@ -58,8 +58,8 @@ class GptTfliteModuleTester:
         shark_args.save_vmfb = self.save_vmfb
 
         # Preprocess to get SharkImporter input args
-        mlir_model, func_name, inputs, tflite_results = download_model(
-            model_name="gpt2-64", backend="tflite"
+        mlir_model, func_name, inputs, tflite_results = download_tflite_model(
+            model_name="gpt2-64"
         )
         shark_module = SharkInference(
             mlir_module=mlir_model,

@@ -17,7 +17,7 @@ from keras_cv.models.generative.stable_diffusion.text_encoder import (
 )
 
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from shark.shark_downloader import download_tf_model
 from PIL import Image
 
 # pip install "git+https://github.com/keras-team/keras-cv.git"
@@ -75,8 +75,8 @@ class SharkStableDiffusion:
         # Create models
         self.text_encoder = TextEncoder(MAX_PROMPT_LENGTH)
 
-        mlir_model, func_name, inputs, golden_out = download_model(
-            "stable_diff", tank_url="gs://shark_tank/quinn", frontend="tf"
+        mlir_model, func_name, inputs, golden_out = download_tf_model(
+            "stable_diff", tank_url="gs://shark_tank/quinn"
         )
         shark_module = SharkInference(
             mlir_model, func_name, device=device, mlir_dialect="mhlo"

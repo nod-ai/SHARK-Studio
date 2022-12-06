@@ -37,12 +37,10 @@ args = p.parse_args()
 
 
 def fp16_unet():
-    from shark.shark_downloader import download_model
+    from shark.shark_downloader import download_torch_model
 
-    mlir_model, func_name, inputs, golden_out = download_model(
-        "stable_diff_f16_18_OCT",
-        tank_url="gs://shark_tank/prashant_nod",
-        frontend="torch",
+    mlir_model, func_name, inputs, golden_out = download_torch_model(
+        "stable_diff_f16_18_OCT", tank_url="gs://shark_tank/prashant_nod"
     )
     shark_module = SharkInference(
         mlir_model, func_name, device=args.device, mlir_dialect="linalg"

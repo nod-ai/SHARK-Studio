@@ -20,6 +20,10 @@ class OPTModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device, model_name):
+        # model_mlir, func_name, input, act_out = download_torch_model(
+        #     "opt", dynamic
+        # )
+
         tokenizer = GPT2Tokenizer.from_pretrained(model_name)
         # config = OPTConfig()
         # opt_model = OPTModel(config)

@@ -6,7 +6,7 @@ pyinstaller
 tqdm
 
 # SHARK Downloader
-google-cloud-storage
+gsutil
 
 # Testing
 pytest

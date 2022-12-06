@@ -3,7 +3,7 @@ import requests
 import torch
 from torchvision import transforms
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from shark.shark_downloader import download_torch_model
 
 ################################## Preprocessing inputs and helper functions ########
 
@@ -69,8 +69,8 @@ def resnet_inf(numpy_img, device):
     if device not in compiled_module.keys():
         if DEBUG:
             log_write.write("Compiling the Resnet50 module.\n")
-        mlir_model, func_name, inputs, golden_out = download_model(
-            "resnet50", frontend="torch"
+        mlir_model, func_name, inputs, golden_out = download_torch_model(
+            "resnet50"
         )
         shark_module = SharkInference(
             mlir_model, func_name, device=device, mlir_dialect="linalg"
