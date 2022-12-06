@@ -20,20 +20,22 @@ from shark.parser import shark_args
 from google.cloud import storage
 
 
-def download_public_file(full_gs_url, destination_file_name):
+def download_public_file(full_gs_url, destination_folder_name):
     """Downloads a public blob from the bucket."""
     # bucket_name = "gs://your-bucket-name/path/to/file"
     # destination_file_name = "local/path/to/file"
 
-    storage_client = storage.Client.create_anonymous_client()
+    storage_client = storage.Client("nod-cloud")
     bucket_name = full_gs_url.split("/")[2]
     source_blob_name = "/".join(full_gs_url.split("/")[3:])
     bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(source_blob_name)
-    blob.download_to_filename(destination_file_name)
-
-
-GSUTIL_FLAGS = ' -o "GSUtil:parallel_process_count=1" -m cp -r '
+    blobs = bucket.list_blobs(prefix=source_blob_name)
+    if not os.path.exists(destination_folder_name):
+        os.mkdir(destination_folder_name)
+    for blob in blobs:
+        blob_name = blob.name.split("/")[-1]
+        destination_filename = os.path.join(destination_folder_name, blob_name)
+        blob.download_to_filename(destination_filename)
 
 
 input_type_to_np_dtype = {
@@ -114,19 +116,19 @@ def download_model(
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
     model_dir_name = model_name + "_" + frontend
+    model_dir = os.path.join(WORKDIR, model_dir_name)
     full_gs_url = tank_url.rstrip("/") + "/" + model_dir_name
 
     if not check_dir_exists(
         model_dir_name, frontend=frontend, dynamic=dyn_str
     ):
-        download_public_file(full_gs_url, WORKDIR)
+        download_public_file(full_gs_url, model_dir)
     else:
         if not _internet_connected():
             print(
                 "No internet connection. Using the model already present in the tank."
             )
         else:
-            model_dir = os.path.join(WORKDIR, model_dir_name)
             local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
             gs_hash_url = (
                 tank_url.rstrip("/") + "/" + model_dir_name + "/hash.npy"
