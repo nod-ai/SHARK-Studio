@@ -25,7 +25,7 @@ def download_public_file(full_gs_url, destination_folder_name):
     # bucket_name = "gs://your-bucket-name/path/to/file"
     # destination_file_name = "local/path/to/file"
 
-    storage_client = storage.Client("nod-cloud")
+    storage_client = storage.Client()
     bucket_name = full_gs_url.split("/")[2]
     source_blob_name = "/".join(full_gs_url.split("/")[3:])
     bucket = storage_client.bucket(bucket_name)
