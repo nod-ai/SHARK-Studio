@@ -20,20 +20,42 @@ from shark.parser import shark_args
 from google.cloud import storage
 
 
-def download_public_file(full_gs_url, destination_folder_name):
+def download_public_file(
+    full_gs_url, destination_folder_name, single_file=False
+):
     """Downloads a public blob from the bucket."""
     # bucket_name = "gs://your-bucket-name/path/to/file"
     # destination_file_name = "local/path/to/file"
 
-    storage_client = storage.Client()
+    storage_client = storage.Client.create_anonymous_client()
     bucket_name = full_gs_url.split("/")[2]
-    source_blob_name = "/".join(full_gs_url.split("/")[3:])
+    source_blob_name = None
+    dest_filename = None
+    desired_file = None
+    if single_file:
+
+        desired_file = full_gs_url.split("/")[-1]
+        source_blob_name = "/".join(full_gs_url.split("/")[3:-1])
+        destination_folder_name, dest_filename = os.path.split(
+            destination_folder_name
+        )
+    else:
+        source_blob_name = "/".join(full_gs_url.split("/")[3:])
     bucket = storage_client.bucket(bucket_name)
     blobs = bucket.list_blobs(prefix=source_blob_name)
     if not os.path.exists(destination_folder_name):
         os.mkdir(destination_folder_name)
     for blob in blobs:
         blob_name = blob.name.split("/")[-1]
+        if single_file:
+            if blob_name == desired_file:
+                destination_filename = os.path.join(
+                    destination_folder_name, dest_filename
+                )
+                blob.download_to_filename(destination_filename)
+            else:
+                continue
+
         destination_filename = os.path.join(destination_folder_name, blob_name)
         blob.download_to_filename(destination_filename)
 
@@ -134,7 +156,9 @@ def download_model(
                 tank_url.rstrip("/") + "/" + model_dir_name + "/hash.npy"
             )
             download_public_file(
-                gs_hash_url, os.path.join(model_dir, "upstream_hash.npy")
+                gs_hash_url,
+                os.path.join(model_dir, "upstream_hash.npy"),
+                single_file=True,
             )
             upstream_hash = str(
                 np.load(os.path.join(model_dir, "upstream_hash.npy"))
