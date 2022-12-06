@@ -17,6 +17,7 @@ import os
 import sys
 from pathlib import Path
 from shark.parser import shark_args
+import shutil
 
 
 def resource_path(relative_path):
@@ -27,7 +28,9 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-GSUTIL_PATH = resource_path("gsutil")
+GSUTIL_PATH = (
+    "gsutil" if shutil.which("gsutil") is not None else resource_path("gsutil")
+)
 GSUTIL_FLAGS = ' -o "GSUtil:parallel_process_count=1" -m cp -r '
 
 
