@@ -46,6 +46,12 @@ jobs:
             suite: cuda
           - os: a100
             suite: cpu
+          - os: a100
+            suite: vulkan
+          - os: a100
+            suite: cuda
+          - os: MacStudio
+            suite: vulkan
 
     runs-on: ${{ matrix.os }}
 
