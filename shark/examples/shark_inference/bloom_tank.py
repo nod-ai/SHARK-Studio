@@ -1,7 +1,9 @@
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_torch_model
+from shark.shark_downloader import download_model
 
-mlir_model, func_name, inputs, golden_out = download_torch_model("bloom")
+mlir_model, func_name, inputs, golden_out = download_model(
+    "bloom", frontend="torch"
+)
 
 shark_module = SharkInference(
     mlir_model, func_name, device="cpu", mlir_dialect="tm_tensor"
