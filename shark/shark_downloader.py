@@ -17,20 +17,22 @@ import os
 import sys
 from pathlib import Path
 from shark.parser import shark_args
-import shutil
+from google.cloud import storage
 
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(
-        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
-    )
-    return os.path.join(base_path, relative_path)
+def download_public_file(full_gs_url, destination_file_name):
+    """Downloads a public blob from the bucket."""
+    # bucket_name = "gs://your-bucket-name/path/to/file"
+    # destination_file_name = "local/path/to/file"
+
+    storage_client = storage.Client.create_anonymous_client()
+    bucket_name = full_gs_url.split("/")[2]
+    source_blob_name = "/".join(full_gs_url.split("/")[3:])
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(source_blob_name)
+    blob.download_to_filename(destination_file_name)
 
 
-GSUTIL_PATH = (
-    "gsutil" if shutil.which("gsutil") is not None else resource_path("gsutil")
-)
 GSUTIL_FLAGS = ' -o "GSUtil:parallel_process_count=1" -m cp -r '
 
 
@@ -101,103 +103,23 @@ def check_dir_exists(model_name, frontend="torch", dynamic=""):
 
 
 # Downloads the torch model from gs://shark_tank dir.
-def download_torch_model(
-    model_name, dynamic=False, tank_url="gs://shark_tank/latest"
+def download_model(
+    model_name,
+    dynamic=False,
+    tank_url="gs://shark_tank/latest",
+    frontend=None,
+    tuned=None,
 ):
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
-    model_dir_name = model_name + "_torch"
-
-    def gs_download_model():
-        gs_command = (
-            GSUTIL_PATH
-            + GSUTIL_FLAGS
-            + tank_url
-            + "/"
-            + model_dir_name
-            + ' "'
-            + WORKDIR
-            + '"'
-        )
-        if os.system(gs_command) != 0:
-            raise Exception("model not present in the tank. Contact Nod Admin")
-
-    if not check_dir_exists(model_dir_name, frontend="torch", dynamic=dyn_str):
-        gs_download_model()
-    else:
-        if not _internet_connected():
-            print(
-                "No internet connection. Using the model already present in the tank."
-            )
-        else:
-            model_dir = os.path.join(WORKDIR, model_dir_name)
-            local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
-            gs_hash = (
-                GSUTIL_PATH
-                + GSUTIL_FLAGS
-                + tank_url
-                + "/"
-                + model_dir_name
-                + "/hash.npy"
-                + " "
-                + os.path.join(model_dir, "upstream_hash.npy")
-            )
-            if os.system(gs_hash) != 0:
-                raise Exception("hash of the model not present in the tank.")
-            upstream_hash = str(
-                np.load(os.path.join(model_dir, "upstream_hash.npy"))
-            )
-            if local_hash != upstream_hash:
-                if shark_args.update_tank == True:
-                    gs_download_model()
-                else:
-                    print(
-                        "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
-                    )
-
-    model_dir = os.path.join(WORKDIR, model_dir_name)
-    with open(
-        os.path.join(model_dir, model_name + dyn_str + "_torch.mlir"),
-        mode="rb",
-    ) as f:
-        mlir_file = f.read()
-
-    function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
-    inputs = np.load(os.path.join(model_dir, "inputs.npz"))
-    golden_out = np.load(os.path.join(model_dir, "golden_out.npz"))
-
-    inputs_tuple = tuple([inputs[key] for key in inputs])
-    golden_out_tuple = tuple([golden_out[key] for key in golden_out])
-    return mlir_file, function_name, inputs_tuple, golden_out_tuple
-
-
-# Downloads the tflite model from gs://shark_tank dir.
-def download_tflite_model(
-    model_name, dynamic=False, tank_url="gs://shark_tank/latest"
-):
-    dyn_str = "_dynamic" if dynamic else ""
-    os.makedirs(WORKDIR, exist_ok=True)
-    model_dir_name = model_name + "_tflite"
-
-    def gs_download_model():
-        gs_command = (
-            GSUTIL_PATH
-            + GSUTIL_FLAGS
-            + tank_url
-            + "/"
-            + model_dir_name
-            + ' "'
-            + WORKDIR
-            + '"'
-        )
-        if os.system(gs_command) != 0:
-            raise Exception("model not present in the tank. Contact Nod Admin")
+    model_dir_name = model_name + "_" + frontend
+    full_gs_url = tank_url.rstrip("/") + "/" + model_dir_name
 
     if not check_dir_exists(
-        model_dir_name, frontend="tflite", dynamic=dyn_str
+        model_dir_name, frontend=frontend, dynamic=dyn_str
     ):
-        gs_download_model()
+        download_public_file(full_gs_url, WORKDIR)
     else:
         if not _internet_connected():
             print(
@@ -206,104 +128,34 @@ def download_tflite_model(
         else:
             model_dir = os.path.join(WORKDIR, model_dir_name)
             local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
-            gs_hash = (
-                GSUTIL_PATH
-                + GSUTIL_FLAGS
-                + tank_url
-                + "/"
-                + model_dir_name
-                + "/hash.npy"
-                + " "
-                + os.path.join(model_dir, "upstream_hash.npy")
+            gs_hash_url = (
+                tank_url.rstrip("/") + "/" + model_dir_name + "/hash.npy"
             )
-            if os.system(gs_hash) != 0:
-                raise Exception("hash of the model not present in the tank.")
+            download_public_file(
+                gs_hash_url, os.path.join(model_dir, "upstream_hash.npy")
+            )
             upstream_hash = str(
                 np.load(os.path.join(model_dir, "upstream_hash.npy"))
             )
             if local_hash != upstream_hash:
                 if shark_args.update_tank == True:
-                    gs_download_model()
+                    download_public_file(full_gs_url, WORKDIR)
                 else:
                     print(
                         "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
                     )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
-    with open(
-        os.path.join(model_dir, model_name + dyn_str + "_tflite.mlir"),
-        mode="rb",
-    ) as f:
-        mlir_file = f.read()
-
-    function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
-    inputs = np.load(os.path.join(model_dir, "inputs.npz"))
-    golden_out = np.load(os.path.join(model_dir, "golden_out.npz"))
-
-    inputs_tuple = tuple([inputs[key] for key in inputs])
-    golden_out_tuple = tuple([golden_out[key] for key in golden_out])
-    return mlir_file, function_name, inputs_tuple, golden_out_tuple
-
-
-def download_tf_model(
-    model_name, tuned=None, tank_url="gs://shark_tank/latest"
-):
-    model_name = model_name.replace("/", "_")
-    os.makedirs(WORKDIR, exist_ok=True)
-    model_dir_name = model_name + "_tf"
-
-    def gs_download_model():
-        gs_command = (
-            GSUTIL_PATH
-            + GSUTIL_FLAGS
-            + tank_url
-            + "/"
-            + model_dir_name
-            + ' "'
-            + WORKDIR
-            + '"'
-        )
-        if os.system(gs_command) != 0:
-            raise Exception("model not present in the tank. Contact Nod Admin")
-
-    if not check_dir_exists(model_dir_name, frontend="tf"):
-        gs_download_model()
-    else:
-        if not _internet_connected():
-            print(
-                "No internet connection. Using the model already present in the tank."
-            )
-        else:
-            model_dir = os.path.join(WORKDIR, model_dir_name)
-            local_hash = str(np.load(os.path.join(model_dir, "hash.npy")))
-            gs_hash = (
-                GSUTIL_PATH
-                + GSUTIL_FLAGS
-                + tank_url
-                + "/"
-                + model_dir_name
-                + "/hash.npy"
-                + " "
-                + os.path.join(model_dir, "upstream_hash.npy")
-            )
-            if os.system(gs_hash) != 0:
-                raise Exception("hash of the model not present in the tank.")
-            upstream_hash = str(
-                np.load(os.path.join(model_dir, "upstream_hash.npy"))
-            )
-            if local_hash != upstream_hash:
-                if shark_args.update_tank == True:
-                    gs_download_model()
-                else:
-                    print(
-                        "Hash does not match upstream in gs://shark_tank/. If you are using SHARK Downloader with locally generated artifacts, this is working as intended."
-                    )
-
-    model_dir = os.path.join(WORKDIR, model_dir_name)
-    suffix = "_tf.mlir" if tuned is None else "_tf_" + tuned + ".mlir"
+    suffix = (
+        "_" + frontend + ".mlir"
+        if tuned is None
+        else "_" + frontend + "_" + tuned + ".mlir"
+    )
     filename = os.path.join(model_dir, model_name + suffix)
     if not os.path.isfile(filename):
-        filename = os.path.join(model_dir, model_name + "_tf.mlir")
+        filename = os.path.join(
+            model_dir, model_name + "_" + frontend + ".mlir"
+        )
 
     with open(filename, mode="rb") as f:
         mlir_file = f.read()

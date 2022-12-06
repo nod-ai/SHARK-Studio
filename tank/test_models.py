@@ -5,11 +5,7 @@ from shark.iree_utils._common import (
 )
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 from parameterized import parameterized
-from shark.shark_downloader import (
-    download_tf_model,
-    download_torch_model,
-    download_tflite_model,
-)
+from shark.shark_downloader import download_model
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
 import iree.compiler as ireec
@@ -133,23 +129,11 @@ class SharkModuleTester:
     def create_and_check_module(self, dynamic, device):
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.update_tank = self.update_tank
-        if self.config["framework"] == "tf":
-            model, func_name, inputs, golden_out = download_tf_model(
-                self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        elif self.config["framework"] == "torch":
-            model, func_name, inputs, golden_out = download_torch_model(
-                self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        elif self.config["framework"] == "tflite":
-            model, func_name, inputs, golden_out = download_tflite_model(
-                model_name=self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        else:
-            model, func_name, inputs, golden_out = None, None, None, None
+        model, func_name, inputs, golden_out = download_model(
+            self.config["model_name"],
+            tank_url=self.tank_url,
+            frontend=self.config["framework"],
+        )
 
         shark_module = SharkInference(
             model,
