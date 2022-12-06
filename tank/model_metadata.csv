@@ -27,3 +27,5 @@ microsoft/mpnet-base,False,False,-,-,-
 roberta-base,False,False,-,-,-
 xlm-roberta-base,False,False,-,-,-
 facebook/convnext-tiny-224,False,False,-,-,-
+efficientnet-v2-s,False,False,22M,"image-classification,cnn","Includes MBConv and Fused-MBConv"
+
