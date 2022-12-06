@@ -9,7 +9,6 @@ import json
 import os
 import sys
 from random import randint
-from numpy import iinfo
 import numpy as np
 
 
@@ -91,12 +90,11 @@ with gr.Blocks(css=demo_css) as shark_web:
                         cache_examples=False,
                         elem_id="prompt_examples",
                     )
-                with gr.Row(equal_height=True):
+                with gr.Row():
                     with gr.Group():
                         steps = gr.Slider(
                             1, 100, value=50, step=1, label="Steps"
                         )
-                    with gr.Group():
                         guidance = gr.Slider(
                             0,
                             50,
@@ -105,12 +103,15 @@ with gr.Blocks(css=demo_css) as shark_web:
                             label="Guidance Scale",
                         )
                     with gr.Group():
-                        uint32_info = iinfo(np.uint32)
-                        rand_seed = randint(uint32_info.min, uint32_info.max)
-                        random_seed = gr.Button("Random seed").style(
+                        random_seed = gr.Button("Randomize Seed").style(
                             full_width=True
                         )
+                        uint32_info = np.iinfo(np.uint32)
+                        rand_seed = randint(uint32_info.min, uint32_info.max)
                         seed = gr.Number(value=rand_seed, show_label=False)
+                        generate_seed = gr.Checkbox(
+                            value=False, label="use random seed"
+                        )
                         u32_min = gr.Number(
                             value=uint32_info.min, visible=False
                         )
@@ -142,6 +143,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 steps,
                 guidance,
                 seed,
+                generate_seed,
             ],
             outputs=[generated_img, std_output],
         )
@@ -152,6 +154,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 steps,
                 guidance,
                 seed,
+                generate_seed,
             ],
             outputs=[generated_img, std_output],
         )

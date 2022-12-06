@@ -3,6 +3,8 @@ from PIL import Image
 from tqdm.auto import tqdm
 from models.stable_diffusion.cache_objects import cache_obj
 from models.stable_diffusion.stable_args import args
+from random import randint
+import numpy as np
 import time
 
 
@@ -10,7 +12,7 @@ def set_ui_params(prompt, steps, guidance, seed):
     args.prompt = [prompt]
     args.steps = steps
     args.guidance = guidance
-    args.seed = seed
+    args.seed = int(seed)
 
 
 def stable_diff_inf(
@@ -18,9 +20,13 @@ def stable_diff_inf(
     steps: int,
     guidance: float,
     seed: int,
+    generate_seed: bool,
 ):
 
     start = time.time()
+    if generate_seed:
+        uint32_info = np.iinfo(np.uint32)
+        seed = randint(uint32_info.min, uint32_info.max)
     set_ui_params(prompt, steps, guidance, seed)
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
@@ -109,10 +115,12 @@ def stable_diff_inf(
     total_time = time.time() - start
 
     text_output = f"prompt={args.prompt}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, seed={args.seed}"
-    text_output += f"\nAverage step time: {avg_ms}ms/it"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, seed={args.seed}, scheduler={args.scheduler}"
+    text_output += "\nAverage step time: {0:.2f}ms/it".format(avg_ms)
     print(f"\nAverage step time: {avg_ms}ms/it")
-    text_output += f"\nTotal image generation time: {total_time}sec"
+    text_output += "\nTotal image generation time: {0:.2f}sec".format(
+        total_time
+    )
     print(f"\nTotal image generation time: {total_time}sec")
 
     return out_img, text_output
