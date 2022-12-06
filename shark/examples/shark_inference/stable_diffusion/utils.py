@@ -39,12 +39,10 @@ def _compile_module(shark_module, model_name, extra_args=[]):
 
 # Downloads the model from shark_tank and returns the shark_module.
 def get_shark_model(tank_url, model_name, extra_args=[]):
-    from shark.shark_downloader import download_model
+    from shark.shark_downloader import download_torch_model
 
-    mlir_model, func_name, inputs, golden_out = download_model(
-        model_name,
-        tank_url=tank_url,
-        frontend="torch",
+    mlir_model, func_name, inputs, golden_out = download_torch_model(
+        model_name, tank_url=tank_url
     )
     shark_module = SharkInference(
         mlir_model, func_name, device=args.device, mlir_dialect="linalg"

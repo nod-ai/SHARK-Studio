@@ -1,6 +1,6 @@
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from shark.shark_downloader import download_tf_model
 
 import iree.compiler as ireec
 import unittest
@@ -16,9 +16,8 @@ class TapasBaseModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, func_name, inputs, golden_out = download_model(
-            "google/tapas-base",
-            frontend="tf",
+        model, func_name, inputs, golden_out = download_tf_model(
+            "google/tapas-base"
         )
 
         shark_module = SharkInference(

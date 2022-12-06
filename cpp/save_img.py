@@ -1,6 +1,7 @@
 import numpy as np
 import tensorflow as tf
 from shark.shark_inference import SharkInference
+from shark.shark_downloader import download_tf_model
 
 
 def load_and_preprocess_image(fname: str):

@@ -1,9 +1,8 @@
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from shark.shark_downloader import download_torch_model
 
-mlir_model, func_name, inputs, golden_out = download_model(
-    "bert-base-uncased_tosa",
-    frontend="torch",
+mlir_model, func_name, inputs, golden_out = download_torch_model(
+    "bert-base-uncased_tosa"
 )
 
 shark_module = SharkInference(

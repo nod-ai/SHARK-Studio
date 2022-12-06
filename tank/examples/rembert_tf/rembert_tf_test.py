@@ -1,6 +1,6 @@
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from shark.shark_downloader import download_tf_model
 from tank.test_utils import get_valid_test_params, shark_test_name_func
 from parameterized import parameterized
 
@@ -18,8 +18,8 @@ class RemBertModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device):
-        model, func_name, inputs, golden_out = download_model(
-            "google/rembert", frontend="tf"
+        model, func_name, inputs, golden_out = download_tf_model(
+            "google/rembert"
         )
 
         shark_module = SharkInference(
