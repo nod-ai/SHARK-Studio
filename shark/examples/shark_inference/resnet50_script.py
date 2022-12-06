@@ -5,7 +5,7 @@ import torchvision.models as models
 from torchvision import transforms
 import sys
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_torch_model
+from shark.shark_downloader import download_model
 
 
 ################################## Preprocessing inputs and model ############
@@ -66,7 +66,9 @@ labels = load_labels()
 
 
 ## Can pass any img or input to the forward module.
-mlir_model, func_name, inputs, golden_out = download_torch_model("resnet50")
+mlir_model, func_name, inputs, golden_out = download_model(
+    "resnet50", frontend="torch"
+)
 
 shark_module = SharkInference(mlir_model, func_name, mlir_dialect="linalg")
 shark_module.compile()
