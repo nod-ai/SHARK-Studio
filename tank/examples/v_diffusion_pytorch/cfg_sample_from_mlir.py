@@ -15,7 +15,7 @@ from torchvision.transforms import functional as TF
 from tqdm import trange
 
 from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_torch_model
+from shark.shark_downloader import download_model
 import numpy as np
 
 import sys
@@ -191,7 +191,9 @@ x_in = x[0:min_batch_size, :, :, :]
 ts = x_in.new_ones([x_in.shape[0]])
 t_in = t[0] * ts
 
-mlir_model, func_name, inputs, golden_out = download_torch_model("v_diffusion")
+mlir_model, func_name, inputs, golden_out = download_model(
+    "v_diffusion", frontend="torch"
+)
 
 shark_module = SharkInference(
     mlir_model, func_name, device=args.runtime_device, mlir_dialect="linalg"

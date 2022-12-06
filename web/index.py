@@ -9,7 +9,6 @@ import json
 import os
 import sys
 from random import randint
-from numpy import iinfo
 import numpy as np
 
 
@@ -92,58 +91,27 @@ with gr.Blocks(css=demo_css) as shark_web:
                         elem_id="prompt_examples",
                     )
                 with gr.Row():
-                    steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
-                    guidance = gr.Slider(
-                        0,
-                        50,
-                        value=7.5,
-                        step=0.1,
-                        label="Guidance Scale",
-                    )
-                    precision = gr.Radio(
-                        label="Precision",
-                        value="fp16",
-                        choices=["fp16", "fp32"],
-                    )
-                    # Hidden Items
-                    height = gr.Slider(
-                        384,
-                        768,
-                        value=512,
-                        step=64,
-                        label="Height",
-                        interactive=False,
-                        visible=False,
-                    )
-                    width = gr.Slider(
-                        384,
-                        768,
-                        value=512,
-                        step=64,
-                        label="Width",
-                        interactive=False,
-                        visible=False,
-                    )
-                with gr.Row():
-                    device = gr.Radio(
-                        label="Device",
-                        value="vulkan",
-                        choices=["cuda", "vulkan"],
-                        interactive=False,
-                        visible=False,
-                    )
-                    scheduler = gr.Dropdown(
-                        label="Scheduler",
-                        value="DPMSolverMultistep",
-                        choices=["PNDM", "LMSDiscrete", "DPMSolverMultistep"],
-                    )
                     with gr.Group():
-                        uint32_info = iinfo(np.uint32)
-                        rand_seed = randint(uint32_info.min, uint32_info.max)
-                        random_seed = gr.Button("Random seed").style(
+                        steps = gr.Slider(
+                            1, 100, value=50, step=1, label="Steps"
+                        )
+                        guidance = gr.Slider(
+                            0,
+                            50,
+                            value=7.5,
+                            step=0.1,
+                            label="Guidance Scale",
+                        )
+                    with gr.Group():
+                        random_seed = gr.Button("Randomize Seed").style(
                             full_width=True
                         )
+                        uint32_info = np.iinfo(np.uint32)
+                        rand_seed = randint(uint32_info.min, uint32_info.max)
                         seed = gr.Number(value=rand_seed, show_label=False)
+                        generate_seed = gr.Checkbox(
+                            value=False, label="use random seed"
+                        )
                         u32_min = gr.Number(
                             value=uint32_info.min, visible=False
                         )
@@ -156,82 +124,26 @@ with gr.Blocks(css=demo_css) as shark_web:
                             outputs=[seed],
                             _js="(min,max) => Math.floor(Math.random() * (max - min)) + min",
                         )
-                    cache = gr.Checkbox(label="Cache", value=True)
-                    debug = gr.Checkbox(label="DEBUG", value=False)
-                    save_img = gr.Checkbox(
-                        label="Save", value=False, visible=False
-                    )
-                    # Hidden Items.
-                    live_preview = gr.Checkbox(
-                        label="Live Preview",
-                        value=False,
-                        interactive=False,
-                        visible=False,
-                    )
-                    import_mlir = gr.Checkbox(
-                        label="Import MLIR",
-                        value=False,
-                        interactive=False,
-                        visible=False,
-                    )
-                    iters_count = gr.Slider(
-                        1,
-                        24,
-                        value=1,
-                        step=1,
-                        label="Iteration Count",
-                        visible=False,
-                    )
-                    batch_size = gr.Slider(
-                        1,
-                        4,
-                        value=1,
-                        step=1,
-                        label="Batch Size",
-                        visible=False,
-                    )
-                    iree_vulkan_target_triple = gr.Textbox(
-                        value="",
-                        max_lines=1,
-                        label="IREE VULKAN TARGET TRIPLE",
-                        visible=False,
-                    )
                 stable_diffusion = gr.Button("Generate Image")
+                with gr.Accordion("Performace Details:"):
+                    std_output = gr.Textbox(
+                        value="Nothing to show.",
+                        lines=4,
+                        show_label=False,
+                    )
             with gr.Column(scale=1, min_width=600):
                 generated_img = gr.Image(type="pil", interactive=False).style(
                     height=768
                 )
-                std_output = gr.Textbox(
-                    label="Std Output",
-                    value="Loading...",
-                    lines=5,
-                    visible=False,
-                )
-        debug.change(
-            lambda x: gr.Textbox.update(visible=x),
-            inputs=[debug],
-            outputs=[std_output],
-        )
 
         prompt.submit(
             stable_diff_inf,
             inputs=[
                 prompt,
-                scheduler,
-                iters_count,
-                batch_size,
                 steps,
                 guidance,
-                height,
-                width,
                 seed,
-                precision,
-                device,
-                cache,
-                iree_vulkan_target_triple,
-                live_preview,
-                save_img,
-                import_mlir,
+                generate_seed,
             ],
             outputs=[generated_img, std_output],
         )
@@ -239,26 +151,14 @@ with gr.Blocks(css=demo_css) as shark_web:
             stable_diff_inf,
             inputs=[
                 prompt,
-                scheduler,
-                iters_count,
-                batch_size,
                 steps,
                 guidance,
-                height,
-                width,
                 seed,
-                precision,
-                device,
-                cache,
-                iree_vulkan_target_triple,
-                live_preview,
-                save_img,
-                import_mlir,
+                generate_seed,
             ],
             outputs=[generated_img, std_output],
         )
 
-shark_web.queue()
 shark_web.launch(
     share=False,
     server_name="0.0.0.0",

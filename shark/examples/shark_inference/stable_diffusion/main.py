@@ -159,8 +159,8 @@ if __name__ == "__main__":
     vae_end = time.time()
     end_profiling(profile_device)
     image = torch.from_numpy(image)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
+    image = image.detach().cpu().permute(0, 2, 3, 1) * 255.0
+    images = image.numpy().round().astype("uint8")
     total_end = time.time()
 
     clip_inf_time = (clip_inf_end - clip_inf_start) * 1000
