@@ -13,8 +13,7 @@ For Windows users this can be done by clearing the contents of `C:\Users\<userna
 
 ## Installation
 
-Download the latest Windows `shark_sd.exe` [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd.exe) and also download the latest Google Cloud Storage tool `gsutil.exe` [here](https://storage.googleapis.com/shark-public/anush/windows/gsutil.exe) and place them in the same directory and double click on `stable_sd.exe`. Accept if Windows warns of an unsigned .exe. The requirement to download `gsutil.exe` will be removed in the next few days.
-
+Download the latest Windows `shark_sd.exe` [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd_05122022v3.exe). Accept if Windows warns of an unsigned .exe.
 
 #### Access Stable Diffusion on http://localhost:8080/?__theme=dark
 
