@@ -18,7 +18,6 @@ albert-base-v2,linalg,torch,1e-2,1e-3,default
 alexnet,linalg,torch,1e-2,1e-3,default
 bert-base-cased,linalg,torch,1e-2,1e-3,default
 bert-base-uncased,linalg,torch,1e-2,1e-3,default
-distilbert-base-uncased,linalg,torch,1e-2,1e-3,default
 facebook/deit-small-distilled-patch16-224,linalg,torch,1e-2,1e-3,default
 google/vit-base-patch16-224,linalg,torch,1e-2,1e-3,default
 microsoft/beit-base-patch16-224-pt22k-ft22k,linalg,torch,1e-2,1e-3,default

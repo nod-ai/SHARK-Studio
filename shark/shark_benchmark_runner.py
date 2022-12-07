@@ -260,19 +260,12 @@ for currently supported models. Exiting benchmark ONNX."
                     return [param_count, model_tags, model_notes]
 
     def compare_bench_results(self, baseline: str, result: str):
-        # Takes two numbers represented as strings and returns "<n>x slower/faster", as in "result is <n>x slower than baseline".
+        # Takes a baseline and a result string and calculates a comparison, e.g. "1.04x baseline".
         a = float(baseline)
         b = float(result)
-        if a < b:
-            # result slower than baseline
-            comparison = (b - a) / a
-            comp_str = f"{round(comparison, 2)}x slower"
-        elif a > b:
-            # result faster than baseline
-            comparison = a / b
-            comp_str = f"{round(comparison, 2)}x faster"
-        else:
-            comp_str = "equal"
+        # result faster than baseline
+        comparison = a / b
+        comp_str = f"{round(comparison, 2)}x baseline"
         return comp_str
 
     def benchmark_all_csv(
@@ -327,7 +320,7 @@ for currently supported models. Exiting benchmark ONNX."
                         bench_result["ms/iter"],
                     ) = self.benchmark_frontend(modelname)
                     self.frontend_result = bench_result["ms/iter"]
-                    bench_result["vs. PyTorch/TF"] = "="
+                    bench_result["vs. PyTorch/TF"] = "baseline"
                     (
                         bench_result["param_count"],
                         bench_result["tags"],

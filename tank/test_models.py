@@ -225,15 +225,21 @@ class SharkModuleTester:
 
         return expected, logits
 
-
 def run_test(module_tester, dynamic, device):
+    import multiprocessing
+
     tempdir = tempfile.TemporaryDirectory(
         prefix=module_tester.tmp_prefix, dir="./shark_tmp/"
     )
     module_tester.temp_dir = tempdir.name
 
     with ireec.tools.TempFileSaver(tempdir.name):
-        module_tester.create_and_check_module(dynamic, device)
+        p = multiprocessing.Process(
+            target=module_tester.create_and_check_module, args=(dynamic, device)
+        )
+        p.start()
+        p.join()
+        return p
 
 
 class SharkModuleTest(unittest.TestCase):
@@ -266,207 +272,6 @@ class SharkModuleTest(unittest.TestCase):
             "update_tank"
         )
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
-        if (
-            config["model_name"] == "distilbert-base-uncased"
-            and config["framework"] == "torch"
-        ):
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/354")
-        if config["model_name"] == "facebook/convnext-tiny-224" and device in [
-            "cuda",
-            "cpu",
-        ]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
-        if config[
-            "model_name"
-        ] == "google/vit-base-patch16-224" and device in ["cuda", "cpu"]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
-        if config["model_name"] == "resnet50" and device in [
-            "metal",
-            "vulkan",
-        ]:
-            if get_vulkan_triple_flag() is not None:
-                if "m1-moltenvk-macos" in get_vulkan_triple_flag():
-                    pytest.xfail(
-                        reason="M2: Assert Error & M1: CompilerToolError"
-                    )
-        if config["model_name"] == "google/rembert":
-            pytest.skip(reason="Model too large to convert.")
-        if config[
-            "model_name"
-        ] == "dbmdz/convbert-base-turkish-cased" and device in [
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="Issue: https://github.com/iree-org/iree/issues/9971"
-            )
-        if config["model_name"] == "facebook/convnext-tiny-224" and device in [
-            "cpu",
-            "cuda",
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="https://github.com/nod-ai/SHARK/issues/311, https://github.com/nod-ai/SHARK/issues/342"
-            )
-        if config["model_name"] == "funnel-transformer/small" and device in [
-            "cpu",
-            "cuda",
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="failing in the iree-compiler passes, see https://github.com/nod-ai/SHARK/issues/201"
-            )
-        if (
-            config["model_name"] == "google/vit-base-patch16-224"
-            and device == "cuda"
-        ):
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
-        if config["model_name"] == "microsoft/mpnet-base":
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/203")
-        if config["model_name"] == "nvidia/mit-b0":
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/343")
-        if (
-            config["model_name"] == "google/mobilebert-uncased"
-            and device in ["metal", "vulkan"]
-            and config["framework"] == "torch"
-        ):
-            pytest.xfail(
-                reason="Numerics issues -- https://github.com/nod-ai/SHARK/issues/344"
-            )
-        if (
-            config["model_name"] == "google/mobilebert-uncased"
-            and device == "cpu"
-            and config["framework"] == "tf"
-        ):
-            pytest.xfail(reason="Fails during iree-compile.")
-        if (
-            config["model_name"] == "facebook/deit-small-distilled-patch16-224"
-            and device == "cuda"
-        ):
-            pytest.xfail(
-                reason="Fails during iree-compile without reporting diagnostics."
-            )
-        if (
-            config["model_name"]
-            == "microsoft/beit-base-patch16-224-pt22k-ft22k"
-            and device == "cuda"
-        ):
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/390")
-        if config["model_name"] == "squeezenet1_0" and device in [
-            "cpu",
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
-            )
-        if config["model_name"] == "mobilenet_v3_small" and device in [
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
-            )
-        if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
-            pytest.xfail(reason="Transformers API mismatch")
-        if config["model_name"] == "alexnet" and device in ["metal", "vulkan"]:
-            pytest.xfail(reason="Assertion Error: Zeros Output")
-        if (
-            config["model_name"] == "camembert-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
-        if (
-            config["model_name"] == "roberta-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
-        if config["model_name"] in [
-            "microsoft/MiniLM-L12-H384-uncased",
-            "wide_resnet50_2",
-            "resnet50",
-            "resnet18",
-            "resnet101",
-            "microsoft/resnet-50",
-        ] and device in ["metal", "vulkan"]:
-            pytest.xfail(reason="Vulkan Numerical Error (mostly conv)")
-        if config["model_name"] == "mobilenet_v3_small" and device in [
-            "cuda",
-            "cpu",
-        ]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/424")
-        if config[
-            "model_name"
-        ] == "dbmdz/convbert-base-turkish-cased" and device in ["cuda", "cpu"]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/463")
-        if (
-            config["model_name"]
-            in [
-                "facebook/convnext-tiny-224",
-                "squeezenet1_0",
-            ]
-            and device == "rocm"
-        ):
-            pytest.xfail(
-                reason="iree-compile buffer limit issue: https://github.com/nod-ai/SHARK/issues/475"
-            )
-        if (
-            config["model_name"]
-            in [
-                "funnel-transformer/small",
-                "mobilenet_v3_small",
-            ]
-            and device == "rocm"
-        ):
-            pytest.xfail(
-                reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/476"
-            )
-        if (
-            config["model_name"] == "microsoft/MiniLM-L12-H384-uncased"
-            and device == "cpu"
-        ):
-            pytest.xfail(reason="Fails during iree-compile")
-        if (
-            config["model_name"] in ["albert-base-v2"]
-            and device == "cpu"
-            and dynamic == False
-            and config["framework"] == "tf"
-        ):
-            pytest.xfail(
-                reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/489"
-            )
-        if (
-            config["model_name"]
-            in [
-                "microsoft/resnet-50",
-                "alexnet",
-                "resnet101",
-                "resnet18",
-                "resnet50",
-                "wide_resnet50_2",
-            ]
-            and device
-            in [
-                "cpu",
-                "cuda",
-            ]
-            and config["framework"] == "torch"
-        ):
-            pytest.xfail(
-                reason="tensor dimension issue: https://github.com/nod-ai/SHARK/issues/511"
-            )
-        if config["model_name"] == "squeezenet1_0" and device == "cuda":
-            pytest.xfail(
-                reason="tensor dimension issue: https://github.com/nod-ai/SHARK/issues/511"
-            )
         if config["framework"] == "tf" and dynamic == True:
             pytest.skip(
                 reason="Dynamic shapes not supported for this framework."
@@ -483,8 +288,5 @@ class SharkModuleTest(unittest.TestCase):
         # We must create a new process each time we benchmark a model to allow
         # for Tensorflow to release GPU resources. Using the same process to
         # benchmark multiple models leads to OOM.
-        p = multiprocessing.Process(
-            target=run_test, args=(self.module_tester, dynamic, device)
-        )
-        p.start()
-        p.join()
+        run_test(self.module_tester, dynamic, device)
+            
