@@ -225,6 +225,7 @@ class SharkModuleTester:
 
         return expected, logits
 
+
 def run_test(module_tester, dynamic, device):
     import multiprocessing
 
@@ -235,7 +236,8 @@ def run_test(module_tester, dynamic, device):
 
     with ireec.tools.TempFileSaver(tempdir.name):
         p = multiprocessing.Process(
-            target=module_tester.create_and_check_module, args=(dynamic, device)
+            target=module_tester.create_and_check_module,
+            args=(dynamic, device),
         )
         p.start()
         p.join()
@@ -289,4 +291,3 @@ class SharkModuleTest(unittest.TestCase):
         # for Tensorflow to release GPU resources. Using the same process to
         # benchmark multiple models leads to OOM.
         run_test(self.module_tester, dynamic, device)
-            
