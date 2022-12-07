@@ -266,7 +266,11 @@ class SharkModuleTest(unittest.TestCase):
             "update_tank"
         )
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
-
+        if config["model_name"] == "efficientnet-v2-s" and device in [
+            "metal",
+            "vulkan",
+        ]:
+            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/575")
         if config[
             "model_name"
         ] == "google/vit-base-patch16-224" and device in ["cuda"]:

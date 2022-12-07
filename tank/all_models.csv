@@ -24,7 +24,7 @@ microsoft/beit-base-patch16-224-pt22k-ft22k,linalg,torch,1e-2,1e-3,default
 microsoft/MiniLM-L12-H384-uncased,linalg,torch,1e-2,1e-3,default
 microsoft/resnet-50,linalg,torch,1e-2,1e-3,default
 google/mobilebert-uncased,linalg,torch,1e-2,1e-3,default
-mobilenet_v3_small,linalg,torch,1e-2,1e-3,default
+mobilenet_v3_small,linalg,torch,1e-1,1e-2,default
 nvidia/mit-b0,linalg,torch,1e-2,1e-3,default
 resnet101,linalg,torch,1e-2,1e-3,default
 resnet18,linalg,torch,1e-2,1e-3,default
