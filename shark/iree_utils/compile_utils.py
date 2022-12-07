@@ -15,6 +15,7 @@ import iree.runtime as ireert
 import iree.compiler as ireec
 from shark.iree_utils._common import iree_device_map, iree_target_map
 from shark.iree_utils.benchmark_utils import *
+from shark.parser import shark_args
 import numpy as np
 import os
 import re
@@ -64,6 +65,16 @@ def get_iree_common_args():
         "--iree-vm-target-index-bits=64",
         "--iree-util-zero-fill-elided-attrs",
     ]
+
+
+# Args that are suitable only for certain models or groups of models.
+# shark_args are passed down from pytests to control which models compile with these flags,
+# but they can also be set in shark/parser.py
+def get_model_specific_args():
+    ms_args = []
+    if shark_args.enable_conv_transform == True:
+        ms_args += ["--iree-flow-enable-conv-nchw-to-nhwc-transform"]
+    return ms_args
 
 
 def create_dispatch_dirs(bench_dir, device):
@@ -213,14 +224,22 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
 
 
 def compile_module_to_flatbuffer(
-    module, device, frontend, func_name, model_config_path, extra_args
+    module,
+    device,
+    frontend,
+    func_name,
+    model_config_path,
+    extra_args,
+    model_name="None",
 ):
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
     args += get_iree_device_args(device, extra_args)
     args += get_iree_common_args()
+    args += get_model_specific_args()
     args += extra_args
+    print(args)
 
     if frontend in ["tensorflow", "tf"]:
         input_type = "mhlo"
