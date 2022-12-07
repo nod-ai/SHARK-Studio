@@ -102,6 +102,12 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
             return self.text_encoder(input)[0]
 
     clip_model = CLIPText()
+    if args.clip_checkpoint != "":
+        print("Loading CLIP custom checkpoint")
+        clip_model.text_encoder.load_state_dict(
+            torch.load(args.clip_checkpoint, map_location=torch.device("cpu")),
+            strict=False,
+        )
     shark_clip = compile_through_fx(
         clip_model,
         model_input[args.version]["clip"],
@@ -128,6 +134,12 @@ def get_base_vae_mlir(model_name="vae", extra_args=[]):
             return (x / 2 + 0.5).clamp(0, 1)
 
     vae = BaseVaeModel()
+    if args.vae_checkpoint != "":
+        print("Loading Base VAE custom checkpoint")
+        vae.vae.load_state_dict(
+            torch.load(args.clip_checkpoint, map_location=torch.device("cpu")),
+            strict=False,
+        )
     if args.variant == "stablediffusion":
         if args.precision == "fp16":
             vae = vae.half().cuda()
@@ -184,6 +196,12 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
             return x.round()
 
     vae = VaeModel()
+    if args.vae_checkpoint != "":
+        print("Loading VAE custom checkpoint")
+        vae.vae.load_state_dict(
+            torch.load(args.clip_checkpoint, map_location=torch.device("cpu")),
+            strict=False,
+        )
     if args.variant == "stablediffusion":
         if args.precision == "fp16":
             vae = vae.half().cuda()
@@ -247,6 +265,12 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             return noise_pred
 
     unet = UnetModel()
+    if args.unet_checkpoint != "":
+        print("Loading UNET custom checkpoint")
+        unet.unet.load_state_dict(
+            torch.load(args.unet_checkpoint, map_location=torch.device("cpu")),
+            strict=False,
+        )
     if args.variant == "stablediffusion":
         if args.precision == "fp16":
             unet = unet.half().cuda()

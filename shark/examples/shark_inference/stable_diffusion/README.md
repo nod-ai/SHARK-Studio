@@ -54,3 +54,10 @@ use the flag `--variant=` to specify the model to be used.
 ```shell
 python .\shark\examples\shark_inference\stable_diffusion\main.py --variant=anythingv3 --max_length=77 --prompt="1girl, brown hair, green eyes, colorful, autumn, cumulonimbus clouds, lighting, blue sky, falling leaves, garden"
 ```
+
+## Using custom checkpoints for a specific version of a model:
+* This feature can only be used with `import_mlir` command-line argument.
+* To try this feature you may download [unet-checkpoint](https://huggingface.co/CompVis/stable-diffusion-v1-4/resolve/main/unet/diffusion_pytorch_model.bin) and provide its path to `--unet_checkpoint` command-line argument.
+```shell
+python main.py --precision=fp32 --device=vulkan --import_mlir --unet_checkpoint=<path to unet's checkpoint file> --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
+(Similarly one can use --vae_checkpoint and --clip_checkpoint command-line arguments to use custom checkpoint weights for the individual models)
