@@ -1,5 +1,5 @@
-resnet50,mhlo,tf,1e-02,1e-3,default
-albert-base-v2,mhlo,tf,1e-02,1e-3,default
+resnet50,mhlo,tf,1e-2,1e-3,default
+albert-base-v2,mhlo,tf,1e-2,1e-2,default
 roberta-base,mhlo,tf,1e-02,1e-3,default
 bert-base-uncased,mhlo,tf,1e-2,1e-3,default
 camembert-base,mhlo,tf,1e-2,1e-3,default
@@ -13,7 +13,7 @@ google/vit-base-patch16-224,mhlo,tf,1e-2,1e-3,tf_vit
 hf-internal-testing/tiny-random-flaubert,mhlo,tf,1e-2,1e-3,default
 microsoft/MiniLM-L12-H384-uncased,mhlo,tf,1e-2,1e-3,tf_hf
 microsoft/layoutlm-base-uncased,mhlo,tf,1e-2,1e-3,default
-microsoft/mpnet-base,mhlo,tf,1e-2,1e-3,default
+microsoft/mpnet-base,mhlo,tf,1e-2,1e-2,default
 albert-base-v2,linalg,torch,1e-2,1e-3,default
 alexnet,linalg,torch,1e-2,1e-3,default
 bert-base-cased,linalg,torch,1e-2,1e-3,default
@@ -24,7 +24,7 @@ microsoft/beit-base-patch16-224-pt22k-ft22k,linalg,torch,1e-2,1e-3,default
 microsoft/MiniLM-L12-H384-uncased,linalg,torch,1e-2,1e-3,default
 microsoft/resnet-50,linalg,torch,1e-2,1e-3,default
 google/mobilebert-uncased,linalg,torch,1e-2,1e-3,default
-mobilenet_v3_small,linalg,torch,1e-2,1e-3,default
+mobilenet_v3_small,linalg,torch,1e-1,1e-2,default
 nvidia/mit-b0,linalg,torch,1e-2,1e-3,default
 resnet101,linalg,torch,1e-2,1e-3,default
 resnet18,linalg,torch,1e-2,1e-3,default
