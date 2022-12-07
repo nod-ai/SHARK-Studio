@@ -24,6 +24,7 @@ datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
 datas += collect_data_files('shark')
 datas += [
+         ( '..\\temp\\repository\\metadata\\root.json', '.'),
          ( 'prompts.json', '.' ),
          ( 'logos/*.png', 'logos' )
          ]

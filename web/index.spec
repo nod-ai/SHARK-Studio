@@ -21,6 +21,7 @@ datas += copy_metadata('diffusers')
 datas += copy_metadata('transformers')
 datas += collect_data_files('gradio')
 datas += collect_data_files('iree')
+datas += collect_data_files('google-cloud-storage')
 #datas += copy_metadata('iree')
 datas += collect_data_files('shark')
 datas += [

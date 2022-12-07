@@ -124,3 +124,25 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         release_id: ${{ steps.create_release.outputs.id }}
+
+  publish_exe:
+    runs-on: windows-latest
+    #just to get package version should be changed later
+    needs: build
+    -name: checkout:
+      - uses: actions/checkout@e2f20e631ae6d7dd3b768f56a5d2af784dd54791 # v2.5.0
+        with:
+          path: "c"
+          submodules: true
+          ref: ${{ github.event.inputs.commit }}
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+    -name: generate_executable
+      shell: powershell
+      run: |
+        cd ./c
+        python repo_init.py
+        .\create_pyinstaller_bundle.bat
+        tufup targets add "${{ github.package_version }}" temp/dist temp/keystore
+        python tufup_repo_upload.py

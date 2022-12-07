@@ -10,6 +10,52 @@ import os
 import sys
 from random import randint
 import numpy as np
+import settings
+import logging
+import shutil
+import time
+
+from tufup.client import Client
+
+
+logger = logging.getLogger(__name__)
+
+
+
+def progress_hook(bytes_downloaded: int, bytes_expected: int):
+    progress_percent = bytes_downloaded / bytes_expected * 100
+    print(f'\r{progress_percent:.1f}%', end='')
+    time.sleep(0.2)  # quick and dirty: simulate slow or large download
+    if progress_percent >= 100:
+        print('')
+
+
+def update(pre: str):
+    # Create update client
+    client = Client(
+        app_name=settings.APP_NAME,
+        app_install_dir=settings.INSTALL_DIR,
+        current_version=settings.APP_VERSION,
+        metadata_dir=settings.METADATA_DIR,
+        metadata_base_url=settings.METADATA_BASE_URL,
+        target_dir=settings.TARGET_DIR,
+        target_base_url=settings.TARGET_BASE_URL,
+        refresh_required=False,
+    )
+
+    # Perform update
+    if client.check_for_updates(pre=pre):
+        client.download_and_apply_update(
+            # WARNING: Be very careful with purge_dst_dir=True, because this
+            # will delete *EVERYTHING* inside the app_install_dir, except
+            # paths specified in exclude_from_purge. So, only use
+            # purge_dst_dir=True if you are certain that your app_install_dir
+            # does not contain any unrelated content.
+            progress_hook=progress_hook,
+            purge_dst_dir=False,
+            exclude_from_purge=None,
+            log_file_name='install.log',
+        )
 
 
 def resource_path(relative_path):
@@ -18,6 +64,27 @@ def resource_path(relative_path):
         sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
     )
     return os.path.join(base_path, relative_path)
+
+
+# extract options from command line args
+pre_release_channel = None
+
+# The app must ensure dirs exist
+for dir_path in [settings.INSTALL_DIR, settings.METADATA_DIR, settings.TARGET_DIR]:
+    dir_path.mkdir(exist_ok=True, parents=True)
+
+# The app must be shipped with a trusted "root.json" metadata file,
+# which is created using the tufup.repo tools. The app must ensure
+# this file can be found in the specified metadata_dir. The root metadata
+# file lists all trusted keys and TUF roles.
+if not settings.TRUSTED_ROOT_DST.exists():
+    print("trust_root_dst doesnt exist, copying from: "+ str(settings.TRUSTED_ROOT_SRC))
+    print("copying to:" + str(settings.TRUSTED_ROOT_DST ))
+    shutil.copy(src=settings.TRUSTED_ROOT_SRC, dst=settings.TRUSTED_ROOT_DST)
+    logger.info('Trusted root metadata copied to cache.')
+
+# Download and apply any available updates
+update(pre=pre_release_channel)
 
 
 prompt_examples = []
