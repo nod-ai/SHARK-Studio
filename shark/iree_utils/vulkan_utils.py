@@ -17,6 +17,7 @@
 from os import linesep
 from shark.iree_utils._common import run_cmd
 import iree.runtime as ireert
+from sys import platform
 
 
 def get_vulkan_device_name():
@@ -31,11 +32,23 @@ def get_vulkan_device_name():
     return vulkaninfo_list[0]
 
 
+def get_os_name():
+    if platform.startswith("linux"):
+        return "linux"
+    elif platform == "darwin":
+        return "macos"
+    elif platform == "win32":
+        return "windows"
+    else:
+        print("Cannot detect OS type, defaulting to linux.")
+        return "linux"
+
+
 def get_vulkan_triple_flag(extra_args=[]):
     if "-iree-vulkan-target-triple=" in " ".join(extra_args):
         print(f"Using target triple from command line args")
         return None
-
+    system_os = get_os_name()
     vulkan_device = get_vulkan_device_name()
     if all(x in vulkan_device for x in ("Apple", "M1")):
         print(f"Found {vulkan_device} Device. Using m1-moltenvk-macos")
@@ -44,20 +57,26 @@ def get_vulkan_triple_flag(extra_args=[]):
         print("Found Apple M2 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
     elif all(x in vulkan_device for x in ("A100", "SXM4")):
-        print(f"Found {vulkan_device} Device. Using ampere-rtx3080-linux")
-        return "-iree-vulkan-target-triple=ampere-rtx3080-linux"
+        print(
+            f"Found {vulkan_device} Device. Using ampere-rtx3080-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=ampere-rtx3080-{system_os}"
     elif all(x in vulkan_device for x in ("RTX", "3090")):
-        print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
-        return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
+        print(
+            f"Found {vulkan_device} Device. Using ampere-rtx3090-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=ampere-rtx3090-{system_os}"
     elif all(x in vulkan_device for x in ("RTX", "4090")):
-        print(f"Found {vulkan_device} Device. Using ampere-rtx3090-linux")
-        return "-iree-vulkan-target-triple=ampere-rtx3090-linux"
+        print(
+            f"Found {vulkan_device} Device. Using ampere-rtx3090-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=ampere-rtx3090-{system_os}"
     elif all(x in vulkan_device for x in ("AMD", "7900")):
-        print(f"Found {vulkan_device} Device. Using rdna3-7900-linux")
-        return "-iree-vulkan-target-triple=rdna3-7900-linux"
+        print(f"Found {vulkan_device} Device. Using rdna3-7900-{system_os}")
+        return f"-iree-vulkan-target-triple=rdna3-7900-{system_os}"
     elif "AMD" in vulkan_device:
-        print("Found AMD device. Using rdna2-unknown-linux")
-        return "-iree-vulkan-target-triple=rdna2-unknown-linux"
+        print(f"Found AMD device. Using rdna2-unknown-{system_os}")
+        return f"-iree-vulkan-target-triple=rdna2-unknown-{system_os}"
     else:
         print(
             """Optimized kernel for your target device is not added yet.
