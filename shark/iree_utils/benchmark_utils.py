@@ -14,6 +14,7 @@
 
 import iree.runtime.scripts.iree_benchmark_module as benchmark_module
 from shark.iree_utils._common import run_cmd, iree_device_map
+from shark.iree_utils.cpu_utils import get_cpu_count
 import numpy as np
 import os
 import re
@@ -73,6 +74,10 @@ def build_benchmark_args(
     mlir_input_types = tensor_to_type_str(input_tensors, mlir_dialect)
     for mlir_input in mlir_input_types:
         benchmark_cl.append(f"--function_input={mlir_input}")
+    if device == "cpu":
+        num_cpus = get_cpu_count()
+        if num_cpus is not None:
+            benchmark_cl.append(f"--task_topology_max_group_count={num_cpus}")
     time_extractor = "| awk 'END{{print $2 $3}}'"
     benchmark_cl.append(time_extractor)
     return benchmark_cl

@@ -130,8 +130,12 @@ class SharkModuleTester:
 
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.update_tank = self.update_tank
-        if self.config["model_name"] in ["alexnet", "resnet18"]:
+        if self.config["model_name"] in [
+            "alexnet",
+            "resnet18",
+        ] or os.path.isfile("./.use-iree"):
             shark_args.enable_conv_transform = False
+
         model, func_name, inputs, golden_out = download_model(
             self.config["model_name"],
             tank_url=self.tank_url,
