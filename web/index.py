@@ -108,7 +108,9 @@ with gr.Blocks(css=demo_css) as shark_web:
                         )
                         uint32_info = np.iinfo(np.uint32)
                         rand_seed = randint(uint32_info.min, uint32_info.max)
-                        seed = gr.Number(value=rand_seed, show_label=False)
+                        seed = gr.Number(
+                            value=rand_seed, precision=0, show_label=False
+                        )
                         generate_seed = gr.Checkbox(
                             value=False, label="use random seed"
                         )

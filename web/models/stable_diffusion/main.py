@@ -12,7 +12,7 @@ def set_ui_params(prompt, steps, guidance, seed):
     args.prompt = [prompt]
     args.steps = steps
     args.guidance = guidance
-    args.seed = int(seed)
+    args.seed = seed
 
 
 def stable_diff_inf(
@@ -23,9 +23,12 @@ def stable_diff_inf(
     generate_seed: bool,
 ):
 
-    if generate_seed:
-        uint32_info = np.iinfo(np.uint32)
-        seed = randint(uint32_info.min, uint32_info.max)
+    # Handle out of range seeds.
+    uint32_info = np.iinfo(np.uint32)
+    uint32_min, uint32_max = uint32_info.min, uint32_info.max
+    if generate_seed or seed < uint32_min or seed >= uint32_max:
+        seed = randint(uint32_min, uint32_max)
+
     set_ui_params(prompt, steps, guidance, seed)
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
