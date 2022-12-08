@@ -23,7 +23,6 @@ def stable_diff_inf(
     generate_seed: bool,
 ):
 
-    start = time.time()
     if generate_seed:
         uint32_info = np.iinfo(np.uint32)
         seed = randint(uint32_info.min, uint32_info.max)
@@ -42,6 +41,7 @@ def stable_diff_inf(
         cache_obj["scheduler"],
     )
 
+    start = time.time()
     text_input = tokenizer(
         args.prompt,
         padding="max_length",
@@ -50,7 +50,9 @@ def stable_diff_inf(
         return_tensors="pt",
     )
 
+    clip_inf_start = time.time()
     text_embeddings = clip.forward((text_input.input_ids,))
+    clip_inf_end = time.time()
     text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     max_length = text_input.input_ids.shape[-1]
 
@@ -60,7 +62,9 @@ def stable_diff_inf(
         max_length=max_length,
         return_tensors="pt",
     )
+    uncond_clip_inf_start = time.time()
     uncond_embeddings = clip.forward((uncond_input.input_ids,))
+    uncond_clip_inf_end = time.time()
     uncond_embeddings = torch.from_numpy(uncond_embeddings).to(dtype)
 
     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
@@ -104,7 +108,9 @@ def stable_diff_inf(
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
     latents_numpy = latents.detach().numpy()
+    vae_start = time.time()
     image = vae.forward((latents_numpy,))
+    vae_end = time.time()
     image = torch.from_numpy(image)
     image = (image.detach().cpu().permute(0, 2, 3, 1) * 255.0).numpy()
     images = image.round().astype("uint8")
@@ -121,6 +127,14 @@ def stable_diff_inf(
     text_output += "\nTotal image generation time: {0:.2f}sec".format(
         total_time
     )
+    clip_inf_time = (clip_inf_end - clip_inf_start) * 1000
+    uncond_clip_inf_time = (uncond_clip_inf_end - uncond_clip_inf_start) * 1000
+    avg_clip_inf = (clip_inf_time + uncond_clip_inf_time) / 2
+    vae_inf_time = (vae_end - vae_start) * 1000
+    print(
+        f"Clip Inference Avg time (ms) = ({clip_inf_time:.3f} + {uncond_clip_inf_time:.3f}) / 2 = {avg_clip_inf:.3f}"
+    )
+    print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
     print(f"\nTotal image generation time: {total_time}sec")
 
     return out_img, text_output

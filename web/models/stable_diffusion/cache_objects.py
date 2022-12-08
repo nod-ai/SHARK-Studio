@@ -34,6 +34,9 @@ schedulers["DPMSolverMultistep"] = DPMSolverMultistepScheduler.from_pretrained(
     subfolder="scheduler",
 )
 
+# set iree-runtime flags
+set_iree_runtime_flags(args)
+
 cache_obj = dict()
 
 # cache tokenizer
@@ -50,6 +53,3 @@ cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
 
 # cache scheduler
 cache_obj["scheduler"] = schedulers[args.scheduler]
-
-# set iree-runtime flags
-set_iree_runtime_flags(args)
