@@ -127,8 +127,11 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
+
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.update_tank = self.update_tank
+        if self.config["model_name"] in ["alexnet", "resnet18"]:
+            shark_args.enable_conv_transform = False
         model, func_name, inputs, golden_out = download_model(
             self.config["model_name"],
             tank_url=self.tank_url,
@@ -347,7 +350,16 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(
                 reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
             )
-        if config["model_name"] == "mobilenet_v3_small":
+        if config["model_name"] == "mobilenet_v3_small" and device not in [
+            "cpu"
+        ]:
+            pytest.xfail(
+                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
+            )
+        if config["model_name"] == "mnasnet1_0" and device not in [
+            "cpu",
+            "cuda",
+        ]:
             pytest.xfail(
                 reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
             )
