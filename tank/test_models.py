@@ -38,6 +38,7 @@ def load_csv_and_convert(filename, gen=False):
                     "rtol": float(row[3]),
                     "atol": float(row[4]),
                     "out_type": row[5],
+                    "flags": row[6],
                 }
             )
     # This is a pytest workaround
@@ -130,11 +131,10 @@ class SharkModuleTester:
 
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.update_tank = self.update_tank
-        if self.config["model_name"] in [
-            "alexnet",
-            "resnet18",
-        ] or os.path.isfile("./.use-iree"):
-            shark_args.enable_conv_transform = False
+        if "nhcw-nhwc" in self.config["flags"] and not os.path.isfile(
+            ".use-iree"
+        ):
+            shark_args.enable_conv_transform = True
 
         model, func_name, inputs, golden_out = download_model(
             self.config["model_name"],

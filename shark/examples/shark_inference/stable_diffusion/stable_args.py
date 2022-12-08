@@ -1,8 +1,4 @@
 import argparse
-from shark.parser import shark_args
-
-# Don't enable nchw-to-nhwc for SD models.
-shark_args.enable_conv_transform = False
 
 p = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
