@@ -1,18 +1,19 @@
 import torch
 from PIL import Image
 from tqdm.auto import tqdm
-from models.stable_diffusion.cache_objects import cache_obj
+from models.stable_diffusion.cache_objects import cache_obj, schedulers
 from models.stable_diffusion.stable_args import args
 from random import randint
 import numpy as np
 import time
 
 
-def set_ui_params(prompt, steps, guidance, seed):
+def set_ui_params(prompt, steps, guidance, seed, scheduler_key):
     args.prompt = [prompt]
     args.steps = steps
     args.guidance = guidance
     args.seed = seed
+    args.scheduler = scheduler_key
 
 
 def stable_diff_inf(
@@ -20,29 +21,29 @@ def stable_diff_inf(
     steps: int,
     guidance: float,
     seed: int,
-    generate_seed: bool,
+    scheduler_key: str,
 ):
 
     # Handle out of range seeds.
     uint32_info = np.iinfo(np.uint32)
     uint32_min, uint32_max = uint32_info.min, uint32_info.max
-    if generate_seed or seed < uint32_min or seed >= uint32_max:
+    if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
 
-    set_ui_params(prompt, steps, guidance, seed)
+    set_ui_params(prompt, steps, guidance, seed, scheduler_key)
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
         args.seed
     )  # Seed generator to create the inital latent noise
     guidance_scale = torch.tensor(args.guidance).to(torch.float32)
     # Initialize vae and unet models.
-    vae, unet, clip, tokenizer, scheduler = (
+    vae, unet, clip, tokenizer = (
         cache_obj["vae"],
         cache_obj["unet"],
         cache_obj["clip"],
         cache_obj["tokenizer"],
-        cache_obj["scheduler"],
     )
+    scheduler = schedulers[args.scheduler]
 
     start = time.time()
     text_input = tokenizer(
@@ -124,7 +125,7 @@ def stable_diff_inf(
     total_time = time.time() - start
 
     text_output = f"prompt={args.prompt}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, seed={args.seed}, scheduler={args.scheduler}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, scheduler={args.scheduler}, seed={args.seed}, size={args.height}x{args.width}"
     text_output += "\nAverage step time: {0:.2f}ms/it".format(avg_ms)
     print(f"\nAverage step time: {avg_ms}ms/it")
     text_output += "\nTotal image generation time: {0:.2f}sec".format(

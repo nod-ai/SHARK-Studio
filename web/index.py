@@ -91,28 +91,33 @@ with gr.Blocks(css=demo_css) as shark_web:
                         elem_id="prompt_examples",
                     )
                 with gr.Row():
-                    with gr.Group():
-                        steps = gr.Slider(
-                            1, 100, value=50, step=1, label="Steps"
-                        )
-                        guidance = gr.Slider(
-                            0,
-                            50,
-                            value=7.5,
-                            step=0.1,
-                            label="Guidance Scale",
-                        )
+                    steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
+                    guidance = gr.Slider(
+                        0,
+                        50,
+                        value=7.5,
+                        step=0.1,
+                        label="Guidance Scale",
+                    )
+                with gr.Row():
+                    scheduler_key = gr.Dropdown(
+                        label="Scheduler",
+                        value="DPMSolverMultistep",
+                        choices=[
+                            "DDIM",
+                            "PNDM",
+                            "LMSDiscrete",
+                            "DPMSolverMultistep",
+                        ],
+                    )
                     with gr.Group():
                         random_seed = gr.Button("Randomize Seed").style(
                             full_width=True
                         )
                         uint32_info = np.iinfo(np.uint32)
-                        rand_seed = randint(uint32_info.min, uint32_info.max)
+                        random_val = randint(uint32_info.min, uint32_info.max)
                         seed = gr.Number(
-                            value=rand_seed, precision=0, show_label=False
-                        )
-                        generate_seed = gr.Checkbox(
-                            value=False, label="use random seed"
+                            value=random_val, precision=0, show_label=False
                         )
                         u32_min = gr.Number(
                             value=uint32_info.min, visible=False
@@ -145,7 +150,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 steps,
                 guidance,
                 seed,
-                generate_seed,
+                scheduler_key,
             ],
             outputs=[generated_img, std_output],
         )
@@ -156,7 +161,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 steps,
                 guidance,
                 seed,
-                generate_seed,
+                scheduler_key,
             ],
             outputs=[generated_img, std_output],
         )
