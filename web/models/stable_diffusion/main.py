@@ -106,8 +106,8 @@ def stable_diff_inf(
     latents_numpy = latents.detach().numpy()
     image = vae.forward((latents_numpy,))
     image = torch.from_numpy(image)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
+    image = (image.detach().cpu().permute(0, 2, 3, 1) * 255.0).numpy()
+    images = image.round().astype("uint8")
     pil_images = [Image.fromarray(image) for image in images]
     out_img = pil_images[0]
 
