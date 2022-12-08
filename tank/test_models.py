@@ -230,21 +230,13 @@ class SharkModuleTester:
 
 
 def run_test(module_tester, dynamic, device):
-    import multiprocessing
-
     tempdir = tempfile.TemporaryDirectory(
         prefix=module_tester.tmp_prefix, dir="./shark_tmp/"
     )
     module_tester.temp_dir = tempdir.name
 
     with ireec.tools.TempFileSaver(tempdir.name):
-        p = multiprocessing.Process(
-            target=module_tester.create_and_check_module,
-            args=(dynamic, device),
-        )
-        p.start()
-        p.join()
-        return p
+        module_tester.create_and_check_module(dynamic, device)
 
 
 class SharkModuleTest(unittest.TestCase):
@@ -434,5 +426,8 @@ class SharkModuleTest(unittest.TestCase):
         # We must create a new process each time we benchmark a model to allow
         # for Tensorflow to release GPU resources. Using the same process to
         # benchmark multiple models leads to OOM.
-
-        run_test(self.module_tester, dynamic, device)
+        p = multiprocessing.Process(
+            target=run_test, args=(self.module_tester, dynamic, device)
+        )
+        p.start()
+        p.join()
