@@ -96,6 +96,7 @@ fi
 if [[ -z "${USE_IREE}" ]]; then
   RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
 else
+  touch ./.use-iree
   RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
