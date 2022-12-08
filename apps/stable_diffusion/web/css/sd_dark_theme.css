@@ -1,0 +1,67 @@
+.gradio-container {
+    background-color: black
+}
+
+.container {
+    background-color: black !important;
+    padding-top: 20px !important;
+}
+
+#ui_title {
+    padding: 10px !important;
+}
+
+#top_logo {
+    background-color: transparent;
+    border-radius: 0 !important;
+    border: 0;
+}
+
+#demo_title {
+    background-color: black;
+    border-radius: 0 !important;
+    border: 0;
+    padding-top: 50px;
+    padding-bottom: 0px;
+    width: 460px !important;
+}
+
+#demo_title_outer {
+    border-radius: 0;
+}
+
+#prompt_box_outer div:first-child {
+    border-radius: 0 !important
+}
+
+#prompt_box textarea {
+    background-color: #1d1d1d !important
+}
+
+#prompt_examples {
+    margin: 0 !important
+}
+
+#prompt_examples svg {
+    display: none !important;
+}
+
+.gr-sample-textbox {
+    border-radius: 1rem !important;
+    border-color: rgb(31, 41, 55) !important;
+    border-width: 2px !important;
+}
+
+#ui_body {
+    background-color: #111111 !important;
+    padding: 10px !important;
+    border-radius: 0.5em !important;
+}
+
+#img_result+div {
+    display: none !important;
+}
+
+footer {
+    display: none !important;
+}

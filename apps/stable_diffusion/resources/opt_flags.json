@@ -1,0 +1,95 @@
+  {
+    "unet": {
+      "tuned": {
+        "fp16": {
+          "default_compilation_flags": []
+        },
+        "fp32": {
+          "default_compilation_flags": []
+        }
+      },
+      "untuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32"
+          ],
+          "specified_compilation_flags": {
+            "cuda": ["--iree-flow-enable-conv-nchw-to-nhwc-transform"],
+            "default_device": ["--iree-flow-enable-conv-img2col-transform"]
+          }
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16"
+          ]
+        }
+      }
+    },
+    "vae": {
+      "tuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-flow-enable-conv-img2col-transform"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-flow-enable-conv-img2col-transform"
+          ]
+        }
+      },
+      "untuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-flow-enable-conv-img2col-transform"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16"
+          ]
+        }
+      }
+    },
+    "clip": {
+      "tuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        }
+      },
+      "untuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        }
+      }
+    }
+  }
