@@ -16,6 +16,17 @@
 
 import subprocess
 
+
+def get_cpu_count():
+    import multiprocessing
+
+    try:
+        cpu_count = multiprocessing.cpu_count()
+        return cpu_count
+    except NotImplementedError:
+        return None
+
+
 # Get the default cpu args.
 def get_iree_cpu_args():
     find_triple_cmd = "uname -s -m"
