@@ -94,6 +94,7 @@ else
   exit 1
 fi
 if [[ -z "${USE_IREE}" ]]; then
+  rm ./.use-iree
   RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
 else
   touch ./.use-iree
