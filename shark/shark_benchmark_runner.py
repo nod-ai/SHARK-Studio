@@ -80,7 +80,6 @@ class SharkBenchmarkRunner(SharkRunner):
             input_tensors,
             mlir_dialect=self.mlir_dialect,
         )
-        print(self.benchmark_cl)
 
     def benchmark_frontend(self, modelname):
         if self.mlir_dialect in ["linalg", "torch"]:
@@ -150,7 +149,6 @@ class SharkBenchmarkRunner(SharkRunner):
             ]
 
     def benchmark_c(self):
-        print(self.benchmark_cl)
         result = run_benchmark_module(self.benchmark_cl)
         print(f"Shark-IREE-C benchmark:{result} iter/second")
         return [f"{result}", f"{1000/result}"]

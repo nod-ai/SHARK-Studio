@@ -107,7 +107,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--enable_conv_transform",
-    default=True,
+    default=False,
     action="store",
     help="Enables the --iree-flow-enable-conv-nchw-to-nhwc-transform flag.",
 )
