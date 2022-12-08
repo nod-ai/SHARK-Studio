@@ -11,23 +11,17 @@ from models.stable_diffusion.stable_args import args
 
 
 schedulers = dict()
-schedulers["PNDM"] = PNDMScheduler(
-    beta_start=0.00085,
-    beta_end=0.012,
-    beta_schedule="scaled_linear",
-    num_train_timesteps=1000,
+schedulers["PNDM"] = PNDMScheduler.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    subfolder="scheduler",
 )
-schedulers["LMSDiscrete"] = LMSDiscreteScheduler(
-    beta_start=0.00085,
-    beta_end=0.012,
-    beta_schedule="scaled_linear",
-    num_train_timesteps=1000,
+schedulers["LMSDiscrete"] = LMSDiscreteScheduler.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    subfolder="scheduler",
 )
-schedulers["DDIM"] = DDIMScheduler(
-    beta_start=0.00085,
-    beta_end=0.012,
-    beta_schedule="scaled_linear",
-    num_train_timesteps=1000,
+schedulers["DDIM"] = DDIMScheduler.from_pretrained(
+    "CompVis/stable-diffusion-v1-4",
+    subfolder="scheduler",
 )
 schedulers["DPMSolverMultistep"] = DPMSolverMultistepScheduler.from_pretrained(
     "CompVis/stable-diffusion-v1-4",
@@ -50,6 +44,3 @@ cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
     cache_obj["unet"],
     cache_obj["clip"],
 ) = (get_vae(args), get_unet(args), get_clip(args))
-
-# cache scheduler
-cache_obj["scheduler"] = schedulers[args.scheduler]
