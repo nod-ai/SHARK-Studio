@@ -5,7 +5,7 @@ bert-base-uncased,mhlo,tf,1e-2,1e-3,default,None
 camembert-base,mhlo,tf,1e-2,1e-3,default,None
 dbmdz/convbert-base-turkish-cased,mhlo,tf,1e-2,1e-3,default,nhcw-nhwc
 distilbert-base-uncased,mhlo,tf,1e-2,1e-3,default,None
-facebook/convnext-tiny-224,mhlo,tf,1e-2,1e-3,tf_vit,nhcw-nhwc,
+facebook/convnext-tiny-224,mhlo,tf,1e-2,1e-3,tf_vit,nhcw-nhwc
 funnel-transformer/small,mhlo,tf,1e-2,1e-3,default,None
 google/electra-small-discriminator,mhlo,tf,1e-2,1e-3,default,None
 google/mobilebert-uncased,mhlo,tf,1e-2,1e-3,default,None
