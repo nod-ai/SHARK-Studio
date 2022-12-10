@@ -22,8 +22,9 @@ def stable_diff_inf(
     guidance: float,
     seed: int,
     scheduler_key: str,
+    iterative_preview: str,
 ):
-    iterative_output_step = 20
+    iterative_output_step = int(iterative_preview) if iterative_preview != "None" else None
     
     # Handle out of range seeds.
     uint32_info = np.iinfo(np.uint32)
@@ -110,7 +111,7 @@ def stable_diff_inf(
         print(f" \nIteration = {i}, Time = {step_ms}ms")
         latents = scheduler.step(noise_pred, t, latents)["prev_sample"]
         
-        if i % iterative_output_step == 0 or i == args.steps - 1:
+        if iterative_output_step and (i + 1) % iterative_output_step == 0 or i == args.steps - 1:
             # scale and decode the image latents with vae
             latents_out = 1 / 0.18215 * latents
             latents_numpy = latents_out.detach().numpy()
