@@ -100,16 +100,22 @@ with gr.Blocks(css=demo_css) as shark_web:
                         label="Guidance Scale",
                     )
                 with gr.Row():
-                    scheduler_key = gr.Dropdown(
-                        label="Scheduler",
-                        value="DPMSolverMultistep",
-                        choices=[
-                            "DDIM",
-                            "PNDM",
-                            "LMSDiscrete",
-                            "DPMSolverMultistep",
-                        ],
-                    )
+                    with gr.Group():
+                        scheduler_key = gr.Dropdown(
+                            label="Scheduler",
+                            value="DPMSolverMultistep",
+                            choices=[
+                                "DDIM",
+                                "PNDM",
+                                "LMSDiscrete",
+                                "DPMSolverMultistep",
+                            ],
+                        )
+                        iterative_preview = gr.Dropdown(
+                            choices=["None", "5", "10", "20"],
+                            label="Iterative Preview",
+                            value="None",
+                        )
                     with gr.Group():
                         random_seed = gr.Button("Randomize Seed").style(
                             full_width=True
@@ -151,6 +157,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 guidance,
                 seed,
                 scheduler_key,
+                iterative_preview
             ],
             outputs=[generated_img, std_output],
         )
@@ -162,6 +169,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 guidance,
                 seed,
                 scheduler_key,
+                iterative_preview
             ],
             outputs=[generated_img, std_output],
         )
