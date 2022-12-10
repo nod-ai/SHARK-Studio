@@ -74,7 +74,7 @@ def get_vulkan_triple_flag(extra_args=[]):
     elif all(x in vulkan_device for x in ("AMD", "7900")):
         print(f"Found {vulkan_device} Device. Using rdna3-7900-{system_os}")
         return f"-iree-vulkan-target-triple=rdna3-7900-{system_os}"
-    elif "AMD" in vulkan_device:
+    elif any(x in vulkan_device for x in ("AMD", "Radeon")):
         print(f"Found AMD device. Using rdna2-unknown-{system_os}")
         return f"-iree-vulkan-target-triple=rdna2-unknown-{system_os}"
     else:
