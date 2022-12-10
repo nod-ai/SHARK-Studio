@@ -129,6 +129,6 @@ jobs:
       if: matrix.suite == 'vulkan' && matrix.os != 'MacStudio'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} BENCHMARK=1 IMPORTER=1 ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --ci --ci_sha=${SHORT_SHA} -s --local_tank_cache="/data/anush/shark_cache" tank/test_models.py -k vulkan --update_tank
+        pytest --benchmark --ci --ci_sha=${SHORT_SHA} -s --local_tank_cache="/data/anush/shark_cache" tank/test_models.py -k vulkan --update_tank
