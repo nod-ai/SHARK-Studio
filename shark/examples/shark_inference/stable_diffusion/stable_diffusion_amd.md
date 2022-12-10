@@ -5,7 +5,7 @@
 ### RDNA2 Drivers:
 *AMD Software: Adrenalin Edition 22.11.1 for MLIR/IREE Driver Version 22.20.29.09 for Windows® 10 and Windows® 11 (Windows Driver Store Version 31.0.12029.9003)*
 
-https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
+https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mlir-iree
 
 Note that if you previously tried Stable Diffusion with a different driver, it may be necessary to clear vulkan cache after changing drivers.
 
