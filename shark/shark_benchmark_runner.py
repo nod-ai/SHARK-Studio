@@ -39,6 +39,22 @@ class OnnxFusionOptions(object):
         self.no_attention_mask = False
 
 
+def check_requirements(frontend):
+    import importlib
+
+    has_pkgs = False
+    if frontend == "torch":
+        tv_spec = importlib.util.find_spec("torchvision")
+        has_pkgs = tv_spec is not None
+
+    elif frontend in ["tensorflow", "tf"]:
+        keras_spec = importlib.util.find_spec("keras")
+        tf_spec = importlib.util.find_spec("tensorflow")
+        has_pkgs = keras_spec is not None and tf_spec is not None
+
+    return has_pkgs
+
+
 class SharkBenchmarkRunner(SharkRunner):
     # SharkRunner derived class with Benchmarking capabilities.
     def __init__(
@@ -258,12 +274,15 @@ for currently supported models. Exiting benchmark ONNX."
                     return [param_count, model_tags, model_notes]
 
     def compare_bench_results(self, baseline: str, result: str):
-        # Takes a baseline and a result string and calculates a comparison, e.g. "1.04x baseline".
-        a = float(baseline)
-        b = float(result)
-        # result faster than baseline
-        comparison = a / b
-        comp_str = f"{round(comparison, 2)}x baseline"
+        if baseline is not None:
+            # Takes a baseline and a result string and calculates a comparison, e.g. "1.04x baseline".
+            a = float(baseline)
+            b = float(result)
+            comparison = a / b
+            comp_str = f"{round(comparison, 2)}x baseline"
+        else:
+            comp_str = "N/A"
+
         return comp_str
 
     def benchmark_all_csv(
@@ -313,17 +332,21 @@ for currently supported models. Exiting benchmark ONNX."
                 ) = ["", "", ""]
                 if e == "frontend":
                     bench_result["engine"] = frontend
-                    (
-                        bench_result["iter/sec"],
-                        bench_result["ms/iter"],
-                    ) = self.benchmark_frontend(modelname)
-                    self.frontend_result = bench_result["ms/iter"]
-                    bench_result["vs. PyTorch/TF"] = "baseline"
-                    (
-                        bench_result["param_count"],
-                        bench_result["tags"],
-                        bench_result["notes"],
-                    ) = self.get_metadata(modelname)
+                    if check_requirements(frontend):
+                        (
+                            bench_result["iter/sec"],
+                            bench_result["ms/iter"],
+                        ) = self.benchmark_frontend(modelname)
+                        self.frontend_result = bench_result["ms/iter"]
+                        bench_result["vs. PyTorch/TF"] = "baseline"
+                        (
+                            bench_result["param_count"],
+                            bench_result["tags"],
+                            bench_result["notes"],
+                        ) = self.get_metadata(modelname)
+                    else:
+                        self.frontend_result = None
+                        continue
 
                 elif e == "shark_python":
                     bench_result["engine"] = "shark_python"
