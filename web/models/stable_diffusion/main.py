@@ -23,7 +23,8 @@ def stable_diff_inf(
     seed: int,
     scheduler_key: str,
 ):
-
+    iterative_output_step = 20
+    
     # Handle out of range seeds.
     uint32_info = np.iinfo(np.uint32)
     uint32_min, uint32_max = uint32_info.min, uint32_info.max
@@ -108,18 +109,23 @@ def stable_diff_inf(
         step_ms = int((step_time) * 1000)
         print(f" \nIteration = {i}, Time = {step_ms}ms")
         latents = scheduler.step(noise_pred, t, latents)["prev_sample"]
-
-    # scale and decode the image latents with vae
-    latents = 1 / 0.18215 * latents
-    latents_numpy = latents.detach().numpy()
-    vae_start = time.time()
-    image = vae.forward((latents_numpy,))
-    vae_end = time.time()
-    image = torch.from_numpy(image)
-    image = (image.detach().cpu().permute(0, 2, 3, 1) * 255.0).numpy()
-    images = image.round().astype("uint8")
-    pil_images = [Image.fromarray(image) for image in images]
-    out_img = pil_images[0]
+        
+        if i % iterative_output_step == 0 or i == args.steps - 1:
+            # scale and decode the image latents with vae
+            latents_out = 1 / 0.18215 * latents
+            latents_numpy = latents_out.detach().numpy()
+            vae_start = time.time()
+            image = vae.forward((latents_numpy,))
+            vae_end = time.time()
+            image = torch.from_numpy(image)
+            image = (image.detach().cpu().permute(0, 2, 3, 1) * 255.0).numpy()
+            images = image.round().astype("uint8")
+            pil_images = [Image.fromarray(image) for image in images]
+            out_img = pil_images[0]
+            
+            text_output = f"Iteration = {i+1}/{args.steps}, Time = {step_ms}ms"
+            
+            yield out_img, text_output
 
     avg_ms = 1000 * avg_ms / args.steps
     total_time = time.time() - start
@@ -141,4 +147,4 @@ def stable_diff_inf(
     print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
     print(f"\nTotal image generation time: {total_time}sec")
 
-    return out_img, text_output
+    yield out_img, text_output
