@@ -367,5 +367,5 @@ def get_results(compiled_vm, input, config, frontend="torch"):
 
 def get_iree_runtime_config(device):
     device = iree_device_map(device)
-    config = ireert.Config(driver_name=device.split("://")[0])
+    config = ireert.Config(device=ireert.get_device(device))
     return config
