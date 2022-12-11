@@ -20,6 +20,7 @@ import numpy as np
 import os
 import re
 
+
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
     if "://" in device:
@@ -366,9 +367,5 @@ def get_results(compiled_vm, input, config, frontend="torch"):
 
 def get_iree_runtime_config(device):
     device = iree_device_map(device)
-    if type(device) == ireert.HalDevice:
-        config = ireert.Config(device=device)
-    else:
-        driver_name = device.split("://")[0] if "://" in device else device
-        config = ireert.Config(driver_name=driver_name)
+    config = ireert.Config(driver_name=device.split("://")[0])
     return config
