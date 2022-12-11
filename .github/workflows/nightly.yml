@@ -9,7 +9,30 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  windows-build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+        
+    - name: Build Package 
+      shell: powershell
+      run: |
+        ./setup_venv.ps1
+        pyinstaller web/shark_sd.spec
+    - uses: actions/upload-artifact@v2
+      with:
+        path: dist/*
+
+  linux-build:
 
     runs-on: a100
     strategy:
