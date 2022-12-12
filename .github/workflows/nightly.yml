@@ -55,7 +55,6 @@ jobs:
         path: dist/*
     
     - name: Upload Release Assets
-      if: ${{ matrix.backend == 'SHARK' }}
       id: upload-release-assets
       uses: dwenegar/upload-release-assets@v1
       env:
@@ -65,7 +64,6 @@ jobs:
         assets_path: ./dist/*
 
     - name: Publish Release
-      if: ${{ matrix.backend == 'SHARK' }}
       id: publish_release
       uses: eregon/publish-release@v1
       env:
@@ -110,6 +108,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude shark.venv,lit.cfg.py 
     - name: Build and validate the IREE package
       if: ${{ matrix.backend == 'IREE' }}
+      continue-on-error: true
       run: |
         cd $GITHUB_WORKSPACE
         USE_IREE=1 VENV_DIR=iree.venv ./setup_venv.sh
