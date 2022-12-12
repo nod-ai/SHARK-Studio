@@ -25,7 +25,7 @@ def stable_diff_inf(
     iterative_preview: str,
 ):
     iterative_output_step = int(iterative_preview) if iterative_preview != "None" else None
-    
+
     # Handle out of range seeds.
     uint32_info = np.iinfo(np.uint32)
     uint32_min, uint32_max = uint32_info.min, uint32_info.max
@@ -110,7 +110,7 @@ def stable_diff_inf(
         step_ms = int((step_time) * 1000)
         print(f" \nIteration = {i}, Time = {step_ms}ms")
         latents = scheduler.step(noise_pred, t, latents)["prev_sample"]
-        
+
         if iterative_output_step and (i + 1) % iterative_output_step == 0 or i == args.steps - 1:
             # scale and decode the image latents with vae
             latents_out = 1 / 0.18215 * latents
@@ -123,16 +123,15 @@ def stable_diff_inf(
             images = image.round().astype("uint8")
             pil_images = [Image.fromarray(image) for image in images]
             out_img = pil_images[0]
-            
             text_output = f"Iteration = {i+1}/{args.steps}, Time = {step_ms}ms"
-            
             yield out_img, text_output
 
     avg_ms = 1000 * avg_ms / args.steps
     total_time = time.time() - start
 
     text_output = f"prompt={args.prompt}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, scheduler={args.scheduler}, seed={args.seed}, size={args.height}x{args.width}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, \
+        scheduler={args.scheduler}, seed={args.seed}, size={args.height}x{args.width}"
     text_output += "\nAverage step time: {0:.2f}ms/it".format(avg_ms)
     print(f"\nAverage step time: {avg_ms}ms/it")
     text_output += "\nTotal image generation time: {0:.2f}sec".format(
