@@ -22,15 +22,56 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: ${{ matrix.python-version }}
-        
+
+    - name: Compute version
+      shell: powershell
+      run: |
+        $package_version = $(Get-Date -UFormat "%Y%m%d")+"."+${{ github.run_number }}')"
+        $tag_name=$package_version
+        echo "package_version=$package_version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "tag_name=$tag_name" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        tag_name: ${{ env.tag_name }}
+        release_name: nod.ai SHARK ${{ env.tag_name }}
+        body: |
+          Automatic snapshot release of nod.ai SHARK.
+        draft: true
+        prerelease: false
+
     - name: Build Package 
       shell: powershell
       run: |
         ./setup_venv.ps1
         pyinstaller web/shark_sd.spec
+
     - uses: actions/upload-artifact@v2
       with:
         path: dist/*
+    
+    - name: Upload Release Assets
+      if: ${{ matrix.backend == 'SHARK' }}
+      id: upload-release-assets
+      uses: dwenegar/upload-release-assets@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
+        assets_path: ./dist/*
+
+    - name: Publish Release
+      if: ${{ matrix.backend == 'SHARK' }}
+      id: publish_release
+      uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
 
   linux-build:
 
@@ -55,29 +96,7 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    
-    - name: Compute version
-      run: |
-        package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
-        tag_name="${package_version}"
-        echo "package_version=${package_version}" >> $GITHUB_ENV
-        echo "tag_name=${tag_name}" >> $GITHUB_ENV    
-    - name: Set Environment Variables
-      run: |
-        echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
-        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
-      with:
-        tag_name: ${{ env.tag_name }}
-        release_name: nod.ai SHARK ${{ env.tag_name }}
-        body: |
-          Automatic snapshot release of nod.ai SHARK.
-        draft: true
-        prerelease: false
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
@@ -128,22 +147,3 @@ jobs:
         pytest --ci --ci_sha=${SHORT_SHA} tank/test_models.py |
           tail -n 1 |
           tee -a pytest_results.txt
-    
-    - name: Upload Release Assets
-      if: ${{ matrix.backend == 'SHARK' }}
-      id: upload-release-assets
-      uses: dwenegar/upload-release-assets@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
-      with:
-        release_id: ${{ steps.create_release.outputs.id }}
-        assets_path: ./wheelhouse/nodai_*.whl
-
-    - name: Publish Release
-      if: ${{ matrix.backend == 'SHARK' }}
-      id: publish_release
-      uses: eregon/publish-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
-      with:
-        release_id: ${{ steps.create_release.outputs.id }}
