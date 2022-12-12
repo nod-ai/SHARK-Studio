@@ -6,6 +6,7 @@ from diffusers import (
     PNDMScheduler,
     DDIMScheduler,
     DPMSolverMultistepScheduler,
+    EulerDiscreteScheduler,
 )
 from tqdm.auto import tqdm
 import numpy as np
@@ -77,6 +78,15 @@ if __name__ == "__main__":
             subfolder="scheduler",
         )
 
+    if args.version == "v2.1base":
+        tokenizer = CLIPTokenizer.from_pretrained(
+            "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
+        )
+
+        scheduler = EulerDiscreteScheduler.from_pretrained(
+            "stabilityai/stable-diffusion-2-1-base",
+            subfolder="scheduler",
+        )
     start = time.time()
 
     text_input = tokenizer(
