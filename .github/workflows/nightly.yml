@@ -49,6 +49,12 @@ jobs:
       run: |
         ./setup_venv.ps1
         pyinstaller web/shark_sd.spec
+        
+    - name: Build and validate the SHARK Runtime package
+      shell: powershell
+      run: |
+        $env:SHARK_PACKAGE_VERSION=${package_version}
+        pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
 
     - uses: actions/upload-artifact@v2
       with:
