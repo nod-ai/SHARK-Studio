@@ -119,8 +119,7 @@ def check_dir_exists(model_name, frontend="torch", dynamic=""):
             and os.path.isfile(os.path.join(model_dir, "hash.npy"))
         ):
             print(
-                f"""The models are present in the {WORKDIR}. If you want a fresh 
-                download, consider deleting the directory."""
+                f"""Using cached models from {WORKDIR}..."""
             )
             return True
     return False
