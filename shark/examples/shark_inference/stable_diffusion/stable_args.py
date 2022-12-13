@@ -23,7 +23,7 @@ p.add_argument(
 p.add_argument(
     "--version",
     type=str,
-    default="v1.4",
+    default="v2.1base",
     help="Specify version of stable diffusion model",
 )
 
@@ -48,7 +48,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--precision", type=str, default="fp32", help="precision to run the model."
+    "--precision", type=str, default="fp16", help="precision to run the model."
 )
 
 p.add_argument(

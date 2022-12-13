@@ -101,13 +101,13 @@ with gr.Blocks(css=demo_css) as shark_web:
                     )
                     version = gr.Radio(
                         label="Version",
-                        value="v1.4",
+                        value="v2.1base",
                         choices=["v1.4", "v2.1base"],
                     )
                 with gr.Row():
                     scheduler_key = gr.Dropdown(
                         label="Scheduler",
-                        value="DPMSolverMultistep",
+                        value="EulerDiscrete",
                         choices=[
                             "DDIM",
                             "PNDM",
@@ -174,9 +174,9 @@ with gr.Blocks(css=demo_css) as shark_web:
             outputs=[generated_img, std_output],
         )
 
+shark_web.queue()
 shark_web.launch(
     share=False,
     server_name="0.0.0.0",
     server_port=8080,
-    enable_queue=True,
 )
