@@ -265,6 +265,7 @@ def import_with_fx(model, inputs, debug=False):
                 torch.ops.aten.upsample_bilinear2d.vec,
                 torch.ops.aten.split.Tensor,
                 torch.ops.aten.split_with_sizes,
+                torch.ops.aten.native_layer_norm,
             ]
         ),
     )(*inputs)

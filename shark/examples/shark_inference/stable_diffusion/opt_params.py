@@ -27,7 +27,7 @@ def get_unet():
             return get_shark_model(bucket, model_name, iree_flags)
         else:
             bucket = "gs://shark_tank/stable_diffusion"
-            model_name = "unet_1dec_fp16"
+            model_name = "unet_8dec_fp16"
             if args.version == "v2.1base":
                 model_name = "unet2base_8dec_fp16"
             iree_flags += [
@@ -76,7 +76,7 @@ def get_vae():
         )
     if args.precision in ["fp16", "int8"]:
         bucket = "gs://shark_tank/stable_diffusion"
-        model_name = "vae_1dec_fp16"
+        model_name = "vae_8dec_fp16"
         if args.version == "v2.1base":
             model_name = "vae2base_8dec_fp16"
         iree_flags += [
@@ -141,7 +141,7 @@ def get_clip():
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
     bucket = "gs://shark_tank/stable_diffusion"
-    model_name = "clip_1dec_fp32"
+    model_name = "clip_8dec_fp32"
     if args.version == "v2.1base":
         model_name = "clip2base_8dec_fp32"
     iree_flags += [
