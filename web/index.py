@@ -99,6 +99,11 @@ with gr.Blocks(css=demo_css) as shark_web:
                         step=0.1,
                         label="Guidance Scale",
                     )
+                    version = gr.Radio(
+                        label="Version",
+                        value="v1.4",
+                        choices=["v1.4", "v2.1base"],
+                    )
                 with gr.Row():
                     scheduler_key = gr.Dropdown(
                         label="Scheduler",
@@ -108,6 +113,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                             "PNDM",
                             "LMSDiscrete",
                             "DPMSolverMultistep",
+                            "EulerDiscrete",
                         ],
                     )
                     with gr.Group():
@@ -151,6 +157,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 guidance,
                 seed,
                 scheduler_key,
+                version,
             ],
             outputs=[generated_img, std_output],
         )
@@ -162,6 +169,7 @@ with gr.Blocks(css=demo_css) as shark_web:
                 guidance,
                 seed,
                 scheduler_key,
+                version,
             ],
             outputs=[generated_img, std_output],
         )

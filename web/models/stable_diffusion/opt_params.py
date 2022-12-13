@@ -23,6 +23,8 @@ def get_unet(args):
         else:
             bucket = "gs://shark_tank/stable_diffusion"
             model_name = "unet_1dec_fp16"
+            if args.version == "v2.1base":
+                model_name = "unet2base_8dec_fp16"
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
@@ -55,6 +57,8 @@ def get_vae(args):
     if args.precision == "fp16":
         bucket = "gs://shark_tank/stable_diffusion"
         model_name = "vae_1dec_fp16"
+        if args.version == "v2.1base":
+            model_name = "vae2base_8dec_fp16"
         iree_flags += [
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
@@ -116,6 +120,8 @@ def get_clip(args):
         )
     bucket = "gs://shark_tank/stable_diffusion"
     model_name = "clip_1dec_fp32"
+    if args.version == "v2.1base":
+        model_name = "clip2base_8dec_fp32"
     iree_flags += [
         "--iree-flow-linalg-ops-padding-size=16",
         "--iree-flow-enable-padding-linalg-ops",

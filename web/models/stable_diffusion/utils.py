@@ -12,6 +12,7 @@ def set_iree_runtime_flags(args):
     ]
     if "vulkan" in args.device:
         set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
+
     return
 
 
