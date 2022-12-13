@@ -212,3 +212,30 @@ class SharkInference:
             self.function_name,
         )
         return
+
+
+def jpg_image_to_array(image_path):
+
+    """
+    Loads an image into 3D Numpy array of shape (width, height, channels)
+    in double precision
+    """
+    from PIL import Image
+
+    with Image.open(image_path) as image:
+        im_arr = np.fromstring(image.tobytes(), dtype=np.uint8)
+        im_arr = im_arr.reshape((image.size[1], image.size[0], 3)) / 255
+    return im_arr
+
+
+def compare_img_results(
+    self, result_path: str, baseline_path: str, rtol=1e-02, atol=1e-03
+):
+    res = jpg_image_to_array(result_path)
+    baseline = jpg_image_to_array(baseline_path)
+    np.testing.assert_allclose(
+        baseline,
+        res,
+        rtol=rtol,
+        atol=atol,
+    )
