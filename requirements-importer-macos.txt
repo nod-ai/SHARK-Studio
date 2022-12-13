@@ -28,6 +28,7 @@ Pillow
 
 # web dependecies.
 gradio
+altair
 
 # Testing and support.
 #lit
