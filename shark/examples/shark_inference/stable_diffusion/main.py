@@ -14,6 +14,7 @@ from stable_args import args
 from utils import get_shark_model, set_iree_runtime_flags
 from opt_params import get_unet, get_vae, get_clip
 import time
+import sys
 from model_wrappers import get_vae_mlir
 from shark.iree_utils.compile_utils import dump_isas
 
@@ -39,6 +40,7 @@ if __name__ == "__main__":
     dtype = torch.float32 if args.precision == "fp32" else torch.half
 
     prompt = args.prompts
+    neg_prompt = args.negative_prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
     if args.version == "v2":
@@ -54,7 +56,12 @@ if __name__ == "__main__":
         args.seed
     )  # Seed generator to create the inital latent noise
 
+    # TODO: Add support for batch_size > 1.
     batch_size = len(prompt)
+    if batch_size != 1:
+        sys.exit("More than one prompt is not supported yet.")
+    if batch_size != len(neg_prompt):
+        sys.exit("prompts and negative prompts must be of same length")
 
     set_iree_runtime_flags()
     unet = get_unet()
@@ -103,9 +110,10 @@ if __name__ == "__main__":
     text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     max_length = text_input.input_ids.shape[-1]
     uncond_input = tokenizer(
-        [""] * batch_size,
+        neg_prompt,
         padding="max_length",
         max_length=max_length,
+        truncation=True,
         return_tensors="pt",
     )
     uncond_clip_inf_start = time.time()

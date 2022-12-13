@@ -78,7 +78,13 @@ with gr.Blocks(css=demo_css) as shark_web:
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
                         label="Prompt",
-                        value="A photograph of an astronaut riding a horse",
+                        value="cyberpunk forest by Salvador Dali",
+                        lines=1,
+                        elem_id="prompt_box",
+                    )
+                    negative_prompt = gr.Textbox(
+                        label="Negative Prompt",
+                        value="trees, green",
                         lines=1,
                         elem_id="prompt_box",
                     )
@@ -148,6 +154,7 @@ with gr.Blocks(css=demo_css) as shark_web:
             stable_diff_inf,
             inputs=[
                 prompt,
+                negative_prompt,
                 steps,
                 guidance,
                 seed,
@@ -159,6 +166,7 @@ with gr.Blocks(css=demo_css) as shark_web:
             stable_diff_inf,
             inputs=[
                 prompt,
+                negative_prompt,
                 steps,
                 guidance,
                 seed,
