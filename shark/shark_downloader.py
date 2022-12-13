@@ -70,7 +70,6 @@ input_type_to_np_dtype = {
     "int8": np.int8,
 }
 
-
 # Save the model in the home local so it needn't be fetched everytime in the CI.
 home = str(Path.home())
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
@@ -92,6 +91,7 @@ else:
     print(
         f"shark_tank local cache is located at {WORKDIR} . You may change this by setting the --local_tank_cache= flag"
     )
+
 
 # Checks whether the directory and files exists.
 def check_dir_exists(model_name, frontend="torch", dynamic=""):
@@ -174,16 +174,9 @@ def download_model(
                     )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
-    suffix = (
-        "_" + frontend + ".mlir"
-        if tuned is None
-        else "_" + frontend + "_" + tuned + ".mlir"
-    )
+    tuned_str = "" if tuned is None else "_" + tuned
+    suffix = f"{dyn_str}_{frontend}{tuned_str}.mlir"
     filename = os.path.join(model_dir, model_name + suffix)
-    if not os.path.isfile(filename):
-        filename = os.path.join(
-            model_dir, model_name + "_" + frontend + ".mlir"
-        )
 
     with open(filename, mode="rb") as f:
         mlir_file = f.read()
