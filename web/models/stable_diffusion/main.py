@@ -11,8 +11,11 @@ import numpy as np
 import time
 
 
-def set_ui_params(prompt, steps, guidance, seed, scheduler_key):
-    args.prompt = [prompt]
+def set_ui_params(
+    prompt, negative_prompt, steps, guidance, seed, scheduler_key
+):
+    args.prompts = [prompt]
+    args.negative_prompts = [negative_prompt]
     args.steps = steps
     args.guidance = guidance
     args.seed = seed
@@ -21,6 +24,7 @@ def set_ui_params(prompt, steps, guidance, seed, scheduler_key):
 
 def stable_diff_inf(
     prompt: str,
+    negative_prompt: str,
     steps: int,
     guidance: float,
     seed: int,
@@ -33,7 +37,9 @@ def stable_diff_inf(
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
 
-    set_ui_params(prompt, steps, guidance, seed, scheduler_key)
+    set_ui_params(
+        prompt, negative_prompt, steps, guidance, seed, scheduler_key
+    )
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
         args.seed
@@ -50,7 +56,7 @@ def stable_diff_inf(
 
     start = time.time()
     text_input = tokenizer(
-        args.prompt,
+        args.prompts,
         padding="max_length",
         max_length=args.max_length,
         truncation=True,
@@ -64,9 +70,10 @@ def stable_diff_inf(
     max_length = text_input.input_ids.shape[-1]
 
     uncond_input = tokenizer(
-        [""],
+        args.negative_prompts,
         padding="max_length",
         max_length=max_length,
+        truncation=True,
         return_tensors="pt",
     )
     uncond_clip_inf_start = time.time()
@@ -127,7 +134,8 @@ def stable_diff_inf(
     avg_ms = 1000 * avg_ms / args.steps
     total_time = time.time() - start
 
-    text_output = f"prompt={args.prompt}"
+    text_output = f"prompt={args.prompts}"
+    text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, scheduler={args.scheduler}, seed={args.seed}, size={args.height}x{args.width}, version={args.version}"
     text_output += "\nAverage step time: {0:.2f}ms/it".format(avg_ms)
     print(f"\nAverage step time: {avg_ms}ms/it")

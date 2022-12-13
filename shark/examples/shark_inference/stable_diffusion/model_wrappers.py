@@ -1,10 +1,8 @@
-from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler
+from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from utils import compile_through_fx
 from stable_args import args
 import torch
-
-BATCH_SIZE = len(args.prompts)
 
 model_config = {
     "v2": "stabilityai/stable-diffusion-2",

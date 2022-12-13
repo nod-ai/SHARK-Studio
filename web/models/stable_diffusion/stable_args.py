@@ -7,8 +7,15 @@ p = argparse.ArgumentParser(
 p.add_argument(
     "--prompts",
     nargs="+",
-    default=["a photograph of an astronaut riding a horse"],
+    default=["cyberpunk forest by Salvador Dali"],
     help="text of which images to be generated.",
+)
+
+p.add_argument(
+    "--negative-prompts",
+    nargs="+",
+    default=["trees, green"],
+    help="text you don't want to see in the generated image.",
 )
 
 p.add_argument(
