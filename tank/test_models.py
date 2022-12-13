@@ -284,8 +284,8 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
 
         # Add pytest xfail marks based on entries to tank/all_models.csv.
-        if config["framework"] == "torch":
-            pytest.xfail(reason="roll pytorch issue")
+        # if config["framework"] == "torch":
+        #    pytest.xfail(reason="roll pytorch issue")
 
         if config["xfail_cpu"] == "True" and device == "cpu":
             pytest.xfail(reason=config["xfail_reason"])

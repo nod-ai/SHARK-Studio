@@ -76,11 +76,12 @@ fi
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
+  TM_VERSION=$(sed '8q;d' build_tools/shark_versions.txt)
   if [[ $(uname -s) = 'Darwin' ]]; then
     echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
-    $PYTHON -m pip install --pre --no-cache-dir  torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
+    $PYTHON -m pip install --pre --no-cache-dir  torch-mlir==${TM_VERSION} -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
   else
-    $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
+    $PYTHON -m pip install --pre torch-mlir==${TM_VERSION} -f https://llvm.github.io/torch-mlir/package-index/
     if [ $? -eq 0 ];then
       echo "Successfully Installed torch-mlir"
     else
@@ -96,13 +97,17 @@ fi
 if [[ -z "${USE_IREE}" ]]; then
   rm .use-iree
   RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
+  RUNTIME_VERSION=$(sed '4q;d' build_tools/shark_versions.txt)
+  TM_VERSION=$(sed '8q;d' build_tools/shark_versions.txt)
 else
   touch ./.use-iree
   RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
+  RUNTIME_VERSION=$(sed '2q;d' build_tools/shark_versions.txt)
+  TM_VERSION=$(sed '6q;d' build_tools/shark_versions.txt)
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
-  $PYTHON -m pip install --upgrade --find-links ${RUNTIME} iree-compiler iree-runtime
+  $PYTHON -m pip install --upgrade --find-links ${RUNTIME} iree-compiler==${RUNTIME_VERSION} iree-runtime==${RUNTIME_VERSION}
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
