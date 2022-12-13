@@ -5,6 +5,7 @@ import torch
 
 model_config = {
     "v2": "stabilityai/stable-diffusion-2",
+    "v2.1base": "stabilityai/stable-diffusion-2-1-base",
     "v1.4": "CompVis/stable-diffusion-v1-4",
 }
 
@@ -14,6 +15,16 @@ model_input = {
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
             torch.randn(1, 4, 96, 96),  # latents
+            torch.tensor([1]).to(torch.float32),  # timestep
+            torch.randn(2, 77, 1024),  # embedding
+            torch.tensor(1).to(torch.float32),  # guidance_scale
+        ),
+    },
+    "v2.1base": {
+        "clip": (torch.randint(1, 2, (1, 77)),),
+        "vae": (torch.randn(1, 4, 64, 64),),
+        "unet": (
+            torch.randn(1, 4, 64, 64),  # latents
             torch.tensor([1]).to(torch.float32),  # timestep
             torch.randn(2, 77, 1024),  # embedding
             torch.tensor(1).to(torch.float32),  # guidance_scale
