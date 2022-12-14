@@ -50,7 +50,7 @@ demo_css = """
 footer {display: none !important;}
 """
 
-with gr.Blocks(css=demo_css) as shark_web:
+with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
 
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
@@ -139,16 +139,16 @@ with gr.Blocks(css=demo_css) as shark_web:
                             _js="(min,max) => Math.floor(Math.random() * (max - min)) + min",
                         )
                 stable_diffusion = gr.Button("Generate Image")
-                with gr.Accordion("Performace Details:"):
+            with gr.Column(scale=1, min_width=600):
+                with gr.Group():
+                    generated_img = gr.Image(
+                        type="pil", interactive=False
+                    ).style(height=512)
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=4,
                         show_label=False,
                     )
-            with gr.Column(scale=1, min_width=600):
-                generated_img = gr.Image(type="pil", interactive=False).style(
-                    height=768
-                )
 
         prompt.submit(
             stable_diff_inf,
@@ -178,6 +178,7 @@ with gr.Blocks(css=demo_css) as shark_web:
 shark_web.queue()
 shark_web.launch(
     share=False,
+    inbrowser=True,
     server_name="0.0.0.0",
     server_port=8080,
 )
