@@ -4,7 +4,6 @@ from tqdm.auto import tqdm
 from models.stable_diffusion.cache_objects import (
     cache_obj,
     schedulers,
-    schedulers2,
 )
 from models.stable_diffusion.stable_args import args
 from random import randint
@@ -12,13 +11,12 @@ import numpy as np
 import time
 
 
-def set_ui_params(prompt, steps, guidance, seed, scheduler_key, version):
+def set_ui_params(prompt, steps, guidance, seed, scheduler_key):
     args.prompt = [prompt]
     args.steps = steps
     args.guidance = guidance
     args.seed = seed
     args.scheduler = scheduler_key
-    args.version = version
 
 
 def stable_diff_inf(
@@ -27,7 +25,6 @@ def stable_diff_inf(
     guidance: float,
     seed: int,
     scheduler_key: str,
-    version: str,
 ):
 
     # Handle out of range seeds.
@@ -36,29 +33,20 @@ def stable_diff_inf(
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
 
-    set_ui_params(prompt, steps, guidance, seed, scheduler_key, version)
+    set_ui_params(prompt, steps, guidance, seed, scheduler_key)
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
         args.seed
     )  # Seed generator to create the inital latent noise
     guidance_scale = torch.tensor(args.guidance).to(torch.float32)
     # Initialize vae and unet models.
-    if args.version == "v2.1base":
-        vae, unet, clip, tokenizer = (
-            cache_obj["vae2"],
-            cache_obj["unet2"],
-            cache_obj["clip2"],
-            cache_obj["tokenizer2"],
-        )
-        scheduler = schedulers2[args.scheduler]
-    else:
-        vae, unet, clip, tokenizer = (
-            cache_obj["vae"],
-            cache_obj["unet"],
-            cache_obj["clip"],
-            cache_obj["tokenizer"],
-        )
-        scheduler = schedulers[args.scheduler]
+    vae, unet, clip, tokenizer = (
+        cache_obj["vae"],
+        cache_obj["unet"],
+        cache_obj["clip"],
+        cache_obj["tokenizer"],
+    )
+    scheduler = schedulers[args.scheduler]
 
     start = time.time()
     text_input = tokenizer(
