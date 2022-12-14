@@ -25,7 +25,7 @@ p.add_argument(
 p.add_argument(
     "--version",
     type=str,
-    default="v1.4",
+    default="v2.1base",
     help="Specify version of stable diffusion model",
 )
 
@@ -60,8 +60,8 @@ p.add_argument(
 p.add_argument(
     "--scheduler",
     type=str,
-    default="DPMSolverMultistep",
-    help="can be [PNDM, LMSDiscrete, DDIM, DPMSolverMultistep]",
+    default="EulerDiscrete",
+    help="can be [PNDM, LMSDiscrete, DDIM, DPMSolverMultistep, EulerDiscrete]",
 )
 
 p.add_argument(

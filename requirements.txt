@@ -20,3 +20,4 @@ diffusers
 scipy
 ftfy
 gradio
+altair
