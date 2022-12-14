@@ -100,7 +100,6 @@ class SharkBenchmarkRunner(SharkRunner):
     def benchmark_frontend(self, modelname):
         if self.mlir_dialect in ["linalg", "torch"]:
             return self.benchmark_torch(modelname)
-
         elif self.mlir_dialect in ["mhlo", "tf"]:
             return self.benchmark_tf(modelname)
 
@@ -139,21 +138,9 @@ class SharkBenchmarkRunner(SharkRunner):
 
     def benchmark_tf(self, modelname):
         import tensorflow as tf
-
-        visible_default = tf.config.list_physical_devices("GPU")
-        try:
-            tf.config.set_visible_devices([], "GPU")
-            visible_devices = tf.config.get_visible_devices()
-            for device in visible_devices:
-                assert device.device_type != "GPU"
-        except:
-            # Invalid device or cannot modify virtual devices once initialized.
-            pass
-
         from tank.model_utils_tf import get_tf_model
 
-        # tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
-        tf_device = "/CPU:0"
+        tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
         with tf.device(tf_device):
             model, input, = get_tf_model(
                 modelname

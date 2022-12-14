@@ -1,8 +1,0 @@
-# IREE Compiler/ Runtime Version:
-20221207.350
-# SHARK Compiler/ Runtime Version:
-20221207.236
-# Torch-MLIR Version for IREE:
-20221207.680
-# Torch-MLIR Version for SHARK:
-20221207.680
