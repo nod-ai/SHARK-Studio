@@ -141,4 +141,11 @@ p.add_argument(
     help="flag for inserting debug frames between iterations for use with rgp.",
 )
 
+p.add_argument(
+    "--vulkan_validation_layers",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for disabling vulkan validation layers when benchmarking",
+)
+
 args = p.parse_args()

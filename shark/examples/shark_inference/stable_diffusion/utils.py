@@ -75,6 +75,7 @@ def set_iree_runtime_flags():
 
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
+        f"--vulkan_validation_layers={args.vulkan_validation_layers}",
     ]
     if args.enable_rgp:
         vulkan_runtime_flags += [
