@@ -23,7 +23,10 @@ def get_unet():
     if args.precision == "fp16":
         if args.use_tuned:
             bucket = "gs://shark_tank/vivian"
-            model_name = "unet_1dec_fp16_tuned"
+            if args.version == "v1.4":
+                model_name = "unet_1dec_fp16_tuned"
+            if args.version == "v2.1base":
+                model_name = "unet2base_8dec_fp16_tuned"
             return get_shark_model(bucket, model_name, iree_flags)
         else:
             bucket = "gs://shark_tank/stable_diffusion"
