@@ -4,6 +4,10 @@ p = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
 
+##############################################################################
+### Stable Diffusion Params
+##############################################################################
+
 p.add_argument(
     "--prompts",
     nargs="+",
@@ -19,21 +23,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--device", type=str, default="cpu", help="device to run the model."
-)
-
-p.add_argument(
     "--steps",
     type=int,
     default=50,
     help="the no. of steps to do the sampling.",
-)
-
-p.add_argument(
-    "--version",
-    type=str,
-    default="v2.1base",
-    help="Specify version of stable diffusion model",
 )
 
 p.add_argument(
@@ -51,10 +44,25 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--import_mlir",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="imports the model from torch module to shark_module otherwise downloads the model from shark_tank.",
+    "--max_length",
+    type=int,
+    default=77,
+    help="max length of the tokenizer output.",
+)
+
+##############################################################################
+### Model Config and Usage Params
+##############################################################################
+
+p.add_argument(
+    "--device", type=str, default="cpu", help="device to run the model."
+)
+
+p.add_argument(
+    "--version",
+    type=str,
+    default="v2.1base",
+    help="Specify version of stable diffusion model",
 )
 
 p.add_argument(
@@ -62,10 +70,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--max_length",
-    type=int,
-    default=77,
-    help="max length of the tokenizer output.",
+    "--import_mlir",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="imports the model from torch module to shark_module otherwise downloads the model from shark_tank.",
 )
 
 p.add_argument(
@@ -83,6 +91,17 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--use_tuned",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Download and use the tuned version of the model if available",
+)
+
+##############################################################################
+### IREE - Vulkan supported flags
+##############################################################################
+
+p.add_argument(
     "--iree-vulkan-target-triple",
     type=str,
     default="",
@@ -97,11 +116,21 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--use_tuned",
+    "--vulkan_large_heap_block_size",
+    default="4294967296",
+    help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
+)
+
+p.add_argument(
+    "--vulkan_validation_layers",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Download and use the tuned version of the model if available",
+    help="flag for disabling vulkan validation layers when benchmarking",
 )
+
+##############################################################################
+### Misc. Debug and Optimization flags
+##############################################################################
 
 p.add_argument(
     "--local_tank_cache",
@@ -129,23 +158,9 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--vulkan_large_heap_block_size",
-    default="4294967296",
-    help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
-)
-
-p.add_argument(
     "--enable_rgp",
     default=False,
     action=argparse.BooleanOptionalAction,
     help="flag for inserting debug frames between iterations for use with rgp.",
 )
-
-p.add_argument(
-    "--vulkan_validation_layers",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="flag for disabling vulkan validation layers when benchmarking",
-)
-
 args = p.parse_args()
