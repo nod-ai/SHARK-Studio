@@ -118,7 +118,9 @@ def check_dir_exists(model_name, frontend="torch", dynamic=""):
             and os.path.isfile(os.path.join(model_dir, "golden_out.npz"))
             and os.path.isfile(os.path.join(model_dir, "hash.npy"))
         ):
-            print(f"""Using cached models from {WORKDIR}...""")
+            print(
+                f"""Using cached models from {WORKDIR}..."""
+            )
             return True
     return False
 
