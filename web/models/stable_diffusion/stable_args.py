@@ -111,6 +111,12 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--local_tank_cache",
+    default="",
+    help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
+)
+
+p.add_argument(
     "--vulkan_large_heap_block_size",
     default="4294967296",
     help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",

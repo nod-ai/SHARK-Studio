@@ -38,6 +38,10 @@ def _compile_module(args, shark_module, model_name, extra_args=[]):
 # Downloads the model from shark_tank and returns the shark_module.
 def get_shark_model(args, tank_url, model_name, extra_args=[]):
     from shark.shark_downloader import download_model
+    from shark.parser import shark_args
+
+    # Set local shark_tank cache directory.
+    shark_args.local_tank_cache = args.local_tank_cache
 
     mlir_model, func_name, inputs, golden_out = download_model(
         model_name, tank_url=tank_url, frontend="torch"

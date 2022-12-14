@@ -104,6 +104,12 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--local_tank_cache",
+    default="",
+    help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
+)
+
+p.add_argument(
     "--dump_isa",
     default=False,
     action="store_true",
