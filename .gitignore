@@ -164,6 +164,7 @@ cython_debug/
 shark_tmp/
 *.vmfb
 .use-iree
+tank/dict_configs.py
 
 # ORT related artefacts
 cache_models/

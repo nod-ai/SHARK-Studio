@@ -6,12 +6,18 @@ import os
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
+with open("build_tools/shark_versions.txt", "r") as sv:
+    lines = [line.rstrip() for line in sv]
+    TM_VERSION = lines[7]
+    IREE_VERSION = lines[3]
+
+
 PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.4"
 backend_deps = []
 if "NO_BACKEND" in os.environ.keys():
     backend_deps = [
-        "iree-compiler>=20221022.190",
-        "iree-runtime>=20221022.190",
+        f"iree-compiler=={IREE_VERSION}",
+        f"iree-runtime>={IREE_VERSION}",
     ]
 
 setup(
@@ -37,7 +43,7 @@ setup(
     install_requires=[
         "numpy",
         "PyYAML",
-        "torch-mlir>=20221021.633",
+        f"torch-mlir=={TM_VERSION}",
     ]
     + backend_deps,
 )

@@ -38,7 +38,7 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--update_tank",
-        action="store_true",
+        action="store_false",
         default="False",
         help="Update local shark tank with latest artifacts.",
     )

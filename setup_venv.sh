@@ -76,12 +76,15 @@ fi
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
+  TM_VERSION=$(sed '8q;d' build_tools/shark_versions.txt)
   if [[ $(uname -s) = 'Darwin' ]]; then
     echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
-    $PYTHON -m pip install --pre --no-cache-dir  torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
-  else
+    $PYTHON -m pip install --pre --no-cache-dir  torch-mlir==${TM_VERSION} -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
+  elif [[ ! -z "${NIGHTLY}" ]]; then
     $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
-    if [ $? -eq 0 ];then
+  else
+    $PYTHON -m pip install --pre torch-mlir==${TM_VERSION} -f https://llvm.github.io/torch-mlir/package-index/
+    if [ $? -eq 0 ]; then
       echo "Successfully Installed torch-mlir"
     else
       echo "Could not install torch-mlir" >&2
@@ -96,13 +99,17 @@ fi
 if [[ -z "${USE_IREE}" ]]; then
   rm .use-iree
   RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
+  RUNTIME_VERSION=$(sed '4q;d' build_tools/shark_versions.txt)
+  TM_VERSION=$(sed '8q;d' build_tools/shark_versions.txt)
 else
   touch ./.use-iree
   RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
+  RUNTIME_VERSION=$(sed '2q;d' build_tools/shark_versions.txt)
+  TM_VERSION=$(sed '6q;d' build_tools/shark_versions.txt)
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
-  $PYTHON -m pip install --upgrade --find-links ${RUNTIME} iree-compiler iree-runtime
+  $PYTHON -m pip install --upgrade --find-links ${RUNTIME} iree-compiler==${RUNTIME_VERSION} iree-runtime==${RUNTIME_VERSION}
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
@@ -122,6 +129,7 @@ fi
 
 $PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
 
+
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
@@ -139,6 +147,15 @@ if [[ ! -z "${ONNX}" ]]; then
     echo "Successfully installed ONNX and ONNX runtime."
   else
     echo "Could not install ONNX." >&2
+  fi
+fi
+
+if [[ ! -z "${NIGHTLY}" ]]; then
+  $PYTHON -m pip install --upgrade --pre iree-compiler iree-runtime torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f $RUNTIME -f https://download.pytorch.org/whl/nightly/torch/
+  if [ $? -eq 0 ];then
+    echo "Successfully Installed latest packages for nightly job."
+  else
+    echo "Could not install latest IREE and Torch-MLIR." >&2
   fi
 fi
 
