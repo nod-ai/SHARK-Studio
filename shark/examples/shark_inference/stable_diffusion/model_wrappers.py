@@ -5,13 +5,13 @@ from stable_args import args
 import torch
 
 model_config = {
-    "v2": "stabilityai/stable-diffusion-2",
+    "v2.1": "stabilityai/stable-diffusion-2-1",
     "v2.1base": "stabilityai/stable-diffusion-2-1-base",
     "v1.4": "CompVis/stable-diffusion-v1-4",
 }
 
 model_input = {
-    "v2": {
+    "v2.1": {
         "clip": (torch.randint(1, 2, (1, 77)),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
@@ -52,7 +52,7 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
     text_encoder = CLIPTextModel.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
-    if args.version == "v2":
+    if args.version != "v1.4":
         text_encoder = CLIPTextModel.from_pretrained(
             model_config[args.version], subfolder="text_encoder"
         )

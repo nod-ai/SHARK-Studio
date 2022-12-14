@@ -15,7 +15,6 @@ from utils import get_shark_model, set_iree_runtime_flags
 from opt_params import get_unet, get_vae, get_clip
 import time
 import sys
-from model_wrappers import get_vae_mlir
 from shark.iree_utils.compile_utils import dump_isas
 
 # Helper function to profile the vulkan device.
@@ -43,7 +42,7 @@ if __name__ == "__main__":
     neg_prompt = args.negative_prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
-    if args.version == "v2":
+    if args.version == "v2.1":
         height = 768
         width = 768
 
@@ -75,13 +74,13 @@ if __name__ == "__main__":
         "CompVis/stable-diffusion-v1-4",
         subfolder="scheduler",
     )
-    if args.version == "v2":
+    if args.version == "v2.1":
         tokenizer = CLIPTokenizer.from_pretrained(
-            "stabilityai/stable-diffusion-2", subfolder="tokenizer"
+            "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
         )
 
         scheduler = DPMSolverMultistepScheduler.from_pretrained(
-            "stabilityai/stable-diffusion-2",
+            "stabilityai/stable-diffusion-2-1",
             subfolder="scheduler",
         )
 
