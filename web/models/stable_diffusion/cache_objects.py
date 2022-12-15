@@ -9,6 +9,7 @@ from diffusers import (
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
 from models.stable_diffusion.utils import set_iree_runtime_flags
 from models.stable_diffusion.stable_args import args
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 
 model_config = {
@@ -39,6 +40,9 @@ schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
     subfolder="scheduler",
 )
 
+# set use_tuned
+if "rdna3" not in get_vulkan_triple_flag():
+    args.use_tuned = False
 
 # set iree-runtime flags
 set_iree_runtime_flags(args)
