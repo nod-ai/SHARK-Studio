@@ -46,20 +46,29 @@ def stress_test_compiled_model(
     logging.info(
         f"Running stress test {stress_test_index} on device {device}."
     )
-    shark_module = SharkInference(
-        mlir_module=bytes(), function_name=function_name, device=device
-    )
-    shark_module.load_module(shark_module_path)
+    # All interactions with the module must run in a single thread.
+    # We are using execution in a sperate thread in order to be able
+    # to wait with a timeout on the inference operation.
+    module_executor = ThreadPoolExecutor(1)
+    shark_module = module_executor.submit(
+        SharkInference,
+        mlir_module=bytes(),
+        function_name=function_name,
+        device=device,
+    ).result()
+    module_executor.submit(
+        shark_module.load_module, shark_module_path
+    ).result()
     input_batches = [np.repeat(arr, batch_size, axis=0) for arr in inputs]
     golden_output_batches = np.repeat(golden_out, batch_size, axis=0)
     report_interval_seconds = 10
     start_time = time.time()
     previous_report_time = start_time
-    executor = ThreadPoolExecutor(1)
     first_iteration_output = None
     for i in range(max_iterations):
-        inference_task = executor.submit(shark_module.forward, input_batches)
-        output = inference_task.result(inference_timeout_seconds)
+        output = module_executor.submit(
+            shark_module.forward, input_batches
+        ).result(inference_timeout_seconds)
         if first_iteration_output is None:
             np.testing.assert_array_almost_equal_nulp(
                 golden_output_batches, output, nulp=tolerance_nulp
@@ -149,14 +158,24 @@ def stress_test(
     if device_names is None or device_types is not None:
         device_names = [] if device_names is None else device_names
         with ProcessPoolExecutor() as executor:
+            # query_devices needs to run in a separate process,
+            # because it will interfere with other processes that are forked later.
             device_names.extend(
                 executor.submit(query_devices, device_types).result()
             )
 
     device_types_set = list(set(get_device_types(device_names)))
-    shark_module_paths_set = compile_stress_test_module(
-        device_types_set, mlir_model, func_name, mlir_dialect
-    )
+    with ProcessPoolExecutor() as executor:
+        # This needs to run in a subprocess because when compiling for CUDA,
+        # some stuff get intialized and cuInit will fail in a forked process
+        # later. It should be just compiling, but alas.
+        shark_module_paths_set = executor.submit(
+            compile_stress_test_module,
+            device_types_set,
+            mlir_model,
+            func_name,
+            mlir_dialect,
+        ).result()
     device_type_shark_module_path_map = {
         device_type: module_path
         for device_type, module_path in zip(
