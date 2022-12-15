@@ -2,4 +2,4 @@
 
 IMPORTER=1 ./setup_venv.sh
 source $GITHUB_WORKSPACE/shark.venv/bin/activate
-python generate_sharktank.py --ci_tank_dir=True
+python generate_sharktank.py
