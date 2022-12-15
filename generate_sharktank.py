@@ -224,9 +224,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--ci_tank_dir",
         type=bool,
-        default=False,
+        default=True,
     )
-    parser.add_argument("--upload", type=bool, default=False)
 
     args = parser.parse_args()
 
