@@ -50,12 +50,14 @@ def get_vulkan_triple_flag(extra_args=[]):
         return None
     system_os = get_os_name()
     vulkan_device = get_vulkan_device_name()
+    # Apple Targets
     if all(x in vulkan_device for x in ("Apple", "M1")):
         print(f"Found {vulkan_device} Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
     elif all(x in vulkan_device for x in ("Apple", "M2")):
         print("Found Apple M2 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
+    # Nvidia Targets
     elif all(x in vulkan_device for x in ("A100", "SXM4")):
         print(
             f"Found {vulkan_device} Device. Using ampere-rtx3080-{system_os}"
@@ -71,6 +73,27 @@ def get_vulkan_triple_flag(extra_args=[]):
             f"Found {vulkan_device} Device. Using ampere-rtx3090-{system_os}"
         )
         return f"-iree-vulkan-target-triple=ampere-rtx3090-{system_os}"
+    elif all(x in vulkan_device for x in ("RTX", "4000")):
+        print(
+            f"Found {vulkan_device} Device. Using turing-rtx4000-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=turing-rtx4000-{system_os}"
+    elif all(x in vulkan_device for x in ("RTX", "5000")):
+        print(
+            f"Found {vulkan_device} Device. Using turing-rtx5000-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=turing-rtx5000-{system_os}"
+    elif all(x in vulkan_device for x in ("RTX", "6000")):
+        print(
+            f"Found {vulkan_device} Device. Using turing-rtx6000-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=turing-rtx6000-{system_os}"
+    elif all(x in vulkan_device for x in ("RTX", "8000")):
+        print(
+            f"Found {vulkan_device} Device. Using turing-rtx8000-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=turing-rtx8000-{system_os}"
+    # Amd Targets
     elif all(x in vulkan_device for x in ("AMD", "7900")):
         print(f"Found {vulkan_device} Device. Using rdna3-7900-{system_os}")
         return f"-iree-vulkan-target-triple=rdna3-7900-{system_os}"
