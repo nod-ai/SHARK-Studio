@@ -108,6 +108,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest toml
         if [ -f requirements.txt ]; then pip install -r requirements.txt -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html; fi
@@ -131,7 +132,7 @@ jobs:
         pip install ./wheelhouse/nodai*
         # Validate the Models
         /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" -k "not metal" |
           tail -n 1 |
           tee -a pytest_results.txt
         if !(grep -Fxq " failed" pytest_results.txt) 
@@ -154,6 +155,6 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest --ci --ci_sha=${SHORT_SHA} tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} -k "not metal" |
           tail -n 1 |
           tee -a pytest_results.txt
