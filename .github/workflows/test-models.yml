@@ -6,8 +6,14 @@ name: Validate Models on Shark Runtime
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'shark/examples/**'
   pull_request:
     branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'shark/examples/**'
   workflow_dispatch:
 
 # Ensure that only a single job or workflow using the same
@@ -117,9 +123,9 @@ jobs:
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         export DYLD_LIBRARY_PATH=/usr/local/lib/
-        cd $GITHUB_WORKSPACE
+        echo $PATH
         pip list | grep -E "torch|iree"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" tank/test_models.py -k vulkan --update_tank
+        pytest -s --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" tank/test_models.py -k vulkan --update_tank
 
     - name: Validate Vulkan Models (a100)
       if: matrix.suite == 'vulkan' && matrix.os != 'MacStudio'
