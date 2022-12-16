@@ -5,7 +5,6 @@ from shark.shark_inference import SharkInference
 from stable_args import args
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import set_iree_vulkan_runtime_flags
-from shark.iree_utils._common import map_device_to_path
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
@@ -87,12 +86,3 @@ def set_iree_runtime_flags():
         set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
     return
-
-
-def make_qualified_device_name():
-    # modify device name to be fully qualified device name
-    # of the format driver://path
-    # supported for vulkan as of now
-
-    if "vulkan" in args.device:
-        args.device = map_device_to_path(args.device)
