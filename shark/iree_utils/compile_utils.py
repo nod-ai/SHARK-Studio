@@ -23,21 +23,27 @@ import re
 
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
-    if "://" in device:
-        device = device.split("://")[0]
-    if device == "cpu":
+    device_uri = device.split("://")
+    if len(device_uri) > 1:
+        if device_uri[0] not in ["vulkan"]:
+            print(
+                f"Specific device selection only supported for vulkan now."
+                f"Proceeding with {device} as device."
+            )
+
+    if device_uri[0] == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
         return get_iree_cpu_args()
-    if device == "cuda":
+    if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
-    if device in ["metal", "vulkan"]:
+    if device_uri[0] in ["metal", "vulkan"]:
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
-        return get_iree_vulkan_args(extra_args=extra_args)
-    if device == "rocm":
+        return get_iree_vulkan_args(device, extra_args)
+    if device_uri[0] == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
         return get_iree_rocm_args()
