@@ -19,7 +19,10 @@ from utils import (
 from opt_params import get_unet, get_vae, get_clip
 import time
 import sys
+import os
 from shark.iree_utils.compile_utils import dump_isas
+
+os.environ["AMD_ENABLE_LLPC"] = "1"
 
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
