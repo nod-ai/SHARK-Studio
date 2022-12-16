@@ -40,12 +40,8 @@ schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
     subfolder="scheduler",
 )
 
-# set use_tuned
-if "rdna3" not in get_vulkan_triple_flag():
-    args.use_tuned = False
-
 # set iree-runtime flags
-set_iree_runtime_flags(args)
+set_iree_runtime_flags()
 
 cache_obj = dict()
 # cache vae, unet and clip.
@@ -53,7 +49,7 @@ cache_obj = dict()
     cache_obj["vae"],
     cache_obj["unet"],
     cache_obj["clip"],
-) = (get_vae(args), get_unet(args), get_clip(args))
+) = (get_vae(), get_unet(), get_clip())
 
 # cache tokenizer
 cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(

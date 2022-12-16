@@ -98,7 +98,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                     )
                 with gr.Row():
                     steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
-                    guidance = gr.Slider(
+                    guidance_scale = gr.Slider(
                         0,
                         50,
                         value=7.5,
@@ -156,7 +156,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 prompt,
                 negative_prompt,
                 steps,
-                guidance,
+                guidance_scale,
                 seed,
                 scheduler_key,
             ],
@@ -168,7 +168,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 prompt,
                 negative_prompt,
                 steps,
-                guidance,
+                guidance_scale,
                 seed,
                 scheduler_key,
             ],
