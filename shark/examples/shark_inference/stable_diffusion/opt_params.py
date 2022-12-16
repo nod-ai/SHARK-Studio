@@ -15,6 +15,7 @@ if BATCH_SIZE != 1:
 if "rdna3" not in args.iree_vulkan_target_triple:
     args.use_tuned = False
 
+
 def get_unet():
     iree_flags = []
     if len(args.iree_vulkan_target_triple) > 0:
