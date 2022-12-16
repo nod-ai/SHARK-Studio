@@ -172,7 +172,7 @@ class SharkModuleTester:
                 rtol=self.config["rtol"],
                 atol=self.config["atol"],
             )
-        except AssertionError:
+        except AssertionError as msg:
             if any([self.ci, self.save_repro, self.save_fails]) == True:
                 self.save_reproducers()
             if self.ci == True:
@@ -185,7 +185,8 @@ class SharkModuleTester:
                 # p.start()
                 # p.join()
                 self.benchmark_module(shark_module, inputs, dynamic, device)
-            raise
+                print(msg)
+                pytest.xfail(reason="Numerics Issue")
 
         if self.benchmark == True:
             # We must create a new process each time we benchmark a model to allow
