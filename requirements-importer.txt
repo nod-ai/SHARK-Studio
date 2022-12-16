@@ -34,6 +34,7 @@ sacremoses
 
 # web dependecies.
 gradio
+altair
 scipy
 
 #ONNX and ORT for benchmarking

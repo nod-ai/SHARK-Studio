@@ -1,20 +1,31 @@
-from diffusers import AutoencoderKL, UNet2DConditionModel, PNDMScheduler
+from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from models.stable_diffusion.utils import compile_through_fx
+from models.stable_diffusion.stable_args import args
 import torch
 
-
 model_config = {
-    "v2": "stabilityai/stable-diffusion-2",
+    "v2.1": "stabilityai/stable-diffusion-2-1",
+    "v2.1base": "stabilityai/stable-diffusion-2-1-base",
     "v1.4": "CompVis/stable-diffusion-v1-4",
 }
 
 model_input = {
-    "v2": {
+    "v2.1": {
         "clip": (torch.randint(1, 2, (1, 77)),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
             torch.randn(1, 4, 96, 96),  # latents
+            torch.tensor([1]).to(torch.float32),  # timestep
+            torch.randn(2, 77, 1024),  # embedding
+            torch.tensor(1).to(torch.float32),  # guidance_scale
+        ),
+    },
+    "v2.1base": {
+        "clip": (torch.randint(1, 2, (1, 77)),),
+        "vae": (torch.randn(1, 4, 64, 64),),
+        "unet": (
+            torch.randn(1, 4, 64, 64),  # latents
             torch.tensor([1]).to(torch.float32),  # timestep
             torch.randn(2, 77, 1024),  # embedding
             torch.tensor(1).to(torch.float32),  # guidance_scale
@@ -32,12 +43,16 @@ model_input = {
     },
 }
 
+# revision param for from_pretrained defaults to "main" => fp32
+model_revision = "fp16" if args.precision == "fp16" else "main"
 
-def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
+
+def get_clip_mlir(model_name="clip_text", extra_args=[]):
+
     text_encoder = CLIPTextModel.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
-    if args.version == "v2":
+    if args.version != "v1.4":
         text_encoder = CLIPTextModel.from_pretrained(
             model_config[args.version], subfolder="text_encoder"
         )
@@ -52,7 +67,6 @@ def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
 
     clip_model = CLIPText()
     shark_clip = compile_through_fx(
-        args,
         clip_model,
         model_input[args.version]["clip"],
         model_name=model_name,
@@ -61,14 +75,14 @@ def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
     return shark_clip
 
 
-def get_vae_mlir(args, model_name="vae", extra_args=[]):
+def get_vae_mlir(model_name="vae", extra_args=[]):
     class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.vae = AutoencoderKL.from_pretrained(
                 model_config[args.version],
                 subfolder="vae",
-                revision="fp16",
+                revision=model_revision,
             )
 
         def forward(self, input):
@@ -76,12 +90,18 @@ def get_vae_mlir(args, model_name="vae", extra_args=[]):
             return (x / 2 + 0.5).clamp(0, 1)
 
     vae = VaeModel()
-    vae = vae.half().cuda()
-    inputs = tuple(
-        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
-    )
+    if args.precision == "fp16":
+        vae = vae.half().cuda()
+        inputs = tuple(
+            [
+                inputs.half().cuda()
+                for inputs in model_input[args.version]["vae"]
+            ]
+        )
+    else:
+        inputs = model_input[args.version]["vae"]
+
     shark_vae = compile_through_fx(
-        args,
         vae,
         inputs,
         model_name=model_name,
@@ -90,14 +110,42 @@ def get_vae_mlir(args, model_name="vae", extra_args=[]):
     return shark_vae
 
 
-def get_unet_mlir(args, model_name="unet", extra_args=[]):
+def get_vae_encode_mlir(model_name="vae_encode", extra_args=[]):
+    class VaeEncodeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                model_config[args.version],
+                subfolder="vae",
+                revision="fp16",
+            )
+
+        def forward(self, x):
+            input = 2 * (x - 0.5)
+            return self.vae.encode(input, return_dict=False)[0]
+
+    vae = VaeEncodeModel()
+    vae = vae.half().cuda()
+    inputs = tuple(
+        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
+    )
+    shark_vae = compile_through_fx(
+        vae,
+        inputs,
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_vae
+
+
+def get_unet_mlir(model_name="unet", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.unet = UNet2DConditionModel.from_pretrained(
                 model_config[args.version],
                 subfolder="unet",
-                revision="fp16",
+                revision=model_revision,
             )
             self.in_channels = self.unet.in_channels
             self.train(False)
@@ -115,15 +163,17 @@ def get_unet_mlir(args, model_name="unet", extra_args=[]):
             return noise_pred
 
     unet = UnetModel()
-    unet = unet.half().cuda()
-    inputs = tuple(
-        [
-            inputs.half().cuda() if len(inputs.shape) != 0 else inputs
-            for inputs in model_input[args.version]["unet"]
-        ]
-    )
+    if args.precision == "fp16":
+        unet = unet.half().cuda()
+        inputs = tuple(
+            [
+                inputs.half().cuda() if len(inputs.shape) != 0 else inputs
+                for inputs in model_input[args.version]["unet"]
+            ]
+        )
+    else:
+        inputs = model_input[args.version]["unet"]
     shark_unet = compile_through_fx(
-        args,
         unet,
         inputs,
         model_name=model_name,

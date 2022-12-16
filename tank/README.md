@@ -193,10 +193,10 @@ cat /sys/devices/system/cpu/cpu*/topology/thread_siblings_list | awk -F, '{print
 echo 1 > /sys/devices/system/cpu/intel_pstate/no_turbo
 
 # Benchmark canonical Resnet50 on CPU via pytest
-pytest --benchmark tank/test_models -k "resnet50 and tf_static_cpu"
+pytest --benchmark tank/test_models.py -k "resnet50 and tf_static_cpu"
 
 # Benchmark canonical MiniLM on CPU via pytest
-pytest --benchmark tank/test_models -k "MiniLM and cpu"
+pytest --benchmark tank/test_models.py -k "MiniLM and cpu"
 
 # Benchmark MiniLM on CPU via transformer-benchmarks:
 git clone --recursive https://github.com/nod-ai/transformer-benchmarks.git

@@ -6,15 +6,23 @@ from diffusers import (
     PNDMScheduler,
     DDIMScheduler,
     DPMSolverMultistepScheduler,
+    EulerDiscreteScheduler,
 )
 from tqdm.auto import tqdm
 import numpy as np
 from stable_args import args
-from utils import get_shark_model, set_iree_runtime_flags
+from utils import (
+    get_shark_model,
+    set_iree_runtime_flags,
+    make_qualified_device_name,
+)
 from opt_params import get_unet, get_vae, get_clip
 import time
-from model_wrappers import get_vae_mlir
+import sys
+import os
 from shark.iree_utils.compile_utils import dump_isas
+
+os.environ["AMD_ENABLE_LLPC"] = "1"
 
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
@@ -38,9 +46,10 @@ if __name__ == "__main__":
     dtype = torch.float32 if args.precision == "fp32" else torch.half
 
     prompt = args.prompts
+    neg_prompt = args.negative_prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
-    if args.version == "v2":
+    if args.version == "v2.1":
         height = 768
         width = 768
 
@@ -53,8 +62,13 @@ if __name__ == "__main__":
         args.seed
     )  # Seed generator to create the inital latent noise
 
+    # TODO: Add support for batch_size > 1.
     batch_size = len(prompt)
-
+    if batch_size != 1:
+        sys.exit("More than one prompt is not supported yet.")
+    if batch_size != len(neg_prompt):
+        sys.exit("prompts and negative prompts must be of same length")
+    make_qualified_device_name()
     set_iree_runtime_flags()
     unet = get_unet()
     vae = get_vae()
@@ -67,16 +81,25 @@ if __name__ == "__main__":
         "CompVis/stable-diffusion-v1-4",
         subfolder="scheduler",
     )
-    if args.version == "v2":
+    if args.version == "v2.1":
         tokenizer = CLIPTokenizer.from_pretrained(
-            "stabilityai/stable-diffusion-2", subfolder="tokenizer"
+            "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
         )
 
         scheduler = DPMSolverMultistepScheduler.from_pretrained(
-            "stabilityai/stable-diffusion-2",
+            "stabilityai/stable-diffusion-2-1",
             subfolder="scheduler",
         )
 
+    if args.version == "v2.1base":
+        tokenizer = CLIPTokenizer.from_pretrained(
+            "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
+        )
+
+        scheduler = EulerDiscreteScheduler.from_pretrained(
+            "stabilityai/stable-diffusion-2-1-base",
+            subfolder="scheduler",
+        )
     start = time.time()
 
     text_input = tokenizer(
@@ -93,9 +116,10 @@ if __name__ == "__main__":
     text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     max_length = text_input.input_ids.shape[-1]
     uncond_input = tokenizer(
-        [""] * batch_size,
+        neg_prompt,
         padding="max_length",
         max_length=max_length,
+        truncation=True,
         return_tensors="pt",
     )
     uncond_clip_inf_start = time.time()
@@ -159,8 +183,8 @@ if __name__ == "__main__":
     vae_end = time.time()
     end_profiling(profile_device)
     image = torch.from_numpy(image)
-    image = image.detach().cpu().permute(0, 2, 3, 1).numpy()
-    images = (image * 255).round().astype("uint8")
+    image = image.detach().cpu().permute(0, 2, 3, 1) * 255.0
+    images = image.numpy().round().astype("uint8")
     total_end = time.time()
 
     clip_inf_time = (clip_inf_end - clip_inf_start) * 1000

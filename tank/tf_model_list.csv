@@ -17,3 +17,4 @@ funnel-transformer/small,hf
 microsoft/mpnet-base,hf
 facebook/convnext-tiny-224,img
 google/vit-base-patch16-224,img
+efficientnet-v2-s,keras

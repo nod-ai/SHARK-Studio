@@ -17,6 +17,7 @@
 import os
 import sys
 import subprocess
+from iree.runtime import get_driver, get_device
 
 
 def run_cmd(cmd):
@@ -37,57 +38,61 @@ def run_cmd(cmd):
         sys.exit("Exiting program due to error running:", cmd)
 
 
+def get_all_devices(driver_name):
+    """
+    Inputs: driver_name
+    Returns a list of all the available devices for a given driver sorted by
+    the iree path names of the device as in --list_devices option in iree.
+    Set `full_dict` flag to True to get a dict
+    with `path`, `name` and `device_id` for all devices
+    """
+    driver = get_driver(driver_name)
+    device_list_src = driver.query_available_devices()
+    device_list_src.sort(key=lambda d: d["path"])
+    return device_list_src
+
+
+def create_map_device_to_key(driver, key):
+    # key can only be path, name, device id
+    device_list = get_all_devices(driver)
+    device_map = dict()
+    # mapping driver name to default device (driver://0)
+    device_map[f"{driver}"] = f"{device_list[0][key]}"
+    for i, device in enumerate(device_list):
+        # mapping with index
+        device_map[f"{driver}://{i}"] = f"{device[key]}"
+        # mapping with full path
+        device_map[f"{driver}://{device['path']}"] = f"{device[key]}"
+
+    return device_map
+
+
+def map_device_to_path(device):
+    driver = device.split("://")[0]
+    device_map = create_map_device_to_key(driver, "path")
+    try:
+        device_path = device_map[device]
+    except KeyError:
+        raise Exception(f"Device {device} is not a valid device.")
+    return f"{driver}://{device_path}"
+
+
+def map_device_to_name(device):
+    driver = device.split("://")[0]
+    device_map = create_map_device_to_key(driver, "name")
+    try:
+        device_name = device_map[device]
+    except KeyError:
+        raise Exception(f"Device {device} is not a valid device.")
+    return device_name
+
+
 def iree_device_map(device):
-
-    from iree.runtime import get_driver, get_device
-
-    def get_all_devices(driver_name):
-        driver = get_driver(driver_name)
-        device_list_src = driver.query_available_devices()
-        device_list = []
-        for device_dict in device_list_src:
-            device_list.append(f"{driver_name}://{device_dict['path']}")
-        device_list.sort()
-        return device_list
-
-    # only supported for vulkan as of now
-    if "vulkan://" in device:
-        device_list = get_all_devices("vulkan")
-        _, d_index = device.split("://")
-        matched_index = None
-        match_with_index = False
-        if 0 <= len(d_index) <= 2:
-            try:
-                d_index = int(d_index)
-            except:
-                print(
-                    f"{d_index} is not valid index or uri. Will choose device 0"
-                )
-                d_index = 0
-            match_with_index = True
-
-        if len(device_list) > 1:
-            print("List of available vulkan devices:")
-            for i, d in enumerate(device_list):
-                print(f"vulkan://{i} => {d}")
-                if (match_with_index and d_index == i) or (
-                    not match_with_index and d == device
-                ):
-                    matched_index = i
-            print(
-                f"Choosing device vulkan://{matched_index}\nTo choose another device please specify device index or uri accordingly."
-            )
-            return get_device(device_list[matched_index])
-        elif len(device_list) == 1:
-            print(f"Found one vulkan device: {device_list[0]}. Using this.")
-            return get_device(device_list[0])
-        else:
-            print(
-                f"No device found! returning device corresponding to driver name: vulkan"
-            )
-            return _IREE_DEVICE_MAP["vulkan"]
+    uri_parts = device.split("://", 1)
+    if len(uri_parts) == 1:
+        return _IREE_DEVICE_MAP[uri_parts[0]]
     else:
-        return _IREE_DEVICE_MAP[device]
+        return f"{_IREE_DEVICE_MAP[uri_parts[0]]}://{uri_parts[1]}"
 
 
 def get_supported_device_list():
@@ -118,6 +123,7 @@ _IREE_TARGET_MAP = {
     "rocm": "rocm",
     "intel-gpu": "opencl-spirv",
 }
+
 
 # Finds whether the required drivers are installed for the given device.
 def check_device_drivers(device):

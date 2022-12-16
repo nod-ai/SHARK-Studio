@@ -162,6 +162,9 @@ cython_debug/
 # Shark related artefacts
 *venv/
 shark_tmp/
+*.vmfb
+.use-iree
+tank/dict_configs.py
 
 # ORT related artefacts
 cache_models/

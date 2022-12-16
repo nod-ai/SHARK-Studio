@@ -15,6 +15,7 @@ vision_models = [
     "squeezenet1_0",
     "wide_resnet50_2",
     "mobilenet_v3_small",
+    "mnasnet1_0",
 ]
 hf_img_cls_models = [
     "google/vit-base-patch16-224",
@@ -142,13 +143,14 @@ def get_vision_model(torch_model):
     import torchvision.models as models
 
     vision_models_dict = {
-        "alexnet": models.alexnet(pretrained=True),
-        "resnet18": models.resnet18(pretrained=True),
-        "resnet50": models.resnet50(pretrained=True),
-        "resnet101": models.resnet101(pretrained=True),
-        "squeezenet1_0": models.squeezenet1_0(pretrained=True),
-        "wide_resnet50_2": models.wide_resnet50_2(pretrained=True),
-        "mobilenet_v3_small": models.mobilenet_v3_small(pretrained=True),
+        "alexnet": models.alexnet(weights="DEFAULT"),
+        "resnet18": models.resnet18(weights="DEFAULT"),
+        "resnet50": models.resnet50(weights="DEFAULT"),
+        "resnet101": models.resnet101(weights="DEFAULT"),
+        "squeezenet1_0": models.squeezenet1_0(weights="DEFAULT"),
+        "wide_resnet50_2": models.wide_resnet50_2(weights="DEFAULT"),
+        "mobilenet_v3_small": models.mobilenet_v3_small(weights="DEFAULT"),
+        "mnasnet1_0": models.mnasnet1_0(weights="DEFAULT"),
     }
     if isinstance(torch_model, str):
         torch_model = vision_models_dict[torch_model]
@@ -159,6 +161,8 @@ def get_vision_model(torch_model):
 
 
 ################################################################################
+
+####################### Other PyTorch HF Models ###############################
 
 # Utility function for comparing two tensors (torch).
 def compare_tensors(torch_tensor, numpy_tensor, rtol=1e-02, atol=1e-03):

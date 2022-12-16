@@ -9,7 +9,80 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  windows-build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Compute version
+      shell: powershell
+      run: |
+        $package_version = $(Get-Date -UFormat "%Y%m%d")+"."+${{ github.run_number }}
+        $package_version_ = $(Get-Date -UFormat "%Y%m%d")+"_"+${{ github.run_number }}
+        $tag_name=$package_version
+        echo "package_version=$package_version" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "package_version_=$package_version_" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "tag_name=$tag_name" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        tag_name: ${{ env.tag_name }}
+        release_name: nod.ai SHARK ${{ env.tag_name }}
+        body: |
+          Automatic snapshot release of nod.ai SHARK.
+        draft: true
+        prerelease: false
+
+    - name: Build Package 
+      shell: powershell
+      run: |
+        ./setup_venv.ps1
+        pyinstaller web/shark_sd.spec
+        mv ./dist/shark_sd.exe ./dist/shark_sd_${{ env.package_version_ }}.exe
+
+        
+    # GHA windows VM OOMs so disable for now
+    #- name: Build and validate the SHARK Runtime package
+    #  shell: powershell
+    #  run: |
+    #    $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
+    #    pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: dist/*
+    
+    - name: Upload Release Assets
+      id: upload-release-assets
+      uses: dwenegar/upload-release-assets@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
+        assets_path: ./dist/*
+
+    - name: Publish Release
+      id: publish_release
+      uses: eregon/publish-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
+      with:
+        release_id: ${{ steps.create_release.outputs.id }}
+
+  linux-build:
 
     runs-on: a100
     strategy:
@@ -32,31 +105,10 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    
-    - name: Compute version
-      run: |
-        package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
-        tag_name="${package_version}"
-        echo "package_version=${package_version}" >> $GITHUB_ENV
-        echo "tag_name=${tag_name}" >> $GITHUB_ENV    
-    - name: Set Environment Variables
-      run: |
-        echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
-        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
-      with:
-        tag_name: ${{ env.tag_name }}
-        release_name: nod.ai SHARK ${{ env.tag_name }}
-        body: |
-          Automatic snapshot release of nod.ai SHARK.
-        draft: true
-        prerelease: false
+
     - name: Install dependencies
       run: |
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest toml
         if [ -f requirements.txt ]; then pip install -r requirements.txt -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html; fi
@@ -68,6 +120,7 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude shark.venv,lit.cfg.py 
     - name: Build and validate the IREE package
       if: ${{ matrix.backend == 'IREE' }}
+      continue-on-error: true
       run: |
         cd $GITHUB_WORKSPACE
         USE_IREE=1 VENV_DIR=iree.venv ./setup_venv.sh
@@ -79,7 +132,7 @@ jobs:
         pip install ./wheelhouse/nodai*
         # Validate the Models
         /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" -k "not metal" |
           tail -n 1 |
           tee -a pytest_results.txt
         if !(grep -Fxq " failed" pytest_results.txt) 
@@ -102,25 +155,6 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pytest --ci --ci_sha=${SHORT_SHA} tank/test_models.py |
+        pytest --ci --ci_sha=${SHORT_SHA} -k "not metal" |
           tail -n 1 |
           tee -a pytest_results.txt
-    
-    - name: Upload Release Assets
-      if: ${{ matrix.backend == 'SHARK' }}
-      id: upload-release-assets
-      uses: dwenegar/upload-release-assets@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
-      with:
-        release_id: ${{ steps.create_release.outputs.id }}
-        assets_path: ./wheelhouse/nodai_*.whl
-
-    - name: Publish Release
-      if: ${{ matrix.backend == 'SHARK' }}
-      id: publish_release
-      uses: eregon/publish-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
-      with:
-        release_id: ${{ steps.create_release.outputs.id }}

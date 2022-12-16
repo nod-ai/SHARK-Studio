@@ -15,27 +15,35 @@ import iree.runtime as ireert
 import iree.compiler as ireec
 from shark.iree_utils._common import iree_device_map, iree_target_map
 from shark.iree_utils.benchmark_utils import *
+from shark.parser import shark_args
 import numpy as np
 import os
 import re
 
+
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
-    if "://" in device:
-        device = device.split("://")[0]
-    if device == "cpu":
+    device_uri = device.split("://")
+    if len(device_uri) > 1:
+        if device_uri[0] not in ["vulkan"]:
+            print(
+                f"Specific device selection only supported for vulkan now."
+                f"Proceeding with {device} as device."
+            )
+
+    if device_uri[0] == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
         return get_iree_cpu_args()
-    if device == "cuda":
+    if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
-    if device in ["metal", "vulkan"]:
+    if device_uri[0] in ["metal", "vulkan"]:
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
-        return get_iree_vulkan_args(extra_args=extra_args)
-    if device == "rocm":
+        return get_iree_vulkan_args(device, extra_args)
+    if device_uri[0] == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
         return get_iree_rocm_args()
@@ -64,6 +72,16 @@ def get_iree_common_args():
         "--iree-vm-target-index-bits=64",
         "--iree-util-zero-fill-elided-attrs",
     ]
+
+
+# Args that are suitable only for certain models or groups of models.
+# shark_args are passed down from pytests to control which models compile with these flags,
+# but they can also be set in shark/parser.py
+def get_model_specific_args():
+    ms_args = []
+    if shark_args.enable_conv_transform == True:
+        ms_args += ["--iree-flow-enable-conv-nchw-to-nhwc-transform"]
+    return ms_args
 
 
 def create_dispatch_dirs(bench_dir, device):
@@ -213,13 +231,20 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
 
 
 def compile_module_to_flatbuffer(
-    module, device, frontend, func_name, model_config_path, extra_args
+    module,
+    device,
+    frontend,
+    func_name,
+    model_config_path,
+    extra_args,
+    model_name="None",
 ):
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
     args += get_iree_device_args(device, extra_args)
     args += get_iree_common_args()
+    args += get_model_specific_args()
     args += extra_args
 
     if frontend in ["tensorflow", "tf"]:
@@ -343,14 +368,10 @@ def get_results(compiled_vm, input, config, frontend="torch"):
         res = np.array(data, dtype=object)
         return np.copy(res)
     else:
-        return np.copy(np.asarray(result, dtype=result.dtype))
+        return result.to_host()
 
 
 def get_iree_runtime_config(device):
     device = iree_device_map(device)
-    if type(device) == ireert.HalDevice:
-        config = ireert.Config(device=device)
-    else:
-        driver_name = device.split("://")[0] if "://" in device else device
-        config = ireert.Config(driver_name=driver_name)
+    config = ireert.Config(device=ireert.get_device(device))
     return config

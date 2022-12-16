@@ -6,7 +6,7 @@ pyinstaller
 tqdm
 
 # SHARK Downloader
-gsutil
+google-cloud-storage
 
 # Testing
 pytest
@@ -19,3 +19,5 @@ transformers
 diffusers
 scipy
 ftfy
+gradio
+altair

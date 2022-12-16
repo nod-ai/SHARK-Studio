@@ -5,11 +5,7 @@ from shark.iree_utils._common import (
 )
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 from parameterized import parameterized
-from shark.shark_downloader import (
-    download_tf_model,
-    download_torch_model,
-    download_tflite_model,
-)
+from shark.shark_downloader import download_model
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
 import iree.compiler as ireec
@@ -42,6 +38,11 @@ def load_csv_and_convert(filename, gen=False):
                     "rtol": float(row[3]),
                     "atol": float(row[4]),
                     "out_type": row[5],
+                    "flags": row[6],
+                    "xfail_cpu": row[7],
+                    "xfail_cuda": row[8],
+                    "xfail_vkm": row[9],
+                    "xfail_reason": row[10],
                 }
             )
     # This is a pytest workaround
@@ -131,25 +132,19 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
+
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.update_tank = self.update_tank
-        if self.config["framework"] == "tf":
-            model, func_name, inputs, golden_out = download_tf_model(
-                self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        elif self.config["framework"] == "torch":
-            model, func_name, inputs, golden_out = download_torch_model(
-                self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        elif self.config["framework"] == "tflite":
-            model, func_name, inputs, golden_out = download_tflite_model(
-                model_name=self.config["model_name"],
-                tank_url=self.tank_url,
-            )
-        else:
-            model, func_name, inputs, golden_out = None, None, None, None
+        if "nhcw-nhwc" in self.config["flags"] and not os.path.isfile(
+            ".use-iree"
+        ):
+            shark_args.enable_conv_transform = True
+
+        model, func_name, inputs, golden_out = download_model(
+            self.config["model_name"],
+            tank_url=self.tank_url,
+            frontend=self.config["framework"],
+        )
 
         shark_module = SharkInference(
             model,
@@ -177,16 +172,32 @@ class SharkModuleTester:
                 rtol=self.config["rtol"],
                 atol=self.config["atol"],
             )
-        except AssertionError:
+        except AssertionError as msg:
             if any([self.ci, self.save_repro, self.save_fails]) == True:
                 self.save_reproducers()
             if self.ci == True:
                 self.upload_repro()
             if self.benchmark == True:
+                # p = multiprocessing.Process(
+                #    target=self.benchmark_module,
+                #    args=(shark_module, inputs, dynamic, device),
+                # )
+                # p.start()
+                # p.join()
                 self.benchmark_module(shark_module, inputs, dynamic, device)
-            raise
+                print(msg)
+                pytest.xfail(reason="Numerics Issue")
 
         if self.benchmark == True:
+            # We must create a new process each time we benchmark a model to allow
+            # for Tensorflow to release GPU resources. Using the same process to
+            # benchmark multiple models leads to OOM.
+            # p = multiprocessing.Process(
+            #    target=self.benchmark_module,
+            #    args=(shark_module, inputs, dynamic, device),
+            # )
+            # p.start()
+            # p.join()
             self.benchmark_module(shark_module, inputs, dynamic, device)
 
         if self.save_repro == True:
@@ -242,16 +253,6 @@ class SharkModuleTester:
         return expected, logits
 
 
-def run_test(module_tester, dynamic, device):
-    tempdir = tempfile.TemporaryDirectory(
-        prefix=module_tester.tmp_prefix, dir="./shark_tmp/"
-    )
-    module_tester.temp_dir = tempdir.name
-
-    with ireec.tools.TempFileSaver(tempdir.name):
-        module_tester.create_and_check_module(dynamic, device)
-
-
 class SharkModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
@@ -282,83 +283,7 @@ class SharkModuleTest(unittest.TestCase):
             "update_tank"
         )
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
-        if (
-            config["model_name"] == "distilbert-base-uncased"
-            and config["framework"] == "torch"
-        ):
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/354")
-        if config["model_name"] == "facebook/convnext-tiny-224" and device in [
-            "cuda",
-            "cpu",
-        ]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
-        if config[
-            "model_name"
-        ] == "google/vit-base-patch16-224" and device in ["cuda", "cpu"]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
-        if config["model_name"] == "google/rembert":
-            pytest.skip(reason="Model too large to convert.")
-        if config["model_name"] == "facebook/convnext-tiny-224" and device in [
-            "cpu",
-            "cuda",
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="https://github.com/nod-ai/SHARK/issues/311, https://github.com/nod-ai/SHARK/issues/342"
-            )
-        if config["model_name"] == "funnel-transformer/small" and device in [
-            "cpu",
-            "cuda",
-            "metal",
-            "vulkan",
-        ]:
-            pytest.xfail(
-                reason="failing in the iree-compiler passes, see https://github.com/nod-ai/SHARK/issues/201"
-            )
-        if (
-            config["model_name"] == "google/vit-base-patch16-224"
-            and device == "cuda"
-        ):
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/311")
-        if config["model_name"] == "microsoft/mpnet-base":
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/203")
-        if config["model_name"] == "nvidia/mit-b0":
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/343")
-        if (
-            config["model_name"] == "google/mobilebert-uncased"
-            and device == "cpu"
-            and config["framework"] == "tf"
-        ):
-            pytest.xfail(reason="Fails during iree-compile.")
-        if (
-            config["model_name"] == "facebook/deit-small-distilled-patch16-224"
-            and device == "cuda"
-        ):
-            pytest.xfail(
-                reason="Fails during iree-compile without reporting diagnostics."
-            )
-        if (
-            config["model_name"]
-            == "microsoft/beit-base-patch16-224-pt22k-ft22k"
-            and device == "cuda"
-        ):
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/390")
-        if config["model_name"] == "squeezenet1_0" and device in ["cpu"]:
-            pytest.xfail(
-                reason="Numerics Issues: https://github.com/nod-ai/SHARK/issues/388"
-            )
-        if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
-            pytest.xfail(reason="Transformers API mismatch")
-        if config["model_name"] == "mobilenet_v3_small" and device in [
-            "cuda",
-            "cpu",
-        ]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/424")
-        if config[
-            "model_name"
-        ] == "dbmdz/convbert-base-turkish-cased" and device in ["cuda", "cpu"]:
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/463")
+
         if (
             config["model_name"]
             in [
@@ -381,50 +306,6 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(
                 reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/476"
             )
-        if (
-            config["model_name"] == "microsoft/MiniLM-L12-H384-uncased"
-            and device == "cpu"
-        ):
-            pytest.xfail(reason="https://github.com/nod-ai/SHARK/issues/463")
-        if config["model_name"] == "hf-internal-testing/tiny-random-flaubert":
-            pytest.xfail(reason="Transformers API mismatch")
-        if (
-            config["model_name"] in ["albert-base-v2"]
-            and device == "cpu"
-            and dynamic == False
-            and config["framework"] == "tf"
-        ):
-            pytest.xfail(
-                reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/489"
-            )
-        if (
-            config["model_name"]
-            in [
-                "microsoft/resnet-50",
-                "alexnet",
-                "resnet101",
-                "resnet18",
-                "resnet50",
-                "wide_resnet50_2",
-            ]
-            and device
-            in [
-                "cpu",
-                "cuda",
-            ]
-            and config["framework"] == "torch"
-        ):
-            pytest.xfail(
-                reason="tensor dimension issue: https://github.com/nod-ai/SHARK/issues/511"
-            )
-        if config["model_name"] == "squeezenet1_0" and device == "cuda":
-            pytest.xfail(
-                reason="tensor dimension issue: https://github.com/nod-ai/SHARK/issues/511"
-            )
-        if config["framework"] == "tf" and dynamic == True:
-            pytest.skip(
-                reason="Dynamic shapes not supported for this framework."
-            )
 
         safe_name = (
             f"{config['model_name']}_{config['framework']}_{dynamic}_{device}"
@@ -434,11 +315,10 @@ class SharkModuleTest(unittest.TestCase):
         if not os.path.isdir("./shark_tmp/"):
             os.mkdir("./shark_tmp/")
 
-        # We must create a new process each time we benchmark a model to allow
-        # for Tensorflow to release GPU resources. Using the same process to
-        # benchmark multiple models leads to OOM.
-        p = multiprocessing.Process(
-            target=run_test, args=(self.module_tester, dynamic, device)
+        tempdir = tempfile.TemporaryDirectory(
+            prefix=self.module_tester.tmp_prefix, dir="./shark_tmp/"
         )
-        p.start()
-        p.join()
+        self.module_tester.temp_dir = tempdir.name
+
+        with ireec.tools.TempFileSaver(tempdir.name):
+            self.module_tester.create_and_check_module(dynamic, device)

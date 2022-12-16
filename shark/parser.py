@@ -105,4 +105,11 @@ parser.add_argument(
     help='directory where you want to store dispatch data generated with "--dispatch_benchmarks"',
 )
 
+parser.add_argument(
+    "--enable_conv_transform",
+    default=False,
+    action="store_true",
+    help="Enables the --iree-flow-enable-conv-nchw-to-nhwc-transform flag.",
+)
+
 shark_args, unknown = parser.parse_known_args()

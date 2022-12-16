@@ -5,13 +5,15 @@
 ### RDNA2 Drivers:
 *AMD Software: Adrenalin Edition 22.11.1 for MLIR/IREE Driver Version 22.20.29.09 for Windows® 10 and Windows® 11 (Windows Driver Store Version 31.0.12029.9003)*
 
-https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree
+https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mlir-iree
 
+Note that if you previously tried Stable Diffusion with a different driver, it may be necessary to clear vulkan cache after changing drivers.
+
+For Windows users this can be done by clearing the contents of `C:\Users\<username>\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
 
 ## Installation
 
-Download the latest Windows .exe [here](https://storage.googleapis.com/shark-public/anush/windows/shark_sd.exe) and run it. Accept if Windows warns of an unsigned .exe. 
-
+Download the latest Windows SHARK SD binary [here](https://github.com/nod-ai/SHARK/releases/download/20221213.383/shark_sd_20221213_383.exe). Accept if Windows warns of an unsigned .exe.
 
 #### Access Stable Diffusion on http://localhost:8080/?__theme=dark
 
@@ -102,7 +104,8 @@ Total image generation runtime (s): 10.390909433364868
 
 
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
-
+</details>
 <details>
-
+  <summary>Discord link</summary>
 Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
+</details>

@@ -5,6 +5,7 @@ from shark.shark_inference import SharkInference
 from stable_args import args
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import set_iree_vulkan_runtime_flags
+from shark.iree_utils._common import map_device_to_path
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
@@ -39,10 +40,16 @@ def _compile_module(shark_module, model_name, extra_args=[]):
 
 # Downloads the model from shark_tank and returns the shark_module.
 def get_shark_model(tank_url, model_name, extra_args=[]):
-    from shark.shark_downloader import download_torch_model
+    from shark.shark_downloader import download_model
+    from shark.parser import shark_args
 
-    mlir_model, func_name, inputs, golden_out = download_torch_model(
-        model_name, tank_url=tank_url
+    # Set local shark_tank cache directory.
+    shark_args.local_tank_cache = args.local_tank_cache
+
+    mlir_model, func_name, inputs, golden_out = download_model(
+        model_name,
+        tank_url=tank_url,
+        frontend="torch",
     )
     shark_module = SharkInference(
         mlir_model, func_name, device=args.device, mlir_dialect="linalg"
@@ -69,6 +76,7 @@ def set_iree_runtime_flags():
 
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
+        f"--vulkan_validation_layers={'true' if args.vulkan_validation_layers else 'false'}",
     ]
     if args.enable_rgp:
         vulkan_runtime_flags += [
@@ -79,3 +87,12 @@ def set_iree_runtime_flags():
         set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
     return
+
+
+def make_qualified_device_name():
+    # modify device name to be fully qualified device name
+    # of the format driver://path
+    # supported for vulkan as of now
+
+    if "vulkan" in args.device:
+        args.device = map_device_to_path(args.device)
