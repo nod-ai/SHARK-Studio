@@ -40,6 +40,10 @@ schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
     subfolder="scheduler",
 )
 
+# use tuned unet model in case of rdna3 cards.
+if "rdna3" in get_vulkan_triple_flag():
+    args.use_tuned = True
+
 # set iree-runtime flags
 set_iree_runtime_flags()
 
