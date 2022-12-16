@@ -7,10 +7,7 @@ from diffusers import (
     EulerDiscreteScheduler,
 )
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
-from models.stable_diffusion.utils import (
-    set_iree_runtime_flags,
-    make_qualified_device_name,
-)
+from models.stable_diffusion.utils import set_iree_runtime_flags
 from models.stable_diffusion.stable_args import args
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
@@ -42,13 +39,6 @@ schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
     model_config[args.version],
     subfolder="scheduler",
 )
-
-# update device name to fully-qualified device name.
-make_qualified_device_name()
-
-# use tuned version of unet in case of rdna3 cards.
-if "rdna3" in get_vulkan_triple_flag(args.device):
-    args.use_tuned = True
 
 # set iree-runtime flags
 set_iree_runtime_flags()
