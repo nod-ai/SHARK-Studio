@@ -1,3 +1,7 @@
+import os
+
+os.environ["AMD_ENABLE_LLPC"] = "1"
+
 # from models.resnet50 import resnet_inf
 # from models.albert_maskfill import albert_maskfill_inf
 from models.stable_diffusion.main import stable_diff_inf
