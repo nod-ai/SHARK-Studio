@@ -11,22 +11,19 @@ import numpy as np
 import time
 
 
-def set_ui_params(
-    prompt, negative_prompt, steps, guidance, seed, scheduler_key
-):
+def set_ui_params(prompt, negative_prompt, steps, guidance_scale, seed):
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
     args.steps = steps
-    args.guidance = guidance
+    args.guidance_scale = guidance_scale
     args.seed = seed
-    args.scheduler = scheduler_key
 
 
 def stable_diff_inf(
     prompt: str,
     negative_prompt: str,
     steps: int,
-    guidance: float,
+    guidance_scale: float,
     seed: int,
     scheduler_key: str,
 ):
@@ -37,14 +34,20 @@ def stable_diff_inf(
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
 
-    set_ui_params(
-        prompt, negative_prompt, steps, guidance, seed, scheduler_key
-    )
+    guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
+    set_ui_params(prompt, negative_prompt, steps, guidance_scale, seed)
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
         args.seed
     )  # Seed generator to create the inital latent noise
-    guidance_scale = torch.tensor(args.guidance).to(torch.float32)
+
+    # set height and width.
+    height = 512  # default height of Stable Diffusion
+    width = 512  # default width of Stable Diffusion
+    if args.version == "v2.1":
+        height = 768
+        width = 768
+
     # Initialize vae and unet models.
     vae, unet, clip, tokenizer = (
         cache_obj["vae"],
@@ -52,7 +55,7 @@ def stable_diff_inf(
         cache_obj["clip"],
         cache_obj["tokenizer"],
     )
-    scheduler = schedulers[args.scheduler]
+    scheduler = schedulers[scheduler_key]
 
     start = time.time()
     text_input = tokenizer(
@@ -84,7 +87,7 @@ def stable_diff_inf(
     text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
     latents = torch.randn(
-        (1, 4, args.height // 8, args.width // 8),
+        (1, 4, height // 8, width // 8),
         generator=generator,
         dtype=torch.float32,
     ).to(dtype)
@@ -109,7 +112,7 @@ def stable_diff_inf(
                 latents_numpy,
                 timestep,
                 text_embeddings_numpy,
-                guidance_scale,
+                args.guidance_scale,
             )
         )
         noise_pred = torch.from_numpy(noise_pred)
@@ -136,7 +139,7 @@ def stable_diff_inf(
 
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance}, scheduler={args.scheduler}, seed={args.seed}, size={args.height}x{args.width}, version={args.version}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, scheduler={scheduler_key}, seed={args.seed}, size={height}x{width}, version={args.version}"
     text_output += "\nAverage step time: {0:.2f}ms/it".format(avg_ms)
     print(f"\nAverage step time: {avg_ms}ms/it")
     text_output += "\nTotal image generation time: {0:.2f}sec".format(

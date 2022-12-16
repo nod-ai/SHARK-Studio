@@ -18,7 +18,7 @@ p.add_argument(
 p.add_argument(
     "--negative-prompts",
     nargs="+",
-    default=["trees, green"],
+    default=[""],
     help="text you don't want to see in the generated image.",
 )
 
@@ -55,7 +55,7 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
-    "--device", type=str, default="cpu", help="device to run the model."
+    "--device", type=str, default="vulkan", help="device to run the model."
 )
 
 p.add_argument(
