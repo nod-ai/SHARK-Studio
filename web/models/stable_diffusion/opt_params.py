@@ -86,20 +86,32 @@ def get_vae():
     if sys.platform == "darwin":
         iree_flags.append("-iree-stream-fuse-binding=false")
     if args.precision in ["fp16", "int8"]:
-        bucket = "gs://shark_tank/stable_diffusion"
-        model_name = "vae_8dec_fp16"
-        if args.version == "v2.1base":
-            model_name = "vae2base_8dec_fp16"
-        if args.version == "v2.1":
-            model_name = "vae2_14dec_fp16"
-        iree_flags += [
-            "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=32",
-            "--iree-flow-enable-conv-img2col-transform",
-        ]
-        if args.import_mlir:
-            return get_vae_mlir(model_name, iree_flags)
-        return get_shark_model(bucket, model_name, iree_flags)
+        if args.use_tuned:
+            bucket = "gs://shark_tank/vivian"
+            if args.version == "v2.1base":
+                model_name = "vae2base_8dec_fp16_tuned"
+            iree_flags += [
+                "--iree-flow-enable-padding-linalg-ops",
+                "--iree-flow-linalg-ops-padding-size=32",
+                "--iree-flow-enable-conv-img2col-transform",
+                "--iree-flow-enable-conv-winograd-transform",
+            ]
+            return get_shark_model(bucket, model_name, iree_flags)
+        else:
+            bucket = "gs://shark_tank/stable_diffusion"
+            model_name = "vae_8dec_fp16"
+            if args.version == "v2.1base":
+                model_name = "vae2base_8dec_fp16"
+            if args.version == "v2.1":
+                model_name = "vae2_14dec_fp16"
+            iree_flags += [
+                "--iree-flow-enable-padding-linalg-ops",
+                "--iree-flow-linalg-ops-padding-size=32",
+                "--iree-flow-enable-conv-img2col-transform",
+            ]
+            if args.import_mlir:
+                return get_vae_mlir(model_name, iree_flags)
+            return get_shark_model(bucket, model_name, iree_flags)
 
     if args.precision == "fp32":
         bucket = "gs://shark_tank/stable_diffusion"
