@@ -348,21 +348,31 @@ def export_module_to_mlir_file(module, frontend, directory: str):
     return filename
 
 
-def get_results(compiled_vm, input, config, frontend="torch"):
+def get_results(
+    compiled_vm, input, config, frontend="torch", send_to_host=True
+):
     """Runs a .vmfb file given inputs and config and returns output."""
     device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
     result = compiled_vm(*device_inputs)
     result_tensors = []
     if isinstance(result, tuple):
-        for val in result:
-            result_tensors.append(np.copy(np.asarray(val, val.dtype)))
+        if send_to_host:
+            for val in result:
+                result_tensors.append(np.asarray(val, val.dtype))
+        else:
+            for val in result:
+                result_tensors.append(val)
         return result_tensors
     elif isinstance(result, dict):
         data = list(result.items())
-        res = np.array(data, dtype=object)
-        return np.copy(res)
+        if send_to_host:
+            res = np.array(data, dtype=object)
+            return np.copy(res)
+        return data
     else:
-        return result.to_host()
+        if send_to_host:
+            return result.to_host()
+        return result
 
 
 def get_iree_runtime_config(device):

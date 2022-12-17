@@ -133,6 +133,13 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
+    "--use_compiled_scheduler",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="use the default scheduler precompiled into the model if available",
+)
+
+p.add_argument(
     "--local_tank_cache",
     default="",
     help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
