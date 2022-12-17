@@ -15,6 +15,10 @@ For Windows users this can be done by clearing the contents of `C:\Users\<userna
 
 Download the latest Windows SHARK SD binary [here](https://github.com/nod-ai/SHARK/releases/download/20221216.392/shark_sd_20221216_392.exe). Accept if Windows warns of an unsigned .exe.
 
+Notes:
+* Your browser may warn you about downloading a exe file
+* The first run may take about 10-15 minutes when the models are downloaded and compiled. The download could be about 5GB.
+
 #### Access Stable Diffusion on http://localhost:8080/?__theme=dark
 
 
