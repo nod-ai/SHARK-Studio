@@ -9,6 +9,9 @@ from diffusers import (
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
 from models.stable_diffusion.utils import set_iree_runtime_flags
 from models.stable_diffusion.stable_args import args
+from models.stable_diffusion.schedulers import (
+    SharkEulerDiscreteScheduler,
+)
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 
@@ -39,6 +42,11 @@ schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
     model_config[args.version],
     subfolder="scheduler",
 )
+schedulers["SharkEulerDiscrete"] = SharkEulerDiscreteScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["SharkEulerDiscrete"].compile()
 
 # use tuned unet model in case of rdna3 cards.
 if "rdna3" in get_vulkan_triple_flag():

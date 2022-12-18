@@ -17,6 +17,9 @@ import numpy as np
 from stable_args import args
 from utils import get_shark_model, set_iree_runtime_flags
 from opt_params import get_unet, get_vae, get_clip
+from schedulers import (
+    SharkEulerDiscreteScheduler,
+)
 import time
 import sys
 from shark.iree_utils.compile_utils import dump_isas
@@ -78,6 +81,7 @@ if __name__ == "__main__":
         "CompVis/stable-diffusion-v1-4",
         subfolder="scheduler",
     )
+    cpu_scheduling = True
     if args.version == "v2.1":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
@@ -93,10 +97,19 @@ if __name__ == "__main__":
             "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
         )
 
-        scheduler = EulerDiscreteScheduler.from_pretrained(
-            "stabilityai/stable-diffusion-2-1-base",
-            subfolder="scheduler",
-        )
+        if args.use_compiled_scheduler:
+            scheduler = SharkEulerDiscreteScheduler.from_pretrained(
+                "stabilityai/stable-diffusion-2-1-base",
+                subfolder="scheduler",
+            )
+            scheduler.compile()
+            cpu_scheduling = False
+        else:
+            scheduler = EulerDiscreteScheduler.from_pretrained(
+                "stabilityai/stable-diffusion-2-1-base",
+                subfolder="scheduler",
+            )
+
     start = time.time()
 
     text_input = tokenizer(
@@ -144,28 +157,32 @@ if __name__ == "__main__":
         print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
-        latents_numpy = latent_model_input.detach().numpy()
+        if cpu_scheduling:
+            latent_model_input = latent_model_input.detach().numpy()
 
         profile_device = start_profiling(file_path="unet.rdc")
 
         noise_pred = unet.forward(
             (
-                latents_numpy,
+                latent_model_input,
                 timestep,
                 text_embeddings_numpy,
                 guidance_scale,
-            )
+            ),
+            send_to_host=False,
         )
 
         end_profiling(profile_device)
 
-        noise_pred = torch.from_numpy(noise_pred)
+        if cpu_scheduling:
+            noise_pred = torch.from_numpy(noise_pred.to_host())
+            latents = scheduler.step(noise_pred, t, latents).prev_sample
+        else:
+            latents = scheduler.step(noise_pred, t, latents)
         step_time = time.time() - step_start
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
         print(f" ({step_ms}ms)")
-
-        latents = scheduler.step(noise_pred, t, latents).prev_sample
 
     avg_ms = 1000 * avg_ms / args.steps
     print(f"Average step time: {avg_ms}ms/it")
@@ -173,7 +190,9 @@ if __name__ == "__main__":
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
     # latents = latents.
-    latents_numpy = latents.detach().numpy()
+    latents_numpy = latents
+    if cpu_scheduling:
+        latents_numpy = latents.detach().numpy()
     profile_device = start_profiling(file_path="vae.rdc")
     vae_start = time.time()
     image = vae.forward((latents_numpy,))
