@@ -114,13 +114,14 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 with gr.Row():
                     scheduler_key = gr.Dropdown(
                         label="Scheduler",
-                        value="EulerDiscrete",
+                        value="SharkEulerDiscrete",
                         choices=[
                             "DDIM",
                             "PNDM",
                             "LMSDiscrete",
                             "DPMSolverMultistep",
                             "EulerDiscrete",
+                            "SharkEulerDiscrete",
                         ],
                     )
                     with gr.Group():

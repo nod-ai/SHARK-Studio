@@ -56,6 +56,7 @@ def stable_diff_inf(
         cache_obj["tokenizer"],
     )
     scheduler = schedulers[scheduler_key]
+    cpu_scheduling = not scheduler_key.startswith("Shark")
 
     start = time.time()
     text_input = tokenizer(
@@ -104,27 +105,35 @@ def stable_diff_inf(
 
         step_start = time.time()
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
-        latents_model_input = scheduler.scale_model_input(latents, t)
-        latents_numpy = latents_model_input.detach().numpy()
+        latent_model_input = scheduler.scale_model_input(latents, t)
+        if cpu_scheduling:
+            latent_model_input = latent_model_input.detach().numpy()
 
         noise_pred = unet.forward(
             (
-                latents_numpy,
+                latent_model_input,
                 timestep,
                 text_embeddings_numpy,
                 args.guidance_scale,
-            )
+            ),
+            send_to_host=False,
         )
-        noise_pred = torch.from_numpy(noise_pred)
+
+        if cpu_scheduling:
+            noise_pred = torch.from_numpy(noise_pred.to_host())
+            latents = scheduler.step(noise_pred, t, latents).prev_sample
+        else:
+            latents = scheduler.step(noise_pred, t, latents)
         step_time = time.time() - step_start
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
         print(f" \nIteration = {i}, Time = {step_ms}ms")
-        latents = scheduler.step(noise_pred, t, latents)["prev_sample"]
 
     # scale and decode the image latents with vae
     latents = 1 / 0.18215 * latents
-    latents_numpy = latents.detach().numpy()
+    latents_numpy = latents
+    if cpu_scheduling:
+        latents_numpy = latents.detach().numpy()
     vae_start = time.time()
     image = vae.forward((latents_numpy,))
     vae_end = time.time()

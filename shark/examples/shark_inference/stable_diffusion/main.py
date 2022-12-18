@@ -3,7 +3,6 @@ import os
 os.environ["AMD_ENABLE_LLPC"] = "1"
 
 from transformers import CLIPTextModel, CLIPTokenizer
-import iree.runtime as ireert
 import torch
 from PIL import Image
 from diffusers import (
@@ -23,7 +22,7 @@ from schedulers import (
 )
 import time
 import sys
-from shark.iree_utils.compile_utils import dump_isas, get_iree_runtime_config
+from shark.iree_utils.compile_utils import dump_isas
 
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
@@ -82,6 +81,7 @@ if __name__ == "__main__":
         "CompVis/stable-diffusion-v1-4",
         subfolder="scheduler",
     )
+    cpu_scheduling = True
     if args.version == "v2.1":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
@@ -103,6 +103,7 @@ if __name__ == "__main__":
                 subfolder="scheduler",
             )
             scheduler.compile()
+            cpu_scheduling = False
         else:
             scheduler = EulerDiscreteScheduler.from_pretrained(
                 "stabilityai/stable-diffusion-2-1-base",
@@ -149,20 +150,14 @@ if __name__ == "__main__":
 
     latents = latents * scheduler.init_noise_sigma
     text_embeddings_numpy = text_embeddings.detach().numpy()
-    text_embeddings_numpy = ireert.asdevicearray(
-        get_iree_runtime_config(args.device).device, text_embeddings_numpy
-    )
     avg_ms = 0
-
-    if args.use_compiled_scheduler:
-        latents = latents.detach().numpy()
 
     for i, t in tqdm(enumerate(scheduler.timesteps)):
         step_start = time.time()
         print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
-        if not args.use_compiled_scheduler:
+        if cpu_scheduling:
             latent_model_input = latent_model_input.detach().numpy()
 
         profile_device = start_profiling(file_path="unet.rdc")
@@ -179,7 +174,7 @@ if __name__ == "__main__":
 
         end_profiling(profile_device)
 
-        if not args.use_compiled_scheduler:
+        if cpu_scheduling:
             noise_pred = torch.from_numpy(noise_pred.to_host())
             latents = scheduler.step(noise_pred, t, latents).prev_sample
         else:
@@ -196,7 +191,7 @@ if __name__ == "__main__":
     latents = 1 / 0.18215 * latents
     # latents = latents.
     latents_numpy = latents
-    if not args.use_compiled_scheduler:
+    if cpu_scheduling:
         latents_numpy = latents.detach().numpy()
     profile_device = start_profiling(file_path="vae.rdc")
     vae_start = time.time()
