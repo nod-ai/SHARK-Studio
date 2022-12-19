@@ -96,7 +96,7 @@ def get_vae():
     if sys.platform == "darwin":
         iree_flags.append("-iree-stream-fuse-binding=false")
     if args.precision in ["fp16", "int8"]:
-        if args.use_tuned:
+        if False:
             bucket = "gs://shark_tank/vivian"
             if args.version == "v2.1base":
                 model_name = "vae2base_8dec_fp16_tuned"
