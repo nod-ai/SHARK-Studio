@@ -45,7 +45,10 @@ def get_unet():
             bucket = "gs://shark_tank/stable_diffusion"
             model_name = "unet_8dec_fp16"
             if args.version == "v2.1base":
-                model_name = "unet2base_8dec_fp16"
+                if args.max_length == 64:
+                    model_name = "unet_19dec_v2p1base_fp16_64"
+                else:
+                    model_name = "unet2base_8dec_fp16"
             if args.version == "v2.1":
                 model_name = "unet2_14dec_fp16"
             iree_flags += [
@@ -111,7 +114,10 @@ def get_vae():
             bucket = "gs://shark_tank/stable_diffusion"
             model_name = "vae_19dec_fp16"
             if args.version == "v2.1base":
-                model_name = "vae2base_19dec_fp16"
+                if args.max_length == 64:
+                    model_name = "vae_19dec_v2p1base_fp16_64"
+                else:
+                    model_name = "vae2base_19dec_fp16"
             if args.version == "v2.1":
                 model_name = "vae2_19dec_fp16"
             iree_flags += [
@@ -148,7 +154,10 @@ def get_clip():
     bucket = "gs://shark_tank/stable_diffusion"
     model_name = "clip_18dec_fp32"
     if args.version == "v2.1base":
-        model_name = "clip2base_18dec_fp32"
+        if args.max_length == 64:
+            model_name = "clip_19dec_v2p1base_fp32_64"
+        else:
+            model_name = "clip2base_18dec_fp32"
     if args.version == "v2.1":
         model_name = "clip2_18dec_fp32"
     iree_flags += [
