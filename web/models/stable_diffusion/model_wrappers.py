@@ -10,34 +10,37 @@ model_config = {
     "v1.4": "CompVis/stable-diffusion-v1-4",
 }
 
+# clip has 2 variants of max length 77 or 64.
+model_clip_max_length = 64 if args.max_length == 64 else 77
+
 model_input = {
     "v2.1": {
-        "clip": (torch.randint(1, 2, (2, 77)),),
+        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
             torch.randn(1, 4, 96, 96),  # latents
             torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, 77, 1024),  # embedding
+            torch.randn(2, model_clip_max_length, 1024),  # embedding
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
     "v2.1base": {
-        "clip": (torch.randint(1, 2, (2, 77)),),
+        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),  # latents
             torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, 77, 1024),  # embedding
+            torch.randn(2, model_clip_max_length, 1024),  # embedding
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
     "v1.4": {
-        "clip": (torch.randint(1, 2, (2, 77)),),
+        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),
             torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, 77, 768),
+            torch.randn(2, model_clip_max_length, 768),
             torch.tensor(1).to(torch.float32),
         ),
     },
