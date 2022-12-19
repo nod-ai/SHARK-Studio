@@ -12,8 +12,9 @@ from models.stable_diffusion.stable_args import args
 from models.stable_diffusion.schedulers import (
     SharkEulerDiscreteScheduler,
 )
-from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
+# set iree-runtime flags
+set_iree_runtime_flags()
 
 model_config = {
     "v2": "stabilityai/stable-diffusion-2",
@@ -47,15 +48,6 @@ schedulers["SharkEulerDiscrete"] = SharkEulerDiscreteScheduler.from_pretrained(
     subfolder="scheduler",
 )
 schedulers["SharkEulerDiscrete"].compile()
-
-vulkan_triple_flags = get_vulkan_triple_flag()
-
-# use tuned unet model in case of rdna3 cards.
-if vulkan_triple_flags and "rdna3" in vulkan_triple_flags:
-    args.use_tuned = True
-
-# set iree-runtime flags
-set_iree_runtime_flags()
 
 cache_obj = dict()
 # cache vae, unet and clip.

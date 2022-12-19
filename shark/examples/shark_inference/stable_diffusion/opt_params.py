@@ -7,13 +7,21 @@ from model_wrappers import (
 )
 from stable_args import args
 from utils import get_shark_model
+from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 BATCH_SIZE = len(args.prompts)
 if BATCH_SIZE != 1:
     sys.exit("Only batch size 1 is supported.")
 
-if "rdna3" not in args.iree_vulkan_target_triple:
+# use tuned models only in the case of rdna3 cards.
+if not args.iree_vulkan_target_triple:
+    vulkan_triple_flags = get_vulkan_triple_flag()
+    if vulkan_triple_flags and "rdna3" not in vulkan_triple_flags:
+        args.use_tuned = False
+elif "rdna3" not in args.iree_vulkan_target_triple:
     args.use_tuned = False
+if args.use_tuned:
+    print("Using tuned models for rdna3 card")
 
 
 def get_unet():
