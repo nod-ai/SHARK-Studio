@@ -12,9 +12,6 @@ from models.stable_diffusion.stable_args import args
 from models.stable_diffusion.schedulers import (
     SharkEulerDiscreteScheduler,
 )
-import os
-
-os.environ["AMD_ENABLE_LLPC"] = "1"
 
 # set iree-runtime flags
 set_iree_runtime_flags()
