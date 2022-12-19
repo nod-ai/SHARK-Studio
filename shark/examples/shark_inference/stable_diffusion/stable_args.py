@@ -170,4 +170,12 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="flag for inserting debug frames between iterations for use with rgp.",
 )
+
+p.add_argument(
+    "--hide_steps",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for hiding the details of iteration/sec for each step.",
+)
+
 args = p.parse_args()
