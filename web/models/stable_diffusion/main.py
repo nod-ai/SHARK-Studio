@@ -1,5 +1,6 @@
 import torch
 from PIL import Image
+import torchvision.transforms as T
 from tqdm.auto import tqdm
 from models.stable_diffusion.cache_objects import (
     cache_obj,
@@ -125,16 +126,12 @@ def stable_diff_inf(
             print(f" \nIteration = {i}, Time = {step_ms}ms")
 
     # scale and decode the image latents with vae
-    latents = 1 / 0.18215 * latents
     latents_numpy = latents
     if cpu_scheduling:
         latents_numpy = latents.detach().numpy()
     vae_start = time.time()
-    image = vae.forward((latents_numpy,))
+    images = vae.forward((latents_numpy,))
     vae_end = time.time()
-    image = torch.from_numpy(image)
-    image = (image.detach().cpu().permute(0, 2, 3, 1) * 255.0).numpy()
-    images = image.round().astype("uint8")
     end_time = time.time()
 
     avg_ms = 1000 * avg_ms / args.steps
@@ -146,7 +143,11 @@ def stable_diff_inf(
     print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
     print(f"\nTotal image generation time: {total_time}sec")
 
-    pil_images = [Image.fromarray(image) for image in images]
+    # generate outputs to web.
+    transform = T.ToPILImage()
+    pil_images = [
+        transform(image) for image in torch.from_numpy(images).to(torch.uint8)
+    ]
 
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"

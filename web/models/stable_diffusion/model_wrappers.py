@@ -86,8 +86,11 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
             )
 
         def forward(self, input):
+            input = 1 / 0.18215 * input
             x = self.vae.decode(input, return_dict=False)[0]
-            return (x / 2 + 0.5).clamp(0, 1)
+            x = (x / 2 + 0.5).clamp(0, 1)
+            x = x * 255.0
+            return x.round()
 
     vae = VaeModel()
     if args.precision == "fp16":
@@ -101,34 +104,6 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
     else:
         inputs = model_input[args.version]["vae"]
 
-    shark_vae = compile_through_fx(
-        vae,
-        inputs,
-        model_name=model_name,
-        extra_args=extra_args,
-    )
-    return shark_vae
-
-
-def get_vae_encode_mlir(model_name="vae_encode", extra_args=[]):
-    class VaeEncodeModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.vae = AutoencoderKL.from_pretrained(
-                model_config[args.version],
-                subfolder="vae",
-                revision="fp16",
-            )
-
-        def forward(self, x):
-            input = 2 * (x - 0.5)
-            return self.vae.encode(input, return_dict=False)[0]
-
-    vae = VaeEncodeModel()
-    vae = vae.half().cuda()
-    inputs = tuple(
-        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
-    )
     shark_vae = compile_through_fx(
         vae,
         inputs,
