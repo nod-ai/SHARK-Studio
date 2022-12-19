@@ -70,13 +70,6 @@ if __name__ == "__main__":
     if batch_size != len(neg_prompt):
         sys.exit("prompts and negative prompts must be of same length")
 
-    # create a random initial latent.
-    latents = torch.randn(
-        (batch_size, 4, height // 8, width // 8),
-        generator=generator,
-        dtype=torch.float32,
-    ).to(dtype)
-
     set_iree_runtime_flags()
     unet = get_unet()
     vae = get_vae()
@@ -118,6 +111,7 @@ if __name__ == "__main__":
                 subfolder="scheduler",
             )
 
+    # create a random initial latent.
     latents = torch.randn(
         (batch_size, 4, height // 8, width // 8),
         generator=generator,
