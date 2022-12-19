@@ -97,10 +97,10 @@ def get_vae():
     if sys.platform == "darwin":
         iree_flags.append("-iree-stream-fuse-binding=false")
     if args.precision in ["fp16", "int8"]:
-        if False:
+        if args.use_tuned:
             bucket = "gs://shark_tank/vivian"
             if args.version == "v2.1base":
-                model_name = "vae2base_8dec_fp16_tuned"
+                model_name = "vae2base_19dec_fp16_tuned"
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
