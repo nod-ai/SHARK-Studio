@@ -18,6 +18,7 @@ model_variant = {
     "anythingv3": "Linaqruf/anything-v3.0",
     "dreamlike": "dreamlike-art/dreamlike-diffusion-1.0",
     "openjourney": "prompthero/openjourney",
+    "analogdiffusion": "wavymulder/Analog-Diffusion",
 }
 
 model_input = {
@@ -130,15 +131,16 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
         else:
             inputs = model_input[args.version]["vae"]
     elif args.variant in ["anythingv3", "analogdiffusion"]:
+        if args.precision == "fp16":
             vae = vae.half().cuda()
             inputs = tuple(
-                [
-                    inputs.half().cuda()
-                    for inputs in model_input["v1.4"]["vae"]
-                ]
+                [inputs.half().cuda() for inputs in model_input["v1.4"]["vae"]]
             )
+        else:
+            inputs = model_input["v1.4"]["vae"]
     else:
         raise (f"{args.variant} not yet added")
+
     shark_vae = compile_through_fx(
         vae,
         inputs,
@@ -197,7 +199,6 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             )
         else:
             inputs = model_input["v1.4"]["unet"]
-
     else:
         raise (f"{args.variant} is not yet added")
     shark_unet = compile_through_fx(

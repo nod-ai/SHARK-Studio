@@ -50,7 +50,7 @@ if __name__ == "__main__":
     neg_prompt = args.negative_prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
-    if args.version == "v2.1":
+    if args.version == "v2.1" and args.variant == "stablediffusion":
         height = 768
         width = 768
 
@@ -71,9 +71,9 @@ if __name__ == "__main__":
         sys.exit("prompts and negative prompts must be of same length")
 
     set_iree_runtime_flags()
+    clip = get_clip()
     unet = get_unet()
     vae = get_vae()
-    clip = get_clip()
     if args.dump_isa:
         dump_isas(args.dispatch_benchmarks_dir)
 
