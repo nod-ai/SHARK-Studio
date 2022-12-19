@@ -66,13 +66,7 @@ def stable_diff_inf(
         truncation=True,
         return_tensors="pt",
     )
-
-    clip_inf_start = time.time()
-    text_embeddings = clip.forward((text_input.input_ids,))
-    clip_inf_end = time.time()
-    text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     max_length = text_input.input_ids.shape[-1]
-
     uncond_input = tokenizer(
         args.negative_prompts,
         padding="max_length",
@@ -80,12 +74,13 @@ def stable_diff_inf(
         truncation=True,
         return_tensors="pt",
     )
-    uncond_clip_inf_start = time.time()
-    uncond_embeddings = clip.forward((uncond_input.input_ids,))
-    uncond_clip_inf_end = time.time()
-    uncond_embeddings = torch.from_numpy(uncond_embeddings).to(dtype)
+    text_input = torch.cat([uncond_input.input_ids, text_input.input_ids])
 
-    text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+    clip_inf_start = time.time()
+    text_embeddings = clip.forward((text_input,))
+    clip_inf_end = time.time()
+    text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
+    text_embeddings_numpy = text_embeddings.detach().numpy()
 
     latents = torch.randn(
         (1, 4, height // 8, width // 8),
@@ -97,7 +92,6 @@ def stable_diff_inf(
     scheduler.is_scale_input_called = True
 
     latents = latents * scheduler.init_noise_sigma
-    text_embeddings_numpy = text_embeddings.detach().numpy()
 
     avg_ms = 0
     out_img = None
@@ -155,12 +149,8 @@ def stable_diff_inf(
         total_time
     )
     clip_inf_time = (clip_inf_end - clip_inf_start) * 1000
-    uncond_clip_inf_time = (uncond_clip_inf_end - uncond_clip_inf_start) * 1000
-    avg_clip_inf = (clip_inf_time + uncond_clip_inf_time) / 2
     vae_inf_time = (vae_end - vae_start) * 1000
-    print(
-        f"Clip Inference Avg time (ms) = ({clip_inf_time:.3f} + {uncond_clip_inf_time:.3f}) / 2 = {avg_clip_inf:.3f}"
-    )
+    print(f"Clip Inference time (ms) = {clip_inf_time:.3f}")
     print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
     print(f"\nTotal image generation time: {total_time}sec")
 
