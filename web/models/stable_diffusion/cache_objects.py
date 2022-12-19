@@ -48,8 +48,10 @@ schedulers["SharkEulerDiscrete"] = SharkEulerDiscreteScheduler.from_pretrained(
 )
 schedulers["SharkEulerDiscrete"].compile()
 
+vulkan_triple_flags = get_vulkan_triple_flag()
+
 # use tuned unet model in case of rdna3 cards.
-if "rdna3" in get_vulkan_triple_flag():
+if vulkan_triple_flags and "rdna3" in vulkan_triple_flags:
     args.use_tuned = True
 
 # set iree-runtime flags
