@@ -5,6 +5,7 @@ os.environ["AMD_ENABLE_LLPC"] = "1"
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
 from PIL import Image
+import torchvision.transforms as T
 from diffusers import (
     LMSDiscreteScheduler,
     PNDMScheduler,
@@ -184,20 +185,14 @@ if __name__ == "__main__":
     avg_ms = 1000 * avg_ms / args.steps
     print(f"Average step time: {avg_ms}ms/it")
 
-    # scale and decode the image latents with vae
-    latents = 1 / 0.18215 * latents
-    # latents = latents.
     latents_numpy = latents
     if cpu_scheduling:
         latents_numpy = latents.detach().numpy()
     profile_device = start_profiling(file_path="vae.rdc")
     vae_start = time.time()
-    image = vae.forward((latents_numpy,))
+    images = vae.forward((latents_numpy,))
     vae_end = time.time()
     end_profiling(profile_device)
-    image = torch.from_numpy(image)
-    image = image.detach().cpu().permute(0, 2, 3, 1) * 255.0
-    images = image.numpy().round().astype("uint8")
     total_end = time.time()
 
     clip_inf_time = (clip_inf_end - clip_inf_start) * 1000
@@ -206,6 +201,9 @@ if __name__ == "__main__":
     print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
     print(f"Total image generation runtime (s): {total_end - start:.4f}")
 
-    pil_images = [Image.fromarray(image) for image in images]
+    transform = T.ToPILImage()
+    pil_images = [
+        transform(image) for image in torch.from_numpy(images).to(torch.uint8)
+    ]
     for i in range(batch_size):
         pil_images[i].save(f"{args.prompts[i]}_{i}.jpg")
