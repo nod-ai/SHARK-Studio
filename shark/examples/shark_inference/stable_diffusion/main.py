@@ -70,6 +70,13 @@ if __name__ == "__main__":
     if batch_size != len(neg_prompt):
         sys.exit("prompts and negative prompts must be of same length")
 
+    # create a random initial latent.
+    latents = torch.randn(
+        (batch_size, 4, height // 8, width // 8),
+        generator=generator,
+        dtype=torch.float32,
+    ).to(dtype)
+
     set_iree_runtime_flags()
     unet = get_unet()
     vae = get_vae()
@@ -136,21 +143,15 @@ if __name__ == "__main__":
     text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
-    latents = torch.randn(
-        (batch_size, 4, height // 8, width // 8),
-        generator=generator,
-        dtype=torch.float32,
-    ).to(dtype)
-
     scheduler.set_timesteps(num_inference_steps)
     scheduler.is_scale_input_called = True
 
     latents = latents * scheduler.init_noise_sigma
-    avg_ms = 0
 
+    avg_ms = 0
     for i, t in tqdm(enumerate(scheduler.timesteps), disable=args.hide_steps):
         step_start = time.time()
-        if args.hide_steps == False:
+        if not args.hide_steps:
             print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
@@ -179,11 +180,8 @@ if __name__ == "__main__":
         step_time = time.time() - step_start
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
-        if args.hide_steps == False:
+        if not args.hide_steps:
             print(f" ({step_ms}ms)")
-
-    avg_ms = 1000 * avg_ms / args.steps
-    print(f"Average step time: {avg_ms}ms/it")
 
     latents_numpy = latents
     if cpu_scheduling:
@@ -195,8 +193,10 @@ if __name__ == "__main__":
     end_profiling(profile_device)
     total_end = time.time()
 
+    avg_ms = 1000 * avg_ms / args.steps
     clip_inf_time = (clip_inf_end - clip_inf_start) * 1000
     vae_inf_time = (vae_end - vae_start) * 1000
+    print(f"Average step time: {avg_ms}ms/it")
     print(f"Clip Inference time (ms) = {clip_inf_time:.3f}")
     print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
     print(f"Total image generation runtime (s): {total_end - start:.4f}")
