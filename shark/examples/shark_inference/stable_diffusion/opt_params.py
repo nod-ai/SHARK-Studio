@@ -172,11 +172,11 @@ def get_clip():
     if sys.platform == "darwin":
         iree_flags.append("-iree-stream-fuse-binding=false")
     bucket = "gs://shark_tank/stable_diffusion"
-    model_name = "clip_8dec_fp32"
+    model_name = "clip_18dec_fp32"
     if args.version == "v2.1base":
-        model_name = "clip2base_8dec_fp32"
+        model_name = "clip2base_18dec_fp32"
     if args.version == "v2.1":
-        model_name = "clip2_14dec_fp32"
+        model_name = "clip2_18dec_fp32"
     iree_flags += [
         "--iree-flow-linalg-ops-padding-size=16",
         "--iree-flow-enable-padding-linalg-ops",

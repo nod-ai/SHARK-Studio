@@ -12,7 +12,7 @@ model_config = {
 
 model_input = {
     "v2.1": {
-        "clip": (torch.randint(1, 2, (1, 77)),),
+        "clip": (torch.randint(1, 2, (2, 77)),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
             torch.randn(1, 4, 96, 96),  # latents
@@ -22,7 +22,7 @@ model_input = {
         ),
     },
     "v2.1base": {
-        "clip": (torch.randint(1, 2, (1, 77)),),
+        "clip": (torch.randint(1, 2, (2, 77)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),  # latents
@@ -32,7 +32,7 @@ model_input = {
         ),
     },
     "v1.4": {
-        "clip": (torch.randint(1, 2, (1, 77)),),
+        "clip": (torch.randint(1, 2, (2, 77)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),
