@@ -178,4 +178,11 @@ p.add_argument(
     help="flag for hiding the details of iteration/sec for each step.",
 )
 
+p.add_argument(
+    "--warmup_count",
+    type=int,
+    default=0,
+    help="flag setting warmup count for clip and vae [>= 0].",
+)
+
 args = p.parse_args()
