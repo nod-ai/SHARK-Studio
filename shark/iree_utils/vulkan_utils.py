@@ -58,6 +58,11 @@ def get_vulkan_triple_flag(extra_args=[]):
         print("Found Apple M2 Device. Using m1-moltenvk-macos")
         return "-iree-vulkan-target-triple=m1-moltenvk-macos"
     # Nvidia Targets
+    elif all(x in vulkan_device for x in ("RTX", "2080")):
+        print(
+            f"Found {vulkan_device} Device. Using turing-rtx2080-{system_os}"
+        )
+        return f"-iree-vulkan-target-triple=turing-rtx2080-{system_os}"
     elif all(x in vulkan_device for x in ("A100", "SXM4")):
         print(
             f"Found {vulkan_device} Device. Using ampere-rtx3080-{system_os}"
