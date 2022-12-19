@@ -114,10 +114,7 @@ def get_vae():
             bucket = "gs://shark_tank/stable_diffusion"
             model_name = "vae_19dec_fp16"
             if args.version == "v2.1base":
-                if args.max_length == 64:
-                    model_name = "vae_19dec_v2p1base_fp16_64"
-                else:
-                    model_name = "vae2base_19dec_fp16"
+                model_name = "vae2base_19dec_fp16"
             if args.version == "v2.1":
                 model_name = "vae2_19dec_fp16"
             iree_flags += [
