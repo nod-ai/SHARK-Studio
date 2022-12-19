@@ -117,7 +117,7 @@ p.add_argument(
 
 p.add_argument(
     "--vulkan_large_heap_block_size",
-    default="4294967296",
+    default="2147483648",
     help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
 )
 
