@@ -147,9 +147,10 @@ if __name__ == "__main__":
     latents = latents * scheduler.init_noise_sigma
     avg_ms = 0
 
-    for i, t in tqdm(enumerate(scheduler.timesteps)):
+    for i, t in tqdm(enumerate(scheduler.timesteps), disable=args.hide_steps):
         step_start = time.time()
-        print(f"i = {i} t = {t}", end="")
+        if args.hide_steps == False:
+            print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
         if cpu_scheduling:
@@ -177,7 +178,8 @@ if __name__ == "__main__":
         step_time = time.time() - step_start
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
-        print(f" ({step_ms}ms)")
+        if args.hide_steps == False:
+            print(f" ({step_ms}ms)")
 
     avg_ms = 1000 * avg_ms / args.steps
     print(f"Average step time: {avg_ms}ms/it")
