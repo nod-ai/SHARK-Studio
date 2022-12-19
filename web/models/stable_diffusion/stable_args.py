@@ -171,4 +171,15 @@ p.add_argument(
     help="flag for hiding the details of iteration/sec for each step.",
 )
 
+##############################################################################
+### Web UI flags
+##############################################################################
+
+p.add_argument(
+    "--progress_bar",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="flag for removing the pregress bar animation during image generation",
+)
+
 args = p.parse_args()
