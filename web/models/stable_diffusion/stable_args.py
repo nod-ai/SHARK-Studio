@@ -166,7 +166,7 @@ p.add_argument(
 
 p.add_argument(
     "--hide_steps",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for hiding the details of iteration/sec for each step.",
 )
