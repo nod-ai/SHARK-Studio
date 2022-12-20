@@ -2,31 +2,14 @@ import os
 
 os.environ["AMD_ENABLE_LLPC"] = "1"
 
+from models.stable_diffusion.resources import resource_path, prompt_examples
 from models.stable_diffusion.main import stable_diff_inf
 from models.stable_diffusion.stable_args import args
 
 # from models.diffusion.v_diffusion import vdiff_inf
 import gradio as gr
 from PIL import Image
-import json
-import sys
-from random import randint
 import numpy as np
-
-
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(
-        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
-    )
-    return os.path.join(base_path, relative_path)
-
-
-prompt_examples = []
-prompt_loc = resource_path("prompts.json")
-if os.path.exists(prompt_loc):
-    with open(prompt_loc, encoding="utf-8") as fopen:
-        prompt_examples = json.load(fopen)
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
 sdlogo_loc = resource_path("logos/sd-demo-logo.png")
@@ -125,9 +108,8 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                             full_width=True
                         )
                         uint32_info = np.iinfo(np.uint32)
-                        random_val = randint(uint32_info.min, uint32_info.max)
                         seed = gr.Number(
-                            value=random_val, precision=0, show_label=False
+                            value=-1, precision=0, show_label=False
                         )
                         u32_min = gr.Number(
                             value=uint32_info.min, visible=False

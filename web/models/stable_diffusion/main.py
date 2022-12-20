@@ -45,7 +45,7 @@ def stable_diff_inf(
     # set height and width.
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
-    if args.version == "v2.1":
+    if args.version == "v2_1":
         height = 768
         width = 768
 

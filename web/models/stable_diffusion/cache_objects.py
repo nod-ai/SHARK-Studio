@@ -18,8 +18,8 @@ set_iree_runtime_flags()
 
 model_config = {
     "v2": "stabilityai/stable-diffusion-2",
-    "v2.1base": "stabilityai/stable-diffusion-2-1-base",
-    "v1.4": "CompVis/stable-diffusion-v1-4",
+    "v2_1base": "stabilityai/stable-diffusion-2-1-base",
+    "v1_4": "CompVis/stable-diffusion-v1-4",
 }
 
 schedulers = dict()
@@ -61,7 +61,7 @@ cache_obj = dict()
 cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
     "openai/clip-vit-large-patch14"
 )
-if args.version == "v2.1base":
+if args.version == "v2_1base":
     cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
         "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
     )

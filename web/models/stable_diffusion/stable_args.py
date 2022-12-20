@@ -61,7 +61,7 @@ p.add_argument(
 p.add_argument(
     "--version",
     type=str,
-    default="v2.1base",
+    default="v2_1base",
     help="Specify version of stable diffusion model",
 )
 
