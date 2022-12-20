@@ -15,6 +15,7 @@ from diffusers import (
 )
 from tqdm.auto import tqdm
 import numpy as np
+from random import randint
 from stable_args import args
 from utils import get_shark_model, set_iree_runtime_flags
 from opt_params import get_unet, get_vae, get_clip
@@ -59,8 +60,14 @@ if __name__ == "__main__":
     # Scale for classifier-free guidance
     guidance_scale = torch.tensor(args.guidance_scale).to(torch.float32)
 
+    # Handle out of range seeds.
+    uint32_info = np.iinfo(np.uint32)
+    uint32_min, uint32_max = uint32_info.min, uint32_info.max
+    seed = args.seed
+    if seed < uint32_min or seed >= uint32_max:
+        seed = randint(uint32_min, uint32_max)
     generator = torch.manual_seed(
-        args.seed
+        seed
     )  # Seed generator to create the inital latent noise
 
     # TODO: Add support for batch_size > 1.
