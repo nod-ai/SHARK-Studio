@@ -60,7 +60,7 @@ model_input = {
 model_revision = {
     "stablediffusion": "fp16" if args.precision == "fp16" else "main",
     "anythingv3": "diffusers",
-    "analogdiffusion" : "main",
+    "analogdiffusion": "main",
 }
 
 
@@ -83,6 +83,7 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
         )
     else:
         raise (f"{args.variant} not yet added")
+
     class CLIPText(torch.nn.Module):
         def __init__(self):
             super().__init__()

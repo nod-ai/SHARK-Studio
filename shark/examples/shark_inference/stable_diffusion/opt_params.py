@@ -105,12 +105,13 @@ def get_unet():
         elif args.variant == "analogdiffusion":
             bucket = "gs://shark_tank/sd_analog_diffusion"
             model_name = f"ad_unet_19dec_{args.precision}"
-        else :
+        else:
             sys.exit(f"{args.variant} variant of SD is currently unsupported")
 
         if args.import_mlir:
             return get_unet_mlir(model_name, iree_flags)
         return get_shark_model(bucket, model_name, iree_flags)
+
 
 def get_vae():
     iree_flags = []
@@ -167,12 +168,12 @@ def get_vae():
         iree_flags += [
             "--iree-flow-enable-padding-linalg-ops",
         ]
-        if args.precision == 'fp16':
+        if args.precision == "fp16":
             iree_flags += [
                 "--iree-flow-linalg-ops-padding-size=16",
                 "--iree-flow-enable-conv-img2col-transform",
             ]
-        elif args.precision == 'fp32':
+        elif args.precision == "fp32":
             iree_flags += [
                 "--iree-flow-linalg-ops-padding-size=32",
                 "--iree-flow-enable-conv-nchw-to-nhwc-transform",
@@ -188,12 +189,13 @@ def get_vae():
             bucket = "gs://shark_tank/sd_analog_diffusion"
             model_name = f"ad_vae_19dec_{args.precision}"
 
-        else :
+        else:
             sys.exit(f"{args.variant} variant of SD is currently unsupported")
 
         if args.import_mlir:
             return get_unet_mlir(model_name, iree_flags)
         return get_shark_model(bucket, model_name, iree_flags)
+
 
 def get_clip():
     iree_flags = []
@@ -234,7 +236,7 @@ def get_clip():
             "--iree-flow-linalg-ops-padding-size=16",
             "--iree-flow-enable-conv-img2col-transform",
         ]
-    else :
+    else:
         sys.exit(f"{args.variant} variant of SD is currently unsupported")
 
     if args.import_mlir:
