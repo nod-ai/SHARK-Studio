@@ -42,3 +42,15 @@ unzip ~/.local/shark_tank/<your unet>/inputs.npz
 
 iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --function_input=@arr_0.npy --function_input=1xf16 --function_input=@arr_2.npy --function_input=@arr_3.npy --function_input=@arr_4.npy  
 ```
+
+## Using other supported Stable Diffusion variants with SHARK:
+
+Currently we support the following fine-tuned versions of Stable Diffusion:
+- [AnythingV3](https://huggingface.co/Linaqruf/anything-v3.0)
+- [Analog Diffusion](https://huggingface.co/wavymulder/Analog-Diffusion)
+
+use the flag `--variant=` to specify the model to be used.
+
+```shell
+python .\shark\examples\shark_inference\stable_diffusion\main.py --variant=anythingv3 --max_length=77 --prompt="1girl, brown hair, green eyes, colorful, autumn, cumulonimbus clouds, lighting, blue sky, falling leaves, garden"
+```
