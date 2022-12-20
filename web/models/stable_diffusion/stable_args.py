@@ -98,6 +98,12 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--variant",
+    default="stablediffusion",
+    help="We now support multiple variants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
+)
+
+p.add_argument(
     "--use_base_vae",
     default=False,
     action=argparse.BooleanOptionalAction,
