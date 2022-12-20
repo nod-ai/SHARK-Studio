@@ -1,5 +1,6 @@
 import sys
 from models.stable_diffusion.model_wrappers import (
+    get_base_vae_mlir,
     get_vae_mlir,
     get_unet_mlir,
     get_clip_mlir,
@@ -105,8 +106,12 @@ def get_vae():
     if args.precision in ["fp16", "int8"]:
         if args.use_tuned:
             bucket = "gs://shark_tank/vivian"
-            if args.version == "v2.1base":
-                model_name = "vae2base_19dec_fp16_tuned"
+            if args.use_base_vae:
+                if args.version == "v2.1base":
+                    model_name = "vae2base_8dec_fp16_tuned"
+            else:
+                if args.version == "v2.1base":
+                    model_name = "vae2base_19dec_fp16_tuned"
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
@@ -116,17 +121,26 @@ def get_vae():
             return get_shark_model(bucket, model_name, iree_flags)
         else:
             bucket = "gs://shark_tank/stable_diffusion"
-            model_name = "vae_19dec_fp16"
-            if args.version == "v2.1base":
-                model_name = "vae2base_19dec_fp16"
-            if args.version == "v2.1":
-                model_name = "vae2_19dec_fp16"
+            if args.use_base_vae:
+                model_name = "vae_8dec_fp16"
+                if args.version == "v2.1base":
+                    model_name = "vae2base_8dec_fp16"
+                if args.version == "v2.1":
+                    model_name = "vae2_8dec_fp16"
+            else:
+                model_name = "vae_19dec_fp16"
+                if args.version == "v2.1base":
+                    model_name = "vae2base_19dec_fp16"
+                if args.version == "v2.1":
+                    model_name = "vae2_19dec_fp16"
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
                 "--iree-flow-enable-conv-img2col-transform",
             ]
             if args.import_mlir:
+                if args.use_base_vae:
+                    return get_base_vae_mlir(model_name, iree_flags)
                 return get_vae_mlir(model_name, iree_flags)
             return get_shark_model(bucket, model_name, iree_flags)
 
