@@ -120,7 +120,7 @@ if __name__ == "__main__":
     # Warmup phase to improve performance.
     if args.warmup_count >= 1:
         vae_warmup_input = torch.clone(latents).detach().numpy()
-        clip_warmup_input = torch.randint(1, 2, (2, 77))
+        clip_warmup_input = torch.randint(1, 2, (2, args.max_length))
     for i in range(args.warmup_count):
         vae.forward((vae_warmup_input,))
         clip.forward((clip_warmup_input,))
