@@ -78,6 +78,41 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
     return shark_clip
 
 
+def get_base_vae_mlir(model_name="vae", extra_args=[]):
+    class BaseVaeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                model_config[args.version],
+                subfolder="vae",
+                revision=model_revision,
+            )
+
+        def forward(self, input):
+            x = self.vae.decode(input, return_dict=False)[0]
+            return (x / 2 + 0.5).clamp(0, 1)
+
+    vae = BaseVaeModel()
+    if args.precision == "fp16":
+        vae = vae.half().cuda()
+        inputs = tuple(
+            [
+                inputs.half().cuda()
+                for inputs in model_input[args.version]["vae"]
+            ]
+        )
+    else:
+        inputs = model_input[args.version]["vae"]
+
+    shark_vae = compile_through_fx(
+        vae,
+        inputs,
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_vae
+
+
 def get_vae_mlir(model_name="vae", extra_args=[]):
     class VaeModel(torch.nn.Module):
         def __init__(self):

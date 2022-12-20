@@ -97,6 +97,13 @@ p.add_argument(
     help="Download and use the tuned version of the model if available",
 )
 
+p.add_argument(
+    "--use_base_vae",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Do conversion from the VAE output to pixel space on cpu.",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################

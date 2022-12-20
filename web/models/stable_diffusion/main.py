@@ -126,12 +126,18 @@ def stable_diff_inf(
             print(f" \nIteration = {i}, Time = {step_ms}ms")
 
     # scale and decode the image latents with vae
+    if args.use_base_vae:
+        latents = 1 / 0.18215 * latents
     latents_numpy = latents
     if cpu_scheduling:
         latents_numpy = latents.detach().numpy()
     vae_start = time.time()
     images = vae.forward((latents_numpy,))
     vae_end = time.time()
+    if args.use_base_vae:
+        image = torch.from_numpy(images)
+        image = (image.detach().cpu() * 255.0).numpy()
+        images = image.round()
     end_time = time.time()
 
     avg_ms = 1000 * avg_ms / args.steps
