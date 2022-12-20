@@ -46,8 +46,8 @@ p.add_argument(
 p.add_argument(
     "--max_length",
     type=int,
-    default=77,
-    help="max length of the tokenizer output.",
+    default=64,
+    help="max length of the tokenizer output, options are 64 and 77.",
 )
 
 ##############################################################################
