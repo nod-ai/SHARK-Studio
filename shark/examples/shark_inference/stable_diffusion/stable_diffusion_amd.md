@@ -8,9 +8,7 @@ If it works well for you, please "star" the following GitHub projects... this is
 
 ## Install the latest AMD Drivers
 
-Please note that the **RDNA3 GPUs aren't supported yet**, but will be very soon. Thank you very much for your patience!
-
-### RDNA2 KB Drivers:
+### AMD KB Drivers for RDNA2 and RDNA3:
 
 *AMD Software: Adrenalin Edition 22.11.1 for MLIR/IREE Driver Version 22.20.29.09 for Windows® 10 and Windows® 11 (Windows Driver Store Version 31.0.12029.9003)*
 
@@ -23,7 +21,7 @@ KNOWN ISSUES with this special AMD driver:
 
 ## Installation
 
-Download the latest Windows SHARK SD binary [here](https://github.com/nod-ai/SHARK/releases/download/20221219.398/shark_sd_20221219_398.exe) in a folder of your choice. Please read carefully the following notes:
+Download the latest Windows SHARK SD binary [here](https://github.com/nod-ai/SHARK/releases/download/20221220.400/shark_sd_20221220_400.exe) in a folder of your choice. Please read carefully the following notes:
 
 Notes:
 * We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR, that can get outdated if you run multiple EXE from the same folder.
