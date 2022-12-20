@@ -12,6 +12,8 @@ model_config = {
 
 # clip has 2 variants of max length 77 or 64.
 model_clip_max_length = 64 if args.max_length == 64 else 77
+if args.variant != "stablediffusion":
+    model_clip_max_length = 77
 
 model_variant = {
     "stablediffusion": "SD",
