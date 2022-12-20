@@ -39,7 +39,10 @@ def get_unet():
             if args.version == "v1.4":
                 model_name = "unet_1dec_fp16_tuned"
             if args.version == "v2.1base":
-                model_name = "unet2base_8dec_fp16_tuned_v2"
+                if args.max_length == 64:
+                    model_name = "unet_19dec_v2p1base_fp16_64_tuned"
+                else:
+                    model_name = "unet2base_8dec_fp16_tuned_v2"
             return get_shark_model(bucket, model_name, iree_flags)
         else:
             bucket = "gs://shark_tank/stable_diffusion"
