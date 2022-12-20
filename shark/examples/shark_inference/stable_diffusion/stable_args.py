@@ -92,7 +92,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available",
 )
