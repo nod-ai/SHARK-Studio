@@ -5,16 +5,16 @@ from models.stable_diffusion.stable_args import args
 import torch
 
 model_config = {
-    "v2.1": "stabilityai/stable-diffusion-2-1",
-    "v2.1base": "stabilityai/stable-diffusion-2-1-base",
-    "v1.4": "CompVis/stable-diffusion-v1-4",
+    "v2_1": "stabilityai/stable-diffusion-2-1",
+    "v2_1base": "stabilityai/stable-diffusion-2-1-base",
+    "v1_4": "CompVis/stable-diffusion-v1-4",
 }
 
 # clip has 2 variants of max length 77 or 64.
 model_clip_max_length = 64 if args.max_length == 64 else 77
 
 model_input = {
-    "v2.1": {
+    "v2_1": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
@@ -24,7 +24,7 @@ model_input = {
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
-    "v2.1base": {
+    "v2_1base": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
@@ -34,7 +34,7 @@ model_input = {
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
-    "v1.4": {
+    "v1_4": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
@@ -55,7 +55,7 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
     text_encoder = CLIPTextModel.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
-    if args.version != "v1.4":
+    if args.version != "v1_4":
         text_encoder = CLIPTextModel.from_pretrained(
             model_config[args.version], subfolder="text_encoder"
         )
