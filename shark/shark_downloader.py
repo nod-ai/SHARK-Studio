@@ -14,6 +14,7 @@
 
 import numpy as np
 import os
+from tqdm.std import tqdm
 import sys
 from pathlib import Path
 from shark.parser import shark_args
@@ -52,12 +53,18 @@ def download_public_file(
                 destination_filename = os.path.join(
                     destination_folder_name, dest_filename
                 )
-                blob.download_to_filename(destination_filename)
+                with open(destination_filename, "wb") as f:
+                    with tqdm.wrapattr(
+                        f, "write", total=blob.size
+                    ) as file_obj:
+                        storage_client.download_blob_to_file(blob, file_obj)
             else:
                 continue
 
         destination_filename = os.path.join(destination_folder_name, blob_name)
-        blob.download_to_filename(destination_filename)
+        with open(destination_filename, "wb") as f:
+            with tqdm.wrapattr(f, "write", total=blob.size) as file_obj:
+                storage_client.download_blob_to_file(blob, file_obj)
 
 
 input_type_to_np_dtype = {
