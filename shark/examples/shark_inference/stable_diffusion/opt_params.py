@@ -5,36 +5,11 @@ from model_wrappers import (
     get_clip_mlir,
 )
 from stable_args import args
-from utils import get_shark_model, map_device_to_name_path
-from shark.iree_utils.vulkan_utils import get_vulkan_target_triple
+from utils import get_shark_model
 
 BATCH_SIZE = len(args.prompts)
 if BATCH_SIZE != 1:
     sys.exit("Only batch size 1 is supported.")
-
-# global settings for device, iree-vulkan-target-triple and use_tuned flags
-if "vulkan" not in args.device:
-    if args.use_tuned:
-        print("Tuned models not currently supported for device")
-        args.use_tuned = False
-else:
-    name, args.device = map_device_to_name_path(args.device)
-    triple = get_vulkan_target_triple(name)
-    print(f"Found device {name}. Using target triple {triple}")
-    # set triple flag to avoid multiple calls to get_vulkan_triple_flag
-    if args.iree_vulkan_target_triple == "" and triple is not None:
-        args.iree_vulkan_target_triple = triple
-
-    # use tuned models only in the case of rdna3 cards.
-    if not args.iree_vulkan_target_triple:
-        if triple is not None and "rdna3" not in triple:
-            args.use_tuned = False
-    elif "rdna3" not in args.iree_vulkan_target_triple:
-        args.use_tuned = False
-
-    if args.use_tuned:
-        print("Using tuned models for rdna3 card")
-
 
 def get_unet():
     iree_flags = []
