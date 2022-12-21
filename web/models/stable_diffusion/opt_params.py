@@ -14,14 +14,15 @@ BATCH_SIZE = len(args.prompts)
 if BATCH_SIZE != 1:
     sys.exit("Only batch size 1 is supported.")
 
-# use tuned models only in the case of rdna3 cards.
+# use tuned models only in the case of stablediffusion/fp16 and rdna3 cards.
 args.use_tuned = False
-if not args.iree_vulkan_target_triple:
-    vulkan_triple_flags = get_vulkan_triple_flag()
-    if vulkan_triple_flags and "rdna3" in vulkan_triple_flags:
+if args.precision == "fp16" and args.variant == "stablediffusion":
+    if not args.iree_vulkan_target_triple:
+        vulkan_triple_flags = get_vulkan_triple_flag()
+        if vulkan_triple_flags and "rdna3" in vulkan_triple_flags:
+            args.use_tuned = True
+    elif "rdna3" in args.iree_vulkan_target_triple:
         args.use_tuned = True
-elif "rdna3" in args.iree_vulkan_target_triple:
-    args.use_tuned = True
 if args.use_tuned:
     print("Using tuned models for rdna3 card")
 
