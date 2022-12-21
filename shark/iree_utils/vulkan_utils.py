@@ -26,9 +26,10 @@ def get_vulkan_device_name():
     if len(vulkaninfo_list) == 0:
         raise ValueError("No device name found in VulkanInfo!")
     if len(vulkaninfo_list) > 1:
-        print(
-            f"Found {len(vulkaninfo_list)} device names. choosing first one: {vulkaninfo_list[0]}"
-        )
+        print("Following devices found:")
+        for i, dname in enumerate(vulkaninfo_list):
+            print(f"{i}. {dname}")
+        print(f"Choosing first one: {vulkaninfo_list[0]}")
     return vulkaninfo_list[0]
 
 
@@ -44,81 +45,77 @@ def get_os_name():
         return "linux"
 
 
-def get_vulkan_triple_flag(extra_args=[]):
-    if "-iree-vulkan-target-triple=" in " ".join(extra_args):
-        print(f"Using target triple from command line args")
-        return None
+def get_vulkan_target_triple(device_name):
+    """This method provides a target triple str for specified vulkan device.
+
+    Args:
+        device_name (str): name of the hardware device to be used with vulkan
+
+    Returns:
+        str or None: target triple or None if no match found for given name
+    """
     system_os = get_os_name()
-    vulkan_device = get_vulkan_device_name()
     # Apple Targets
-    if all(x in vulkan_device for x in ("Apple", "M1")):
-        print(f"Found {vulkan_device} Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
-    elif all(x in vulkan_device for x in ("Apple", "M2")):
-        print("Found Apple M2 Device. Using m1-moltenvk-macos")
-        return "-iree-vulkan-target-triple=m1-moltenvk-macos"
+    if all(x in device_name for x in ("Apple", "M1")):
+        triple = "m1-moltenvk-macos"
+    elif all(x in device_name for x in ("Apple", "M2")):
+        triple = "m1-moltenvk-macos"
+
     # Nvidia Targets
-    elif all(x in vulkan_device for x in ("RTX", "2080")):
-        print(
-            f"Found {vulkan_device} Device. Using turing-rtx2080-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=turing-rtx2080-{system_os}"
-    elif all(x in vulkan_device for x in ("A100", "SXM4")):
-        print(
-            f"Found {vulkan_device} Device. Using ampere-rtx3080-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=ampere-rtx3080-{system_os}"
-    elif all(x in vulkan_device for x in ("RTX", "3090")):
-        print(
-            f"Found {vulkan_device} Device. Using ampere-rtx3090-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=ampere-rtx3090-{system_os}"
-    elif all(x in vulkan_device for x in ("RTX", "4090")):
-        print(
-            f"Found {vulkan_device} Device. Using ampere-rtx3090-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=ampere-rtx3090-{system_os}"
-    elif all(x in vulkan_device for x in ("RTX", "4000")):
-        print(
-            f"Found {vulkan_device} Device. Using turing-rtx4000-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=turing-rtx4000-{system_os}"
-    elif all(x in vulkan_device for x in ("RTX", "5000")):
-        print(
-            f"Found {vulkan_device} Device. Using turing-rtx5000-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=turing-rtx5000-{system_os}"
-    elif all(x in vulkan_device for x in ("RTX", "6000")):
-        print(
-            f"Found {vulkan_device} Device. Using turing-rtx6000-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=turing-rtx6000-{system_os}"
-    elif all(x in vulkan_device for x in ("RTX", "8000")):
-        print(
-            f"Found {vulkan_device} Device. Using turing-rtx8000-{system_os}"
-        )
-        return f"-iree-vulkan-target-triple=turing-rtx8000-{system_os}"
+    elif all(x in device_name for x in ("RTX", "2080")):
+        triple = f"turing-rtx2080-{system_os}"
+    elif all(x in device_name for x in ("A100", "SXM4")):
+        triple = f"ampere-rtx3080-{system_os}"
+    elif all(x in device_name for x in ("RTX", "3090")):
+        triple = f"ampere-rtx3090-{system_os}"
+    elif all(x in device_name for x in ("RTX", "4090")):
+        triple = f"ampere-rtx3090-{system_os}"
+    elif all(x in device_name for x in ("RTX", "4000")):
+        triple = f"turing-rtx4000-{system_os}"
+    elif all(x in device_name for x in ("RTX", "5000")):
+        triple = f"turing-rtx5000-{system_os}"
+    elif all(x in device_name for x in ("RTX", "6000")):
+        triple = f"turing-rtx6000-{system_os}"
+    elif all(x in device_name for x in ("RTX", "8000")):
+        triple = f"turing-rtx8000-{system_os}"
+
     # Amd Targets
-    elif all(x in vulkan_device for x in ("AMD", "7900")):
-        print(f"Found {vulkan_device} Device. Using rdna3-7900-{system_os}")
-        return f"-iree-vulkan-target-triple=rdna3-7900-{system_os}"
-    elif any(x in vulkan_device for x in ("AMD", "Radeon")):
-        print(f"Found AMD device. Using rdna2-unknown-{system_os}")
-        return f"-iree-vulkan-target-triple=rdna2-unknown-{system_os}"
+    elif all(x in device_name for x in ("AMD", "7900")):
+        triple = f"rdna3-7900-{system_os}"
+    elif any(x in device_name for x in ("AMD", "Radeon")):
+        triple = f"rdna2-unknown-{system_os}"
     else:
+        triple = None
+    return triple
+
+
+def get_vulkan_triple_flag(device_name=None, extra_args=[]):
+    for flag in extra_args:
+        if "-iree-vulkan-target-triple=" in flag:
+            print(f"Using target triple {flag.split('=')[1]}")
+            return None
+
+    vulkan_device = (
+        device_name if device_name is not None else get_vulkan_device_name()
+    )
+    triple = get_vulkan_target_triple(vulkan_device)
+    if triple is not None:
         print(
-            """Optimized kernel for your target device is not added yet.
-            Contact SHARK Admin on discord[https://discord.com/invite/RUqY2h2s9u]
-            or pull up an issue."""
+            f"Found vulkan device {vulkan_device}. Using target triple {triple}"
         )
-        print(f"Target : {vulkan_device}")
-        return None
+        return f"-iree-vulkan-target-triple={triple}"
+    print(
+        """Optimized kernel for your target device is not added yet.
+        Contact SHARK Admin on discord[https://discord.com/invite/RUqY2h2s9u]
+        or pull up an issue."""
+    )
+    print(f"Target : {vulkan_device}")
+    return None
 
 
 def get_iree_vulkan_args(extra_args=[]):
-    # vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
     vulkan_flag = []
-    vulkan_triple_flag = get_vulkan_triple_flag(extra_args)
+    vulkan_triple_flag = get_vulkan_triple_flag(extra_args=extra_args)
     if vulkan_triple_flag is not None:
         vulkan_flag.append(vulkan_triple_flag)
     return vulkan_flag

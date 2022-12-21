@@ -14,14 +14,15 @@ BATCH_SIZE = len(args.prompts)
 if BATCH_SIZE != 1:
     sys.exit("Only batch size 1 is supported.")
 
-# use tuned models only in the case of rdna3 cards.
+# use tuned models only in the case of stablediffusion/fp16 and rdna3 cards.
 args.use_tuned = False
-if not args.iree_vulkan_target_triple:
-    vulkan_triple_flags = get_vulkan_triple_flag()
-    if vulkan_triple_flags and "rdna3" in vulkan_triple_flags:
+if args.precision == "fp16" and args.variant == "stablediffusion":
+    if not args.iree_vulkan_target_triple:
+        vulkan_triple_flags = get_vulkan_triple_flag()
+        if vulkan_triple_flags and "rdna3" in vulkan_triple_flags:
+            args.use_tuned = True
+    elif "rdna3" in args.iree_vulkan_target_triple:
         args.use_tuned = True
-elif "rdna3" in args.iree_vulkan_target_triple:
-    args.use_tuned = True
 if args.use_tuned:
     print("Using tuned models for rdna3 card")
 
@@ -48,13 +49,18 @@ def get_params(model_key):
 def get_unet():
     # Tuned model is present only for `fp16` precision.
     is_tuned = "/tuned" if args.use_tuned else "/untuned"
-    model_key = f"SD/{args.version}/unet/{args.precision}/length_{args.max_length}{is_tuned}"
+    variant_version = args.variant
+    model_key = f"{args.variant}/{args.version}/unet/{args.precision}/length_{args.max_length}{is_tuned}"
     model_name, iree_flags = get_params(model_key)
     if args.use_tuned:
         bucket = "gs://shark_tank/vivian"
         return get_shark_model(bucket, model_name, iree_flags)
     else:
         bucket = "gs://shark_tank/stable_diffusion"
+        if args.variant == "anythingv3":
+            bucket = "gs://shark_tank/sd_anythingv3"
+        elif args.variant == "analogdiffusion":
+            bucket = "gs://shark_tank/sd_analog_diffusion"
         if args.precision == "fp16":
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
@@ -76,9 +82,7 @@ def get_vae():
     # Tuned model is present only for `fp16` precision.
     is_tuned = "/tuned" if args.use_tuned else "/untuned"
     is_base = "/base" if args.use_base_vae else ""
-    model_key = (
-        f"SD/{args.version}/vae/{args.precision}/length_77{is_tuned}{is_base}"
-    )
+    model_key = f"{args.variant}/{args.version}/vae/{args.precision}/length_77{is_tuned}{is_base}"
     model_name, iree_flags = get_params(model_key)
     if args.use_tuned:
         bucket = "gs://shark_tank/vivian"
@@ -91,6 +95,10 @@ def get_vae():
         return get_shark_model(bucket, model_name, iree_flags)
     else:
         bucket = "gs://shark_tank/stable_diffusion"
+        if args.variant == "anythingv3":
+            bucket = "gs://shark_tank/sd_anythingv3"
+        elif args.variant == "analogdiffusion":
+            bucket = "gs://shark_tank/sd_analog_diffusion"
         if args.precision == "fp16":
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
@@ -111,9 +119,13 @@ def get_vae():
 
 
 def get_clip():
-    model_key = f"SD/{args.version}/clip/fp32/length_{args.max_length}/untuned"
+    model_key = f"{args.variant}/{args.version}/clip/fp32/length_{args.max_length}/untuned"
     model_name, iree_flags = get_params(model_key)
     bucket = "gs://shark_tank/stable_diffusion"
+    if args.variant == "anythingv3":
+        bucket = "gs://shark_tank/sd_anythingv3"
+    elif args.variant == "analogdiffusion":
+        bucket = "gs://shark_tank/sd_analog_diffusion"
     iree_flags += [
         "--iree-flow-linalg-ops-padding-size=16",
         "--iree-flow-enable-padding-linalg-ops",
