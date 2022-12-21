@@ -24,8 +24,9 @@ datas += collect_data_files('iree')
 #datas += copy_metadata('iree')
 datas += collect_data_files('shark')
 datas += [
-         ( 'prompts.json', '.' ),
-         ( 'logos/*', 'logos' )
+         ( 'models/stable_diffusion/resources/prompts.json', 'models/stable_diffusion/resources' ),
+         ( 'models/stable_diffusion/resources/model_db.json', 'models/stable_diffusion/resources' ),
+         ( 'models/stable_diffusion/logos/*', 'models/stable_diffusion/logos' )
          ]
 
 block_cipher = None
