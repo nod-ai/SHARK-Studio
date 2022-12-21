@@ -4,7 +4,10 @@ import torch
 from shark.shark_inference import SharkInference
 from stable_args import args
 from shark.shark_importer import import_with_fx
-from shark.iree_utils.vulkan_utils import set_iree_vulkan_runtime_flags
+from shark.iree_utils.vulkan_utils import (
+    set_iree_vulkan_runtime_flags,
+    get_vulkan_target_triple,
+)
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
@@ -86,3 +89,79 @@ def set_iree_runtime_flags():
         set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
     return
+
+
+def get_all_devices(driver_name):
+    """
+    Inputs: driver_name
+    Returns a list of all the available devices for a given driver sorted by
+    the iree path names of the device as in --list_devices option in iree.
+    Set `full_dict` flag to True to get a dict
+    with `path`, `name` and `device_id` for all devices
+    """
+    from iree.runtime import get_driver
+
+    driver = get_driver(driver_name)
+    device_list_src = driver.query_available_devices()
+    device_list_src.sort(key=lambda d: d["path"])
+    return device_list_src
+
+
+def get_device_mapping(driver, key_combination=3):
+    """This method ensures consistent device ordering when choosing
+    specific devices for execution
+    Args:
+        driver (str): execution driver (vulkan, cuda, rocm, etc)
+        key_combination (int, optional): choice for mapping value for device name.
+        1 : path
+        2 : name
+        3 : (name, path)
+        Defaults to 3.
+    Returns:
+        dict: map to possible device names user can input mapped to desired combination of name/path.
+    """
+    from shark.iree_utils._common import iree_device_map
+
+    driver = iree_device_map(driver)
+    device_list = get_all_devices(driver)
+    device_map = dict()
+
+    def get_output_value(dev_dict):
+        if key_combination == 1:
+            return f"{driver}://{dev_dict['path']}"
+        if key_combination == 2:
+            return dev_dict["name"]
+        if key_combination == 3:
+            return (dev_dict["name"], f"{driver}://{dev_dict['path']}")
+
+    # mapping driver name to default device (driver://0)
+    device_map[f"{driver}"] = get_output_value(device_list[0])
+    for i, device in enumerate(device_list):
+        # mapping with index
+        device_map[f"{driver}://{i}"] = get_output_value(device)
+        # mapping with full path
+        device_map[f"{driver}://{device['path']}"] = get_output_value(device)
+    return device_map
+
+
+def map_device_to_name_path(device, key_combination=3):
+    """Gives the appropriate device data (supported name/path) for user selected execution device
+    Args:
+        device (str): user
+        key_combination (int, optional): choice for mapping value for device name.
+        1 : path
+        2 : name
+        3 : (name, path)
+        Defaults to 3.
+    Raises:
+        ValueError:
+    Returns:
+        str / tuple: returns the mapping str or tuple of mapping str for the device depending on key_combination value
+    """
+    driver = device.split("://")[0]
+    device_map = get_device_mapping(driver, key_combination)
+    try:
+        device_mapping = device_map[device]
+    except KeyError:
+        raise ValueError(f"Device '{device}' is not a valid device.")
+    return device_mapping
