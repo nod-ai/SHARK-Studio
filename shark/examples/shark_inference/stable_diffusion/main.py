@@ -17,7 +17,7 @@ from tqdm.auto import tqdm
 import numpy as np
 from random import randint
 from stable_args import args
-from utils import set_iree_runtime_flags
+from utils import set_iree_runtime_flags, set_init_device_flags
 from opt_params import get_unet, get_vae, get_clip
 from schedulers import (
     SharkEulerDiscreteScheduler,
@@ -78,6 +78,7 @@ if __name__ == "__main__":
         sys.exit("prompts and negative prompts must be of same length")
 
     set_iree_runtime_flags()
+    set_init_device_flags()
     clip = get_clip()
     unet = get_unet()
     vae = get_vae()
