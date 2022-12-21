@@ -17,7 +17,7 @@ from tqdm.auto import tqdm
 import numpy as np
 from random import randint
 from stable_args import args
-from utils import set_iree_runtime_flags, set_init_device_flags
+from utils import set_init_device_flags
 from opt_params import get_unet, get_vae, get_clip
 from schedulers import (
     SharkEulerDiscreteScheduler,
@@ -77,7 +77,6 @@ if __name__ == "__main__":
     if batch_size != len(neg_prompt):
         sys.exit("prompts and negative prompts must be of same length")
 
-    set_iree_runtime_flags()
     set_init_device_flags()
     clip = get_clip()
     unet = get_unet()
@@ -198,6 +197,9 @@ if __name__ == "__main__":
         if not args.hide_steps:
             print(f" ({step_ms}ms)")
 
+    # scale and decode the image latents with vae
+    if args.use_base_vae:
+        latents = 1 / 0.18215 * latents
     latents_numpy = latents
     if cpu_scheduling:
         latents_numpy = latents.detach().numpy()
@@ -206,15 +208,20 @@ if __name__ == "__main__":
     images = vae.forward((latents_numpy,))
     vae_end = time.time()
     end_profiling(profile_device)
-    total_end = time.time()
+    if args.use_base_vae:
+        image = torch.from_numpy(images)
+        image = (image.detach().cpu() * 255.0).numpy()
+        images = image.round()
+    end_time = time.time()
 
     avg_ms = 1000 * avg_ms / args.steps
     clip_inf_time = (clip_inf_end - clip_inf_start) * 1000
     vae_inf_time = (vae_end - vae_start) * 1000
-    print(f"Average step time: {avg_ms}ms/it")
+    total_time = end_time - start
+    print(f"\nAverage step time: {avg_ms}ms/it")
     print(f"Clip Inference time (ms) = {clip_inf_time:.3f}")
     print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
-    print(f"Total image generation runtime (s): {total_end - start:.4f}")
+    print(f"\nTotal image generation time: {total_time}sec")
 
     transform = T.ToPILImage()
     pil_images = [
