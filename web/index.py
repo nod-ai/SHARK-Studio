@@ -2,9 +2,12 @@ import os
 
 os.environ["AMD_ENABLE_LLPC"] = "1"
 
-from models.stable_diffusion.resources import resource_path, prompt_examples
-from models.stable_diffusion.main import stable_diff_inf
-from models.stable_diffusion.stable_args import args
+from shark.models.stable_diffusion.resources import (
+    resource_path,
+    prompt_examples,
+)
+from shark.models.stable_diffusion.main import stable_diff_inf
+from shark.models.stable_diffusion.stable_args import args
 
 # from models.diffusion.v_diffusion import vdiff_inf
 import gradio as gr

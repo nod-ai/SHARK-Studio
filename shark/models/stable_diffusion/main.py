@@ -2,11 +2,11 @@ import torch
 from PIL import Image
 import torchvision.transforms as T
 from tqdm.auto import tqdm
-from models.stable_diffusion.cache_objects import (
+from shark.models.stable_diffusion.cache_objects import (
     cache_obj,
     schedulers,
 )
-from models.stable_diffusion.stable_args import args
+from shark.models.stable_diffusion.stable_args import args
 from random import randint
 import numpy as np
 import time

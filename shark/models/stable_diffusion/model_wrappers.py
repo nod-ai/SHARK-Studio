@@ -1,7 +1,7 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
-from models.stable_diffusion.utils import compile_through_fx
-from models.stable_diffusion.stable_args import args
+from shark.models.stable_diffusion.utils import compile_through_fx
+from shark.models.stable_diffusion.stable_args import args
 import torch
 
 model_config = {

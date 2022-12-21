@@ -6,10 +6,14 @@ from diffusers import (
     DPMSolverMultistepScheduler,
     EulerDiscreteScheduler,
 )
-from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
-from models.stable_diffusion.utils import set_iree_runtime_flags
-from models.stable_diffusion.stable_args import args
-from models.stable_diffusion.schedulers import (
+from shark.models.stable_diffusion.opt_params import (
+    get_unet,
+    get_vae,
+    get_clip,
+)
+from shark.models.stable_diffusion.utils import set_iree_runtime_flags
+from shark.models.stable_diffusion.stable_args import args
+from shark.models.stable_diffusion.schedulers import (
     SharkEulerDiscreteScheduler,
 )
 

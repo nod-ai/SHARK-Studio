@@ -1,13 +1,13 @@
 import sys
-from models.stable_diffusion.model_wrappers import (
+from shark.models.stable_diffusion.model_wrappers import (
     get_base_vae_mlir,
     get_vae_mlir,
     get_unet_mlir,
     get_clip_mlir,
 )
-from models.stable_diffusion.resources import models_db
-from models.stable_diffusion.stable_args import args
-from models.stable_diffusion.utils import get_shark_model
+from shark.models.stable_diffusion.resources import models_db
+from shark.models.stable_diffusion.stable_args import args
+from shark.models.stable_diffusion.utils import get_shark_model
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
 
 BATCH_SIZE = len(args.prompts)

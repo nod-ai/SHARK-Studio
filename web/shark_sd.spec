@@ -24,9 +24,9 @@ datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
 datas += collect_data_files('shark')
 datas += [
-         ( 'models/stable_diffusion/resources/prompts.json', 'resources' ),
-         ( 'models/stable_diffusion/resources/model_db.json', 'resources' ),
-         ( 'models/stable_diffusion/logos/*', 'logos' )
+         ( 'shark/models/stable_diffusion/resources/prompts.json', 'resources' ),
+         ( 'shark/models/stable_diffusion/resources/model_db.json', 'resources' ),
+         ( 'shark/models/stable_diffusion/logos/*', 'logos' )
          ]
 
 binaries = []

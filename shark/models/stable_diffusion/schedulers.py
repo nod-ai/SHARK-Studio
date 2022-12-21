@@ -9,8 +9,11 @@ from diffusers import (
     EulerDiscreteScheduler,
 )
 from diffusers.configuration_utils import register_to_config
-from models.stable_diffusion.utils import compile_through_fx, get_shark_model
-from models.stable_diffusion.stable_args import args
+from shark.models.stable_diffusion.utils import (
+    compile_through_fx,
+    get_shark_model,
+)
+from shark.models.stable_diffusion.stable_args import args
 import torch
 
 SCHEDULER_BUCKET = "gs://shark_tank/stable_diffusion/schedulers"

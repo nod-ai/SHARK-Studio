@@ -2,7 +2,7 @@ import os
 
 import torch
 from shark.shark_inference import SharkInference
-from models.stable_diffusion.stable_args import args
+from shark.models.stable_diffusion.stable_args import args
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
