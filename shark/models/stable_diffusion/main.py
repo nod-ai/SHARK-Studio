@@ -10,6 +10,23 @@ from shark.models.stable_diffusion.stable_args import args
 from random import randint
 import numpy as np
 import time
+from shark.iree_utils.compile_utils import dump_isas
+
+# Helper function to profile the vulkan device.
+def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
+    if args.vulkan_debug_utils and "vulkan" in args.device:
+        import iree
+
+        print(f"Profiling and saving to {file_path}.")
+        vulkan_device = iree.runtime.get_device(args.device)
+        vulkan_device.begin_profiling(mode=profiling_mode, file_path=file_path)
+        return vulkan_device
+    return None
+
+
+def end_profiling(device):
+    if device:
+        return device.end_profiling()
 
 
 def set_ui_params(prompt, negative_prompt, steps, guidance_scale, seed):
@@ -63,6 +80,15 @@ def stable_diff_inf(
         cache_obj["clip"],
         cache_obj["tokenizer"],
     )
+
+    # Do warmup runs of vae and clip for CLI timing.
+    if args.warmup_count >= 1:
+        vae_warmup_input = torch.clone(latents).detach().numpy()
+        clip_warmup_input = torch.randint(1, 2, (2, args.max_length))
+    for i in range(args.warmup_count):
+        vae.forward((vae_warmup_input,))
+        clip.forward((clip_warmup_input,))
+
     scheduler = schedulers[scheduler_key]
     cpu_scheduling = not scheduler_key.startswith("Shark")
 
@@ -104,6 +130,8 @@ def stable_diff_inf(
         if cpu_scheduling:
             latent_model_input = latent_model_input.detach().numpy()
 
+        profile_device = start_profiling(file_path="unet.rdc")
+
         noise_pred = unet.forward(
             (
                 latent_model_input,
@@ -113,6 +141,8 @@ def stable_diff_inf(
             ),
             send_to_host=False,
         )
+
+        end_profiling(profile_device)
 
         if cpu_scheduling:
             noise_pred = torch.from_numpy(noise_pred.to_host())
@@ -162,3 +192,18 @@ def stable_diff_inf(
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     return pil_images[0], text_output
+
+
+if __name__ == "__main__":
+    if args.dump_isa:
+        dump_isas(args.dispatch_benchmarks_dir)
+    image, text_output = stable_diff_inf(
+        args.prompts[0],
+        args.negative_prompts[0],
+        args.steps,
+        args.guidance_scale,
+        args.seed,
+        args.scheduler,
+    )
+    print(text_output)
+    image.save(f"{args.prompts[0]}_{0}.jpg")

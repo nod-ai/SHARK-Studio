@@ -70,6 +70,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--scheduler",
+    type=str,
+    default="SharkEulerDiscrete",
+    help="scheduler to run the model with (cli only).",
+)
+
+p.add_argument(
     "--import_mlir",
     default=False,
     action=argparse.BooleanOptionalAction,
@@ -92,7 +99,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available",
 )
