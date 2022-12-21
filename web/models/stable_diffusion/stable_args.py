@@ -70,6 +70,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--scheduler",
+    type=str,
+    default="SharkEulerDiscrete",
+    help="scheduler to run the model with (cli only).",
+)
+
+p.add_argument(
     "--import_mlir",
     default=False,
     action=argparse.BooleanOptionalAction,
@@ -138,6 +145,13 @@ p.add_argument(
 ##############################################################################
 ### Misc. Debug and Optimization flags
 ##############################################################################
+
+p.add_argument(
+    "--cli",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Do a single non-graphical run based on the given command line arguments.",
+)
 
 p.add_argument(
     "--local_tank_cache",

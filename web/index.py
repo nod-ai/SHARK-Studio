@@ -11,6 +11,19 @@ import gradio as gr
 from PIL import Image
 import numpy as np
 
+if args.cli:
+    image, text_output = stable_diff_inf(
+        args.prompts[0],
+        args.negative_prompts[0],
+        args.steps,
+        args.guidance_scale,
+        args.seed,
+        args.scheduler,
+    )
+    print(text_output)
+    image.save(f"{args.prompts[0]}_{0}.jpg")
+    quit()
+
 nodlogo_loc = resource_path("logos/nod-logo.png")
 sdlogo_loc = resource_path("logos/sd-demo-logo.png")
 
