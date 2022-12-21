@@ -65,8 +65,13 @@ def get_unet():
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
                 "--iree-flow-linalg-ops-padding-size=32",
-                "--iree-flow-enable-conv-img2col-transform",
             ]
+            if args.device == "cuda":
+                iree_flags += [
+                    "--iree-flow-enable-conv-nchw-to-nhwc-transform"
+                ]
+            else:
+                iree_flags += ["--iree-flow-enable-conv-img2col-transform"]
         elif args.precision == "fp32":
             iree_flags += [
                 "--iree-flow-enable-conv-nchw-to-nhwc-transform",
