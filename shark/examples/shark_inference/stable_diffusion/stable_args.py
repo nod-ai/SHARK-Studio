@@ -61,7 +61,7 @@ p.add_argument(
 p.add_argument(
     "--version",
     type=str,
-    default="v2.1base",
+    default="v2_1base",
     help="Specify version of stable diffusion model",
 )
 
@@ -98,10 +98,18 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--use_base_vae",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Do conversion from the VAE output to pixel space on cpu.",
+)
+
+p.add_argument(
     "--variant",
     default="stablediffusion",
     help="We now support multiple vairants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
 )
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################

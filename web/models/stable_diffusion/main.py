@@ -158,7 +158,7 @@ def stable_diff_inf(
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, scheduler={scheduler_key}, seed={args.seed}, size={height}x{width}, version={args.version}"
-    text_output += f"\nAverage step time: {avg_ms:.2f}ms/it"
-    text_output += f"\nTotal image generation time: {total_time:.2f}sec"
+    text_output += f"\nAverage step time: {avg_ms:.4f}ms/it"
+    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     return pil_images[0], text_output

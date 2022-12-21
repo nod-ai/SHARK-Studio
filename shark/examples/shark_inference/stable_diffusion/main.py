@@ -51,7 +51,7 @@ if __name__ == "__main__":
     neg_prompt = args.negative_prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
-    if args.version == "v2.1" and args.variant == "stablediffusion":
+    if args.version == "v2_1":
         height = 768
         width = 768
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
         subfolder="scheduler",
     )
     cpu_scheduling = True
-    if args.version == "v2.1":
+    if args.version == "v2_1":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
         )
@@ -101,7 +101,7 @@ if __name__ == "__main__":
             subfolder="scheduler",
         )
 
-    if args.version == "v2.1base":
+    if args.version == "v2_1base":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
         )
