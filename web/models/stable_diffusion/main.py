@@ -28,9 +28,29 @@ from models.stable_diffusion.cache_objects import (
     cache_obj,
     schedulers,
 )
+
+from models.stable_diffusion.utils import set_init_device_flags
 from random import randint
 import numpy as np
 import time
+import sys
+
+
+# Helper function to profile the vulkan device.
+def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
+    if args.vulkan_debug_utils and "vulkan" in args.device:
+        import iree
+
+        print(f"Profiling and saving to {file_path}.")
+        vulkan_device = iree.runtime.get_device(args.device)
+        vulkan_device.begin_profiling(mode=profiling_mode, file_path=file_path)
+        return vulkan_device
+    return None
+
+
+def end_profiling(device):
+    if device:
+        return device.end_profiling()
 
 
 def set_ui_params(prompt, negative_prompt, steps, guidance_scale, seed):
@@ -124,6 +144,7 @@ def stable_diff_inf(
         if cpu_scheduling:
             latent_model_input = latent_model_input.detach().numpy()
 
+        profile_device = start_profiling(file_path="unet.rdc")
         noise_pred = unet.forward(
             (
                 latent_model_input,
@@ -133,6 +154,7 @@ def stable_diff_inf(
             ),
             send_to_host=False,
         )
+        end_profiling(profile_device)
 
         if cpu_scheduling:
             noise_pred = torch.from_numpy(noise_pred.to_host())
@@ -151,9 +173,11 @@ def stable_diff_inf(
     latents_numpy = latents
     if cpu_scheduling:
         latents_numpy = latents.detach().numpy()
+    profile_device = start_profiling(file_path="vae.rdc")
     vae_start = time.time()
     images = vae.forward((latents_numpy,))
     vae_end = time.time()
+    end_profiling(profile_device)
     if args.use_base_vae:
         image = torch.from_numpy(images)
         image = (image.detach().cpu() * 255.0).numpy()
@@ -178,7 +202,7 @@ def stable_diff_inf(
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, scheduler={scheduler_key}, seed={args.seed}, size={height}x{width}, version={args.version}"
-    text_output += f"\nAverage step time: {avg_ms:.2f}ms/it"
-    text_output += f"\nTotal image generation time: {total_time:.2f}sec"
+    text_output += f"\nAverage step time: {avg_ms:.4f}ms/it"
+    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     return pil_images[0], text_output

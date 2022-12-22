@@ -92,15 +92,9 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available",
-)
-
-p.add_argument(
-    "--variant",
-    default="stablediffusion",
-    help="We now support multiple variants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
 )
 
 p.add_argument(
@@ -108,6 +102,19 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Do conversion from the VAE output to pixel space on cpu.",
+)
+
+p.add_argument(
+    "--variant",
+    default="stablediffusion",
+    help="We now support multiple vairants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
+)
+
+p.add_argument(
+    "--scheduler",
+    type=str,
+    default="SharkEulerDiscrete",
+    help="other supported schedulers are [PNDM, DDIM, LMSDiscrete, EulerDiscrete, DPMSolverMultistep]",
 )
 
 ##############################################################################
@@ -146,6 +153,13 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
+    "--use_compiled_scheduler",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="use the default scheduler precompiled into the model if available",
+)
+
+p.add_argument(
     "--local_tank_cache",
     default="",
     help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
@@ -182,6 +196,13 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for hiding the details of iteration/sec for each step.",
+)
+
+p.add_argument(
+    "--warmup_count",
+    type=int,
+    default=0,
+    help="flag setting warmup count for clip and vae [>= 0].",
 )
 
 ##############################################################################

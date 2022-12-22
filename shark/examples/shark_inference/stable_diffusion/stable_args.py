@@ -61,7 +61,7 @@ p.add_argument(
 p.add_argument(
     "--version",
     type=str,
-    default="v2.1base",
+    default="v2_1base",
     help="Specify version of stable diffusion model",
 )
 
@@ -92,9 +92,16 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available",
+)
+
+p.add_argument(
+    "--use_base_vae",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Do conversion from the VAE output to pixel space on cpu.",
 )
 
 p.add_argument(
@@ -102,6 +109,14 @@ p.add_argument(
     default="stablediffusion",
     help="We now support multiple vairants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
 )
+
+p.add_argument(
+    "--scheduler",
+    type=str,
+    default="SharkEulerDiscrete",
+    help="other supported schedulers are [PNDM, DDIM, LMSDiscrete, EulerDiscrete, DPMSolverMultistep]",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
@@ -178,7 +193,7 @@ p.add_argument(
 
 p.add_argument(
     "--hide_steps",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for hiding the details of iteration/sec for each step.",
 )
@@ -195,6 +210,17 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
+)
+
+##############################################################################
+### Web UI flags
+##############################################################################
+
+p.add_argument(
+    "--progress_bar",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="flag for removing the pregress bar animation during image generation",
 )
 
 args = p.parse_args()

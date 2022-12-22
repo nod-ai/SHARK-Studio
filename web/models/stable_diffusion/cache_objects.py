@@ -7,17 +7,17 @@ from diffusers import (
     EulerDiscreteScheduler,
 )
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
-from models.stable_diffusion.utils import set_iree_runtime_flags
+from models.stable_diffusion.utils import set_init_device_flags
 from models.stable_diffusion.stable_args import args
 from models.stable_diffusion.schedulers import (
     SharkEulerDiscreteScheduler,
 )
 
-# set iree-runtime flags
-set_iree_runtime_flags()
+# initial settings.
+set_init_device_flags()
 
 model_config = {
-    "v2": "stabilityai/stable-diffusion-2",
+    "v2_1": "stabilityai/stable-diffusion-2-1",
     "v2_1base": "stabilityai/stable-diffusion-2-1-base",
     "v1_4": "CompVis/stable-diffusion-v1-4",
 }
@@ -49,6 +49,7 @@ schedulers["SharkEulerDiscrete"] = SharkEulerDiscreteScheduler.from_pretrained(
 )
 schedulers["SharkEulerDiscrete"].compile()
 
+
 cache_obj = dict()
 # cache vae, unet and clip.
 (
@@ -61,7 +62,7 @@ cache_obj = dict()
 cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
     "openai/clip-vit-large-patch14"
 )
-if args.version == "v2_1base":
+if args.version != "v1_4":
     cache_obj["tokenizer"] = CLIPTokenizer.from_pretrained(
-        "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
+        model_config[args.version], subfolder="tokenizer"
     )

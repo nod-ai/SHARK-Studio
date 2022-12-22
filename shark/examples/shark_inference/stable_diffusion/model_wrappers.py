@@ -5,9 +5,9 @@ from stable_args import args
 import torch
 
 model_config = {
-    "v2.1": "stabilityai/stable-diffusion-2-1",
-    "v2.1base": "stabilityai/stable-diffusion-2-1-base",
-    "v1.4": "CompVis/stable-diffusion-v1-4",
+    "v2_1": "stabilityai/stable-diffusion-2-1",
+    "v2_1base": "stabilityai/stable-diffusion-2-1-base",
+    "v1_4": "CompVis/stable-diffusion-v1-4",
 }
 
 # clip has 2 variants of max length 77 or 64.
@@ -24,7 +24,7 @@ model_variant = {
 }
 
 model_input = {
-    "v2.1": {
+    "v2_1": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
@@ -34,7 +34,7 @@ model_input = {
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
-    "v2.1base": {
+    "v2_1base": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
@@ -44,7 +44,7 @@ model_input = {
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
-    "v1.4": {
+    "v1_4": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
@@ -70,7 +70,7 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
         "openai/clip-vit-large-patch14"
     )
     if args.variant == "stablediffusion":
-        if args.version != "v1.4":
+        if args.version != "v1_4":
             text_encoder = CLIPTextModel.from_pretrained(
                 model_config[args.version], subfolder="text_encoder"
             )
@@ -100,6 +100,54 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
         extra_args=extra_args,
     )
     return shark_clip
+
+
+def get_base_vae_mlir(model_name="vae", extra_args=[]):
+    class BaseVaeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                model_config[args.version]
+                if args.variant == "stablediffusion"
+                else model_variant[args.variant],
+                subfolder="vae",
+                revision=model_revision[args.variant],
+            )
+
+        def forward(self, input):
+            x = self.vae.decode(input, return_dict=False)[0]
+            return (x / 2 + 0.5).clamp(0, 1)
+
+    vae = BaseVaeModel()
+    if args.variant == "stablediffusion":
+        if args.precision == "fp16":
+            vae = vae.half().cuda()
+            inputs = tuple(
+                [
+                    inputs.half().cuda()
+                    for inputs in model_input[args.version]["vae"]
+                ]
+            )
+        else:
+            inputs = model_input[args.version]["vae"]
+    elif args.variant in ["anythingv3", "analogdiffusion"]:
+        if args.precision == "fp16":
+            vae = vae.half().cuda()
+            inputs = tuple(
+                [inputs.half().cuda() for inputs in model_input["v1_4"]["vae"]]
+            )
+        else:
+            inputs = model_input["v1_4"]["vae"]
+    else:
+        raise (f"{args.variant} not yet added")
+
+    shark_vae = compile_through_fx(
+        vae,
+        inputs,
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_vae
 
 
 def get_vae_mlir(model_name="vae", extra_args=[]):
@@ -137,10 +185,10 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
         if args.precision == "fp16":
             vae = vae.half().cuda()
             inputs = tuple(
-                [inputs.half().cuda() for inputs in model_input["v1.4"]["vae"]]
+                [inputs.half().cuda() for inputs in model_input["v1_4"]["vae"]]
             )
         else:
-            inputs = model_input["v1.4"]["vae"]
+            inputs = model_input["v1_4"]["vae"]
     else:
         raise (f"{args.variant} not yet added")
 
@@ -197,11 +245,11 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             inputs = tuple(
                 [
                     inputs.half().cuda() if len(inputs.shape) != 0 else inputs
-                    for inputs in model_input["v1.4"]["unet"]
+                    for inputs in model_input["v1_4"]["unet"]
                 ]
             )
         else:
-            inputs = model_input["v1.4"]["unet"]
+            inputs = model_input["v1_4"]["unet"]
     else:
         raise (f"{args.variant} is not yet added")
     shark_unet = compile_through_fx(
