@@ -3,9 +3,14 @@ import os
 from PIL import Image
 import torchvision.transforms as T
 from tqdm.auto import tqdm
+from models.stable_diffusion.cache_objects import model_cache
 from models.stable_diffusion.stable_args import args
+from random import randint
+import numpy as np
+import time
+import sys
 
-# This has to come before importing cache objects
+
 if args.clear_all:
     print("CLEARING ALL, EXPECT SEVERAL MINUTES TO RECOMPILE")
     from glob import glob
@@ -23,17 +28,6 @@ if args.clear_all:
     elif os.name == "unix":
         shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
-
-from models.stable_diffusion.cache_objects import (
-    cache_obj,
-    schedulers,
-)
-
-from models.stable_diffusion.utils import set_init_device_flags
-from random import randint
-import numpy as np
-import time
-import sys
 
 
 # Helper function to profile the vulkan device.
@@ -53,12 +47,23 @@ def end_profiling(device):
         return device.end_profiling()
 
 
-def set_ui_params(prompt, negative_prompt, steps, guidance_scale, seed):
+def set_ui_params(
+    prompt,
+    negative_prompt,
+    steps,
+    guidance_scale,
+    seed,
+    scheduler_key,
+    variant,
+    device_key,
+):
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
     args.steps = steps
-    args.guidance_scale = guidance_scale
+    args.guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
     args.seed = seed
+    args.scheduler = scheduler_key
+    args.variant = variant
 
 
 def stable_diff_inf(
@@ -68,6 +73,8 @@ def stable_diff_inf(
     guidance_scale: float,
     seed: int,
     scheduler_key: str,
+    variant: str,
+    device_key: str,
 ):
     # Handle out of range seeds.
     uint32_info = np.iinfo(np.uint32)
@@ -75,8 +82,19 @@ def stable_diff_inf(
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
 
-    guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
-    set_ui_params(prompt, negative_prompt, steps, guidance_scale, seed)
+    if variant != "stablediffusion":
+        args.max_length = 77
+
+    set_ui_params(
+        prompt,
+        negative_prompt,
+        steps,
+        guidance_scale,
+        seed,
+        scheduler_key,
+        variant,
+        device_key,
+    )
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
         args.seed
@@ -96,15 +114,12 @@ def stable_diff_inf(
         dtype=torch.float32,
     ).to(dtype)
 
-    # Initialize vae and unet models.
-    vae, unet, clip, tokenizer = (
-        cache_obj["vae"],
-        cache_obj["unet"],
-        cache_obj["clip"],
-        cache_obj["tokenizer"],
-    )
-    scheduler = schedulers[scheduler_key]
-    cpu_scheduling = not scheduler_key.startswith("Shark")
+    # get all cached data.
+    model_cache.set_models()
+    tokenizer = model_cache.tokenizer
+    scheduler = model_cache.schedulers[args.scheduler]
+    vae, unet, clip = model_cache.vae, model_cache.unet, model_cache.clip
+    cpu_scheduling = not args.scheduler.startswith("Shark")
 
     start = time.time()
     text_input = tokenizer(
@@ -201,7 +216,8 @@ def stable_diff_inf(
 
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, scheduler={scheduler_key}, seed={args.seed}, size={height}x{width}, version={args.version}"
+    text_output += f"\nvariant={args.variant}, scheduler={args.scheduler}, device={device_key}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={height}x{width}"
     text_output += f"\nAverage step time: {avg_ms:.4f}ms/it"
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 

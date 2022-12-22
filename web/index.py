@@ -9,7 +9,6 @@ from models.stable_diffusion.stable_args import args
 # from models.diffusion.v_diffusion import vdiff_inf
 import gradio as gr
 from PIL import Image
-import numpy as np
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
 sdlogo_loc = resource_path("logos/sd-demo-logo.png")
@@ -35,6 +34,33 @@ demo_css = """
 
 footer {display: none !important;}
 """
+
+# get list of devices available.
+def get_available_devices():
+    def get_devices_by_name(driver_name):
+        from shark.iree_utils._common import iree_device_map
+        from iree.runtime import get_driver
+
+        device_list = []
+        try:
+            driver_name = iree_device_map(driver_name)
+            driver = get_driver(driver_name)
+            device_list_dict = driver.query_available_devices()
+        except:
+            print(f"{driver_name} devices are not available.")
+        else:
+            device_list_dict.sort(key=lambda d: d["path"])
+            for i, device in enumerate(device_list_dict):
+                device_list.append(f"{driver_name}://{i} => {device['name']}")
+        return device_list
+
+    available_devices = ["cpu"]
+    vulkan_devices = get_devices_by_name("vulkan")
+    available_devices.extend(vulkan_devices)
+    cuda_devices = get_devices_by_name("cuda")
+    available_devices.extend(cuda_devices)
+    return available_devices
+
 
 with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
 
@@ -74,24 +100,16 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         lines=1,
                         elem_id="prompt_box",
                     )
-                with gr.Group():
-                    ex = gr.Examples(
-                        label="Examples",
-                        examples=prompt_examples,
-                        inputs=prompt,
-                        cache_examples=False,
-                        elem_id="prompt_examples",
-                    )
                 with gr.Row():
-                    steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
-                    guidance_scale = gr.Slider(
-                        0,
-                        50,
-                        value=7.5,
-                        step=0.1,
-                        label="Guidance Scale",
+                    variant = gr.Dropdown(
+                        label="Model Variant",
+                        value="stablediffusion",
+                        choices=[
+                            "anythingv3",
+                            "analogdiffusion",
+                            "stablediffusion",
+                        ],
                     )
-                with gr.Row():
                     scheduler_key = gr.Dropdown(
                         label="Scheduler",
                         value="SharkEulerDiscrete",
@@ -104,27 +122,39 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                             "SharkEulerDiscrete",
                         ],
                     )
-                    with gr.Group():
-                        random_seed = gr.Button("Randomize Seed").style(
-                            full_width=True
-                        )
-                        uint32_info = np.iinfo(np.uint32)
-                        seed = gr.Number(
-                            value=-1, precision=0, show_label=False
-                        )
-                        u32_min = gr.Number(
-                            value=uint32_info.min, visible=False
-                        )
-                        u32_max = gr.Number(
-                            value=uint32_info.max, visible=False
-                        )
-                        random_seed.click(
-                            None,
-                            inputs=[u32_min, u32_max],
-                            outputs=[seed],
-                            _js="(min,max) => Math.floor(Math.random() * (max - min)) + min",
-                        )
-                stable_diffusion = gr.Button("Generate Image")
+                with gr.Row():
+                    seed = gr.Number(value=-1, precision=0, label="Seed")
+                    steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
+                    guidance_scale = gr.Slider(
+                        0,
+                        50,
+                        value=7.5,
+                        step=0.1,
+                        label="CFG Scale",
+                    )
+                    device_key = gr.Dropdown(
+                        label="Device",
+                        value="vulkan",
+                        choices=["vulkan"],
+                        visible=False,
+                    )
+                with gr.Row():
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        None,
+                        inputs=[],
+                        outputs=[seed],
+                        _js="() => Math.floor(Math.random() * 4294967295)",
+                    )
+                    stable_diffusion = gr.Button("Generate Image")
+                with gr.Accordion(label="Prompt Examples!"):
+                    ex = gr.Examples(
+                        examples=prompt_examples,
+                        inputs=prompt,
+                        cache_examples=False,
+                        elem_id="prompt_examples",
+                    )
+
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
                     generated_img = gr.Image(
@@ -145,6 +175,8 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 guidance_scale,
                 seed,
                 scheduler_key,
+                variant,
+                device_key,
             ],
             outputs=[generated_img, std_output],
             show_progress=args.progress_bar,
@@ -158,6 +190,8 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 guidance_scale,
                 seed,
                 scheduler_key,
+                variant,
+                device_key,
             ],
             outputs=[generated_img, std_output],
             show_progress=args.progress_bar,
