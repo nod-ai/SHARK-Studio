@@ -40,8 +40,6 @@ class SharkInference:
     ----------
     mlir_module : str
         mlir_module represented in string; modules from torch-mlir are serialized in bytecode format.
-    function_name : str
-        function to execute in the given mlir_module.
     device : str
         device to execute the mlir_module on.
         currently supports cpu, cuda, vulkan, and metal backends.
@@ -53,10 +51,10 @@ class SharkInference:
 
     Methods
     -------
-    run(inputs=None):
-        Runs the mlir_module with the given inputs, if the inputs are not
-        given it autogenerates the inputs. Also, the inputs should be a
-        numpy array.
+    __call__(function_name, inputs=None):
+        Runs the function with `function_name` within the mlir_module along
+        with the given inputs, if the inputs are not given it autogenerates the
+        inputs. Also, the inputs should be a numpy array.
     input_info():
         Gives the information about the inputs required by the `function_name`.
         This can be expensive as it does string matching to do so.
@@ -66,7 +64,6 @@ class SharkInference:
     def __init__(
         self,
         mlir_module: bytes,
-        function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
         is_benchmark: bool = False,
@@ -74,7 +71,6 @@ class SharkInference:
         dispatch_benchmark_dir: str = "temp_dispatch_benchmarks",
     ):
         self.mlir_module = mlir_module
-        self.function_name = function_name
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.is_benchmark = is_benchmark
@@ -113,7 +109,6 @@ class SharkInference:
 
             self.shark_runner = SharkBenchmarkRunner(
                 self.mlir_module,
-                self.function_name,
                 self.device,
                 self.mlir_dialect,
                 extra_args=extra_args,
@@ -122,7 +117,6 @@ class SharkInference:
         else:
             self.shark_runner = SharkRunner(
                 self.mlir_module,
-                self.function_name,
                 self.device,
                 self.mlir_dialect,
                 extra_args=extra_args,
@@ -138,21 +132,25 @@ class SharkInference:
             os.system(f"rm -rf {self.temp_dispatch_benchmarks_dir}")
 
     # inputs are considered to be tuple of np.array.
-    def forward(self, inputs: tuple, send_to_host=True):
-        return self.shark_runner.run(inputs, send_to_host)
+    def __call__(self, function_name: str, inputs: tuple, send_to_host=True):
+        return self.shark_runner.run(function_name, inputs, send_to_host)
+
+    # Get all function names defined within the compiled module.
+    def get_functions_in_module(self):
+        return self.shark_runner.get_functions_in_module()
 
     # Captures the static input information from the mlir_module.
     # TODO(pashu123): Generate the input information for dynamic shapes.
-    def _input_info(self):
+    def _input_info(self, function_name):
         # func_key to get the line which contains the function.
-        func_key = "func.func @" + self.function_name
+        func_key = "func.func @" + function_name
         func_header = None
         for line in str(self.mlir_module).splitlines():
             if func_key in line:
                 func_header = line
                 break
         if func_header is None:
-            print(f"Function: {self.function_name} not found")
+            print(f"Function: {function_name} not found")
 
         import re
 
@@ -190,7 +188,6 @@ class SharkInference:
             self.device,
             dir,
             self.mlir_dialect,
-            self.function_name,
             module_name=module_name,
             extra_args=extra_args,
         )
@@ -198,7 +195,6 @@ class SharkInference:
     # load and return the module.
     def load_module(self, path, extra_args=[]):
         self.shark_runner = SharkRunner(
-            function_name=self.function_name,
             device=self.device,
             compile_vmfb=False,
             extra_args=extra_args,
@@ -209,6 +205,5 @@ class SharkInference:
         ) = load_flatbuffer(
             path,
             self.device,
-            self.function_name,
         )
         return

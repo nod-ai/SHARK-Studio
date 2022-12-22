@@ -148,7 +148,6 @@ class SharkModuleTester:
 
         shark_module = SharkInference(
             model,
-            func_name,
             device=device,
             mlir_dialect=self.config["dialect"],
             is_benchmark=self.benchmark,
@@ -163,7 +162,7 @@ class SharkModuleTester:
                 self.upload_repro()
             raise
 
-        result = shark_module.forward(inputs)
+        result = shark_module(func_name, inputs)
         golden_out, result = self.postprocess_outputs(golden_out, result)
         try:
             np.testing.assert_allclose(

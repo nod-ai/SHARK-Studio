@@ -21,7 +21,6 @@ import torch
 from iree.runtime import DeviceArray
 from torch_mlir._mlir_libs._mlir.ir import Module
 from torch_mlir.compiler_utils import (
-    get_module_name_for_debug_dump,
     run_pipeline_with_repro_report,
 )
 from torch_mlir.eager_mode.torch_mlir_eager_backend import (
@@ -64,14 +63,13 @@ class EagerModeIREELinalgOnTensorsBackend(TorchMLIREagerBackend):
         )
 
     def compile(self, imported_module: Module):
-        fn_name = get_module_name_for_debug_dump(imported_module)
         run_pipeline_with_repro_report(
             imported_module,
             "torch-function-to-torch-backend-pipeline,torch-backend-to-linalg-on-tensors-backend-pipeline",
             "EagerMode",
         )
         callable, _ = get_iree_compiled_module(
-            imported_module, self.raw_device_str, func_name=fn_name
+            imported_module, self.raw_device_str
         )
         return callable
 
