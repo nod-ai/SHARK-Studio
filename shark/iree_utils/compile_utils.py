@@ -234,7 +234,6 @@ def compile_module_to_flatbuffer(
     module,
     device,
     frontend,
-    func_name,
     model_config_path,
     extra_args,
     model_name="None",
@@ -277,7 +276,7 @@ def compile_module_to_flatbuffer(
     return flatbuffer_blob
 
 
-def get_iree_module(flatbuffer_blob, device, func_name):
+def get_iree_module(flatbuffer_blob, device):
     # Returns the compiled module and the configs.
     config = get_iree_runtime_config(device)
     vm_module = ireert.VmModule.from_flatbuffer(
@@ -285,7 +284,7 @@ def get_iree_module(flatbuffer_blob, device, func_name):
     )
     ctx = ireert.SystemContext(config=config)
     ctx.add_vm_module(vm_module)
-    ModuleCompiled = ctx.modules.module[func_name]
+    ModuleCompiled = ctx.modules.module
     return ModuleCompiled, config
 
 
@@ -293,25 +292,22 @@ def get_iree_compiled_module(
     module,
     device: str,
     frontend: str = "torch",
-    func_name: str = "forward",
     model_config_path: str = None,
     extra_args: list = [],
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, frontend, func_name, model_config_path, extra_args
+        module, device, frontend, model_config_path, extra_args
     )
-    return get_iree_module(flatbuffer_blob, device, func_name)
+    return get_iree_module(flatbuffer_blob, device)
 
 
-def load_flatbuffer(
-    flatbuffer_path: str, device: str, func_name: str = "forward"
-):
+def load_flatbuffer(flatbuffer_path: str, device: str):
 
     with open(os.path.join(flatbuffer_path), "rb") as f:
         flatbuffer_blob = f.read()
 
-    return get_iree_module(flatbuffer_blob, device, func_name)
+    return get_iree_module(flatbuffer_blob, device)
 
 
 def export_iree_module_to_vmfb(
@@ -319,20 +315,19 @@ def export_iree_module_to_vmfb(
     device: str,
     directory: str,
     mlir_dialect: str = "linalg",
-    func_name: str = "forward",
     model_config_path: str = None,
     module_name: str = None,
     extra_args: list = [],
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, mlir_dialect, func_name, model_config_path, extra_args
+        module, device, mlir_dialect, model_config_path, extra_args
     )
     if module_name is None:
         device_name = (
             device if "://" not in device else "-".join(device.split("://"))
         )
-        module_name = f"{mlir_dialect}_{func_name}_{device_name}"
+        module_name = f"{mlir_dialect}_{device_name}"
     filename = os.path.join(directory, module_name + ".vmfb")
     print(f"Saved vmfb in {filename}.")
     with open(filename, "wb") as f:
@@ -355,11 +350,16 @@ def export_module_to_mlir_file(module, frontend, directory: str):
 
 
 def get_results(
-    compiled_vm, input, config, frontend="torch", send_to_host=True
+    compiled_vm,
+    function_name,
+    input,
+    config,
+    frontend="torch",
+    send_to_host=True,
 ):
     """Runs a .vmfb file given inputs and config and returns output."""
     device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
-    result = compiled_vm(*device_inputs)
+    result = compiled_vm[function_name](*device_inputs)
     result_tensors = []
     if isinstance(result, tuple):
         if send_to_host:
@@ -376,7 +376,7 @@ def get_results(
             return np.copy(res)
         return data
     else:
-        if send_to_host:
+        if send_to_host and result is not None:
             return result.to_host()
         return result
 
