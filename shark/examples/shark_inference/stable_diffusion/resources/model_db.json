@@ -33,5 +33,12 @@
   "analogdiffusion/v2_1base/vae/fp16/length_77/untuned/base":"ad_vaebase_22dec_fp16",
   "analogdiffusion/v2_1base/vae/fp32/length_77/untuned":"ad_vae_19dec_fp32",
   "analogdiffusion/v2_1base/vae/fp32/length_77/untuned/base":"ad_vaebase_22dec_fp32",
-  "analogdiffusion/v2_1base/clip/fp32/length_77/untuned":"ad_clip_19dec_fp32"
+  "analogdiffusion/v2_1base/clip/fp32/length_77/untuned":"ad_clip_19dec_fp32",
+  "openjourney/v2_1base/unet/fp16/length_64/untuned":"oj_unet_22dec_fp16_64",
+  "openjourney/v2_1base/unet/fp32/length_64/untuned":"oj_unet_22dec_fp32_64",
+  "openjourney/v2_1base/vae/fp16/length_77/untuned":"oj_vae_22dec_fp16",
+  "openjourney/v2_1base/vae/fp16/length_77/untuned/base":"oj_vaebase_22dec_fp16",
+  "openjourney/v2_1base/vae/fp32/length_77/untuned":"oj_vae_22dec_fp32",
+  "openjourney/v2_1base/vae/fp32/length_77/untuned/base":"oj_vaebase_22dec_fp32",
+  "openjourney/v2_1base/clip/fp32/length_64/untuned":"oj_clip_22dec_fp32_64"
 }

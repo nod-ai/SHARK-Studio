@@ -48,6 +48,8 @@ def get_unet():
             bucket = "gs://shark_tank/sd_anythingv3"
         elif args.variant == "analogdiffusion":
             bucket = "gs://shark_tank/sd_analog_diffusion"
+        elif args.variant == "openjourney":
+            bucket = "gs://shark_tank/sd_openjourney"
         if args.precision == "fp16":
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
@@ -86,6 +88,8 @@ def get_vae():
             bucket = "gs://shark_tank/sd_anythingv3"
         elif args.variant == "analogdiffusion":
             bucket = "gs://shark_tank/sd_analog_diffusion"
+        elif args.variant == "openjourney":
+            bucket = "gs://shark_tank/sd_openjourney"
         if args.precision == "fp16":
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
@@ -113,6 +117,8 @@ def get_clip():
         bucket = "gs://shark_tank/sd_anythingv3"
     elif args.variant == "analogdiffusion":
         bucket = "gs://shark_tank/sd_analog_diffusion"
+    elif args.variant == "openjourney":
+        bucket = "gs://shark_tank/sd_openjourney"
     iree_flags += [
         "--iree-flow-linalg-ops-padding-size=16",
         "--iree-flow-enable-padding-linalg-ops",

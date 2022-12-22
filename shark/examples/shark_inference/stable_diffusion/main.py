@@ -122,7 +122,7 @@ if __name__ == "__main__":
             subfolder="scheduler",
         )
 
-    if args.version == "v2_1base":
+    if args.version == "v2_1base" and args.variant == "stablediffusion":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
         )
