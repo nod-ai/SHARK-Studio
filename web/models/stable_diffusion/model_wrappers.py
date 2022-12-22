@@ -1,57 +1,88 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from models.stable_diffusion.utils import compile_through_fx
+from models.stable_diffusion.stable_args import args
 import torch
 
 model_config = {
-    "v2": "stabilityai/stable-diffusion-2",
-    "v2.1base": "stabilityai/stable-diffusion-2-1-base",
-    "v1.4": "CompVis/stable-diffusion-v1-4",
+    "v2_1": "stabilityai/stable-diffusion-2-1",
+    "v2_1base": "stabilityai/stable-diffusion-2-1-base",
+    "v1_4": "CompVis/stable-diffusion-v1-4",
+}
+
+# clip has 2 variants of max length 77 or 64.
+model_clip_max_length = 64 if args.max_length == 64 else 77
+if args.variant != "stablediffusion":
+    model_clip_max_length = 77
+
+model_variant = {
+    "stablediffusion": "SD",
+    "anythingv3": "Linaqruf/anything-v3.0",
+    "dreamlike": "dreamlike-art/dreamlike-diffusion-1.0",
+    "openjourney": "prompthero/openjourney",
+    "analogdiffusion": "wavymulder/Analog-Diffusion",
 }
 
 model_input = {
-    "v2": {
-        "clip": (torch.randint(1, 2, (1, 77)),),
+    "v2_1": {
+        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
             torch.randn(1, 4, 96, 96),  # latents
             torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, 77, 1024),  # embedding
+            torch.randn(2, model_clip_max_length, 1024),  # embedding
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
-    "v2.1base": {
-        "clip": (torch.randint(1, 2, (1, 77)),),
+    "v2_1base": {
+        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),  # latents
             torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, 77, 1024),  # embedding
+            torch.randn(2, model_clip_max_length, 1024),  # embedding
             torch.tensor(1).to(torch.float32),  # guidance_scale
         ),
     },
-    "v1.4": {
-        "clip": (torch.randint(1, 2, (1, 77)),),
+    "v1_4": {
+        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),
             torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, 77, 768),
+            torch.randn(2, model_clip_max_length, 768),
             torch.tensor(1).to(torch.float32),
         ),
     },
 }
 
+# revision param for from_pretrained defaults to "main" => fp32
+model_revision = {
+    "stablediffusion": "fp16" if args.precision == "fp16" else "main",
+    "anythingv3": "diffusers",
+    "analogdiffusion": "main",
+}
 
-def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
+
+def get_clip_mlir(model_name="clip_text", extra_args=[]):
 
     text_encoder = CLIPTextModel.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
-    if args.version == "v2":
+    if args.variant == "stablediffusion":
+        if args.version != "v1_4":
+            text_encoder = CLIPTextModel.from_pretrained(
+                model_config[args.version], subfolder="text_encoder"
+            )
+
+    elif args.variant in ["anythingv3", "analogdiffusion"]:
         text_encoder = CLIPTextModel.from_pretrained(
-            model_config[args.version], subfolder="text_encoder"
+            model_variant[args.variant],
+            subfolder="text_encoder",
+            revision=model_revision[args.variant],
         )
+    else:
+        raise (f"{args.variant} not yet added")
 
     class CLIPText(torch.nn.Module):
         def __init__(self):
@@ -63,7 +94,6 @@ def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
 
     clip_model = CLIPText()
     shark_clip = compile_through_fx(
-        args,
         clip_model,
         model_input[args.version]["clip"],
         model_name=model_name,
@@ -72,37 +102,46 @@ def get_clip_mlir(args, model_name="clip_text", extra_args=[]):
     return shark_clip
 
 
-def get_vae_mlir(args, model_name="vae", extra_args=[]):
-    # revision param for from_pretrained defaults to "main" => fp32
-    model_revision = "fp16" if args.precision == "fp16" else "main"
-
-    class VaeModel(torch.nn.Module):
+def get_base_vae_mlir(model_name="vae", extra_args=[]):
+    class BaseVaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.vae = AutoencoderKL.from_pretrained(
-                model_config[args.version],
+                model_config[args.version]
+                if args.variant == "stablediffusion"
+                else model_variant[args.variant],
                 subfolder="vae",
-                revision=model_revision,
+                revision=model_revision[args.variant],
             )
 
         def forward(self, input):
             x = self.vae.decode(input, return_dict=False)[0]
             return (x / 2 + 0.5).clamp(0, 1)
 
-    vae = VaeModel()
-    if args.precision == "fp16":
-        vae = vae.half().cuda()
-        inputs = tuple(
-            [
-                inputs.half().cuda()
-                for inputs in model_input[args.version]["vae"]
-            ]
-        )
+    vae = BaseVaeModel()
+    if args.variant == "stablediffusion":
+        if args.precision == "fp16":
+            vae = vae.half().cuda()
+            inputs = tuple(
+                [
+                    inputs.half().cuda()
+                    for inputs in model_input[args.version]["vae"]
+                ]
+            )
+        else:
+            inputs = model_input[args.version]["vae"]
+    elif args.variant in ["anythingv3", "analogdiffusion"]:
+        if args.precision == "fp16":
+            vae = vae.half().cuda()
+            inputs = tuple(
+                [inputs.half().cuda() for inputs in model_input["v1_4"]["vae"]]
+            )
+        else:
+            inputs = model_input["v1_4"]["vae"]
     else:
-        inputs = model_input[args.version]["vae"]
+        raise (f"{args.variant} not yet added")
 
     shark_vae = compile_through_fx(
-        args,
         vae,
         inputs,
         model_name=model_name,
@@ -111,27 +150,49 @@ def get_vae_mlir(args, model_name="vae", extra_args=[]):
     return shark_vae
 
 
-def get_vae_encode_mlir(args, model_name="vae_encode", extra_args=[]):
-    class VaeEncodeModel(torch.nn.Module):
+def get_vae_mlir(model_name="vae", extra_args=[]):
+    class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.vae = AutoencoderKL.from_pretrained(
-                model_config[args.version],
+                model_config[args.version]
+                if args.variant == "stablediffusion"
+                else model_variant[args.variant],
                 subfolder="vae",
-                revision="fp16",
+                revision=model_revision[args.variant],
             )
 
-        def forward(self, x):
-            input = 2 * (x - 0.5)
-            return self.vae.encode(input, return_dict=False)[0]
+        def forward(self, input):
+            input = 1 / 0.18215 * input
+            x = self.vae.decode(input, return_dict=False)[0]
+            x = (x / 2 + 0.5).clamp(0, 1)
+            x = x * 255.0
+            return x.round()
 
-    vae = VaeEncodeModel()
-    vae = vae.half().cuda()
-    inputs = tuple(
-        [inputs.half().cuda() for inputs in model_input[args.version]["vae"]]
-    )
+    vae = VaeModel()
+    if args.variant == "stablediffusion":
+        if args.precision == "fp16":
+            vae = vae.half().cuda()
+            inputs = tuple(
+                [
+                    inputs.half().cuda()
+                    for inputs in model_input[args.version]["vae"]
+                ]
+            )
+        else:
+            inputs = model_input[args.version]["vae"]
+    elif args.variant in ["anythingv3", "analogdiffusion"]:
+        if args.precision == "fp16":
+            vae = vae.half().cuda()
+            inputs = tuple(
+                [inputs.half().cuda() for inputs in model_input["v1_4"]["vae"]]
+            )
+        else:
+            inputs = model_input["v1_4"]["vae"]
+    else:
+        raise (f"{args.variant} not yet added")
+
     shark_vae = compile_through_fx(
-        args,
         vae,
         inputs,
         model_name=model_name,
@@ -140,16 +201,16 @@ def get_vae_encode_mlir(args, model_name="vae_encode", extra_args=[]):
     return shark_vae
 
 
-def get_unet_mlir(args, model_name="unet", extra_args=[]):
-    model_revision = "fp16" if args.precision == "fp16" else "main"
-
+def get_unet_mlir(model_name="unet", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
             self.unet = UNet2DConditionModel.from_pretrained(
-                model_config[args.version],
+                model_config[args.version]
+                if args.variant == "stablediffusion"
+                else model_variant[args.variant],
                 subfolder="unet",
-                revision=model_revision,
+                revision=model_revision[args.variant],
             )
             self.in_channels = self.unet.in_channels
             self.train(False)
@@ -167,18 +228,31 @@ def get_unet_mlir(args, model_name="unet", extra_args=[]):
             return noise_pred
 
     unet = UnetModel()
-    if args.precision == "fp16":
-        unet = unet.half().cuda()
-        inputs = tuple(
-            [
-                inputs.half().cuda() if len(inputs.shape) != 0 else inputs
-                for inputs in model_input[args.version]["unet"]
-            ]
-        )
+    if args.variant == "stablediffusion":
+        if args.precision == "fp16":
+            unet = unet.half().cuda()
+            inputs = tuple(
+                [
+                    inputs.half().cuda() if len(inputs.shape) != 0 else inputs
+                    for inputs in model_input[args.version]["unet"]
+                ]
+            )
+        else:
+            inputs = model_input[args.version]["unet"]
+    elif args.variant in ["anythingv3", "analogdiffusion"]:
+        if args.precision == "fp16":
+            unet = unet.half().cuda()
+            inputs = tuple(
+                [
+                    inputs.half().cuda() if len(inputs.shape) != 0 else inputs
+                    for inputs in model_input["v1_4"]["unet"]
+                ]
+            )
+        else:
+            inputs = model_input["v1_4"]["unet"]
     else:
-        inputs = model_input[args.version]["unet"]
+        raise (f"{args.variant} is not yet added")
     shark_unet = compile_through_fx(
-        args,
         unet,
         inputs,
         model_name=model_name,

@@ -138,8 +138,8 @@ class SharkInference:
             os.system(f"rm -rf {self.temp_dispatch_benchmarks_dir}")
 
     # inputs are considered to be tuple of np.array.
-    def forward(self, inputs: tuple):
-        return self.shark_runner.run(inputs)
+    def forward(self, inputs: tuple, send_to_host=True):
+        return self.shark_runner.run(inputs, send_to_host)
 
     # Captures the static input information from the mlir_module.
     # TODO(pashu123): Generate the input information for dynamic shapes.

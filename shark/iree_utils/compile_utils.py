@@ -23,21 +23,27 @@ import re
 
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
-    if "://" in device:
-        device = device.split("://")[0]
-    if device == "cpu":
+    device_uri = device.split("://")
+    if len(device_uri) > 1:
+        if device_uri[0] not in ["vulkan"]:
+            print(
+                f"Specific device selection only supported for vulkan now."
+                f"Proceeding with {device} as device."
+            )
+
+    if device_uri[0] == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
         return get_iree_cpu_args()
-    if device == "cuda":
+    if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
-    if device in ["metal", "vulkan"]:
+    if device_uri[0] in ["metal", "vulkan"]:
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
         return get_iree_vulkan_args(extra_args=extra_args)
-    if device == "rocm":
+    if device_uri[0] == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
         return get_iree_rocm_args()
@@ -348,21 +354,31 @@ def export_module_to_mlir_file(module, frontend, directory: str):
     return filename
 
 
-def get_results(compiled_vm, input, config, frontend="torch"):
+def get_results(
+    compiled_vm, input, config, frontend="torch", send_to_host=True
+):
     """Runs a .vmfb file given inputs and config and returns output."""
     device_inputs = [ireert.asdevicearray(config.device, a) for a in input]
     result = compiled_vm(*device_inputs)
     result_tensors = []
     if isinstance(result, tuple):
-        for val in result:
-            result_tensors.append(np.copy(np.asarray(val, val.dtype)))
+        if send_to_host:
+            for val in result:
+                result_tensors.append(np.asarray(val, val.dtype))
+        else:
+            for val in result:
+                result_tensors.append(val)
         return result_tensors
     elif isinstance(result, dict):
         data = list(result.items())
-        res = np.array(data, dtype=object)
-        return np.copy(res)
+        if send_to_host:
+            res = np.array(data, dtype=object)
+            return np.copy(res)
+        return data
     else:
-        return result.to_host()
+        if send_to_host:
+            return result.to_host()
+        return result
 
 
 def get_iree_runtime_config(device):

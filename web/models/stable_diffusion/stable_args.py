@@ -4,6 +4,10 @@ p = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
 
+##############################################################################
+### Stable Diffusion Params
+##############################################################################
+
 p.add_argument(
     "--prompts",
     nargs="+",
@@ -14,12 +18,8 @@ p.add_argument(
 p.add_argument(
     "--negative-prompts",
     nargs="+",
-    default=["trees, green"],
+    default=[""],
     help="text you don't want to see in the generated image.",
-)
-
-p.add_argument(
-    "--device", type=str, default="vulkan", help="device to run the model."
 )
 
 p.add_argument(
@@ -30,31 +30,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--version",
-    type=str,
-    default="v2.1base",
-    help="Specify version of stable diffusion model",
-)
-
-p.add_argument(
     "--seed",
     type=int,
     default=42,
     help="the seed to use.",
-)
-
-p.add_argument(
-    "--height",
-    type=int,
-    default=512,
-    help="the height to use.",
-)
-
-p.add_argument(
-    "--width",
-    type=int,
-    default=512,
-    help="the width to use.",
 )
 
 p.add_argument(
@@ -65,10 +44,29 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--scheduler",
+    "--max_length",
+    type=int,
+    default=64,
+    help="max length of the tokenizer output, options are 64 and 77.",
+)
+
+##############################################################################
+### Model Config and Usage Params
+##############################################################################
+
+p.add_argument(
+    "--device", type=str, default="vulkan", help="device to run the model."
+)
+
+p.add_argument(
+    "--version",
     type=str,
-    default="EulerDiscrete",
-    help="can be [PNDM, LMSDiscrete, DDIM, DPMSolverMultistep, EulerDiscrete]",
+    default="v2_1base",
+    help="Specify version of stable diffusion model",
+)
+
+p.add_argument(
+    "--precision", type=str, default="fp16", help="precision to run the model."
 )
 
 p.add_argument(
@@ -79,22 +77,42 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--precision", type=str, default="fp16", help="precision to run the model."
-)
-
-p.add_argument(
-    "--max_length",
-    type=int,
-    default=77,
-    help="max length of the tokenizer output.",
-)
-
-p.add_argument(
-    "--cache",
+    "--load_vmfb",
     default=True,
     action=argparse.BooleanOptionalAction,
     help="attempts to load the model from a precompiled flatbuffer and compiles + saves it if not found.",
 )
+
+p.add_argument(
+    "--save_vmfb",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="saves the compiled flatbuffer to the local directory",
+)
+
+p.add_argument(
+    "--use_tuned",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Download and use the tuned version of the model if available",
+)
+
+p.add_argument(
+    "--use_base_vae",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Do conversion from the VAE output to pixel space on cpu.",
+)
+
+p.add_argument(
+    "--variant",
+    default="stablediffusion",
+    help="We now support multiple vairants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
+)
+
+##############################################################################
+### IREE - Vulkan supported flags
+##############################################################################
 
 p.add_argument(
     "--iree-vulkan-target-triple",
@@ -104,10 +122,34 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--use_tuned",
+    "--vulkan_debug_utils",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Profiles vulkan device and collects the .rdc info",
+)
+
+p.add_argument(
+    "--vulkan_large_heap_block_size",
+    default="2147483648",
+    help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
+)
+
+p.add_argument(
+    "--vulkan_validation_layers",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for disabling vulkan validation layers when benchmarking",
+)
+
+##############################################################################
+### Misc. Debug and Optimization flags
+##############################################################################
+
+p.add_argument(
+    "--use_compiled_scheduler",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="Download and use the tuned version of the model if available",
+    help="use the default scheduler precompiled into the model if available",
 )
 
 p.add_argument(
@@ -117,9 +159,54 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--vulkan_large_heap_block_size",
-    default="4294967296",
-    help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
+    "--dump_isa",
+    default=False,
+    action="store_true",
+    help="When enabled call amdllpc to get ISA dumps. use with dispatch benchmarks.",
+)
+
+p.add_argument(
+    "--dispatch_benchmarks",
+    default=None,
+    help='dispatches to return benchamrk data on.  use "All" for all, and None for none.',
+)
+
+p.add_argument(
+    "--dispatch_benchmarks_dir",
+    default="temp_dispatch_benchmarks",
+    help='directory where you want to store dispatch data generated with "--dispatch_benchmarks"',
+)
+
+p.add_argument(
+    "--enable_rgp",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for inserting debug frames between iterations for use with rgp.",
+)
+
+p.add_argument(
+    "--hide_steps",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for hiding the details of iteration/sec for each step.",
+)
+
+p.add_argument(
+    "--warmup_count",
+    type=int,
+    default=0,
+    help="flag setting warmup count for clip and vae [>= 0].",
+)
+
+##############################################################################
+### Web UI flags
+##############################################################################
+
+p.add_argument(
+    "--progress_bar",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="flag for removing the pregress bar animation during image generation",
 )
 
 args = p.parse_args()

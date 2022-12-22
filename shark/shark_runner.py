@@ -91,10 +91,11 @@ class SharkRunner:
                 extra_args=self.extra_args,
             )
 
-    def run(self, inputs: tuple):
+    def run(self, inputs: tuple, send_to_host=False):
         return get_results(
             self.iree_compilation_module,
             inputs,
             self.iree_config,
             self.mlir_dialect,
+            send_to_host,
         )

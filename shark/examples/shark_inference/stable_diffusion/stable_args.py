@@ -18,7 +18,7 @@ p.add_argument(
 p.add_argument(
     "--negative-prompts",
     nargs="+",
-    default=["trees, green"],
+    default=[""],
     help="text you don't want to see in the generated image.",
 )
 
@@ -46,8 +46,8 @@ p.add_argument(
 p.add_argument(
     "--max_length",
     type=int,
-    default=77,
-    help="max length of the tokenizer output.",
+    default=64,
+    help="max length of the tokenizer output, options are 64 and 77.",
 )
 
 ##############################################################################
@@ -55,13 +55,13 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
-    "--device", type=str, default="cpu", help="device to run the model."
+    "--device", type=str, default="vulkan", help="device to run the model."
 )
 
 p.add_argument(
     "--version",
     type=str,
-    default="v2.1base",
+    default="v2_1base",
     help="Specify version of stable diffusion model",
 )
 
@@ -97,6 +97,19 @@ p.add_argument(
     help="Download and use the tuned version of the model if available",
 )
 
+p.add_argument(
+    "--use_base_vae",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Do conversion from the VAE output to pixel space on cpu.",
+)
+
+p.add_argument(
+    "--variant",
+    default="stablediffusion",
+    help="We now support multiple vairants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
@@ -117,7 +130,7 @@ p.add_argument(
 
 p.add_argument(
     "--vulkan_large_heap_block_size",
-    default="4294967296",
+    default="2147483648",
     help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
 )
 
@@ -131,6 +144,13 @@ p.add_argument(
 ##############################################################################
 ### Misc. Debug and Optimization flags
 ##############################################################################
+
+p.add_argument(
+    "--use_compiled_scheduler",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="use the default scheduler precompiled into the model if available",
+)
 
 p.add_argument(
     "--local_tank_cache",
@@ -163,4 +183,19 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="flag for inserting debug frames between iterations for use with rgp.",
 )
+
+p.add_argument(
+    "--hide_steps",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for hiding the details of iteration/sec for each step.",
+)
+
+p.add_argument(
+    "--warmup_count",
+    type=int,
+    default=0,
+    help="flag setting warmup count for clip and vae [>= 0].",
+)
+
 args = p.parse_args()
