@@ -1,13 +1,35 @@
 import torch
+import os
 from PIL import Image
 import torchvision.transforms as T
 from tqdm.auto import tqdm
+from models.stable_diffusion.stable_args import args
+
+# This has to come before importing cache objects
+if args.clear_all:
+    print("CLEARING ALL, EXPECT SEVERAL MINUTES TO RECOMPILE")
+    from glob import glob
+    import shutil
+
+    vmfbs = glob(os.path.join(os.getcwd(), "*.vmfb"))
+    for vmfb in vmfbs:
+        if os.path.exists(vmfb):
+            os.remove(vmfb)
+    home = os.path.expanduser("~")
+    if os.name == "nt":  # Windows
+        appdata = os.getenv("LOCALAPPDATA")
+        shutil.rmtree(os.path.join(appdata, "AMD/VkCache"), ignore_errors=True)
+        shutil.rmtree(os.path.join(home, "shark_tank"), ignore_errors=True)
+    elif os.name == "unix":
+        shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
+        shutil.rmtree(os.path.join(home, ".local/shark_tank"))
+
 from models.stable_diffusion.cache_objects import (
     cache_obj,
     schedulers,
 )
+
 from models.stable_diffusion.utils import set_init_device_flags
-from models.stable_diffusion.stable_args import args
 from random import randint
 import numpy as np
 import time
@@ -47,7 +69,6 @@ def stable_diff_inf(
     seed: int,
     scheduler_key: str,
 ):
-
     # Handle out of range seeds.
     uint32_info = np.iinfo(np.uint32)
     uint32_min, uint32_max = uint32_info.min, uint32_info.max

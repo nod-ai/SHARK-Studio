@@ -17,7 +17,29 @@ from tqdm.auto import tqdm
 import numpy as np
 from random import randint
 from stable_args import args
+
+# This has to come before importing cache objects
+if args.clear_all:
+    print("CLEARING ALL, EXPECT SEVERAL MINUTES TO RECOMPILE")
+    from glob import glob
+    import shutil
+
+    vmfbs = glob(os.path.join(os.getcwd(), "*.vmfb"))
+    for vmfb in vmfbs:
+        if os.path.exists(vmfb):
+            os.remove(vmfb)
+    home = os.path.expanduser("~")
+    if os.name == "nt":  # Windows
+        appdata = os.getenv("LOCALAPPDATA")
+        shutil.rmtree(os.path.join(appdata, "AMD/VkCache"), ignore_errors=True)
+        shutil.rmtree(os.path.join(home, "shark_tank"), ignore_errors=True)
+    elif os.name == "unix":
+        shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
+        shutil.rmtree(os.path.join(home, ".local/shark_tank"))
+
+
 from utils import set_init_device_flags
+
 from opt_params import get_unet, get_vae, get_clip
 from schedulers import (
     SharkEulerDiscreteScheduler,

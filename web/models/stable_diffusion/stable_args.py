@@ -215,5 +215,11 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="flag for removing the pregress bar animation during image generation",
 )
+p.add_argument(
+    "--clear_all",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
+)
 
 args = p.parse_args()

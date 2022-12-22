@@ -205,6 +205,13 @@ p.add_argument(
     help="flag setting warmup count for clip and vae [>= 0].",
 )
 
+p.add_argument(
+    "--clear_all",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
+)
+
 ##############################################################################
 ### Web UI flags
 ##############################################################################
