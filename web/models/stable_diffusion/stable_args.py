@@ -92,7 +92,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available",
 )
@@ -108,6 +108,13 @@ p.add_argument(
     "--variant",
     default="stablediffusion",
     help="We now support multiple vairants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
+)
+
+p.add_argument(
+    "--scheduler",
+    type=str,
+    default="SharkEulerDiscrete",
+    help="other supported schedulers are [PNDM, DDIM, LMSDiscrete, EulerDiscrete, DPMSolverMultistep]",
 )
 
 ##############################################################################
@@ -186,7 +193,7 @@ p.add_argument(
 
 p.add_argument(
     "--hide_steps",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for hiding the details of iteration/sec for each step.",
 )

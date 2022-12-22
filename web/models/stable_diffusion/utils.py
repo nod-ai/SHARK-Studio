@@ -1,5 +1,4 @@
 import os
-
 import torch
 from shark.shark_inference import SharkInference
 from models.stable_diffusion.stable_args import args
@@ -74,7 +73,7 @@ def compile_through_fx(model, inputs, model_name, extra_args=[]):
     return _compile_module(shark_module, model_name, extra_args)
 
 
-def set_iree_runtime_flags():
+def set_vulkan_runtime_flags():
 
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
@@ -85,10 +84,7 @@ def set_iree_runtime_flags():
             f"--enable_rgp=true",
             f"--vulkan_debug_utils=true",
         ]
-    if "vulkan" in args.device:
-        set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
-
-    return
+    set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
 
 def set_init_device_flags():
@@ -168,23 +164,29 @@ def set_init_device_flags():
         return device_mapping
 
     if "vulkan" in args.device:
-        name, args.device = map_device_to_name_path(args.device)
-        triple = get_vulkan_target_triple(name)
-        print(f"Found device {name}. Using target triple {triple}")
+        # set runtime flags for vulkan.
+        set_vulkan_runtime_flags()
+
         # set triple flag to avoid multiple calls to get_vulkan_triple_flag
-        if args.iree_vulkan_target_triple == "" and triple is not None:
-            args.iree_vulkan_target_triple = triple
-
-        # use tuned models only in the case of rdna3 cards.
+        device_name, args.device = map_device_to_name_path(args.device)
         if not args.iree_vulkan_target_triple:
-            if triple is not None and "rdna3" not in triple:
-                args.use_tuned = False
-        elif "rdna3" not in args.iree_vulkan_target_triple:
-            args.use_tuned = False
+            triple = get_vulkan_target_triple(device_name)
+            if triple is not None:
+                args.iree_vulkan_target_triple = triple
+        print(
+            f"Found device {device_name}. Using target triple {args.iree_vulkan_target_triple}."
+        )
 
+    # use tuned models only in the case of stablediffusion/fp16 and rdna3 cards.
+    if (
+        args.variant != "stablediffusion"
+        or args.precision != "fp16"
+        or "vulkan" not in args.device
+        or "rdna3" not in args.iree_vulkan_target_triple
+    ):
         if args.use_tuned:
-            print("Using tuned models for rdna3 card")
-    else:
-        if args.use_tuned:
-            print("Tuned models not currently supported for device")
             args.use_tuned = False
+            print("Tuned models are currently not supported for this setting.")
+
+    if args.use_tuned:
+        print("Using tuned models for stablediffusion/fp16 and rdna3 card.")
