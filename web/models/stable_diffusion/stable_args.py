@@ -16,7 +16,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--negative-prompts",
+    "--negative_prompts",
     nargs="+",
     default=[""],
     help="text you don't want to see in the generated image.",
@@ -32,7 +32,7 @@ p.add_argument(
 p.add_argument(
     "--seed",
     type=int,
-    default=42,
+    default=-1,
     help="the seed to use.",
 )
 

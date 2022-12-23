@@ -1,14 +1,12 @@
 import os
 
 os.environ["AMD_ENABLE_LLPC"] = "1"
+import gradio as gr
+from PIL import Image
 from models.stable_diffusion.resources import resource_path, prompt_examples
 from models.stable_diffusion.main import stable_diff_inf
 from models.stable_diffusion.stable_args import args
-
-
-# from models.diffusion.v_diffusion import vdiff_inf
-import gradio as gr
-from PIL import Image
+from models.stable_diffusion.utils import get_available_devices
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
 sdlogo_loc = resource_path("logos/sd-demo-logo.png")
@@ -34,32 +32,6 @@ demo_css = """
 
 footer {display: none !important;}
 """
-
-# get list of devices available.
-def get_available_devices():
-    def get_devices_by_name(driver_name):
-        from shark.iree_utils._common import iree_device_map
-        from iree.runtime import get_driver
-
-        device_list = []
-        try:
-            driver_name = iree_device_map(driver_name)
-            driver = get_driver(driver_name)
-            device_list_dict = driver.query_available_devices()
-        except:
-            print(f"{driver_name} devices are not available.")
-        else:
-            device_list_dict.sort(key=lambda d: d["path"])
-            for i, device in enumerate(device_list_dict):
-                device_list.append(f"{driver_name}://{i} => {device['name']}")
-        return device_list
-
-    available_devices = ["cpu"]
-    vulkan_devices = get_devices_by_name("vulkan")
-    available_devices.extend(vulkan_devices)
-    cuda_devices = get_devices_by_name("cuda")
-    available_devices.extend(cuda_devices)
-    return available_devices
 
 
 with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
@@ -123,7 +95,6 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         ],
                     )
                 with gr.Row():
-                    seed = gr.Number(value=-1, precision=0, label="Seed")
                     steps = gr.Slider(1, 100, value=50, step=1, label="Steps")
                     guidance_scale = gr.Slider(
                         0,
@@ -132,11 +103,13 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         step=0.1,
                         label="CFG Scale",
                     )
+                with gr.Row():
+                    seed = gr.Number(value=-1, precision=0, label="Seed")
+                    available_devices = get_available_devices()
                     device_key = gr.Dropdown(
                         label="Device",
-                        value="vulkan",
-                        choices=["vulkan"],
-                        visible=False,
+                        value=available_devices[0],
+                        choices=available_devices,
                     )
                 with gr.Row():
                     random_seed = gr.Button("Randomize Seed")
