@@ -55,7 +55,6 @@ def set_ui_params(
     seed,
     scheduler_key,
     variant,
-    device_key,
 ):
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -93,7 +92,6 @@ def stable_diff_inf(
         seed,
         scheduler_key,
         variant,
-        device_key,
     )
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     generator = torch.manual_seed(
@@ -115,7 +113,7 @@ def stable_diff_inf(
     ).to(dtype)
 
     # get all cached data.
-    model_cache.set_models()
+    model_cache.set_models(device_key)
     tokenizer = model_cache.tokenizer
     scheduler = model_cache.schedulers[args.scheduler]
     vae, unet, clip = model_cache.vae, model_cache.unet, model_cache.clip
