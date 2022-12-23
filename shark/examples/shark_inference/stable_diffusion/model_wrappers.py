@@ -14,7 +14,7 @@ model_config = {
 model_clip_max_length = 64 if args.max_length == 64 else 77
 if args.variant in ["anythingv3", "analogdiffusion"]:
     model_clip_max_length = 77
-elif args.variant == "openjourney":
+elif args.variant in ["openjourney", "dreamlike"]:
     model_clip_max_length = 64
 
 model_variant = {
@@ -64,6 +64,7 @@ model_revision = {
     "anythingv3": "diffusers",
     "analogdiffusion": "main",
     "openjourney": "main",
+    "dreamlike": "main",
 }
 
 
@@ -78,7 +79,12 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
                 model_config[args.version], subfolder="text_encoder"
             )
 
-    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
+    elif args.variant in [
+        "anythingv3",
+        "analogdiffusion",
+        "openjourney",
+        "dreamlike",
+    ]:
         text_encoder = CLIPTextModel.from_pretrained(
             model_variant[args.variant],
             subfolder="text_encoder",
@@ -133,7 +139,12 @@ def get_base_vae_mlir(model_name="vae", extra_args=[]):
             )
         else:
             inputs = model_input[args.version]["vae"]
-    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
+    elif args.variant in [
+        "anythingv3",
+        "analogdiffusion",
+        "openjourney",
+        "dreamlike",
+    ]:
         if args.precision == "fp16":
             vae = vae.half().cuda()
             inputs = tuple(
@@ -184,7 +195,12 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
             )
         else:
             inputs = model_input[args.version]["vae"]
-    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
+    elif args.variant in [
+        "anythingv3",
+        "analogdiffusion",
+        "openjourney",
+        "dreamlike",
+    ]:
         if args.precision == "fp16":
             vae = vae.half().cuda()
             inputs = tuple(
@@ -242,7 +258,12 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             )
         else:
             inputs = model_input[args.version]["unet"]
-    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
+    elif args.variant in [
+        "anythingv3",
+        "analogdiffusion",
+        "openjourney",
+        "dreamlike",
+    ]:
         if args.precision == "fp16":
             unet = unet.half().cuda()
             inputs = tuple(

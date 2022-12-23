@@ -181,9 +181,9 @@ def set_init_device_flags():
         args.device = "cpu"
 
     # set max_length based on availability.
-    if args.variant in ["anythingv3", "analogdiffusion"]:
+    if args.variant in ["anythingv3", "analogdiffusion", "dreamlike"]:
         args.max_length = 77
-    elif args.variant == "openjourney":
+    elif args.variant  == "openjourney":
         args.max_length = 64
 
     # use tuned models only in the case of stablediffusion/fp16 and rdna3 cards.
