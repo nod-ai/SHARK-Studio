@@ -5,6 +5,7 @@ from diffusers import (
     DDIMScheduler,
     DPMSolverMultistepScheduler,
     EulerDiscreteScheduler,
+    EulerAncestralDiscreteScheduler,
 )
 from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
 from models.stable_diffusion.utils import (
@@ -26,6 +27,36 @@ model_config = {
     "v1_4": "CompVis/stable-diffusion-v1-4",
 }
 
+schedulers = dict()
+schedulers["PNDM"] = PNDMScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["LMSDiscrete"] = LMSDiscreteScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["DDIM"] = DDIMScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["DPMSolverMultistep"] = DPMSolverMultistepScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["EulerAncestral"] = EulerAncestralDiscreteScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["SharkEulerDiscrete"] = SharkEulerDiscreteScheduler.from_pretrained(
+    model_config[args.version],
+    subfolder="scheduler",
+)
+schedulers["SharkEulerDiscrete"].compile()
 
 def get_schedulers(version):
     schedulers = dict()

@@ -91,6 +91,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                             "LMSDiscrete",
                             "DPMSolverMultistep",
                             "EulerDiscrete",
+                            "EulerAncestral",
                             "SharkEulerDiscrete",
                         ],
                     )
