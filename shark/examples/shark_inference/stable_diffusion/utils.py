@@ -188,7 +188,7 @@ def set_init_device_flags():
 
     # use tuned models only in the case of stablediffusion/fp16 and rdna3 cards.
     if (
-        args.variant == "openjourney"
+        args.variant in ["openjourney", "dreamlike"]
         or args.precision != "fp16"
         or "vulkan" not in args.device
         or "rdna3" not in args.iree_vulkan_target_triple

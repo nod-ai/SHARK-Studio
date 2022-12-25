@@ -7,7 +7,8 @@
     "analogdiffusion/untuned":"gs://shark_tank/sd_analog_diffusion",
     "analogdiffusion/tuned":"gs://shark_tank/sd_tuned",
     "openjourney/untuned":"gs://shark_tank/sd_openjourney",
-    "openjourney/tuned":"gs://shark_tank/sd_tuned"
+    "openjourney/tuned":"gs://shark_tank/sd_tuned",
+    "dreamlike/untuned":"gs://shark_tank/sd_dreamlike_diffusion"
   },
   {
     "stablediffusion/v1_4/unet/fp16/length_77/untuned":"unet_8dec_fp16",
@@ -55,6 +56,13 @@
     "openjourney/v2_1base/vae/fp16/length_77/untuned/base":"oj_vaebase_22dec_fp16",
     "openjourney/v2_1base/vae/fp32/length_77/untuned":"oj_vae_22dec_fp32",
     "openjourney/v2_1base/vae/fp32/length_77/untuned/base":"oj_vaebase_22dec_fp32",
-    "openjourney/v2_1base/clip/fp32/length_64/untuned":"oj_clip_22dec_fp32_64"
+    "openjourney/v2_1base/clip/fp32/length_64/untuned":"oj_clip_22dec_fp32_64",
+    "dreamlike/v2_1base/unet/fp16/length_77/untuned":"dl_unet_23dec_fp16_77",
+    "dreamlike/v2_1base/unet/fp32/length_77/untuned":"dl_unet_23dec_fp32_77",
+    "dreamlike/v2_1base/vae/fp16/length_77/untuned":"dl_vae_23dec_fp16",
+    "dreamlike/v2_1base/vae/fp16/length_77/untuned/base":"dl_vaebase_23dec_fp16",
+    "dreamlike/v2_1base/vae/fp32/length_77/untuned":"dl_vae_23dec_fp32",
+    "dreamlike/v2_1base/vae/fp32/length_77/untuned/base":"dl_vaebase_23dec_fp32",
+    "dreamlike/v2_1base/clip/fp32/length_77/untuned":"dl_clip_23dec_fp32_77"
   }
 ]
