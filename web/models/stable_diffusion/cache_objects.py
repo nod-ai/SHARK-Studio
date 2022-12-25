@@ -27,6 +27,7 @@ model_config = {
     "v1_4": "CompVis/stable-diffusion-v1-4",
 }
 
+
 def get_schedulers(version):
     schedulers = dict()
     schedulers["PNDM"] = PNDMScheduler.from_pretrained(
