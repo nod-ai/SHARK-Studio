@@ -88,6 +88,8 @@ class ModelCache:
             self.variant = args.variant
             self.version = args.version
             args.device = device_key.split("=>", 1)[0].strip()
+            args.max_length = 64
+            args.use_tuned = True
             set_init_device_flags()
             self.schedulers = get_schedulers(args.version)
             self.tokenizer = get_tokenizer(args.version)
