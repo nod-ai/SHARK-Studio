@@ -12,9 +12,9 @@ model_config = {
 
 # clip has 2 variants of max length 77 or 64.
 model_clip_max_length = 64 if args.max_length == 64 else 77
-if args.variant in ["anythingv3", "analogdiffusion"]:
+if args.variant in ["anythingv3", "analogdiffusion", "dreamlike"]:
     model_clip_max_length = 77
-elif args.variant in ["openjourney", "dreamlike"]:
+elif args.variant == "openjourney":
     model_clip_max_length = 64
 
 model_variant = {
