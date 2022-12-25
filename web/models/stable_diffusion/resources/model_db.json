@@ -7,7 +7,6 @@
     "analogdiffusion/untuned":"gs://shark_tank/sd_analog_diffusion",
     "analogdiffusion/tuned":"gs://shark_tank/sd_tuned",
     "openjourney/untuned":"gs://shark_tank/sd_openjourney",
-    "openjourney/tuned":"gs://shark_tank/sd_tuned",
     "dreamlike/untuned":"gs://shark_tank/sd_dreamlike_diffusion"
   },
   {

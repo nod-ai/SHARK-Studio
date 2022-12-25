@@ -88,6 +88,7 @@ class ModelCache:
             self.variant = args.variant
             self.version = args.version
             args.device = device_key.split("=>", 1)[0].strip()
+            args.iree_vulkan_target_triple = ""
             args.max_length = 64
             args.use_tuned = True
             set_init_device_flags()

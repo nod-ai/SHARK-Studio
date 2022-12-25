@@ -123,7 +123,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         _js="() => Math.floor(Math.random() * 4294967295)",
                     )
                     stable_diffusion = gr.Button("Generate Image")
-                with gr.Accordion(label="Prompt Examples!"):
+                with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
                         inputs=prompt,

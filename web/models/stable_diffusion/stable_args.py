@@ -16,7 +16,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--negative-prompts",
+    "--negative_prompts",
     nargs="+",
     default=[""],
     help="text you don't want to see in the generated image.",
@@ -122,7 +122,7 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
-    "--iree-vulkan-target-triple",
+    "--iree_vulkan_target_triple",
     type=str,
     default="",
     help="Specify target triple for vulkan",
