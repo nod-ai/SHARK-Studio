@@ -33,7 +33,7 @@ def get_params(bucket_key, model_key, model, is_tuned, precision):
         ]
     except KeyError:
         raise Exception(
-            f"{bucket}/{model_key} is not present in the models database"
+            f" there is no entry for {model_key} in the models database"
         )
 
     if (
