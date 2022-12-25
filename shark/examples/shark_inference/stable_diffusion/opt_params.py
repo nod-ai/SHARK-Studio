@@ -40,7 +40,7 @@ def get_unet():
     model_key = f"{args.variant}/{args.version}/unet/{args.precision}/length_{args.max_length}{is_tuned}"
     model_name, iree_flags = get_params(model_key)
     if args.use_tuned:
-        bucket = "gs://shark_tank/vivian"
+        bucket = "gs://shark_tank/sd_tuned"
         return get_shark_model(bucket, model_name, iree_flags)
     else:
         bucket = "gs://shark_tank/stable_diffusion"
@@ -74,7 +74,7 @@ def get_vae():
     model_key = f"{args.variant}/{args.version}/vae/{args.precision}/length_77{is_tuned}{is_base}"
     model_name, iree_flags = get_params(model_key)
     if args.use_tuned:
-        bucket = "gs://shark_tank/vivian"
+        bucket = "gs://shark_tank/sd_tuned"
         iree_flags += [
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
