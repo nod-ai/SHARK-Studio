@@ -14,7 +14,7 @@ if BATCH_SIZE != 1:
     sys.exit("Only batch size 1 is supported.")
 
 
-def get_params(model_key):
+def get_params(bucket_key, model_key):
     iree_flags = []
     if len(args.iree_vulkan_target_triple) > 0:
         iree_flags.append(
@@ -26,30 +26,25 @@ def get_params(model_key):
         iree_flags.append("-iree-stream-fuse-binding=false")
 
     try:
-        model_name = models_db[model_key]
+        bucket = models_db[0][bucket_key]
+        model_name = models_db[1][model_key]
     except KeyError:
-        raise Exception(f"{model_key} is not present in the models database")
+        raise Exception(
+            f"{bucket}/{model_key} is not present in the models database"
+        )
 
-    return model_name, iree_flags
+    return bucket, model_name, iree_flags
 
 
 def get_unet():
     # Tuned model is present only for `fp16` precision.
     is_tuned = "/tuned" if args.use_tuned else "/untuned"
-    variant_version = args.variant
+    bucket_key = f"{args.variant}{is_tuned}"
     model_key = f"{args.variant}/{args.version}/unet/{args.precision}/length_{args.max_length}{is_tuned}"
-    model_name, iree_flags = get_params(model_key)
+    bucket, model_name, iree_flags = get_params(bucket_key, model_key)
     if args.use_tuned:
-        bucket = "gs://shark_tank/sd_tuned"
         return get_shark_model(bucket, model_name, iree_flags)
     else:
-        bucket = "gs://shark_tank/stable_diffusion"
-        if args.variant == "anythingv3":
-            bucket = "gs://shark_tank/sd_anythingv3"
-        elif args.variant == "analogdiffusion":
-            bucket = "gs://shark_tank/sd_analog_diffusion"
-        elif args.variant == "openjourney":
-            bucket = "gs://shark_tank/sd_openjourney"
         if args.precision == "fp16":
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
@@ -76,10 +71,10 @@ def get_vae():
     # Tuned model is present only for `fp16` precision.
     is_tuned = "/tuned" if args.use_tuned else "/untuned"
     is_base = "/base" if args.use_base_vae else ""
+    bucket_key = f"{args.variant}{is_tuned}"
     model_key = f"{args.variant}/{args.version}/vae/{args.precision}/length_77{is_tuned}{is_base}"
-    model_name, iree_flags = get_params(model_key)
+    bucket, model_name, iree_flags = get_params(bucket_key, model_key)
     if args.use_tuned:
-        bucket = "gs://shark_tank/sd_tuned"
         iree_flags += [
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
@@ -88,13 +83,6 @@ def get_vae():
         ]
         return get_shark_model(bucket, model_name, iree_flags)
     else:
-        bucket = "gs://shark_tank/stable_diffusion"
-        if args.variant == "anythingv3":
-            bucket = "gs://shark_tank/sd_anythingv3"
-        elif args.variant == "analogdiffusion":
-            bucket = "gs://shark_tank/sd_analog_diffusion"
-        elif args.variant == "openjourney":
-            bucket = "gs://shark_tank/sd_openjourney"
         if args.precision == "fp16":
             iree_flags += [
                 "--iree-flow-enable-padding-linalg-ops",
@@ -115,15 +103,9 @@ def get_vae():
 
 
 def get_clip():
+    bucket_key = f"{args.variant}/untuned"
     model_key = f"{args.variant}/{args.version}/clip/fp32/length_{args.max_length}/untuned"
-    model_name, iree_flags = get_params(model_key)
-    bucket = "gs://shark_tank/stable_diffusion"
-    if args.variant == "anythingv3":
-        bucket = "gs://shark_tank/sd_anythingv3"
-    elif args.variant == "analogdiffusion":
-        bucket = "gs://shark_tank/sd_analog_diffusion"
-    elif args.variant == "openjourney":
-        bucket = "gs://shark_tank/sd_openjourney"
+    bucket, model_name, iree_flags = get_params(bucket_key, model_key)
     iree_flags += [
         "--iree-flow-linalg-ops-padding-size=16",
         "--iree-flow-enable-padding-linalg-ops",

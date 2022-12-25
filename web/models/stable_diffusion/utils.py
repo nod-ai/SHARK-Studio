@@ -181,7 +181,6 @@ def set_init_device_flags():
         args.device = "cpu"
 
     # set max_length based on availability.
-    args.max_length = 64
     if args.variant in ["anythingv3", "analogdiffusion"]:
         args.max_length = 77
     elif args.variant == "openjourney":
@@ -201,8 +200,7 @@ def set_init_device_flags():
         args.use_tuned = False
         print("Tuned models are currently not supported for this setting.")
 
-    else:
-        args.use_tuned = True
+    if args.use_tuned:
         print("Using tuned models for stablediffusion/fp16 and rdna3 card.")
 
 
