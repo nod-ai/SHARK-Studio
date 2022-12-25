@@ -81,9 +81,6 @@ def stable_diff_inf(
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
 
-    if variant != "stablediffusion":
-        args.max_length = 77
-
     set_ui_params(
         prompt,
         negative_prompt,
@@ -105,6 +102,13 @@ def stable_diff_inf(
         height = 768
         width = 768
 
+    # get all cached data.
+    model_cache.set_models(device_key)
+    tokenizer = model_cache.tokenizer
+    scheduler = model_cache.schedulers[args.scheduler]
+    vae, unet, clip = model_cache.vae, model_cache.unet, model_cache.clip
+    cpu_scheduling = not args.scheduler.startswith("Shark")
+
     # create a random initial latent.
     latents = torch.randn(
         (1, 4, height // 8, width // 8),
@@ -112,12 +116,13 @@ def stable_diff_inf(
         dtype=torch.float32,
     ).to(dtype)
 
-    # get all cached data.
-    model_cache.set_models(device_key)
-    tokenizer = model_cache.tokenizer
-    scheduler = model_cache.schedulers[args.scheduler]
-    vae, unet, clip = model_cache.vae, model_cache.unet, model_cache.clip
-    cpu_scheduling = not args.scheduler.startswith("Shark")
+    # Warmup phase to improve performance.
+    if args.warmup_count >= 1:
+        vae_warmup_input = torch.clone(latents).detach().numpy()
+        clip_warmup_input = torch.randint(1, 2, (2, args.max_length))
+    for i in range(args.warmup_count):
+        vae.forward((vae_warmup_input,))
+        clip.forward((clip_warmup_input,))
 
     start = time.time()
     text_input = tokenizer(

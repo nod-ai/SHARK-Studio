@@ -16,7 +16,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--negative_prompts",
+    "--negative-prompts",
     nargs="+",
     default=[""],
     help="text you don't want to see in the generated image.",
@@ -32,7 +32,7 @@ p.add_argument(
 p.add_argument(
     "--seed",
     type=int,
-    default=-1,
+    default=42,
     help="the seed to use.",
 )
 
@@ -201,8 +201,15 @@ p.add_argument(
 p.add_argument(
     "--warmup_count",
     type=int,
-    default=0,
+    default=5,
     help="flag setting warmup count for clip and vae [>= 0].",
+)
+
+p.add_argument(
+    "--clear_all",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
 )
 
 ##############################################################################
@@ -214,12 +221,6 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for removing the pregress bar animation during image generation",
-)
-p.add_argument(
-    "--clear_all",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
 )
 
 args = p.parse_args()

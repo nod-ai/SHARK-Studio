@@ -12,8 +12,10 @@ model_config = {
 
 # clip has 2 variants of max length 77 or 64.
 model_clip_max_length = 64 if args.max_length == 64 else 77
-if args.variant != "stablediffusion":
+if args.variant in ["anythingv3", "analogdiffusion"]:
     model_clip_max_length = 77
+elif args.variant == "openjourney":
+    model_clip_max_length = 64
 
 model_variant = {
     "stablediffusion": "SD",
@@ -61,6 +63,7 @@ model_revision = {
     "stablediffusion": "fp16" if args.precision == "fp16" else "main",
     "anythingv3": "diffusers",
     "analogdiffusion": "main",
+    "openjourney": "main",
 }
 
 
@@ -75,14 +78,14 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
                 model_config[args.version], subfolder="text_encoder"
             )
 
-    elif args.variant in ["anythingv3", "analogdiffusion"]:
+    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
         text_encoder = CLIPTextModel.from_pretrained(
             model_variant[args.variant],
             subfolder="text_encoder",
             revision=model_revision[args.variant],
         )
     else:
-        raise (f"{args.variant} not yet added")
+        raise ValueError(f"{args.variant} not yet added")
 
     class CLIPText(torch.nn.Module):
         def __init__(self):
@@ -130,7 +133,7 @@ def get_base_vae_mlir(model_name="vae", extra_args=[]):
             )
         else:
             inputs = model_input[args.version]["vae"]
-    elif args.variant in ["anythingv3", "analogdiffusion"]:
+    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
         if args.precision == "fp16":
             vae = vae.half().cuda()
             inputs = tuple(
@@ -139,7 +142,7 @@ def get_base_vae_mlir(model_name="vae", extra_args=[]):
         else:
             inputs = model_input["v1_4"]["vae"]
     else:
-        raise (f"{args.variant} not yet added")
+        raise ValueError(f"{args.variant} not yet added")
 
     shark_vae = compile_through_fx(
         vae,
@@ -181,7 +184,7 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
             )
         else:
             inputs = model_input[args.version]["vae"]
-    elif args.variant in ["anythingv3", "analogdiffusion"]:
+    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
         if args.precision == "fp16":
             vae = vae.half().cuda()
             inputs = tuple(
@@ -190,7 +193,7 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
         else:
             inputs = model_input["v1_4"]["vae"]
     else:
-        raise (f"{args.variant} not yet added")
+        raise ValueError(f"{args.variant} not yet added")
 
     shark_vae = compile_through_fx(
         vae,
@@ -239,7 +242,7 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             )
         else:
             inputs = model_input[args.version]["unet"]
-    elif args.variant in ["anythingv3", "analogdiffusion"]:
+    elif args.variant in ["anythingv3", "analogdiffusion", "openjourney"]:
         if args.precision == "fp16":
             unet = unet.half().cuda()
             inputs = tuple(
@@ -251,7 +254,7 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
         else:
             inputs = model_input["v1_4"]["unet"]
     else:
-        raise (f"{args.variant} is not yet added")
+        raise ValueError(f"{args.variant} is not yet added")
     shark_unet = compile_through_fx(
         unet,
         inputs,
