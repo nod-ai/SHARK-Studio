@@ -18,9 +18,6 @@ from models.stable_diffusion.schedulers import (
 )
 
 
-# set iree runtime flags. This should be the very first thing in the program.
-set_iree_runtime_flags()
-
 model_config = {
     "v2_1": "stabilityai/stable-diffusion-2-1",
     "v2_1base": "stabilityai/stable-diffusion-2-1-base",
@@ -53,7 +50,7 @@ def get_schedulers(version):
         subfolder="scheduler",
     )
     schedulers[
-        "EulerAncestral"
+        "EulerAncestralDiscrete"
     ] = EulerAncestralDiscreteScheduler.from_pretrained(
         model_config[version],
         subfolder="scheduler",
@@ -82,18 +79,18 @@ class ModelCache:
         self.device = None
         self.variant = None
         self.version = None
-        self.schedulers = get_schedulers(args.version)
-        self.tokenizer = get_tokenizer(args.version)
+        self.schedulers = None
+        self.tokenizer = None
 
     def set_models(self, device_key):
-        set_iree_runtime_flags()
         if self.device != device_key or self.variant != args.variant:
             self.device = device_key
             self.variant = args.variant
             self.version = args.version
             args.device = device_key.split("=>", 1)[0].strip()
-            args.use_tuned = True
             set_init_device_flags()
+            self.schedulers = get_schedulers(args.version)
+            self.tokenizer = get_tokenizer(args.version)
             self.vae = get_vae()
             self.unet = get_unet()
             self.clip = get_clip()

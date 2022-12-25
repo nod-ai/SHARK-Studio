@@ -14,6 +14,8 @@ model_config = {
 model_clip_max_length = 64 if args.max_length == 64 else 77
 if args.variant in ["anythingv3", "analogdiffusion"]:
     model_clip_max_length = 77
+elif args.variant == "openjourney":
+    model_clip_max_length = 64
 
 model_variant = {
     "stablediffusion": "SD",
