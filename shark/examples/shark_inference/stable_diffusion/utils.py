@@ -175,13 +175,18 @@ def set_init_device_flags():
         print(
             f"Found device {device_name}. Using target triple {args.iree_vulkan_target_triple}."
         )
+    elif "cuda" in args.device:
+        args.device = "cuda"
+    elif "cpu" in args.device:
+        args.device = "cpu"
 
-    args.max_length = 64
-    if args.variant != "stablediffusion":
+    # set max_length based on availability.
+    if args.variant in ["anythingv3", "analogdiffusion"]:
         args.max_length = 77
+    elif args.variant == "openjourney":
+        args.max_length = 64
 
     # use tuned models only in the case of stablediffusion/fp16 and rdna3 cards.
-    args.use_tuned = True
     if (
         args.variant == "openjourney"
         or args.precision != "fp16"
@@ -195,7 +200,7 @@ def set_init_device_flags():
         args.use_tuned = False
         print("Tuned models are currently not supported for this setting.")
 
-    else:
+    if args.use_tuned:
         print("Using tuned models for stablediffusion/fp16 and rdna3 card.")
 
 
