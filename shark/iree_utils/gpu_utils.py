@@ -25,7 +25,8 @@ def get_iree_gpu_args():
     # TODO: Give the user_interface to pass the sm_arch.
     sm_arch = get_cuda_sm_cc()
     if (
-        sm_arch in ["sm_70", "sm_72", "sm_75", "sm_80", "sm_84", "sm_86"]
+        sm_arch
+        in ["sm_70", "sm_72", "sm_75", "sm_80", "sm_84", "sm_86", "sm_89"]
     ) and (shark_args.enable_tf32 == True):
         return [
             "--iree-hal-cuda-disable-loop-nounroll-wa",
@@ -56,7 +57,7 @@ CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE = 36
 
 
 def get_cuda_sm_cc():
-    libnames = ("libcuda.so", "libcuda.dylib", "cuda.dll")
+    libnames = ("libcuda.so", "libcuda.dylib", "nvcuda.dll")
     for libname in libnames:
         try:
             cuda = ctypes.CDLL(libname)
