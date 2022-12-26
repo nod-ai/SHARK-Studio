@@ -151,8 +151,8 @@ if __name__ == "__main__":
         vae_warmup_input = torch.clone(latents).detach().numpy()
         clip_warmup_input = torch.randint(1, 2, (2, args.max_length))
     for i in range(args.warmup_count):
-        vae.forward((vae_warmup_input,))
-        clip.forward((clip_warmup_input,))
+        vae("forward", (vae_warmup_input,))
+        clip("forward", (clip_warmup_input,))
 
     start = time.time()
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     text_input = torch.cat([uncond_input.input_ids, text_input.input_ids])
 
     clip_inf_start = time.time()
-    text_embeddings = clip.forward((text_input,))
+    text_embeddings = clip("forward", (text_input,))
     clip_inf_end = time.time()
     text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     text_embeddings_numpy = text_embeddings.detach().numpy()
@@ -196,7 +196,8 @@ if __name__ == "__main__":
 
         profile_device = start_profiling(file_path="unet.rdc")
 
-        noise_pred = unet.forward(
+        noise_pred = unet(
+            "forward",
             (
                 latent_model_input,
                 timestep,
@@ -227,7 +228,7 @@ if __name__ == "__main__":
         latents_numpy = latents.detach().numpy()
     profile_device = start_profiling(file_path="vae.rdc")
     vae_start = time.time()
-    images = vae.forward((latents_numpy,))
+    images = vae("forward", (latents_numpy,))
     vae_end = time.time()
     end_profiling(profile_device)
     if args.use_base_vae:

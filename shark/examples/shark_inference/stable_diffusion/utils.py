@@ -53,7 +53,7 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
         frontend="torch",
     )
     shark_module = SharkInference(
-        mlir_model, func_name, device=args.device, mlir_dialect="linalg"
+        mlir_model, device=args.device, mlir_dialect="linalg"
     )
     return _compile_module(shark_module, model_name, extra_args)
 
@@ -65,7 +65,6 @@ def compile_through_fx(model, inputs, model_name, extra_args=[]):
 
     shark_module = SharkInference(
         mlir_module,
-        func_name,
         device=args.device,
         mlir_dialect="linalg",
     )
