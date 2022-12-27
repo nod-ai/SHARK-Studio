@@ -27,5 +27,5 @@ if os.path.exists(models_loc):
     with open(models_loc, encoding="utf-8") as fopen:
         models_db = json.load(fopen)
 
-if len(models_db) != 2:
+if len(models_db) != 3:
     sys.exit("Error: Unable to load models database.")
