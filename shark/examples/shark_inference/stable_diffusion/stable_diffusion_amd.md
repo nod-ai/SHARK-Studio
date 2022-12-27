@@ -6,7 +6,7 @@ If it works well for you, please "star" the following GitHub projects... this is
 * https://github.com/nod-ai/SHARK
 * https://github.com/iree-org/iree
 
-## Install the latest AMD Drivers
+## Install this specific AMD Drivers (AMD latest may not have all the fixes).
 
 ### AMD KB Drivers for RDNA2 and RDNA3:
 
@@ -21,12 +21,13 @@ KNOWN ISSUES with this special AMD driver:
 
 ## Installation
 
-Download the latest Windows SHARK SD binary [here](https://github.com/nod-ai/SHARK/releases/download/20221220.400/shark_sd_20221220_400.exe) in a folder of your choice. Please read carefully the following notes:
+Download the latest Windows SHARK SD binary [here](https://github.com/nod-ai/SHARK/releases/download/20221227.417/shark_sd_20221227_417.exe) in a folder of your choice. Please read carefully the following notes:
 
 Notes:
-* We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR, that can get outdated if you run multiple EXE from the same folder.
+* We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR, that can get outdated if you run multiple EXE from the same folder. You can use `--clean_all` flag once to clean all the old files. 
 * Your browser may warn you about downloading an .exe file
 * If you recently updated the driver or this binary (EXE file), we recommend you:
+  * clear all the local artifacts with `--clean_all` OR 
   * clear the Vulkan shader cache: For Windows users this can be done by clearing the contents of `C:\Users\<username>\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
   * clear the `huggingface` cache. In Windows, this is `C:\Users\<username>\.cache\huggingface`.
 
