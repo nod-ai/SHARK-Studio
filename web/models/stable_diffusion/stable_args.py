@@ -201,7 +201,7 @@ p.add_argument(
 p.add_argument(
     "--warmup_count",
     type=int,
-    default=5,
+    default=0,
     help="flag setting warmup count for clip and vae [>= 0].",
 )
 
