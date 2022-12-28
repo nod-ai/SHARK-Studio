@@ -59,9 +59,11 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
 
 # Converts the torch-module into a shark_module.
-def compile_through_fx(model, inputs, model_name, extra_args=[]):
+def compile_through_fx(model, inputs, model_name, extra_args=[], get_ts_graph=False):
 
-    mlir_module, func_name = import_with_fx(model, inputs)
+    mlir_module, func_name = import_with_fx(model, inputs, get_ts_graph=get_ts_graph)
+    if get_ts_graph:
+        return mlir_module
 
     shark_module = SharkInference(
         mlir_module,
@@ -229,3 +231,52 @@ def get_available_devices():
     available_devices.extend(cuda_devices)
     available_devices.append("cpu")
     return available_devices
+
+def get_vmfb(model_name, extra_args=[]):
+    import os
+    device = (
+        args.device
+        if "://" not in args.device
+        else "-".join(args.device.split("://"))
+    )
+    extended_name = "{}_{}".format(model_name, device)
+    vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
+    shark_model = None
+    import os
+    if os.path.isfile(vmfb_path):
+        shark_model = SharkInference("", device=device)
+        shark_model.load_module(vmfb_path, extra_args=extra_args)
+    return shark_model
+    
+
+def update_checkpoint(CompiledModule, ts_g):
+    import numpy as np
+    print("Fetched TS graph of the PyTorch model and will extract the state_dict")
+    new_ckpt_from_ts = ts_g.state_dict()
+    print("UPDATE the OLD weight's value with the NEW one.")
+    for func_name in CompiledModule.get_functions_in_module():
+        param_name = func_name[7:-4]
+        if param_name in new_ckpt_from_ts.keys():
+            if "get" in func_name:
+                print(param_name)
+                print("===OLD===")
+                result = CompiledModule(func_name, tuple())
+                result = np.asarray(result, result.dtype)
+                print(result)
+                print("===NEW===")
+                print(new_ckpt_from_ts[param_name])
+            else:
+                print("UPDATING")
+                result = CompiledModule(func_name, (new_ckpt_from_ts[param_name],))
+
+    print("----------UPDATION COMPLETE----------")
+    for func_name in CompiledModule.get_functions_in_module():
+        param_name = func_name[7:-4]
+        if param_name in new_ckpt_from_ts.keys():
+            if "get" in func_name:
+                print(param_name)
+                print("===CURRENT===")
+                result = CompiledModule(func_name, tuple())
+                result = np.asarray(result, result.dtype)
+                print(result)
+    return CompiledModule

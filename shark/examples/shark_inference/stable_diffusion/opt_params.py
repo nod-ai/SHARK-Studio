@@ -7,7 +7,12 @@ from model_wrappers import (
 )
 from resources import models_db
 from stable_args import args
-from utils import get_shark_model
+from utils import (
+    get_shark_model,
+    get_vmfb,
+    update_checkpoint,
+)
+from shark.shark_inference import SharkInference
 
 BATCH_SIZE = len(args.prompts)
 if BATCH_SIZE != 1:
@@ -69,7 +74,12 @@ def get_unet():
     )
     if not args.use_tuned and args.import_mlir:
         return get_unet_mlir(model_name, iree_flags)
-    return get_shark_model(bucket, model_name, iree_flags)
+    unet_model = get_shark_model(bucket, model_name, iree_flags)
+    # TODO: Currently we only support untuned checkpoint updates.
+    if args.unet_checkpoint != "" and not args.use_tuned:
+        unet_ts = get_unet_mlir(model_name, iree_flags, get_ts_graph=True)
+        unet_model = update_checkpoint(unet_model, unet_ts)
+    return unet_model
 
 
 def get_vae():
@@ -85,7 +95,16 @@ def get_vae():
         if args.use_base_vae:
             return get_base_vae_mlir(model_name, iree_flags)
         return get_vae_mlir(model_name, iree_flags)
-    return get_shark_model(bucket, model_name, iree_flags)
+    vae_model = get_shark_model(bucket, model_name, iree_flags)
+    # TODO: Currently we only support untuned checkpoint updates.
+    if args.vae_checkpoint != "" and not args.use_tuned:
+        vae_ts = None
+        if args.use_base_vae:
+            vae_ts = get_base_vae_mlir(model_name, iree_flags, get_ts_graph=True)
+        else:
+            vae_ts = get_vae_mlir(model_name, iree_flags, get_ts_graph=True)
+        vae_model = update_checkpoint(vae_model, vae_ts)
+    return vae_model
 
 
 def get_clip():
@@ -96,4 +115,9 @@ def get_clip():
     )
     if args.import_mlir:
         return get_clip_mlir(model_name, iree_flags)
-    return get_shark_model(bucket, model_name, iree_flags)
+    clip_model = get_shark_model(bucket, model_name, iree_flags)
+    # TODO: Currently we only support untuned checkpoint updates.
+    if args.clip_checkpoint != "" and not args.use_tuned:
+        clip_ts = get_clip_mlir(model_name, iree_flags, get_ts_graph=True)
+        clip_model = update_checkpoint(clip_model, clip_ts)
+    return clip_model

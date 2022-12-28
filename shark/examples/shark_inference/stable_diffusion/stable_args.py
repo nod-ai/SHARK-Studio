@@ -123,6 +123,27 @@ p.add_argument(
     help="other supported schedulers are [PNDM, DDIM, LMSDiscrete, EulerDiscrete, DPMSolverMultistep]",
 )
 
+p.add_argument(
+    "--unet_checkpoint",
+    type=str,
+    default="",
+    help="Path to checpoint file (.ckpt/.pth/.bin) for unet of particular 'version'",
+)
+
+p.add_argument(
+    "--clip_checkpoint",
+    type=str,
+    default="",
+    help="Path to checpoint file (.ckpt/.pth/.bin) for clip of particular 'version'",
+)
+
+p.add_argument(
+    "--vae_checkpoint",
+    type=str,
+    default="",
+    help="Path to checpoint file (.ckpt/.pth/.bin) for vae of particular 'version' and of non-base vae by default",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################

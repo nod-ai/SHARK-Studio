@@ -246,7 +246,7 @@ class SharkImporter:
 
 
 # Applies fx conversion to the model and imports the mlir.
-def import_with_fx(model, inputs, debug=False):
+def import_with_fx(model, inputs, debug=False, get_ts_graph=False):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
     from torch._decomp import get_decompositions
@@ -285,6 +285,12 @@ def import_with_fx(model, inputs, debug=False):
         gm.recompile()
 
     strip_overloads(fx_g)
+
+    # With the current implementation we need to fetch the Torchscript graph
+    # of a new model in order to fetch the new values of the weight.
+    if get_ts_graph:
+        ts_g = torch.jit.script(fx_g)
+        return ts_g, ts_g
 
     mlir_importer = SharkImporter(
         fx_g,
