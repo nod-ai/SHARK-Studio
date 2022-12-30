@@ -70,6 +70,7 @@ def get_torch_mlir_module(
         module,
         input,
         output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
+        use_external_references_if_numel_exceeds=0,
         use_tracing=jit_trace,
         ignore_traced_shapes=ignore_traced_shapes,
     )
