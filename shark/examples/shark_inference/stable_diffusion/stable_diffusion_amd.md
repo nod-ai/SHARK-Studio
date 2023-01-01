@@ -28,8 +28,8 @@ Notes:
 * Your browser may warn you about downloading an .exe file
 * If you recently updated the driver or this binary (EXE file), we recommend you:
   * clear all the local artifacts with `--clean_all` OR 
-  * clear the Vulkan shader cache: For Windows users this can be done by clearing the contents of `C:\Users\<username>\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
-  * clear the `huggingface` cache. In Windows, this is `C:\Users\<username>\.cache\huggingface`.
+  * clear the Vulkan shader cache: For Windows users this can be done by clearing the contents of `C:\Users\%username%\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
+  * clear the `huggingface` cache. In Windows, this is `C:\Users\%username%\.cache\huggingface`.
 
 ## Running
 
