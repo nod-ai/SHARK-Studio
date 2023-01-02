@@ -265,6 +265,9 @@ def update_checkpoint(CompiledModule, ts_g):
                 print(result)
                 print("===NEW===")
                 print(new_ckpt_from_ts[param_name])
+                # We add an assert here because the next invocation will end up
+                # updating `result` with `new_ckpt_from_ts[param_name]` tensor.
+                assert result.shape == new_ckpt_from_ts[param_name].shape
             else:
                 print("UPDATING")
                 result = CompiledModule(func_name, (new_ckpt_from_ts[param_name],))
