@@ -108,7 +108,8 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
     def scale_model_input(self, sample, timestep):
         step_index = (self.timesteps == timestep).nonzero().item()
         sigma = self.sigmas[step_index]
-        return self.scaling_model.forward(
+        return self.scaling_model(
+            "forward",
             (
                 sample,
                 sigma,
@@ -120,7 +121,8 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
         step_index = (self.timesteps == timestep).nonzero().item()
         sigma = self.sigmas[step_index]
         dt = self.sigmas[step_index + 1] - sigma
-        return self.step_model.forward(
+        return self.step_model(
+            "forward",
             (
                 noise_pred,
                 sigma,

@@ -39,8 +39,6 @@ class SharkRunner:
     ----------
     mlir_module : str
         mlir_module represented in string.
-    function_name : str
-        function to execute in the given mlir_module.
     device : str
         device to execute the mlir_module on.
         currently supports cpu, cuda, vulkan, and metal backends.
@@ -50,10 +48,10 @@ class SharkRunner:
 
     Methods
     -------
-    run(inputs=None):
-        Runs the mlir_module with the given inputs, if the inputs are not
-        given it autogenerates the inputs. Also, the inputs should be a
-        numpy array.
+    run(function_name, inputs=None):
+        Runs the function with `function_name` within the mlir_module along
+        with the given inputs, if the inputs are not given it autogenerates the
+        inputs. Also, the inputs should be a numpy array.
     input_info():
         Gives the information about the inputs required by the `function_name`.
         This can be expensive as it does string matching to do so.
@@ -62,14 +60,12 @@ class SharkRunner:
     def __init__(
         self,
         mlir_module: bytes = None,
-        function_name: str = "forward",
         device: str = "none",
         mlir_dialect: str = "linalg",
         extra_args: list = [],
         compile_vmfb: bool = True,
     ):
         self.mlir_module = mlir_module
-        self.function_name = function_name
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
@@ -87,15 +83,19 @@ class SharkRunner:
                 self.mlir_module,
                 self.device,
                 self.mlir_dialect,
-                func_name=self.function_name,
                 extra_args=self.extra_args,
             )
 
-    def run(self, inputs: tuple, send_to_host=False):
+    def run(self, function_name, inputs: tuple, send_to_host=False):
         return get_results(
             self.iree_compilation_module,
+            function_name,
             inputs,
             self.iree_config,
             self.mlir_dialect,
             send_to_host,
         )
+
+    # Get all function names defined within the compiled module.
+    def get_functions_in_module(self):
+        return self.iree_compilation_module._vm_module.function_names
