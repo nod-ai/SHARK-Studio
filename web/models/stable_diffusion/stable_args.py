@@ -23,6 +23,12 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--init_img",
+    type=str,
+    help="Initial image input",
+)
+
+p.add_argument(
     "--steps",
     type=int,
     default=50,

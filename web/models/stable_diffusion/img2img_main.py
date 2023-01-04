@@ -1,28 +1,17 @@
-import os
-
-os.environ["AMD_ENABLE_LLPC"] = "1"
-
-from transformers import CLIPTextModel, CLIPTokenizer
 import torch
+import os
 from PIL import Image
+from diffusers import AutoencoderKL
 import torchvision.transforms as T
-from diffusers import (
-    LMSDiscreteScheduler,
-    PNDMScheduler,
-    DDIMScheduler,
-    DPMSolverMultistepScheduler,
-    EulerDiscreteScheduler,
-)
 from tqdm.auto import tqdm
-import numpy as np
+from models.stable_diffusion.cache_objects import model_cache, model_config
+from models.stable_diffusion.stable_args import args
 from random import randint
-from stable_args import args
-from datetime import datetime as dt
-import json
-import re
-from pathlib import Path
+import numpy as np
+import time
+import sys
 
-# This has to come before importing cache objects
+
 if args.clear_all:
     print("CLEARING ALL, EXPECT SEVERAL MINUTES TO RECOMPILE")
     from glob import glob
@@ -42,16 +31,6 @@ if args.clear_all:
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
 
 
-from utils import set_init_device_flags
-
-from opt_params import get_unet, get_vae, get_clip, get_vae_encode
-from schedulers import (
-    SharkEulerDiscreteScheduler,
-)
-import time
-import sys
-from shark.iree_utils.compile_utils import dump_isas
-
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
     if args.vulkan_debug_utils and "vulkan" in args.device:
@@ -69,91 +48,85 @@ def end_profiling(device):
         return device.end_profiling()
 
 
-if __name__ == "__main__":
+def set_ui_params(
+    prompt,
+    negative_prompt,
+    init_img,
+    steps,
+    guidance_scale,
+    seed,
+    scheduler_key,
+    variant,
+):
+    args.prompts = [prompt]
+    args.negative_prompts = [negative_prompt]
+    args.init_img = init_img
+    args.steps = steps
+    args.guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
+    args.seed = seed
+    args.scheduler = scheduler_key
+    args.variant = variant
 
+
+def img2img_inf(
+    prompt: str,
+    negative_prompt: str,
+    init_img: Image,
+    steps: int,
+    guidance_scale: float,
+    seed: int,
+    scheduler_key: str,
+    variant: str,
+    device_key: str,
+):
+    # Handle out of range seeds.
+    uint32_info = np.iinfo(np.uint32)
+    uint32_min, uint32_max = uint32_info.min, uint32_info.max
+    if seed < uint32_min or seed >= uint32_max:
+        seed = randint(uint32_min, uint32_max)
+
+    set_ui_params(
+        prompt,
+        negative_prompt,
+        init_img,
+        steps,
+        guidance_scale,
+        seed,
+        scheduler_key,
+        variant,
+    )
     dtype = torch.float32 if args.precision == "fp32" else torch.half
+    generator = torch.manual_seed(
+        args.seed
+    )  # Seed generator to create the inital latent noise
 
-    prompt = args.prompts
-    neg_prompt = args.negative_prompts
+    # set height and width.
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
     if args.version == "v2_1":
         height = 768
         width = 768
 
-    num_inference_steps = args.steps  # Number of denoising steps
-
-    # Scale for classifier-free guidance
-    guidance_scale = torch.tensor(args.guidance_scale).to(torch.float32)
-
-    # Handle out of range seeds.
-    uint32_info = np.iinfo(np.uint32)
-    uint32_min, uint32_max = uint32_info.min, uint32_info.max
-    seed = args.seed
-    if seed < uint32_min or seed >= uint32_max:
-        seed = randint(uint32_min, uint32_max)
-    generator = torch.manual_seed(
-        seed
-    )  # Seed generator to create the inital latent noise
-
-    # TODO: Add support for batch_size > 1.
-    batch_size = len(prompt)
-    if batch_size != 1:
-        sys.exit("More than one prompt is not supported yet.")
-    if batch_size != len(neg_prompt):
-        sys.exit("prompts and negative prompts must be of same length")
-
-    set_init_device_flags()
-    clip = get_clip()
-    unet = get_unet()
-    vae = get_vae()
-    vae_encode = get_vae_encode()
-    if args.dump_isa:
-        dump_isas(args.dispatch_benchmarks_dir)
-
-    tokenizer = CLIPTokenizer.from_pretrained("openai/clip-vit-large-patch14")
-    scheduler = DPMSolverMultistepScheduler.from_pretrained(
-        "CompVis/stable-diffusion-v1-4",
-        subfolder="scheduler",
+    # get all cached data.
+    model_cache.set_models(device_key)
+    tokenizer = model_cache.tokenizer
+    scheduler = model_cache.schedulers[args.scheduler]
+    vae_encode, vae, unet, clip = (
+        model_cache.vae_encode,
+        model_cache.vae,
+        model_cache.unet,
+        model_cache.clip,
     )
-    cpu_scheduling = True
-    if args.version == "v2_1":
-        tokenizer = CLIPTokenizer.from_pretrained(
-            "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
-        )
-
-        scheduler = DPMSolverMultistepScheduler.from_pretrained(
-            "stabilityai/stable-diffusion-2-1",
-            subfolder="scheduler",
-        )
-
-    if args.version == "v2_1base" and args.variant == "stablediffusion":
-        tokenizer = CLIPTokenizer.from_pretrained(
-            "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
-        )
-
-        if args.use_compiled_scheduler:
-            scheduler = SharkEulerDiscreteScheduler.from_pretrained(
-                "stabilityai/stable-diffusion-2-1-base",
-                subfolder="scheduler",
-            )
-            scheduler.compile()
-            cpu_scheduling = False
-        else:
-            scheduler = EulerDiscreteScheduler.from_pretrained(
-                "stabilityai/stable-diffusion-2-1-base",
-                subfolder="scheduler",
-            )
+    cpu_scheduling = not args.scheduler.startswith("Shark")
 
     # create a random initial latent.
     latents = torch.randn(
-        (batch_size, 4, height // 8, width // 8),
+        (1, 4, height // 8, width // 8),
         generator=generator,
         dtype=torch.float32,
     ).to(dtype)
 
-    if args.img_path is not None:
-        init_img = Image.open(args.img_path)
+    if init_img is not None:
         if args.version == "v2_1":
             init_img = init_img.resize((768, 768))
         else:
@@ -170,9 +143,8 @@ if __name__ == "__main__":
         clip("forward", (clip_warmup_input,))
 
     start = time.time()
-
     text_input = tokenizer(
-        prompt,
+        args.prompts,
         padding="max_length",
         max_length=args.max_length,
         truncation=True,
@@ -180,7 +152,7 @@ if __name__ == "__main__":
     )
     max_length = text_input.input_ids.shape[-1]
     uncond_input = tokenizer(
-        neg_prompt,
+        args.negative_prompts,
         padding="max_length",
         max_length=max_length,
         truncation=True,
@@ -194,34 +166,31 @@ if __name__ == "__main__":
     text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
     text_embeddings_numpy = text_embeddings.detach().numpy()
 
-    scheduler.set_timesteps(num_inference_steps)
-    if args.img_path is None:
+    scheduler.set_timesteps(args.steps)
+    if init_img is None:
         scheduler.is_scale_input_called = True
         latents = latents * scheduler.init_noise_sigma
 
     avg_ms = 0
-    for i, t in tqdm(enumerate(scheduler.timesteps), disable=args.hide_steps):
+    for i, t in tqdm(enumerate(scheduler.timesteps)):
+
         step_start = time.time()
-        if not args.hide_steps:
-            print(f"i = {i} t = {t}", end="")
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
         if cpu_scheduling:
             latent_model_input = latent_model_input.detach().numpy()
 
         profile_device = start_profiling(file_path="unet.rdc")
-
         noise_pred = unet(
             "forward",
             (
                 latent_model_input,
                 timestep,
                 text_embeddings_numpy,
-                guidance_scale,
+                args.guidance_scale,
             ),
             send_to_host=False,
         )
-
         end_profiling(profile_device)
 
         if cpu_scheduling:
@@ -233,7 +202,7 @@ if __name__ == "__main__":
         avg_ms += step_time
         step_ms = int((step_time) * 1000)
         if not args.hide_steps:
-            print(f" ({step_ms}ms)")
+            print(f" \nIteration = {i}, Time = {step_ms}ms")
 
     # scale and decode the image latents with vae
     if args.use_base_vae:
@@ -261,29 +230,18 @@ if __name__ == "__main__":
     print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
     print(f"\nTotal image generation time: {total_time}sec")
 
+    # generate outputs to web.
     transform = T.ToPILImage()
     pil_images = [
         transform(image) for image in torch.from_numpy(images).to(torch.uint8)
     ]
 
-    if args.output_dir is not None:
-        output_path = Path(args.output_dir)
-        output_path.mkdir(parents=True, exist_ok=True)
-    else:
-        output_path = Path.cwd()
-    for i in range(batch_size):
-        json_store = {
-            "prompt": args.prompts[i],
-            "negative prompt": args.negative_prompts[i],
-            "seed": args.seed,
-            "variant": args.variant,
-            "precision": args.precision,
-            "steps": args.steps,
-            "guidance_scale": args.guidance_scale,
-            "scheduler": args.scheduler,
-        }
-        prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[i][:15])
-        img_name = f"{prompt_slice}_{args.seed}_{i}_{dt.now().strftime('%y%m%d_%H%M%S')}"
-        pil_images[i].save(output_path / f"{img_name}.jpg")
-        with open(output_path / f"{img_name}.json", "w") as f:
-            f.write(json.dumps(json_store, indent=4))
+    text_output = f"prompt={args.prompts}"
+    text_output += f"\nnegative prompt={args.negative_prompts}"
+    text_output += f"\nvariant={args.variant}, version={args.version}, scheduler={args.scheduler}"
+    text_output += f"\ndevice={device_key}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={height}x{width}"
+    text_output += f"\nAverage step time: {avg_ms:.4f}ms/it"
+    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+
+    return pil_images[0], text_output

@@ -7,7 +7,12 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
 )
-from models.stable_diffusion.opt_params import get_unet, get_vae, get_clip
+from models.stable_diffusion.opt_params import (
+    get_unet,
+    get_vae_encode,
+    get_vae,
+    get_clip,
+)
 from models.stable_diffusion.utils import (
     set_init_device_flags,
     set_iree_runtime_flags,
@@ -103,6 +108,7 @@ class ModelCache:
             gc.collect()
             self.schedulers = get_schedulers(args.version)
             self.tokenizer = get_tokenizer(args.version)
+            self.vae_encode = get_vae_encode()
             self.vae = get_vae()
             self.unet = get_unet()
             self.clip = get_clip()

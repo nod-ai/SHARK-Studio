@@ -3,6 +3,7 @@ from transformers import CLIPTextModel
 from models.stable_diffusion.utils import compile_through_fx
 from models.stable_diffusion.resources import models_config
 from models.stable_diffusion.stable_args import args
+import numpy as np
 import torch
 
 
@@ -16,6 +17,7 @@ elif args.variant == "openjourney":
 model_input = {
     "v2_1": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
+        "vae_encode": (torch.randn(1, 768, 768, 3),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
             torch.randn(1, 4, 96, 96),  # latents
@@ -26,6 +28,7 @@ model_input = {
     },
     "v2_1base": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
+        "vae_encode": (torch.randn(1, 512, 512, 3),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),  # latents
@@ -36,6 +39,7 @@ model_input = {
     },
     "v1_4": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
+        "vae_encode": (torch.randn(1, 512, 512, 3),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),
@@ -107,6 +111,31 @@ def get_shark_module(model_key, module, model_name, extra_args):
         extra_args=extra_args,
     )
     return shark_module
+
+
+def get_vae_encode_mlir(model_name="vae_encode", extra_args=[]):
+    model_id, revision = get_configs()
+
+    class VaeEncodeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                model_id,
+                subfolder="vae",
+                revision=revision,
+            )
+
+        def forward(self, input):
+            input_arr = np.stack([np.array(i) for i in input.cpu()], axis=0)
+            input_arr = input_arr / 255.0
+            input_arr = torch.from_numpy(input_arr).permute(0, 3, 1, 2)
+            input_arr = 2 * (input_arr - 0.5)
+            latent_dists = self.vae.encode(input_arr.cuda())["latent_dist"]
+            latent_samples = latent_dists.sample()
+            return latent_samples * 0.18215
+
+    vae_encode = VaeEncodeModel()
+    return get_shark_module("vae_encode", vae_encode, model_name, extra_args)
 
 
 def get_base_vae_mlir(model_name="vae", extra_args=[]):

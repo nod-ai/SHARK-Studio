@@ -1,5 +1,6 @@
 import sys
 from model_wrappers import (
+    get_vae_encode_mlir,
     get_base_vae_mlir,
     get_vae_mlir,
     get_unet_mlir,
@@ -74,6 +75,21 @@ def get_unet():
     )
     if not args.use_tuned and args.import_mlir:
         return get_unet_mlir(model_name, iree_flags)
+    return get_shark_model(bucket, model_name, iree_flags)
+
+
+def get_vae_encode():
+    # Tuned model is present only for `fp16` precision.
+    is_tuned = (
+        "tuned" if (args.use_tuned and "vulkan" in args.device) else "untuned"
+    )
+    bucket_key = f"{args.variant}/{is_tuned}"
+    model_key = f"{args.variant}/{args.version}/vae_encode/{args.precision}/length_77/{is_tuned}"
+    bucket, model_name, iree_flags = get_params(
+        bucket_key, model_key, "vae", is_tuned, args.precision
+    )
+    if not args.use_tuned and args.import_mlir:
+        return get_vae_encode_mlir(model_name, iree_flags)
     return get_shark_model(bucket, model_name, iree_flags)
 
 

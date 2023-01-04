@@ -2,6 +2,7 @@ from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from utils import compile_through_fx
 from stable_args import args
+import numpy as np
 import torch
 
 model_config = {
@@ -28,6 +29,7 @@ model_variant = {
 model_input = {
     "v2_1": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
+        "vae_encode": (torch.randn(1, 768, 768, 3),),
         "vae": (torch.randn(1, 4, 96, 96),),
         "unet": (
             torch.randn(1, 4, 96, 96),  # latents
@@ -38,6 +40,7 @@ model_input = {
     },
     "v2_1base": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
+        "vae_encode": (torch.randn(1, 512, 512, 3),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),  # latents
@@ -48,6 +51,7 @@ model_input = {
     },
     "v1_4": {
         "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
+        "vae_encode": (torch.randn(1, 512, 512, 3),),
         "vae": (torch.randn(1, 4, 64, 64),),
         "unet": (
             torch.randn(1, 4, 64, 64),
@@ -109,6 +113,67 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
         extra_args=extra_args,
     )
     return shark_clip
+
+
+def get_vae_encode_mlir(model_name="vae_encode", extra_args=[]):
+    class VaeEncodeModel(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.vae = AutoencoderKL.from_pretrained(
+                model_config[args.version]
+                if args.variant == "stablediffusion"
+                else model_variant[args.variant],
+                subfolder="vae",
+                revision=model_revision[args.variant],
+            )
+
+        def forward(self, input):
+            input_arr = np.stack([np.array(i) for i in input.cpu()], axis=0)
+            input_arr = input_arr / 255.0
+            input_arr = torch.from_numpy(input_arr).permute(0, 3, 1, 2)
+            input_arr = 2 * (input_arr - 0.5)
+            latent_dists = self.vae.encode(input_arr.cuda())["latent_dist"]
+            latent_samples = latent_dists.sample()
+            return latent_samples * 0.18215
+
+    vae_encode = VaeEncodeModel()
+    if args.variant == "stablediffusion":
+        if args.precision == "fp16":
+            vae_encode = vae_encode.half().cuda()
+            inputs = tuple(
+                [
+                    inputs.half().cuda()
+                    for inputs in model_input[args.version]["vae_encode"]
+                ]
+            )
+        else:
+            inputs = model_input[args.version]["vae_encode"]
+    elif args.variant in [
+        "anythingv3",
+        "analogdiffusion",
+        "openjourney",
+        "dreamlike",
+    ]:
+        if args.precision == "fp16":
+            vae_encode = vae_encode.half().cuda()
+            inputs = tuple(
+                [
+                    inputs.half().cuda()
+                    for inputs in model_input["v1_4"]["vae_encode"]
+                ]
+            )
+        else:
+            inputs = model_input["v1_4"]["vae_encode"]
+    else:
+        raise ValueError(f"{args.variant} not yet added")
+
+    shark_vae_encode = compile_through_fx(
+        vae_encode,
+        inputs,
+        model_name=model_name,
+        extra_args=extra_args,
+    )
+    return shark_vae_encode
 
 
 def get_base_vae_mlir(model_name="vae", extra_args=[]):
