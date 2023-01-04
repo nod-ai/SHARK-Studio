@@ -54,3 +54,15 @@ use the flag `--variant=` to specify the model to be used.
 ```shell
 python .\shark\examples\shark_inference\stable_diffusion\main.py --variant=anythingv3 --max_length=77 --prompt="1girl, brown hair, green eyes, colorful, autumn, cumulonimbus clouds, lighting, blue sky, falling leaves, garden"
 ```
+
+## Using custom checkpoints for a specific version of a model:
+
+* To try this feature you need to build [torch-mlir](https://github.com/llvm/torch-mlir/tree/cuda_f16).
+* Also build [iree](https://github.com/nod-ai/SHARK-Runtime/tree/iree_temp_fix_hal_fence).
+* To test the replacement of weight resources you may download [unet-checkpoint](https://huggingface.co/CompVis/stable-diffusion-v1-4/resolve/main/unet/diffusion_pytorch_model.bin) and provide its path to `--unet_checkpoint` command-line argument.
+```shell
+python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp32 --device=cuda --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=77 --version="v1_4" --unet_checkpoint=<path to unet's checkpoint file>
+```
+* To monitor checkpoint updates use `--show_checkpoint_update` flag - observe the run printing CURRENT and NEW values, and then printing the CURRENT values after the updation. One may change specific tensor values of the CKPT and see that getting updated.
+* Similarly one can use `--clip_checkpoint` and `--vae_checkpoint` command-line arguments to use custom checkpoint weights for the individual models with specific config like the one shown for unet in the example.
+* NOTE: Currently this feature hasn't been rolled out for tuned models.
