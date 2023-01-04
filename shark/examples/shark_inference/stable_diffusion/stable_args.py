@@ -234,20 +234,14 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
-    "--config_path",
+    "--annotation_output",
     type=path_expand,
-    default="best_configs.json",
-    help="Path where stores the op config file",
-)
-p.add_argument(
-    "--output_dir",
-    type=path_expand,
-    default="",
+    default="./",
     help="Directory to save the annotated mlir file",
 )
 
 p.add_argument(
-    "--model",
+    "--annotation_model",
     type=str,
     default="unet",
     help="Options are unet and vae.",
