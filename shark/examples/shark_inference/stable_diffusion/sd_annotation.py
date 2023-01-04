@@ -1,7 +1,7 @@
 import os
 from shark.model_annotation import model_annotation, create_context
 from shark.iree_utils._common import run_cmd, iree_target_map
-from shark.shark_downloader import download_model
+from shark.shark_downloader import download_model, WORKDIR
 from shark.parser import shark_args
 from stable_args import args
 from opt_params import get_params
@@ -14,7 +14,8 @@ shark_args.local_tank_cache = args.local_tank_cache
 bucket_key = f"{args.variant}/untuned"
 winograd_opt = 0
 if args.model == "unet":
-    winograd_opt = 1
+    if args.version == "v2_1base":
+        winograd_opt = 1
     model_key = f"{args.variant}/{args.version}/unet/{args.precision}/length_{args.max_length}/untuned"
 elif args.model == "vae":
     winograd_opt = 2
@@ -31,22 +32,30 @@ mlir_model, func_name, inputs, golden_out = download_model(
 )
 
 # Annotate the model with Winograd attribute on selected conv ops
-with create_context() as ctx:
-    winograd_model = model_annotation(
-        ctx,
-        input_contents=mlir_model,
-        config_path=args.config_path,
-        search_op="conv",
-        winograd=winograd_opt,
-    )
-    with open(f"{args.output_dir}/{model_name}_tuned_torch.mlir", "w") as f:
-        f.write(str(winograd_model))
+if winograd_opt:
+    with create_context() as ctx:
+        winograd_model = model_annotation(
+            ctx,
+            input_contents=mlir_model,
+            config_path=args.config_path,
+            search_op="conv",
+            winograd=winograd_opt,
+        )
+        with open(
+            f"{args.output_dir}/{model_name}_tuned_torch.mlir", "w"
+        ) as f:
+            f.write(str(winograd_model))
 
 if args.model == "unet":
+    if winograd_opt:
+        input_mlir = f"{args.output_dir}/{model_name}_tuned_torch.mlir"
+        dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
+    else:
+        input_mlir = f"{WORKDIR}/{model_name}_torch/{model_name}_torch.mlir"
+        dump_after = "iree-flow-pad-linalg-ops"
     # Dump IR after padding/img2col/winograd passes
     run_cmd(
-        "iree-compile "
-        f"{args.output_dir}/{model_name}_tuned_torch.mlir "
+        f"iree-compile {input_mlir} "
         "--iree-input-type=tm_tensor "
         f"--iree-hal-target-backends={iree_target_map(args.device)} "
         f"--iree-vulkan-target-triple={args.iree_vulkan_target_triple} "
@@ -55,7 +64,7 @@ if args.model == "unet":
         "--iree-flow-enable-padding-linalg-ops "
         "--iree-flow-linalg-ops-padding-size=32 "
         "--iree-flow-enable-conv-img2col-transform "
-        "--mlir-print-ir-after=iree-linalg-ext-convert-conv2d-to-winograd "
+        f"--mlir-print-ir-after={dump_after} "
         f"-o {args.output_dir}/dump_after_winograd.vmfb "
         f"2>{args.output_dir}/dump_after_winograd.mlir "
     )
