@@ -40,17 +40,23 @@ def model_annotation(
     input_contents: str,
     config_path: str,
     search_op: str,
+    winograd: bool = False,
 ):
     if os.path.isfile(input_contents):
         with open(input_contents, "rb") as f:
             input_contents = f.read()
     module = ir.Module.parse(input_contents)
 
-    configs = load_model_configs(config_path)
+    if winograd:
+        with open(config_path, "r") as f:
+            data = json.load(f)
+            configs = data["c,f"]
+    else:
+        configs = load_model_configs(config_path)
 
     # The Python API does not expose a general walk() function, so we just
     # do it ourselves.
-    walk_children(module.operation, configs, search_op)
+    walk_children(module.operation, configs, search_op, winograd)
 
     if not module.operation.verify():
         raise RuntimeError("Modified program does not verify!")
@@ -92,7 +98,9 @@ def load_model_configs(config_path: str):
         return config
 
 
-def walk_children(op: ir.Operation, configs: List[Dict], search_op: str):
+def walk_children(
+    op: ir.Operation, configs: List[Dict], search_op: str, winograd: bool
+):
     if search_op == "matmul":
         op_names = ["linalg.matmul", "mhlo.dot"]
     elif search_op == "bmm":
@@ -121,6 +129,11 @@ def walk_children(op: ir.Operation, configs: List[Dict], search_op: str):
                 # 'operation' and 'name' attributes.
                 if isinstance(child_op, ir.OpView):
                     child_op = child_op.operation
+                if winograd and child_op.name in [
+                    "linalg.conv_2d_nchw_fchw",
+                    "linalg.conv_2d_nhwc_hwcf",
+                ]:
+                    add_winograd_attribute(child_op, configs)
                 if child_op.name in op_names:
                     if child_op.name == "linalg.generic":
                         # This is for generic op that has contractionOpInterface
@@ -151,7 +164,7 @@ def walk_children(op: ir.Operation, configs: List[Dict], search_op: str):
                         )
                     print(f"Updated op {child_op}", file=sys.stderr)
 
-                walk_children(child_op, configs, search_op)
+                walk_children(child_op, configs, search_op, winograd)
 
 
 def get_op_shape(op: ir.Operation, search_op: str):
@@ -294,10 +307,6 @@ def add_attributes(op: ir.Operation, config: List[Dict]):
             pipeline_depth = config["pipeline_depth"]
         if "split_k" in config.keys():
             split_k = config["split_k"]
-        if "devices" in config.keys():
-            devices = config["devices"]
-        if "shard_sizes" in config.keys():
-            shard_sizes = config["shard_sizes"]
     elif "SPIRV" in config["pipeline"]:
         pipeline = config["pipeline"]
         tile_sizes = [
@@ -353,6 +362,39 @@ def add_attributes(op: ir.Operation, config: List[Dict]):
     # Add other attributes if required.
     if split_k:
         add_attribute_by_name(op, "iree_flow_split_k", split_k)
+
+
+def add_winograd_attribute(op: ir.Operation, config: List):
+    op_result = str(op.results[0]).split("ins(")[1]
+    dilation = int(
+        str(op.attributes["dilations"]).split("dense<")[1].split(">")[0]
+    )
+    stride = int(
+        str(op.attributes["strides"]).split("dense<")[1].split(">")[0]
+    )
+
+    if op.name == "linalg.conv_2d_nchw_fchw":
+        f = int(op_result.split("tensor<")[2].split("x")[0])
+        c = int(op_result.split("tensor<")[2].split("x")[1])
+        kh = int(op_result.split("tensor<")[2].split("x")[2])
+        kw = int(op_result.split("tensor<")[2].split("x")[3])
+    else:
+        kh = int(op_result.split("tensor<")[2].split("x")[0])
+        kw = int(op_result.split("tensor<")[2].split("x")[1])
+        c = int(op_result.split("tensor<")[2].split("x")[2])
+        f = int(op_result.split("tensor<")[2].split("x")[3])
+
+    if (
+        dilation == 1
+        and stride == 1
+        and kh == 3
+        and kw == 3
+        and [c, f] in config
+    ):
+        op.attributes["iree_winograd_conv"] = ir.IntegerAttr.get(
+            ir.IntegerType.get_signless(64), 1
+        )
+        print("Apply Winograd on selected conv op: ", op)
 
 
 def add_attribute_by_name(op: ir.Operation, name: str, val: int):

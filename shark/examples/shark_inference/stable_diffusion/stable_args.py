@@ -1,4 +1,10 @@
 import argparse
+from pathlib import Path
+
+
+def path_expand(s):
+    return Path(s).expanduser().resolve()
+
 
 p = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -221,6 +227,24 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for removing the pregress bar animation during image generation",
+)
+
+##############################################################################
+### SD model auto-annotation flags
+##############################################################################
+
+p.add_argument(
+    "--annotation_output",
+    type=path_expand,
+    default="./",
+    help="Directory to save the annotated mlir file",
+)
+
+p.add_argument(
+    "--annotation_model",
+    type=str,
+    default="unet",
+    help="Options are unet and vae.",
 )
 
 args = p.parse_args()
