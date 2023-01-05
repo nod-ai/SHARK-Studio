@@ -289,7 +289,7 @@ def import_with_fx(model, inputs, debug=False, get_ts_graph=False):
     # With the current implementation we need to fetch the Torchscript graph
     # of a new model in order to fetch the new values of the weight.
     if get_ts_graph:
-        ts_g = torch.jit.script(fx_g)
+        ts_g = torch.jit.trace(fx_g, inputs)
         return ts_g, ts_g
 
     mlir_importer = SharkImporter(

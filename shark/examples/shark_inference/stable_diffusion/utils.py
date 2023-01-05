@@ -270,7 +270,7 @@ def update_checkpoint(CompiledModule, ts_g):
                 assert result.shape == new_ckpt_from_ts[param_name].shape
             else:
                 print("UPDATING")
-                result = CompiledModule(func_name, (new_ckpt_from_ts[param_name],))
+                result = CompiledModule(func_name, (new_ckpt_from_ts[param_name].detach().cpu(),))
 
     print("----------UPDATION COMPLETE----------")
     for func_name in CompiledModule.get_functions_in_module():
