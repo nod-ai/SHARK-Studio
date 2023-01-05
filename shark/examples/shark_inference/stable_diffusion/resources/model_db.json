@@ -12,9 +12,10 @@
   },
   {
     "stablediffusion/v1_4/unet/fp16/length_77/untuned":"unet_8dec_fp16",
-    "stablediffusion/v1_4/unet/fp16/length_77/tuned":"unet_1dec_fp16_tuned",
+    "stablediffusion/v1_4/unet/fp16/length_77/tuned":"unet_8dec_fp16_tuned",
     "stablediffusion/v1_4/unet/fp32/length_77/untuned":"unet_1dec_fp32",
     "stablediffusion/v1_4/vae/fp16/length_77/untuned":"vae_19dec_fp16",
+    "stablediffusion/v1_4/vae/fp16/length_77/tuned":"vae_19dec_fp16_tuned",
     "stablediffusion/v1_4/vae/fp16/length_77/untuned/base":"vae_8dec_fp16",
     "stablediffusion/v1_4/vae/fp32/length_77/untuned":"vae_1dec_fp32",
     "stablediffusion/v1_4/clip/fp32/length_77/untuned":"clip_18dec_fp32",
@@ -101,16 +102,14 @@
           "default_compilation_flags": [
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
-            "--iree-flow-enable-conv-img2col-transform",
-            "--iree-flow-enable-conv-winograd-transform"
+            "--iree-flow-enable-conv-img2col-transform"
           ]
         },
         "fp32": {
           "default_compilation_flags": [
             "--iree-flow-enable-padding-linalg-ops",
             "--iree-flow-linalg-ops-padding-size=32",
-            "--iree-flow-enable-conv-img2col-transform",
-            "--iree-flow-enable-conv-winograd-transform"
+            "--iree-flow-enable-conv-img2col-transform"
           ]
         }
       },
