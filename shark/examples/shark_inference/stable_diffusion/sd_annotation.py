@@ -16,13 +16,10 @@ from utils import set_init_device_flags
 set_init_device_flags()
 shark_args.local_tank_cache = args.local_tank_cache
 bucket_key = f"{args.variant}/untuned"
-use_winograd = False
+use_winograd = True
 if args.annotation_model == "unet":
-    if args.version == "v2_1base":
-        use_winograd = True
     model_key = f"{args.variant}/{args.version}/unet/{args.precision}/length_{args.max_length}/untuned"
 elif args.annotation_model == "vae":
-    use_winograd = True
     is_base = "/base" if args.use_base_vae else ""
     model_key = f"{args.variant}/{args.version}/vae/{args.precision}/length_77/untuned{is_base}"
 
@@ -72,7 +69,7 @@ if args.annotation_model == "unet":
         input_mlir = f"{args.annotation_output}/{model_name}_tuned_torch.mlir"
         dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
     else:
-        input_mlir = f"{WORKDIR}/{model_name}_torch/{model_name}_torch.mlir"
+        input_mlir = f"{WORKDIR}{model_name}_torch/{model_name}_torch.mlir"
         dump_after = "iree-flow-pad-linalg-ops"
 
     # Dump IR after padding/img2col/winograd passes
