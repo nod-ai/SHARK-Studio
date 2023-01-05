@@ -223,4 +223,20 @@ p.add_argument(
     help="flag for removing the pregress bar animation during image generation",
 )
 
+p.add_argument(
+    "--share",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for generating a public URL",
+)
+
+p.add_argument(
+    "--server_port",
+    type=int,
+    default=8080,
+    help="flag for setting server port",
+)
+
+##############################################################################
+
 args = p.parse_args()
