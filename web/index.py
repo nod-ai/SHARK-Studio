@@ -175,8 +175,8 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
 
 shark_web.queue()
 shark_web.launch(
-    share=False,
+    share=args.share,
     inbrowser=True,
     server_name="0.0.0.0",
-    server_port=8080,
+    server_port=args.server_port,
 )
