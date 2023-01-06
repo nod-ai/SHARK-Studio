@@ -250,36 +250,41 @@ def get_vmfb(model_name, extra_args=[]):
     
 
 def update_checkpoint(CompiledModule, ts_g):
+    def debug_print(statement):
+        if args.show_checkpoint_update:
+            print(statement)
+
     import numpy as np
-    print("Fetched TS graph of the PyTorch model and will extract the state_dict")
+    debug_print("Fetched TS graph of the PyTorch model and will extract the state_dict")
     new_ckpt_from_ts = ts_g.state_dict()
-    print("UPDATE the OLD weight's value with the NEW one.")
+    debug_print("UPDATE the CURRENT weight's value with the NEW one.")
     for func_name in CompiledModule.get_functions_in_module():
         param_name = func_name[7:-4]
         if param_name in new_ckpt_from_ts.keys():
             if "get" in func_name:
-                print(param_name)
-                print("===OLD===")
+                debug_print(param_name)
+                debug_print("===CURRENT===")
                 result = CompiledModule(func_name, tuple())
                 result = np.asarray(result, result.dtype)
-                print(result)
-                print("===NEW===")
-                print(new_ckpt_from_ts[param_name])
+                debug_print(result)
+                debug_print("===NEW===")
+                debug_print(new_ckpt_from_ts[param_name])
                 # We add an assert here because the next invocation will end up
                 # updating `result` with `new_ckpt_from_ts[param_name]` tensor.
                 assert result.shape == new_ckpt_from_ts[param_name].shape
             else:
-                print("UPDATING")
                 result = CompiledModule(func_name, (new_ckpt_from_ts[param_name].detach().cpu(),))
+                debug_print("UPDATED : " + str(param_name))
 
-    print("----------UPDATION COMPLETE----------")
+    debug_print("----------UPDATION COMPLETE----------")
+    debug_print("Verifying updated resource weights")
     for func_name in CompiledModule.get_functions_in_module():
         param_name = func_name[7:-4]
         if param_name in new_ckpt_from_ts.keys():
             if "get" in func_name:
-                print(param_name)
-                print("===CURRENT===")
+                debug_print(param_name)
+                debug_print("===CURRENT===")
                 result = CompiledModule(func_name, tuple())
                 result = np.asarray(result, result.dtype)
-                print(result)
+                debug_print(result)
     return CompiledModule

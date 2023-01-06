@@ -239,6 +239,13 @@ p.add_argument(
     help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
 )
 
+p.add_argument(
+    "--show_checkpoint_update",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for hiding the details of weight update for each model",
+)
+
 ##############################################################################
 ### Web UI flags
 ##############################################################################
