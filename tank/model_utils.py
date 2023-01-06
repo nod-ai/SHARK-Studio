@@ -225,7 +225,7 @@ def get_fp16_model(torch_model):
     model_fp16.eval()
     model_fp16.to("cuda")
     actual_out_fp16 = model_fp16(encoded_input)
-    return model_fp16, test_input_fp16, actual_out_fp16
+    return model_fp16, encoded_input, actual_out_fp16
 
 
 # Utility function for comparing two tensors (torch).
