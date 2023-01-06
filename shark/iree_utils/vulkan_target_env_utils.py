@@ -128,7 +128,7 @@ def get_vendor(triple):
     arch, product, os = triple
     if arch == "unknown":
         return "Unknown"
-    if arch in ["rdna1", "rdna2", "rdna3", "rgcn3", "rgcn5"]:
+    if arch in ["rdna1", "rdna2", "rdna3", "rgcn3", "rgcn4", "rgcn5"]:
         return "AMD"
     if arch == "valhall":
         return "ARM"
@@ -248,7 +248,7 @@ def get_vulkan_target_capabilities(triple):
             cap["storagePushConstant16"] = False
             cap["storagePushConstant8"] = False
 
-    elif arch in ["rgcn5", "rgcn3"]:
+    elif arch in ["rgcn5", "rgcn4", "rgcn3"]:
         cap["maxComputeSharedMemorySize"] = 65536
         cap["maxComputeWorkGroupInvocations"] = 1024
         cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
