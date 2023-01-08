@@ -100,7 +100,9 @@ def get_vae():
     if args.vae_checkpoint != "" and not args.use_tuned:
         vae_ts = None
         if args.use_base_vae:
-            vae_ts = get_base_vae_mlir(model_name, iree_flags, get_ts_graph=True)
+            vae_ts = get_base_vae_mlir(
+                model_name, iree_flags, get_ts_graph=True
+            )
         else:
             vae_ts = get_vae_mlir(model_name, iree_flags, get_ts_graph=True)
         vae_model = update_checkpoint(vae_model, vae_ts)
