@@ -220,7 +220,8 @@ def stable_diff_inf(
 
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nvariant={args.variant}, scheduler={args.scheduler}, device={device_key}"
+    text_output += f"\nvariant={args.variant}, version={args.version}, scheduler={args.scheduler}"
+    text_output += f"\ndevice={device_key}"
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={height}x{width}"
     text_output += f"\nAverage step time: {avg_ms:.4f}ms/it"
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
