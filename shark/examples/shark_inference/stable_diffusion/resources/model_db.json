@@ -2,6 +2,7 @@
   {
     "stablediffusion/untuned":"gs://shark_tank/stable_diffusion",
     "stablediffusion/tuned":"gs://shark_tank/sd_tuned",
+    "stablediffusion/tuned/cuda":"gs://shark_tank/sd_tuned/cuda",
     "anythingv3/untuned":"gs://shark_tank/sd_anythingv3",
     "anythingv3/tuned":"gs://shark_tank/sd_tuned",
     "analogdiffusion/untuned":"gs://shark_tank/sd_analog_diffusion",
@@ -23,6 +24,7 @@
     "stablediffusion/v2_1base/unet/fp16/length_77/tuned":"unet2base_8dec_fp16_tuned_v2",
     "stablediffusion/v2_1base/unet/fp16/length_64/untuned":"unet_19dec_v2p1base_fp16_64",
     "stablediffusion/v2_1base/unet/fp16/length_64/tuned":"unet_19dec_v2p1base_fp16_64_tuned",
+    "stablediffusion/v2_1base/unet/fp16/length_64/tuned/cuda":"unet_19dec_v2p1base_fp16_64_cuda_tuned",
     "stablediffusion/v2_1base/vae/fp16/length_77/untuned":"vae2base_19dec_fp16",
     "stablediffusion/v2_1base/vae/fp16/length_77/tuned":"vae2base_19dec_fp16_tuned",
     "stablediffusion/v2_1base/vae/fp16/length_77/untuned/base":"vae2base_8dec_fp16",
