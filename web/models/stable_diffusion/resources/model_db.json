@@ -12,7 +12,6 @@
   },
   {
     "stablediffusion/v1_4/unet/fp16/length_77/untuned":"unet_8dec_fp16",
-    "stablediffusion/v1_4/unet/fp16/length_77/tuned":"unet_1dec_fp16_tuned",
     "stablediffusion/v1_4/unet/fp32/length_77/untuned":"unet_1dec_fp32",
     "stablediffusion/v1_4/vae/fp16/length_77/untuned":"vae_19dec_fp16",
     "stablediffusion/v1_4/vae/fp16/length_77/untuned/base":"vae_8dec_fp16",
