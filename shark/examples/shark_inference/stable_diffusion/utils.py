@@ -7,6 +7,7 @@ from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
 )
+from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
@@ -46,6 +47,8 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
     # Set local shark_tank cache directory.
     shark_args.local_tank_cache = args.local_tank_cache
+    if "cuda" in args.device:
+        shark_args.enable_tf32 = True
 
     mlir_model, func_name, inputs, golden_out = download_model(
         model_name,
@@ -185,7 +188,7 @@ def set_init_device_flags():
     elif args.variant == "openjourney":
         args.max_length = 64
 
-    # use tuned models only in the case of stablediffusion/fp16 and rdna3 cards.
+    # Use tuned models in the case of stablediffusion/fp16 and rdna3 cards.
     if (
         args.variant in ["openjourney", "dreamlike"]
         or args.precision != "fp16"
@@ -193,14 +196,24 @@ def set_init_device_flags():
         or "rdna3" not in args.iree_vulkan_target_triple
     ):
         args.use_tuned = False
-        print("Tuned models are currently not supported for this setting.")
 
     elif args.use_base_vae and args.variant != "stablediffusion":
         args.use_tuned = False
-        print("Tuned models are currently not supported for this setting.")
+
+    # Use tuned model in the case of stablediffusion/fp16 and cuda device sm_80
+    if (
+        args.variant == "stablediffusion"
+        and args.precision == "fp16"
+        and "cuda" in args.device
+        and get_cuda_sm_cc() == "sm_80"
+        and args.version == "v2_1base"
+    ):
+        args.use_tuned = True
 
     if args.use_tuned:
-        print("Using tuned models for stablediffusion/fp16 and rdna3 card.")
+        print(f"Using {args.device} tuned models for stablediffusion/fp16.")
+    else:
+        print("Tuned models are currently not supported for this setting.")
 
 
 # Utility to get list of devices available.

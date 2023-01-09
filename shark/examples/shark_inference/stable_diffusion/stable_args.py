@@ -247,4 +247,11 @@ p.add_argument(
     help="Options are unet and vae.",
 )
 
+p.add_argument(
+    "--use_winograd",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Apply Winograd on selected conv ops.",
+)
+
 args = p.parse_args()
