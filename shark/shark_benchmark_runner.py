@@ -23,6 +23,8 @@ from datetime import datetime
 import time
 import csv
 import os
+import torch
+import torch._dynamo as dynamo
 
 
 class OnnxFusionOptions(object):
@@ -116,6 +118,7 @@ class SharkBenchmarkRunner(SharkRunner):
             "cuda:0" if self.device == "cuda" else "cpu"
         )
         HFmodel, input = get_torch_model(modelname)[:2]
+        HFmodel = dynamo.optimize("inductor")(HFmodel)
         frontend_model = HFmodel.model
         frontend_model.to(torch_device)
         input.to(torch_device)
