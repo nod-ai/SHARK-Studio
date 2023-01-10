@@ -91,7 +91,7 @@ class ModelCache:
             self.device = device_key
             self.variant = args.variant
             self.version = args.version
-            args.device = device_key.split("(", 1)[1].strip()[:-1]
+            args.device = device_key.split("=>", 1)[1].strip()
             args.max_length = 64
             args.use_tuned = True
             set_init_device_flags()
