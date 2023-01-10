@@ -123,8 +123,12 @@ fi
 $PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
 
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
+  T_VER=$($PYTHON -m pip show torch | grep Version)
+  TORCH_VERSION=${T_VER:9:17}
+  TV_VER=$($PYTHON -m pip show torchvision | grep Version)
+  TV_VERSION=${TV_VER:9:18}
   $PYTHON -m pip uninstall -y torch torchvision
-  $PYTHON -m pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
+  $PYTHON -m pip install --no-deps https://download.pytorch.org/whl/nightly/cu117/torch-${TORCH_VERSION}%2Bcu117-cp310-cp310-linux_x86_64.whl https://download.pytorch.org/whl/nightly/cu117/torchvision-${TV_VERSION}%2Bcu117-cp310-cp310-linux_x86_64.whl
   if [ $? -eq 0 ];then
     echo "Successfully Installed torch + cu117."
   else
