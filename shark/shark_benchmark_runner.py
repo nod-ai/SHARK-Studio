@@ -65,6 +65,7 @@ class SharkBenchmarkRunner(SharkRunner):
         extra_args: list = [],
     ):
         self.device = shark_args.device if device == "none" else device
+        self.enable_tf32 = shark_args.enable_tf32
         self.frontend_model = None
         self.vmfb_file = None
         self.mlir_dialect = mlir_dialect
@@ -107,6 +108,8 @@ class SharkBenchmarkRunner(SharkRunner):
 
         if self.device == "cuda":
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
+            if self.enable_tf32:
+                torch.backends.cuda.matmul.allow_tf32 = True
         else:
             torch.set_default_tensor_type(torch.FloatTensor)
         torch_device = torch.device(

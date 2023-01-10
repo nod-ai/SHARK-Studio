@@ -16,6 +16,7 @@ from models.stable_diffusion.stable_args import args
 from models.stable_diffusion.schedulers import (
     SharkEulerDiscreteScheduler,
 )
+import gc
 
 
 model_config = {
@@ -81,16 +82,25 @@ class ModelCache:
         self.version = None
         self.schedulers = None
         self.tokenizer = None
+        self.vae = None
+        self.clip = None
+        self.unet = None
 
     def set_models(self, device_key):
         if self.device != device_key or self.variant != args.variant:
             self.device = device_key
             self.variant = args.variant
             self.version = args.version
-            args.device = device_key.split("=>", 1)[0].strip()
+            args.device = device_key.split("(", 1)[1].strip()[:-1]
             args.max_length = 64
             args.use_tuned = True
             set_init_device_flags()
+            del self.schedulers
+            del self.tokenizer
+            del self.vae
+            del self.unet
+            del self.clip
+            gc.collect()
             self.schedulers = get_schedulers(args.version)
             self.tokenizer = get_tokenizer(args.version)
             self.vae = get_vae()
