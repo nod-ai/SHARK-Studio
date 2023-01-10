@@ -220,7 +220,7 @@ def get_available_devices():
             print(f"{driver_name} devices are not available.")
         else:
             for i, device in enumerate(device_list_dict):
-                device_list.append(f"{device['name']} ({driver_name}://{i})")
+                device_list.append(f"{device['name']} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
