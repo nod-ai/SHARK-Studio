@@ -131,8 +131,6 @@ jobs:
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
-        pip uninstall torch torchvision
-        pip install --pre torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cu117
         /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
         pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" -k "not metal" |
           tail -n 1 |
