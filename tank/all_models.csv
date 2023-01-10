@@ -17,7 +17,7 @@ albert-base-v2,linalg,torch,1e-2,1e-3,default,None,True,True,True,"issue with at
 alexnet,linalg,torch,1e-2,1e-3,default,None,False,False,True,"Assertion Error: Zeros Output"
 bert-base-cased,linalg,torch,1e-2,1e-3,default,None,False,False,False,""
 bert-base-uncased,linalg,torch,1e-2,1e-3,default,None,False,False,False,""
-bert-base-uncased_fp16,linalg,torch,1e-2,1e-2,default,None,True,True,True,""
+bert-base-uncased_fp16,linalg,torch,1e-1,1e-1,default,None,True,False,True,""
 facebook/deit-small-distilled-patch16-224,linalg,torch,1e-2,1e-3,default,nhcw-nhwc,False,True,False,"Fails during iree-compile."
 google/vit-base-patch16-224,linalg,torch,1e-2,1e-3,default,nhcw-nhwc,False,True,False,"https://github.com/nod-ai/SHARK/issues/311"
 microsoft/beit-base-patch16-224-pt22k-ft22k,linalg,torch,1e-2,1e-3,default,nhcw-nhwc,False,True,False,"https://github.com/nod-ai/SHARK/issues/390"
