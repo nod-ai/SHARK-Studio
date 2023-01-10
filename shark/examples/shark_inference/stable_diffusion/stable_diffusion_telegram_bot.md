@@ -4,7 +4,7 @@ In it the record:
 TG_TOKEN="your_token"
 specifying your bot's token from previous step.
 Then run bot.py with the same parameters that you use when running index.py, for example:
-python bot.py --max_length=77 --vulkan_large_heap_block_size=0 --use_base_vae --local_tank_cache h:\shark\TEMP
+python telegram_bot.py --max_length=77 --vulkan_large_heap_block_size=0 --use_base_vae --local_tank_cache h:\shark\TEMP
 
 Bot commands:
 /select_model
