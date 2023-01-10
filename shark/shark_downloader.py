@@ -201,7 +201,7 @@ def _internet_connected():
     import requests as req
 
     try:
-        req.get("http://1.1.1.1")
+        req.get("http://8.8.8.8")
         return True
     except:
         return False

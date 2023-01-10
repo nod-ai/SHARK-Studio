@@ -18,6 +18,7 @@ from os import linesep
 from shark.iree_utils._common import run_cmd
 import iree.runtime as ireert
 from sys import platform
+from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env_flag
 
 
 def get_vulkan_device_name():
@@ -97,15 +98,16 @@ def get_vulkan_target_triple(device_name):
     return triple
 
 
-def get_vulkan_triple_flag(device_name=None, extra_args=[]):
+def get_vulkan_triple_flag(device_name="", extra_args=[]):
     for flag in extra_args:
         if "-iree-vulkan-target-triple=" in flag:
             print(f"Using target triple {flag.split('=')[1]}")
             return None
 
-    vulkan_device = (
-        device_name if device_name is not None else get_vulkan_device_name()
-    )
+    if device_name == "" or device_name == [] or device_name is None:
+        vulkan_device = get_vulkan_device_name()
+    else:
+        vulkan_device = device_name
     triple = get_vulkan_target_triple(vulkan_device)
     if triple is not None:
         print(
@@ -122,11 +124,23 @@ def get_vulkan_triple_flag(device_name=None, extra_args=[]):
 
 
 def get_iree_vulkan_args(extra_args=[]):
-    vulkan_flag = []
-    vulkan_triple_flag = get_vulkan_triple_flag(extra_args=extra_args)
+    # vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
+
+    res_vulkan_flag = []
+    vulkan_triple_flag = None
+    for arg in extra_args:
+        if "-iree-vulkan-target-triple=" in arg:
+            print(f"Using target triple {arg} from command line args")
+            vulkan_triple_flag = arg
+            break
+
+    if vulkan_triple_flag is None:
+        vulkan_triple_flag = get_vulkan_triple_flag(extra_args)
+
     if vulkan_triple_flag is not None:
-        vulkan_flag.append(vulkan_triple_flag)
-    return vulkan_flag
+        vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)
+        res_vulkan_flag.append(vulkan_target_env)
+    return res_vulkan_flag
 
 
 def set_iree_vulkan_runtime_flags(flags):

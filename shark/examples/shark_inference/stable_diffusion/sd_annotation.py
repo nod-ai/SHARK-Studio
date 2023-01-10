@@ -12,11 +12,14 @@ from opt_params import get_params
 from utils import set_init_device_flags
 
 
-# Downloads the model (Unet or VAE fp16) from shark_tank
 set_init_device_flags()
+device = (
+    args.device if "://" not in args.device else args.device.split("://")[0]
+)
+
+# Downloads the model (Unet or VAE fp16) from shark_tank
 shark_args.local_tank_cache = args.local_tank_cache
 bucket_key = f"{args.variant}/untuned"
-use_winograd = True
 if args.annotation_model == "unet":
     model_key = f"{args.variant}/{args.version}/unet/{args.precision}/length_{args.max_length}/untuned"
 elif args.annotation_model == "vae":
@@ -34,8 +37,8 @@ mlir_model, func_name, inputs, golden_out = download_model(
 
 # Downloads the tuned config files from shark_tank
 config_bucket = "gs://shark_tank/sd_tuned/configs/"
-if use_winograd:
-    config_name = f"{args.annotation_model}_winograd.json"
+if args.use_winograd:
+    config_name = f"{args.annotation_model}_winograd_{device}.json"
     full_gs_url = config_bucket + config_name
     winograd_config_dir = f"{WORKDIR}configs/" + config_name
     download_public_file(full_gs_url, winograd_config_dir, True)
@@ -43,20 +46,20 @@ if use_winograd:
 if args.annotation_model == "unet":
     if args.variant in ["anythingv3", "analogdiffusion"]:
         args.max_length = 77
-    config_name = f"{args.annotation_model}_{args.version}_{args.precision}_len{args.max_length}.json"
+    config_name = f"{args.annotation_model}_{args.version}_{args.precision}_len{args.max_length}_{device}.json"
     full_gs_url = config_bucket + config_name
     lowering_config_dir = f"{WORKDIR}configs/" + config_name
     download_public_file(full_gs_url, lowering_config_dir, True)
 
 # Annotate the model with Winograd attribute on selected conv ops
-if use_winograd:
+if args.use_winograd:
     with create_context() as ctx:
         winograd_model = model_annotation(
             ctx,
             input_contents=mlir_model,
             config_path=winograd_config_dir,
             search_op="conv",
-            winograd=use_winograd,
+            winograd=args.use_winograd,
         )
         with open(
             f"{args.annotation_output}/{model_name}_tuned_torch.mlir", "w"
@@ -65,7 +68,7 @@ if use_winograd:
 
 # For Unet annotate the model with tuned lowering configs
 if args.annotation_model == "unet":
-    if use_winograd:
+    if args.use_winograd:
         input_mlir = f"{args.annotation_output}/{model_name}_tuned_torch.mlir"
         dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
     else:
@@ -73,11 +76,22 @@ if args.annotation_model == "unet":
         dump_after = "iree-flow-pad-linalg-ops"
 
     # Dump IR after padding/img2col/winograd passes
+    device_spec_args = ""
+    if device == "cuda":
+        from shark.iree_utils.gpu_utils import get_iree_gpu_args
+
+        gpu_flags = get_iree_gpu_args()
+        for flag in gpu_flags:
+            device_spec_args += flag + " "
+    elif device == "vulkan":
+        device_spec_args = (
+            f"--iree-vulkan-target-triple={args.iree_vulkan_target_triple} "
+        )
     run_cmd(
         f"iree-compile {input_mlir} "
         "--iree-input-type=tm_tensor "
-        f"--iree-hal-target-backends={iree_target_map(args.device)} "
-        f"--iree-vulkan-target-triple={args.iree_vulkan_target_triple} "
+        f"--iree-hal-target-backends={iree_target_map(device)} "
+        f"{device_spec_args}"
         "--iree-stream-resource-index-bits=64 "
         "--iree-vm-target-index-bits=64 "
         "--iree-flow-enable-padding-linalg-ops "

@@ -123,6 +123,12 @@ p.add_argument(
     help="other supported schedulers are [PNDM, DDIM, LMSDiscrete, EulerDiscrete, DPMSolverMultistep]",
 )
 
+p.add_argument(
+    "--output_dir",
+    type=str,
+    default=None,
+    help="Directory path to save the output images and json",
+)
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
@@ -245,6 +251,13 @@ p.add_argument(
     type=str,
     default="unet",
     help="Options are unet and vae.",
+)
+
+p.add_argument(
+    "--use_winograd",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Apply Winograd on selected conv ops.",
 )
 
 args = p.parse_args()

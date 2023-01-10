@@ -17,6 +17,10 @@ from tqdm.auto import tqdm
 import numpy as np
 from random import randint
 from stable_args import args
+from datetime import datetime as dt
+import json
+import re
+from pathlib import Path
 
 # This has to come before importing cache objects
 if args.clear_all:
@@ -250,5 +254,25 @@ if __name__ == "__main__":
     pil_images = [
         transform(image) for image in torch.from_numpy(images).to(torch.uint8)
     ]
+
+    if args.output_dir is not None:
+        output_path = Path(args.output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+    else:
+        output_path = Path.cwd()
     for i in range(batch_size):
-        pil_images[i].save(f"{args.prompts[i]}_{i}.jpg")
+        json_store = {
+            "prompt": args.prompts[i],
+            "negative prompt": args.negative_prompts[i],
+            "seed": args.seed,
+            "variant": args.variant,
+            "precision": args.precision,
+            "steps": args.steps,
+            "guidance_scale": args.guidance_scale,
+            "scheduler": args.scheduler,
+        }
+        prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[i][:15])
+        img_name = f"{prompt_slice}_{args.seed}_{i}_{dt.now().strftime('%y%m%d_%H%M%S')}"
+        pil_images[i].save(output_path / f"{img_name}.jpg")
+        with open(output_path / f"{img_name}.json", "w") as f:
+            f.write(json.dumps(json_store, indent=4))

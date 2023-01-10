@@ -26,6 +26,7 @@ datas += collect_data_files('shark')
 datas += [
          ( 'models/stable_diffusion/resources/prompts.json', 'resources' ),
          ( 'models/stable_diffusion/resources/model_db.json', 'resources' ),
+         ( 'models/stable_diffusion/resources/model_config.json', 'resources' ),
          ( 'models/stable_diffusion/logos/*', 'logos' )
          ]
 

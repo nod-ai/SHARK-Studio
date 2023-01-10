@@ -180,7 +180,9 @@ def set_init_device_flags():
         args.device = "cpu"
 
     # set max_length based on availability.
-    if args.variant in ["anythingv3", "analogdiffusion", "dreamlike"]:
+    if args.version == "v1_4":
+        args.max_length = 77
+    elif args.variant in ["anythingv3", "analogdiffusion", "dreamlike"]:
         args.max_length = 77
     elif args.variant == "openjourney":
         args.max_length = 64
@@ -189,6 +191,7 @@ def set_init_device_flags():
     if (
         args.variant in ["openjourney", "dreamlike"]
         or args.precision != "fp16"
+        or args.version == "v1_4"
         or "vulkan" not in args.device
         or "rdna3" not in args.iree_vulkan_target_triple
     ):
@@ -217,7 +220,7 @@ def get_available_devices():
             print(f"{driver_name} devices are not available.")
         else:
             for i, device in enumerate(device_list_dict):
-                device_list.append(f"{driver_name}://{i} => {device['name']}")
+                device_list.append(f"{device['name']} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
@@ -227,5 +230,5 @@ def get_available_devices():
     available_devices.extend(vulkan_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
-    available_devices.append("cpu")
+    #  available_devices.append("cpu")
     return available_devices

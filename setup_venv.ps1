@@ -1,3 +1,9 @@
+param([string]$arguments)
+
+if ($arguments -eq "--update-src"){
+	git pull
+}
+
 #Write-Host "Installing python"
 
 #Start-Process winget install Python.Python.3.10 '/quiet InstallAllUsers=1 PrependPath=1' -wait -NoNewWindow
