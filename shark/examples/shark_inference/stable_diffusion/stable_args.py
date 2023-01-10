@@ -123,6 +123,12 @@ p.add_argument(
     help="other supported schedulers are [PNDM, DDIM, LMSDiscrete, EulerDiscrete, DPMSolverMultistep]",
 )
 
+p.add_argument(
+    "--output_dir",
+    type=str,
+    default=None,
+    help="Directory path to save the output images and json",
+)
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
