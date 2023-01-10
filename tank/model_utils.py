@@ -187,17 +187,15 @@ class BertHalfPrecisionModel(torch.nn.Module):
     def __init__(self, hf_model_name):
         super().__init__()
         from transformers import AutoModelForMaskedLM
-        import transformers as trf
 
-        transformers_path = trf.__path__[0]
-        hf_model_path = f"{transformers_path}/models/{hf_model_name}"
         self.model = AutoModelForMaskedLM.from_pretrained(
             hf_model_name,  # The pretrained model.
             num_labels=2,  # The number of output labels--2 for binary classification.
             output_attentions=False,  # Whether the model returns attentions weights.
             output_hidden_states=False,  # Whether the model returns all hidden-states.
             torchscript=True,
-        )
+            torch_dtype=torch.float16,
+        ).to("cuda")
 
     def forward(self, tokens):
         return self.model.forward(tokens)[0]
@@ -210,22 +208,20 @@ def get_fp16_model(torch_model):
     model = BertHalfPrecisionModel(modelname)
     tokenizer = AutoTokenizer.from_pretrained(modelname)
     text = "Replace me by any text you like."
-    encoded_input = tokenizer(
+    test_input_fp16 = tokenizer(
         text,
-        truncation=True,
         max_length=128,
         return_tensors="pt",
-    )
-    for key in encoded_input:
-        encoded_input[key] = (
-            encoded_input[key].detach().numpy().astype(np.half)
-        )
-
+    ).input_ids.to("cuda")
+    # test_input = torch.randint(2, (1, 128))
+    # test_input_fp16 = test_input.to(
+    #    device=torch.device("cuda")
+    # )
     model_fp16 = model.half()
     model_fp16.eval()
-    model_fp16.to("cuda")
-    actual_out_fp16 = model_fp16(encoded_input)
-    return model_fp16, encoded_input, actual_out_fp16
+    with torch.no_grad():
+        actual_out_fp16 = model_fp16(test_input_fp16)
+    return model_fp16, test_input_fp16, actual_out_fp16
 
 
 # Utility function for comparing two tensors (torch).
