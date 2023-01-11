@@ -9,6 +9,10 @@ from random import randint
 import numpy as np
 import time
 import sys
+from datetime import datetime as dt
+from csv import DictWriter
+import re
+from pathlib import Path
 
 
 if args.clear_all:
@@ -63,6 +67,39 @@ def set_ui_params(
     args.seed = seed
     args.scheduler = scheduler_key
     args.variant = variant
+
+
+# save output images and the inputs correspoding to it.
+def save_output_img(output_img):
+    output_path = args.output_dir if args.output_dir else Path.cwd()
+    generated_imgs_path = Path(output_path, "generated_imgs")
+    generated_imgs_path.mkdir(parents=True, exist_ok=True)
+    csv_path = Path(output_path, "imgs_details.csv")
+
+    prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[0][:15])
+    out_img_name = (
+        f"{prompt_slice}_{args.seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
+    )
+    out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
+    output_img.save(out_img_path)
+
+    new_entry = {
+        "VARIANT": args.variant,
+        "VERSION": args.version,
+        "SCHEDULER": args.scheduler,
+        "PROMPT": args.prompts[0],
+        "NEG_PROMPT": args.negative_prompts[0],
+        "SEED": args.seed,
+        "CFG_SCALE": args.guidance_scale,
+        "PRECISION": args.precision,
+        "STEPS": args.steps,
+        "OUTPUT": out_img_path,
+    }
+
+    with open(csv_path, "a") as csv_obj:
+        dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
+        dictwriter_obj.writerow(new_entry)
+        csv_obj.close()
 
 
 def stable_diff_inf(
@@ -225,5 +262,7 @@ def stable_diff_inf(
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={height}x{width}"
     text_output += f"\nAverage step time: {avg_ms:.4f}ms/it"
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+
+    save_output_img(pil_images[0])
 
     return pil_images[0], text_output
