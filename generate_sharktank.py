@@ -41,9 +41,12 @@ def create_hash(file_name):
 
 
 def save_torch_model(torch_model_list):
-    from tank.model_utils import get_hf_model
-    from tank.model_utils import get_vision_model
-    from tank.model_utils import get_hf_img_cls_model
+    from tank.model_utils import (
+        get_hf_model,
+        get_vision_model,
+        get_hf_img_cls_model,
+        get_fp16_model,
+    )
 
     with open(torch_model_list) as csvfile:
         torch_reader = csv.reader(csvfile, delimiter=",")
@@ -65,7 +68,8 @@ def save_torch_model(torch_model_list):
                 model, input, _ = get_hf_model(torch_model_name)
             elif model_type == "hf_img_cls":
                 model, input, _ = get_hf_img_cls_model(torch_model_name)
-
+            elif model_type == "fp16":
+                model, input, _ = get_fp16_model(torch_model_name)
             torch_model_name = torch_model_name.replace("/", "_")
             torch_model_dir = os.path.join(
                 WORKDIR, str(torch_model_name) + "_torch"

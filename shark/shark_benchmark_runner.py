@@ -118,8 +118,8 @@ class SharkBenchmarkRunner(SharkRunner):
             "cuda:0" if self.device == "cuda" else "cpu"
         )
         HFmodel, input = get_torch_model(modelname)[:2]
-        HFmodel = dynamo.optimize("inductor")(HFmodel)
         frontend_model = HFmodel.model
+        frontend_model = dynamo.optimize("inductor")(frontend_model)
         frontend_model.to(torch_device)
         input.to(torch_device)
 
@@ -339,7 +339,10 @@ for currently supported models. Exiting benchmark ONNX."
             else:
                 bench_result["shape_type"] = "static"
             bench_result["device"] = device_str
-            bench_result["data_type"] = inputs[0].dtype
+            if "fp16" in modelname:
+                bench_result["data_type"] = "float16"
+            else:
+                bench_result["data_type"] = inputs[0].dtype
             for e in engines:
                 (
                     bench_result["param_count"],
