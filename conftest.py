@@ -60,3 +60,9 @@ def pytest_addoption(parser):
         default="gs://shark_tank/latest",
         help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/latest",
     )
+    parser.addoption(
+        "--benchmark_dispatches",
+        action="store_true",
+        default=None,
+        help="Benchmark individual dispatch kernels produced by IREE compiler.",
+    )
