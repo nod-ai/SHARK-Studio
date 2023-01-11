@@ -118,8 +118,8 @@ class SharkBenchmarkRunner(SharkRunner):
             "cuda:0" if self.device == "cuda" else "cpu"
         )
         HFmodel, input = get_torch_model(modelname)[:2]
-        HFmodel = dynamo.optimize("inductor")(HFmodel)
         frontend_model = HFmodel.model
+        frontend_model = dynamo.optimize("inductor")(frontend_model)
         frontend_model.to(torch_device)
         input.to(torch_device)
 
