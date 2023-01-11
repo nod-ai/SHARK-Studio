@@ -79,12 +79,15 @@ def get_unet():
 
 def get_vae():
     # Tuned model is present only for `fp16` precision.
-    is_tuned = (
-        "tuned" if (args.use_tuned and "vulkan" in args.device) else "untuned"
-    )
+    is_tuned = "tuned" if args.use_tuned else "untuned"
     is_base = "/base" if args.use_base_vae else ""
-    bucket_key = f"{args.variant}/{is_tuned}"
-    model_key = f"{args.variant}/{args.version}/vae/{args.precision}/length_77/{is_tuned}{is_base}"
+    if "vulkan" not in args.device and args.use_tuned:
+        bucket_key = f"{args.variant}/{is_tuned}/{args.device}"
+        model_key = f"{args.variant}/{args.version}/vae/{args.precision}/length_77/{is_tuned}{is_base}/{args.device}"
+    else:
+        bucket_key = f"{args.variant}/{is_tuned}"
+        model_key = f"{args.variant}/{args.version}/vae/{args.precision}/length_77/{is_tuned}{is_base}"
+
     bucket, model_name, iree_flags = get_params(
         bucket_key, model_key, "vae", is_tuned, args.precision
     )

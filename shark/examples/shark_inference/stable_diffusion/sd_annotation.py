@@ -43,8 +43,8 @@ if args.use_winograd:
     winograd_config_dir = f"{WORKDIR}configs/" + config_name
     download_public_file(full_gs_url, winograd_config_dir, True)
 
-if args.annotation_model == "unet":
-    if args.variant in ["anythingv3", "analogdiffusion"]:
+if args.annotation_model == "unet" or device == "cuda":
+    if args.variant in ["anythingv3", "analogdiffusion"] or args.annotation_model == "vae":
         args.max_length = 77
     config_name = f"{args.annotation_model}_{args.version}_{args.precision}_len{args.max_length}_{device}.json"
     full_gs_url = config_bucket + config_name
@@ -67,7 +67,7 @@ if args.use_winograd:
             f.write(str(winograd_model))
 
 # For Unet annotate the model with tuned lowering configs
-if args.annotation_model == "unet":
+if args.annotation_model == "unet" or device == "cuda":
     if args.use_winograd:
         input_mlir = f"{args.annotation_output}/{model_name}_tuned_torch.mlir"
         dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
