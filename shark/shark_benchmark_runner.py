@@ -339,7 +339,10 @@ for currently supported models. Exiting benchmark ONNX."
             else:
                 bench_result["shape_type"] = "static"
             bench_result["device"] = device_str
-            bench_result["data_type"] = inputs[0].dtype
+            if "fp16" in modelname:
+                bench_result["data_type"] = "float16"
+            else:
+                bench_result["data_type"] = inputs[0].dtype
             for e in engines:
                 (
                     bench_result["param_count"],
