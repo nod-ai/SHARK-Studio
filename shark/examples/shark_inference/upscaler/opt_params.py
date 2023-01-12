@@ -51,3 +51,5 @@ def get_clip():
     if args.import_mlir:
         return get_clip_mlir(model_name, clip_flag)
     return get_shark_model(bucket, model_name, clip_flag)
+
+get_unet_mlir()

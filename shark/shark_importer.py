@@ -274,6 +274,7 @@ def transform_fx(fx_g):
         if node.op == "call_function":
             if node.target in [
                 torch.ops.aten.arange.start,
+                torch.ops.aten.empty,
             ]:
                 node.kwargs = kwargs_dict
 
@@ -329,6 +330,9 @@ def import_with_fx(
     if is_f16:
         fx_g = fx_g.half()
         fx_g.recompile()
+        transform_fx(fx_g)
+
+    print(fx_g.graph)
 
     ts_graph = torch.jit.script(fx_g)
 
