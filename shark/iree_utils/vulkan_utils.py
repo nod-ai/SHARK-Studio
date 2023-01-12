@@ -135,7 +135,7 @@ def get_iree_vulkan_args(extra_args=[]):
             break
 
     if vulkan_triple_flag is None:
-        vulkan_triple_flag = get_vulkan_triple_flag(extra_args)
+        vulkan_triple_flag = get_vulkan_triple_flag(extra_args=extra_args)
 
     if vulkan_triple_flag is not None:
         vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)

@@ -64,7 +64,7 @@ def compile_through_fx(model, inputs, model_name, extra_args=[]):
     mlir_module, func_name = import_with_fx(model, inputs)
 
     shark_module = SharkInference(
-        "hello",
+        mlir_module,
         device=args.device,
         mlir_dialect="linalg",
     )
