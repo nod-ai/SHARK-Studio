@@ -9,9 +9,9 @@ model_input = {
     "clip": (torch.randint(1, 2, (1, 77)),),
     "vae": (torch.randn(1, 4, 128, 128),),
     "unet": (
-        torch.randn(2, 7, 128, 128).half(),  # latents
+        torch.randn(2, 7, 128, 128),  # latents
         torch.tensor([1]).to(torch.float32),  # timestep
-        torch.randn(2, 77, 1024).half(),  # embedding
+        torch.randn(2, 77, 1024),  # embedding
         torch.randn(2).to(torch.int64),  # noise_level
     ),
 }
@@ -72,7 +72,6 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             self.unet = UNet2DConditionModel.from_pretrained(
                 model_id,
                 subfolder="unet",
-                revision="fp16",
             )
             self.in_channels = self.unet.in_channels
             self.train(False)
@@ -88,12 +87,13 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             return unet_out
 
     unet = UnetModel()
-    unet = unet.half().cuda()
-    inputs = tuple([inputs.cuda() for inputs in model_input["unet"]])
+    f16_input_mask = (True, True, True, False)
     shark_unet = compile_through_fx(
         unet,
-        inputs,
+        model_input["unet"],
         model_name=model_name,
+        is_f16=True,
+        f16_input_mask=f16_input_mask,
         extra_args=extra_args,
     )
     return shark_unet

@@ -120,44 +120,30 @@ def get_base_vae_mlir(model_name="vae", extra_args=[]):
                 if args.variant == "stablediffusion"
                 else model_variant[args.variant],
                 subfolder="vae",
-                revision=model_revision[args.variant],
             )
 
         def forward(self, input):
             x = self.vae.decode(input, return_dict=False)[0]
             return (x / 2 + 0.5).clamp(0, 1)
 
+    is_f16 = True if args.precision == "fp16" else False
     vae = BaseVaeModel()
     if args.variant == "stablediffusion":
-        if args.precision == "fp16":
-            vae = vae.half().cuda()
-            inputs = tuple(
-                [
-                    inputs.half().cuda()
-                    for inputs in model_input[args.version]["vae"]
-                ]
-            )
-        else:
-            inputs = model_input[args.version]["vae"]
+        inputs = model_input[args.version]["vae"]
     elif args.variant in [
         "anythingv3",
         "analogdiffusion",
         "openjourney",
         "dreamlike",
     ]:
-        if args.precision == "fp16":
-            vae = vae.half().cuda()
-            inputs = tuple(
-                [inputs.half().cuda() for inputs in model_input["v1_4"]["vae"]]
-            )
-        else:
-            inputs = model_input["v1_4"]["vae"]
+        inputs = model_input["v1_4"]["vae"]
     else:
         raise ValueError(f"{args.variant} not yet added")
 
     shark_vae = compile_through_fx(
         vae,
         inputs,
+        is_f16=is_f16,
         model_name=model_name,
         extra_args=extra_args,
     )
@@ -173,7 +159,6 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
                 if args.variant == "stablediffusion"
                 else model_variant[args.variant],
                 subfolder="vae",
-                revision=model_revision[args.variant],
             )
 
         def forward(self, input):
@@ -184,36 +169,23 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
             return x.round()
 
     vae = VaeModel()
+    is_f16 = True if args.precision == "fp16" else False
     if args.variant == "stablediffusion":
-        if args.precision == "fp16":
-            vae = vae.half().cuda()
-            inputs = tuple(
-                [
-                    inputs.half().cuda()
-                    for inputs in model_input[args.version]["vae"]
-                ]
-            )
-        else:
-            inputs = model_input[args.version]["vae"]
+        inputs = model_input[args.version]["vae"]
     elif args.variant in [
         "anythingv3",
         "analogdiffusion",
         "openjourney",
         "dreamlike",
     ]:
-        if args.precision == "fp16":
-            vae = vae.half().cuda()
-            inputs = tuple(
-                [inputs.half().cuda() for inputs in model_input["v1_4"]["vae"]]
-            )
-        else:
-            inputs = model_input["v1_4"]["vae"]
+        inputs = model_input["v1_4"]["vae"]
     else:
         raise ValueError(f"{args.variant} not yet added")
 
     shark_vae = compile_through_fx(
         vae,
         inputs,
+        is_f16=is_f16,
         model_name=model_name,
         extra_args=extra_args,
     )
@@ -229,7 +201,6 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
                 if args.variant == "stablediffusion"
                 else model_variant[args.variant],
                 subfolder="unet",
-                revision=model_revision[args.variant],
             )
             self.in_channels = self.unet.in_channels
             self.train(False)
@@ -247,17 +218,12 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
             return noise_pred
 
     unet = UnetModel()
+    is_f16 = True if args.precision == "fp16" else False
     if args.variant == "stablediffusion":
         if args.precision == "fp16":
-            unet = unet.half().cuda()
-            inputs = tuple(
-                [
-                    inputs.half().cuda() if len(inputs.shape) != 0 else inputs
-                    for inputs in model_input[args.version]["unet"]
-                ]
-            )
-        else:
             inputs = model_input[args.version]["unet"]
+            input_mask = [True, True, True, False]
+
     elif args.variant in [
         "anythingv3",
         "analogdiffusion",
@@ -265,21 +231,17 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
         "dreamlike",
     ]:
         if args.precision == "fp16":
-            unet = unet.half().cuda()
-            inputs = tuple(
-                [
-                    inputs.half().cuda() if len(inputs.shape) != 0 else inputs
-                    for inputs in model_input["v1_4"]["unet"]
-                ]
-            )
-        else:
             inputs = model_input["v1_4"]["unet"]
+            input_mask = [True, True, True, False]
+
     else:
         raise ValueError(f"{args.variant} is not yet added")
     shark_unet = compile_through_fx(
         unet,
         inputs,
         model_name=model_name,
+        is_f16=is_f16,
+        f16_input_mask=input_mask,
         extra_args=extra_args,
     )
     return shark_unet

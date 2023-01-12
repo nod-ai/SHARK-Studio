@@ -62,10 +62,13 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
 
 # Converts the torch-module into a shark_module.
-def compile_through_fx(model, inputs, model_name, extra_args=[]):
+def compile_through_fx(
+    model, inputs, model_name, is_f16=False, f16_input_mask=None, extra_args=[]
+):
 
-    mlir_module, func_name = import_with_fx(model, inputs)
-
+    mlir_module, func_name = import_with_fx(
+        model, inputs, is_f16, f16_input_mask
+    )
     shark_module = SharkInference(
         mlir_module,
         device=args.device,
