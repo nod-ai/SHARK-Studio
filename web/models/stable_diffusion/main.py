@@ -81,7 +81,7 @@ def save_output_img(output_img):
         f"{prompt_slice}_{args.seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
     )
     out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
-    output_img.save(out_img_path)
+    output_img.save(out_img_path, quality=95, subsampling=0)
 
     new_entry = {
         "VARIANT": args.variant,
