@@ -283,8 +283,16 @@ if __name__ == "__main__":
             }
             prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[i][:15])
             img_name = f"{prompt_slice}_{args.seed}_{run}_{dt.now().strftime('%y%m%d_%H%M%S')}"
-            pil_images[i].save(
-                output_path / f"{img_name}.jpg", quality=95, subsampling=0
-            )
+            if args.output_img_format == "jpg":
+                pil_images[i].save(
+                    output_path / f"{img_name}.jpg", quality=95, subsampling=0
+                )
+            else:
+                pil_images[i].save(output_path / f"{img_name}.png", "PNG")
+                if args.output_img_format not in ["png", "jpg"]:
+                    print(
+                        f"[ERROR] Format {args.output_img_format} is not supported yet."
+                        "saving image as png. Supported formats png / jpg"
+                    )
             with open(output_path / f"{img_name}.json", "w") as f:
                 f.write(json.dumps(json_store, indent=4))
