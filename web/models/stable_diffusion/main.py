@@ -82,8 +82,17 @@ def save_output_img(output_img):
     out_img_name = (
         f"{prompt_slice}_{args.seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
     )
-    out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
-    output_img.save(out_img_path, quality=95, subsampling=0)
+    if args.output_img_format == "jpg":
+        out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
+        output_img.save(out_img_path, quality=95, subsampling=0)
+    else:
+        out_img_path = Path(generated_imgs_path, f"{out_img_name}.png")
+        output_img.save(out_img_path, "PNG")
+        if args.output_img_format not in ["png", "jpg"]:
+            print(
+                f"[ERROR] Format {args.output_img_format} is not supported yet."
+                "saving image as png. Supported formats png / jpg"
+            )
 
     new_entry = {
         "VARIANT": args.variant,

@@ -124,6 +124,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--output_img_format",
+    type=str,
+    default="png",
+    help="specify the format in which output image is save. Supported options: jpg / png",
+)
+
+p.add_argument(
     "--output_dir",
     type=str,
     default=None,
