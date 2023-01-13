@@ -129,6 +129,13 @@ p.add_argument(
     default=None,
     help="Directory path to save the output images and json",
 )
+
+p.add_argument(
+    "--runs",
+    type=int,
+    default=1,
+    help="number of images to be generated with random seeds in single execution",
+)
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
