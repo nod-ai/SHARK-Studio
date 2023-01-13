@@ -1,5 +1,5 @@
 import os
-import pathlib
+from pathlib import Path
 
 os.environ["AMD_ENABLE_LLPC"] = "1"
 import gradio as gr
@@ -13,7 +13,7 @@ nodlogo_loc = resource_path("logos/nod-logo.png")
 sdlogo_loc = resource_path("logos/sd-demo-logo.png")
 
 
-demo_css = pathlib.Path("demo.css").resolve()
+demo_css = Path("demo.css").resolve()
 
 
 with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
@@ -123,6 +123,13 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         lines=4,
                         show_label=False,
                     )
+                output_dir = args.output_dir if args.output_dir else Path.cwd()
+                output_dir = Path(output_dir, "generated_imgs")
+                output_loc = gr.Textbox(
+                    label="Saving Images at",
+                    value=output_dir,
+                    interactive=False,
+                )
 
         prompt.submit(
             stable_diff_inf,

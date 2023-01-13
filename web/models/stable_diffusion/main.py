@@ -74,7 +74,7 @@ def save_output_img(output_img):
     output_path = args.output_dir if args.output_dir else Path.cwd()
     generated_imgs_path = Path(output_path, "generated_imgs")
     generated_imgs_path.mkdir(parents=True, exist_ok=True)
-    csv_path = Path(output_path, "imgs_details.csv")
+    csv_path = Path(generated_imgs_path, "imgs_history.csv")
 
     prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[0][:15])
     out_img_name = (
@@ -90,7 +90,7 @@ def save_output_img(output_img):
         "PROMPT": args.prompts[0],
         "NEG_PROMPT": args.negative_prompts[0],
         "SEED": args.seed,
-        "CFG_SCALE": args.guidance_scale,
+        "CFG_SCALE": float(args.guidance_scale),
         "PRECISION": args.precision,
         "STEPS": args.steps,
         "OUTPUT": out_img_path,
