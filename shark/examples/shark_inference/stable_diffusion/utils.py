@@ -242,3 +242,12 @@ def get_available_devices():
     available_devices.extend(cuda_devices)
     available_devices.append("cpu")
     return available_devices
+
+
+def disk_space_check(path, lim=20):
+    from shutil import disk_usage
+
+    du = disk_usage(path)
+    free = du.free / (1024 * 1024 * 1024)
+    if free <= lim:
+        print(f"[WARNING] Only {free:.2f}GB space available in {path}.")

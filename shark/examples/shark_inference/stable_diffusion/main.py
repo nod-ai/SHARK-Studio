@@ -42,7 +42,7 @@ if args.clear_all:
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
 
 
-from utils import set_init_device_flags
+from utils import set_init_device_flags, disk_space_check
 
 from opt_params import get_unet, get_vae, get_clip
 from schedulers import (
@@ -104,6 +104,7 @@ if __name__ == "__main__":
         sys.exit("prompts and negative prompts must be of same length")
 
     set_init_device_flags()
+    disk_space_check(Path.cwd())
     clip = get_clip()
     unet = get_unet()
     vae = get_vae()
@@ -260,6 +261,7 @@ if __name__ == "__main__":
         output_path.mkdir(parents=True, exist_ok=True)
     else:
         output_path = Path.cwd()
+    disk_space_check(output_path, lim=5)
     for i in range(batch_size):
         json_store = {
             "prompt": args.prompts[i],
