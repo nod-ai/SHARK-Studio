@@ -205,11 +205,10 @@ def set_init_device_flags():
 
     # Use tuned model in the case of stablediffusion/fp16 and cuda device sm_80
     if (
-        args.variant == "stablediffusion"
+        args.variant in ["stablediffusion", "anythingv3", "analogdiffusion"]
         and args.precision == "fp16"
         and "cuda" in args.device
         and get_cuda_sm_cc() == "sm_80"
-        and args.version == "v2_1base"
     ):
         args.use_tuned = True
 

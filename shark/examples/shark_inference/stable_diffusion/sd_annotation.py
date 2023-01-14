@@ -44,10 +44,10 @@ if args.use_winograd:
     download_public_file(full_gs_url, winograd_config_dir, True)
 
 if args.annotation_model == "unet" or device == "cuda":
-    if (
-        args.variant in ["anythingv3", "analogdiffusion"]
-        or args.annotation_model == "vae"
-    ):
+    if args.variant in ["anythingv3", "analogdiffusion"]:
+        args.max_length = 77
+        args.version = "v1_4"
+    if args.annotation_model == "vae":
         args.max_length = 77
     config_name = f"{args.annotation_model}_{args.version}_{args.precision}_len{args.max_length}_{device}.json"
     full_gs_url = config_bucket + config_name
