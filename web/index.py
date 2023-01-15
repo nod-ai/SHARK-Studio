@@ -13,7 +13,7 @@ nodlogo_loc = resource_path("logos/nod-logo.png")
 sdlogo_loc = resource_path("logos/sd-demo-logo.png")
 
 
-demo_css = Path("demo.css").resolve()
+demo_css = Path(__file__).parent.joinpath("demo.css").resolve()
 
 
 with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
