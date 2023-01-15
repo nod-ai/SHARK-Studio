@@ -30,6 +30,7 @@ datas += [
          ( 'models/stable_diffusion/logos/*', 'logos' )
          ]
 datas += [('demo.css', '.')]
+
 binaries = []
 
 block_cipher = None
