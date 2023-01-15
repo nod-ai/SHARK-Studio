@@ -29,7 +29,7 @@ datas += [
          ( 'models/stable_diffusion/resources/model_config.json', 'resources' ),
          ( 'models/stable_diffusion/logos/*', 'logos' )
          ]
-
+datas += [('demo.css', '.')]
 binaries = []
 
 block_cipher = None
