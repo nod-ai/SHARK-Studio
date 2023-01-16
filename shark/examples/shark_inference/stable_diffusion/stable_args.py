@@ -143,6 +143,14 @@ p.add_argument(
     default=1,
     help="number of images to be generated with random seeds in single execution",
 )
+
+p.add_argument(
+    "--custom_model",
+    type=str,
+    default="",
+    help="Path to variants file - generated via .ckpt file. It may also contain the repo-id of hugging face.",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
