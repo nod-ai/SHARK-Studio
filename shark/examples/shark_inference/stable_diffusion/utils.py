@@ -17,7 +17,14 @@ def _compile_module(shark_module, model_name, extra_args=[]):
             if "://" not in args.device
             else "-".join(args.device.split("://"))
         )
-        extended_name = "{}_{}".format(model_name, device)
+        # We need a better naming convention for the .vmfbs because despite
+        # using the custom model variant the .vmfb names remain the same and
+        # it'll always pick up the compiled .vmfb instead of compiling the
+        # custom model.
+        # So, currently, we add `custom_model_name` in the `extended_name` of
+        # .vmfb file.
+        custom_model_name = "_".join(args.custom_model.split("/"))
+        extended_name = "{}_{}_{}".format(model_name, device, custom_model_name) 
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
             print(f"loading existing vmfb from: {vmfb_path}")

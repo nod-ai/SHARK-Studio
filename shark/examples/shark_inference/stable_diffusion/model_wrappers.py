@@ -2,6 +2,7 @@ from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from utils import compile_through_fx
 from stable_args import args
+from resources import models_config
 import torch
 
 model_config = {
@@ -67,41 +68,44 @@ model_revision = {
     "dreamlike": "main",
 }
 
+version = args.version if args.variant == "stablediffusion" else "v1_4"
+
+def get_configs():
+    model_id_key = f"{args.variant}/{version}"
+    revision_key = f"{args.variant}/{args.precision}"
+    try:
+        model_id = models_config[0][model_id_key]
+        revision = models_config[1][revision_key]
+    except KeyError:
+        raise Exception(
+            f"No entry for {model_id_key} or {revision_key} in the models configuration"
+        )
+
+    return model_id, revision
 
 def get_clip_mlir(model_name="clip_text", extra_args=[]):
-
-    text_encoder = CLIPTextModel.from_pretrained(
-        "openai/clip-vit-large-patch14"
-    )
-    if args.variant == "stablediffusion":
-        if args.version != "v1_4":
-            text_encoder = CLIPTextModel.from_pretrained(
-                model_config[args.version], subfolder="text_encoder"
-            )
-
-    elif args.variant in [
-        "anythingv3",
-        "analogdiffusion",
-        "openjourney",
-        "dreamlike",
-    ]:
-        text_encoder = CLIPTextModel.from_pretrained(
-            model_variant[args.variant],
-            subfolder="text_encoder",
-            revision=model_revision[args.variant],
-        )
-    else:
-        raise ValueError(f"{args.variant} not yet added")
+    model_id, revision = get_configs()
 
     class CLIPText(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.text_encoder = text_encoder
+            self.text_encoder = CLIPTextModel.from_pretrained(
+                model_id,
+                subfolder="text_encoder",
+                revision=revision,
+            )
+            if args.custom_model != "":
+                print("Getting custom CLIP")
+                self.text_encoder = CLIPTextModel.from_pretrained(
+                    args.custom_model,
+                    subfolder="text_encoder",
+                )
 
         def forward(self, input):
             return self.text_encoder(input)[0]
 
     clip_model = CLIPText()
+
     shark_clip = compile_through_fx(
         clip_model,
         model_input[args.version]["clip"],
@@ -110,7 +114,8 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
     )
     return shark_clip
 
-
+# We might not even need this function anymore! We just need to change
+# the forward function.
 def get_base_vae_mlir(model_name="vae", extra_args=[]):
     class BaseVaeModel(torch.nn.Module):
         def __init__(self):
@@ -160,6 +165,12 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
                 else model_variant[args.variant],
                 subfolder="vae",
             )
+            if args.custom_model != "":
+                print("Getting custom VAE")
+                self.vae = AutoencoderKL.from_pretrained(
+                    args.custom_model,
+                    subfolder="vae",
+                )
 
         def forward(self, input):
             input = 1 / 0.18215 * input
@@ -202,6 +213,12 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
                 else model_variant[args.variant],
                 subfolder="unet",
             )
+            if args.custom_model != "":
+                print("Getting custom UNET")
+                self.unet = UNet2DConditionModel.from_pretrained(
+                    args.custom_model,
+                    subfolder="unet",
+                )
             self.in_channels = self.unet.in_channels
             self.train(False)
 

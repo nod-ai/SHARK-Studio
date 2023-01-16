@@ -29,3 +29,12 @@ if os.path.exists(models_loc):
 
 if len(models_db) != 3:
     sys.exit("Error: Unable to load models database.")
+
+models_config = []
+models_config_loc = resource_path("resources/model_config.json")
+if os.path.exists(models_config_loc):
+    with open(models_config_loc, encoding="utf-8") as fopen:
+        models_config = json.load(fopen)
+
+if not models_config:
+    sys.exit("Error: Unable to load models config.")

@@ -54,3 +54,16 @@ use the flag `--variant=` to specify the model to be used.
 ```shell
 python .\shark\examples\shark_inference\stable_diffusion\main.py --variant=anythingv3 --max_length=77 --prompt="1girl, brown hair, green eyes, colorful, autumn, cumulonimbus clouds, lighting, blue sky, falling leaves, garden"
 ```
+
+## Using custom checkpoints for a specific version of a model:
+* To try this feature you may download [checkpoint-file](https://huggingface.co/andite/anything-v4.0/resolve/main/anything-v4.0-pruned-fp32.ckpt) in case you don't have locally generated `.ckpt` file for StableDiffusion.
+* Now pass the .ckpt file to [convert_original_stable_diffusion_to_diffusers.py](https://github.com/huggingface/diffusers/blob/main/scripts/convert_original_stable_diffusion_to_diffusers.py). Eg:
+```shell
+python convert_original_stable_diffusion_to_diffusers.py --checkpoint_path="/path/to/ckpt/file" --dump_path="/path/to/dump/the/diffusers/structure"
+```
+This would end up segregating the `.ckpt` file to match the structure of `diffusers`.
+* Now pass the diffusers' structure generated above to `model_variant` command-line flag using the following :-
+```shell
+python3.10 main.py --precision=fp32 --device=cuda --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=77 --version="v1_4" --model_variant="/path/to/dump/the/diffusers/structure"
+```
+* NOTE: You need to also specify `version` for the custom model you wanna run.
