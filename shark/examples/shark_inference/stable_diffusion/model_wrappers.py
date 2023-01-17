@@ -70,6 +70,7 @@ model_revision = {
 
 version = args.version if args.variant == "stablediffusion" else "v1_4"
 
+
 def get_configs():
     model_id_key = f"{args.variant}/{version}"
     revision_key = f"{args.variant}/{args.precision}"
@@ -83,22 +84,25 @@ def get_configs():
 
     return model_id, revision
 
+
 def get_clip_mlir(model_name="clip_text", extra_args=[]):
     model_id, revision = get_configs()
 
     class CLIPText(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.text_encoder = CLIPTextModel.from_pretrained(
-                model_id,
-                subfolder="text_encoder",
-                revision=revision,
-            )
+            self.text_encoder = None
             if args.custom_model != "":
                 print("Getting custom CLIP")
                 self.text_encoder = CLIPTextModel.from_pretrained(
                     args.custom_model,
                     subfolder="text_encoder",
+                )
+            else:
+                self.text_encoder = CLIPTextModel.from_pretrained(
+                    model_id,
+                    subfolder="text_encoder",
+                    revision=revision,
                 )
 
         def forward(self, input):
@@ -113,6 +117,7 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
         extra_args=extra_args,
     )
     return shark_clip
+
 
 # We might not even need this function anymore! We just need to change
 # the forward function.
@@ -159,16 +164,18 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
     class VaeModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.vae = AutoencoderKL.from_pretrained(
-                model_config[args.version]
-                if args.variant == "stablediffusion"
-                else model_variant[args.variant],
-                subfolder="vae",
-            )
+            self.vae = None
             if args.custom_model != "":
                 print("Getting custom VAE")
                 self.vae = AutoencoderKL.from_pretrained(
                     args.custom_model,
+                    subfolder="vae",
+                )
+            else:
+                self.vae = AutoencoderKL.from_pretrained(
+                    model_config[args.version]
+                    if args.variant == "stablediffusion"
+                    else model_variant[args.variant],
                     subfolder="vae",
                 )
 
@@ -207,16 +214,18 @@ def get_unet_mlir(model_name="unet", extra_args=[]):
     class UnetModel(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.unet = UNet2DConditionModel.from_pretrained(
-                model_config[args.version]
-                if args.variant == "stablediffusion"
-                else model_variant[args.variant],
-                subfolder="unet",
-            )
+            self.unet = None
             if args.custom_model != "":
                 print("Getting custom UNET")
                 self.unet = UNet2DConditionModel.from_pretrained(
                     args.custom_model,
+                    subfolder="unet",
+                )
+            else:
+                self.unet = UNet2DConditionModel.from_pretrained(
+                    model_config[args.version]
+                    if args.variant == "stablediffusion"
+                    else model_variant[args.variant],
                     subfolder="unet",
                 )
             self.in_channels = self.unet.in_channels
