@@ -15,6 +15,7 @@
 from shark.parser import shark_args
 from shark.shark_runner import SharkRunner
 from shark.backward_makefx import MakeFxModule
+from shark.shark_importer import import_with_fx
 import numpy as np
 from tqdm import tqdm
 import sys
@@ -67,23 +68,21 @@ class SharkTrainer:
             self.frontend = frontend
 
     # Training function is needed in the case of torch_fn.
-    def compile(self, training_fn=None):
+    def compile(self, training_fn=None, extra_args=[]):
         if self.frontend in ["torch", "pytorch"]:
-            aot_module = MakeFxModule(
-                self.model, tuple(self.input), custom_inference_fn=training_fn
+            packed_inputs = (
+                dict(self.model.named_parameters()),
+                dict(self.model.named_buffers()),
+                tuple(self.input),
             )
-            aot_module.generate_graph()
-            # Returns the backward graph.
-            training_graph = aot_module.training_graph
-            weights = self.get_torch_params()
+            mlir_module, func_name = import_with_fx(
+                training_fn, packed_inputs, False, [], training=True
+            )
             self.shark_runner = SharkRunner(
-                training_graph,
-                weights + self.input,
-                self.dynamic,
+                mlir_module,
                 self.device,
-                self.jit_trace,
-                self.from_aot,
-                self.frontend,
+                "tm_tensor",
+                extra_args=extra_args,
             )
         elif self.frontend in ["tensorflow", "tf", "mhlo"]:
             self.shark_runner = SharkRunner(
@@ -112,8 +111,8 @@ class SharkTrainer:
         params = [x.numpy() for x in params]
         print(f"Training started for {num_iters} iterations:")
         for i in tqdm(range(num_iters)):
-            params = self.shark_runner.forward(
-                params + self.input, self.frontend
+            params = self.shark_runner.run(
+                "forward", params + self.input, self.frontend
             )
 
         return params

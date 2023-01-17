@@ -312,9 +312,51 @@ def transform_fx(fx_g):
     fx_g.graph.lint()
 
 
+# Doesn't replace the None type.
+def change_fx_graph_return_to_tuple(fx_g):
+    for node in fx_g.graph.nodes:
+        if node.op == "output":
+            # output nodes always have one argument
+            node_arg = node.args[0]
+            out_nodes = []
+            if isinstance(node_arg, list):
+                # Don't return NoneType elements.
+                for out_node in node_arg:
+                    if not isinstance(out_node, type(None)):
+                        out_nodes.append(out_node)
+                # If there is a single tensor/element to be returned don't
+                # a tuple for it.
+                if len(out_nodes) == 1:
+                    node.args = out_nodes
+                else:
+                    node.args = (tuple(out_nodes),)
+    fx_g.graph.lint()
+    fx_g.recompile()
+    return fx_g
+
+
+def flatten_training_input(inputs):
+    flattened_input = []
+    for i in inputs:
+        if isinstance(i, dict):
+            for value in i.values():
+                flattened_input.append(value.detach())
+        elif isinstance(i, tuple):
+            for value in i:
+                flattened_input.append(value)
+        else:
+            flattened_input.append(i)
+    return tuple(flattened_input)
+
+
 # Applies fx conversion to the model and imports the mlir.
 def import_with_fx(
-    model, inputs, is_f16=False, f16_input_mask=None, debug=False
+    model,
+    inputs,
+    is_f16=False,
+    f16_input_mask=None,
+    debug=False,
+    training=False,
 ):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
@@ -360,9 +402,12 @@ def import_with_fx(
         transform_fx(fx_g)
         fx_g.recompile()
 
+    if training:
+        change_fx_graph_return_to_tuple(fx_g)
+        inputs = flatten_training_input(inputs)
+
     ts_graph = torch.jit.script(fx_g)
     inputs = get_f16_inputs(inputs, is_f16, f16_input_mask)
-
     mlir_importer = SharkImporter(
         ts_graph,
         inputs,
