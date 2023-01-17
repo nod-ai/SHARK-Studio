@@ -23,8 +23,12 @@ def _compile_module(shark_module, model_name, extra_args=[]):
         # custom model.
         # So, currently, we add `custom_model_name` in the `extended_name` of
         # .vmfb file.
-        custom_model_name = "_".join(args.custom_model.split("/"))
-        extended_name = "{}_{}_{}".format(model_name, device, custom_model_name) 
+        # TODO: Have a better way of naming the vmfbs.
+        import re
+        custom_model_name = re.sub(r'\W+', '_', args.custom_model)
+        if custom_model_name != "" and custom_model_name[0] == "_":
+            custom_model_name = custom_model_name[1:]
+        extended_name = "{}_{}_{}".format(model_name, device, custom_model_name)
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
             print(f"loading existing vmfb from: {vmfb_path}")
