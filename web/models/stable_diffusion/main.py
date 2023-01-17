@@ -84,7 +84,13 @@ def save_output_img(output_img):
     )
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
-        output_img.save(out_img_path, quality=95, subsampling=0)
+        output_img.save(
+            out_img_path,
+            quality=95,
+            subsampling=0,
+            optimize=True,
+            progressive=True,
+        )
     else:
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.png")
         output_img.save(out_img_path, "PNG")
