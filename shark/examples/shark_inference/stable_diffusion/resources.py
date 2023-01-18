@@ -11,30 +11,32 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-prompt_examples = []
-prompts_loc = resource_path("resources/prompts.json")
-if os.path.exists(prompts_loc):
-    with open(prompts_loc, encoding="utf-8") as fopen:
-        prompt_examples = json.load(fopen)
+def get_json_file(path):
+    json_var = []
+    loc_json = resource_path(path)
+    if os.path.exists(loc_json):
+        with open(loc_json, encoding="utf-8") as fopen:
+            json_var = json.load(fopen)
 
-if not prompt_examples:
-    print("Unable to fetch prompt examples.")
+    if not json_var:
+        print(f"Unable to fetch {path}")
+
+    return json_var
 
 
-models_db = []
-models_loc = resource_path("resources/model_db.json")
-if os.path.exists(models_loc):
-    with open(models_loc, encoding="utf-8") as fopen:
-        models_db = json.load(fopen)
+# TODO: This shouldn't be called from here, every time the file imports
+# it will run all the global vars.
+prompts_examples = get_json_file("resources/prompts.json")
+models_db = get_json_file("resources/model_db.json")
 
-if len(models_db) != 3:
-    sys.exit("Error: Unable to load models database.")
+# The base_model contains the input configuration for the different
+# models and also helps in providing information for the variants.
+base_models = get_json_file("resources/base_model.json")
 
-models_config = []
-models_config_loc = resource_path("resources/model_config.json")
-if os.path.exists(models_config_loc):
-    with open(models_config_loc, encoding="utf-8") as fopen:
-        models_config = json.load(fopen)
+# The variant contains the mapping from variant to the base configuration
+# to get the required inputs.
+# If the input configuration doesn't match it should be registered standalone in the base configuration.
+variants = get_json_file("resources/variants.json")
 
-if not models_config:
-    sys.exit("Error: Unable to load models config.")
+# Contains optimization flags for different models.
+opt_flags = get_json_file("resources/opt_flags.json")

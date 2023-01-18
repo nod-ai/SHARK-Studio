@@ -21,6 +21,7 @@ from datetime import datetime as dt
 import json
 import re
 from pathlib import Path
+from model_wrappers import SharkifyStableDiffusionModel
 
 # This has to come before importing cache objects
 if args.clear_all:
@@ -95,9 +96,22 @@ if __name__ == "__main__":
 
     set_init_device_flags()
     disk_space_check(Path.cwd())
-    clip = get_clip()
-    unet = get_unet()
-    vae = get_vae()
+
+    if not args.import_mlir:
+        clip = get_clip()
+        unet = get_unet()
+        vae = get_vae()
+    else:
+        mlir_import = SharkifyStableDiffusionModel(
+            args.custom_model,
+            args.precision,
+            max_len=args.max_length,
+            height=height,
+            width=width,
+            use_base_vae=args.use_base_vae,
+        )
+        clip, unet, vae = mlir_import()
+
     if args.dump_isa:
         dump_isas(args.dispatch_benchmarks_dir)
 

@@ -147,7 +147,7 @@ p.add_argument(
 p.add_argument(
     "--custom_model",
     type=str,
-    default="",
+    default="andite/anything-v4.0",
     help="Path to variants file - generated via .ckpt file. It may also contain the repo-id of hugging face.",
 )
 

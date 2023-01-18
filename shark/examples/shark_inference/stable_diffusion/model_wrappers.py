@@ -1,273 +1,197 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
-from utils import compile_through_fx
-from stable_args import args
-from resources import models_config
+from utils import compile_through_fx, get_opt_flags
+from resources import base_models, variants
+from collections import defaultdict
 import torch
-
-model_config = {
-    "v2_1": "stabilityai/stable-diffusion-2-1",
-    "v2_1base": "stabilityai/stable-diffusion-2-1-base",
-    "v1_4": "CompVis/stable-diffusion-v1-4",
-}
-
-# clip has 2 variants of max length 77 or 64.
-model_clip_max_length = 64 if args.max_length == 64 else 77
-if args.variant in ["anythingv3", "analogdiffusion", "dreamlike"]:
-    model_clip_max_length = 77
-elif args.variant == "openjourney":
-    model_clip_max_length = 64
-
-model_variant = {
-    "stablediffusion": "SD",
-    "anythingv3": "Linaqruf/anything-v3.0",
-    "dreamlike": "dreamlike-art/dreamlike-diffusion-1.0",
-    "openjourney": "prompthero/openjourney",
-    "analogdiffusion": "wavymulder/Analog-Diffusion",
-}
-
-model_input = {
-    "v2_1": {
-        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
-        "vae": (torch.randn(1, 4, 96, 96),),
-        "unet": (
-            torch.randn(1, 4, 96, 96),  # latents
-            torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, model_clip_max_length, 1024),  # embedding
-            torch.tensor(1).to(torch.float32),  # guidance_scale
-        ),
-    },
-    "v2_1base": {
-        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
-        "vae": (torch.randn(1, 4, 64, 64),),
-        "unet": (
-            torch.randn(1, 4, 64, 64),  # latents
-            torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, model_clip_max_length, 1024),  # embedding
-            torch.tensor(1).to(torch.float32),  # guidance_scale
-        ),
-    },
-    "v1_4": {
-        "clip": (torch.randint(1, 2, (2, model_clip_max_length)),),
-        "vae": (torch.randn(1, 4, 64, 64),),
-        "unet": (
-            torch.randn(1, 4, 64, 64),
-            torch.tensor([1]).to(torch.float32),  # timestep
-            torch.randn(2, model_clip_max_length, 768),
-            torch.tensor(1).to(torch.float32),
-        ),
-    },
-}
-
-# revision param for from_pretrained defaults to "main" => fp32
-model_revision = {
-    "stablediffusion": "fp16" if args.precision == "fp16" else "main",
-    "anythingv3": "diffusers",
-    "analogdiffusion": "main",
-    "openjourney": "main",
-    "dreamlike": "main",
-}
-
-version = args.version if args.variant == "stablediffusion" else "v1_4"
+import sys
 
 
-def get_configs():
-    model_id_key = f"{args.variant}/{version}"
-    revision_key = f"{args.variant}/{args.precision}"
-    try:
-        model_id = models_config[0][model_id_key]
-        revision = models_config[1][revision_key]
-    except KeyError:
-        raise Exception(
-            f"No entry for {model_id_key} or {revision_key} in the models configuration"
+# These shapes are parameter dependent.
+def replace_shape_str(shape, max_len, width, height):
+    new_shape = []
+    for i in range(len(shape)):
+        if shape[i] == "max_len":
+            new_shape.append(max_len)
+        elif shape[i] == "height":
+            new_shape.append(height)
+        elif shape[i] == "width":
+            new_shape.append(width)
+        else:
+            new_shape.append(shape[i])
+    return new_shape
+
+
+# Get the input info for various models i.e. "unet", "clip", "vae".
+def get_input_info(model_info, max_len, width, height):
+    dtype_config = {"f32": torch.float32, "i64": torch.int64}
+    input_map = defaultdict(list)
+    for k in model_info:
+        for inp in model_info[k]:
+            shape = model_info[k][inp]["shape"]
+            dtype = dtype_config[model_info[k][inp]["dtype"]]
+            tensor = None
+            if isinstance(shape, list):
+                clean_shape = replace_shape_str(shape, max_len, width, height)
+                if dtype == torch.int64:
+                    tensor = torch.randint(1, 3, tuple(clean_shape))
+                else:
+                    tensor = torch.randn(*clean_shape).to(dtype)
+            elif isinstance(shape, int):
+                tensor = torch.tensor(shape).to(dtype)
+            else:
+                sys.exit("shape isn't specified correctly.")
+            input_map[k].append(tensor)
+
+    return input_map
+
+
+# Returns the model configuration in a dict containing input parameters
+# for clip, unet and vae respectively.
+def get_model_configuration(model_id, max_len, width, height):
+    if model_id in base_models:
+        return get_input_info(base_models[model_id], max_len, height, width)
+    elif model_id in variants:
+        return get_input_info(
+            base_models[variants[model_id]], max_len, height, width
+        )
+    else:
+        sys.exit(
+            "The model info is not configured, please add the model_configuration in base_model.json if it's a base model, else add it in the variant.json"
         )
 
-    return model_id, revision
 
+class SharkifyStableDiffusionModel:
+    def __init__(
+        self,
+        model_id: str,
+        precision: str,
+        max_len: int = 64,
+        width: int = 512,
+        height: int = 512,
+        use_base_vae: bool = False,
+    ):
+        self.check_params(max_len, width, height)
+        self.inputs = get_model_configuration(
+            model_id, 64, width // 8, height // 8
+        )
+        self.model_id = model_id
+        self.precision = precision
+        self.base_vae = use_base_vae
+        self.model_name = (
+            str(max_len)
+            + "_"
+            + str(height)
+            + "_"
+            + str(width)
+            + "_"
+            + precision
+        )
 
-def get_clip_mlir(model_name="clip_text", extra_args=[]):
-    model_id, revision = get_configs()
+    def check_params(self, max_len, width, height):
+        if not (max_len > 16 and max_len < 77):
+            sys.exit("please specify max_len between 16 and 77.")
+        if not (width % 8 == 0 and width >= 384):
+            sys.exit("width should be greater than 384 and multiple of 8")
+        if not (height % 8 == 0 and height >= 384):
+            sys.exit("height should be greater than 384 and multiple of 8")
 
-    class CLIPText(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.text_encoder = None
-            if args.custom_model != "":
-                print("Getting custom CLIP")
-                self.text_encoder = CLIPTextModel.from_pretrained(
-                    args.custom_model,
-                    subfolder="text_encoder",
+    def get_vae(self):
+        class VaeModel(torch.nn.Module):
+            def __init__(self, model_id=self.model_id, base_vae=self.base_vae):
+                super().__init__()
+                self.vae = AutoencoderKL.from_pretrained(
+                    model_id,
+                    subfolder="vae",
                 )
-            else:
+                self.base_vae = base_vae
+
+            def forward(self, input):
+                if not self.base_vae:
+                    input = 1 / 0.18215 * input
+                x = self.vae.decode(input, return_dict=False)[0]
+                x = (x / 2 + 0.5).clamp(0, 1)
+                if self.base_vae:
+                    return x
+                x = x * 255.0
+                return x.round()
+
+        vae = VaeModel()
+        inputs = tuple(self.inputs["vae"])
+        is_f16 = True if self.precision == "fp16" else False
+        vae_name = "base_vae" if self.base_vae else "vae"
+        shark_vae = compile_through_fx(
+            vae,
+            inputs,
+            is_f16=is_f16,
+            model_name=vae_name + self.model_name,
+            extra_args=get_opt_flags("vae", precision=self.precision),
+        )
+        return shark_vae
+
+    def get_unet(self):
+        class UnetModel(torch.nn.Module):
+            def __init__(self, model_id=self.model_id):
+                super().__init__()
+                self.unet = UNet2DConditionModel.from_pretrained(
+                    model_id,
+                    subfolder="unet",
+                )
+                self.in_channels = self.unet.in_channels
+                self.train(False)
+
+            def forward(
+                self, latent, timestep, text_embedding, guidance_scale
+            ):
+                # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+                latents = torch.cat([latent] * 2)
+                unet_out = self.unet.forward(
+                    latents, timestep, text_embedding, return_dict=False
+                )[0]
+                noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (
+                    noise_pred_text - noise_pred_uncond
+                )
+                return noise_pred
+
+        unet = UnetModel()
+        is_f16 = True if self.precision == "fp16" else False
+        inputs = tuple(self.inputs["unet"])
+        input_mask = [True, True, True, False]
+        shark_unet = compile_through_fx(
+            unet,
+            inputs,
+            model_name="unet" + self.model_name,
+            is_f16=is_f16,
+            f16_input_mask=input_mask,
+            extra_args=get_opt_flags("unet", precision=self.precision),
+        )
+        return shark_unet
+
+    def get_clip(self):
+        class CLIPText(torch.nn.Module):
+            def __init__(self, model_id=self.model_id):
+                super().__init__()
                 self.text_encoder = CLIPTextModel.from_pretrained(
                     model_id,
                     subfolder="text_encoder",
-                    revision=revision,
                 )
 
-        def forward(self, input):
-            return self.text_encoder(input)[0]
+            def forward(self, input):
+                return self.text_encoder(input)[0]
 
-    clip_model = CLIPText()
+        clip_model = CLIPText()
 
-    shark_clip = compile_through_fx(
-        clip_model,
-        model_input[args.version]["clip"],
-        model_name=model_name,
-        extra_args=extra_args,
-    )
-    return shark_clip
+        shark_clip = compile_through_fx(
+            clip_model,
+            tuple(self.inputs["clip"]),
+            model_name="clip" + self.model_name,
+            extra_args=get_opt_flags("clip", precision="fp32"),
+        )
+        return shark_clip
 
-
-# We might not even need this function anymore! We just need to change
-# the forward function.
-def get_base_vae_mlir(model_name="vae", extra_args=[]):
-    class BaseVaeModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.vae = AutoencoderKL.from_pretrained(
-                model_config[args.version]
-                if args.variant == "stablediffusion"
-                else model_variant[args.variant],
-                subfolder="vae",
-            )
-
-        def forward(self, input):
-            x = self.vae.decode(input, return_dict=False)[0]
-            return (x / 2 + 0.5).clamp(0, 1)
-
-    is_f16 = True if args.precision == "fp16" else False
-    vae = BaseVaeModel()
-    if args.variant == "stablediffusion":
-        inputs = model_input[args.version]["vae"]
-    elif args.variant in [
-        "anythingv3",
-        "analogdiffusion",
-        "openjourney",
-        "dreamlike",
-    ]:
-        inputs = model_input["v1_4"]["vae"]
-    else:
-        raise ValueError(f"{args.variant} not yet added")
-
-    shark_vae = compile_through_fx(
-        vae,
-        inputs,
-        is_f16=is_f16,
-        model_name=model_name,
-        extra_args=extra_args,
-    )
-    return shark_vae
-
-
-def get_vae_mlir(model_name="vae", extra_args=[]):
-    class VaeModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.vae = None
-            if args.custom_model != "":
-                print("Getting custom VAE")
-                self.vae = AutoencoderKL.from_pretrained(
-                    args.custom_model,
-                    subfolder="vae",
-                )
-            else:
-                self.vae = AutoencoderKL.from_pretrained(
-                    model_config[args.version]
-                    if args.variant == "stablediffusion"
-                    else model_variant[args.variant],
-                    subfolder="vae",
-                )
-
-        def forward(self, input):
-            input = 1 / 0.18215 * input
-            x = self.vae.decode(input, return_dict=False)[0]
-            x = (x / 2 + 0.5).clamp(0, 1)
-            x = x * 255.0
-            return x.round()
-
-    vae = VaeModel()
-    is_f16 = True if args.precision == "fp16" else False
-    if args.variant == "stablediffusion":
-        inputs = model_input[args.version]["vae"]
-    elif args.variant in [
-        "anythingv3",
-        "analogdiffusion",
-        "openjourney",
-        "dreamlike",
-    ]:
-        inputs = model_input["v1_4"]["vae"]
-    else:
-        raise ValueError(f"{args.variant} not yet added")
-
-    shark_vae = compile_through_fx(
-        vae,
-        inputs,
-        is_f16=is_f16,
-        model_name=model_name,
-        extra_args=extra_args,
-    )
-    return shark_vae
-
-
-def get_unet_mlir(model_name="unet", extra_args=[]):
-    class UnetModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.unet = None
-            if args.custom_model != "":
-                print("Getting custom UNET")
-                self.unet = UNet2DConditionModel.from_pretrained(
-                    args.custom_model,
-                    subfolder="unet",
-                )
-            else:
-                self.unet = UNet2DConditionModel.from_pretrained(
-                    model_config[args.version]
-                    if args.variant == "stablediffusion"
-                    else model_variant[args.variant],
-                    subfolder="unet",
-                )
-            self.in_channels = self.unet.in_channels
-            self.train(False)
-
-        def forward(self, latent, timestep, text_embedding, guidance_scale):
-            # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-            latents = torch.cat([latent] * 2)
-            unet_out = self.unet.forward(
-                latents, timestep, text_embedding, return_dict=False
-            )[0]
-            noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
-            noise_pred = noise_pred_uncond + guidance_scale * (
-                noise_pred_text - noise_pred_uncond
-            )
-            return noise_pred
-
-    unet = UnetModel()
-    is_f16 = True if args.precision == "fp16" else False
-    if args.variant == "stablediffusion":
-        if args.precision == "fp16":
-            inputs = model_input[args.version]["unet"]
-            input_mask = [True, True, True, False]
-
-    elif args.variant in [
-        "anythingv3",
-        "analogdiffusion",
-        "openjourney",
-        "dreamlike",
-    ]:
-        if args.precision == "fp16":
-            inputs = model_input["v1_4"]["unet"]
-            input_mask = [True, True, True, False]
-
-    else:
-        raise ValueError(f"{args.variant} is not yet added")
-    shark_unet = compile_through_fx(
-        unet,
-        inputs,
-        model_name=model_name,
-        is_f16=is_f16,
-        f16_input_mask=input_mask,
-        extra_args=extra_args,
-    )
-    return shark_unet
+    def __call__(self):
+        compiled_clip = self.get_clip()
+        compiled_unet = self.get_unet()
+        compiled_vae = self.get_vae()
+        return compiled_clip, compiled_unet, compiled_vae
