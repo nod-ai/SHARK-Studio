@@ -285,7 +285,11 @@ if __name__ == "__main__":
             img_name = f"{prompt_slice}_{args.seed}_{run}_{dt.now().strftime('%y%m%d_%H%M%S')}"
             if args.output_img_format == "jpg":
                 pil_images[i].save(
-                    output_path / f"{img_name}.jpg", quality=95, subsampling=0
+                    output_path / f"{img_name}.jpg",
+                    quality=95,
+                    subsampling=0,
+                    optimize=True,
+                    progressive=True,
                 )
             else:
                 pil_images[i].save(output_path / f"{img_name}.png", "PNG")
