@@ -119,47 +119,6 @@ def get_clip_mlir(model_name="clip_text", extra_args=[]):
     return shark_clip
 
 
-# We might not even need this function anymore! We just need to change
-# the forward function.
-def get_base_vae_mlir(model_name="vae", extra_args=[]):
-    class BaseVaeModel(torch.nn.Module):
-        def __init__(self):
-            super().__init__()
-            self.vae = AutoencoderKL.from_pretrained(
-                model_config[args.version]
-                if args.variant == "stablediffusion"
-                else model_variant[args.variant],
-                subfolder="vae",
-            )
-
-        def forward(self, input):
-            x = self.vae.decode(input, return_dict=False)[0]
-            return (x / 2 + 0.5).clamp(0, 1)
-
-    is_f16 = True if args.precision == "fp16" else False
-    vae = BaseVaeModel()
-    if args.variant == "stablediffusion":
-        inputs = model_input[args.version]["vae"]
-    elif args.variant in [
-        "anythingv3",
-        "analogdiffusion",
-        "openjourney",
-        "dreamlike",
-    ]:
-        inputs = model_input["v1_4"]["vae"]
-    else:
-        raise ValueError(f"{args.variant} not yet added")
-
-    shark_vae = compile_through_fx(
-        vae,
-        inputs,
-        is_f16=is_f16,
-        model_name=model_name,
-        extra_args=extra_args,
-    )
-    return shark_vae
-
-
 def get_vae_mlir(model_name="vae", extra_args=[]):
     class VaeModel(torch.nn.Module):
         def __init__(self):
@@ -180,9 +139,12 @@ def get_vae_mlir(model_name="vae", extra_args=[]):
                 )
 
         def forward(self, input):
-            input = 1 / 0.18215 * input
+            if not args.use_base_vae:
+                input = 1 / 0.18215 * input
             x = self.vae.decode(input, return_dict=False)[0]
             x = (x / 2 + 0.5).clamp(0, 1)
+            if args.use_base_vae:
+                return x
             x = x * 255.0
             return x.round()
 

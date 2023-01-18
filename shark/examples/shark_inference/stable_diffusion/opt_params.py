@@ -94,12 +94,8 @@ def get_vae():
         bucket_key, model_key, "vae", is_tuned, args.precision
     )
     if args.custom_model != "":
-        if args.use_base_vae:
-            return get_base_vae_mlir(model_name, iree_flags)
         return get_vae_mlir(model_name, iree_flags)
     if not args.use_tuned and args.import_mlir:
-        if args.use_base_vae:
-            return get_base_vae_mlir(model_name, iree_flags)
         return get_vae_mlir(model_name, iree_flags)
     return get_shark_model(bucket, model_name, iree_flags)
 
