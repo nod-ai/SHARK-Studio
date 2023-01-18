@@ -8,6 +8,8 @@ from shark.iree_utils.vulkan_utils import (
     get_vulkan_target_triple,
 )
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
+from resources import opt_flags
+import sys
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
@@ -77,7 +79,12 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
 # Converts the torch-module into a shark_module.
 def compile_through_fx(
-    model, inputs, model_name, is_f16=False, f16_input_mask=None, extra_args=[]
+    model,
+    inputs,
+    model_name,
+    is_f16=False,
+    f16_input_mask=None,
+    extra_args=[],
 ):
 
     mlir_module, func_name = import_with_fx(
@@ -267,3 +274,35 @@ def disk_space_check(path, lim=20):
     free = du.free / (1024 * 1024 * 1024)
     if free <= lim:
         print(f"[WARNING] Only {free:.2f}GB space available in {path}.")
+
+
+def get_opt_flags(model, precision="fp16"):
+    iree_flags = []
+    is_tuned = "tuned" if args.use_tuned else "untuned"
+    if len(args.iree_vulkan_target_triple) > 0:
+        iree_flags.append(
+            f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+        )
+
+    # Disable bindings fusion to work with moltenVK.
+    if sys.platform == "darwin":
+        iree_flags.append("-iree-stream-fuse-binding=false")
+
+    if "specified_compilation_flags" in opt_flags[model][is_tuned][precision]:
+        device = (
+            args.device
+            if "://" not in args.device
+            else args.device.split("://")[0]
+        )
+        if (
+            device
+            not in opt_flags[model][is_tuned][precision][
+                "specified_compilation_flags"
+            ]
+        ):
+            device = "default_device"
+        iree_flags += opt_flags[model][is_tuned][precision][
+            "specified_compilation_flags"
+        ][device]
+
+    return iree_flags

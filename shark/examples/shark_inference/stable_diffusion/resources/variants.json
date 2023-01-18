@@ -1,0 +1,9 @@
+{
+    "Linaqruf/anything-v3.0": "CompVis/stable-diffusion-v1-4",
+    "dreamlike-art/dreamlike-diffusion-1.0": "CompVis/stable-diffusion-v1-4",
+    "prompthero/openjourney": "CompVis/stable-diffusion-v1-4",
+    "wavymulder/Analog-Diffusion": "CompVis/stable-diffusion-v1-4",
+    "runwayml/stable-diffusion-v1-5": "CompVis/stable-diffusion-v1-4",
+    "andite/anything-v4.0": "CompVis/stable-diffusion-v1-4",
+    "stabilityai/stable-diffusion-2-1": "stabilityai/stable-diffusion-2-1-base"
+}
