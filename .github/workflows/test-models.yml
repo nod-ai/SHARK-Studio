@@ -115,6 +115,7 @@ jobs:
         pytest --benchmark --ci --ci_sha=${SHORT_SHA} -s --local_tank_cache="/data/anush/shark_cache" tank/test_models.py -k cuda --update_tank
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cuda_latest.csv
+        sh build_tools/stable_diff_main_test.sh
 
     - name: Validate Vulkan Models (MacOS)
       if: matrix.suite == 'vulkan' && matrix.os == 'MacStudio'
