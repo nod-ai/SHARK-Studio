@@ -132,10 +132,17 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--custom_model",
+    "--ckpt_loc",
     type=str,
-    default="stabilityai/stable-diffusion-2-1-base",
-    help="Path to variants file - generated via .ckpt file. It may also contain the repo-id of hugging face.",
+    default="",
+    help="Path to SD's .ckpt file.",
+)
+
+p.add_argument(
+    "--hf_model_id",
+    type=str,
+    default="CompVis/stable-diffusion-v1-4",
+    help="The repo-id of hugging face.",
 )
 
 ##############################################################################

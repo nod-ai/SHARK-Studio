@@ -43,7 +43,7 @@ if args.clear_all:
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
 
 
-from utils import set_init_device_flags, disk_space_check
+from utils import set_init_device_flags, disk_space_check, preprocessCKPT
 
 from opt_params import get_unet, get_vae, get_clip
 from schedulers import (
@@ -98,8 +98,11 @@ if __name__ == "__main__":
         unet = get_unet()
         vae = get_vae()
     else:
+        if ".ckpt" in args.ckpt_loc:
+            preprocessCKPT()
         mlir_import = SharkifyStableDiffusionModel(
-            args.custom_model,
+            args.hf_model_id,
+            args.ckpt_loc,
             args.precision,
             max_len=args.max_length,
             height=height,
@@ -117,7 +120,7 @@ if __name__ == "__main__":
         subfolder="scheduler",
     )
     cpu_scheduling = True
-    if args.custom_model == "stabilityai/stable-diffusion-2-1":
+    if args.hf_model_id == "stabilityai/stable-diffusion-2-1":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
         )
@@ -127,7 +130,7 @@ if __name__ == "__main__":
             subfolder="scheduler",
         )
 
-    if args.custom_model == "stabilityai/stable-diffusion-2-1-base":
+    if args.hf_model_id == "stabilityai/stable-diffusion-2-1-base":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
         )
@@ -285,7 +288,7 @@ if __name__ == "__main__":
                 "prompt": args.prompts[i],
                 "negative prompt": args.negative_prompts[i],
                 "seed": args.seed,
-                "hf_model_id": args.custom_model,
+                "hf_model_id": args.hf_model_id,
                 "precision": args.precision,
                 "steps": args.steps,
                 "guidance_scale": args.guidance_scale,

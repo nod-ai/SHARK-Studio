@@ -65,6 +65,7 @@ class SharkifyStableDiffusionModel:
     def __init__(
         self,
         model_id: str,
+        custom_weights: str,
         precision: str,
         max_len: int = 64,
         width: int = 512,
@@ -75,7 +76,7 @@ class SharkifyStableDiffusionModel:
         self.inputs = get_model_configuration(
             model_id, max_len, width // 8, height // 8
         )
-        self.model_id = model_id
+        self.model_id = model_id if custom_weights == "" else custom_weights
         self.precision = precision
         self.base_vae = use_base_vae
         self.model_name = (
@@ -87,6 +88,19 @@ class SharkifyStableDiffusionModel:
             + "_"
             + precision
         )
+        # We need a better naming convention for the .vmfbs because despite
+        # using the custom model variant the .vmfb names remain the same and
+        # it'll always pick up the compiled .vmfb instead of compiling the
+        # custom model.
+        # So, currently, we add `self.model_id` in the `self.model_name` of
+        # .vmfb file.
+        # TODO: Have a better way of naming the vmfbs using self.model_name.
+        import re
+
+        model_name = re.sub(r"\W+", "_", self.model_id)
+        if model_name[0] == "_":
+            model_name = model_name[1:]
+        self.model_name = self.model_name + "_" + model_name
 
     def check_params(self, max_len, width, height):
         if not (max_len >= 32 and max_len <= 77):
