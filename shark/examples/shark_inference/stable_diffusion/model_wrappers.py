@@ -73,7 +73,7 @@ class SharkifyStableDiffusionModel:
     ):
         self.check_params(max_len, width, height)
         self.inputs = get_model_configuration(
-            model_id, 64, width // 8, height // 8
+            model_id, max_len, width // 8, height // 8
         )
         self.model_id = model_id
         self.precision = precision
