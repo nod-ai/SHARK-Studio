@@ -65,13 +65,6 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--version",
-    type=str,
-    default="v2_1base",
-    help="Specify version of stable diffusion model",
-)
-
-p.add_argument(
     "--precision", type=str, default="fp16", help="precision to run the model."
 )
 
@@ -111,12 +104,6 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--variant",
-    default="stablediffusion",
-    help="We now support multiple vairants of SD finetuned for different dataset. you can use the following anythingv3, ...",  # TODO add more once supported
-)
-
-p.add_argument(
     "--scheduler",
     type=str,
     default="SharkEulerDiscrete",
@@ -147,7 +134,7 @@ p.add_argument(
 p.add_argument(
     "--custom_model",
     type=str,
-    default="andite/anything-v4.0",
+    default="stabilityai/stable-diffusion-2-1-base",
     help="Path to variants file - generated via .ckpt file. It may also contain the repo-id of hugging face.",
 )
 
