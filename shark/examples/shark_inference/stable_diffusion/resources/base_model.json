@@ -5,8 +5,8 @@
                 "shape": [
                     1,
                     4,
-                    "width",
-                    "height"
+                    "height",
+                    "width"
                 ],
                 "dtype": "f32"
             },
@@ -53,8 +53,8 @@
                 "shape": [
                     1,
                     4,
-                    "width",
-                    "height"
+                    "height",
+                    "width"
                 ],
                 "dtype": "f32"
             },

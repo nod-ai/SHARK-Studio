@@ -50,10 +50,10 @@ def get_input_info(model_info, max_len, width, height):
 # for clip, unet and vae respectively.
 def get_model_configuration(model_id, max_len, width, height):
     if model_id in base_models:
-        return get_input_info(base_models[model_id], max_len, height, width)
+        return get_input_info(base_models[model_id], max_len, width, height)
     elif model_id in variants:
         return get_input_info(
-            base_models[variants[model_id]], max_len, height, width
+            base_models[variants[model_id]], max_len, width, height
         )
     else:
         sys.exit(
