@@ -17,7 +17,7 @@ hf_model_variant_map = {
     "CompVis/stable-diffusion-v1-4": ["stablediffusion", "v1_4"],
 }
 
-variant, version = hf_model_variant_map[args.custom_model]
+variant, version = hf_model_variant_map[args.hf_model_id]
 
 
 def get_params(bucket_key, model_key, model, is_tuned, precision):

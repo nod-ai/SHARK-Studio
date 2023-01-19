@@ -19,21 +19,7 @@ def _compile_module(shark_module, model_name, extra_args=[]):
             if "://" not in args.device
             else "-".join(args.device.split("://"))
         )
-        # We need a better naming convention for the .vmfbs because despite
-        # using the custom model variant the .vmfb names remain the same and
-        # it'll always pick up the compiled .vmfb instead of compiling the
-        # custom model.
-        # So, currently, we add `custom_model_name` in the `extended_name` of
-        # .vmfb file.
-        # TODO: Have a better way of naming the vmfbs.
-        import re
-
-        custom_model_name = re.sub(r"\W+", "_", args.custom_model)
-        if custom_model_name != "" and custom_model_name[0] == "_":
-            custom_model_name = custom_model_name[1:]
-        extended_name = "{}_{}_{}".format(
-            model_name, device, custom_model_name
-        )
+        extended_name = "{}_{}".format(model_name, device)
         vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
             print(f"loading existing vmfb from: {vmfb_path}")
@@ -207,18 +193,18 @@ def set_init_device_flags():
         args.device = "cpu"
 
     # set max_length based on availability.
-    if args.custom_model in [
+    if args.hf_model_id in [
         "Linaqruf/anything-v3.0",
         "wavymulder/Analog-Diffusion",
         "dreamlike-art/dreamlike-diffusion-1.0",
     ]:
         args.max_length = 77
-    elif args.custom_model == "prompthero/openjourney":
+    elif args.hf_model_id == "prompthero/openjourney":
         args.max_length = 64
 
     # Use tuned models in the case of stablediffusion/fp16 and rdna3 cards.
     if (
-        args.custom_model
+        args.hf_model_id
         in ["prompthero/openjourney", "dreamlike-art/dreamlike-diffusion-1.0"]
         or args.precision != "fp16"
         or "vulkan" not in args.device
@@ -226,7 +212,7 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif args.use_base_vae and args.custom_model not in [
+    elif args.use_base_vae and args.hf_model_id not in [
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
     ]:
@@ -234,7 +220,7 @@ def set_init_device_flags():
 
     # Use tuned model in the case of stablediffusion/fp16 and cuda device sm_80
     if (
-        args.custom_model
+        args.hf_model_id
         in [
             "stabilityai/stable-diffusion-2-1-base",
             "Linaqruf/anything-v3.0",
@@ -319,3 +305,40 @@ def get_opt_flags(model, precision="fp16"):
         ][device]
 
     return iree_flags
+
+
+def preprocessCKPT():
+    from pathlib import Path
+
+    path = Path(args.ckpt_loc)
+    diffusers_path = path.parent.absolute()
+    diffusers_directory_name = path.stem
+    complete_path_to_diffusers = diffusers_path / diffusers_directory_name
+    complete_path_to_diffusers.mkdir(parents=True, exist_ok=True)
+    print(
+        "Created directory : ",
+        diffusers_directory_name,
+        " at -> ",
+        diffusers_path,
+    )
+    path_to_diffusers = complete_path_to_diffusers.as_posix()
+    # TODO: Download the script only once and load from cache.
+    sd_to_diffusers = os.path.join(os.getcwd(), "sd_to_diffusers.py")
+    if not os.path.isfile(sd_to_diffusers):
+        url = "https://raw.githubusercontent.com/huggingface/diffusers/main/scripts/convert_original_stable_diffusion_to_diffusers.py"
+        import requests
+
+        req = requests.get(url)
+        open(sd_to_diffusers, "wb").write(req.content)
+        print("Downloaded SD to Diffusers converter")
+
+    os.system(
+        "python "
+        + sd_to_diffusers
+        + " --checkpoint_path="
+        + args.ckpt_loc
+        + " --dump_path="
+        + path_to_diffusers
+    )
+    args.ckpt_loc = path_to_diffusers
+    print("Custom model path is : ", args.ckpt_loc)
