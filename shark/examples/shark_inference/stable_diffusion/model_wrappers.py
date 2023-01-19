@@ -89,8 +89,8 @@ class SharkifyStableDiffusionModel:
         )
 
     def check_params(self, max_len, width, height):
-        if not (max_len > 16 and max_len < 77):
-            sys.exit("please specify max_len between 16 and 77.")
+        if not (max_len >= 32 and max_len <= 77):
+            sys.exit("please specify max_len in the range [32, 77].")
         if not (width % 8 == 0 and width >= 384):
             sys.exit("width should be greater than 384 and multiple of 8")
         if not (height % 8 == 0 and height >= 384):
