@@ -45,7 +45,6 @@ if args.clear_all:
 
 from utils import set_init_device_flags, disk_space_check, preprocessCKPT
 
-from opt_params import get_unet, get_vae, get_clip
 from schedulers import (
     SharkEulerDiscreteScheduler,
 )
@@ -94,6 +93,8 @@ if __name__ == "__main__":
     disk_space_check(Path.cwd())
 
     if not args.import_mlir:
+        from opt_params import get_unet, get_vae, get_clip
+
         clip = get_clip()
         unet = get_unet()
         vae = get_vae()
