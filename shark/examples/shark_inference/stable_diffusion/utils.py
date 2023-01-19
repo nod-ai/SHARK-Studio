@@ -207,26 +207,39 @@ def set_init_device_flags():
         args.device = "cpu"
 
     # set max_length based on availability.
-    if args.variant in ["anythingv3", "analogdiffusion", "dreamlike"]:
+    if args.custom_model in [
+        "Linaqruf/anything-v3.0",
+        "wavymulder/Analog-Diffusion",
+        "dreamlike-art/dreamlike-diffusion-1.0",
+    ]:
         args.max_length = 77
-    elif args.variant == "openjourney":
+    elif args.custom_model == "prompthero/openjourney":
         args.max_length = 64
 
     # Use tuned models in the case of stablediffusion/fp16 and rdna3 cards.
     if (
-        args.variant in ["openjourney", "dreamlike"]
+        args.custom_model
+        in ["prompthero/openjourney", "dreamlike-art/dreamlike-diffusion-1.0"]
         or args.precision != "fp16"
         or "vulkan" not in args.device
         or "rdna3" not in args.iree_vulkan_target_triple
     ):
         args.use_tuned = False
 
-    elif args.use_base_vae and args.variant != "stablediffusion":
+    elif args.use_base_vae and args.custom_model not in [
+        "stabilityai/stable-diffusion-2-1-base",
+        "CompVis/stable-diffusion-v1-4",
+    ]:
         args.use_tuned = False
 
     # Use tuned model in the case of stablediffusion/fp16 and cuda device sm_80
     if (
-        args.variant in ["stablediffusion", "anythingv3", "analogdiffusion"]
+        args.custom_model
+        in [
+            "stabilityai/stable-diffusion-2-1-base",
+            "Linaqruf/anything-v3.0",
+            "wavymulder/Analog-Diffusion",
+        ]
         and args.precision == "fp16"
         and "cuda" in args.device
         and get_cuda_sm_cc() == "sm_80"

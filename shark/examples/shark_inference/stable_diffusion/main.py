@@ -78,10 +78,6 @@ if __name__ == "__main__":
     neg_prompt = args.negative_prompts
     height = 512  # default height of Stable Diffusion
     width = 512  # default width of Stable Diffusion
-    if args.version == "v2_1":
-        height = 768
-        width = 768
-
     num_inference_steps = args.steps  # Number of denoising steps
 
     # Scale for classifier-free guidance
@@ -121,7 +117,7 @@ if __name__ == "__main__":
         subfolder="scheduler",
     )
     cpu_scheduling = True
-    if args.version == "v2_1":
+    if args.custom_model == "stabilityai/stable-diffusion-2-1":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1", subfolder="tokenizer"
         )
@@ -131,7 +127,7 @@ if __name__ == "__main__":
             subfolder="scheduler",
         )
 
-    if args.version == "v2_1base" and args.variant == "stablediffusion":
+    if args.custom_model == "stabilityai/stable-diffusion-2-1-base":
         tokenizer = CLIPTokenizer.from_pretrained(
             "stabilityai/stable-diffusion-2-1-base", subfolder="tokenizer"
         )
@@ -289,7 +285,7 @@ if __name__ == "__main__":
                 "prompt": args.prompts[i],
                 "negative prompt": args.negative_prompts[i],
                 "seed": args.seed,
-                "variant": args.variant,
+                "hf_model_id": args.custom_model,
                 "precision": args.precision,
                 "steps": args.steps,
                 "guidance_scale": args.guidance_scale,
