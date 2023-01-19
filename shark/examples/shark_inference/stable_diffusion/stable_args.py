@@ -43,6 +43,20 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--height",
+    type=int,
+    default=512,
+    help="the height of the output image.",
+)
+
+p.add_argument(
+    "--width",
+    type=int,
+    default=512,
+    help="the width of the output image.",
+)
+
+p.add_argument(
     "--guidance_scale",
     type=float,
     default=7.5,

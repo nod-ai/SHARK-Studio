@@ -75,8 +75,8 @@ if __name__ == "__main__":
 
     prompt = args.prompts
     neg_prompt = args.negative_prompts
-    height = 512  # default height of Stable Diffusion
-    width = 512  # default width of Stable Diffusion
+    height = args.height
+    width = args.width
     num_inference_steps = args.steps  # Number of denoising steps
 
     # Scale for classifier-free guidance
