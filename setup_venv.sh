@@ -128,6 +128,7 @@ if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   TV_VER=$($PYTHON -m pip show torchvision | grep Version)
   TV_VERSION=${TV_VER:9:18}
   $PYTHON -m pip uninstall -y torch torchvision
+  $PYTHON -m pip install -U --pre --no-warn-conflicts triton
   $PYTHON -m pip install --no-deps https://download.pytorch.org/whl/nightly/cu117/torch-${TORCH_VERSION}%2Bcu117-cp310-cp310-linux_x86_64.whl https://download.pytorch.org/whl/nightly/cu117/torchvision-${TV_VERSION}%2Bcu117-cp310-cp310-linux_x86_64.whl
   if [ $? -eq 0 ];then
     echo "Successfully Installed torch + cu117."
