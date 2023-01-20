@@ -1,6 +1,11 @@
 import os
+import sysconfig
 
 os.environ["AMD_ENABLE_LLPC"] = "1"
+# Preload DLL paths for torch-mlir
+os.add_dll_directory(
+    os.path.join(sysconfig.get_paths()["purelib"], "torch_mlir/_mlir_libs")
+)
 
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
