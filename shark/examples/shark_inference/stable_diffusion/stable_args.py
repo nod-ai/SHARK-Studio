@@ -155,7 +155,7 @@ p.add_argument(
 p.add_argument(
     "--hf_model_id",
     type=str,
-    default="CompVis/stable-diffusion-v1-4",
+    default="stabilityai/stable-diffusion-2-1-base",
     help="The repo-id of hugging face.",
 )
 
