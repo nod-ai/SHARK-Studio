@@ -21,7 +21,7 @@ KNOWN ISSUES with this special AMD driver:
 
 ## Installation
 
-Download the latest Windows SHARK SD binary [423 here](https://github.com/nod-ai/SHARK/releases/download/20230101.423/shark_sd_20230101_423.exe) in a folder of your choice. If you want nighly builds you can look for them in the github releases page. Please read carefully the following notes:
+Download the latest Windows SHARK SD binary [455 here](https://storage.googleapis.com/shark-public/windows/shark_sd_20230120_455.exe) in a folder of your choice. If you want nighly builds you can look for them in the github releases page.
 
 Notes:
 * We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR, that can get outdated if you run multiple EXE from the same folder. You can use `--clean_all` flag once to clean all the old files. 
