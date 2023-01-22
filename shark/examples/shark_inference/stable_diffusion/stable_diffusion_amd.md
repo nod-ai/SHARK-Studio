@@ -60,8 +60,8 @@ Here are some samples generated:
 
 
 ## Setup your Python VirtualEnvironment and Dependencies
-
-### Windows 10/11 Users
+<details>
+ <summary> Windows 10/11 Users </summary>
 
 * Install the latest Python 3.10.x version from [here](https://www.python.org/downloads/windows/)
 
@@ -78,8 +78,10 @@ git clone https://github.com/nod-ai/SHARK.git
 cd SHARK
 ./setup_venv.ps1 #You can re-run this script to get the latest version
 ```
+</details> 
 
-### Linux
+ <details>
+  <summary>Linux</summary>
 
 ```shell
 git clone https://github.com/nod-ai/SHARK.git
@@ -87,33 +89,49 @@ cd SHARK
 ./setup_venv.sh
 source shark.venv/bin/activate
 ```
+ </details>
 
 ### Run Stable Diffusion on your device - WebUI
 
-#### Windows 10/11 Users
+<details>
+ <summary>Windows 10/11 Users</summary>
+ 
 ```powershell
 (shark.venv) PS C:\Users\nod\SHARK> cd web
 (shark.venv) PS C:\Users\nod\SHARK\web> python index.py
 ```
-#### Linux Users
+ 
+ </details>
+ 
+<details>
+ <summary>Linux Users</summary>
+ 
 ```shell
 (shark.venv) > cd web
 (shark.venv) > python index.py
 ```
-
-
+ 
+</details>
 
 ### Run Stable Diffusion on your device - Commandline
 
-#### Windows 10/11 Users
+<details>
+ <summary>Windows 10/11 Users</summary>
+ 
 ```powershell
 (shark.venv) PS C:\g\shark> python .\shark\examples\shark_inference\stable_diffusion\main.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
 ```
+ 
+  </details>
 
-#### Linux
+<details>
+ <summary>Linux</summary>
+ 
 ```shell
 python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
+ 
+  </details>
 
 The output on a 6900XT would like:
 
@@ -130,10 +148,10 @@ Total image generation runtime (s): 10.390909433364868
 (shark.venv) PS C:\g\shark>
 ```
 
-
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
+ 
 </details>
-<details>
+  <details>
   <summary>Discord link</summary>
 Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
 </details>
