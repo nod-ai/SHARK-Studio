@@ -56,6 +56,7 @@ def get_torch_mlir_module(
     input: tuple,
     dynamic: bool,
     jit_trace: bool,
+    return_str: bool,
 ):
     """Get the MLIR's linalg-on-tensors module from the torchscipt module."""
     ignore_traced_shapes = False
@@ -73,6 +74,8 @@ def get_torch_mlir_module(
         use_tracing=jit_trace,
         ignore_traced_shapes=ignore_traced_shapes,
     )
+    if return_str:
+        return mlir_module.operation.get_asm()
     bytecode_stream = io.BytesIO()
     mlir_module.operation.write_bytecode(bytecode_stream)
     bytecode = bytecode_stream.getvalue()

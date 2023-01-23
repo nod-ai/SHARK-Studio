@@ -121,6 +121,7 @@ if __name__ == "__main__":
             height=height,
             width=width,
             use_base_vae=args.use_base_vae,
+            use_tuned=args.use_tuned,
         )
         clip, unet, vae = mlir_import()
 

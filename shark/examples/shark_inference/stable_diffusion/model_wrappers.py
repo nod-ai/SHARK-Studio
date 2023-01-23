@@ -3,6 +3,7 @@ from transformers import CLIPTextModel
 from utils import compile_through_fx, get_opt_flags
 from resources import base_models
 from collections import defaultdict
+from sd_annotation import tuned_compile_through_fx
 import torch
 import sys
 
@@ -62,6 +63,7 @@ class SharkifyStableDiffusionModel:
         height: int = 512,
         batch_size: int = 1,
         use_base_vae: bool = False,
+        use_tuned: bool = False,
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -82,6 +84,7 @@ class SharkifyStableDiffusionModel:
             + "_"
             + precision
         )
+        self.use_tuned = use_tuned
         # We need a better naming convention for the .vmfbs because despite
         # using the custom model variant the .vmfb names remain the same and
         # it'll always pick up the compiled .vmfb instead of compiling the
@@ -128,13 +131,22 @@ class SharkifyStableDiffusionModel:
         inputs = tuple(self.inputs["vae"])
         is_f16 = True if self.precision == "fp16" else False
         vae_name = "base_vae" if self.base_vae else "vae"
-        shark_vae = compile_through_fx(
-            vae,
-            inputs,
-            is_f16=is_f16,
-            model_name=vae_name + self.model_name,
-            extra_args=get_opt_flags("vae", precision=self.precision),
-        )
+        if self.use_tuned:
+            shark_vae = tuned_compile_through_fx(
+                vae,
+                inputs,
+                is_f16=is_f16,
+                model_name=vae_name + self.model_name + "_tuned",
+                extra_args=get_opt_flags("vae", precision=self.precision),
+            )
+        else:
+            shark_vae = compile_through_fx(
+                vae,
+                inputs,
+                is_f16=is_f16,
+                model_name=vae_name + self.model_name,
+                extra_args=get_opt_flags("vae", precision=self.precision),
+            )
         return shark_vae
 
     def get_unet(self):
@@ -166,14 +178,24 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
         inputs = tuple(self.inputs["unet"])
         input_mask = [True, True, True, False]
-        shark_unet = compile_through_fx(
-            unet,
-            inputs,
-            model_name="unet" + self.model_name,
-            is_f16=is_f16,
-            f16_input_mask=input_mask,
-            extra_args=get_opt_flags("unet", precision=self.precision),
-        )
+        if self.use_tuned:
+            shark_unet = tuned_compile_through_fx(
+                unet,
+                inputs,
+                model_name="unet" + self.model_name + "_tuned",
+                is_f16=is_f16,
+                f16_input_mask=input_mask,
+                extra_args=get_opt_flags("unet", precision=self.precision),
+            )
+        else:
+            shark_unet = compile_through_fx(
+                unet,
+                inputs,
+                model_name="unet" + self.model_name,
+                is_f16=is_f16,
+                f16_input_mask=input_mask,
+                extra_args=get_opt_flags("unet", precision=self.precision),
+            )
         return shark_unet
 
     def get_clip(self):
