@@ -24,9 +24,9 @@ pip install omegaconf safetensors pytorch_lightning
 ```
 * Download a [.ckpt](https://huggingface.co/andite/anything-v4.0/resolve/main/anything-v4.0-pruned-fp32.ckpt) file in case you don't have a locally generated `.ckpt` file for StableDiffusion.
 
-* Now pass the above `.ckpt` file to `ckpt_loc` command-line argument using the following :-
+* Now pass the above `.ckpt` file to `ckpt_loc` command-line argument using the following (note the `hf_model_id` flag which states what the base model is from which the `.ckpt` model was fined-tuned off of) :-
 ```shell
-python3.10 main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=64 --import_mlir --ckpt_loc="/path/to/.ckpt/file" --hf_model_id="<HuggingFace repo-id>"
+python3.10 main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=64 --import_mlir --ckpt_loc="/path/to/.ckpt/file" --hf_model_id="CompVis/stable-diffusion-v1-4"
 ```
 * We use a combination of 3 flags to make this feature work : `import_mlir`, `ckpt_loc` and `hf_model_id`, of which `import_mlir` needs to be present. In case `ckpt_loc` is not specified then a [default](https://huggingface.co/stabilityai/stable-diffusion-2-1-base) HuggingFace repo-id is run via `hf_model_id`. So, you need to specify which base model's `.ckpt` you are using via `hf_model_id`.
 
