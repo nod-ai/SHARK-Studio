@@ -1,7 +1,6 @@
 import torch
 import os
 from PIL import Image
-import torchvision.transforms as T
 from tqdm.auto import tqdm
 from models.stable_diffusion.cache_objects import model_cache
 from models.stable_diffusion.stable_args import args
@@ -268,10 +267,8 @@ def stable_diff_inf(
     print(f"\nTotal image generation time: {total_time}sec")
 
     # generate outputs to web.
-    transform = T.ToPILImage()
-    pil_images = [
-        transform(image) for image in torch.from_numpy(images).to(torch.uint8)
-    ]
+    images = torch.from_numpy(images).to(torch.uint8).permute(0, 2, 3, 1)
+    pil_images = [Image.fromarray(image) for image in images.numpy()]
 
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
