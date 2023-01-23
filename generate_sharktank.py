@@ -14,21 +14,10 @@ import csv
 import argparse
 from shark.shark_importer import SharkImporter
 from shark.parser import shark_args
-import tensorflow as tf
 import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
-
-visible_default = tf.config.list_physical_devices("GPU")
-try:
-    tf.config.set_visible_devices([], "GPU")
-    visible_devices = tf.config.get_visible_devices()
-    for device in visible_devices:
-        assert device.device_type != "GPU"
-except:
-    # Invalid device or cannot modify virtual devices once initialized.
-    pass
 
 
 def create_hash(file_name):
@@ -110,6 +99,17 @@ def save_tf_model(tf_model_list):
         get_keras_model,
         get_TFhf_model,
     )
+    import tensorflow as tf
+
+    visible_default = tf.config.list_physical_devices("GPU")
+    try:
+        tf.config.set_visible_devices([], "GPU")
+        visible_devices = tf.config.get_visible_devices()
+        for device in visible_devices:
+            assert device.device_type != "GPU"
+    except:
+        # Invalid device or cannot modify virtual devices once initialized.
+        pass
 
     with open(tf_model_list) as csvfile:
         tf_reader = csv.reader(csvfile, delimiter=",")
