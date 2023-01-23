@@ -322,15 +322,17 @@ def preprocessCKPT():
         diffusers_path,
     )
     path_to_diffusers = complete_path_to_diffusers.as_posix()
-    # TODO: Download the script only once and load from cache.
+    # TODO: Use the SD to Diffusers CKPT pipeline once it's included in the release.
     sd_to_diffusers = os.path.join(os.getcwd(), "sd_to_diffusers.py")
     if not os.path.isfile(sd_to_diffusers):
-        url = "https://raw.githubusercontent.com/huggingface/diffusers/main/scripts/convert_original_stable_diffusion_to_diffusers.py"
+        url = "https://raw.githubusercontent.com/huggingface/diffusers/8a3f0c1f7178f4a3d5a5b21ae8c2906f473e240d/scripts/convert_original_stable_diffusion_to_diffusers.py"
         import requests
 
         req = requests.get(url)
         open(sd_to_diffusers, "wb").write(req.content)
         print("Downloaded SD to Diffusers converter")
+    else:
+        print("SD to Diffusers converter already exists")
 
     os.system(
         "python "

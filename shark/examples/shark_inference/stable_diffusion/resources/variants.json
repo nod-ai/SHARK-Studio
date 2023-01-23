@@ -1,9 +1,20 @@
 {
-    "Linaqruf/anything-v3.0": "CompVis/stable-diffusion-v1-4",
-    "dreamlike-art/dreamlike-diffusion-1.0": "CompVis/stable-diffusion-v1-4",
-    "prompthero/openjourney": "CompVis/stable-diffusion-v1-4",
-    "wavymulder/Analog-Diffusion": "CompVis/stable-diffusion-v1-4",
     "runwayml/stable-diffusion-v1-5": "CompVis/stable-diffusion-v1-4",
-    "andite/anything-v4.0": "CompVis/stable-diffusion-v1-4",
-    "stabilityai/stable-diffusion-2-1-base": "stabilityai/stable-diffusion-2-1"
+    "prompthero/openjourney": "CompVis/stable-diffusion-v1-4",
+    "Linaqruf/anything-v3.0": "CompVis/stable-diffusion-v1-4",
+    "stabilityai/stable-diffusion-2-1-base": "stabilityai/stable-diffusion-2-1",
+    "dreamlike-art/dreamlike-diffusion-1.0": "CompVis/stable-diffusion-v1-4",
+    "eimiss/EimisAnimeDiffusion_1.0v": "CompVis/stable-diffusion-v1-4",
+    "claudfuen/photorealistic-fuen-v1": "CompVis/stable-diffusion-v1-4",
+    "nitrosocke/Nitro-Diffusion": "CompVis/stable-diffusion-v1-4",
+    "stabilityai/stable-diffusion-2-base": "stabilityai/stable-diffusion-2-1",
+    "wavymulder/Analog-Diffusion": "CompVis/stable-diffusion-v1-4",
+    "nitrosocke/redshift-diffusion": "CompVis/stable-diffusion-v1-4",
+    "wavymulder/portraitplus": "CompVis/stable-diffusion-v1-4",
+    "Linaqruf/anything-v3-better-vae": "CompVis/stable-diffusion-v1-4",
+    "nitrosocke/Arcane-Diffusion": "CompVis/stable-diffusion-v1-4",
+    "hakurei/waifu-diffusion": "stabilityai/stable-diffusion-2-1",
+    "lambdalabs/sd-pokemon-diffusers": "CompVis/stable-diffusion-v1-4",
+    "prompthero/openjourney-v2": "CompVis/stable-diffusion-v1-4",
+    "andite/anything-v4.0": "CompVis/stable-diffusion-v1-4"
 }
