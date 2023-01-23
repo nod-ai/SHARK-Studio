@@ -5,7 +5,6 @@ os.environ["AMD_ENABLE_LLPC"] = "1"
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
 from PIL import Image
-import torchvision.transforms as T
 from diffusers import (
     LMSDiscreteScheduler,
     PNDMScheduler,
@@ -272,11 +271,8 @@ if __name__ == "__main__":
         print(f"VAE Inference time (ms): {vae_inf_time:.3f}")
         print(f"\nTotal image generation time: {total_time}sec")
 
-        transform = T.ToPILImage()
-        pil_images = [
-            transform(image)
-            for image in torch.from_numpy(images).to(torch.uint8)
-        ]
+        images = torch.from_numpy(images).to(torch.uint8).permute(0, 2, 3, 1)
+        pil_images = [Image.fromarray(image) for image in images.numpy()]
 
         if args.output_dir is not None:
             output_path = Path(args.output_dir)
