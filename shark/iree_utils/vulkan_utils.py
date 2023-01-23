@@ -71,6 +71,8 @@ def get_vulkan_target_triple(device_name):
         triple = f"ampere-rtx3090-{system_os}"
     elif all(x in device_name for x in ("RTX", "4090")):
         triple = f"ampere-rtx3090-{system_os}"
+    elif all(x in device_name for x in ("RTX", "4080")):
+        triple = f"ampere-rtx3090-{system_os}"
     elif all(x in device_name for x in ("RTX", "4000")):
         triple = f"turing-rtx4000-{system_os}"
     elif all(x in device_name for x in ("RTX", "5000")):
