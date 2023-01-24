@@ -15,10 +15,19 @@ import torch
 
 SCHEDULER_BUCKET = "gs://shark_tank/stable_diffusion/schedulers"
 
+
+BATCH_SIZE = len(args.prompts)
+if len(args.prompts) == 0:
+    BATCH_SIZE = 1
+
 model_input = {
     "euler": {
-        "latent": torch.randn(1, 4, args.height // 8, args.width // 8),
-        "output": torch.randn(1, 4, args.height // 8, args.width // 8),
+        "latent": torch.randn(
+            BATCH_SIZE, 4, args.height // 8, args.width // 8
+        ),
+        "output": torch.randn(
+            BATCH_SIZE, 4, args.height // 8, args.width // 8
+        ),
         "sigma": torch.tensor(1).to(torch.float32),
         "dt": torch.tensor(1).to(torch.float32),
     },
@@ -84,7 +93,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
             self.scaling_model = compile_through_fx(
                 scaling_model,
                 (example_latent, example_sigma),
-                model_name=f"euler_scale_model_input_{args.height}_{args.width}"
+                model_name=f"euler_scale_model_input_{BATCH_SIZE}_{args.height}_{args.width}"
                 + args.precision,
                 extra_args=iree_flags,
             )
@@ -93,7 +102,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
             self.step_model = compile_through_fx(
                 step_model,
                 (example_output, example_sigma, example_latent, example_dt),
-                model_name=f"euler_step_{args.height}_{args.width}"
+                model_name=f"euler_step_{BATCH_SIZE}_{args.height}_{args.width}"
                 + args.precision,
                 extra_args=iree_flags,
             )

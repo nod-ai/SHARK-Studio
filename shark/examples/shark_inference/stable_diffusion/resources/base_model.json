@@ -3,7 +3,7 @@
         "unet": {
             "latents": {
                 "shape": [
-                    1,
+                    "1*batch_size",
                     4,
                     "height",
                     "width"
@@ -18,7 +18,7 @@
             },
             "embedding": {
                 "shape": [
-                    2,
+                    "2*batch_size",
                     "max_len",
                     1024
                 ],
@@ -32,7 +32,7 @@
         "vae": {
             "latents" : {
                 "shape" : [
-                    1,4,"height","width"
+                    "1*batch_size",4,"height","width"
                 ],
                 "dtype":"f32"
             }
@@ -40,7 +40,7 @@
         "clip": {
             "token" : {
                 "shape" : [
-                    2,
+                    "2*batch_size",
                     "max_len"
                 ],
                 "dtype":"i64"
@@ -51,7 +51,7 @@
         "unet": {
             "latents": {
                 "shape": [
-                    1,
+                    "1*batch_size",
                     4,
                     "height",
                     "width"
@@ -66,7 +66,7 @@
             },
             "embedding": {
                 "shape": [
-                    2,
+                    "2*batch_size",
                     "max_len",
                     768
                 ],
@@ -80,7 +80,7 @@
         "vae": {
             "latents" : {
                 "shape" : [
-                    1,4,"height","width"
+                    "1*batch_size",4,"height","width"
                 ],
                 "dtype":"f32"
             }
@@ -88,7 +88,7 @@
         "clip": {
             "token" : {
                 "shape" : [
-                    2,
+                    "2*batch_size",
                     "max_len"
                 ],
                 "dtype":"i64"

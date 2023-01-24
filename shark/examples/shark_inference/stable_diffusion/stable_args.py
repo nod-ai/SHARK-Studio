@@ -15,9 +15,10 @@ p = argparse.ArgumentParser(
 ##############################################################################
 
 p.add_argument(
+    "-p",
     "--prompts",
-    nargs="+",
-    default=["cyberpunk forest by Salvador Dali"],
+    action="append",
+    default=[],
     help="text of which images to be generated.",
 )
 
