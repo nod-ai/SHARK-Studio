@@ -8,7 +8,7 @@ import sys
 
 
 # These shapes are parameter dependent.
-def replace_shape_str(shape, max_len, width, height):
+def replace_shape_str(shape, max_len, width, height, batch_size):
     new_shape = []
     for i in range(len(shape)):
         if shape[i] == "max_len":
@@ -17,13 +17,17 @@ def replace_shape_str(shape, max_len, width, height):
             new_shape.append(height)
         elif shape[i] == "width":
             new_shape.append(width)
+        elif isinstance(shape[i], str):
+            if "batch_size" in shape[i]:
+                mul_val = int(shape[i].split("*")[0])
+                new_shape.append(batch_size * mul_val)
         else:
             new_shape.append(shape[i])
     return new_shape
 
 
 # Get the input info for various models i.e. "unet", "clip", "vae".
-def get_input_info(model_info, max_len, width, height):
+def get_input_info(model_info, max_len, width, height, batch_size):
     dtype_config = {"f32": torch.float32, "i64": torch.int64}
     input_map = defaultdict(list)
     for k in model_info:
@@ -32,7 +36,9 @@ def get_input_info(model_info, max_len, width, height):
             dtype = dtype_config[model_info[k][inp]["dtype"]]
             tensor = None
             if isinstance(shape, list):
-                clean_shape = replace_shape_str(shape, max_len, width, height)
+                clean_shape = replace_shape_str(
+                    shape, max_len, width, height, batch_size
+                )
                 if dtype == torch.int64:
                     tensor = torch.randint(1, 3, tuple(clean_shape))
                 else:
@@ -48,12 +54,14 @@ def get_input_info(model_info, max_len, width, height):
 
 # Returns the model configuration in a dict containing input parameters
 # for clip, unet and vae respectively.
-def get_model_configuration(model_id, max_len, width, height):
+def get_model_configuration(model_id, max_len, width, height, batch_size):
     if model_id in base_models:
-        return get_input_info(base_models[model_id], max_len, width, height)
+        return get_input_info(
+            base_models[model_id], max_len, width, height, batch_size
+        )
     elif model_id in variants:
         return get_input_info(
-            base_models[variants[model_id]], max_len, width, height
+            base_models[variants[model_id]], max_len, width, height, batch_size
         )
     else:
         sys.exit(
@@ -70,17 +78,24 @@ class SharkifyStableDiffusionModel:
         max_len: int = 64,
         width: int = 512,
         height: int = 512,
+        batch_size: int = 1,
         use_base_vae: bool = False,
     ):
         self.check_params(max_len, width, height)
         self.inputs = get_model_configuration(
-            model_id, max_len, width // 8, height // 8
+            model_id,
+            max_len,
+            width // 8,
+            height // 8,
+            batch_size,
         )
         self.model_id = model_id if custom_weights == "" else custom_weights
         self.precision = precision
         self.base_vae = use_base_vae
         self.model_name = (
-            str(max_len)
+            str(batch_size)
+            + "_"
+            + str(max_len)
             + "_"
             + str(height)
             + "_"

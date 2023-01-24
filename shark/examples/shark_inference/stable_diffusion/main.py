@@ -72,6 +72,10 @@ if __name__ == "__main__":
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
 
+    # Make it as default prompt
+    if len(args.prompts) == 0:
+        args.prompts = ["cyberpunk forest by Salvador Dali"]
+
     prompt = args.prompts
     neg_prompt = args.negative_prompts
     height = args.height
@@ -81,12 +85,11 @@ if __name__ == "__main__":
     # Scale for classifier-free guidance
     guidance_scale = torch.tensor(args.guidance_scale).to(torch.float32)
 
-    # TODO: Add support for batch_size > 1.
     batch_size = len(prompt)
-    if batch_size != 1:
-        sys.exit("More than one prompt is not supported yet.")
-    if batch_size != len(neg_prompt):
-        sys.exit("prompts and negative prompts must be of same length")
+
+    # Try to make neg_prompt equal to batch_size by appending blank strings.
+    for i in range(batch_size - len(neg_prompt)):
+        neg_prompt.append("")
 
     set_init_device_flags()
     disk_space_check(Path.cwd())
@@ -105,6 +108,7 @@ if __name__ == "__main__":
             args.ckpt_loc,
             args.precision,
             max_len=args.max_length,
+            batch_size=batch_size,
             height=height,
             width=width,
             use_base_vae=args.use_base_vae,
