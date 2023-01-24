@@ -4,6 +4,7 @@ from google.cloud import storage
 def get_datasets(gs_url):
     datasets = set()
     images = dict()
+    ds_w_prompts = []
 
     storage_client = storage.Client()
     bucket_name = gs_url.split("/")[2]
@@ -12,12 +13,17 @@ def get_datasets(gs_url):
 
     for blob in blobs:
         dataset_name = blob.name.split("/")[1]
+        if dataset_name == "":
+            continue
         datasets.add(dataset_name)
-        file_sub_path = "/".join(blob.name.split("/")[2:])
-        # check if image or jsonl
-        if "/" in file_sub_path:
-            if dataset_name not in images.keys():
-                images[dataset_name] = []
-            images[dataset_name] += [file_sub_path]
+        if dataset_name not in images.keys():
+            images[dataset_name] = []
 
-    return list(datasets), images
+        # check if image or jsonl
+        file_sub_path = "/".join(blob.name.split("/")[2:])
+        if "/" in file_sub_path:
+            images[dataset_name] += [file_sub_path]
+        elif "metadata.jsonl" in file_sub_path:
+            ds_w_prompts.append(dataset_name)
+
+    return list(datasets), images, ds_w_prompts
