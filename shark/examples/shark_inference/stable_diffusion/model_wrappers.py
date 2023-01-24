@@ -1,7 +1,7 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from utils import compile_through_fx, get_opt_flags
-from resources import base_models, variants
+from resources import base_models
 from collections import defaultdict
 import torch
 import sys
@@ -48,25 +48,7 @@ def get_input_info(model_info, max_len, width, height, batch_size):
             else:
                 sys.exit("shape isn't specified correctly.")
             input_map[k].append(tensor)
-
     return input_map
-
-
-# Returns the model configuration in a dict containing input parameters
-# for clip, unet and vae respectively.
-def get_model_configuration(model_id, max_len, width, height, batch_size):
-    if model_id in base_models:
-        return get_input_info(
-            base_models[model_id], max_len, width, height, batch_size
-        )
-    elif model_id in variants:
-        return get_input_info(
-            base_models[variants[model_id]], max_len, width, height, batch_size
-        )
-    else:
-        sys.exit(
-            "The model info is not configured, please add the model_configuration in base_model.json if it's a base model, else add it in the variant.json"
-        )
 
 
 class SharkifyStableDiffusionModel:
@@ -82,13 +64,10 @@ class SharkifyStableDiffusionModel:
         use_base_vae: bool = False,
     ):
         self.check_params(max_len, width, height)
-        self.inputs = get_model_configuration(
-            model_id,
-            max_len,
-            width // 8,
-            height // 8,
-            batch_size,
-        )
+        self.max_len = max_len
+        self.height = height // 8
+        self.width = width // 8
+        self.batch_size = batch_size
         self.model_id = model_id if custom_weights == "" else custom_weights
         self.precision = precision
         self.base_vae = use_base_vae
@@ -220,7 +199,33 @@ class SharkifyStableDiffusionModel:
         return shark_clip
 
     def __call__(self):
-        compiled_clip = self.get_clip()
-        compiled_unet = self.get_unet()
-        compiled_vae = self.get_vae()
-        return compiled_clip, compiled_unet, compiled_vae
+        from stable_args import args
+        import traceback
+
+        for model_id in base_models:
+            self.inputs = get_input_info(
+                base_models[model_id],
+                self.max_len,
+                self.width,
+                self.height,
+                self.batch_size,
+            )
+            try:
+                compiled_clip = self.get_clip()
+                compiled_unet = self.get_unet()
+                compiled_vae = self.get_vae()
+            except Exception as e:
+                if args.enable_stack_trace:
+                    traceback.print_exc()
+                print("Retrying with a different base model configuration")
+                continue
+            # This is done just because in main.py we are basing the choice of tokenizer and scheduler
+            # on `args.hf_model_id`. Since now, we don't maintain 1:1 mapping of variants and the base
+            # model and rely on retrying method to find the input configuration, we should also update
+            # the knowledge of base model id accordingly into `args.hf_model_id`.
+            if args.ckpt_loc != "":
+                args.hf_model_id = model_id
+            return compiled_clip, compiled_unet, compiled_vae
+        sys.exit(
+            "Cannot compile the model. Please use `enable_stack_trace` and create an issue at https://github.com/nod-ai/SHARK/issues"
+        )

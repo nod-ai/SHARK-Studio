@@ -33,10 +33,5 @@ models_db = get_json_file("resources/model_db.json")
 # models and also helps in providing information for the variants.
 base_models = get_json_file("resources/base_model.json")
 
-# The variant contains the mapping from variant to the base configuration
-# to get the required inputs.
-# If the input configuration doesn't match it should be registered standalone in the base configuration.
-variants = get_json_file("resources/variants.json")
-
 # Contains optimization flags for different models.
 opt_flags = get_json_file("resources/opt_flags.json")
