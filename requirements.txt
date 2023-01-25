@@ -22,4 +22,5 @@ gradio
 altair
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
+ordlookup
 pyinstaller
