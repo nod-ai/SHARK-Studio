@@ -3,7 +3,6 @@ from transformers import CLIPTextModel
 from utils import compile_through_fx, get_opt_flags
 from resources import base_models
 from collections import defaultdict
-from sd_annotation import tuned_compile_through_fx
 import torch
 import sys
 
@@ -131,22 +130,14 @@ class SharkifyStableDiffusionModel:
         inputs = tuple(self.inputs["vae"])
         is_f16 = True if self.precision == "fp16" else False
         vae_name = "base_vae" if self.base_vae else "vae"
-        if self.use_tuned:
-            shark_vae = tuned_compile_through_fx(
-                vae,
-                inputs,
-                is_f16=is_f16,
-                model_name=vae_name + self.model_name + "_tuned",
-                extra_args=get_opt_flags("vae", precision=self.precision),
-            )
-        else:
-            shark_vae = compile_through_fx(
-                vae,
-                inputs,
-                is_f16=is_f16,
-                model_name=vae_name + self.model_name,
-                extra_args=get_opt_flags("vae", precision=self.precision),
-            )
+        shark_vae = compile_through_fx(
+            vae,
+            inputs,
+            is_f16=is_f16,
+            model_name=vae_name + self.model_name,
+            use_tuned=self.use_tuned,
+            extra_args=get_opt_flags("vae", precision=self.precision),
+        )
         return shark_vae
 
     def get_unet(self):
@@ -178,24 +169,15 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
         inputs = tuple(self.inputs["unet"])
         input_mask = [True, True, True, False]
-        if self.use_tuned:
-            shark_unet = tuned_compile_through_fx(
-                unet,
-                inputs,
-                model_name="unet" + self.model_name + "_tuned",
-                is_f16=is_f16,
-                f16_input_mask=input_mask,
-                extra_args=get_opt_flags("unet", precision=self.precision),
-            )
-        else:
-            shark_unet = compile_through_fx(
-                unet,
-                inputs,
-                model_name="unet" + self.model_name,
-                is_f16=is_f16,
-                f16_input_mask=input_mask,
-                extra_args=get_opt_flags("unet", precision=self.precision),
-            )
+        shark_unet = compile_through_fx(
+            unet,
+            inputs,
+            model_name="unet" + self.model_name,
+            is_f16=is_f16,
+            f16_input_mask=input_mask,
+            use_tuned=self.use_tuned,
+            extra_args=get_opt_flags("unet", precision=self.precision),
+        )
         return shark_unet
 
     def get_clip(self):

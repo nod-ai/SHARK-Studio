@@ -56,7 +56,7 @@ def get_torch_mlir_module(
     input: tuple,
     dynamic: bool,
     jit_trace: bool,
-    return_str: bool,
+    return_str: bool = False,
 ):
     """Get the MLIR's linalg-on-tensors module from the torchscipt module."""
     ignore_traced_shapes = False

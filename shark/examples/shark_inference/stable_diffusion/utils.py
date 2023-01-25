@@ -1,4 +1,5 @@
 import os
+import gc
 import torch
 from shark.shark_inference import SharkInference
 from stable_args import args
@@ -9,6 +10,7 @@ from shark.iree_utils.vulkan_utils import (
 )
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from resources import opt_flags
+from sd_annotation import sd_model_annotation
 import sys
 
 
@@ -70,12 +72,40 @@ def compile_through_fx(
     model_name,
     is_f16=False,
     f16_input_mask=None,
+    use_tuned=False,
     extra_args=[],
 ):
 
     mlir_module, func_name = import_with_fx(
         model, inputs, is_f16, f16_input_mask
     )
+
+    if use_tuned:
+        model_name = model_name + "_tuned"
+        tuned_model_path = f"{args.annotation_output}/{model_name}_torch.mlir"
+        if not os.path.exists(tuned_model_path):
+            if "vae" in model_name.split("_")[0]:
+                args.annotation_model = "vae"
+
+            if "cuda" in args.device:
+                output_path = (
+                    f"{args.annotation_output}/{model_name}_orig.mlir"
+                )
+                with open(output_path, "w") as f:
+                    f.write(mlir_module)
+                    f.close()
+                mlir_module = output_path
+
+            tuned_model, tuned_model_path = sd_model_annotation(
+                mlir_module, model_name
+            )
+            del mlir_module, tuned_model
+            gc.collect()
+
+        with open(tuned_model_path, "rb") as f:
+            mlir_module = f.read()
+            f.close()
+
     shark_module = SharkInference(
         mlir_module,
         device=args.device,
@@ -202,14 +232,22 @@ def set_init_device_flags():
     elif args.hf_model_id == "prompthero/openjourney":
         args.max_length = 64
 
-    # Use tuned models in the case of stablediffusion/fp16 and rdna3 cards.
+    # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
     if (
         args.hf_model_id
         in ["prompthero/openjourney", "dreamlike-art/dreamlike-diffusion-1.0"]
         or args.precision != "fp16"
-        or "vulkan" not in args.device
-        or "rdna3" not in args.iree_vulkan_target_triple
+        or ("vulkan" not in args.device and "cuda" not in args.device)
     ):
+        args.use_tuned = False
+
+    elif (
+        "vulkan" in args.device
+        and "rdna3" not in args.iree_vulkan_target_triple
+    ):
+        args.use_tuned = False
+
+    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80", "sm_89"]:
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
@@ -217,20 +255,6 @@ def set_init_device_flags():
         "CompVis/stable-diffusion-v1-4",
     ]:
         args.use_tuned = False
-
-    # Use tuned model in the case of stablediffusion/fp16 and cuda device sm_80
-    if (
-        args.hf_model_id
-        in [
-            "stabilityai/stable-diffusion-2-1-base",
-            "Linaqruf/anything-v3.0",
-            "wavymulder/Analog-Diffusion",
-        ]
-        and args.precision == "fp16"
-        and "cuda" in args.device
-        and get_cuda_sm_cc() in ["sm_80", "sm_89"]
-    ):
-        args.use_tuned = True
 
     if args.use_tuned:
         print(f"Using {args.device} tuned models for stablediffusion/fp16.")

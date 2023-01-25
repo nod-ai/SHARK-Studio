@@ -1,20 +1,15 @@
 import os
 from shark.model_annotation import model_annotation, create_context
 from shark.iree_utils._common import iree_target_map, run_cmd
-from shark.shark_importer import import_with_fx
 from shark.shark_downloader import (
     download_model,
     download_public_file,
     WORKDIR,
 )
-from shark.shark_inference import SharkInference
 from shark.parser import shark_args
 from stable_args import args
-from opt_params import get_params, version, variant
-from utils import set_init_device_flags, _compile_module
 
 
-set_init_device_flags()
 device = (
     args.device if "://" not in args.device else args.device.split("://")[0]
 )
@@ -22,6 +17,8 @@ device = (
 
 # Download the model (Unet or VAE fp16) from shark_tank
 def load_model_from_tank():
+    from opt_params import get_params, version, variant
+
     shark_args.local_tank_cache = args.local_tank_cache
     bucket_key = f"{variant}/untuned"
     if args.annotation_model == "unet":
@@ -53,6 +50,8 @@ def load_winograd_configs():
 
 
 def load_lower_configs():
+    from opt_params import version, variant
+
     config_bucket = "gs://shark_tank/sd_tuned/configs/"
     config_version = version
     if variant in ["anythingv3", "analogdiffusion"]:
@@ -87,6 +86,7 @@ def annotate_with_winograd(input_mlir, winograd_config_dir, model_name):
         )
         with open(out_file_path, "w") as f:
             f.write(str(winograd_model))
+            f.close()
     return winograd_model, out_file_path
 
 
@@ -147,6 +147,7 @@ def annotate_with_lower_configs(
         out_file_path = f"{args.annotation_output}/{model_name}_torch.mlir"
     with open(out_file_path, "w") as f:
         f.write(str(tuned_model))
+        f.close()
     return tuned_model, out_file_path
 
 
@@ -175,44 +176,6 @@ def sd_model_annotation(mlir_model, model_name):
         )
     print(f"Saved the annotated mlir in {output_path}.")
     return tuned_model, output_path
-
-
-def tuned_compile_through_fx(
-    model,
-    inputs,
-    model_name,
-    is_f16=False,
-    f16_input_mask=None,
-    extra_args=[],
-):
-    tuned_model_path = f"{args.annotation_output}/{model_name}_torch.mlir"
-    if not os.path.exists(tuned_model_path):
-        mlir_module, func_name = import_with_fx(
-            model, inputs, is_f16, f16_input_mask, return_str=True
-        )
-        if "vae" in model_name.split("_")[0]:
-            args.annotation_model = "vae"
-
-        if device == "cuda":
-            output_path = f"{args.annotation_output}/{model_name}_orig.mlir"
-            with open(output_path, "w") as f:
-                f.write(mlir_module)
-            mlir_module = output_path
-
-        tuned_model, tuned_model_path = sd_model_annotation(
-            mlir_module, model_name
-        )
-
-    with open(tuned_model_path, "rb") as f:
-        tuned_module = f.read()
-
-    shark_module = SharkInference(
-        tuned_module,
-        device=args.device,
-        mlir_dialect="linalg",
-    )
-
-    return _compile_module(shark_module, model_name, extra_args)
 
 
 if __name__ == "__main__":
