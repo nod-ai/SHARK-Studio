@@ -16,7 +16,7 @@ pip install -r requirements.txt
 python annotation_tool.py
 ```
 
-<img width="1308" alt="annotator" src="https://user-images.githubusercontent.com/49575973/214191759-24cc5fe6-cd53-4099-87f6-707068f8888d.png">
+<img width="1280" alt="annotator" src="https://user-images.githubusercontent.com/49575973/214521137-7ef6ae10-7cd8-46e6-b270-b6c0445157f1.png">
 
 * Select a dataset from `Dataset` dropdown list
 * Select an image from `Image` dropdown list
