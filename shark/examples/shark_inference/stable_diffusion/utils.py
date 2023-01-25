@@ -228,7 +228,7 @@ def set_init_device_flags():
         ]
         and args.precision == "fp16"
         and "cuda" in args.device
-        and get_cuda_sm_cc() == "sm_80"
+        and get_cuda_sm_cc() in ["sm_80", "sm_89"]
     ):
         args.use_tuned = True
 
