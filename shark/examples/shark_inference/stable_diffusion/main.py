@@ -1,6 +1,11 @@
 import os
+import sys
 
-os.environ["AMD_ENABLE_LLPC"] = "1"
+if "AMD_ENABLE_LLPC" not in os.environ:
+    os.environ["AMD_ENABLE_LLPC"] = "1"
+
+if sys.platform == "darwin":
+    os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
@@ -48,7 +53,6 @@ from schedulers import (
     SharkEulerDiscreteScheduler,
 )
 import time
-import sys
 from shark.iree_utils.compile_utils import dump_isas
 
 # Helper function to profile the vulkan device.

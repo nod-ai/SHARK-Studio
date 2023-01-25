@@ -1,7 +1,13 @@
 import os
+import sys
 from pathlib import Path
 
-os.environ["AMD_ENABLE_LLPC"] = "1"
+if "AMD_ENABLE_LLPC" not in os.environ:
+    os.environ["AMD_ENABLE_LLPC"] = "1"
+
+if sys.platform == "darwin":
+    os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
+
 import gradio as gr
 from PIL import Image
 from models.stable_diffusion.resources import resource_path, prompt_examples
