@@ -83,19 +83,15 @@ python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=f
 
 You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
 
-The output on a 6900XT would like:
+The output on a 7900XTX would like:
 
 ```shell 
-44it [00:08,  5.14it/s]i = 44 t = 120 (191ms)
-45it [00:08,  5.15it/s]i = 45 t = 100 (191ms)
-46it [00:08,  5.16it/s]i = 46 t = 80 (191ms)
-47it [00:09,  5.16it/s]i = 47 t = 60 (193ms)
-48it [00:09,  5.15it/s]i = 48 t = 40 (195ms)
-49it [00:09,  5.12it/s]i = 49 t = 20 (196ms)
-50it [00:09,  5.14it/s]
-Average step time: 192.8154182434082ms/it
-Total image generation runtime (s): 10.390909433364868
-(shark.venv) PS C:\g\shark>
+Stats for run 0:
+Average step time: 47.19188690185547ms/it
+Clip Inference time (ms) = 109.531
+VAE Inference time (ms): 78.590
+
+Total image generation time: 2.5788655281066895sec
 ```
 
 Here are some samples generated:
