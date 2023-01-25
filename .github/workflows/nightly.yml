@@ -10,7 +10,7 @@ on:
 
 jobs:
   windows-build:
-    runs-on: windows-latest
+    runs-on: 7950X
     strategy:
       fail-fast: false
       matrix:
