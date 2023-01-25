@@ -77,7 +77,7 @@ def compile_through_fx(
 ):
 
     mlir_module, func_name = import_with_fx(
-        model, inputs, is_f16, f16_input_mask
+        model, inputs, is_f16, f16_input_mask, return_str=use_tuned
     )
 
     if use_tuned:
@@ -311,6 +311,11 @@ def get_opt_flags(model, precision="fp16"):
     if sys.platform == "darwin":
         iree_flags.append("-iree-stream-fuse-binding=false")
 
+    if "default_compilation_flags" in opt_flags[model][is_tuned][precision]:
+        iree_flags += opt_flags[model][is_tuned][precision][
+            "default_compilation_flags"
+        ]
+
     if "specified_compilation_flags" in opt_flags[model][is_tuned][precision]:
         device = (
             args.device
@@ -327,7 +332,6 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags += opt_flags[model][is_tuned][precision][
             "specified_compilation_flags"
         ][device]
-
     return iree_flags
 
 
