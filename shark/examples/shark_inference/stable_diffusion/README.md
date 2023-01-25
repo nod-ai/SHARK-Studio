@@ -34,7 +34,25 @@ python3.10 main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on c
 * Use custom model `.ckpt` files from [HuggingFace-StableDiffusion](https://huggingface.co/models?other=stable-diffusion) to generate images.
 
 
-
+## Running the model for a `batch_size` and for a set of `runs`:
+We currently support batch size in the range `[1, 3]`.
+You can specify batch size using `batch_size` flag (defaults to `1`) and the number of times you want to run the model using `runs` flag (defaults to `1`).
+In total, you'll be able to generate `batch_size * runs` number of images.
+- Usage 1: Using the same prompt -
+```shell
+python3.10 main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=64 --import_mlir --hf_model_id="runwayml/stable-diffusion-v1-5" --batch_size=3
+```
+The example above generates `3` different images in total with the same prompt `tajmahal, oil on canvas, sunflowers, 4k, uhd`.
+- Usage 2: Using different prompts -
+```shell
+python3.10 main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=64 --import_mlir --hf_model_id="runwayml/stable-diffusion-v1-5" --batch_size=3 -p="batman riding a horse, oil on canvas, 4k, uhd" -p="superman riding a horse, oil on canvas, 4k, uhd"
+```
+The example above generates `1` image for each different prompt, thus generating `3` images in total.
+- Usage 3: Using `runs` -
+```shell
+python3.10 main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=64 --import_mlir --hf_model_id="runwayml/stable-diffusion-v1-5" --batch_size=2 --runs=3
+```
+The example above generates `6` different images in total, `2` images for each `runs`.
 
 </details>
   <details>

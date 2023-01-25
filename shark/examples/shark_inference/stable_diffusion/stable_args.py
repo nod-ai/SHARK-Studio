@@ -44,6 +44,14 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--batch_size",
+    type=int,
+    default=1,
+    choices=range(1, 4),
+    help="the number of inferences to be made in a single `run`.",
+)
+
+p.add_argument(
     "--height",
     type=int,
     default=512,
