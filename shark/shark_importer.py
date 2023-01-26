@@ -55,6 +55,7 @@ class SharkImporter:
         inputs: tuple = (),
         frontend: str = "torch",
         raw_model_file: str = "",
+        return_str: bool = False,
     ):
         self.module = module
         self.inputs = None if len(inputs) == 0 else inputs
@@ -65,6 +66,7 @@ class SharkImporter:
             )
             sys.exit(1)
         self.raw_model_file = raw_model_file
+        self.return_str = return_str
 
     # NOTE: The default function for torch is "forward" and tf-lite is "main".
 
@@ -72,7 +74,11 @@ class SharkImporter:
         from shark.torch_mlir_utils import get_torch_mlir_module
 
         return get_torch_mlir_module(
-            self.module, self.inputs, is_dynamic, tracing_required
+            self.module,
+            self.inputs,
+            is_dynamic,
+            tracing_required,
+            self.return_str,
         )
 
     def _tf_mlir(self, func_name, save_dir="./shark_tmp/"):
@@ -357,6 +363,7 @@ def import_with_fx(
     f16_input_mask=None,
     debug=False,
     training=False,
+    return_str=False,
 ):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
@@ -412,6 +419,7 @@ def import_with_fx(
         ts_graph,
         inputs,
         frontend="torch",
+        return_str=return_str,
     )
 
     if debug and not is_f16:

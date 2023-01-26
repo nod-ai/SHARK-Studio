@@ -62,6 +62,7 @@ class SharkifyStableDiffusionModel:
         height: int = 512,
         batch_size: int = 1,
         use_base_vae: bool = False,
+        use_tuned: bool = False,
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -82,6 +83,7 @@ class SharkifyStableDiffusionModel:
             + "_"
             + precision
         )
+        self.use_tuned = use_tuned
         # We need a better naming convention for the .vmfbs because despite
         # using the custom model variant the .vmfb names remain the same and
         # it'll always pick up the compiled .vmfb instead of compiling the
@@ -133,6 +135,7 @@ class SharkifyStableDiffusionModel:
             inputs,
             is_f16=is_f16,
             model_name=vae_name + self.model_name,
+            use_tuned=self.use_tuned,
             extra_args=get_opt_flags("vae", precision=self.precision),
         )
         return shark_vae
@@ -172,6 +175,7 @@ class SharkifyStableDiffusionModel:
             model_name="unet" + self.model_name,
             is_f16=is_f16,
             f16_input_mask=input_mask,
+            use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
         )
         return shark_unet

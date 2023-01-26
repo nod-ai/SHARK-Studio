@@ -93,7 +93,7 @@ p.add_argument(
 
 p.add_argument(
     "--import_mlir",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="imports the model from torch module to shark_module otherwise downloads the model from shark_tank.",
 )
@@ -297,13 +297,6 @@ p.add_argument(
     type=str,
     default="unet",
     help="Options are unet and vae.",
-)
-
-p.add_argument(
-    "--use_winograd",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Apply Winograd on selected conv ops.",
 )
 
 args = p.parse_args()
