@@ -185,7 +185,7 @@ class SharkModuleTester:
                 # p.join()
                 self.benchmark_module(shark_module, inputs, dynamic, device)
                 print(msg)
-                pytest.xfail(reason="Numerics Issue")
+                raise
 
         if self.benchmark == True:
             # We must create a new process each time we benchmark a model to allow
