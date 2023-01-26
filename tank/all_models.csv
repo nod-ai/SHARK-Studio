@@ -11,7 +11,7 @@ google/electra-small-discriminator,mhlo,tf,1e-2,1e-3,default,None,False,False,Fa
 google/mobilebert-uncased,mhlo,tf,1e-2,1e-3,default,None,True,False,False,"Fails during iree-compile."
 google/vit-base-patch16-224,mhlo,tf,1e-2,1e-3,tf_vit,nhcw-nhwc,False,False,True,"Vulkan Numerical Error (mostly conv)"
 microsoft/MiniLM-L12-H384-uncased,mhlo,tf,1e-2,1e-3,tf_hf,None,True,False,False,"Fails during iree-compile."
-microsoft/layoutlm-base-uncased,mhlo,tf,1e-2,1e-3,default,None,False,False,False,""
+microsoft/layoutlm-base-uncased,mhlo,tf,1e-2,1e-3,default,None,True,False,False,"Awaiting triage"
 microsoft/mpnet-base,mhlo,tf,1e-2,1e-2,default,None,False,False,False,""
 albert-base-v2,linalg,torch,1e-2,1e-3,default,None,True,True,True,"issue with aten.tanh in torch-mlir"
 alexnet,linalg,torch,1e-2,1e-3,default,None,False,False,True,"Assertion Error: Zeros Output"
