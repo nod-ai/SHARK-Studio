@@ -14,15 +14,20 @@ from sd_annotation import sd_model_annotation
 import sys
 
 
+def get_vmfb_path_name(model_name):
+    device = (
+        args.device
+        if "://" not in args.device
+        else "-".join(args.device.split("://"))
+    )
+    extended_name = "{}_{}".format(model_name, device)
+    vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
+    return [vmfb_path, extended_name]
+
+
 def _compile_module(shark_module, model_name, extra_args=[]):
     if args.load_vmfb or args.save_vmfb:
-        device = (
-            args.device
-            if "://" not in args.device
-            else "-".join(args.device.split("://"))
-        )
-        extended_name = "{}_{}".format(model_name, device)
-        vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
+        [vmfb_path, extended_name] = get_vmfb_path_name(model_name)
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
             print(f"loading existing vmfb from: {vmfb_path}")
             shark_module.load_module(vmfb_path, extra_args=extra_args)
