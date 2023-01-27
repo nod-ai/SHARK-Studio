@@ -47,6 +47,9 @@ def model_annotation(
             input_contents = f.read()
     module = ir.Module.parse(input_contents)
 
+    if config_path == "":
+        return module
+
     if winograd:
         with open(config_path, "r") as f:
             data = json.load(f)

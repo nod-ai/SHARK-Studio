@@ -81,8 +81,13 @@ def compile_through_fx(
     extra_args=[],
 ):
 
+    from shark.parser import shark_args
+
+    if "cuda" in args.device:
+        shark_args.enable_tf32 = True
+
     mlir_module, func_name = import_with_fx(
-        model, inputs, is_f16, f16_input_mask, return_str=use_tuned
+        model, inputs, is_f16, f16_input_mask
     )
 
     if use_tuned:
@@ -91,15 +96,6 @@ def compile_through_fx(
         if not os.path.exists(tuned_model_path):
             if "vae" in model_name.split("_")[0]:
                 args.annotation_model = "vae"
-
-            if "cuda" in args.device:
-                output_path = (
-                    f"{args.annotation_output}/{model_name}_orig.mlir"
-                )
-                with open(output_path, "w") as f:
-                    f.write(mlir_module)
-                    f.close()
-                mlir_module = output_path
 
             tuned_model, tuned_model_path = sd_model_annotation(
                 mlir_module, model_name
@@ -242,6 +238,9 @@ def set_init_device_flags():
         args.hf_model_id
         in ["prompthero/openjourney", "dreamlike-art/dreamlike-diffusion-1.0"]
         or args.precision != "fp16"
+        or args.height != 512
+        or args.width != 512
+        or args.batch_size != 1
         or ("vulkan" not in args.device and "cuda" not in args.device)
     ):
         args.use_tuned = False
@@ -252,7 +251,12 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80", "sm_89"]:
+    elif "cuda" in args.device and get_cuda_sm_cc() not in [
+        "sm_80",
+        "sm_84",
+        "sm_86",
+        "sm_89",
+    ]:
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [

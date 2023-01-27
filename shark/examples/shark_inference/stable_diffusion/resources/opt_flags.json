@@ -31,18 +31,24 @@
     "vae": {
       "tuned": {
         "fp16": {
-          "default_compilation_flags": [
-            "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=32",
-            "--iree-flow-enable-conv-img2col-transform"
-          ]
+          "default_compilation_flags": [],
+          "specified_compilation_flags": {
+            "cuda": [],
+            "default_device": ["--iree-flow-enable-padding-linalg-ops",
+                               "--iree-flow-linalg-ops-padding-size=32",
+                               "--iree-flow-enable-conv-img2col-transform"]
+          }
         },
         "fp32": {
-          "default_compilation_flags": [
-            "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=32",
-            "--iree-flow-enable-conv-img2col-transform"
-          ]
+          "default_compilation_flags": [],
+          "specified_compilation_flags": {
+            "cuda": [],
+            "default_device": [
+              "--iree-flow-enable-padding-linalg-ops",
+              "--iree-flow-linalg-ops-padding-size=32",
+              "--iree-flow-enable-conv-img2col-transform"
+            ]
+          }
         }
       },
       "untuned": {
