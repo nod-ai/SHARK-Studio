@@ -302,7 +302,7 @@ if __name__ == "__main__":
             json_store = {
                 "prompt": prompt[i],
                 "negative prompt": args.negative_prompts[i],
-                "seed": args.seed,
+                "seed": seed,
                 "hf_model_id": args.hf_model_id,
                 "precision": args.precision,
                 "steps": args.steps,
@@ -310,7 +310,7 @@ if __name__ == "__main__":
                 "scheduler": args.scheduler,
             }
             prompt_slice = re.sub("[^a-zA-Z0-9]", "_", prompt[i][:15])
-            img_name = f"{prompt_slice}_{args.seed}_{run}_{i}_{dt.now().strftime('%y%m%d_%H%M%S')}"
+            img_name = f"{prompt_slice}_{seed}_{run}_{i}_{dt.now().strftime('%y%m%d_%H%M%S')}"
             if args.output_img_format == "jpg":
                 pil_images[i].save(
                     output_path / f"{img_name}.jpg",
