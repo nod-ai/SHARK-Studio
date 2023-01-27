@@ -151,7 +151,7 @@ def annotate_with_lower_configs(
     return tuned_model, out_file_path
 
 
-def sd_model_annotation(mlir_model, model_name):
+def sd_model_annotation(mlir_model, model_name, model_from_tank=False):
     if args.annotation_model == "unet" and device == "vulkan":
         use_winograd = True
         winograd_config_dir = load_winograd_configs()
@@ -170,6 +170,14 @@ def sd_model_annotation(mlir_model, model_name):
         )
     else:
         use_winograd = False
+        if model_from_tank:
+            mlir_model = f"{WORKDIR}{model_name}_torch/{model_name}_torch.mlir"
+        else:
+            # Just use this function to convert bytecode to string
+            orig_model, model_path = annotate_with_winograd(
+                mlir_model, "", model_name
+            )
+            mlir_model = model_path
         lowering_config_dir = load_lower_configs()
         tuned_model, output_path = annotate_with_lower_configs(
             mlir_model, lowering_config_dir, model_name, use_winograd
@@ -180,7 +188,4 @@ def sd_model_annotation(mlir_model, model_name):
 
 if __name__ == "__main__":
     mlir_model, model_name = load_model_from_tank()
-    if device == "cuda":
-        mlir_model = f"{WORKDIR}{model_name}_torch/{model_name}_torch.mlir"
-
-    sd_model_annotation(mlir_model, model_name)
+    sd_model_annotation(mlir_model, model_name, model_from_tank=True)
