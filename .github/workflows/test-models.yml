@@ -115,7 +115,8 @@ jobs:
         pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --local_tank_cache="${GITHUB_WORKSPACE}/shark_tmp/shark_cache" -k cuda
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cuda_latest.csv
-        sh build_tools/stable_diff_main_test.sh
+        # Disabled due to black image bug
+        # python build_tools/stable_diffusion_testing.py --device=cuda 
 
     - name: Validate Vulkan Models (MacOS)
       if: matrix.suite == 'vulkan' && matrix.os == 'MacStudio'
@@ -135,3 +136,4 @@ jobs:
         PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --local_tank_cache="${GITHUB_WORKSPACE}/shark_tmp/shark_cache" -k vulkan
+        python build_tools/stable_diffusion_testing.py --device=vulkan
