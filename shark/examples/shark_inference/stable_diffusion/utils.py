@@ -1,6 +1,5 @@
 import os
 import gc
-import torch
 from shark.shark_inference import SharkInference
 from stable_args import args
 from shark.shark_importer import import_with_fx
@@ -12,6 +11,9 @@ from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from resources import opt_flags
 from sd_annotation import sd_model_annotation
 import sys
+from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
+    load_pipeline_from_original_stable_diffusion_ckpt,
+)
 
 
 def get_vmfb_path_name(model_name):
@@ -359,25 +361,21 @@ def preprocessCKPT():
         diffusers_path,
     )
     path_to_diffusers = complete_path_to_diffusers.as_posix()
-    # TODO: Use the SD to Diffusers CKPT pipeline once it's included in the release.
-    sd_to_diffusers = os.path.join(os.getcwd(), "sd_to_diffusers.py")
-    if not os.path.isfile(sd_to_diffusers):
-        url = "https://raw.githubusercontent.com/huggingface/diffusers/8a3f0c1f7178f4a3d5a5b21ae8c2906f473e240d/scripts/convert_original_stable_diffusion_to_diffusers.py"
-        import requests
-
-        req = requests.get(url)
-        open(sd_to_diffusers, "wb").write(req.content)
-        print("Downloaded SD to Diffusers converter")
-    else:
-        print("SD to Diffusers converter already exists")
-
-    os.system(
-        "python "
-        + sd_to_diffusers
-        + " --checkpoint_path="
-        + args.ckpt_loc
-        + " --dump_path="
-        + path_to_diffusers
+    from_safetensors = (
+        True if args.ckpt_loc.lower().endswith(".safetensors") else False
     )
+    # EMA weights usually yield higher quality images for inference but non-EMA weights have
+    # been yielding better results in our case.
+    # TODO: Add an option `--ema` (`--no-ema`) for users to specify if they want to go for EMA
+    #       weight extraction or not.
+    extract_ema = False
+    print("Loading pipeline from original stable diffusion checkpoint")
+    pipe = load_pipeline_from_original_stable_diffusion_ckpt(
+        checkpoint_path=args.ckpt_loc,
+        extract_ema=extract_ema,
+        from_safetensors=from_safetensors,
+    )
+    pipe.save_pretrained(path_to_diffusers)
+    print("Loading complete")
     args.ckpt_loc = path_to_diffusers
     print("Custom model path is : ", args.ckpt_loc)

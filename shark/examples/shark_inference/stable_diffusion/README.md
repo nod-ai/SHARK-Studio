@@ -17,7 +17,8 @@ use the flag `--hf_model_id=` to specify the repo-id of the model to be used.
 python .\shark\examples\shark_inference\stable_diffusion\main.py --hf_model_id="Linaqruf/anything-v3.0" --max_length=77 --prompt="1girl, brown hair, green eyes, colorful, autumn, cumulonimbus clouds, lighting, blue sky, falling leaves, garden" --no-use_tuned
 ```
 
-## Run a custom model using a HuggingFace `.ckpt` file:
+## Run a custom model using a `.ckpt` / `.safetensors` checkpoint file:
+* Ensure you don't have any `.yaml` file at the root directory of SHARK - best would be to ensure you're on the latest `main` branch and use `--clear_all` the first time you're running the command for inference.
 * Install `pytorch_lightning` by running :-
 ```shell
 pip install pytorch_lightning
@@ -30,9 +31,13 @@ NOTE: This is needed to process [ckpt file of runwayml/stable-diffusion-v1-5](ht
 python3.10 main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd" --max_length=64 --import_mlir --ckpt_loc="/path/to/.ckpt/file" --no-use_tuned
 ```
 * We use a combination of 2 flags to make this feature work : `import_mlir` and `ckpt_loc`.
-* In case `ckpt_loc` is NOT specified then a [default](https://huggingface.co/stabilityai/stable-diffusion-2-1-base) HuggingFace repo-id is run via `hf_model_id`. So, you can use `import_mlir` and `hf_model_id` to run HuggingFace's StableDiffusion variants.
+* In case `ckpt_loc` is NOT specified then a [default](https://huggingface.co/stabilityai/stable-diffusion-2-1-base) HuggingFace repo-id is run via `hf_model_id`. So, two ways to use `import_mlir` :-
+- With `hf_model_id` to run HuggingFace's StableDiffusion variants.
+- With `ckpt_loc` to run a StableDiffusion variant with a `.ckpt` or `.safetensors` checkpoint file
 
 * Use custom model `.ckpt` files from [HuggingFace-StableDiffusion](https://huggingface.co/models?other=stable-diffusion) to generate images.
+* You may also try out [.safetensors file of Protogen x3.4 of civitai.com](https://civitai.com/models/3666/protogen-x34-photorealism-official-release) and provide the `.safetensors` path to `ckpt_loc` flag.
+* NOTE: Ensure that the `.ckpt` or `.safetensors` file are part of the path passed to `ckpt_loc` flag. Eg: `--ckpt_loc="/path/to/checkpoint/file/name_of_checkpoint.ckpt` OR `--ckpt_loc="/path/to/checkpoint/file/name_of_checkpoint.safetensors`. Also ensure that you're using `--no-use_tuned` flag in your run command.
 
 
 ## Running the model for a `batch_size` and for a set of `runs`:
