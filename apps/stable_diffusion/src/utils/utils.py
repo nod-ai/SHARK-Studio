@@ -274,6 +274,8 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1",
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
+        "runwayml/stable-diffusion-inpainting",
+        "stabilityai/stable-diffusion-2-inpainting",
     ]:
         args.import_mlir = True
 
@@ -395,7 +397,7 @@ def preprocessCKPT(custom_weights):
 
 
 def load_vmfb(vmfb_path, model, precision):
-    model = "vae" if "base_vae" in model else model
+    model = "vae" if "base_vae" in model or "vae_encode" in model else model
     precision = "fp32" if "clip" in model else precision
     extra_args = get_opt_flags(model, precision)
     shark_module = SharkInference(mlir_module=None, device=args.device)
@@ -403,16 +405,24 @@ def load_vmfb(vmfb_path, model, precision):
     return shark_module
 
 
-# This utility returns vmfbs of Clip, Unet and Vae, in case all three of them
+# This utility returns vmfbs of Clip, Unet, Vae and Vae_encode, in case all of them
 # are present; deletes them otherwise.
-def fetch_or_delete_vmfbs(basic_model_name, use_base_vae, precision="fp32"):
-    model_name = ["clip", "unet", "base_vae" if use_base_vae else "vae"]
+def fetch_or_delete_vmfbs(
+    basic_model_name, use_base_vae, if_inpaint, precision="fp32"
+):
+    model_name = [
+        "clip",
+        "unet",
+        "base_vae" if use_base_vae else "vae",
+    ]
+    if if_inpaint:
+        model_name.append("vae_encode")
     vmfb_path = [
         get_vmfb_path_name(model + basic_model_name)[0] for model in model_name
     ]
     vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
     all_vmfb_present = functools.reduce(operator.__and__, vmfb_present)
-    compiled_models = [None] * 3
+    compiled_models = [None] * 4 if if_inpaint else [None] * 3
     # We need to delete vmfbs only if some of the models were compiled.
     if not all_vmfb_present:
         for i in range(len(vmfb_path)):

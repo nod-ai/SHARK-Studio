@@ -3,6 +3,8 @@
     "stablediffusion/v1_4":"CompVis/stable-diffusion-v1-4",
     "stablediffusion/v2_1base":"stabilityai/stable-diffusion-2-1-base",
     "stablediffusion/v2_1":"stabilityai/stable-diffusion-2-1",
+    "stablediffusion/inpaint_v1":"runwayml/stable-diffusion-inpainting",
+    "stablediffusion/inpaint_v2":"stabilityai/stable-diffusion-2-inpainting",
     "anythingv3/v1_4":"Linaqruf/anything-v3.0",
     "analogdiffusion/v1_4":"wavymulder/Analog-Diffusion",
     "openjourney/v1_4":"prompthero/openjourney",
