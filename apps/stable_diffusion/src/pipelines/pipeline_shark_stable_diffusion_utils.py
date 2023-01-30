@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from transformers import CLIPTokenizer
 from PIL import Image
 from tqdm.auto import tqdm
@@ -16,6 +17,7 @@ from shark.shark_inference import SharkInference
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.models import (
     SharkifyStableDiffusionModel,
+    get_vae_encode,
     get_vae,
     get_clip,
     get_unet,
@@ -112,6 +114,8 @@ class StableDiffusionPipeline:
         total_timesteps,
         dtype,
         cpu_scheduling,
+        mask=None,
+        masked_image_latents=None,
         return_all_latents=False,
     ):
         step_time_sum = 0
@@ -122,6 +126,15 @@ class StableDiffusionPipeline:
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(dtype).detach().numpy()
             latent_model_input = self.scheduler.scale_model_input(latents, t)
+            if mask is not None and masked_image_latents is not None:
+                latent_model_input = torch.cat(
+                    [
+                        torch.from_numpy(np.asarray(latent_model_input)),
+                        mask,
+                        masked_image_latents,
+                    ],
+                    dim=1,
+                ).to(dtype)
             if cpu_scheduling:
                 latent_model_input = latent_model_input.detach().numpy()
 
@@ -199,8 +212,23 @@ class StableDiffusionPipeline:
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
             )
+            if "inpaint" in model_id:
+                clip, unet, vae, vae_encode = mlir_import()
+                return cls(
+                    vae_encode, vae, clip, get_tokenizer(), unet, scheduler
+                )
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
+
+        if "inpaint" in model_id:
+            return cls(
+                get_vae_encode(),
+                get_vae(),
+                get_clip(),
+                get_tokenizer(),
+                get_unet(),
+                scheduler,
+            )
         return cls(
             get_vae(), get_clip(), get_tokenizer(), get_unet(), scheduler
         )

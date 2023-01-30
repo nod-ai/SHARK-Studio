@@ -4,5 +4,8 @@ from apps.stable_diffusion.src.utils import (
     prompt_examples,
     get_available_devices,
 )
-from apps.stable_diffusion.src.pipelines import Text2ImagePipeline
+from apps.stable_diffusion.src.pipelines import (
+    Text2ImagePipeline,
+    InpaintPipeline,
+)
 from apps.stable_diffusion.src.schedulers import get_schedulers
