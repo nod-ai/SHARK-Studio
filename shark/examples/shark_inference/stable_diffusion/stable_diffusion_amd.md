@@ -67,6 +67,8 @@ Here are some samples generated:
 * Install the latest Python 3.10.x version from [here](https://www.python.org/downloads/windows/)
 
 * Install Git for Windows from [here](https://git-scm.com/download/win)
+  
+* Install Rust for Windows from [here](https://www.rust-lang.org/tools/install)
 
 #### Allow the install script to run in Powershell
 ```powershell
