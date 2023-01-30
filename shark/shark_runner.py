@@ -64,11 +64,13 @@ class SharkRunner:
         mlir_dialect: str = "linalg",
         extra_args: list = [],
         compile_vmfb: bool = True,
+        device_idx: int = None,
     ):
         self.mlir_module = mlir_module
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
+        self.device_idx = device_idx
 
         if check_device_drivers(self.device):
             print(device_driver_info(self.device))
@@ -84,6 +86,7 @@ class SharkRunner:
                 self.device,
                 self.mlir_dialect,
                 extra_args=self.extra_args,
+                device_idx=self.device_idx,
             )
 
     def run(self, function_name, inputs: tuple, send_to_host=False):

@@ -276,9 +276,19 @@ def compile_module_to_flatbuffer(
     return flatbuffer_blob
 
 
-def get_iree_module(flatbuffer_blob, device):
+def get_iree_module(flatbuffer_blob, device, device_idx=None):
     # Returns the compiled module and the configs.
-    config = get_iree_runtime_config(device)
+    if device_idx is not None:
+        print("registering device id: ", device_idx)
+        haldriver = ireert.get_driver(device)
+
+        haldevice = haldriver.create_device(
+            haldriver.query_available_devices()[device_idx]["device_id"]
+        )
+        # haldevice = haldriver.create_default_device()
+        config = ireert.Config(device=haldevice)
+    else:
+        config = get_iree_runtime_config(device)
     vm_module = ireert.VmModule.from_flatbuffer(
         config.vm_instance, flatbuffer_blob
     )
@@ -294,20 +304,21 @@ def get_iree_compiled_module(
     frontend: str = "torch",
     model_config_path: str = None,
     extra_args: list = [],
+    device_idx: int = None,
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
         module, device, frontend, model_config_path, extra_args
     )
-    return get_iree_module(flatbuffer_blob, device)
+    return get_iree_module(flatbuffer_blob, device, device_idx=device_idx)
 
 
-def load_flatbuffer(flatbuffer_path: str, device: str):
+def load_flatbuffer(flatbuffer_path: str, device: str, device_idx: int = None):
 
     with open(os.path.join(flatbuffer_path), "rb") as f:
         flatbuffer_blob = f.read()
 
-    return get_iree_module(flatbuffer_blob, device)
+    return get_iree_module(flatbuffer_blob, device, device_idx=device_idx)
 
 
 def export_iree_module_to_vmfb(
