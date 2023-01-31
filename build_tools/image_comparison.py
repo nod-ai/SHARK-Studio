@@ -1,5 +1,5 @@
 import argparse
-import torchvision
+from PIL import Image
 import numpy as np
 
 import requests
@@ -22,20 +22,24 @@ def get_image(url, local_filename):
     if res.status_code == 200:
         with open(local_filename, "wb") as f:
             shutil.copyfileobj(res.raw, f)
-    return torchvision.io.read_image(local_filename).numpy()
 
 
-if __name__ == "__main__":
-    args = parser.parse_args()
-    new = torchvision.io.read_image(args.newfile).numpy() / 255.0
-    tempfile_name = os.path.join(os.getcwd(), "golden.png")
-    golden = get_image(args.golden_url, tempfile_name) / 255.0
+def compare_images(new_filename, golden_filename):
+    new = np.array(Image.open(new_filename)) / 255.0
+    golden = np.array(Image.open(golden_filename)) / 255.0
     diff = np.abs(new - golden)
     mean = np.mean(diff)
-    if not mean < 0.2:
+    if mean > 0.01:
         subprocess.run(
-            ["gsutil", "cp", args.newfile, "gs://shark_tank/testdata/builder/"]
+            ["gsutil", "cp", new_filename, "gs://shark_tank/testdata/builder/"]
         )
         raise SystemExit("new and golden not close")
     else:
         print("SUCCESS")
+
+
+if __name__ == "__main__":
+    args = parser.parse_args()
+    tempfile_name = os.path.join(os.getcwd(), "golden.png")
+    get_image(args.golden_url, tempfile_name)
+    compare_images(args.newfile, tempfile_name)

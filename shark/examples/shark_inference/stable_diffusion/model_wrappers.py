@@ -1,10 +1,13 @@
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.realpath(__file__)))
 from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from utils import compile_through_fx, get_opt_flags
 from resources import base_models
 from collections import defaultdict
 import torch
-import sys
 
 
 # These shapes are parameter dependent.
@@ -62,6 +65,10 @@ class SharkifyStableDiffusionModel:
         height: int = 512,
         batch_size: int = 1,
         use_base_vae: bool = False,
+        use_tuned: bool = False,
+        debug: bool = False,
+        sharktank_dir: str = "",
+        generate_vmfb: bool = True,
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -72,7 +79,8 @@ class SharkifyStableDiffusionModel:
         self.precision = precision
         self.base_vae = use_base_vae
         self.model_name = (
-            str(batch_size)
+            "_"
+            + str(batch_size)
             + "_"
             + str(max_len)
             + "_"
@@ -82,6 +90,10 @@ class SharkifyStableDiffusionModel:
             + "_"
             + precision
         )
+        self.use_tuned = use_tuned
+        self.debug = debug
+        self.sharktank_dir = sharktank_dir
+        self.generate_vmfb = generate_vmfb
         # We need a better naming convention for the .vmfbs because despite
         # using the custom model variant the .vmfb names remain the same and
         # it'll always pick up the compiled .vmfb instead of compiling the
@@ -128,12 +140,20 @@ class SharkifyStableDiffusionModel:
         inputs = tuple(self.inputs["vae"])
         is_f16 = True if self.precision == "fp16" else False
         vae_name = "base_vae" if self.base_vae else "vae"
+        vae_model_name = vae_name + self.model_name
+        if self.debug:
+            os.makedirs(
+                os.path.join(self.sharktank_dir, vae_model_name), exist_ok=True
+            )
         shark_vae = compile_through_fx(
             vae,
             inputs,
             is_f16=is_f16,
-            model_name=vae_name + self.model_name,
+            use_tuned=self.use_tuned,
+            model_name=vae_model_name,
             extra_args=get_opt_flags("vae", precision=self.precision),
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
         )
         return shark_vae
 
@@ -166,13 +186,22 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
         inputs = tuple(self.inputs["unet"])
         input_mask = [True, True, True, False]
+        unet_model_name = "unet" + self.model_name
+        if self.debug:
+            os.makedirs(
+                os.path.join(self.sharktank_dir, unet_model_name),
+                exist_ok=True,
+            )
         shark_unet = compile_through_fx(
             unet,
             inputs,
-            model_name="unet" + self.model_name,
+            model_name=unet_model_name,
             is_f16=is_f16,
             f16_input_mask=input_mask,
+            use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
         )
         return shark_unet
 
@@ -189,19 +218,33 @@ class SharkifyStableDiffusionModel:
                 return self.text_encoder(input)[0]
 
         clip_model = CLIPText()
+        clip_model_name = "clip" + self.model_name
+        if self.debug:
+            os.makedirs(
+                os.path.join(self.sharktank_dir, clip_model_name),
+                exist_ok=True,
+            )
 
         shark_clip = compile_through_fx(
             clip_model,
             tuple(self.inputs["clip"]),
-            model_name="clip" + self.model_name,
+            model_name=clip_model_name,
             extra_args=get_opt_flags("clip", precision="fp32"),
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
         )
         return shark_clip
 
     def __call__(self):
+        from utils import get_vmfb_path_name
         from stable_args import args
-        import traceback
+        import traceback, functools, operator, os
 
+        model_name = ["clip", "base_vae" if self.base_vae else "vae", "unet"]
+        vmfb_path = [
+            get_vmfb_path_name(model + self.model_name)[0]
+            for model in model_name
+        ]
         for model_id in base_models:
             self.inputs = get_input_info(
                 base_models[model_id],
@@ -211,12 +254,22 @@ class SharkifyStableDiffusionModel:
                 self.batch_size,
             )
             try:
-                compiled_clip = self.get_clip()
                 compiled_unet = self.get_unet()
                 compiled_vae = self.get_vae()
+                compiled_clip = self.get_clip()
             except Exception as e:
                 if args.enable_stack_trace:
                     traceback.print_exc()
+                vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
+                all_vmfb_present = functools.reduce(
+                    operator.__and__, vmfb_present
+                )
+                # We need to delete vmfbs only if some of the models were compiled.
+                if not all_vmfb_present:
+                    for i in range(len(vmfb_path)):
+                        if vmfb_present[i]:
+                            os.remove(vmfb_path[i])
+                            print("Deleted: ", vmfb_path[i])
                 print("Retrying with a different base model configuration")
                 continue
             # This is done just because in main.py we are basing the choice of tokenizer and scheduler

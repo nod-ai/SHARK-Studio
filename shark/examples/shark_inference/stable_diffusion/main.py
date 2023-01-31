@@ -1,6 +1,11 @@
 import os
+import sys
 
-os.environ["AMD_ENABLE_LLPC"] = "1"
+if "AMD_ENABLE_LLPC" not in os.environ:
+    os.environ["AMD_ENABLE_LLPC"] = "1"
+
+if sys.platform == "darwin":
+    os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
@@ -32,6 +37,12 @@ if args.clear_all:
     for vmfb in vmfbs:
         if os.path.exists(vmfb):
             os.remove(vmfb)
+    # Temporary workaround of deleting yaml files to incorporate diffusers' pipeline.
+    # TODO: Remove this once we have better weight updation logic.
+    inference_yaml = ["v2-inference-v.yaml", "v1-inference.yaml"]
+    for yaml in inference_yaml:
+        if os.path.exists(yaml):
+            os.remove(yaml)
     home = os.path.expanduser("~")
     if os.name == "nt":  # Windows
         appdata = os.getenv("LOCALAPPDATA")
@@ -48,7 +59,6 @@ from schedulers import (
     SharkEulerDiscreteScheduler,
 )
 import time
-import sys
 from shark.iree_utils.compile_utils import dump_isas
 
 # Helper function to profile the vulkan device.
@@ -85,7 +95,16 @@ if __name__ == "__main__":
     # Scale for classifier-free guidance
     guidance_scale = torch.tensor(args.guidance_scale).to(torch.float32)
 
-    batch_size = len(prompt)
+    batch_size = args.batch_size
+    prompt = prompt * batch_size if len(prompt) == 1 else prompt
+    len_of_prompt = len(prompt)
+    assert (
+        len_of_prompt == batch_size
+    ), f"no. of prompts ({len_of_prompt}) is not equal to batch_size ({batch_size})"
+    print("Running StableDiffusion with the following config :-")
+    print(f"Batch size : {batch_size}")
+    print(f"Prompts : {prompt}")
+    print(f"Runs : {args.runs}")
 
     # Try to make neg_prompt equal to batch_size by appending blank strings.
     for i in range(batch_size - len(neg_prompt)):
@@ -101,7 +120,10 @@ if __name__ == "__main__":
         unet = get_unet()
         vae = get_vae()
     else:
-        if ".ckpt" in args.ckpt_loc:
+        if args.ckpt_loc != "":
+            assert args.ckpt_loc.lower().endswith(
+                (".ckpt", ".safetensors")
+            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             preprocessCKPT()
         mlir_import = SharkifyStableDiffusionModel(
             args.hf_model_id,
@@ -112,6 +134,7 @@ if __name__ == "__main__":
             height=height,
             width=width,
             use_base_vae=args.use_base_vae,
+            use_tuned=args.use_tuned,
         )
         clip, unet, vae = mlir_import()
 
@@ -286,17 +309,17 @@ if __name__ == "__main__":
         disk_space_check(output_path, lim=5)
         for i in range(batch_size):
             json_store = {
-                "prompt": args.prompts[i],
+                "prompt": prompt[i],
                 "negative prompt": args.negative_prompts[i],
-                "seed": args.seed,
+                "seed": seed,
                 "hf_model_id": args.hf_model_id,
                 "precision": args.precision,
                 "steps": args.steps,
                 "guidance_scale": args.guidance_scale,
                 "scheduler": args.scheduler,
             }
-            prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[i][:15])
-            img_name = f"{prompt_slice}_{args.seed}_{run}_{dt.now().strftime('%y%m%d_%H%M%S')}"
+            prompt_slice = re.sub("[^a-zA-Z0-9]", "_", prompt[i][:15])
+            img_name = f"{prompt_slice}_{seed}_{run}_{i}_{dt.now().strftime('%y%m%d_%H%M%S')}"
             if args.output_img_format == "jpg":
                 pil_images[i].save(
                     output_path / f"{img_name}.jpg",

@@ -1,7 +1,9 @@
 import os
+import gc
+import tempfile
 import torch
 from shark.shark_inference import SharkInference
-from stable_args import args
+from shark.examples.shark_inference.stable_diffusion.stable_args import args
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
@@ -9,18 +11,27 @@ from shark.iree_utils.vulkan_utils import (
 )
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from resources import opt_flags
+from sd_annotation import sd_model_annotation
 import sys
+from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
+    load_pipeline_from_original_stable_diffusion_ckpt,
+)
+
+
+def get_vmfb_path_name(model_name):
+    device = (
+        args.device
+        if "://" not in args.device
+        else "-".join(args.device.split("://"))
+    )
+    extended_name = "{}_{}".format(model_name, device)
+    vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
+    return [vmfb_path, extended_name]
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
     if args.load_vmfb or args.save_vmfb:
-        device = (
-            args.device
-            if "://" not in args.device
-            else "-".join(args.device.split("://"))
-        )
-        extended_name = "{}_{}".format(model_name, device)
-        vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
+        [vmfb_path, extended_name] = get_vmfb_path_name(model_name)
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
             print(f"loading existing vmfb from: {vmfb_path}")
             shark_module.load_module(vmfb_path, extra_args=extra_args)
@@ -70,19 +81,58 @@ def compile_through_fx(
     model_name,
     is_f16=False,
     f16_input_mask=None,
+    use_tuned=False,
     extra_args=[],
+    save_dir=tempfile.gettempdir(),
+    debug=False,
+    generate_vmfb=True,
 ):
+
+    from shark.parser import shark_args
+
+    if "cuda" in args.device:
+        shark_args.enable_tf32 = True
 
     mlir_module, func_name = import_with_fx(
         model, inputs, is_f16, f16_input_mask
     )
-    shark_module = SharkInference(
-        mlir_module,
-        device=args.device,
-        mlir_dialect="linalg",
-    )
 
-    return _compile_module(shark_module, model_name, extra_args)
+    if use_tuned:
+        model_name = model_name + "_tuned"
+        tuned_model_path = f"{args.annotation_output}/{model_name}_torch.mlir"
+        if not os.path.exists(tuned_model_path):
+            if "vae" in model_name.split("_")[0]:
+                args.annotation_model = "vae"
+
+            tuned_model, tuned_model_path = sd_model_annotation(
+                mlir_module, model_name
+            )
+            del mlir_module, tuned_model
+            gc.collect()
+
+        with open(tuned_model_path, "rb") as f:
+            mlir_module = f.read()
+            f.close()
+
+    save_dir = os.path.join(args.local_tank_cache, model_name)
+
+    mlir_module, func_name, = import_with_fx(
+        model=model,
+        inputs=inputs,
+        is_f16=is_f16,
+        f16_input_mask=f16_input_mask,
+        debug=debug,
+        model_name=model_name,
+        save_dir=save_dir,
+    )
+    if generate_vmfb:
+        shark_module = SharkInference(
+            mlir_module,
+            device=args.device,
+            mlir_dialect="linalg",
+        )
+
+        return _compile_module(shark_module, model_name, extra_args)
 
 
 def set_iree_runtime_flags():
@@ -202,14 +252,30 @@ def set_init_device_flags():
     elif args.hf_model_id == "prompthero/openjourney":
         args.max_length = 64
 
-    # Use tuned models in the case of stablediffusion/fp16 and rdna3 cards.
+    # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
     if (
         args.hf_model_id
         in ["prompthero/openjourney", "dreamlike-art/dreamlike-diffusion-1.0"]
         or args.precision != "fp16"
-        or "vulkan" not in args.device
-        or "rdna3" not in args.iree_vulkan_target_triple
+        or args.height != 512
+        or args.width != 512
+        or args.batch_size != 1
+        or ("vulkan" not in args.device and "cuda" not in args.device)
     ):
+        args.use_tuned = False
+
+    elif (
+        "vulkan" in args.device
+        and "rdna3" not in args.iree_vulkan_target_triple
+    ):
+        args.use_tuned = False
+
+    elif "cuda" in args.device and get_cuda_sm_cc() not in [
+        "sm_80",
+        "sm_84",
+        "sm_86",
+        "sm_89",
+    ]:
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
@@ -228,9 +294,12 @@ def set_init_device_flags():
         ]
         and args.precision == "fp16"
         and "cuda" in args.device
-        and get_cuda_sm_cc() == "sm_80"
+        and get_cuda_sm_cc() in ["sm_80", "sm_89"]
+        and args.use_tuned  # required to avoid always forcing true on these cards
     ):
         args.use_tuned = True
+    else:
+        args.use_tuned = False
 
     if args.use_tuned:
         print(f"Using {args.device} tuned models for stablediffusion/fp16.")
@@ -287,6 +356,11 @@ def get_opt_flags(model, precision="fp16"):
     if sys.platform == "darwin":
         iree_flags.append("-iree-stream-fuse-binding=false")
 
+    if "default_compilation_flags" in opt_flags[model][is_tuned][precision]:
+        iree_flags += opt_flags[model][is_tuned][precision][
+            "default_compilation_flags"
+        ]
+
     if "specified_compilation_flags" in opt_flags[model][is_tuned][precision]:
         device = (
             args.device
@@ -303,7 +377,6 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags += opt_flags[model][is_tuned][precision][
             "specified_compilation_flags"
         ][device]
-
     return iree_flags
 
 
@@ -322,25 +395,21 @@ def preprocessCKPT():
         diffusers_path,
     )
     path_to_diffusers = complete_path_to_diffusers.as_posix()
-    # TODO: Use the SD to Diffusers CKPT pipeline once it's included in the release.
-    sd_to_diffusers = os.path.join(os.getcwd(), "sd_to_diffusers.py")
-    if not os.path.isfile(sd_to_diffusers):
-        url = "https://raw.githubusercontent.com/huggingface/diffusers/8a3f0c1f7178f4a3d5a5b21ae8c2906f473e240d/scripts/convert_original_stable_diffusion_to_diffusers.py"
-        import requests
-
-        req = requests.get(url)
-        open(sd_to_diffusers, "wb").write(req.content)
-        print("Downloaded SD to Diffusers converter")
-    else:
-        print("SD to Diffusers converter already exists")
-
-    os.system(
-        "python "
-        + sd_to_diffusers
-        + " --checkpoint_path="
-        + args.ckpt_loc
-        + " --dump_path="
-        + path_to_diffusers
+    from_safetensors = (
+        True if args.ckpt_loc.lower().endswith(".safetensors") else False
     )
+    # EMA weights usually yield higher quality images for inference but non-EMA weights have
+    # been yielding better results in our case.
+    # TODO: Add an option `--ema` (`--no-ema`) for users to specify if they want to go for EMA
+    #       weight extraction or not.
+    extract_ema = False
+    print("Loading pipeline from original stable diffusion checkpoint")
+    pipe = load_pipeline_from_original_stable_diffusion_ckpt(
+        checkpoint_path=args.ckpt_loc,
+        extract_ema=extract_ema,
+        from_safetensors=from_safetensors,
+    )
+    pipe.save_pretrained(path_to_diffusers)
+    print("Loading complete")
     args.ckpt_loc = path_to_diffusers
     print("Custom model path is : ", args.ckpt_loc)

@@ -47,6 +47,9 @@ def model_annotation(
             input_contents = f.read()
     module = ir.Module.parse(input_contents)
 
+    if config_path == "":
+        return module
+
     if winograd:
         with open(config_path, "r") as f:
             data = json.load(f)
@@ -162,7 +165,6 @@ def walk_children(
                         add_attributes(
                             child_op, configs[child_op_shape]["options"][0]
                         )
-                    print(f"Updated op {child_op}", file=sys.stderr)
 
                 walk_children(child_op, configs, search_op, winograd)
 
@@ -394,7 +396,6 @@ def add_winograd_attribute(op: ir.Operation, config: List):
         op.attributes["iree_winograd_conv"] = ir.IntegerAttr.get(
             ir.IntegerType.get_signless(64), 1
         )
-        print("Apply Winograd on selected conv op: ", op)
 
 
 def add_attribute_by_name(op: ir.Operation, name: str, val: int):

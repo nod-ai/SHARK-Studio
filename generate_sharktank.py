@@ -18,6 +18,12 @@ import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
+from shark.examples.shark_inference.stable_diffusion import (
+    model_wrappers as mw,
+)
+from shark.examples.shark_inference.stable_diffusion.stable_args import (
+    args,
+)
 
 
 def create_hash(file_name):
@@ -51,6 +57,32 @@ def save_torch_model(torch_model_list):
 
             model = None
             input = None
+            if model_type == "stable_diffusion":
+
+                args.use_tuned = False
+                args.import_mlir = True
+                args.use_tuned = False
+                args.local_tank_cache = WORKDIR
+
+                precision_values = ["fp16"]
+                seq_lengths = [64, 77]
+                for precision_value in precision_values:
+                    args.precision = precision_value
+                    for length in seq_lengths:
+                        model = mw.SharkifyStableDiffusionModel(
+                            model_id=torch_model_name,
+                            custom_weights="",
+                            precision=precision_value,
+                            max_len=length,
+                            width=512,
+                            height=512,
+                            use_base_vae=False,
+                            debug=True,
+                            sharktank_dir=WORKDIR,
+                            generate_vmfb=False,
+                        )
+                        model()
+                continue
             if model_type == "vision":
                 model, input, _ = get_vision_model(torch_model_name)
             elif model_type == "hf":
@@ -205,34 +237,35 @@ def is_valid_file(arg):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--torch_model_csv",
-        type=lambda x: is_valid_file(x),
-        default="./tank/torch_model_list.csv",
-        help="""Contains the file with torch_model name and args.
-             Please see: https://github.com/nod-ai/SHARK/blob/main/tank/torch_model_list.csv""",
-    )
-    parser.add_argument(
-        "--tf_model_csv",
-        type=lambda x: is_valid_file(x),
-        default="./tank/tf_model_list.csv",
-        help="Contains the file with tf model name and args.",
-    )
-    parser.add_argument(
-        "--tflite_model_csv",
-        type=lambda x: is_valid_file(x),
-        default="./tank/tflite/tflite_model_list.csv",
-        help="Contains the file with tf model name and args.",
-    )
-    parser.add_argument(
-        "--ci_tank_dir",
-        type=bool,
-        default=False,
-    )
-    parser.add_argument("--upload", type=bool, default=False)
+    # Note, all of these flags are overridden by the import of args from stable_args.py, flags are duplicated temporarily to preserve functionality
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument(
+    #    "--torch_model_csv",
+    #    type=lambda x: is_valid_file(x),
+    #    default="./tank/torch_model_list.csv",
+    #    help="""Contains the file with torch_model name and args.
+    #         Please see: https://github.com/nod-ai/SHARK/blob/main/tank/torch_model_list.csv""",
+    # )
+    # parser.add_argument(
+    #    "--tf_model_csv",
+    #    type=lambda x: is_valid_file(x),
+    #    default="./tank/tf_model_list.csv",
+    #    help="Contains the file with tf model name and args.",
+    # )
+    # parser.add_argument(
+    #    "--tflite_model_csv",
+    #    type=lambda x: is_valid_file(x),
+    #    default="./tank/tflite/tflite_model_list.csv",
+    #    help="Contains the file with tf model name and args.",
+    # )
+    # parser.add_argument(
+    #    "--ci_tank_dir",
+    #    type=bool,
+    #    default=False,
+    # )
+    # parser.add_argument("--upload", type=bool, default=False)
 
-    args = parser.parse_args()
+    # old_args = parser.parse_args()
 
     home = str(Path.home())
     if args.ci_tank_dir == True:
@@ -248,8 +281,3 @@ if __name__ == "__main__":
 
     if args.tflite_model_csv:
         save_tflite_model(args.tflite_model_csv)
-
-    if args.upload:
-        git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
-        print("uploading files to gs://shark_tank/" + git_hash)
-        os.system(f"gsutil cp -r {WORKDIR}* gs://shark_tank/" + git_hash)

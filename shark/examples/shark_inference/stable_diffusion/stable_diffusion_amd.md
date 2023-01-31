@@ -12,22 +12,23 @@ If it works well for you, please "star" the following GitHub projects... this is
 
 *AMD Software: Adrenalin Edition 22.11.1 for MLIR/IREE Driver Version 22.20.29.09 for Windows® 10 and Windows® 11 (Windows Driver Store Version 31.0.12029.9003)*
 
-First, download this special driver in a folder of your choice. We recommend you keep that driver around since you may need to re-install it later, if Windows Update decides to overwrite it:
+First, for RDNA2 users, download this special driver in a folder of your choice. We recommend you keep the installation files around, since you may need to re-install it later, if Windows Update decides to overwrite it:
 https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mlir-iree
 
+For RDNA3, the latest driver 23.1.2 supports MLIR/IREE as well: https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-1-2-kb
+
 KNOWN ISSUES with this special AMD driver:
-* `Windows Update` may (depending how it's configured) automatically install a new official AMD driver that overwrites this IREE-specific driver. If Stable Diffusion used to work, then a few days later, it slows down a lot or produces incorrect results (e.g. black images), this may be the cause. To fix this problem, please check the installed driver's version, and re-install the special driver if needed. (TODO: document how to prevent this `Windows Update` behavior!)
-* Some people using this special driver experience mouse pointer accuracy issues, if you use a larger-than-default mouse pointer. The clicked point isn't centered properly. One possible work-around is to reset the pointer size to "1" in "Change pointer size and color".
+* `Windows Update` may (depending how it's configured) automatically install a new official AMD driver that overwrites this IREE-specific driver. If Stable Diffusion used to work, then a few days later, it slows down a lot or produces incorrect results (e.g. black images), this may be the cause. To fix this problem, please check the installed driver version, and re-install the special driver if needed. (TODO: document how to prevent this `Windows Update` behavior!)
+* Some people using this special driver experience mouse pointer accuracy issues, especially if using a larger-than-default mouse pointer. The clicked point isn't centered properly. One possible work-around is to reset the pointer size to "1" in "Change pointer size and color".
 
 ## Installation
 
-Download the latest Windows SHARK SD binary [455 here](https://storage.googleapis.com/shark-public/windows/shark_sd_20230120_455.exe) in a folder of your choice. If you want nighly builds you can look for them in the github releases page.
+Download the latest Windows SHARK SD binary [469 here](https://github.com/nod-ai/SHARK/releases/download/20230124.469/shark_sd_20230124_469.exe) in a folder of your choice. If you want nighly builds, you can look for them on the GitHub releases page.
 
 Notes:
-* We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR, that can get outdated if you run multiple EXE from the same folder. You can use `--clean_all` flag once to clean all the old files. 
-* Your browser may warn you about downloading an .exe file
+* We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR which can be outdated if you run a new EXE from the same folder. You can use `--clean_all` flag once to clean all the old files. 
 * If you recently updated the driver or this binary (EXE file), we recommend you:
-  * clear all the local artifacts with `--clean_all` OR 
+  * clear all the local artifacts with `--clear_all` OR 
   * clear the Vulkan shader cache: For Windows users this can be done by clearing the contents of `C:\Users\%username%\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
   * clear the `huggingface` cache. In Windows, this is `C:\Users\%username%\.cache\huggingface`.
 
@@ -59,7 +60,7 @@ Here are some samples generated:
   <summary>Advanced Installation </summary>
 
 
-## Setup your Python VirtualEnvironment and Dependencies
+## Setup your Python Virtual Environment and Dependencies
 <details>
  <summary> Windows 10/11 Users </summary>
 
@@ -133,19 +134,15 @@ python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=f
  
   </details>
 
-The output on a 6900XT would like:
+The output on a 7900XTX would like:
 
 ```shell 
-44it [00:08,  5.14it/s]i = 44 t = 120 (191ms)
-45it [00:08,  5.15it/s]i = 45 t = 100 (191ms)
-46it [00:08,  5.16it/s]i = 46 t = 80 (191ms)
-47it [00:09,  5.16it/s]i = 47 t = 60 (193ms)
-48it [00:09,  5.15it/s]i = 48 t = 40 (195ms)
-49it [00:09,  5.12it/s]i = 49 t = 20 (196ms)
-50it [00:09,  5.14it/s]
-Average step time: 192.8154182434082ms/it
-Total image generation runtime (s): 10.390909433364868
-(shark.venv) PS C:\g\shark>
+Stats for run 0:
+Average step time: 47.19188690185547ms/it
+Clip Inference time (ms) = 109.531
+VAE Inference time (ms): 78.590
+
+Total image generation time: 2.5788655281066895sec
 ```
 
 For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)

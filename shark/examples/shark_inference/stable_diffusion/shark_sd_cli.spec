@@ -21,17 +21,15 @@ datas += copy_metadata('diffusers')
 datas += copy_metadata('transformers')
 datas += copy_metadata('omegaconf')
 datas += copy_metadata('safetensors')
-datas += collect_data_files('gradio')
 datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
 datas += collect_data_files('shark')
 datas += [
-         ( 'models/stable_diffusion/resources/prompts.json', 'resources' ),
-         ( 'models/stable_diffusion/resources/model_db.json', 'resources' ),
-         ( 'models/stable_diffusion/resources/model_config.json', 'resources' ),
-         ( 'models/stable_diffusion/logos/*', 'logos' )
+         ( 'resources/prompts.json', 'resources'),
+         ( 'resources/model_db.json', 'resources'),
+         ( 'resources/base_model.json', 'resources'),
+         ( 'resources/opt_flags.json', 'resources'),
          ]
-datas += [('demo.css', '.')]
 
 binaries = []
 
@@ -39,11 +37,11 @@ block_cipher = None
 
 
 a = Analysis(
-    ['index.py'],
+    ['main.py'],
     pathex=['.'],
     binaries=binaries,
     datas=datas,
-    hiddenimports=['shark', 'shark.*', 'shark.shark_inference', 'shark_inference', 'iree.tools.core', 'gradio'],
+    hiddenimports=['shark', 'shark.*', 'shark.shark_inference', 'shark_inference', 'iree.tools.core' ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -62,7 +60,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='shark_sd',
+    name='shark_sd_cli',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

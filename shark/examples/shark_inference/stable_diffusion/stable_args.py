@@ -1,9 +1,17 @@
+import os
 import argparse
 from pathlib import Path
 
 
 def path_expand(s):
     return Path(s).expanduser().resolve()
+
+
+def is_valid_file(arg):
+    if not os.path.exists(arg):
+        return None
+    else:
+        return arg
 
 
 p = argparse.ArgumentParser(
@@ -23,7 +31,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--negative-prompts",
+    "--negative_prompts",
     nargs="+",
     default=[""],
     help="text you don't want to see in the generated image.",
@@ -41,6 +49,14 @@ p.add_argument(
     type=int,
     default=42,
     help="the seed to use.",
+)
+
+p.add_argument(
+    "--batch_size",
+    type=int,
+    default=1,
+    choices=range(1, 4),
+    help="the number of inferences to be made in a single `run`.",
 )
 
 p.add_argument(
@@ -85,7 +101,7 @@ p.add_argument(
 
 p.add_argument(
     "--import_mlir",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="imports the model from torch module to shark_module otherwise downloads the model from shark_tank.",
 )
@@ -166,7 +182,12 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="Enable showing the stack trace when retrying the base model configuration",
 )
-
+p.add_argument(
+    "--beta_models",
+    default=False,
+    type=bool,
+    help="(False/True), use beta model files",
+)
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
@@ -297,5 +318,41 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="Apply Winograd on selected conv ops.",
 )
+##############################################################################
+### CI generation tags
+##############################################################################
 
+# TODO: remove from here once argparse is not required by half of sd, none of these are relevant to main.py
+
+p.add_argument(
+    "--ci_tank_dir",
+    default=True,
+    type=bool,
+    help="used for CI generation purposes only.",
+)
+p.add_argument(
+    "--upload",
+    default=False,
+    type=bool,
+    help="upload generated models to shark tank (builder only), irrelevant to main.py",
+)
+p.add_argument(
+    "--torch_model_csv",
+    type=lambda x: is_valid_file(x),
+    default="./tank/torch_model_list.csv",
+    help="""Contains the file with torch_model name and args.
+		 Please see: https://github.com/nod-ai/SHARK/blob/main/tank/torch_model_list.csv""",
+)
+p.add_argument(
+    "--tf_model_csv",
+    type=lambda x: is_valid_file(x),
+    default="./tank/tf_model_list.csv",
+    help="Contains the file with tf model name and args.",
+)
+p.add_argument(
+    "--tflite_model_csv",
+    type=lambda x: is_valid_file(x),
+    default="./tank/tflite/tflite_model_list.csv",
+    help="Contains the file with tf model name and args.",
+)
 args = p.parse_args()
