@@ -336,10 +336,15 @@ if __name__ == "__main__":
                     if args.ckpt_loc:
                         model_name = Path(args.ckpt_loc).name
                     else:
-                        model_name = json_store['hf_model_id']
-                    pngInfo.add_text("parameters", f"{json_store['prompt']}\nNegative prompt: {json_store['negative prompt']}\nSteps:{json_store['steps']}, Sampler: {json_store['scheduler']}, CFG scale: {json_store['guidance_scale']}, Seed: {json_store['seed']}, Size: {width}x{height}, Model: {model_name}")
-                
-                pil_images[i].save(output_path / f"{img_name}.png", "PNG", pnginfo=pngInfo)
+                        model_name = json_store["hf_model_id"]
+                    pngInfo.add_text(
+                        "parameters",
+                        f"{json_store['prompt']}\nNegative prompt: {json_store['negative prompt']}\nSteps:{json_store['steps']}, Sampler: {json_store['scheduler']}, CFG scale: {json_store['guidance_scale']}, Seed: {json_store['seed']}, Size: {width}x{height}, Model: {model_name}",
+                    )
+
+                pil_images[i].save(
+                    output_path / f"{img_name}.png", "PNG", pnginfo=pngInfo
+                )
                 if args.output_img_format not in ["png", "jpg"]:
                     print(
                         f"[ERROR] Format {args.output_img_format} is not supported yet."

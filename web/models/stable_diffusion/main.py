@@ -102,9 +102,14 @@ def save_output_img(output_img):
                 height = 768
                 width = 768
 
-            pngInfo.add_text("parameters", f"{args.prompts}\nNegative prompt: {args.negative_prompts}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {width}x{height}, Model: {args.variant}")
-        
-        output_img.save(output_path / f"{out_img_name}.png", "PNG", pnginfo=pngInfo)
+            pngInfo.add_text(
+                "parameters",
+                f"{args.prompts}\nNegative prompt: {args.negative_prompts}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {width}x{height}, Model: {args.variant}",
+            )
+
+        output_img.save(
+            output_path / f"{out_img_name}.png", "PNG", pnginfo=pngInfo
+        )
         if args.output_img_format not in ["png", "jpg"]:
             print(
                 f"[ERROR] Format {args.output_img_format} is not supported yet."
