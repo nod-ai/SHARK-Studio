@@ -39,8 +39,17 @@ def get_iree_gpu_args():
 # Get the default gpu args given the architecture.
 def get_iree_rocm_args():
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
-    # TODO: find a way to get arch from code.
-    rocm_arch = "gfx908"
+    # get arch from rocminfo.
+    import re
+    import subprocess
+
+    rocm_arch = re.match(
+        r".*(gfx\w+)",
+        subprocess.check_output(
+            "rocminfo | grep -i 'gfx'", shell=True, text=True
+        ),
+    ).group(1)
+    print(f"Found rocm arch {rocm_arch}...")
     return [
         f"--iree-rocm-target-chip={rocm_arch}",
         "--iree-rocm-link-bc=true",
