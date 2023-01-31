@@ -1,7 +1,9 @@
 import os
 import gc
+import tempfile
+import torch
 from shark.shark_inference import SharkInference
-from stable_args import args
+from shark.examples.shark_inference.stable_diffusion.stable_args import args
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
@@ -81,6 +83,9 @@ def compile_through_fx(
     f16_input_mask=None,
     use_tuned=False,
     extra_args=[],
+    save_dir=tempfile.gettempdir(),
+    debug=False,
+    generate_vmfb=True,
 ):
 
     from shark.parser import shark_args
@@ -109,13 +114,25 @@ def compile_through_fx(
             mlir_module = f.read()
             f.close()
 
-    shark_module = SharkInference(
-        mlir_module,
-        device=args.device,
-        mlir_dialect="linalg",
-    )
+    save_dir = os.path.join(args.local_tank_cache, model_name)
 
-    return _compile_module(shark_module, model_name, extra_args)
+    mlir_module, func_name, = import_with_fx(
+        model=model,
+        inputs=inputs,
+        is_f16=is_f16,
+        f16_input_mask=f16_input_mask,
+        debug=debug,
+        model_name=model_name,
+        save_dir=save_dir,
+    )
+    if generate_vmfb:
+        shark_module = SharkInference(
+            mlir_module,
+            device=args.device,
+            mlir_dialect="linalg",
+        )
+
+        return _compile_module(shark_module, model_name, extra_args)
 
 
 def set_iree_runtime_flags():
@@ -265,6 +282,23 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
     ]:
+        args.use_tuned = False
+
+    # Use tuned model in the case of stablediffusion/fp16 and cuda device sm_80
+    if (
+        args.hf_model_id
+        in [
+            "stabilityai/stable-diffusion-2-1-base",
+            "Linaqruf/anything-v3.0",
+            "wavymulder/Analog-Diffusion",
+        ]
+        and args.precision == "fp16"
+        and "cuda" in args.device
+        and get_cuda_sm_cc() in ["sm_80", "sm_89"]
+        and args.use_tuned  # required to avoid always forcing true on these cards
+    ):
+        args.use_tuned = True
+    else:
         args.use_tuned = False
 
     if args.use_tuned:

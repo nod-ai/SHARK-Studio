@@ -1,8 +1,11 @@
 import sys
-from resources import models_db
+import resources
 from stable_args import args
 from utils import get_shark_model
 
+models_db = (
+    resources.beta_models_db if args.beta_models else resources.models_db
+)
 BATCH_SIZE = len(args.prompts)
 if BATCH_SIZE != 1:
     sys.exit("Only batch size 1 is supported.")
