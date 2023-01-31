@@ -1,6 +1,6 @@
 import torch
 import os
-from PIL import Image
+from PIL import Image, PngImagePlugin
 from tqdm.auto import tqdm
 from models.stable_diffusion.cache_objects import model_cache
 from models.stable_diffusion.stable_args import args
@@ -97,6 +97,25 @@ def save_output_img(output_img):
             print(
                 f"[ERROR] Format {args.output_img_format} is not supported yet."
                 "saving image as png. Supported formats png / jpg"
+            )
+        pngInfo = PngImagePlugin.PngInfo()
+
+        if args.write_metadata_to_png:
+            # set height and width.
+            height = 512  # default height of Stable Diffusion
+            width = 512  # default width of Stable Diffusion
+            if args.version == "v2_1":
+                height = 768
+                width = 768
+
+            model_name = args.variant
+            pngInfo.add_text("parameters", f"{args.prompts}\nNegative prompt: {args.negative_prompts}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {width}x{height}, Model: {args.variant}")
+        
+        output_img.save(output_path / f"{out_img_name}.png", "PNG", pnginfo=pngInfo)
+        if args.output_img_format not in ["png", "jpg"]:
+            print(
+                f"[ERROR] Format {args.output_img_format} is not supported yet."
+                "Image saved as png instead. Supported formats: png / jpg"
             )
 
     new_entry = {
