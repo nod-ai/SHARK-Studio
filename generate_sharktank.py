@@ -281,8 +281,3 @@ if __name__ == "__main__":
 
     if args.tflite_model_csv:
         save_tflite_model(args.tflite_model_csv)
-
-    if args.upload:
-        git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
-        print("uploading files to gs://shark_tank/" + git_hash)
-        os.system(f"gsutil cp -r {WORKDIR}* gs://shark_tank/" + git_hash)
