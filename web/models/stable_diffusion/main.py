@@ -92,12 +92,6 @@ def save_output_img(output_img):
         )
     else:
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.png")
-        output_img.save(out_img_path, "PNG")
-        if args.output_img_format not in ["png", "jpg"]:
-            print(
-                f"[ERROR] Format {args.output_img_format} is not supported yet."
-                "saving image as png. Supported formats png / jpg"
-            )
         pngInfo = PngImagePlugin.PngInfo()
 
         if args.write_metadata_to_png:
@@ -108,7 +102,6 @@ def save_output_img(output_img):
                 height = 768
                 width = 768
 
-            model_name = args.variant
             pngInfo.add_text("parameters", f"{args.prompts}\nNegative prompt: {args.negative_prompts}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {width}x{height}, Model: {args.variant}")
         
         output_img.save(output_path / f"{out_img_name}.png", "PNG", pnginfo=pngInfo)
