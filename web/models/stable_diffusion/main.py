@@ -124,14 +124,15 @@ def save_output_img(output_img):
         "OUTPUT": out_img_path,
     }
 
-    if args.save_metadata_to_json:
-        with open(output_path / f"{out_img_name}.json", "w") as f:
-            f.write(json.dumps(new_entry, indent=4))
-
     with open(csv_path, "a") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()
+
+    if args.save_metadata_to_json:
+        del new_entry['OUTPUT']
+        with open(f"{output_path}/{out_img_name}.json", 'w') as f:
+            json.dump(new_entry, f, indent=4)
 
 
 def stable_diff_inf(

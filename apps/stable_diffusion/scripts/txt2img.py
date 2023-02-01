@@ -102,14 +102,15 @@ def save_output_img(output_img):
         "OUTPUT": out_img_path,
     }
 
-    if args.save_metadata_to_json:
-        with open(output_path / f"{out_img_name}.json", "w") as f:
-            f.write(json.dumps(new_entry, indent=4))
-
     with open(csv_path, "a") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()
+
+    if args.save_metadata_to_json:
+        del new_entry['OUTPUT']
+        with open(f"{output_path}/{out_img_name}.json", 'w') as f:
+            json.dump(new_entry, f, indent=4)
 
 
 txt2img_obj = None
@@ -134,6 +135,8 @@ def txt2img_inf(
     precision: str,
     device: str,
     max_length: int,
+    save_metadata_to_json: bool,
+    save_metadata_to_png: bool,
 ):
     global txt2img_obj
     global config_obj
@@ -147,6 +150,8 @@ def txt2img_inf(
     args.scheduler = scheduler
     args.hf_model_id = custom_model_id if custom_model_id else model_id
     args.ckpt_loc = ckpt_file_obj.name if ckpt_file_obj else ""
+    args.save_metadata_to_json = save_metadata_to_json
+    args.write_metadata_to_png = save_metadata_to_png
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
     new_config_obj = Config(
