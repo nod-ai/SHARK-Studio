@@ -26,12 +26,12 @@ def get_json_file(path):
 
 # TODO: This shouldn't be called from here, every time the file imports
 # it will run all the global vars.
-prompt_examples = get_json_file("../../resources/prompts.json")
-models_db = get_json_file("../../resources/model_db.json")
+prompt_examples = get_json_file("resources/prompts.json")
+models_db = get_json_file("resources/model_db.json")
 
 # The base_model contains the input configuration for the different
 # models and also helps in providing information for the variants.
-base_models = get_json_file("../../resources/base_model.json")
+base_models = get_json_file("resources/base_model.json")
 
 # Contains optimization flags for different models.
-opt_flags = get_json_file("../../resources/opt_flags.json")
+opt_flags = get_json_file("resources/opt_flags.json")

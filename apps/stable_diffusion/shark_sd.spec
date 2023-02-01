@@ -26,10 +26,10 @@ datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
 datas += collect_data_files('shark')
 datas += [
-         ( 'resources/prompts.json', 'resources' ),
-         ( 'resources/model_db.json', 'resources' ),
-         ( 'resources/opt_flags.json', 'resources' ),
-         ( 'resources/base_model.json', 'resources' ),
+         ( 'src/utils/resources/prompts.json', 'resources' ),
+         ( 'src/utils/resources/model_db.json', 'resources' ),
+         ( 'src/utils/resources/opt_flags.json', 'resources' ),
+         ( 'src/utils/resources/base_model.json', 'resources' ),
          ( 'web/logos/*', 'logos' )
          ]
 
