@@ -98,8 +98,8 @@ source shark.venv/bin/activate
  <summary>Windows 10/11 Users</summary>
  
 ```powershell
-(shark.venv) PS C:\Users\nod\SHARK> cd web
-(shark.venv) PS C:\Users\nod\SHARK\web> python index.py
+(shark.venv) PS C:\g\shark> cd .\apps\stable_diffusion\web\
+(shark.venv) PS C:\g\shark\apps\stable_diffusion\web> python .\index.py
 ```
  
  </details>
@@ -108,7 +108,7 @@ source shark.venv/bin/activate
  <summary>Linux Users</summary>
  
 ```shell
-(shark.venv) > cd web
+(shark.venv) > cd apps/stable_diffusion/web
 (shark.venv) > python index.py
 ```
  
@@ -120,7 +120,7 @@ source shark.venv/bin/activate
  <summary>Windows 10/11 Users</summary>
  
 ```powershell
-(shark.venv) PS C:\g\shark> python .\shark\examples\shark_inference\stable_diffusion\main.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
+(shark.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\txt2img.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
 ```
  
   </details>
@@ -129,7 +129,7 @@ source shark.venv/bin/activate
  <summary>Linux</summary>
  
 ```shell
-python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
+python3.10 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
  
   </details>
