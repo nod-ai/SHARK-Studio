@@ -45,12 +45,12 @@ source shark.venv/bin/activate
 
 #### Windows 10/11 Users
 ```powershell
-(shark.venv) PS C:\Users\nod\SHARK> cd web
-(shark.venv) PS C:\Users\nod\SHARK\web> python index.py
+(shark.venv) PS C:\g\shark> cd .\apps\stable_diffusion\web\
+(shark.venv) PS C:\g\shark\apps\stable_diffusion\web> python .\index.py
 ```
-#### Linux Users
+#### Linux / macOS Users
 ```shell
-(shark.venv) > cd web
+(shark.venv) > cd apps/stable_diffusion/web
 (shark.venv) > python index.py
 ```
 
@@ -73,12 +73,12 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 
 #### Windows 10/11 Users
 ```powershell
-(shark.venv) PS C:\g\shark> python .\shark\examples\shark_inference\stable_diffusion\main.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
+(shark.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\txt2img.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
 ```
 
 #### Linux / macOS Users
 ```shell
-python3.10 shark/examples/shark_inference/stable_diffusion/main.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
+python3.10 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
 
 You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
