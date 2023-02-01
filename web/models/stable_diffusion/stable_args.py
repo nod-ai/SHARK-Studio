@@ -228,7 +228,7 @@ p.add_argument(
 
 p.add_argument(
     "--save_metadata_to_json",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="flag for whether or not to save a generation information json file with the image.",
 )
