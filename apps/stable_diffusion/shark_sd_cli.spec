@@ -4,15 +4,6 @@ from PyInstaller.utils.hooks import copy_metadata
 
 import sys ; sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
-import os
-
-spec_root = os.path.abspath(SPECPATH)
-shark_root = os.path.join(spec_root, "../..")
-apps_root = os.path.join(spec_root, "../"
-print(spec_root)
-print(shark_root)
-print(apps_root)
-
 datas = []
 datas += collect_data_files('torch')
 datas += copy_metadata('torch')
@@ -24,32 +15,34 @@ datas += copy_metadata('filelock')
 datas += copy_metadata('numpy')
 datas += copy_metadata('tokenizers')
 datas += copy_metadata('importlib_metadata')
+datas += copy_metadata('torchvision')
 datas += copy_metadata('torch-mlir')
 datas += copy_metadata('diffusers')
 datas += copy_metadata('transformers')
 datas += copy_metadata('omegaconf')
 datas += copy_metadata('safetensors')
+datas += collect_data_files('gradio')
 datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
 datas += collect_data_files('shark')
-datas += collect_data_files('apps')
 datas += [
-         ( 'resources/prompts.json', 'resources' ),
-         ( 'resources/model_db.json', 'resources' ),
-         ( 'resources/opt_flags.json', 'resources' ),
-         ( 'resources/base_model.json', 'resources' ),
+         ( 'src/utils/resources/prompts.json', 'resources' ),
+         ( 'src/utils/resources/model_db.json', 'resources' ),
+         ( 'src/utils/resources/opt_flags.json', 'resources' ),
+         ( 'src/utils/resources/base_model.json', 'resources' ),
          ]
 
 binaries = []
 
 block_cipher = None
 
+
 a = Analysis(
     ['scripts/txt2img.py'],
-    pathex=[spec_root, shark_root, apps_root],
+    pathex=['.'],
     binaries=binaries,
     datas=datas,
-    hiddenimports=['apps', 'shark', 'shark.*', 'shark.shark_inference', 'shark_inference', 'iree.tools.core' ],
+    hiddenimports=['shark', 'shark.*', 'shark.shark_inference', 'shark_inference', 'iree.tools.core', 'gradio', 'apps'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
