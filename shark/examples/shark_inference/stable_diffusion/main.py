@@ -9,7 +9,7 @@ if sys.platform == "darwin":
 
 from transformers import CLIPTextModel, CLIPTokenizer
 import torch
-from PIL import Image
+from PIL import Image, PngImagePlugin
 from diffusers import (
     LMSDiscreteScheduler,
     PNDMScheduler,
@@ -329,11 +329,27 @@ if __name__ == "__main__":
                     progressive=True,
                 )
             else:
-                pil_images[i].save(output_path / f"{img_name}.png", "PNG")
+                pngInfo = PngImagePlugin.PngInfo()
+
+                if args.write_metadata_to_png:
+                    model_name = ""
+                    if args.ckpt_loc:
+                        model_name = Path(args.ckpt_loc).name
+                    else:
+                        model_name = json_store["hf_model_id"]
+                    pngInfo.add_text(
+                        "parameters",
+                        f"{json_store['prompt']}\nNegative prompt: {json_store['negative prompt']}\nSteps:{json_store['steps']}, Sampler: {json_store['scheduler']}, CFG scale: {json_store['guidance_scale']}, Seed: {json_store['seed']}, Size: {args.width}x{args.height}, Model: {model_name}",
+                    )
+
+                pil_images[i].save(
+                    output_path / f"{img_name}.png", "PNG", pnginfo=pngInfo
+                )
                 if args.output_img_format not in ["png", "jpg"]:
                     print(
                         f"[ERROR] Format {args.output_img_format} is not supported yet."
-                        "saving image as png. Supported formats png / jpg"
+                        "Image saved as png instead. Supported formats: png / jpg"
                     )
-            with open(output_path / f"{img_name}.json", "w") as f:
-                f.write(json.dumps(json_store, indent=4))
+            if args.save_metadata_to_json:
+                with open(output_path / f"{img_name}.json", "w") as f:
+                    f.write(json.dumps(json_store, indent=4))

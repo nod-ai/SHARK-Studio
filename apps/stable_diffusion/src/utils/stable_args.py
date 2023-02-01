@@ -270,6 +270,20 @@ p.add_argument(
     help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
 )
 
+p.add_argument(
+    "--save_metadata_to_json",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for whether or not to save a generation information json file with the image.",
+)
+
+p.add_argument(
+    "--write_metadata_to_png",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for whether or not to save generation information in PNG chunk text to generated images.",
+)
+
 ##############################################################################
 ### Web UI flags
 ##############################################################################

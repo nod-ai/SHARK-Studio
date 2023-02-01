@@ -148,6 +148,17 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                             step=0.1,
                             label="CFG Scale",
                         )
+                    with gr.Row():
+                        save_metadata_to_png = gr.Checkbox(
+                            label="Save prompt information to PNG",
+                            value=False,
+                            interactive=True,
+                        )
+                        save_metadata_to_json = gr.Checkbox(
+                            label="Save prompt information to JSON file",
+                            value=False,
+                            interactive=True,
+                        )
                 with gr.Row():
                     seed = gr.Number(value=-1, precision=0, label="Seed")
                     available_devices = get_available_devices()
@@ -211,6 +222,8 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 precision,
                 device,
                 max_length,
+                save_metadata_to_json,
+                save_metadata_to_png,
             ],
             outputs=[gallery, std_output],
             show_progress=args.progress_bar,
@@ -233,6 +246,8 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 precision,
                 device,
                 max_length,
+                save_metadata_to_json,
+                save_metadata_to_png,
             ],
             outputs=[gallery, std_output],
             show_progress=args.progress_bar,
