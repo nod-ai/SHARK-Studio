@@ -1,6 +1,5 @@
 import torch
 from transformers import CLIPTokenizer
-import torchvision.transforms as T
 from tqdm.auto import tqdm
 import time
 from typing import Union
