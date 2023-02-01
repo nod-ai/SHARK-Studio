@@ -115,7 +115,10 @@ def compile_through_fx(
 
     save_dir = os.path.join(args.local_tank_cache, model_name)
 
-    mlir_module, func_name, = import_with_fx(
+    (
+        mlir_module,
+        func_name,
+    ) = import_with_fx(
         model=model,
         inputs=inputs,
         is_f16=is_f16,
