@@ -31,7 +31,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
         for use_tune in tuned_options:
             command = [
                 "python",
-                "apps/stable_diffusion/src/txt2img.py",
+                "apps/stable_diffusion/scripts/txt2img.py",
                 "--device=" + device,
                 "--output_dir=./test_images/" + model_name,
                 "--hf_model_id=" + model_name,

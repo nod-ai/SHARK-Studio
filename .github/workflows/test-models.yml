@@ -29,7 +29,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        os: [icelake, a100, MacStudio, ubuntu-latest]
+        os: [7950x, icelake, a100, MacStudio, ubuntu-latest]
         suite: [cpu,cuda,vulkan]
         python-version: ["3.10"]
         include:
@@ -52,13 +52,19 @@ jobs:
             suite: cuda
           - os: a100
             suite: cpu
+          - os: 7950x
+            suite: cpu
+          - os: 7950x
+            suite: cuda
 
     runs-on: ${{ matrix.os }}
 
     steps:
     - uses: actions/checkout@v3
+      if: matrix.os != '7950x'
     
     - name: Set Environment Variables
+      if: matrix.os != '7950x'
       run: |
         echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
         echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
@@ -78,6 +84,9 @@ jobs:
         #cache-dependency-path: |
         #  **/requirements-importer.txt
         #  **/requirements.txt
+    
+    - uses: actions/checkout@v2
+      if: matrix.os == '7950x'
           
     - name: Install dependencies
       if: matrix.suite == 'lint'
@@ -130,10 +139,17 @@ jobs:
         pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" -k vulkan --update_tank
 
     - name: Validate Vulkan Models (a100)
-      if: matrix.suite == 'vulkan' && matrix.os != 'MacStudio'
+      if: matrix.suite == 'vulkan' && matrix.os == 'a100'
       run: |
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --local_tank_cache="${GITHUB_WORKSPACE}/shark_tmp/shark_cache" -k vulkan
+        python build_tools/stable_diffusion_testing.py --device=vulkan
+
+
+    - name: Validate Stable Diffusion Models (Windows)
+      if: matrix.suite == 'vulkan' && matrix.os == '7950x'
+      run: |
+        ./setup_venv.ps1
         python build_tools/stable_diffusion_testing.py --device=vulkan

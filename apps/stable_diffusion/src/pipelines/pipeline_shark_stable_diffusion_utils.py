@@ -1,6 +1,6 @@
 import torch
 from transformers import CLIPTokenizer
-import torchvision.transforms as T
+from PIL import Image
 from tqdm.auto import tqdm
 import time
 from typing import Union
@@ -101,11 +101,8 @@ class StableDiffusionPipeline:
             images = (images.detach().cpu() * 255.0).numpy()
             images = images.round()
 
-        transform = T.ToPILImage()
-        pil_images = [
-            transform(image)
-            for image in torch.from_numpy(images).to(torch.uint8)
-        ]
+        images = torch.from_numpy(images).to(torch.uint8).permute(0, 2, 3, 1)
+        pil_images = [Image.fromarray(image) for image in images.numpy()]
         return pil_images
 
     def produce_img_latents(
