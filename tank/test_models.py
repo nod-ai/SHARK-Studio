@@ -43,6 +43,7 @@ def load_csv_and_convert(filename, gen=False):
                     "xfail_cuda": row[8],
                     "xfail_vkm": row[9],
                     "xfail_reason": row[10],
+                    "xfail_other": row[11],
                 }
             )
     # This is a pytest workaround
@@ -88,6 +89,8 @@ def get_valid_test_params():
 
 def is_valid_case(test_params):
     if test_params[0] == True and test_params[2]["framework"] == "tf":
+        return False
+    elif "fp16" in test_params[2]["model_name"] and test_params[1] != "cuda":
         return False
     else:
         return True
@@ -286,31 +289,15 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(reason=config["xfail_reason"])
 
         # Special cases that need to be marked.
-        if config["model_name"] == "resnet50" and device in [
+        if "macos" in config["xfail_other"] and device in [
             "metal",
             "vulkan",
         ]:
             if get_vulkan_triple_flag() is not None:
                 if "m1-moltenvk-macos" in get_vulkan_triple_flag():
                     pytest.xfail(
-                        reason="M2: Assert Error & M1: CompilerToolError"
+                        reason="conv-related issue on MacStudio, returns VK_ERROR_DEVICE_LOST."
                     )
-        # if (
-        #    config["model_name"] == "camembert-base"
-        #    and dynamic == False
-        #    and device in ["metal", "vulkan"]
-        # ):
-        #    pytest.xfail(
-        #        reason="chlo.broadcast_compare failed to satify constraint"
-        #    )
-        # if (
-        #    config["model_name"] == "roberta-base"
-        #    and dynamic == False
-        #    and device in ["metal", "vulkan"]
-        # ):
-        #    pytest.xfail(
-        #        reason="chlo.broadcast_compare failed to satify constraint"
-        #    )
         if (
             config["model_name"]
             in [
