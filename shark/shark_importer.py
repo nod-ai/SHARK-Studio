@@ -257,7 +257,6 @@ class SharkImporter:
 
 
 def get_f16_inputs(inputs, is_f16, f16_input_mask):
-
     if is_f16 == False:
         return inputs
     if f16_input_mask == None:

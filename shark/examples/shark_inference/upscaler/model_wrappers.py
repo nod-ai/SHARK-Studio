@@ -18,7 +18,6 @@ model_input = {
 
 
 def get_clip_mlir(model_name="clip_text", extra_args=[]):
-
     text_encoder = CLIPTextModel.from_pretrained(
         model_id,
         subfolder="text_encoder",

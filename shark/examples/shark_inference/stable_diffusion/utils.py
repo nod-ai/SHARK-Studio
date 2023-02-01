@@ -87,7 +87,6 @@ def compile_through_fx(
     debug=False,
     generate_vmfb=True,
 ):
-
     from shark.parser import shark_args
 
     if "cuda" in args.device:
@@ -116,7 +115,10 @@ def compile_through_fx(
 
     save_dir = os.path.join(args.local_tank_cache, model_name)
 
-    mlir_module, func_name, = import_with_fx(
+    (
+        mlir_module,
+        func_name,
+    ) = import_with_fx(
         model=model,
         inputs=inputs,
         is_f16=is_f16,
@@ -136,7 +138,6 @@ def compile_through_fx(
 
 
 def set_iree_runtime_flags():
-
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
         f"--vulkan_validation_layers={'true' if args.vulkan_validation_layers else 'false'}",

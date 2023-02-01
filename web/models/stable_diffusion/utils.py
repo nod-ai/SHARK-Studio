@@ -60,7 +60,6 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
 # Converts the torch-module into a shark_module.
 def compile_through_fx(model, inputs, model_name, extra_args=[]):
-
     mlir_module, func_name = import_with_fx(model, inputs)
 
     shark_module = SharkInference(
@@ -73,7 +72,6 @@ def compile_through_fx(model, inputs, model_name, extra_args=[]):
 
 
 def set_iree_runtime_flags():
-
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
         f"--vulkan_validation_layers={'true' if args.vulkan_validation_layers else 'false'}",

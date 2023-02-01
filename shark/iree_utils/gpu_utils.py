@@ -18,6 +18,7 @@ import iree.runtime as ireert
 import ctypes
 from shark.parser import shark_args
 
+
 # Get the default gpu args given the architecture.
 def get_iree_gpu_args():
     ireert.flags.FUNCTION_INPUT_VALIDATION = False

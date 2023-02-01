@@ -9,6 +9,7 @@ from shark.parser import shark_args
 # model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
 # model_path = model_path
 
+
 # Inputs modified to be useful albert inputs.
 def generate_inputs(input_details):
     for input in input_details:

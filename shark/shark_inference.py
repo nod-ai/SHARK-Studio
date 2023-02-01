@@ -90,7 +90,6 @@ class SharkInference:
         self.shark_runner = None
 
     def compile(self, extra_args=[]):
-
         if self.dispatch_benchmarks is not None:
             extra_args.append(
                 f"--iree-hal-dump-executable-sources-to={self.dispatch_benchmarks_dir}"

@@ -143,7 +143,6 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
                     in_dispatches = True
             if all_dispatches or in_dispatches:
                 for f_ in os.listdir(f"{bench_dir}/{d_}"):
-
                     if "benchmark.mlir" in f_:
                         dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
                         module = dispatch_file.read()
@@ -314,7 +313,6 @@ def get_iree_compiled_module(
 
 
 def load_flatbuffer(flatbuffer_path: str, device: str, device_idx: int = None):
-
     with open(os.path.join(flatbuffer_path), "rb") as f:
         flatbuffer_blob = f.read()
 
