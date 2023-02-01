@@ -339,7 +339,6 @@ class SharkStableDiffusionUpscalePipeline:
         ] = None,
         callback_steps: Optional[int] = 1,
     ):
-
         # 1. Check inputs
         self.check_inputs(prompt, image, noise_level, callback_steps)
 

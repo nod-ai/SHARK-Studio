@@ -34,7 +34,6 @@ def download_public_file(
     dest_filename = None
     desired_file = None
     if single_file:
-
         desired_file = full_gs_url.split("/")[-1]
         source_blob_name = "/".join(full_gs_url.split("/")[3:-1])
         destination_folder_name, dest_filename = os.path.split(

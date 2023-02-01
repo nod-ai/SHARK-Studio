@@ -1,5 +1,6 @@
 from .stable_args import args
 
+
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
     if args.vulkan_debug_utils and "vulkan" in args.device:

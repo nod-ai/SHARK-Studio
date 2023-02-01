@@ -27,7 +27,6 @@ compiled_module["tokenizer"] = AutoTokenizer.from_pretrained("albert-base-v2")
 
 
 def preprocess_data(text):
-
     global compiled_module
 
     # Preparing Data
@@ -44,7 +43,6 @@ def preprocess_data(text):
 
 
 def top5_possibilities(text, inputs, token_logits, log_write):
-
     global DEBUG
     global compiled_module
 
@@ -68,7 +66,6 @@ def top5_possibilities(text, inputs, token_logits, log_write):
 
 
 def albert_maskfill_inf(masked_text, device):
-
     global DEBUG
     global compiled_module
 

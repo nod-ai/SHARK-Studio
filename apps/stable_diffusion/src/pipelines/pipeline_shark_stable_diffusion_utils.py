@@ -114,7 +114,6 @@ class StableDiffusionPipeline:
         cpu_scheduling,
         return_all_latents=False,
     ):
-
         step_time_sum = 0
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)

@@ -199,7 +199,6 @@ class SharkifyStableDiffusionModel:
         return shark_clip
 
     def __call__(self):
-
         for model_id in base_models:
             self.inputs = get_input_info(
                 base_models[model_id],

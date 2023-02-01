@@ -128,7 +128,6 @@ def load_mlir(mlir_loc):
 
 
 def compile_through_fx(model, inputs, mlir_loc=None):
-
     module = load_mlir(mlir_loc)
     if module == None:
         fx_g = make_fx(

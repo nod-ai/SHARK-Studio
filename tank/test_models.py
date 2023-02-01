@@ -132,7 +132,6 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
-
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.update_tank = self.update_tank
         if "nhcw-nhwc" in self.config["flags"] and not os.path.isfile(

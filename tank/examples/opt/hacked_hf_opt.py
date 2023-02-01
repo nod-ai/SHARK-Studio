@@ -338,7 +338,6 @@ class OPTDecoderLayer(nn.Module):
         torch.FloatTensor,
         Optional[Tuple[torch.FloatTensor, torch.FloatTensor]],
     ]:
-
         # TODO: Refactor this function
 
         residual = hidden_states
@@ -509,7 +508,6 @@ class OPTDecoder(OPTPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
-
         # TODO: Refactor this function
 
         output_attentions = (
@@ -788,7 +786,6 @@ class OPTForCausalLM(OPTPreTrainedModel):
         output_hidden_states: Optional[bool] = None,
         return_dict: Optional[bool] = None,
     ) -> Union[Tuple, CausalLMOutputWithPast]:
-
         # TODO: Refactor this function
 
         output_attentions = (

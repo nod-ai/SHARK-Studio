@@ -209,7 +209,6 @@ def stable_diff_inf(
 
     avg_ms = 0
     for i, t in tqdm(enumerate(scheduler.timesteps)):
-
         step_start = time.time()
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
