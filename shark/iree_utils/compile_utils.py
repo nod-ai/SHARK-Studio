@@ -278,13 +278,13 @@ def compile_module_to_flatbuffer(
 def get_iree_module(flatbuffer_blob, device, device_idx=None):
     # Returns the compiled module and the configs.
     if device_idx is not None:
+        device = iree_device_map(device)
         print("registering device id: ", device_idx)
         haldriver = ireert.get_driver(device)
 
         haldevice = haldriver.create_device(
             haldriver.query_available_devices()[device_idx]["device_id"]
         )
-        # haldevice = haldriver.create_default_device()
         config = ireert.Config(device=haldevice)
     else:
         config = get_iree_runtime_config(device)
