@@ -138,6 +138,8 @@ class SharkModuleTester:
             ".use-iree"
         ):
             shark_args.enable_conv_transform = True
+        else:
+            shark_args.enable_conv_transform = False
 
         model, func_name, inputs, golden_out = download_model(
             self.config["model_name"],
@@ -178,8 +180,9 @@ class SharkModuleTester:
             if self.benchmark == True:
                 self.benchmark_module(shark_module, inputs, dynamic, device)
                 print(msg)
-                pytest.xfail(reason="Numerics Issue, awaiting triage.")
-
+                pytest.xfail(
+                    reason=f"Numerics Mismatch: Use -s flag to print stderr during pytests."
+                )
         if self.benchmark == True:
             self.benchmark_module(shark_module, inputs, dynamic, device)
 
@@ -203,10 +206,11 @@ class SharkModuleTester:
 
     def save_reproducers(self):
         # Saves contents of IREE TempFileSaver temporary directory to ./shark_tmp/saved/<test_case>.
-        src = self.temp_dir
-        trg = f"./shark_tmp/saved/{self.tmp_prefix}"
-        if not os.path.isdir("./shark_tmp/saved/"):
-            os.mkdir("./shark_tmp/saved/")
+        src = os.path.join(*self.temp_dir.split("/"))
+        saves = os.path.join(".", "shark_tmp", "saved")
+        trg = os.path.join(saves, self.tmp_prefix)
+        if not os.path.isdir(saves):
+            os.mkdir(saves)
         if not os.path.isdir(trg):
             os.mkdir(trg)
         files = os.listdir(src)
@@ -216,7 +220,12 @@ class SharkModuleTester:
     def upload_repro(self):
         import subprocess
 
-        bashCommand = f"gsutil cp -r ./shark_tmp/saved/{self.tmp_prefix}/* gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
+        src = os.path.join(*self.temp_dir.split("/"))
+        repro_path = os.path.join(
+            ".", "shark_tmp", "saved", self.tmp_prefix, "*"
+        )
+
+        bashCommand = f"gsutil cp -r {repro_path} gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         process = subprocess.run(bashCommand.split())
 
     def postprocess_outputs(self, golden_out, result):
@@ -286,22 +295,22 @@ class SharkModuleTest(unittest.TestCase):
                     pytest.xfail(
                         reason="M2: Assert Error & M1: CompilerToolError"
                     )
-        if (
-            config["model_name"] == "camembert-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
-        if (
-            config["model_name"] == "roberta-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
+        # if (
+        #    config["model_name"] == "camembert-base"
+        #    and dynamic == False
+        #    and device in ["metal", "vulkan"]
+        # ):
+        #    pytest.xfail(
+        #        reason="chlo.broadcast_compare failed to satify constraint"
+        #    )
+        # if (
+        #    config["model_name"] == "roberta-base"
+        #    and dynamic == False
+        #    and device in ["metal", "vulkan"]
+        # ):
+        #    pytest.xfail(
+        #        reason="chlo.broadcast_compare failed to satify constraint"
+        #    )
         if (
             config["model_name"]
             in [
@@ -329,11 +338,11 @@ class SharkModuleTest(unittest.TestCase):
         )
         self.module_tester.tmp_prefix = safe_name.replace("/", "_")
 
-        if not os.path.isdir("./shark_tmp/"):
-            os.mkdir("./shark_tmp/")
+        if not os.path.isdir("shark_tmp"):
+            os.mkdir("shark_tmp")
 
         tempdir = tempfile.TemporaryDirectory(
-            prefix=self.module_tester.tmp_prefix, dir="./shark_tmp/"
+            prefix=self.module_tester.tmp_prefix, dir="shark_tmp"
         )
         self.module_tester.temp_dir = tempdir.name
 

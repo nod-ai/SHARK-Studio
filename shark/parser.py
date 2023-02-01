@@ -44,7 +44,7 @@ parser.add_argument(
     "--repro_dir",
     help="Directory to which module files will be saved for reproduction or debugging.",
     type=dir_path,
-    default="./shark_tmp",
+    default="shark_tmp",
 )
 parser.add_argument(
     "--enable_tf32",
@@ -89,7 +89,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--local_tank_cache",
-    default="",
+    default=None,
     help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
 )
 
