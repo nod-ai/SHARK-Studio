@@ -6,6 +6,7 @@ from models.stable_diffusion.cache_objects import model_cache
 from models.stable_diffusion.stable_args import args
 from models.stable_diffusion.utils import disk_space_check
 from random import randint
+import json
 import numpy as np
 import time
 import sys
@@ -103,6 +104,7 @@ def save_output_img(output_img):
         output_img.save(
             output_path / f"{out_img_name}.png", "PNG", pnginfo=pngInfo
         )
+
         if args.output_img_format not in ["png", "jpg"]:
             print(
                 f"[ERROR] Format {args.output_img_format} is not supported yet."
@@ -121,6 +123,10 @@ def save_output_img(output_img):
         "STEPS": args.steps,
         "OUTPUT": out_img_path,
     }
+
+    if args.save_metadata_to_json:
+        with open(output_path / f"{out_img_name}.json", "w") as f:
+            f.write(json.dumps(new_entry, indent=4))
 
     with open(csv_path, "a") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
@@ -219,6 +225,7 @@ def stable_diff_inf(
 
     avg_ms = 0
     for i, t in tqdm(enumerate(scheduler.timesteps)):
+
         step_start = time.time()
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
