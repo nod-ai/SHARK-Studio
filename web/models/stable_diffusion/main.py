@@ -95,16 +95,9 @@ def save_output_img(output_img):
         pngInfo = PngImagePlugin.PngInfo()
 
         if args.write_metadata_to_png:
-            # set height and width.
-            height = 512  # default height of Stable Diffusion
-            width = 512  # default width of Stable Diffusion
-            if args.version == "v2_1":
-                height = 768
-                width = 768
-
             pngInfo.add_text(
                 "parameters",
-                f"{args.prompts}\nNegative prompt: {args.negative_prompts}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {width}x{height}, Model: {args.variant}",
+                f"{args.prompts}\nNegative prompt: {args.negative_prompts}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {args.width}x{args.height}, Model: {args.variant}",
             )
 
         output_img.save(

@@ -339,7 +339,7 @@ if __name__ == "__main__":
                         model_name = json_store["hf_model_id"]
                     pngInfo.add_text(
                         "parameters",
-                        f"{json_store['prompt']}\nNegative prompt: {json_store['negative prompt']}\nSteps:{json_store['steps']}, Sampler: {json_store['scheduler']}, CFG scale: {json_store['guidance_scale']}, Seed: {json_store['seed']}, Size: {width}x{height}, Model: {model_name}",
+                        f"{json_store['prompt']}\nNegative prompt: {json_store['negative prompt']}\nSteps:{json_store['steps']}, Sampler: {json_store['scheduler']}, CFG scale: {json_store['guidance_scale']}, Seed: {json_store['seed']}, Size: {args.width}x{args.height}, Model: {model_name}",
                     )
 
                 pil_images[i].save(
