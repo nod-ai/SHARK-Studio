@@ -108,8 +108,8 @@ def save_output_img(output_img):
         csv_obj.close()
 
     if args.save_metadata_to_json:
-        del new_entry['OUTPUT']
-        with open(f"{output_path}/{out_img_name}.json", 'w') as f:
+        del new_entry["OUTPUT"]
+        with open(f"{output_path}/{out_img_name}.json", "w") as f:
             json.dump(new_entry, f, indent=4)
 
 
