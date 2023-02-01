@@ -1,4 +1,4 @@
-from .stable_args import args
+from apps.stable_diffusion.src.utils.stable_args import args
 
 
 # Helper function to profile the vulkan device.

@@ -13,8 +13,10 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
 )
-from ..schedulers import SharkEulerDiscreteScheduler
-from .pipeline_shark_stable_diffusion_utils import StableDiffusionPipeline
+from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
+from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+    StableDiffusionPipeline,
+)
 
 
 class Text2ImagePipeline(StableDiffusionPipeline):
