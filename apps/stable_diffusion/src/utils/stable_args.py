@@ -334,4 +334,4 @@ p.add_argument(
     help="Apply Winograd on selected conv ops.",
 )
 
-args = p.parse_args()
+args, unknown = p.parse_known_args()

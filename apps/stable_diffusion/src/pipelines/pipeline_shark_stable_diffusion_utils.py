@@ -13,15 +13,19 @@ from diffusers import (
     DPMSolverMultistepScheduler,
 )
 from shark.shark_inference import SharkInference
-from ..schedulers import SharkEulerDiscreteScheduler
-from ..models import (
+from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
+from apps.stable_diffusion.src.models import (
     SharkifyStableDiffusionModel,
     get_vae,
     get_clip,
     get_unet,
     get_tokenizer,
 )
-from ..utils import start_profiling, end_profiling, preprocessCKPT
+from apps.stable_diffusion.src.utils import (
+    start_profiling,
+    end_profiling,
+    preprocessCKPT,
+)
 
 
 class StableDiffusionPipeline:

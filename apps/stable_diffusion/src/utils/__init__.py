@@ -1,13 +1,16 @@
-from .profiler import start_profiling, end_profiling
-from .resources import (
+from apps.stable_diffusion.src.utils.profiler import (
+    start_profiling,
+    end_profiling,
+)
+from apps.stable_diffusion.src.utils.resources import (
     prompt_examples,
     models_db,
     base_models,
     opt_flags,
     resource_path,
 )
-from .stable_args import args
-from .utils import (
+from apps.stable_diffusion.src.utils.stable_args import args
+from apps.stable_diffusion.src.utils.utils import (
     get_shark_model,
     compile_through_fx,
     set_iree_runtime_flags,

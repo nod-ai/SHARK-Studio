@@ -9,7 +9,11 @@ from diffusers import (
     EulerDiscreteScheduler,
 )
 from diffusers.configuration_utils import register_to_config
-from ..utils import compile_through_fx, get_shark_model, args
+from apps.stable_diffusion.src.utils import (
+    compile_through_fx,
+    get_shark_model,
+    args,
+)
 import torch
 
 

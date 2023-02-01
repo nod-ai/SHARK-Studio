@@ -7,8 +7,8 @@ from shark.iree_utils.vulkan_utils import (
     get_vulkan_target_triple,
 )
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
-from .stable_args import args
-from .resources import opt_flags
+from apps.stable_diffusion.src.utils.stable_args import args
+from apps.stable_diffusion.src.utils.resources import opt_flags
 import sys
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     load_pipeline_from_original_stable_diffusion_ckpt,

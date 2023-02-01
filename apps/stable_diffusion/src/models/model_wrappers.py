@@ -5,7 +5,12 @@ import torch
 import sys
 import traceback
 import re
-from ..utils import compile_through_fx, get_opt_flags, base_models, args
+from apps.stable_diffusion.src.utils import (
+    compile_through_fx,
+    get_opt_flags,
+    base_models,
+    args,
+)
 
 
 # These shapes are parameter dependent.

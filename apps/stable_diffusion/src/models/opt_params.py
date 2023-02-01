@@ -1,6 +1,6 @@
 import sys
 from transformers import CLIPTokenizer
-from ..utils import models_db, args, get_shark_model
+from apps.stable_diffusion.src.utils import models_db, args, get_shark_model
 
 
 hf_model_variant_map = {

@@ -6,7 +6,7 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
 )
-from .shark_eulerdiscrete import (
+from apps.stable_diffusion.src.schedulers.shark_eulerdiscrete import (
     SharkEulerDiscreteScheduler,
 )
 
