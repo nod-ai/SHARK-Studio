@@ -1,0 +1,177 @@
+[
+  {
+    "stablediffusion/untuned":"gs://shark_tank/stable_diffusion",
+    "stablediffusion/tuned":"gs://shark_tank/sd_tuned",
+    "stablediffusion/tuned/cuda":"gs://shark_tank/sd_tuned/cuda",
+    "anythingv3/untuned":"gs://shark_tank/sd_anythingv3",
+    "anythingv3/tuned":"gs://shark_tank/sd_tuned",
+    "anythingv3/tuned/cuda":"gs://shark_tank/sd_tuned/cuda",
+    "analogdiffusion/untuned":"gs://shark_tank/sd_analog_diffusion",
+    "analogdiffusion/tuned":"gs://shark_tank/sd_tuned",
+    "analogdiffusion/tuned/cuda":"gs://shark_tank/sd_tuned/cuda",
+    "openjourney/untuned":"gs://shark_tank/sd_openjourney",
+    "openjourney/tuned":"gs://shark_tank/sd_tuned",
+    "dreamlike/untuned":"gs://shark_tank/sd_dreamlike_diffusion"
+  },
+  {
+    "stablediffusion/v1_4/unet/fp16/length_77/untuned":"unet_8dec_fp16",
+    "stablediffusion/v1_4/unet/fp16/length_77/tuned":"unet_8dec_fp16_tuned",
+    "stablediffusion/v1_4/unet/fp16/length_77/tuned/cuda":"unet_8dec_fp16_cuda_tuned",
+    "stablediffusion/v1_4/unet/fp32/length_77/untuned":"unet_1dec_fp32",
+    "stablediffusion/v1_4/vae/fp16/length_77/untuned":"vae_19dec_fp16",
+    "stablediffusion/v1_4/vae/fp16/length_77/tuned":"vae_19dec_fp16_tuned",
+    "stablediffusion/v1_4/vae/fp16/length_77/tuned/cuda":"vae_19dec_fp16_cuda_tuned",
+    "stablediffusion/v1_4/vae/fp16/length_77/untuned/base":"vae_8dec_fp16",
+    "stablediffusion/v1_4/vae/fp32/length_77/untuned":"vae_1dec_fp32",
+    "stablediffusion/v1_4/clip/fp32/length_77/untuned":"clip_18dec_fp32",
+    "stablediffusion/v2_1base/unet/fp16/length_77/untuned":"unet2base_8dec_fp16",
+    "stablediffusion/v2_1base/unet/fp16/length_77/tuned":"unet2base_8dec_fp16_tuned_v2",
+    "stablediffusion/v2_1base/unet/fp16/length_77/tuned/cuda":"unet2base_8dec_fp16_cuda_tuned",
+    "stablediffusion/v2_1base/unet/fp16/length_64/untuned":"unet_19dec_v2p1base_fp16_64",
+    "stablediffusion/v2_1base/unet/fp16/length_64/tuned":"unet_19dec_v2p1base_fp16_64_tuned",
+    "stablediffusion/v2_1base/unet/fp16/length_64/tuned/cuda":"unet_19dec_v2p1base_fp16_64_cuda_tuned",
+    "stablediffusion/v2_1base/vae/fp16/length_77/untuned":"vae2base_19dec_fp16",
+    "stablediffusion/v2_1base/vae/fp16/length_77/tuned":"vae2base_19dec_fp16_tuned",
+    "stablediffusion/v2_1base/vae/fp16/length_77/tuned/cuda":"vae2base_19dec_fp16_cuda_tuned",
+    "stablediffusion/v2_1base/vae/fp16/length_77/untuned/base":"vae2base_8dec_fp16",
+    "stablediffusion/v2_1base/vae/fp16/length_77/tuned/base":"vae2base_8dec_fp16_tuned",
+    "stablediffusion/v2_1base/vae/fp16/length_77/tuned/base/cuda":"vae2base_8dec_fp16_cuda_tuned",
+    "stablediffusion/v2_1base/clip/fp32/length_77/untuned":"clip2base_18dec_fp32",
+    "stablediffusion/v2_1base/clip/fp32/length_64/untuned":"clip_19dec_v2p1base_fp32_64",
+    "stablediffusion/v2_1/unet/fp16/length_77/untuned":"unet2_14dec_fp16",
+    "stablediffusion/v2_1/vae/fp16/length_77/untuned":"vae2_19dec_fp16",
+    "stablediffusion/v2_1/vae/fp16/length_77/untuned/base":"vae2_8dec_fp16",
+    "stablediffusion/v2_1/clip/fp32/length_77/untuned":"clip2_18dec_fp32",
+    "anythingv3/v2_1base/unet/fp16/length_77/untuned":"av3_unet_19dec_fp16",
+    "anythingv3/v2_1base/unet/fp16/length_77/tuned":"av3_unet_19dec_fp16_tuned",
+    "anythingv3/v2_1base/unet/fp16/length_77/tuned/cuda":"av3_unet_19dec_fp16_cuda_tuned",
+    "anythingv3/v2_1base/unet/fp32/length_77/untuned":"av3_unet_19dec_fp32",
+    "anythingv3/v2_1base/vae/fp16/length_77/untuned":"av3_vae_19dec_fp16",
+    "anythingv3/v2_1base/vae/fp16/length_77/tuned":"av3_vae_19dec_fp16_tuned",
+    "anythingv3/v2_1base/vae/fp16/length_77/tuned/cuda":"av3_vae_19dec_fp16_cuda_tuned",
+    "anythingv3/v2_1base/vae/fp16/length_77/untuned/base":"av3_vaebase_22dec_fp16",
+    "anythingv3/v2_1base/vae/fp32/length_77/untuned":"av3_vae_19dec_fp32",
+    "anythingv3/v2_1base/vae/fp32/length_77/untuned/base":"av3_vaebase_22dec_fp32",
+    "anythingv3/v2_1base/clip/fp32/length_77/untuned":"av3_clip_19dec_fp32",
+    "analogdiffusion/v2_1base/unet/fp16/length_77/untuned":"ad_unet_19dec_fp16",
+    "analogdiffusion/v2_1base/unet/fp16/length_77/tuned":"ad_unet_19dec_fp16_tuned",
+    "analogdiffusion/v2_1base/unet/fp16/length_77/tuned/cuda":"ad_unet_19dec_fp16_cuda_tuned",
+    "analogdiffusion/v2_1base/unet/fp32/length_77/untuned":"ad_unet_19dec_fp32",
+    "analogdiffusion/v2_1base/vae/fp16/length_77/untuned":"ad_vae_19dec_fp16",
+    "analogdiffusion/v2_1base/vae/fp16/length_77/tuned":"ad_vae_19dec_fp16_tuned",
+    "analogdiffusion/v2_1base/vae/fp16/length_77/tuned/cuda":"ad_vae_19dec_fp16_cuda_tuned",
+    "analogdiffusion/v2_1base/vae/fp16/length_77/untuned/base":"ad_vaebase_22dec_fp16",
+    "analogdiffusion/v2_1base/vae/fp32/length_77/untuned":"ad_vae_19dec_fp32",
+    "analogdiffusion/v2_1base/vae/fp32/length_77/untuned/base":"ad_vaebase_22dec_fp32",
+    "analogdiffusion/v2_1base/clip/fp32/length_77/untuned":"ad_clip_19dec_fp32",
+    "openjourney/v2_1base/unet/fp16/length_64/untuned":"oj_unet_22dec_fp16_64",
+    "openjourney/v2_1base/unet/fp32/length_64/untuned":"oj_unet_22dec_fp32_64",
+    "openjourney/v2_1base/vae/fp16/length_77/untuned":"oj_vae_22dec_fp16",
+    "openjourney/v2_1base/vae/fp16/length_77/untuned/base":"oj_vaebase_22dec_fp16",
+    "openjourney/v2_1base/vae/fp32/length_77/untuned":"oj_vae_22dec_fp32",
+    "openjourney/v2_1base/vae/fp32/length_77/untuned/base":"oj_vaebase_22dec_fp32",
+    "openjourney/v2_1base/clip/fp32/length_64/untuned":"oj_clip_22dec_fp32_64",
+    "dreamlike/v2_1base/unet/fp16/length_77/untuned":"dl_unet_23dec_fp16_77",
+    "dreamlike/v2_1base/unet/fp32/length_77/untuned":"dl_unet_23dec_fp32_77",
+    "dreamlike/v2_1base/vae/fp16/length_77/untuned":"dl_vae_23dec_fp16",
+    "dreamlike/v2_1base/vae/fp16/length_77/untuned/base":"dl_vaebase_23dec_fp16",
+    "dreamlike/v2_1base/vae/fp32/length_77/untuned":"dl_vae_23dec_fp32",
+    "dreamlike/v2_1base/vae/fp32/length_77/untuned/base":"dl_vaebase_23dec_fp32",
+    "dreamlike/v2_1base/clip/fp32/length_77/untuned":"dl_clip_23dec_fp32_77"
+  },
+  {
+    "unet": {
+      "tuned": {
+        "fp16": {
+          "default_compilation_flags": []
+        },
+        "fp32": {
+          "default_compilation_flags": []
+        }
+      },
+      "untuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32"
+          ],
+          "specified_compilation_flags": {
+            "cuda": ["--iree-flow-enable-conv-nchw-to-nhwc-transform"],
+            "default_device": ["--iree-flow-enable-conv-img2col-transform"]
+          }
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16"
+          ]
+        }
+      }
+    },
+    "vae": {
+      "tuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-flow-enable-conv-img2col-transform"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-flow-enable-conv-img2col-transform"
+          ]
+        }
+      },
+      "untuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=32",
+            "--iree-flow-enable-conv-img2col-transform"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+            "--iree-flow-enable-padding-linalg-ops",
+            "--iree-flow-linalg-ops-padding-size=16"
+          ]
+        }
+      }
+    },
+    "clip": {
+      "tuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        }
+      },
+      "untuned": {
+        "fp16": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        },
+        "fp32": {
+          "default_compilation_flags": [
+            "--iree-flow-linalg-ops-padding-size=16",
+            "--iree-flow-enable-padding-linalg-ops"
+          ]
+        }
+      }
+    }
+  }
+]

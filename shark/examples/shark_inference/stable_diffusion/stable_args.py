@@ -31,7 +31,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--negative-prompts",
+    "--negative_prompts",
     nargs="+",
     default=[""],
     help="text you don't want to see in the generated image.",
@@ -283,6 +283,20 @@ p.add_argument(
     help="flag to clear all mlir and vmfb from common locations. Recompiling will take several minutes",
 )
 
+p.add_argument(
+    "--save_metadata_to_json",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="flag for whether or not to save a generation information json file with the image.",
+)
+
+p.add_argument(
+    "--write_metadata_to_png",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for whether or not to save generation information in PNG chunk text to generated images.",
+)
+
 ##############################################################################
 ### Web UI flags
 ##############################################################################
@@ -292,6 +306,20 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for removing the pregress bar animation during image generation",
+)
+
+p.add_argument(
+    "--share",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for generating a public URL",
+)
+
+p.add_argument(
+    "--server_port",
+    type=int,
+    default=8080,
+    help="flag for setting server port",
 )
 
 ##############################################################################

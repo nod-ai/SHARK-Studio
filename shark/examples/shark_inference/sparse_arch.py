@@ -99,7 +99,6 @@ class SparseArchShark(nn.Module):
         )
 
     def forward(self, *batched_inputs):
-
         concatenated_list = []
         input_enum, embedding_enum = 0, 0
 
@@ -121,7 +120,6 @@ class SparseArchShark(nn.Module):
 
 
 def test_sparse_arch() -> None:
-
     D = 3
     eb1_config = EmbeddingBagConfig(
         name="t1",
@@ -211,7 +209,6 @@ class DLRMShark(nn.Module):
     def forward(
         self, dense_features: torch.Tensor, *sparse_features
     ) -> torch.Tensor:
-
         embedded_dense = self.dense_arch(dense_features)
         embedded_sparse = self.sparse_arch(*sparse_features)
         concatenated_dense = self.inter_arch(

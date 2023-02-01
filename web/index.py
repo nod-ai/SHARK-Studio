@@ -23,7 +23,6 @@ demo_css = Path(__file__).parent.joinpath("demo.css").resolve()
 
 
 with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
-
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         logo2 = Image.open(sdlogo_loc)
@@ -44,7 +43,6 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                 ).style(width=150, height=100)
 
     with gr.Row(elem_id="ui_body"):
-
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Group(elem_id="prompt_box_outer"):

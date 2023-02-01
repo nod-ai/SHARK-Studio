@@ -103,7 +103,6 @@ def cache_model():
 
 
 def vdiff_inf(prompts: str, n, bs, steps, _device):
-
     global device
     global model
     global checkpoint

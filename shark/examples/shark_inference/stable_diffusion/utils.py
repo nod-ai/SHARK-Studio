@@ -87,7 +87,6 @@ def compile_through_fx(
     debug=False,
     generate_vmfb=True,
 ):
-
     from shark.parser import shark_args
 
     if "cuda" in args.device:
@@ -136,7 +135,6 @@ def compile_through_fx(
 
 
 def set_iree_runtime_flags():
-
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
         f"--vulkan_validation_layers={'true' if args.vulkan_validation_layers else 'false'}",
@@ -321,7 +319,7 @@ def get_available_devices():
             print(f"{driver_name} devices are not available.")
         else:
             for i, device in enumerate(device_list_dict):
-                device_list.append(f"{driver_name}://{i} => {device['name']}")
+                device_list.append(f"{device['name']} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()

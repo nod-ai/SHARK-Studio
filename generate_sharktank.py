@@ -58,7 +58,6 @@ def save_torch_model(torch_model_list):
             model = None
             input = None
             if model_type == "stable_diffusion":
-
                 args.use_tuned = False
                 args.import_mlir = True
                 args.use_tuned = False
@@ -281,8 +280,3 @@ if __name__ == "__main__":
 
     if args.tflite_model_csv:
         save_tflite_model(args.tflite_model_csv)
-
-    if args.upload:
-        git_hash = sp.getoutput("git log -1 --format='%h'") + "/"
-        print("uploading files to gs://shark_tank/" + git_hash)
-        os.system(f"gsutil cp -r {WORKDIR}* gs://shark_tank/" + git_hash)

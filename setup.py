@@ -2,11 +2,12 @@ from setuptools import find_packages
 from setuptools import setup
 
 import os
+import glob
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.4"
+PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.5"
 backend_deps = []
 if "NO_BACKEND" in os.environ.keys():
     backend_deps = [
@@ -34,6 +35,7 @@ setup(
     ],
     packages=find_packages(exclude=("examples")),
     python_requires=">=3.9",
+    data_files=glob.glob("apps/stable_diffusion/resources/**"),
     install_requires=[
         "numpy",
         "PyYAML",

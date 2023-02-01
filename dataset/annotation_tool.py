@@ -16,7 +16,6 @@ nodlogo_loc = shark_root.joinpath(
 
 
 with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
-
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Column(scale=1, elem_id="demo_title_outer"):

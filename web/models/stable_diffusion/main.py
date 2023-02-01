@@ -1,11 +1,12 @@
 import torch
 import os
-from PIL import Image
+from PIL import Image, PngImagePlugin
 from tqdm.auto import tqdm
 from models.stable_diffusion.cache_objects import model_cache
 from models.stable_diffusion.stable_args import args
 from models.stable_diffusion.utils import disk_space_check
 from random import randint
+import json
 import numpy as np
 import time
 import sys
@@ -92,11 +93,22 @@ def save_output_img(output_img):
         )
     else:
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.png")
-        output_img.save(out_img_path, "PNG")
+        pngInfo = PngImagePlugin.PngInfo()
+
+        if args.write_metadata_to_png:
+            pngInfo.add_text(
+                "parameters",
+                f"{args.prompts}\nNegative prompt: {args.negative_prompts}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {args.width}x{args.height}, Model: {args.variant}",
+            )
+
+        output_img.save(
+            output_path / f"{out_img_name}.png", "PNG", pnginfo=pngInfo
+        )
+
         if args.output_img_format not in ["png", "jpg"]:
             print(
                 f"[ERROR] Format {args.output_img_format} is not supported yet."
-                "saving image as png. Supported formats png / jpg"
+                "Image saved as png instead. Supported formats: png / jpg"
             )
 
     new_entry = {
@@ -116,6 +128,11 @@ def save_output_img(output_img):
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()
+
+    if args.save_metadata_to_json:
+        del new_entry["OUTPUT"]
+        with open(f"{output_path}/{out_img_name}.json", "w") as f:
+            json.dump(new_entry, f, indent=4)
 
 
 def stable_diff_inf(
@@ -209,7 +226,6 @@ def stable_diff_inf(
 
     avg_ms = 0
     for i, t in tqdm(enumerate(scheduler.timesteps)):
-
         step_start = time.time()
         timestep = torch.tensor([t]).to(dtype).detach().numpy()
         latent_model_input = scheduler.scale_model_input(latents, t)
