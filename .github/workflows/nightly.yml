@@ -50,10 +50,10 @@ jobs:
       shell: powershell
       run: |
         ./setup_venv.ps1
-        pyinstaller web/shark_sd.spec
+        pyinstaller .\apps\stable_diffusion\shark_sd.spec
         mv ./dist/shark_sd.exe ./dist/shark_sd_${{ env.package_version_ }}.exe
         signtool sign /f C:\shark_2023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_${{ env.package_version_ }}.exe
-        pyinstaller .\shark\examples\shark_inference\stable_diffusion\shark_sd_cli.spec
+        pyinstaller .\apps\stable_diffusion\shark_sd_cli.spec
         mv ./dist/shark_sd_cli.exe ./dist/shark_sd_cli_${{ env.package_version_ }}.exe
         signtool sign /f C:\shark_2023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_cli_${{ env.package_version_ }}.exe
 
