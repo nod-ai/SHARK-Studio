@@ -9,6 +9,7 @@ from torch._decomp import get_decompositions
 
 import torch_mlir
 
+
 # TODO: Control decompositions.
 def default_decompositions():
     return get_decompositions(

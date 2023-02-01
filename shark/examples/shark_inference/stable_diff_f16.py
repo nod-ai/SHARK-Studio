@@ -63,7 +63,6 @@ def load_mlir(mlir_loc):
 
 
 def compile_through_fx(model, inputs, mlir_loc=None):
-
     module = load_mlir(mlir_loc)
     if mlir_loc == None:
         fx_g = make_fx(
@@ -121,7 +120,6 @@ def compile_through_fx(model, inputs, mlir_loc=None):
 
 
 if __name__ == "__main__":
-
     YOUR_TOKEN = "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"
 
     # 1. Load the autoencoder model which will be used to decode the latents into image space.
@@ -228,7 +226,6 @@ if __name__ == "__main__":
     # print(latents, latents.shape)
 
     for i, t in tqdm(enumerate(scheduler.timesteps)):
-
         print(f"i = {i} t = {t}")
         # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
         latent_model_input = torch.cat([latents] * 2)

@@ -58,7 +58,6 @@ def save_torch_model(torch_model_list):
             model = None
             input = None
             if model_type == "stable_diffusion":
-
                 args.use_tuned = False
                 args.import_mlir = True
                 args.use_tuned = False

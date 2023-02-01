@@ -116,6 +116,7 @@ txt2img_obj = None
 config_obj = None
 schedulers = None
 
+
 # Exposed to UI.
 def txt2img_inf(
     prompt: str,

@@ -37,7 +37,6 @@ def load_labels():
 
 
 def top3_possibilities(res, log_write):
-
     global DEBUG
 
     if DEBUG:
@@ -57,7 +56,6 @@ def top3_possibilities(res, log_write):
 
 
 def resnet_inf(numpy_img, device):
-
     global DEBUG
     global compiled_module
 

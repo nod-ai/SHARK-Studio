@@ -61,6 +61,7 @@ from schedulers import (
 import time
 from shark.iree_utils.compile_utils import dump_isas
 
+
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
     if args.vulkan_debug_utils and "vulkan" in args.device:
@@ -79,7 +80,6 @@ def end_profiling(device):
 
 
 if __name__ == "__main__":
-
     dtype = torch.float32 if args.precision == "fp32" else torch.half
 
     # Make it as default prompt

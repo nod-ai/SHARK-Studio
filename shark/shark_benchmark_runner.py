@@ -158,7 +158,10 @@ class SharkBenchmarkRunner(SharkRunner):
         # tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
         tf_device = "/CPU:0"
         with tf.device(tf_device):
-            model, input, = get_tf_model(
+            (
+                model,
+                input,
+            ) = get_tf_model(
                 modelname
             )[:2]
             frontend_model = model
