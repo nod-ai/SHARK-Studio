@@ -14,6 +14,10 @@ hf_model_variant_map = {
 }
 
 
+def get_variant_version(hf_model_id):
+    return hf_model_variant_map[hf_model_id]
+
+
 def get_params(bucket_key, model_key, model, is_tuned, precision):
     iree_flags = []
     if len(args.iree_vulkan_target_triple) > 0:
@@ -60,7 +64,7 @@ def get_params(bucket_key, model_key, model, is_tuned, precision):
 
 
 def get_unet():
-    variant, version = hf_model_variant_map[args.hf_model_id]
+    variant, version = get_variant_version(args.hf_model_id)
     # Tuned model is present only for `fp16` precision.
     is_tuned = "tuned" if args.use_tuned else "untuned"
     if "vulkan" not in args.device and args.use_tuned:
@@ -77,7 +81,7 @@ def get_unet():
 
 
 def get_vae():
-    variant, version = hf_model_variant_map[args.hf_model_id]
+    variant, version = get_variant_version(args.hf_model_id)
     # Tuned model is present only for `fp16` precision.
     is_tuned = "tuned" if args.use_tuned else "untuned"
     is_base = "/base" if args.use_base_vae else ""
@@ -95,7 +99,7 @@ def get_vae():
 
 
 def get_clip():
-    variant, version = hf_model_variant_map[args.hf_model_id]
+    variant, version = get_variant_version(args.hf_model_id)
     bucket_key = f"{variant}/untuned"
     model_key = (
         f"{variant}/{version}/clip/fp32/length_{args.max_length}/untuned"
