@@ -1,6 +1,7 @@
 import os
 
-os.environ["AMD_ENABLE_LLPC"] = "1"
+if "AMD_ENABLE_LLPC" not in os.environ:
+    os.environ["AMD_ENABLE_LLPC"] = "1"
 
 import sys
 import json
