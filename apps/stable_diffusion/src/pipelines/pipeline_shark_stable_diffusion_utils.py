@@ -24,7 +24,6 @@ from apps.stable_diffusion.src.models import (
 from apps.stable_diffusion.src.utils import (
     start_profiling,
     end_profiling,
-    preprocessCKPT,
 )
 
 
@@ -184,13 +183,9 @@ class StableDiffusionPipeline:
         height: int,
         width: int,
         use_base_vae: bool,
+        use_tuned: bool,
     ):
         if import_mlir:
-            if ckpt_loc != "":
-                assert ckpt_loc.lower().endswith(
-                    (".ckpt", ".safetensors")
-                ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
-                ckpt_loc = preprocessCKPT()
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,
@@ -200,6 +195,7 @@ class StableDiffusionPipeline:
                 height=height,
                 width=width,
                 use_base_vae=use_base_vae,
+                use_tuned=use_tuned,
             )
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)

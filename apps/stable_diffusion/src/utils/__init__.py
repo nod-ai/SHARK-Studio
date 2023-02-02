@@ -12,7 +12,6 @@ from apps.stable_diffusion.src.utils.resources import (
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.utils import (
-    get_vmfb_path_name,
     get_shark_model,
     compile_through_fx,
     set_iree_runtime_flags,
@@ -21,4 +20,6 @@ from apps.stable_diffusion.src.utils.utils import (
     get_available_devices,
     get_opt_flags,
     preprocessCKPT,
+    fetch_or_delete_vmfbs,
+    get_path_to_diffusers_checkpoint,
 )

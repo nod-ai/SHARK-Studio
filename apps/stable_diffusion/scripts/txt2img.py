@@ -194,6 +194,7 @@ def txt2img_inf(
             args.height,
             args.width,
             args.use_base_vae,
+            args.use_tuned,
         )
 
     if not txt2img_obj:
@@ -251,6 +252,7 @@ if __name__ == "__main__":
         args.height,
         args.width,
         args.use_base_vae,
+        args.use_tuned,
     )
 
     start_time = time.time()
