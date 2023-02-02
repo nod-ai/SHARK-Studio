@@ -114,7 +114,8 @@ def save_output_img(output_img):
 
     if args.save_metadata_to_json:
         del new_entry["OUTPUT"]
-        with open(f"{output_path}/{out_img_name}.json", "w") as f:
+        json_path = Path(generated_imgs_path, f"{out_img_name}.json")
+        with open(json_path, "w") as f:
             json.dump(new_entry, f, indent=4)
 
 
@@ -136,7 +137,7 @@ def txt2img_inf(
     scheduler: str,
     model_id: str,
     custom_model_id: str,
-    ckpt_file_obj,
+    ckpt_loc: str,
     precision: str,
     device: str,
     max_length: int,
@@ -154,7 +155,7 @@ def txt2img_inf(
     args.steps = steps
     args.scheduler = scheduler
     args.hf_model_id = custom_model_id if custom_model_id else model_id
-    args.ckpt_loc = ckpt_file_obj.name if ckpt_file_obj else ""
+    args.ckpt_loc = "" if ckpt_loc == "None" else ckpt_loc
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
     dtype = torch.float32 if precision == "fp32" else torch.half
