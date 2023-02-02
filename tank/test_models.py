@@ -143,6 +143,10 @@ class SharkModuleTester:
             shark_args.enable_conv_transform = True
         else:
             shark_args.enable_conv_transform = False
+        if "img2col" in self.config["flags"]:
+            shark_args.enable_img2col_transform = True
+        if "winograd" in self.config["flags"]:
+            shark_args.use_winograd = True
 
         model, func_name, inputs, golden_out = download_model(
             self.config["model_name"],

@@ -112,4 +112,18 @@ parser.add_argument(
     help="Enables the --iree-flow-enable-conv-nchw-to-nhwc-transform flag.",
 )
 
+parser.add_argument(
+    "--enable_img2col_transform",
+    default=False,
+    action="store_true",
+    help="Enables the --iree-flow-enable-conv-img2col-transform flag.",
+)
+
+parser.add_argument(
+    "--use_winograd",
+    default=False,
+    action="store_true",
+    help="Enables the --iree-flow-enable-conv-winograd-transform flag.",
+)
+
 shark_args, unknown = parser.parse_known_args()

@@ -81,6 +81,10 @@ def get_model_specific_args():
     ms_args = []
     if shark_args.enable_conv_transform == True:
         ms_args += ["--iree-flow-enable-conv-nchw-to-nhwc-transform"]
+    if shark_args.enable_img2col_transform == True:
+        ms_args += ["--iree-flow-enable-conv-img2col-transform"]
+    if shark_args.use_winograd == True:
+        ms_args += ["--iree-flow-enable-conv-winograd-transform"]
     return ms_args
 
 
