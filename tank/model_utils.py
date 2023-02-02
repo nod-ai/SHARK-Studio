@@ -83,10 +83,10 @@ def get_hf_img_cls_model(name):
     # you can use preprocess_input_image to get the test_input or just random value.
     test_input = preprocess_input_image(name)
     # test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
-    print("test_input.shape: ", test_input.shape)
+    # print("test_input.shape: ", test_input.shape)
     # test_input.shape:  torch.Size([1, 3, 224, 224])
     actual_out = model(test_input)
-    print("actual_out.shape： ", actual_out.shape)
+    # print("actual_out.shape： ", actual_out.shape)
     # actual_out.shape：  torch.Size([1, 1000])
     return model, test_input, actual_out
 

@@ -1,6 +1,6 @@
 import os
 import subprocess
-from shark.examples.shark_inference.stable_diffusion.resources import (
+from apps.stable_diffusion.src.utils.resources import (
     get_json_file,
 )
 from shark.shark_downloader import download_public_file
@@ -12,7 +12,7 @@ import shutil
 model_config_dicts = get_json_file(
     os.path.join(
         os.getcwd(),
-        "shark/examples/shark_inference/stable_diffusion/resources/model_config.json",
+        "apps/stable_diffusion/src/utils/resources/model_config.json",
     )
 )
 
@@ -31,7 +31,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
         for use_tune in tuned_options:
             command = [
                 "python",
-                "shark/examples/shark_inference/stable_diffusion/main.py",
+                "apps/stable_diffusion/scripts/txt2img.py",
                 "--device=" + device,
                 "--output_dir=./test_images/" + model_name,
                 "--hf_model_id=" + model_name,

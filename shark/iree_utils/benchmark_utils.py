@@ -18,6 +18,7 @@ from shark.iree_utils.cpu_utils import get_cpu_count
 import numpy as np
 import os
 import re
+import platform
 
 UNIT_TO_SECOND_MAP = {"us": 1e-6, "ms": 0.001, "s": 1}
 
@@ -62,7 +63,16 @@ def build_benchmark_args(
     Outputs: string that execute benchmark-module on target model.
     """
     path = benchmark_module.__path__[0]
-    benchmarker_path = os.path.join(path, "..", "..", "iree-benchmark-module")
+    if platform.system() == "Windows":
+        benchmarker_path = os.path.join(
+            path, "..", "..", "iree-benchmark-module.exe"
+        )
+        time_extractor = None
+    else:
+        benchmarker_path = os.path.join(
+            path, "..", "..", "iree-benchmark-module"
+        )
+        time_extractor = "| awk 'END{{print $2 $3}}'"
     benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
     # TODO: The function named can be passed as one of the args.
     fn_name = "forward"
@@ -78,8 +88,8 @@ def build_benchmark_args(
         num_cpus = get_cpu_count()
         if num_cpus is not None:
             benchmark_cl.append(f"--task_topology_max_group_count={num_cpus}")
-    time_extractor = "| awk 'END{{print $2 $3}}'"
-    benchmark_cl.append(time_extractor)
+    # if time_extractor:
+    #    benchmark_cl.append(time_extractor)
     return benchmark_cl
 
 
@@ -96,7 +106,14 @@ def build_benchmark_args_non_tensor_input(
     Outputs: string that execute benchmark-module on target model.
     """
     path = benchmark_module.__path__[0]
-    benchmarker_path = os.path.join(path, "..", "..", "iree-benchmark-module")
+    if platform.system() == "Windows":
+        benchmarker_path = os.path.join(
+            path, "..", "..", "iree-benchmark-module.exe"
+        )
+    else:
+        benchmarker_path = os.path.join(
+            path, "..", "..", "iree-benchmark-module"
+        )
     benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
     # TODO: The function named can be passed as one of the args.
     if function_name:
@@ -104,8 +121,9 @@ def build_benchmark_args_non_tensor_input(
     benchmark_cl.append(f"--device={iree_device_map(device)}")
     for input in inputs:
         benchmark_cl.append(f"--function_input={input}")
-    time_extractor = "| awk 'END{{print $2 $3}}'"
-    benchmark_cl.append(time_extractor)
+    if platform.system() != "Windows":
+        time_extractor = "| awk 'END{{print $2 $3}}'"
+        benchmark_cl.append(time_extractor)
     return benchmark_cl
 
 
@@ -121,8 +139,9 @@ def run_benchmark_module(benchmark_cl):
         benchmark_path
     ), "Cannot find benchmark_module, Please contact SHARK maintainer on discord."
     bench_result = run_cmd(" ".join(benchmark_cl))
-    regex_split = re.compile("([0-9]+[.]*[0-9]*)([a-zA-Z]+)")
-    match = regex_split.match(bench_result)
+    print(bench_result)
+    regex_split = re.compile("(\d+[.]*\d*)(  *)([a-zA-Z]+)")
+    match = regex_split.search(bench_result)
     time = float(match.group(1))
-    unit = match.group(2)
-    return 1.0 / (time * UNIT_TO_SECOND_MAP[unit])
+    unit = match.group(3)
+    return 1.0 / (time * 0.001)

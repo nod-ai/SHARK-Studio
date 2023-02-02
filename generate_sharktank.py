@@ -18,10 +18,10 @@ import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
-from shark.examples.shark_inference.stable_diffusion import (
+from apps.stable_diffusion.src.models import (
     model_wrappers as mw,
 )
-from shark.examples.shark_inference.stable_diffusion.stable_args import (
+from apps.stable_diffusion.src.utils.stable_args import (
     args,
 )
 
