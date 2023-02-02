@@ -2,6 +2,7 @@ import os
 
 os.environ["AMD_ENABLE_LLPC"] = "1"
 
+import sys
 import json
 import torch
 import re
@@ -68,7 +69,6 @@ def save_output_img(output_img):
     out_img_name = (
         f"{prompt_slice}_{args.seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
     )
-    out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
 
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
@@ -83,9 +83,7 @@ def save_output_img(output_img):
                 f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {args.width}x{args.height}, Model: {args.hf_model_id}",
             )
 
-        output_img.save(
-            output_path / f"{out_img_name}.png", "PNG", pnginfo=pngInfo
-        )
+        output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
 
         if args.output_img_format not in ["png", "jpg"]:
             print(
@@ -195,6 +193,10 @@ def txt2img_inf(
             args.width,
             args.use_base_vae,
         )
+
+    if not txt2img_obj:
+        sys.exit("text to image pipeline must not return a null value")
+
     txt2img_obj.scheduler = schedulers[scheduler]
 
     start_time = time.time()
