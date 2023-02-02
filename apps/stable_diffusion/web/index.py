@@ -71,12 +71,12 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         ],
                     )
                     custom_model_id = gr.Textbox(
-                        placeholder="check here: https://huggingface.co/models eg. runwayml/stable-diffusion-v1-5",
+                        placeholder="SG161222/Realistic_Vision_V1.3",
                         value="",
                         label="HuggingFace Model ID",
                     )
                 with gr.Group():
-                    ckpt_path = resource_path("models")
+                    ckpt_path = "models"
                     types = (
                         "*.ckpt",
                         "*.safetensors",
