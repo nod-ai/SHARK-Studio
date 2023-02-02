@@ -11,7 +11,7 @@ from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
-import sys
+import sys, functools, operator
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     load_pipeline_from_original_stable_diffusion_ckpt,
 )
@@ -93,7 +93,6 @@ def compile_through_fx(
     )
 
     if use_tuned:
-        model_name = model_name + "_tuned"
         tuned_model_path = f"{args.annotation_output}/{model_name}_torch.mlir"
         if not os.path.exists(tuned_model_path):
             if "vae" in model_name.split("_")[0]:
@@ -362,34 +361,74 @@ def get_opt_flags(model, precision="fp16"):
     return iree_flags
 
 
-def preprocessCKPT():
-    path = Path(args.ckpt_loc)
+def get_path_to_diffusers_checkpoint(custom_weights):
+    path = Path(custom_weights)
     diffusers_path = path.parent.absolute()
     diffusers_directory_name = path.stem
     complete_path_to_diffusers = diffusers_path / diffusers_directory_name
     complete_path_to_diffusers.mkdir(parents=True, exist_ok=True)
-    print(
-        "Created directory : ",
-        diffusers_directory_name,
-        " at -> ",
-        diffusers_path,
-    )
     path_to_diffusers = complete_path_to_diffusers.as_posix()
+    return path_to_diffusers
+
+
+def preprocessCKPT(custom_weights):
+    path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights)
+    if next(Path(path_to_diffusers).iterdir(), None):
+        print("Checkpoint already loaded at : ", path_to_diffusers)
+        return
+    else:
+        print(
+            "Diffusers' checkpoint will be identified here : ",
+            path_to_diffusers,
+        )
     from_safetensors = (
-        True if args.ckpt_loc.lower().endswith(".safetensors") else False
+        True if custom_weights.lower().endswith(".safetensors") else False
     )
     # EMA weights usually yield higher quality images for inference but non-EMA weights have
     # been yielding better results in our case.
     # TODO: Add an option `--ema` (`--no-ema`) for users to specify if they want to go for EMA
     #       weight extraction or not.
     extract_ema = False
-    print("Loading pipeline from original stable diffusion checkpoint")
+    print(
+        "Loading diffusers' pipeline from original stable diffusion checkpoint"
+    )
     pipe = load_pipeline_from_original_stable_diffusion_ckpt(
-        checkpoint_path=args.ckpt_loc,
+        checkpoint_path=custom_weights,
         extract_ema=extract_ema,
         from_safetensors=from_safetensors,
     )
     pipe.save_pretrained(path_to_diffusers)
     print("Loading complete")
-    print("Custom model path is : ", path_to_diffusers)
-    return path_to_diffusers
+
+
+def load_vmfb(vmfb_path, model, precision):
+    model = "vae" if "base_vae" in model else model
+    precision = "fp32" if "clip" in model else precision
+    extra_args = get_opt_flags(model, precision)
+    shark_module = SharkInference(mlir_module=None, device=args.device)
+    shark_module.load_module(vmfb_path, extra_args=extra_args)
+    return shark_module
+
+
+# This utility returns vmfbs of Clip, Unet and Vae, in case all three of them
+# are present; deletes them otherwise.
+def fetch_or_delete_vmfbs(basic_model_name, use_base_vae, precision="fp32"):
+    model_name = ["clip", "unet", "base_vae" if use_base_vae else "vae"]
+    vmfb_path = [
+        get_vmfb_path_name(model + basic_model_name)[0] for model in model_name
+    ]
+    vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
+    all_vmfb_present = functools.reduce(operator.__and__, vmfb_present)
+    compiled_models = [None] * 3
+    # We need to delete vmfbs only if some of the models were compiled.
+    if not all_vmfb_present:
+        for i in range(len(vmfb_path)):
+            if vmfb_present[i]:
+                os.remove(vmfb_path[i])
+                print("Deleted: ", vmfb_path[i])
+    else:
+        for i in range(len(vmfb_path)):
+            compiled_models[i] = load_vmfb(
+                vmfb_path[i], model_name[i], precision
+            )
+    return compiled_models

@@ -4,13 +4,15 @@ from collections import defaultdict
 import torch
 import traceback
 import re
-import os, sys, functools, operator
+import sys
 from apps.stable_diffusion.src.utils import (
     compile_through_fx,
     get_opt_flags,
     base_models,
     args,
-    get_vmfb_path_name,
+    fetch_or_delete_vmfbs,
+    preprocessCKPT,
+    get_path_to_diffusers_checkpoint,
 )
 
 
@@ -76,6 +78,12 @@ class SharkifyStableDiffusionModel:
         self.height = height // 8
         self.width = width // 8
         self.batch_size = batch_size
+        self.custom_weights = custom_weights
+        if self.custom_weights != "":
+            assert self.custom_weights.lower().endswith(
+                (".ckpt", ".safetensors")
+            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+            custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
         self.precision = precision
         self.base_vae = use_base_vae
@@ -91,6 +99,8 @@ class SharkifyStableDiffusionModel:
             + precision
         )
         self.use_tuned = use_tuned
+        if use_tuned:
+            self.model_name = self.model_name + "_tuned"
         # We need a better naming convention for the .vmfbs because despite
         # using the custom model variant the .vmfb names remain the same and
         # it'll always pick up the compiled .vmfb instead of compiling the
@@ -98,8 +108,6 @@ class SharkifyStableDiffusionModel:
         # So, currently, we add `self.model_id` in the `self.model_name` of
         # .vmfb file.
         # TODO: Have a better way of naming the vmfbs using self.model_name.
-        import re
-
         model_name = re.sub(r"\W+", "_", self.model_id)
         if model_name[0] == "_":
             model_name = model_name[1:]
@@ -209,11 +217,17 @@ class SharkifyStableDiffusionModel:
         return shark_clip
 
     def __call__(self):
-        model_name = ["clip", "base_vae" if self.base_vae else "vae", "unet"]
-        vmfb_path = [
-            get_vmfb_path_name(model + self.model_name)[0]
-            for model in model_name
-        ]
+        vmfbs = fetch_or_delete_vmfbs(
+            self.model_name, self.base_vae, self.precision
+        )
+        if vmfbs[0]:
+            print("Loading vmfbs from cache")
+            return vmfbs
+        if self.custom_weights != "":
+            assert self.custom_weights.lower().endswith(
+                (".ckpt", ".safetensors")
+            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+            preprocessCKPT(self.custom_weights)
         for model_id in base_models:
             self.inputs = get_input_info(
                 base_models[model_id],
@@ -229,16 +243,6 @@ class SharkifyStableDiffusionModel:
             except Exception as e:
                 if args.enable_stack_trace:
                     traceback.print_exc()
-                vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
-                all_vmfb_present = functools.reduce(
-                    operator.__and__, vmfb_present
-                )
-                # We need to delete vmfbs only if some of the models were compiled.
-                if not all_vmfb_present:
-                    for i in range(len(vmfb_path)):
-                        if vmfb_present[i]:
-                            os.remove(vmfb_path[i])
-                            print("Deleted: ", vmfb_path[i])
                 print("Retrying with a different base model configuration")
                 continue
             # This is done just because in main.py we are basing the choice of tokenizer and scheduler
@@ -249,5 +253,5 @@ class SharkifyStableDiffusionModel:
                 args.hf_model_id = model_id
             return compiled_clip, compiled_unet, compiled_vae
         sys.exit(
-            "Cannot compile the model. Please use `enable_stack_trace` and create an issue at https://github.com/nod-ai/SHARK/issues"
+            "Cannot compile the model. Please re-run the command with `--enable_stack_trace` flag and create an issue with detailed log at https://github.com/nod-ai/SHARK/issues"
         )
