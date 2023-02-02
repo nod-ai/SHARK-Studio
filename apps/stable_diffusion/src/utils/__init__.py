@@ -9,8 +9,10 @@ from apps.stable_diffusion.src.utils.resources import (
     opt_flags,
     resource_path,
 )
+from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.utils import (
+    get_vmfb_path_name,
     get_shark_model,
     compile_through_fx,
     set_iree_runtime_flags,

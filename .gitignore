@@ -170,6 +170,5 @@ tank/dict_configs.py
 cache_models/
 onnx_models/
 
-#web logging
-web/logs/
-web/stored_results/stable_diffusion/
+# Generated images
+generated_imgs/

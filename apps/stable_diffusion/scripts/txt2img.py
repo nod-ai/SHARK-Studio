@@ -41,6 +41,12 @@ if args.clear_all:
     for vmfb in vmfbs:
         if os.path.exists(vmfb):
             os.remove(vmfb)
+    # Temporary workaround of deleting yaml files to incorporate diffusers' pipeline.
+    # TODO: Remove this once we have better weight updation logic.
+    inference_yaml = ["v2-inference-v.yaml", "v1-inference.yaml"]
+    for yaml in inference_yaml:
+        if os.path.exists(yaml):
+            os.remove(yaml)
     home = os.path.expanduser("~")
     if os.name == "nt":  # Windows
         appdata = os.getenv("LOCALAPPDATA")

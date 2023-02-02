@@ -185,10 +185,12 @@ class StableDiffusionPipeline:
         width: int,
         use_base_vae: bool,
     ):
-        init_kwargs = None
         if import_mlir:
-            if ckpt_loc:
-                preprocessCKPT()
+            if ckpt_loc != "":
+                assert ckpt_loc.lower().endswith(
+                    (".ckpt", ".safetensors")
+                ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+                ckpt_loc = preprocessCKPT()
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,
