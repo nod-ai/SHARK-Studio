@@ -86,7 +86,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         files = glob.glob(os.path.join(ckpt_path, extn))
                         ckpt_files.extend(files)
                     ckpt_loc = gr.Dropdown(
-                        label="Place all checkpoints at SHARK/apps/stable_diffusion/web/models/",
+                        label="Place all checkpoints in models/",
                         value="None",
                         choices=ckpt_files,
                     )
@@ -161,7 +161,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                     with gr.Row():
                         save_metadata_to_png = gr.Checkbox(
                             label="Save prompt information to PNG",
-                            value=False,
+                            value=True,
                             interactive=True,
                         )
                         save_metadata_to_json = gr.Checkbox(
