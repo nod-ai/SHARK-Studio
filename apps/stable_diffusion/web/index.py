@@ -59,7 +59,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
                     ckpt_path = (
-                        args.ckpt_dir
+                        Path(args.ckpt_dir)
                         if args.ckpt_dir
                         else Path(Path.cwd(), "models")
                     )
