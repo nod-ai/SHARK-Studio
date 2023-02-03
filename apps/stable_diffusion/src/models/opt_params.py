@@ -8,7 +8,7 @@ hf_model_variant_map = {
     "dreamlike-art/dreamlike-diffusion-1.0": ["dreamlike", "v2_1base"],
     "prompthero/openjourney": ["openjourney", "v2_1base"],
     "wavymulder/Analog-Diffusion": ["analogdiffusion", "v2_1base"],
-    "stabilityai/stable-diffusion-2-1": ["stablediffusion", "v2_1"],
+    "stabilityai/stable-diffusion-2-1": ["stablediffusion", "v2_1base"],
     "stabilityai/stable-diffusion-2-1-base": ["stablediffusion", "v2_1base"],
     "CompVis/stable-diffusion-v1-4": ["stablediffusion", "v1_4"],
 }
