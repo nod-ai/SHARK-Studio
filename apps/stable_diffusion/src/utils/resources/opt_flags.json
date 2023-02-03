@@ -11,19 +11,12 @@
     "untuned": {
       "fp16": {
         "default_compilation_flags": [
-          "--iree-flow-enable-padding-linalg-ops",
-          "--iree-flow-linalg-ops-padding-size=32"
-        ],
-        "specified_compilation_flags": {
-          "cuda": ["--iree-flow-enable-conv-nchw-to-nhwc-transform"],
-          "default_device": ["--iree-flow-enable-conv-img2col-transform"]
-        }
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32}))"
+        ]
       },
       "fp32": {
         "default_compilation_flags": [
-          "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-          "--iree-flow-enable-padding-linalg-ops",
-          "--iree-flow-linalg-ops-padding-size=16"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=16}))"
         ]
       }
     }
@@ -34,9 +27,9 @@
         "default_compilation_flags": [],
         "specified_compilation_flags": {
           "cuda": [],
-          "default_device": ["--iree-flow-enable-padding-linalg-ops",
-                             "--iree-flow-linalg-ops-padding-size=32",
-                             "--iree-flow-enable-conv-img2col-transform"]
+          "default_device": [
+            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))"
+          ]
         }
       },
       "fp32": {
@@ -44,9 +37,7 @@
         "specified_compilation_flags": {
           "cuda": [],
           "default_device": [
-            "--iree-flow-enable-padding-linalg-ops",
-            "--iree-flow-linalg-ops-padding-size=32",
-            "--iree-flow-enable-conv-img2col-transform"
+            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=16},iree-linalg-ext-convert-conv2d-to-winograd))"
           ]
         }
       }
@@ -54,16 +45,12 @@
     "untuned": {
       "fp16": {
         "default_compilation_flags": [
-          "--iree-flow-enable-padding-linalg-ops",
-          "--iree-flow-linalg-ops-padding-size=32",
-          "--iree-flow-enable-conv-img2col-transform"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32}))"
         ]
       },
       "fp32": {
         "default_compilation_flags": [
-          "--iree-flow-enable-conv-nchw-to-nhwc-transform",
-          "--iree-flow-enable-padding-linalg-ops",
-          "--iree-flow-linalg-ops-padding-size=16"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=16}))"
         ]
       }
     }
@@ -72,28 +59,24 @@
     "tuned": {
       "fp16": {
         "default_compilation_flags": [
-          "--iree-flow-linalg-ops-padding-size=16",
-          "--iree-flow-enable-padding-linalg-ops"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
         ]
       },
       "fp32": {
         "default_compilation_flags": [
-          "--iree-flow-linalg-ops-padding-size=16",
-          "--iree-flow-enable-padding-linalg-ops"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
         ]
       }
     },
     "untuned": {
       "fp16": {
         "default_compilation_flags": [
-          "--iree-flow-linalg-ops-padding-size=16",
-          "--iree-flow-enable-padding-linalg-ops"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
         ]
       },
       "fp32": {
         "default_compilation_flags": [
-          "--iree-flow-linalg-ops-padding-size=16",
-          "--iree-flow-enable-padding-linalg-ops"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
         ]
       }
     }
