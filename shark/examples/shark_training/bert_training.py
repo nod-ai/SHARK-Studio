@@ -1,7 +1,7 @@
 import torch
 from torch.nn.utils import _stateless
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from shark.shark_runner import SharkTrainer
+from shark.shark_trainer import SharkTrainer
 
 
 class MiniLMSequenceClassification(torch.nn.Module):
@@ -42,6 +42,7 @@ def forward(params, buffers, args):
     return params, buffers
 
 
-shark_module = SharkTrainer(mod, inp, custom_inference_fn=forward)
+shark_module = SharkTrainer(mod, inp)
+shark_module.compile(forward)
 
-print(shark_module.forward())
+print(shark_module.train())

@@ -44,7 +44,7 @@ parser.add_argument(
     "--repro_dir",
     help="Directory to which module files will be saved for reproduction or debugging.",
     type=dir_path,
-    default="./shark_tmp",
+    default="shark_tmp",
 )
 parser.add_argument(
     "--enable_tf32",
@@ -89,7 +89,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--local_tank_cache",
-    default="",
+    default=None,
     help="Specify where to save downloaded shark_tank artifacts. If this is not set, the default is ~/.local/shark_tank/.",
 )
 
@@ -110,6 +110,20 @@ parser.add_argument(
     default=False,
     action="store_true",
     help="Enables the --iree-flow-enable-conv-nchw-to-nhwc-transform flag.",
+)
+
+parser.add_argument(
+    "--enable_img2col_transform",
+    default=False,
+    action="store_true",
+    help="Enables the --iree-flow-enable-conv-img2col-transform flag.",
+)
+
+parser.add_argument(
+    "--use_winograd",
+    default=False,
+    action="store_true",
+    help="Enables the --iree-flow-enable-conv-winograd-transform flag.",
 )
 
 shark_args, unknown = parser.parse_known_args()

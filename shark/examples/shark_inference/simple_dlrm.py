@@ -151,7 +151,6 @@ class DLRM_Net(nn.Module):
             and (ln_top is not None)
             and (arch_interaction_op is not None)
         ):
-
             # save arguments
             self.output_d = 0
             self.arch_interaction_op = arch_interaction_op
@@ -216,7 +215,6 @@ class DLRM_Net(nn.Module):
         return ly
 
     def interact_features(self, x, ly):
-
         if self.arch_interaction_op == "dot":
             # concatenate dense and sparse features
             (batch_size, d) = x.shape

@@ -66,11 +66,24 @@ def get_vulkan_target_triple(device_name):
     elif all(x in device_name for x in ("RTX", "2080")):
         triple = f"turing-rtx2080-{system_os}"
     elif all(x in device_name for x in ("A100", "SXM4")):
-        triple = f"ampere-rtx3080-{system_os}"
+        triple = f"ampere-a100-{system_os}"
     elif all(x in device_name for x in ("RTX", "3090")):
         triple = f"ampere-rtx3090-{system_os}"
+    elif all(x in device_name for x in ("RTX", "3080")):
+        triple = f"ampere-rtx3080-{system_os}"
+    elif all(x in device_name for x in ("RTX", "3070")):
+        triple = f"ampere-rtx3070-{system_os}"
+    elif all(x in device_name for x in ("RTX", "3060")):
+        triple = f"ampere-rtx3060-{system_os}"
+    elif all(x in device_name for x in ("RTX", "3050")):
+        triple = f"ampere-rtx3050-{system_os}"
+    # We use ampere until lovelace target triples are plumbed in.
     elif all(x in device_name for x in ("RTX", "4090")):
-        triple = f"ampere-rtx3090-{system_os}"
+        triple = f"ampere-rtx4090-{system_os}"
+    elif all(x in device_name for x in ("RTX", "4080")):
+        triple = f"ampere-rtx4080-{system_os}"
+    elif all(x in device_name for x in ("RTX", "4070")):
+        triple = f"ampere-rtx4070-{system_os}"
     elif all(x in device_name for x in ("RTX", "4000")):
         triple = f"turing-rtx4000-{system_os}"
     elif all(x in device_name for x in ("RTX", "5000")):
@@ -89,7 +102,9 @@ def get_vulkan_target_triple(device_name):
         triple = f"pascal-gtx1080-{system_os}"
 
     # Amd Targets
-    elif all(x in device_name for x in ("AMD", "7900")):
+    # Linux: Radeon RX 7900 XTX
+    # Windows: AMD Radeon RX 7900 XTX
+    elif all(x in device_name for x in ("RX", "7900")):
         triple = f"rdna3-7900-{system_os}"
     elif any(x in device_name for x in ("AMD", "Radeon")):
         triple = f"rdna2-unknown-{system_os}"
@@ -135,7 +150,7 @@ def get_iree_vulkan_args(extra_args=[]):
             break
 
     if vulkan_triple_flag is None:
-        vulkan_triple_flag = get_vulkan_triple_flag(extra_args)
+        vulkan_triple_flag = get_vulkan_triple_flag(extra_args=extra_args)
 
     if vulkan_triple_flag is not None:
         vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)

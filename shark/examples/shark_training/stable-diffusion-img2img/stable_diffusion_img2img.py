@@ -169,6 +169,7 @@ imagenet_style_templates_small = [
     "a large painting in the style of {}",
 ]
 
+
 # Setup the dataset
 class TextualInversionDataset(Dataset):
     def __init__(
@@ -184,7 +185,6 @@ class TextualInversionDataset(Dataset):
         placeholder_token="*",
         center_crop=False,
     ):
-
         self.data_root = data_root
         self.tokenizer = tokenizer
         self.learnable_property = learnable_property
@@ -244,7 +244,10 @@ class TextualInversionDataset(Dataset):
 
         if self.center_crop:
             crop = min(img.shape[0], img.shape[1])
-            h, w, = (
+            (
+                h,
+                w,
+            ) = (
                 img.shape[0],
                 img.shape[1],
             )

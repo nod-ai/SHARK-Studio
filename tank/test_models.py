@@ -43,6 +43,7 @@ def load_csv_and_convert(filename, gen=False):
                     "xfail_cuda": row[8],
                     "xfail_vkm": row[9],
                     "xfail_reason": row[10],
+                    "xfail_other": row[11],
                 }
             )
     # This is a pytest workaround
@@ -89,6 +90,8 @@ def get_valid_test_params():
 def is_valid_case(test_params):
     if test_params[0] == True and test_params[2]["framework"] == "tf":
         return False
+    elif "fp16" in test_params[2]["model_name"] and test_params[1] != "cuda":
+        return False
     else:
         return True
 
@@ -132,13 +135,18 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
-
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.update_tank = self.update_tank
         if "nhcw-nhwc" in self.config["flags"] and not os.path.isfile(
             ".use-iree"
         ):
             shark_args.enable_conv_transform = True
+        else:
+            shark_args.enable_conv_transform = False
+        if "img2col" in self.config["flags"]:
+            shark_args.enable_img2col_transform = True
+        if "winograd" in self.config["flags"]:
+            shark_args.use_winograd = True
 
         model, func_name, inputs, golden_out = download_model(
             self.config["model_name"],
@@ -177,26 +185,12 @@ class SharkModuleTester:
             if self.ci == True:
                 self.upload_repro()
             if self.benchmark == True:
-                # p = multiprocessing.Process(
-                #    target=self.benchmark_module,
-                #    args=(shark_module, inputs, dynamic, device),
-                # )
-                # p.start()
-                # p.join()
                 self.benchmark_module(shark_module, inputs, dynamic, device)
                 print(msg)
-                pytest.xfail(reason="Numerics Issue")
-
+                pytest.xfail(
+                    reason=f"Numerics Mismatch: Use -s flag to print stderr during pytests."
+                )
         if self.benchmark == True:
-            # We must create a new process each time we benchmark a model to allow
-            # for Tensorflow to release GPU resources. Using the same process to
-            # benchmark multiple models leads to OOM.
-            # p = multiprocessing.Process(
-            #    target=self.benchmark_module,
-            #    args=(shark_module, inputs, dynamic, device),
-            # )
-            # p.start()
-            # p.join()
             self.benchmark_module(shark_module, inputs, dynamic, device)
 
         if self.save_repro == True:
@@ -219,10 +213,11 @@ class SharkModuleTester:
 
     def save_reproducers(self):
         # Saves contents of IREE TempFileSaver temporary directory to ./shark_tmp/saved/<test_case>.
-        src = self.temp_dir
-        trg = f"./shark_tmp/saved/{self.tmp_prefix}"
-        if not os.path.isdir("./shark_tmp/saved/"):
-            os.mkdir("./shark_tmp/saved/")
+        src = os.path.join(*self.temp_dir.split("/"))
+        saves = os.path.join(".", "shark_tmp", "saved")
+        trg = os.path.join(saves, self.tmp_prefix)
+        if not os.path.isdir(saves):
+            os.mkdir(saves)
         if not os.path.isdir(trg):
             os.mkdir(trg)
         files = os.listdir(src)
@@ -232,7 +227,12 @@ class SharkModuleTester:
     def upload_repro(self):
         import subprocess
 
-        bashCommand = f"gsutil cp -r ./shark_tmp/saved/{self.tmp_prefix}/* gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
+        src = os.path.join(*self.temp_dir.split("/"))
+        repro_path = os.path.join(
+            ".", "shark_tmp", "saved", self.tmp_prefix, "*"
+        )
+
+        bashCommand = f"gsutil cp -r {repro_path} gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         process = subprocess.run(bashCommand.split())
 
     def postprocess_outputs(self, golden_out, result):
@@ -293,31 +293,15 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(reason=config["xfail_reason"])
 
         # Special cases that need to be marked.
-        if config["model_name"] == "resnet50" and device in [
+        if "macos" in config["xfail_other"] and device in [
             "metal",
             "vulkan",
         ]:
             if get_vulkan_triple_flag() is not None:
                 if "m1-moltenvk-macos" in get_vulkan_triple_flag():
                     pytest.xfail(
-                        reason="M2: Assert Error & M1: CompilerToolError"
+                        reason="conv-related issue on MacStudio, returns VK_ERROR_DEVICE_LOST."
                     )
-        if (
-            config["model_name"] == "camembert-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
-        if (
-            config["model_name"] == "roberta-base"
-            and dynamic == False
-            and device in ["metal", "vulkan"]
-        ):
-            pytest.xfail(
-                reason="chlo.broadcast_compare failed to satify constraint"
-            )
         if (
             config["model_name"]
             in [
@@ -345,11 +329,11 @@ class SharkModuleTest(unittest.TestCase):
         )
         self.module_tester.tmp_prefix = safe_name.replace("/", "_")
 
-        if not os.path.isdir("./shark_tmp/"):
-            os.mkdir("./shark_tmp/")
+        if not os.path.isdir("shark_tmp"):
+            os.mkdir("shark_tmp")
 
         tempdir = tempfile.TemporaryDirectory(
-            prefix=self.module_tester.tmp_prefix, dir="./shark_tmp/"
+            prefix=self.module_tester.tmp_prefix, dir="shark_tmp"
         )
         self.module_tester.temp_dir = tempdir.name
 

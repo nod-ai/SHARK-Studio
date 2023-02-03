@@ -23,8 +23,6 @@ from datetime import datetime
 import time
 import csv
 import os
-import torch
-import torch._dynamo as dynamo
 
 
 class OnnxFusionOptions(object):
@@ -106,6 +104,7 @@ class SharkBenchmarkRunner(SharkRunner):
 
     def benchmark_torch(self, modelname):
         import torch
+        import torch._dynamo as dynamo
         from tank.model_utils import get_torch_model
 
         if self.device == "cuda":
@@ -119,7 +118,7 @@ class SharkBenchmarkRunner(SharkRunner):
         )
         HFmodel, input = get_torch_model(modelname)[:2]
         frontend_model = HFmodel.model
-        frontend_model = dynamo.optimize("inductor")(frontend_model)
+        # frontend_model = dynamo.optimize("inductor")(frontend_model)
         frontend_model.to(torch_device)
         input.to(torch_device)
 
@@ -158,7 +157,10 @@ class SharkBenchmarkRunner(SharkRunner):
         # tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
         tf_device = "/CPU:0"
         with tf.device(tf_device):
-            model, input, = get_tf_model(
+            (
+                model,
+                input,
+            ) = get_tf_model(
                 modelname
             )[:2]
             frontend_model = model
@@ -278,7 +280,8 @@ for currently supported models. Exiting benchmark ONNX."
             ]
 
     def get_metadata(self, modelname):
-        with open("./tank/model_metadata.csv", mode="r") as csvfile:
+        metadata_path = os.path.join(".", "tank", "model_metadata.csv")
+        with open(metadata_path, mode="r") as csvfile:
             torch_reader = csv.reader(csvfile, delimiter=",")
             fields = next(torch_reader)
             for row in torch_reader:

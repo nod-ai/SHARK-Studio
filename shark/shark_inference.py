@@ -69,11 +69,13 @@ class SharkInference:
         is_benchmark: bool = False,
         dispatch_benchmark: str = None,
         dispatch_benchmark_dir: str = "temp_dispatch_benchmarks",
+        device_idx: int = None,
     ):
         self.mlir_module = mlir_module
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.is_benchmark = is_benchmark
+        self.device_idx = device_idx
         self.dispatch_benchmarks = (
             shark_args.dispatch_benchmarks
             if dispatch_benchmark is None
@@ -88,7 +90,6 @@ class SharkInference:
         self.shark_runner = None
 
     def compile(self, extra_args=[]):
-
         if self.dispatch_benchmarks is not None:
             extra_args.append(
                 f"--iree-hal-dump-executable-sources-to={self.dispatch_benchmarks_dir}"
@@ -120,6 +121,7 @@ class SharkInference:
                 self.device,
                 self.mlir_dialect,
                 extra_args=extra_args,
+                device_idx=self.device_idx,
             )
 
         if self.dispatch_benchmarks is not None:
@@ -205,5 +207,6 @@ class SharkInference:
         ) = load_flatbuffer(
             path,
             self.device,
+            self.device_idx,
         )
         return

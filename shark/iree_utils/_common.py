@@ -33,8 +33,9 @@ def run_cmd(cmd):
         )
         result_str = result.stdout.decode()
         return result_str
-    except Exception:
-        sys.exit("Exiting program due to error running:", cmd)
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        sys.exit(f"Exiting program due to error running {cmd}")
 
 
 def iree_device_map(device):

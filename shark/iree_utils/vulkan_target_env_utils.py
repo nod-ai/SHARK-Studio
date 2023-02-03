@@ -16,7 +16,6 @@ from collections import OrderedDict
 
 
 def get_vulkan_target_env(vulkan_target_triple):
-
     arch, product, os = vulkan_target_triple.split("=")[1].split("-")
     triple = (arch, product, os)
     # get version
@@ -37,7 +36,6 @@ def get_vulkan_target_env(vulkan_target_triple):
 
 
 def get_vulkan_target_env_flag(vulkan_target_triple):
-
     target_env = get_vulkan_target_env(vulkan_target_triple)
     target_env_flag = f"--iree-vulkan-target-env={target_env}"
     return target_env_flag
@@ -124,7 +122,6 @@ def get_extensions(triple):
 
 
 def get_vendor(triple):
-
     arch, product, os = triple
     if arch == "unknown":
         return "Unknown"
@@ -206,7 +203,6 @@ def get_vulkan_target_capabilities(triple):
     cap["coopmatCases"] = None
 
     if arch in ["rdna1", "rdna2", "rdna3"]:
-
         cap["maxComputeSharedMemorySize"] = 65536
         cap["maxComputeWorkGroupInvocations"] = 1024
         cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
@@ -287,7 +283,6 @@ def get_vulkan_target_capabilities(triple):
         cap["variablePointersStorageBuffer"] = True
 
     elif arch == "m1":
-
         cap["maxComputeSharedMemorySize"] = 32768
         cap["maxComputeWorkGroupInvocations"] = 1024
         cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
@@ -362,7 +357,6 @@ def get_vulkan_target_capabilities(triple):
             ]
 
     elif arch in ["ampere", "turing"]:
-
         cap["maxComputeSharedMemorySize"] = 49152
         cap["maxComputeWorkGroupInvocations"] = 1024
         cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
@@ -402,7 +396,6 @@ def get_vulkan_target_capabilities(triple):
         ]
 
     elif arch == "adreno":
-
         cap["maxComputeSharedMemorySize"] = 32768
         cap["maxComputeWorkGroupInvocations"] = 1024
         cap["maxComputeWorkGroupSize"] = [1024, 1024, 64]
@@ -447,7 +440,6 @@ def get_vulkan_target_capabilities(triple):
 
     res = ""
     for k, v in cap.items():
-
         if v is None or v == False:
             continue
         if isinstance(v, bool):

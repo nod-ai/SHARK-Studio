@@ -1,0 +1,98 @@
+{
+    "stabilityai/stable-diffusion-2-1": {
+        "unet": {
+            "latents": {
+                "shape": [
+                    "1*batch_size",
+                    4,
+                    "height",
+                    "width"
+                ],
+                "dtype": "f32"
+            },
+            "timesteps": {
+                "shape": [
+                    1
+                ],
+                "dtype": "f32"
+            },
+            "embedding": {
+                "shape": [
+                    "2*batch_size",
+                    "max_len",
+                    1024
+                ],
+                "dtype": "f32"
+            },
+            "guidance_scale": {
+                "shape": 2,
+                "dtype": "f32"
+            }
+        },
+        "vae": {
+            "latents" : {
+                "shape" : [
+                    "1*batch_size",4,"height","width"
+                ],
+                "dtype":"f32"
+            }
+        },
+        "clip": {
+            "token" : {
+                "shape" : [
+                    "2*batch_size",
+                    "max_len"
+                ],
+                "dtype":"i64"
+            }
+        }
+    },
+    "CompVis/stable-diffusion-v1-4": {
+        "unet": {
+            "latents": {
+                "shape": [
+                    "1*batch_size",
+                    4,
+                    "height",
+                    "width"
+                ],
+                "dtype": "f32"
+            },
+            "timesteps": {
+                "shape": [
+                    1
+                ],
+                "dtype": "f32"
+            },
+            "embedding": {
+                "shape": [
+                    "2*batch_size",
+                    "max_len",
+                    768
+                ],
+                "dtype": "f32"
+            },
+            "guidance_scale": {
+                "shape": 2,
+                "dtype": "f32"
+            }
+        },
+        "vae": {
+            "latents" : {
+                "shape" : [
+                    "1*batch_size",4,"height","width"
+                ],
+                "dtype":"f32"
+            }
+        },
+        "clip": {
+            "token" : {
+                "shape" : [
+                    "2*batch_size",
+                    "max_len"
+                ],
+                "dtype":"i64"
+            }
+        }
+    }
+}

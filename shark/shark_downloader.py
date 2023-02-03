@@ -34,7 +34,6 @@ def download_public_file(
     dest_filename = None
     desired_file = None
     if single_file:
-
         desired_file = full_gs_url.split("/")[-1]
         source_blob_name = "/".join(full_gs_url.split("/")[3:-1])
         destination_folder_name, dest_filename = os.path.split(
@@ -80,13 +79,17 @@ input_type_to_np_dtype = {
 # Save the model in the home local so it needn't be fetched everytime in the CI.
 home = str(Path.home())
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
-custom_path = shark_args.local_tank_cache
+custom_path_list = None
+if shark_args.local_tank_cache is not None:
+    custom_path_list = shark_args.local_tank_cache.split("/")
+
 if os.path.exists(alt_path):
     WORKDIR = alt_path
     print(
         f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
     )
-if custom_path:
+if custom_path_list:
+    custom_path = os.path.join(*custom_path_list)
     if not os.path.exists(custom_path):
         os.mkdir(custom_path)
 
@@ -201,7 +204,7 @@ def _internet_connected():
     import requests as req
 
     try:
-        req.get("http://8.8.8.8")
+        req.get("http://1.1.1.1")
         return True
     except:
         return False
