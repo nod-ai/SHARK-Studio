@@ -1,6 +1,7 @@
 import os
 import sys
 from pathlib import Path
+import glob
 
 if "AMD_ENABLE_LLPC" not in os.environ:
     os.environ["AMD_ENABLE_LLPC"] = "1"
@@ -57,29 +58,38 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    with gr.Group():
-                        model_id = gr.Dropdown(
-                            label="Model ID",
-                            value="stabilityai/stable-diffusion-2-1-base",
-                            choices=[
-                                "Linaqruf/anything-v3.0",
-                                "prompthero/openjourney",
-                                "wavymulder/Analog-Diffusion",
-                                "stabilityai/stable-diffusion-2-1",
-                                "stabilityai/stable-diffusion-2-1-base",
-                                "CompVis/stable-diffusion-v1-4",
-                            ],
-                        )
-                        custom_model_id = gr.Textbox(
-                            placeholder="check here: https://huggingface.co/models eg. runwayml/stable-diffusion-v1-5",
-                            value="",
-                            label="HuggingFace Model ID",
-                        )
-                    with gr.Group():
-                        ckpt_loc = gr.File(
-                            label="Upload checkpoint",
-                            file_types=[".ckpt", ".safetensors"],
-                        )
+                    model_id = gr.Dropdown(
+                        label="Model ID",
+                        value="stabilityai/stable-diffusion-2-1-base",
+                        choices=[
+                            "Linaqruf/anything-v3.0",
+                            "prompthero/openjourney",
+                            "wavymulder/Analog-Diffusion",
+                            "stabilityai/stable-diffusion-2-1",
+                            "stabilityai/stable-diffusion-2-1-base",
+                            "CompVis/stable-diffusion-v1-4",
+                        ],
+                    )
+                    custom_model_id = gr.Textbox(
+                        placeholder="SG161222/Realistic_Vision_V1.3",
+                        value="",
+                        label="HuggingFace Model ID",
+                    )
+                with gr.Group():
+                    ckpt_path = "models"
+                    types = (
+                        "*.ckpt",
+                        "*.safetensors",
+                    )  # the tuple of file types
+                    ckpt_files = ["None"]
+                    for extn in types:
+                        files = glob.glob(os.path.join(ckpt_path, extn))
+                        ckpt_files.extend(files)
+                    ckpt_loc = gr.Dropdown(
+                        label="Place all checkpoints in models/",
+                        value="None",
+                        choices=ckpt_files,
+                    )
 
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
@@ -151,7 +161,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                     with gr.Row():
                         save_metadata_to_png = gr.Checkbox(
                             label="Save prompt information to PNG",
-                            value=False,
+                            value=True,
                             interactive=True,
                         )
                         save_metadata_to_json = gr.Checkbox(

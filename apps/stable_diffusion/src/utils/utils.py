@@ -271,7 +271,10 @@ def set_init_device_flags():
         print("Tuned models are currently not supported for this setting.")
 
     # set import_mlir to True for unuploaded models.
-    if args.hf_model_id not in [
+    if args.ckpt_loc != "":
+        args.import_mlir = True
+
+    elif args.hf_model_id not in [
         "Linaqruf/anything-v3.0",
         "dreamlike-art/dreamlike-diffusion-1.0",
         "prompthero/openjourney",
@@ -282,7 +285,7 @@ def set_init_device_flags():
     ]:
         args.import_mlir = True
 
-    if args.height != 512 or args.width != 512 or args.batch_size != 1:
+    elif args.height != 512 or args.width != 512 or args.batch_size != 1:
         args.import_mlir = True
 
 
