@@ -23,8 +23,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
     os.mkdir("./test_images")
     os.mkdir("./test_images/golden")
     hf_model_names = model_config_dicts[0].values()
-    tuned_options = ["--no-use_tuned"]  #'use_tuned']
-    devices = ["vulkan"]
+    tuned_options = ["--no-use_tuned", "use_tuned"]
     if beta:
         extra_flags.append("--beta_models=True")
     for model_name in hf_model_names:
@@ -33,15 +32,19 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                 "python",
                 "apps/stable_diffusion/scripts/txt2img.py",
                 "--device=" + device,
-                "--output_dir=./test_images/" + model_name,
+                "--prompt=cyberpunk forest by Salvador Dali",
+                "--output_dir="
+                + os.path.join(os.getcwd(), "test_images", model_name),
                 "--hf_model_id=" + model_name,
                 use_tune,
             ]
             command += extra_flags
             generated_image = not subprocess.call(
-                command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                command, stdout=subprocess.DEVNULL
             )
             if generated_image:
+                print(" ".join(command))
+                print("Successfully generated image")
                 os.makedirs(
                     "./test_images/golden/" + model_name, exist_ok=True
                 )
@@ -49,18 +52,16 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                     "gs://shark_tank/testdata/golden/" + model_name,
                     "./test_images/golden/" + model_name,
                 )
-                comparison = [
-                    "python",
-                    "build_tools/image_comparison.py",
-                    "--golden_url=gs://shark_tank/testdata/golden/"
-                    + model_name
-                    + "/*.png",
-                    "--newfile=./test_images/" + model_name + "/*.png",
-                ]
-                test_file = glob("./test_images/" + model_name + "/*.png")[0]
+                test_file_path = os.path.join(
+                    os.getcwd(), "test_images", model_name, "generated_imgs"
+                )
+                test_file = glob(test_file_path + "/*.png")[0]
                 golden_path = "./test_images/golden/" + model_name + "/*.png"
                 golden_file = glob(golden_path)[0]
                 compare_images(test_file, golden_file)
+            else:
+                print(" ".join(command))
+                print("failed to generate image for this configuration")
 
 
 parser = argparse.ArgumentParser()
