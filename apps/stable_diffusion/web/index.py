@@ -73,7 +73,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         files = glob.glob(os.path.join(ckpt_path, extn))
                         ckpt_files.extend(files)
                     custom_model = gr.Dropdown(
-                        label=f"Custom Models (Drop .ckpts at {ckpt_path})",
+                        label=f"Models (Custom Model path: {ckpt_path})",
                         value="None",
                         choices=ckpt_files
                         + [
@@ -86,9 +86,9 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         ],
                     )
                     hf_model_id = gr.Textbox(
-                        placeholder="SG161222/Realistic_Vision_V1.3",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
                         value="",
-                        label="HuggingFace Model ID (Set Custom Models dropdown to None to prioritize this)",
+                        label="HuggingFace Model ID",
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -104,7 +104,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         lines=1,
                         elem_id="prompt_box",
                     )
-                with gr.Accordion(label="Advance Options", open=False):
+                with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
                             label="Scheduler",
