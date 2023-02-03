@@ -254,7 +254,6 @@ def set_init_device_flags():
         "sm_80",
         "sm_84",
         "sm_86",
-        "sm_89",
     ]:
         args.use_tuned = False
 
