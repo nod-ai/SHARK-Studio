@@ -26,7 +26,7 @@ def load_model_from_tank():
         get_variant_version,
     )
 
-    variant, version = get_variant_version(args.hf_model_id)
+    version, variant = get_variant_version(args.hf_model_id)
 
     shark_args.local_tank_cache = args.local_tank_cache
     bucket_key = f"{variant}/untuned"
@@ -62,7 +62,7 @@ def load_winograd_configs():
 def load_lower_configs():
     from apps.stable_diffusion.src.models import get_variant_version
 
-    variant, version = get_variant_version(args.hf_model_id)
+    version, variant = get_variant_version(args.hf_model_id)
 
     config_bucket = "gs://shark_tank/sd_tuned/configs/"
     config_version = version
@@ -109,19 +109,8 @@ def annotate_with_lower_configs(
 ):
     if use_winograd:
         dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
-        preprocess_flag = (
-            "--iree-preprocessing-pass-pipeline='builtin.module"
-            "(func.func(iree-preprocessing-convert-conv2d-to-img2col,"
-            "iree-preprocessing-pad-linalg-ops{pad-size=32},"
-            "iree-linalg-ext-convert-conv2d-to-winograd))' "
-        )
     else:
-        dump_after = "iree-preprocessing-pad-linalg-ops"
-        preprocess_flag = (
-            "--iree-preprocessing-pass-pipeline='builtin.module"
-            "(func.func(iree-preprocessing-convert-conv2d-to-img2col,"
-            "iree-preprocessing-pad-linalg-ops{pad-size=32}))' "
-        )
+        dump_after = "iree-flow-pad-linalg-ops"
 
     # Dump IR after padding/img2col/winograd passes
     device_spec_args = ""
@@ -143,9 +132,11 @@ def annotate_with_lower_configs(
         "--iree-input-type=tm_tensor "
         f"--iree-hal-target-backends={iree_target_map(device)} "
         f"{device_spec_args}"
-        f"{preprocess_flag}"
         "--iree-stream-resource-index-bits=64 "
         "--iree-vm-target-index-bits=64 "
+        "--iree-flow-enable-padding-linalg-ops "
+        "--iree-flow-linalg-ops-padding-size=32 "
+        "--iree-flow-enable-conv-img2col-transform "
         f"--mlir-print-ir-after={dump_after} "
         "--compile-to=flow "
         f"2>{args.annotation_output}/dump_after_winograd.mlir "
