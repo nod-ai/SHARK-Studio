@@ -42,3 +42,46 @@ To build the vulkan app for profiling UNet follow the instructions [here](https:
 ```shell
 ./build/vulkan_gui/iree-vulkan-gui --module_file=/path/to/unet.vmfb --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
 ```
+
+</details>
+  <details>
+  <summary>Debug Commands</summary>
+
+## Debug commands and other advanced usage follows.
+
+```shell
+python txt2img.py --precision="fp32"|"fp16" --device="cpu"|"cuda"|"vulkan" --import_mlir|--no-import_mlir --prompt "enter the text" 
+```
+
+## dump all dispatch .spv and isa using amdllpc
+
+```shell
+python txt2img.py --precision="fp16" --device="vulkan" --iree-vulkan-target-triple=rdna3-unknown-linux --no-load_vmfb --dispatch_benchmarks="all" --dispatch_benchmarks_dir="SD_dispatches" --dump_isa
+```
+
+## Compile and save the .vmfb (using vulkan fp16 as an example):
+
+```shell
+python txt2img.py --precision=fp16 --device=vulkan --steps=50 --save_vmfb
+```
+
+## Capture an RGP trace
+
+```shell
+python txt2img.py --precision=fp16 --device=vulkan --steps=50 --save_vmfb --enable_rgp
+```
+
+## Run the vae module with iree-benchmark-module (NCHW, fp16, vulkan, for example):
+
+```shell
+iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan --function_input=1x4x64x64xf16  
+```
+
+## Run the unet module with iree-benchmark-module (same config as above):
+```shell
+##if you want to use .npz inputs:
+unzip ~/.local/shark_tank/<your unet>/inputs.npz
+iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --function_input=@arr_0.npy --function_input=1xf16 --function_input=@arr_2.npy --function_input=@arr_3.npy --function_input=@arr_4.npy  
+```
+
+</details>
