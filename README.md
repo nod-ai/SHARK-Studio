@@ -6,7 +6,36 @@ High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerator
 [![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
 
 
-## Installation (Windows, Linux and macOS)
+<details>
+  <summary>Prerequisites - Drivers </summary>
+  
+#### Install your hardware drivers
+* [AMD RDNA Users] Download this specific driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree). Latest drivers may not work.
+* [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work. 
+* [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
+
+Other users please ensure you have your latest vendor drivers and Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home) and if you are using vulkan check `vulkaninfo` works in a terminal window
+
+</details>
+
+
+ 
+### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
+
+Install Driver from Prerequisites above
+
+Download the latest .exe https://github.com/nod-ai/SHARK/releases. Double click the .exe and you should have the UI in the browser. If you have custom models (ckpt, safetensors) put in a `models/` directory where the .exe is. 
+
+Read https://github.com/nod-ai/SHARK/blob/main/apps/stable_diffusion/stable_diffusion_amd.md for some known AMD Driver quirks with cursors etc. Dark Theme works better: http://localhost:8080/?__theme=dark
+
+
+
+
+
+<details>
+  <summary>Advanced Installation (Only for developers)</summary>
+  
+## Advanced Installation (Windows, Linux and macOS) for developers
 
 ## Check out the code
 
@@ -63,14 +92,6 @@ source shark.venv/bin/activate
 
 ### Run Stable Diffusion on your device - Commandline
 
-#### Install your hardware drivers
-* [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree)
-* [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work. 
-* [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
-
-Other users please ensure you have your latest vendor drivers and Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home) and if you are using vulkan check `vulkaninfo` works in a terminal window
-
-
 #### Windows 10/11 Users
 ```powershell
 (shark.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\txt2img.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
@@ -82,6 +103,7 @@ python3.10 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vu
 ```
 
 You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
+</details>
 
 The output on a 7900XTX would like:
 
