@@ -1,6 +1,6 @@
 # SHARK
 
-High Performance Machine Learning and Data Analytics for CPUs, GPUs, Accelerators and Heterogeneous Clusters
+High Performance Machine Learning Distribution
 
 [![Nightly Release](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml)
 [![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
@@ -22,14 +22,17 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
  
 ### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
 
-Install Driver from Prerequisites above
+Install Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
 
-Download the latest .exe https://github.com/nod-ai/SHARK/releases. Double click the .exe and you should have the UI in the browser. If you have custom models (ckpt, safetensors) put in a `models/` directory where the .exe is. 
+Download the latest .exe https://github.com/nod-ai/SHARK/releases. 
 
-Read https://github.com/nod-ai/SHARK/blob/main/apps/stable_diffusion/stable_diffusion_amd.md for some known AMD Driver quirks with cursors etc. Dark Theme works better: http://localhost:8080/?__theme=dark
+Double click the .exe and you should have the [UI]( http://localhost:8080/?__theme=dark) in the browser. 
 
+If you have custom models (ckpt, safetensors) put in a `models/` directory where the .exe is. 
 
+Enjoy. 
 
+Some known AMD Driver quirks and fixes with cursors are documented [here](https://github.com/nod-ai/SHARK/blob/main/apps/stable_diffusion/stable_diffusion_amd.md ).
 
 
 <details>
