@@ -1,6 +1,6 @@
 # Stable Diffusion optimized for AMD RDNA2/RDNA3 GPUs
 
-Before you start, please be aware that this is beta software that relies on a special AMD driver. Like all StableDiffusion GUIs published so far, you need some technical expertise to set it up. We apologize in advance if you bump into issues. If that happens, please don't hesitate to ask our Discord community for help! If you still can't get it to work, we're sorry, and please be assured that we (Nod and AMD) are working hard to improve the user experience in coming months.
+Before you start, please be aware that this is beta software that relies on a special AMD driver. Like all StableDiffusion GUIs published so far, you need some technical expertise to set it up. We apologize in advance if you bump into issues. If that happens, please don't hesitate to ask our Discord community for help! Please be assured that we (Nod and AMD) are working hard to improve the user experience in coming months.
 If it works well for you, please "star" the following GitHub projects... this is one of the best ways to help and spread the word!
 
 * https://github.com/nod-ai/SHARK
@@ -26,7 +26,7 @@ KNOWN ISSUES with this special AMD driver:
 Download the latest Windows SHARK SD binary [492 here](https://github.com/nod-ai/SHARK/releases/download/20230203.492/shark_sd_20230203_492.exe) in a folder of your choice. If you want nighly builds, you can look for them on the GitHub releases page.
 
 Notes:
-* We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR which can be outdated if you run a new EXE from the same folder. You can use `--clean_all` flag once to clean all the old files. 
+* We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR which can be outdated if you run a new EXE from the same folder. You can use `--clear_all` flag once to clean all the old files. 
 * If you recently updated the driver or this binary (EXE file), we recommend you:
   * clear all the local artifacts with `--clear_all` OR 
   * clear the Vulkan shader cache: For Windows users this can be done by clearing the contents of `C:\Users\%username%\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
@@ -56,84 +56,6 @@ Here are some samples generated:
 ![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
 
 
-<details>
-  <summary>Advanced Installation </summary>
-
-
-## Setup your Python Virtual Environment and Dependencies
-<details>
- <summary> Windows 10/11 Users </summary>
-
-* Install the latest Python 3.10.x version from [here](https://www.python.org/downloads/windows/)
-
-* Install Git for Windows from [here](https://git-scm.com/download/win)
-
-#### Allow the install script to run in Powershell
-```powershell
-set-executionpolicy remotesigned 
-```
-
-#### Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...)
-```powershell
-git clone https://github.com/nod-ai/SHARK.git
-cd SHARK
-./setup_venv.ps1 #You can re-run this script to get the latest version
-```
-</details> 
-
- <details>
-  <summary>Linux</summary>
-
-```shell
-git clone https://github.com/nod-ai/SHARK.git
-cd SHARK
-./setup_venv.sh
-source shark.venv/bin/activate
-```
- </details>
-
-### Run Stable Diffusion on your device - WebUI
-
-<details>
- <summary>Windows 10/11 Users</summary>
- 
-```powershell
-(shark.venv) PS C:\g\shark> cd .\apps\stable_diffusion\web\
-(shark.venv) PS C:\g\shark\apps\stable_diffusion\web> python .\index.py
-```
- 
- </details>
- 
-<details>
- <summary>Linux Users</summary>
- 
-```shell
-(shark.venv) > cd apps/stable_diffusion/web
-(shark.venv) > python index.py
-```
- 
-</details>
-
-### Run Stable Diffusion on your device - Commandline
-
-<details>
- <summary>Windows 10/11 Users</summary>
- 
-```powershell
-(shark.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\txt2img.py --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
-```
- 
-  </details>
-
-<details>
- <summary>Linux</summary>
- 
-```shell
-python3.10 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
-```
- 
-  </details>
-
 The output on a 7900XTX would like:
 
 ```shell 
@@ -145,10 +67,4 @@ VAE Inference time (ms): 78.590
 Total image generation time: 2.5788655281066895sec
 ```
 
-For more options to the Stable Diffusion model read [this](https://github.com/nod-ai/SHARK/blob/main/shark/examples/shark_inference/stable_diffusion/README.md)
- 
-</details>
-  <details>
-  <summary>Discord link</summary>
 Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
-</details>
