@@ -80,17 +80,11 @@ def get_iree_common_args():
 def get_model_specific_args():
     ms_args = []
     if shark_args.enable_conv_transform == True:
-        ms_args += [
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-flow-convert-conv-nchw-to-nhwc))"
-        ]
+        ms_args += ["--iree-flow-enable-conv-nchw-to-nhwc-transform"]
     if shark_args.enable_img2col_transform == True:
-        ms_args += [
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col))"
-        ]
+        ms_args += ["--iree-flow-enable-conv-img2col-transform"]
     if shark_args.use_winograd == True:
-        ms_args += [
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-linalg-ext-convert-conv2d-to-winograd))"
-        ]
+        ms_args += ["--iree-flow-enable-conv-winograd-transform"]
     return ms_args
 
 

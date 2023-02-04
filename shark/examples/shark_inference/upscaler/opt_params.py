@@ -13,15 +13,20 @@ if BATCH_SIZE != 1:
 
 
 unet_flag = [
-    "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32}))"
+    "--iree-flow-enable-padding-linalg-ops",
+    "--iree-flow-linalg-ops-padding-size=32",
+    "--iree-flow-enable-conv-img2col-transform",
 ]
 
 vae_flag = [
-    "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-flow-convert-conv-nchw-to-nhwc,iree-preprocessing-pad-linalg-ops{pad-size=16}))"
+    "--iree-flow-enable-conv-nchw-to-nhwc-transform",
+    "--iree-flow-enable-padding-linalg-ops",
+    "--iree-flow-linalg-ops-padding-size=16",
 ]
 
 clip_flag = [
-    "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
+    "--iree-flow-linalg-ops-padding-size=16",
+    "--iree-flow-enable-padding-linalg-ops",
 ]
 
 bucket = "gs://shark_tank/stable_diffusion/"
