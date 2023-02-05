@@ -26,13 +26,13 @@ Run / Benchmark Command (FP32 - NCHW):
 
 ```shell
 ## Vulkan AMD:
-iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
+iree-benchmark-module --module=/path/to/output/vmfb --function=forward --device=vulkan --input=1x4x64x64xf32 --input=1xf32 --input=2x77x768xf32 --input=f32=1.0 --input=f32=1.0
 
 ## CUDA:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=cuda  --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
+iree-benchmark-module --module=/path/to/vmfb --function=forward --device=cuda  --input=1x4x64x64xf32 --input=1xf32 --input=2x77x768xf32 --input=f32=1.0 --input=f32=1.0
 
 ## CPU:
-iree-benchmark-module --module_file=/path/to/vmfb --entry_function=forward --device=local-task  --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
+iree-benchmark-module --module=/path/to/vmfb --function=forward --device=local-task  --input=1x4x64x64xf32 --input=1xf32 --input=2x77x768xf32 --input=f32=1.0 --input=f32=1.0
 
 ```
 
@@ -40,7 +40,7 @@ Run via vulkan_gui for RGP Profiling:
 
 To build the vulkan app for profiling UNet follow the instructions [here](https://github.com/nod-ai/SHARK/tree/main/cpp) and then run the following command from the cpp directory with your compiled stable_diff.vmfb
 ```shell
-./build/vulkan_gui/iree-vulkan-gui --module_file=/path/to/unet.vmfb --function_input=1x4x64x64xf32 --function_input=1xf32 --function_input=2x77x768xf32 --function_input=f32=1.0 --function_input=f32=1.0
+./build/vulkan_gui/iree-vulkan-gui --module=/path/to/unet.vmfb --input=1x4x64x64xf32 --input=1xf32 --input=2x77x768xf32 --input=f32=1.0 --input=f32=1.0
 ```
 
 </details>
@@ -74,14 +74,14 @@ python txt2img.py --precision=fp16 --device=vulkan --steps=50 --save_vmfb --enab
 ## Run the vae module with iree-benchmark-module (NCHW, fp16, vulkan, for example):
 
 ```shell
-iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --device=vulkan --function_input=1x4x64x64xf16  
+iree-benchmark-module --module=/path/to/output/vmfb --function=forward --device=vulkan --input=1x4x64x64xf16  
 ```
 
 ## Run the unet module with iree-benchmark-module (same config as above):
 ```shell
 ##if you want to use .npz inputs:
 unzip ~/.local/shark_tank/<your unet>/inputs.npz
-iree-benchmark-module --module_file=/path/to/output/vmfb --entry_function=forward --function_input=@arr_0.npy --function_input=1xf16 --function_input=@arr_2.npy --function_input=@arr_3.npy --function_input=@arr_4.npy  
+iree-benchmark-module --module=/path/to/output/vmfb --function=forward --input=@arr_0.npy --input=1xf16 --input=@arr_2.npy --input=@arr_3.npy --input=@arr_4.npy  
 ```
 
 </details>
