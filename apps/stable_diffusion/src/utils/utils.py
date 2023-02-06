@@ -1,6 +1,8 @@
 import os
 import gc
 from pathlib import Path
+import numpy as np
+from random import randint
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
@@ -431,3 +433,12 @@ def fetch_or_delete_vmfbs(basic_model_name, use_base_vae, precision="fp32"):
                 vmfb_path[i], model_name[i], precision
             )
     return compiled_models
+
+
+# Generate and return a new seed if the provided one is not in the supported range (including -1)
+def sanitize_seed(seed):
+    uint32_info = np.iinfo(np.uint32)
+    uint32_min, uint32_max = uint32_info.min, uint32_info.max
+    if seed < uint32_min or seed >= uint32_max:
+        seed = randint(uint32_min, uint32_max)
+    return seed
