@@ -13,6 +13,7 @@ from apps.stable_diffusion.src.utils import (
     fetch_or_delete_vmfbs,
     preprocessCKPT,
     get_path_to_diffusers_checkpoint,
+    fetch_and_update_base_model_id,
 )
 
 
@@ -79,8 +80,8 @@ class SharkifyStableDiffusionModel:
         self.width = width // 8
         self.batch_size = batch_size
         self.custom_weights = custom_weights
-        if self.custom_weights != "":
-            assert self.custom_weights.lower().endswith(
+        if custom_weights != "":
+            assert custom_weights.lower().endswith(
                 (".ckpt", ".safetensors")
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
@@ -216,35 +217,72 @@ class SharkifyStableDiffusionModel:
         )
         return shark_clip
 
+    # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
+    # configiration.
+    def compile_all(self, base_model_id):
+        self.inputs = get_input_info(
+            base_models[base_model_id],
+            self.max_len,
+            self.width,
+            self.height,
+            self.batch_size,
+        )
+        compiled_unet = self.get_unet()
+        compiled_vae = self.get_vae()
+        compiled_clip = self.get_clip()
+        
+        return compiled_clip, compiled_unet, compiled_vae
+
     def __call__(self):
+        # Step 1:
+        # --  Fetch all vmfbs for the model, if present, else delete the lot.
         vmfbs = fetch_or_delete_vmfbs(
             self.model_name, self.base_vae, self.precision
-        )
+        )   
         if vmfbs[0]:
-            print("Loading vmfbs from cache")
+            # -- If all vmfbs are indeed present, we also try and fetch the base
+            #    model configuration for running SD with custom checkpoints.
+            if self.custom_weights != "":
+                args.hf_model_id = fetch_and_update_base_model_id(self.custom_weights)
+            if args.hf_model_id == "":
+                sys.exit("Base model configuration for the custom model is missing. Use `--clear_all` and re-run.")
+            print("Loaded vmfbs from cache and successfully fetched base model configuration.")
             return vmfbs
+
+        # Step 2:
+        # -- If vmfbs weren't found, we try to see if the base model configuration
+        #    for the required SD run is known to us and bypass the retry mechanism.
+        model_to_run = ""
         if self.custom_weights != "":
+            model_to_run = self.custom_weights
             assert self.custom_weights.lower().endswith(
                 (".ckpt", ".safetensors")
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             preprocessCKPT(self.custom_weights)
+        else:
+            model_to_run = args.hf_model_id
+        base_model_fetched = fetch_and_update_base_model_id(model_to_run)
+        if base_model_fetched != "":
+            print("Compiling all the models with the fetched base model configuration.")
+            if args.ckpt_loc != "":
+                args.hf_model_id = base_model_fetched
+            return self.compile_all(base_model_fetched)
+
+        # Step 3:
+        # -- This is the retry mechanism where the base model's configuration is not
+        #    known to us and figure that out by trial and error.
+        print("Inferring base model configuration.")
         for model_id in base_models:
-            self.inputs = get_input_info(
-                base_models[model_id],
-                self.max_len,
-                self.width,
-                self.height,
-                self.batch_size,
-            )
             try:
-                compiled_unet = self.get_unet()
-                compiled_vae = self.get_vae()
-                compiled_clip = self.get_clip()
+                compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id)
             except Exception as e:
                 if args.enable_stack_trace:
                     traceback.print_exc()
                 print("Retrying with a different base model configuration")
                 continue
+            # -- Once a successful compilation has taken place we'd want to store
+            #    the base model's configuration inferred.
+            fetch_and_update_base_model_id(model_to_run, model_id)
             # This is done just because in main.py we are basing the choice of tokenizer and scheduler
             # on `args.hf_model_id`. Since now, we don't maintain 1:1 mapping of variants and the base
             # model and rely on retrying method to find the input configuration, we should also update

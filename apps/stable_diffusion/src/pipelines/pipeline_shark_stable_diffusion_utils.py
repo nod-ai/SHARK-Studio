@@ -186,6 +186,8 @@ class StableDiffusionPipeline:
         use_tuned: bool,
     ):
         if import_mlir:
+            # TODO: Delet this when on-the-fly tuning of models work.
+            use_tuned = False
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,

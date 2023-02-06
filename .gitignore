@@ -176,5 +176,9 @@ onnx_models/
 # Generated images
 generated_imgs/
 
+# Custom model related artefacts
+apps/stable_diffusion/src/utils/resources/variants.json
+models/
+
 # models folder
 apps/stable_diffusion/web/models/
