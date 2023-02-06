@@ -8,6 +8,8 @@ import json
 import torch
 import re
 import time
+import numpy as np
+from random import randint
 from pathlib import Path
 from PIL import PngImagePlugin
 from datetime import datetime as dt
@@ -263,6 +265,13 @@ if __name__ == "__main__":
     set_init_device_flags()
     schedulers = get_schedulers(args.hf_model_id)
     scheduler_obj = schedulers[args.scheduler]
+
+    seed = args.seed
+    uint32_info = np.iinfo(np.uint32)
+    uint32_min, uint32_max = uint32_info.min, uint32_info.max
+    if seed < uint32_min or seed >= uint32_max:
+        seed = randint(uint32_min, uint32_max)
+    args.seed = seed
 
     txt2img_obj = Text2ImagePipeline.from_pretrained(
         scheduler_obj,

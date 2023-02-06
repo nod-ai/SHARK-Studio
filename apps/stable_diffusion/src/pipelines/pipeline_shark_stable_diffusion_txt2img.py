@@ -1,7 +1,5 @@
 import torch
 from tqdm.auto import tqdm
-import numpy as np
-from random import randint
 from transformers import CLIPTokenizer
 from typing import Union
 from shark.shark_inference import SharkInference
@@ -88,11 +86,6 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         prompts = prompts * batch_size
         neg_prompts = neg_prompts * batch_size
 
-        # seed generator to create the inital latent noise. Also handle out of range seeds.
-        uint32_info = np.iinfo(np.uint32)
-        uint32_min, uint32_max = uint32_info.min, uint32_info.max
-        if seed < uint32_min or seed >= uint32_max:
-            seed = randint(uint32_min, uint32_max)
         generator = torch.manual_seed(seed)
 
         # Get initial latents
