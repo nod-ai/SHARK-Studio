@@ -81,21 +81,23 @@ home = str(Path.home())
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
 custom_path_list = None
 if shark_args.local_tank_cache is not None:
-    custom_path_list = shark_args.local_tank_cache.split("/")
-
-if os.path.exists(alt_path):
-    WORKDIR = alt_path
-    print(
-        f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
-    )
-if custom_path_list:
-    custom_path = os.path.join(*custom_path_list)
+    if os.path.isabs(shark_args.local_tank_cache) == False:
+        custom_path_list = shark_args.local_tank_cache.split("/")
+        custom_path = os.path.join(*custom_path_list)
+    else:
+        custom_path = shark_args.local_tank_cache
     if not os.path.exists(custom_path):
         os.mkdir(custom_path)
 
     WORKDIR = custom_path
 
     print(f"Using {WORKDIR} as local shark_tank cache directory.")
+
+if os.path.exists(alt_path):
+    WORKDIR = alt_path
+    print(
+        f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
+    )
 else:
     WORKDIR = os.path.join(home, ".local/shark_tank/")
     print(
