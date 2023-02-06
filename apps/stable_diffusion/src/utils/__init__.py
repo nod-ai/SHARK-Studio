@@ -8,6 +8,7 @@ from apps.stable_diffusion.src.utils.resources import (
     base_models,
     opt_flags,
     resource_path,
+    fetch_and_update_base_model_id,
 )
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
 from apps.stable_diffusion.src.utils.stable_args import args
