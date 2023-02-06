@@ -166,7 +166,7 @@
 }
 
 #demo_title {
-    background-color: : var(--color-background-primary);
+    background-color: var(--color-background-primary);
     border-radius: 0 !important;
     border: 0;
     padding-top: 15px;
