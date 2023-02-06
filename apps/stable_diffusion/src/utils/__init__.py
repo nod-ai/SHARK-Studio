@@ -22,4 +22,5 @@ from apps.stable_diffusion.src.utils.utils import (
     preprocessCKPT,
     fetch_or_delete_vmfbs,
     get_path_to_diffusers_checkpoint,
+    sanitize_seed,
 )

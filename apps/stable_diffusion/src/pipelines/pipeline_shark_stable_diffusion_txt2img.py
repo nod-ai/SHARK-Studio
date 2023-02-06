@@ -89,6 +89,7 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         neg_prompts = neg_prompts * batch_size
 
         # seed generator to create the inital latent noise. Also handle out of range seeds.
+        # TODO: Wouldn't it be preferable to just report an error instead of modifying the seed on the fly?
         uint32_info = np.iinfo(np.uint32)
         uint32_min, uint32_max = uint32_info.min, uint32_info.max
         if seed < uint32_min or seed >= uint32_max:

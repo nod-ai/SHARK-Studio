@@ -18,6 +18,7 @@ from apps.stable_diffusion.src import (
     Text2ImagePipeline,
     get_schedulers,
     set_init_device_flags,
+    utils,
 )
 
 
@@ -59,8 +60,8 @@ if args.clear_all:
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
 
 
-# save output images and the inputs correspoding to it.
-def save_output_img(output_img):
+# save output images and the inputs corresponding to it.
+def save_output_img(output_img, img_seed):
     output_path = args.output_dir if args.output_dir else Path.cwd()
     generated_imgs_path = Path(output_path, "generated_imgs")
     generated_imgs_path.mkdir(parents=True, exist_ok=True)
@@ -68,8 +69,12 @@ def save_output_img(output_img):
 
     prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[0][:15])
     out_img_name = (
-        f"{prompt_slice}_{args.seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
+        f"{prompt_slice}_{img_seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
     )
+
+    img_model = args.hf_model_id
+    if args.ckpt_loc:
+        img_model = os.path.basename(args.ckpt_loc)
 
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
@@ -81,7 +86,7 @@ def save_output_img(output_img):
         if args.write_metadata_to_png:
             pngInfo.add_text(
                 "parameters",
-                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {args.width}x{args.height}, Model: {args.hf_model_id}",
+                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed}, Size: {args.width}x{args.height}, Model: {img_model}",
             )
 
         output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
@@ -93,11 +98,11 @@ def save_output_img(output_img):
             )
 
     new_entry = {
-        "VARIANT": args.hf_model_id,
+        "VARIANT": img_model,
         "SCHEDULER": args.scheduler,
         "PROMPT": args.prompts[0],
         "NEG_PROMPT": args.negative_prompts[0],
-        "SEED": args.seed,
+        "SEED": img_seed,
         "CFG_SCALE": args.guidance_scale,
         "PRECISION": args.precision,
         "STEPS": args.steps,
@@ -150,7 +155,7 @@ def txt2img_inf(
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
     args.guidance_scale = guidance_scale
-    args.seed = seed
+    img_seed = utils.sanitize_seed(seed)
     args.steps = steps
     args.scheduler = scheduler
 
@@ -235,19 +240,19 @@ def txt2img_inf(
         width,
         steps,
         guidance_scale,
-        seed,
+        img_seed,
         args.max_length,
         dtype,
         args.use_base_vae,
         cpu_scheduling,
     )
     total_time = time.time() - start_time
-    save_output_img(generated_imgs[0])
+    save_output_img(generated_imgs[0], img_seed)
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={args.height}x{args.width}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={img_seed}, size={args.height}x{args.width}"
     text_output += (
         f", batch size={args.batch_size}, max_length={args.max_length}"
     )
@@ -263,6 +268,7 @@ if __name__ == "__main__":
     set_init_device_flags()
     schedulers = get_schedulers(args.hf_model_id)
     scheduler_obj = schedulers[args.scheduler]
+    seed = args.seed
 
     txt2img_obj = Text2ImagePipeline.from_pretrained(
         scheduler_obj,
@@ -278,32 +284,40 @@ if __name__ == "__main__":
         args.use_tuned,
     )
 
-    start_time = time.time()
-    generated_imgs = txt2img_obj.generate_images(
-        args.prompts,
-        args.negative_prompts,
-        args.batch_size,
-        args.height,
-        args.width,
-        args.steps,
-        args.guidance_scale,
-        args.seed,
-        args.max_length,
-        dtype,
-        args.use_base_vae,
-        cpu_scheduling,
-    )
-    total_time = time.time() - start_time
-    text_output = f"prompt={args.prompts}"
-    text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={args.device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={args.height}x{args.width}"
-    text_output += (
-        f", batch size={args.batch_size}, max_length={args.max_length}"
-    )
-    text_output += txt2img_obj.log
-    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+    for run in range(args.runs):
+        if run > 0:
+            seed = -1
+        seed = utils.sanitize_seed(seed)
 
-    save_output_img(generated_imgs[0])
-    print(text_output)
+        start_time = time.time()
+        generated_imgs = txt2img_obj.generate_images(
+            args.prompts,
+            args.negative_prompts,
+            args.batch_size,
+            args.height,
+            args.width,
+            args.steps,
+            args.guidance_scale,
+            seed,
+            args.max_length,
+            dtype,
+            args.use_base_vae,
+            cpu_scheduling,
+        )
+        total_time = time.time() - start_time
+        text_output = f"prompt={args.prompts}"
+        text_output += f"\nnegative prompt={args.negative_prompts}"
+        text_output += (
+            f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
+        )
+        text_output += f"\nscheduler={args.scheduler}, device={args.device}"
+        text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seed}, size={args.height}x{args.width}"
+        text_output += (
+            f", batch size={args.batch_size}, max_length={args.max_length}"
+        )
+        # TODO: if using --runs=x txt2img_obj.log will output on each display every iteration infos from the start
+        text_output += txt2img_obj.log
+        text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+
+        save_output_img(generated_imgs[0], seed)
+        print(text_output)
