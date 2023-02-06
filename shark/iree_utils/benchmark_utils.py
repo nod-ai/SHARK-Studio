@@ -73,17 +73,17 @@ def build_benchmark_args(
             path, "..", "..", "iree-benchmark-module"
         )
         time_extractor = "| awk 'END{{print $2 $3}}'"
-    benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
+    benchmark_cl = [benchmarker_path, f"--module={input_file}"]
     # TODO: The function named can be passed as one of the args.
     fn_name = "forward"
     if training == True:
         # TODO: Replace name of train with actual train fn name.
         fn_name = "train"
-    benchmark_cl.append(f"--entry_function={fn_name}")
+    benchmark_cl.append(f"--function={fn_name}")
     benchmark_cl.append(f"--device={iree_device_map(device)}")
     mlir_input_types = tensor_to_type_str(input_tensors, mlir_dialect)
     for mlir_input in mlir_input_types:
-        benchmark_cl.append(f"--function_input={mlir_input}")
+        benchmark_cl.append(f"--input={mlir_input}")
     if device == "cpu":
         num_cpus = get_cpu_count()
         if num_cpus is not None:
@@ -114,13 +114,13 @@ def build_benchmark_args_non_tensor_input(
         benchmarker_path = os.path.join(
             path, "..", "..", "iree-benchmark-module"
         )
-    benchmark_cl = [benchmarker_path, f"--module_file={input_file}"]
+    benchmark_cl = [benchmarker_path, f"--module={input_file}"]
     # TODO: The function named can be passed as one of the args.
     if function_name:
-        benchmark_cl.append(f"--entry_function={function_name}")
+        benchmark_cl.append(f"--function={function_name}")
     benchmark_cl.append(f"--device={iree_device_map(device)}")
     for input in inputs:
-        benchmark_cl.append(f"--function_input={input}")
+        benchmark_cl.append(f"--input={input}")
     if platform.system() != "Windows":
         time_extractor = "| awk 'END{{print $2 $3}}'"
         benchmark_cl.append(time_extractor)

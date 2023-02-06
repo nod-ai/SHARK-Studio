@@ -234,8 +234,8 @@ def set_init_device_flags():
 
     # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
     if (
-        args.hf_model_id
-        in ["prompthero/openjourney", "dreamlike-art/dreamlike-diffusion-1.0"]
+        args.hf_model_id == "prompthero/openjourney"
+        or args.ckpt_loc != ""
         or args.precision != "fp16"
         or args.height != 512
         or args.width != 512
@@ -254,7 +254,6 @@ def set_init_device_flags():
         "sm_80",
         "sm_84",
         "sm_86",
-        "sm_89",
     ]:
         args.use_tuned = False
 

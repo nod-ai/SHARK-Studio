@@ -135,9 +135,8 @@ def txt2img_inf(
     seed: int,
     batch_size: int,
     scheduler: str,
-    model_id: str,
-    custom_model_id: str,
-    ckpt_loc: str,
+    custom_model: str,
+    hf_model_id: str,
     precision: str,
     device: str,
     max_length: int,
@@ -154,10 +153,29 @@ def txt2img_inf(
     args.seed = seed
     args.steps = steps
     args.scheduler = scheduler
-    args.hf_model_id = custom_model_id if custom_model_id else model_id
-    args.ckpt_loc = "" if ckpt_loc == "None" else ckpt_loc
+
+    # set ckpt_loc and hf_model_id.
+    types = (
+        ".ckpt",
+        ".safetensors",
+    )  # the tuple of file types
+    args.ckpt_loc = ""
+    args.hf_model_id = ""
+    if custom_model == "None":
+        if not hf_model_id:
+            return (
+                None,
+                "Please provide either custom model or huggingface model ID, both must not be empty",
+            )
+        args.hf_model_id = hf_model_id
+    elif ".ckpt" in custom_model or ".safetensors" in custom_model:
+        args.ckpt_loc = custom_model
+    else:
+        args.hf_model_id = custom_model
+
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
+
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
     new_config_obj = Config(
@@ -181,6 +199,11 @@ def txt2img_inf(
         args.use_tuned = True
         args.import_mlir = False
         set_init_device_flags()
+        model_id = (
+            args.hf_model_id
+            if args.hf_model_id
+            else "stabilityai/stable-diffusion-2-1-base"
+        )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
         txt2img_obj = Text2ImagePipeline.from_pretrained(

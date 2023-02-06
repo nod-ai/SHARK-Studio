@@ -296,6 +296,14 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--ckpt_dir",
+    type=str,
+    default="",
+    help="Path to directory where all .ckpts are stored in order to populate them in the web UI",
+)
+
+
+p.add_argument(
     "--share",
     default=False,
     action=argparse.BooleanOptionalAction,
