@@ -158,4 +158,5 @@ jobs:
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'
       run: |
         ./setup_venv.ps1
+        ./shark.venv/Scripts/activate
         python build_tools/stable_diffusion_testing.py --device=vulkan
