@@ -1,6 +1,6 @@
 # SHARK
 
-High Performance Machine Learning Distribution
+High Performance Machine Learning Distribution built on [LLVM](https://llvm.org/), [MLIR](https://mlir.llvm.org/), [OpenXLA’s IREE](https://iree-org.github.io/iree/) and nod.ai’s tuning.
 
 [![Nightly Release](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml)
 [![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
