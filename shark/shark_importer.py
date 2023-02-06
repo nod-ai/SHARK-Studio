@@ -81,7 +81,7 @@ class SharkImporter:
             self.return_str,
         )
 
-    def _tf_mlir(self, func_name, save_dir="./shark_tmp/"):
+    def _tf_mlir(self, func_name, save_dir="."):
         from iree.compiler import tf as tfc
 
         return tfc.compile_module(
@@ -91,7 +91,7 @@ class SharkImporter:
             output_file=save_dir,
         )
 
-    def _tflite_mlir(self, func_name, save_dir="./shark_tmp/"):
+    def _tflite_mlir(self, func_name, save_dir="."):
         from iree.compiler import tflite as tflitec
 
         self.mlir_model = tflitec.compile_file(
