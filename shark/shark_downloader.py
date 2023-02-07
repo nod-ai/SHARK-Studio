@@ -79,13 +79,9 @@ input_type_to_np_dtype = {
 # Save the model in the home local so it needn't be fetched everytime in the CI.
 home = str(Path.home())
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
-custom_path_list = None
-if shark_args.local_tank_cache is not None:
-    if os.path.isabs(shark_args.local_tank_cache) == False:
-        custom_path_list = shark_args.local_tank_cache.split("/")
-        custom_path = os.path.join(*custom_path_list)
-    else:
-        custom_path = shark_args.local_tank_cache
+custom_path = shark_args.local_tank_cache
+
+if custom_path is not None:
     if not os.path.exists(custom_path):
         os.mkdir(custom_path)
 
@@ -154,6 +150,9 @@ def download_model(
         model_dir_name, frontend=frontend, dynamic=dyn_str
     ):
         print(f"Downloading artifacts for model {model_name}...")
+        download_public_file(full_gs_url, model_dir)
+    elif shark_args.force_update_tank == True:
+        print(f"Force-updating artifacts for model {model_name}...")
         download_public_file(full_gs_url, model_dir)
     else:
         if not _internet_connected():

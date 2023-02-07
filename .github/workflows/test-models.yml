@@ -121,7 +121,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} BENCHMARK=1 IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --local_tank_cache="{GITHUB_WORKSPACE}/shark_tmp/" -k cuda
+        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank -k cuda
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cuda_latest.csv
         # Disabled due to black image bug
@@ -144,7 +144,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --local_tank_cache="{GITHUB_WORKSPACE}/shark_tmp/" -k vulkan
+        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank -k vulkan
         python build_tools/stable_diffusion_testing.py --device=vulkan
 
     - name: Validate Vulkan Models (Windows)
