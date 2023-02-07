@@ -226,8 +226,7 @@ class SharkModuleTester:
     def upload_repro(self):
         import subprocess
 
-        src = os.path.join(*self.temp_dir.split("/"))
-        repro_path = os.path.join(src, self.tmp_prefix, "*")
+        repro_path = os.path.join("reproducers", self.tmp_prefix, "*")
 
         bashCommand = f"gsutil cp -r {repro_path} gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         process = subprocess.run(bashCommand.split())
