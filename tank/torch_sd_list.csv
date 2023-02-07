@@ -1,0 +1,6 @@
+model_name, use_tracing, model_type, dynamic, param_count, tags, notes
+stabilityai/stable-diffusion-2-1-base,True,stable_diffusion,False,??M,"stable diffusion 2.1 base, LLM, Text to image", N/A
+stabilityai/stable-diffusion-2-1,True,stable_diffusion,False,??M,"stable diffusion 2.1 base, LLM, Text to image", N/A
+anythingv3/v1_4,True,stable_diffusion,False,??M,"stable diffusion 2.1 base, LLM, Text to image", N/A
+analogdiffusion/v1_4,True,stable_diffusion,False,??M,"stable diffusion 2.1 base, LLM, Text to image", N/A
+openjourney/v1_4",True,stable_diffusion,False,??M,"stable diffusion 2.1 base, LLM, Text to image", N/A

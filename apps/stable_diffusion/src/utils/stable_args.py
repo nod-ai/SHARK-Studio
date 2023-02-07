@@ -1,9 +1,17 @@
 import argparse
+import os
 from pathlib import Path
 
 
 def path_expand(s):
     return Path(s).expanduser().resolve()
+
+
+def is_valid_file(arg):
+    if not os.path.exists(arg):
+        return None
+    else:
+        return arg
 
 
 p = argparse.ArgumentParser(
