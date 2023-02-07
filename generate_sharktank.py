@@ -13,7 +13,6 @@ import os
 import csv
 import argparse
 from shark.shark_importer import SharkImporter
-from shark.parser import shark_args
 import subprocess as sp
 import hashlib
 import numpy as np
@@ -267,10 +266,7 @@ if __name__ == "__main__":
     # old_args = parser.parse_args()
 
     home = str(Path.home())
-    if args.ci_tank_dir == True:
-        WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
-    else:
-        WORKDIR = os.path.join(home, ".local/shark_tank/")
+    WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
 
     if args.torch_model_csv:
         save_torch_model(args.torch_model_csv)

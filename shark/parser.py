@@ -59,9 +59,15 @@ parser.add_argument(
 )
 parser.add_argument(
     "--update_tank",
-    default=False,
+    default=True,
     action="store_true",
     help="When enabled, SHARK downloader will update local shark_tank if local hash is different from latest upstream hash.",
+)
+parser.add_argument(
+    "--force_update_tank",
+    default=False,
+    action="store_true",
+    help="When enabled, SHARK downloader will force an update of local shark_tank artifacts for each request.",
 )
 parser.add_argument(
     "--local_tank_cache",
