@@ -267,12 +267,16 @@ if __name__ == "__main__":
 
     home = str(Path.home())
     WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+    torch_model_csv = os.path.join(
+        os.path.dirname(__file__), "tank", "torch_model_list.csv"
+    )
+    tf_model_csv = os.path.join(
+        os.path.dirname(__file__), "tank", "tf_model_list.csv"
+    )
+    tflite_model_csv = os.path.join(
+        os.path.dirname(__file__), "tank", "tflite", "tflite_model_list.csv"
+    )
 
-    if args.torch_model_csv:
-        save_torch_model(args.torch_model_csv)
-
-    if args.tf_model_csv:
-        save_tf_model(args.tf_model_csv)
-
-    if args.tflite_model_csv:
-        save_tflite_model(args.tflite_model_csv)
+    save_torch_model(torch_model_csv)
+    save_tf_model(tf_model_csv)
+    save_tflite_model(tflite_model_csv)
