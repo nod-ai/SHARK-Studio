@@ -138,6 +138,7 @@ def txt2img_inf(
     steps: int,
     guidance_scale: float,
     seed: int,
+    batch_count: int,
     batch_size: int,
     scheduler: str,
     custom_model: str,
@@ -155,7 +156,6 @@ def txt2img_inf(
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
     args.guidance_scale = guidance_scale
-    img_seed = utils.sanitize_seed(seed)
     args.steps = steps
     args.scheduler = scheduler
 
@@ -232,30 +232,38 @@ def txt2img_inf(
 
     start_time = time.time()
     txt2img_obj.log = ""
-    generated_imgs = txt2img_obj.generate_images(
-        prompt,
-        negative_prompt,
-        batch_size,
-        height,
-        width,
-        steps,
-        guidance_scale,
-        img_seed,
-        args.max_length,
-        dtype,
-        args.use_base_vae,
-        cpu_scheduling,
-    )
+    generated_imgs = []
+    seeds = []
+    img_seed = utils.sanitize_seed(seed)
+    for i in range(batch_count):
+        if i > 0:
+            img_seed = utils.sanitize_seed(-1)
+        out_imgs = txt2img_obj.generate_images(
+            prompt,
+            negative_prompt,
+            batch_size,
+            height,
+            width,
+            steps,
+            guidance_scale,
+            img_seed,
+            args.max_length,
+            dtype,
+            args.use_base_vae,
+            cpu_scheduling,
+        )
+        save_output_img(out_imgs[0], img_seed)
+        generated_imgs.extend(out_imgs)
+        seeds.append(img_seed)
+        txt2img_obj.log += "\n"
+
     total_time = time.time() - start_time
-    save_output_img(generated_imgs[0], img_seed)
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={img_seed}, size={args.height}x{args.width}"
-    text_output += (
-        f", batch size={args.batch_size}, max_length={args.max_length}"
-    )
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
+    text_output += f"\nsize={args.height}x{args.width}, batch-count={batch_count}, batch-size={args.batch_size}, max_length={args.max_length}"
     text_output += txt2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
