@@ -103,15 +103,14 @@ def annotate_with_winograd(input_mlir, winograd_config_dir, model_name):
     return winograd_model, out_file_path
 
 
-# For Unet annotate the model with tuned lowering configs
-def annotate_with_lower_configs(
-    input_mlir, lowering_config_dir, model_name, use_winograd
-):
+def dump_after_mlir(input_mlir, model_name, use_winograd):
     if use_winograd:
         dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline='builtin.module"
-            "(func.func(iree-preprocessing-convert-conv2d-to-img2col,"
+            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
+            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "iree-preprocessing-convert-conv2d-to-img2col,"
             "iree-preprocessing-pad-linalg-ops{pad-size=32},"
             "iree-linalg-ext-convert-conv2d-to-winograd))' "
         )
@@ -119,11 +118,12 @@ def annotate_with_lower_configs(
         dump_after = "iree-preprocessing-pad-linalg-ops"
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline='builtin.module"
-            "(func.func(iree-preprocessing-convert-conv2d-to-img2col,"
+            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
+            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "iree-preprocessing-convert-conv2d-to-img2col,"
             "iree-preprocessing-pad-linalg-ops{pad-size=32}))' "
         )
 
-    # Dump IR after padding/img2col/winograd passes
     device_spec_args = ""
     device = get_device()
     if device == "cuda":
@@ -150,6 +150,14 @@ def annotate_with_lower_configs(
         "--compile-to=flow "
         f"2>{args.annotation_output}/dump_after_winograd.mlir "
     )
+
+
+# For Unet annotate the model with tuned lowering configs
+def annotate_with_lower_configs(
+    input_mlir, lowering_config_dir, model_name, use_winograd
+):
+    # Dump IR after padding/img2col/winograd passes
+    dump_after_mlir(input_mlir, model_name, use_winograd)
 
     # Annotate the model with lowering configs in the config file
     with create_context() as ctx:
