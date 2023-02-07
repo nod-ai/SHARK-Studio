@@ -150,11 +150,7 @@ def download_model(
     model_dir = os.path.join(WORKDIR, model_dir_name)
     full_gs_url = tank_url.rstrip("/") + "/" + model_dir_name
 
-    if shark_args.update_tank == True:
-        print(f"Updating artifacts for model {model_name}...")
-        download_public_file(full_gs_url, model_dir)
-
-    elif not check_dir_exists(
+    if not check_dir_exists(
         model_dir_name, frontend=frontend, dynamic=dyn_str
     ):
         print(f"Downloading artifacts for model {model_name}...")
@@ -180,7 +176,11 @@ def download_model(
                 )
             except FileNotFoundError:
                 upstream_hash = None
-            if local_hash != upstream_hash:
+            if local_hash != upstream_hash and shark_args.update_tank == True:
+                print(f"Updating artifacts for model {model_name}...")
+                download_public_file(full_gs_url, model_dir)
+
+            elif local_hash != upstream_hash:
                 print(
                     "Hash does not match upstream in gs://shark_tank/latest. If you want to use locally generated artifacts, this is working as intended. Otherwise, run with --update_tank."
                 )
