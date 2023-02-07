@@ -159,6 +159,9 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
+# vscode related
+.vscode
+
 # Shark related artefacts
 *venv/
 shark_tmp/
@@ -172,3 +175,6 @@ onnx_models/
 
 # Generated images
 generated_imgs/
+
+# models folder
+apps/stable_diffusion/web/models/
