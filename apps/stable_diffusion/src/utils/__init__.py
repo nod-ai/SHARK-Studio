@@ -8,7 +8,6 @@ from apps.stable_diffusion.src.utils.resources import (
     base_models,
     opt_flags,
     resource_path,
-    fetch_and_update_base_model_id,
 )
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
 from apps.stable_diffusion.src.utils.stable_args import args
@@ -22,6 +21,7 @@ from apps.stable_diffusion.src.utils.utils import (
     get_opt_flags,
     preprocessCKPT,
     fetch_or_delete_vmfbs,
+    fetch_and_update_base_model_id,
     get_path_to_diffusers_checkpoint,
     sanitize_seed,
 )
