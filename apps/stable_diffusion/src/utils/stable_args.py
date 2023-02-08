@@ -174,6 +174,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--custom_vae",
+    type=str,
+    default="",
+    help="HuggingFace repo-id or path to SD model's checkpoint whose Vae needs to be plugged in.",
+)
+
+p.add_argument(
     "--hf_model_id",
     type=str,
     default="stabilityai/stable-diffusion-2-1-base",
