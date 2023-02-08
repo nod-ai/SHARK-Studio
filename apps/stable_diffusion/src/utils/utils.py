@@ -1,5 +1,6 @@
 import os
 import gc
+import json
 from pathlib import Path
 import numpy as np
 from random import randint
@@ -433,6 +434,30 @@ def fetch_or_delete_vmfbs(basic_model_name, use_base_vae, precision="fp32"):
                 vmfb_path[i], model_name[i], precision
             )
     return compiled_models
+
+
+# `fetch_and_update_base_model_id` is a resource utility function which
+# helps maintaining mapping of the model to run with its base model.
+# If `base_model` is "", then this function tries to fetch the base model
+# info for the `model_to_run`.
+def fetch_and_update_base_model_id(model_to_run, base_model=""):
+    variants_path = os.path.join(os.getcwd(), "variants.json")
+    data = {model_to_run: base_model}
+    json_data = {}
+    if os.path.exists(variants_path):
+        with open(variants_path, "r", encoding="utf-8") as jsonFile:
+            json_data = json.load(jsonFile)
+            # Return with base_model's info if base_model is "".
+            if base_model == "":
+                if model_to_run in json_data:
+                    base_model = json_data[model_to_run]
+                return base_model
+    elif base_model == "":
+        return base_model
+    # Update JSON data to contain an entry mapping model_to_run with base_model.
+    json_data.update(data)
+    with open(variants_path, "w", encoding="utf-8") as jsonFile:
+        json.dump(json_data, jsonFile)
 
 
 # Generate and return a new seed if the provided one is not in the supported range (including -1)
