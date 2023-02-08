@@ -190,6 +190,7 @@ class StableDiffusionPipeline:
         import_mlir: bool,
         model_id: str,
         ckpt_loc: str,
+        custom_vae: str,
         precision: str,
         max_length: int,
         batch_size: int,
@@ -204,6 +205,7 @@ class StableDiffusionPipeline:
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,
+                custom_vae,
                 precision,
                 max_len=max_length,
                 batch_size=batch_size,

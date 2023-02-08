@@ -70,6 +70,7 @@ class SharkifyStableDiffusionModel:
         self,
         model_id: str,
         custom_weights: str,
+        custom_vae: str,
         precision: str,
         max_len: int = 64,
         width: int = 512,
@@ -90,6 +91,7 @@ class SharkifyStableDiffusionModel:
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
+        self.custom_vae = custom_vae
         self.precision = precision
         self.base_vae = use_base_vae
         self.model_name = (
@@ -154,10 +156,10 @@ class SharkifyStableDiffusionModel:
 
     def get_vae(self):
         class VaeModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, base_vae=self.base_vae):
+            def __init__(self, model_id=self.model_id, base_vae=self.base_vae, custom_vae=self.custom_vae):
                 super().__init__()
                 self.vae = AutoencoderKL.from_pretrained(
-                    model_id,
+                    model_id if custom_vae == "" else custom_vae,
                     subfolder="vae",
                 )
                 self.base_vae = base_vae
@@ -258,6 +260,8 @@ class SharkifyStableDiffusionModel:
             self.batch_size,
         )
         compiled_unet = self.get_unet()
+        if self.custom_vae != "":
+            print("Plugging in custom Vae")
         compiled_vae = self.get_vae()
         compiled_clip = self.get_clip()
         if need_vae_encode:
@@ -295,6 +299,11 @@ class SharkifyStableDiffusionModel:
             preprocessCKPT(self.custom_weights)
         else:
             model_to_run = args.hf_model_id
+        # For custom Vae user can provide either the repo-id or a checkpoint file,
+        # and for a checkpoint file we'd need to process it via Diffusers' script.
+        if self.custom_vae.lower().endswith((".ckpt", ".safetensors")):
+            preprocessCKPT(self.custom_vae)
+            self.custom_vae = get_path_to_diffusers_checkpoint(self.custom_vae)
         base_model_fetched = fetch_and_update_base_model_id(model_to_run)
         if base_model_fetched != "":
             print("Compiling all the models with the fetched base model configuration.")
