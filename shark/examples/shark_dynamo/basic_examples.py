@@ -1,6 +1,6 @@
-import torchdynamo
 import torch
 import torch_mlir
+import torch._dynamo as torchdynamo
 from shark.sharkdynamo.utils import make_shark_compiler
 
 
