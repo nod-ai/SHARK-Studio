@@ -212,7 +212,7 @@ class StableDiffusionPipeline:
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
             )
-            if "inpaint" in model_id:
+            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
                 clip, unet, vae, vae_encode = mlir_import()
                 return cls(
                     vae_encode, vae, clip, get_tokenizer(), unet, scheduler
@@ -220,7 +220,7 @@ class StableDiffusionPipeline:
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
 
-        if "inpaint" in model_id:
+        if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
             return cls(
                 get_vae_encode(),
                 get_vae(),

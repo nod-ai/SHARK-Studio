@@ -7,5 +7,6 @@ from apps.stable_diffusion.src.utils import (
 from apps.stable_diffusion.src.pipelines import (
     Text2ImagePipeline,
     InpaintPipeline,
+    Image2ImagePipeline,
 )
 from apps.stable_diffusion.src.schedulers import get_schedulers
