@@ -89,7 +89,7 @@ if custom_path is not None:
 
     print(f"Using {WORKDIR} as local shark_tank cache directory.")
 
-if os.path.exists(alt_path):
+elif os.path.exists(alt_path):
     WORKDIR = alt_path
     print(
         f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."

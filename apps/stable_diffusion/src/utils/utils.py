@@ -57,11 +57,13 @@ def _compile_module(shark_module, model_name, extra_args=[]):
 
 # Downloads the model from shark_tank and returns the shark_module.
 def get_shark_model(tank_url, model_name, extra_args=[]):
-    from shark.shark_downloader import download_model
     from shark.parser import shark_args
 
     # Set local shark_tank cache directory.
     shark_args.local_tank_cache = args.local_tank_cache
+
+    from shark.shark_downloader import download_model
+
     if "cuda" in args.device:
         shark_args.enable_tf32 = True
 
