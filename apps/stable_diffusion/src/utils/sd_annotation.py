@@ -1,4 +1,5 @@
 import os
+import io
 from shark.model_annotation import model_annotation, create_context
 from shark.iree_utils._common import iree_target_map, run_cmd
 from shark.shark_downloader import (
@@ -97,10 +98,15 @@ def annotate_with_winograd(input_mlir, winograd_config_dir, model_name):
             search_op="conv",
             winograd=True,
         )
-        with open(out_file_path, "w") as f:
-            f.write(str(winograd_model))
-            f.close()
-    return winograd_model, out_file_path
+
+    bytecode_stream = io.BytesIO()
+    winograd_model.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
+    with open(out_file_path, "w") as f:
+        f.write(str(winograd_model))
+        f.close()
+    return bytecode, out_file_path
 
 
 def dump_after_mlir(input_mlir, model_name, use_winograd):
@@ -176,10 +182,15 @@ def annotate_with_lower_configs(
         )
     else:
         out_file_path = f"{args.annotation_output}/{model_name}_torch.mlir"
+
+    bytecode_stream = io.BytesIO()
+    tuned_model.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
     with open(out_file_path, "w") as f:
         f.write(str(tuned_model))
         f.close()
-    return tuned_model, out_file_path
+    return bytecode, out_file_path
 
 
 def sd_model_annotation(mlir_model, model_name, model_from_tank=False):
@@ -215,7 +226,7 @@ def sd_model_annotation(mlir_model, model_name, model_from_tank=False):
             mlir_model, lowering_config_dir, model_name, use_winograd
         )
     print(f"Saved the annotated mlir in {output_path}.")
-    return tuned_model, output_path
+    return tuned_model
 
 
 if __name__ == "__main__":

@@ -98,26 +98,19 @@ def compile_through_fx(
     )
 
     if use_tuned:
-        tuned_model_path = f"{args.annotation_output}/{model_name}_torch.mlir"
-        if not os.path.exists(tuned_model_path):
-            if "vae" in model_name.split("_")[0]:
-                args.annotation_model = "vae"
-
-            tuned_model, tuned_model_path = sd_model_annotation(
-                mlir_module, model_name
-            )
-            del mlir_module, tuned_model
-            gc.collect()
-
-        with open(tuned_model_path, "rb") as f:
-            mlir_module = f.read()
-            f.close()
+        if "vae" in model_name.split("_")[0]:
+            args.annotation_model = "vae"
+        mlir_module = sd_model_annotation(mlir_module, model_name)
 
     shark_module = SharkInference(
         mlir_module,
         device=args.device,
         mlir_dialect="linalg",
     )
+
+    del mlir_module
+    gc.collect()
+
     return _compile_module(shark_module, model_name, extra_args)
 
 
@@ -255,11 +248,7 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif "cuda" in args.device and get_cuda_sm_cc() not in [
-        "sm_80",
-        "sm_84",
-        "sm_86",
-    ]:
+    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80"]:
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
