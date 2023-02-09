@@ -17,15 +17,15 @@ p = argparse.ArgumentParser(
 p.add_argument(
     "-p",
     "--prompts",
-    action="append",
-    default=[],
+    nargs="+",
+    default=["cyberpunk forest by Salvador Dali"],
     help="text of which images to be generated.",
 )
 
 p.add_argument(
     "--negative_prompts",
     nargs="+",
-    default=[""],
+    default=["trees, green"],
     help="text you don't want to see in the generated image.",
 )
 
@@ -39,8 +39,8 @@ p.add_argument(
 p.add_argument(
     "--seed",
     type=int,
-    default=42,
-    help="the seed to use.",
+    default=-1,
+    help="the seed to use. -1 for a random one.",
 )
 
 p.add_argument(
@@ -48,7 +48,7 @@ p.add_argument(
     type=int,
     default=1,
     choices=range(1, 4),
-    help="the number of inferences to be made in a single `run`.",
+    help="the number of inferences to be made in a single `batch_count`.",
 )
 
 p.add_argument(
@@ -148,10 +148,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--runs",
+    "--batch_count",
     type=int,
     default=1,
-    help="number of images to be generated with random seeds in single execution",
+    help="number of batch to be generated with random seeds in single execution",
 )
 
 p.add_argument(
@@ -164,7 +164,7 @@ p.add_argument(
 p.add_argument(
     "--hf_model_id",
     type=str,
-    default="stabilityai/stable-diffusion-2-1-base",
+    default="",
     help="The repo-id of hugging face.",
 )
 
@@ -279,7 +279,7 @@ p.add_argument(
 
 p.add_argument(
     "--write_metadata_to_png",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="flag for whether or not to save generation information in PNG chunk text to generated images.",
 )
@@ -292,7 +292,7 @@ p.add_argument(
     "--progress_bar",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="flag for removing the pregress bar animation during image generation",
+    help="flag for removing the progress bar animation during image generation",
 )
 
 p.add_argument(

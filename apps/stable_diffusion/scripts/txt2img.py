@@ -292,8 +292,8 @@ if __name__ == "__main__":
         args.use_tuned,
     )
 
-    for run in range(args.runs):
-        if run > 0:
+    for current_batch in range(args.batch_count):
+        if current_batch > 0:
             seed = -1
         seed = utils.sanitize_seed(seed)
 
@@ -323,7 +323,7 @@ if __name__ == "__main__":
         text_output += (
             f", batch size={args.batch_size}, max_length={args.max_length}"
         )
-        # TODO: if using --runs=x txt2img_obj.log will output on each display every iteration infos from the start
+        # TODO: if using --batch_count=x txt2img_obj.log will output on each display every iteration infos from the start
         text_output += txt2img_obj.log
         text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
