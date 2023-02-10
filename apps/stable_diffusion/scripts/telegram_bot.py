@@ -106,6 +106,7 @@ def generate_image(prompt):
         height = HEIGHT,
         width = WIDTH,
         batch_size = BATCH_SIZE,
+        batch_count = 1,
         custom_model = SELECTED_MODEL,
         #ckpt_loc = CKPT_LOC,
         precision = PRECISION,
