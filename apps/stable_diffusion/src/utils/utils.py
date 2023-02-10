@@ -117,7 +117,6 @@ def compile_through_fx(
 def set_iree_runtime_flags():
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
-        f"--device_allocator=caching",
         f"--vulkan_validation_layers={'true' if args.vulkan_validation_layers else 'false'}",
     ]
     if args.enable_rgp:

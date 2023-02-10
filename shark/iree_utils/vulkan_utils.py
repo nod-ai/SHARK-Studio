@@ -139,8 +139,9 @@ def get_vulkan_triple_flag(device_name="", extra_args=[]):
 
 
 def get_iree_vulkan_args(extra_args=[]):
-    res_vulkan_flag = ["--device_allocator=caching"]
+    # vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
 
+    res_vulkan_flag = []
     vulkan_triple_flag = None
     for arg in extra_args:
         if "-iree-vulkan-target-triple=" in arg:
