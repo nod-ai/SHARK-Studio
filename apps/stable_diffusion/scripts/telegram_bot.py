@@ -11,9 +11,9 @@ from telegram.ext import Application, ApplicationBuilder, CallbackQueryHandler
 from telegram.ext import ContextTypes, MessageHandler, CommandHandler, filters
 from io import BytesIO
 import random
-from pathlib import Path
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
+
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -21,6 +21,7 @@ def resource_path(relative_path):
         sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
     )
     return os.path.join(base_path, relative_path)
+
 
 log = logging.getLogger("TG.Bot")
 logging.basicConfig()
@@ -103,16 +104,16 @@ def generate_image(prompt):
         scheduler=SELECTED_SCHEDULER,
         hf_model_id=HF_MODEL_ID,
         device=available_devices[0],
-        height = HEIGHT,
-        width = WIDTH,
-        batch_size = BATCH_SIZE,
-        batch_count = 1,
-        custom_model = SELECTED_MODEL,
-        #ckpt_loc = CKPT_LOC,
-        precision = PRECISION,
-        max_length = MAX_LENGTH,
-        save_metadata_to_json = SAVE_METADATA_TO_JSON,
-        save_metadata_to_png = SAVE_METADATA_TO_PNG
+        height=HEIGHT,
+        width=WIDTH,
+        batch_size=BATCH_SIZE,
+        batch_count=1,
+        custom_model=SELECTED_MODEL,
+        # ckpt_loc = CKPT_LOC,
+        precision=PRECISION,
+        max_length=MAX_LENGTH,
+        save_metadata_to_json=SAVE_METADATA_TO_JSON,
+        save_metadata_to_png=SAVE_METADATA_TO_PNG
     )
 
     return image, seed
@@ -127,12 +128,12 @@ async def generate_and_send_photo(
     try:
         im, seed = generate_image(prompt=update.message.text)
         await context.bot.delete_message(
-        chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
-        )
-    except Exception as e:
-         log.exception("Exception")
-         await update.message.reply_text(traceback.format_exc()[:4096])
-         return
+            chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
+            )
+    except Exception:
+        log.exception("Exception")
+        await update.message.reply_text(traceback.format_exc()[:4096])
+        return
     await context.bot.send_photo(
         update.effective_user.id,
         image_to_bytes(im[0]),
@@ -166,7 +167,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         prompt = replied_message.text
         try:
             im, seed = generate_image(prompt)
-        except Exception as e:
+        except Exception:
             log.exception("Exception")
             await query.message.reply_text(traceback.format_exc()[:4096])
             return
