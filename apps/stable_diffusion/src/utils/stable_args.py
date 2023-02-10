@@ -91,6 +91,12 @@ p.add_argument(
     help="max length of the tokenizer output, options are 64 and 77.",
 )
 
+p.add_argument(
+    "--strength",
+    type=float,
+    default=0.8,
+    help="the strength of change applied on the given input image for img2img",
+)
 ##############################################################################
 ### Model Config and Usage Params
 ##############################################################################

@@ -50,6 +50,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         width,
         generator,
         num_inference_steps,
+        strength,
         dtype,
     ):
         # Pre process image -> get image encoded -> process latents
@@ -57,7 +58,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # TODO: process with variable HxW combos
 
         # Pre process image
-        image = image.resize((height, width))  # Current support for 512x512
+        image = image.resize((width, height))
         image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
         image_arr = image_arr / 255.0
         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
@@ -69,9 +70,20 @@ class Image2ImagePipeline(StableDiffusionPipeline):
 
         # set scheduler steps
         self.scheduler.set_timesteps(num_inference_steps)
+        init_timestep = min(
+            int(num_inference_steps * strength), num_inference_steps
+        )
+        t_start = max(num_inference_steps - init_timestep, 0)
+        # timesteps reduced as per strength
+        timesteps = self.scheduler.timesteps[t_start:]
+        # new number of steps to be used as per strength will be
+        # num_inference_steps = num_inference_steps - t_start
 
         # add noise to data
-        latents = latents * self.scheduler.init_noise_sigma
+        noise = torch.randn(latents.shape, generator=generator, dtype=dtype)
+        latents = self.scheduler.add_noise(
+            latents, noise, timesteps[0].repeat(1)
+        )
 
         return latents
 
@@ -92,6 +104,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         height,
         width,
         num_inference_steps,
+        strength,
         guidance_scale,
         seed,
         max_length,
@@ -130,6 +143,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
             width=width,
             generator=generator,
             num_inference_steps=num_inference_steps,
+            strength=strength,
             dtype=dtype,
         )
 
