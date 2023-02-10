@@ -70,6 +70,7 @@ def get_iree_common_args():
     return [
         "--iree-stream-resource-index-bits=64",
         "--iree-vm-target-index-bits=64",
+        "--iree-vm-bytecode-module-strip-source-map=true",
         "--iree-util-zero-fill-elided-attrs",
     ]
 
