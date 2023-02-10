@@ -77,7 +77,7 @@ def save_output_img(output_img):
         if args.write_metadata_to_png:
             pngInfo.add_text(
                 "parameters",
-                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {args.width}x{args.height}, Model: {args.hf_model_id}",
+                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Strength: {args.strength}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {args.width}x{args.height}, Model: {args.hf_model_id}",
             )
 
         output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
@@ -98,6 +98,7 @@ def save_output_img(output_img):
         "CFG_SCALE": args.guidance_scale,
         "PRECISION": args.precision,
         "STEPS": args.steps,
+        "STRENGTH": args.strength,
         "HEIGHT": args.height,
         "WIDTH": args.width,
         "MAX_LENGTH": args.max_length,
@@ -129,6 +130,7 @@ def img2img_inf(
     height: int,
     width: int,
     steps: int,
+    strength: float,
     guidance_scale: float,
     seed: int,
     batch_count: int,
@@ -151,6 +153,7 @@ def img2img_inf(
     args.guidance_scale = guidance_scale
     args.seed = seed
     args.steps = steps
+    args.strength = strength
     args.scheduler = scheduler
     args.img_path = init_image
     image = Image.open(args.img_path)
@@ -240,6 +243,7 @@ def img2img_inf(
         height,
         width,
         steps,
+        strength,
         guidance_scale,
         seed,
         args.max_length,
@@ -275,6 +279,15 @@ if __name__ == "__main__":
     cpu_scheduling = not args.scheduler.startswith("Shark")
     set_init_device_flags()
     schedulers = get_schedulers(args.hf_model_id)
+    if args.scheduler != "PNDM":
+        if "Shark" in args.scheduler:
+            print(
+                f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
+            )
+            args.scheduler = "PNDM"
+        print(
+            f"[WARNING] Img2Img works best with PNDM scheduler. Please use that"
+        )
     scheduler_obj = schedulers[args.scheduler]
     image = Image.open(args.img_path)
 
@@ -304,6 +317,7 @@ if __name__ == "__main__":
         args.height,
         args.width,
         args.steps,
+        args.strength,
         args.guidance_scale,
         args.seed,
         args.max_length,
