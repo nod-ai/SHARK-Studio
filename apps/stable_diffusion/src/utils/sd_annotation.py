@@ -20,6 +20,22 @@ def get_device():
     return device
 
 
+def get_device_args():
+    device = get_device()
+    device_spec_args = ""
+    if device == "cuda":
+        from shark.iree_utils.gpu_utils import get_iree_gpu_args
+
+        gpu_flags = get_iree_gpu_args()
+        for flag in gpu_flags:
+            device_spec_args += flag + " "
+    elif device == "vulkan":
+        device_spec_args = (
+            f"--iree-vulkan-target-triple={args.iree_vulkan_target_triple} "
+        )
+    return device, device_spec_args
+
+
 # Download the model (Unet or VAE fp16) from shark_tank
 def load_model_from_tank():
     from apps.stable_diffusion.src.models import (
@@ -72,8 +88,18 @@ def load_lower_configs():
         config_version = "v1_4"
     if args.annotation_model == "vae":
         args.max_length = 77
-    device = get_device()
-    config_name = f"{args.annotation_model}_{config_version}_{args.precision}_len{args.max_length}_{device}.json"
+
+    device, device_spec_args = get_device_args()
+    spec = ""
+    if get_device_args:
+        spec = device_spec_args.split("=")[-1]
+        if device == "vulkan":
+            spec = spec.split("-")[0]
+
+    if spec in ["rdna3", "sm_80"]:
+        config_name = f"{args.annotation_model}_{config_version}_{args.precision}_len{args.max_length}_{device}.json"
+    else:
+        config_name = f"{args.annotation_model}_{config_version}_{args.precision}_len{args.max_length}_{device}_{spec}.json"
     full_gs_url = config_bucket + config_name
     lowering_config_dir = f"{WORKDIR}configs/" + config_name
     print("Loading lowering config file from ", lowering_config_dir)
@@ -109,9 +135,10 @@ def annotate_with_winograd(input_mlir, winograd_config_dir, model_name):
     return bytecode, out_file_path
 
 
-def dump_after_mlir(input_mlir, model_name, use_winograd):
+def dump_after_mlir(input_mlir, use_winograd):
+    device, device_spec_args = get_device_args()
+
     if use_winograd:
-        dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline='builtin.module"
             "(func.func(iree-flow-detach-elementwise-from-named-ops,"
@@ -121,7 +148,6 @@ def dump_after_mlir(input_mlir, model_name, use_winograd):
             "iree-linalg-ext-convert-conv2d-to-winograd))' "
         )
     else:
-        dump_after = "iree-preprocessing-pad-linalg-ops"
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline='builtin.module"
             "(func.func(iree-flow-detach-elementwise-from-named-ops,"
@@ -129,20 +155,6 @@ def dump_after_mlir(input_mlir, model_name, use_winograd):
             "iree-preprocessing-convert-conv2d-to-img2col,"
             "iree-preprocessing-pad-linalg-ops{pad-size=32}))' "
         )
-
-    device_spec_args = ""
-    device = get_device()
-    if device == "cuda":
-        from shark.iree_utils.gpu_utils import get_iree_gpu_args
-
-        gpu_flags = get_iree_gpu_args()
-        for flag in gpu_flags:
-            device_spec_args += flag + " "
-    elif device == "vulkan":
-        device_spec_args = (
-            f"--iree-vulkan-target-triple={args.iree_vulkan_target_triple} "
-        )
-    print("Applying tuned configs on", model_name)
 
     run_cmd(
         f"iree-compile {input_mlir} "
@@ -152,9 +164,8 @@ def dump_after_mlir(input_mlir, model_name, use_winograd):
         f"{preprocess_flag}"
         "--iree-stream-resource-index-bits=64 "
         "--iree-vm-target-index-bits=64 "
-        f"--mlir-print-ir-after={dump_after} "
-        "--compile-to=flow "
-        f"2>{args.annotation_output}/dump_after_winograd.mlir "
+        "--compile-to=preprocessing "
+        f"-o {args.annotation_output}/dump_after_winograd.mlir "
     )
 
 
@@ -163,7 +174,8 @@ def annotate_with_lower_configs(
     input_mlir, lowering_config_dir, model_name, use_winograd
 ):
     # Dump IR after padding/img2col/winograd passes
-    dump_after_mlir(input_mlir, model_name, use_winograd)
+    dump_after_mlir(input_mlir, use_winograd)
+    print("Applying tuned configs on", model_name)
 
     # Annotate the model with lowering configs in the config file
     with create_context() as ctx:
