@@ -126,7 +126,7 @@ schedulers = None
 
 
 # Exposed to UI.
-def image2image_inf(
+def img2img_inf(
     prompt: str,
     negative_prompt: str,
     image: Image,
@@ -135,6 +135,7 @@ def image2image_inf(
     steps: int,
     guidance_scale: float,
     seed: int,
+    batch_count: int,
     batch_size: int,
     scheduler: str,
     custom_model: str,
@@ -155,6 +156,7 @@ def image2image_inf(
     args.seed = seed
     args.steps = steps
     args.scheduler = scheduler
+    args.img_path = "initial image"
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -174,6 +176,9 @@ def image2image_inf(
         args.ckpt_loc = custom_model
     else:
         args.hf_model_id = custom_model
+
+    if image is None:
+        return None, "An Initial Image is required"
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
@@ -199,7 +204,7 @@ def image2image_inf(
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
         args.use_tuned = True
-        args.import_mlir = False
+        args.import_mlir = True
         set_init_device_flags()
         model_id = (
             args.hf_model_id
@@ -264,6 +269,9 @@ if __name__ == "__main__":
     if args.img_path is None:
         print("Flag --img_path is required.")
         exit()
+
+    # When the models get uploaded, it should be default to False.
+    args.import_mlir = True
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     cpu_scheduling = not args.scheduler.startswith("Shark")
