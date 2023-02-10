@@ -129,7 +129,7 @@ schedulers = None
 def img2img_inf(
     prompt: str,
     negative_prompt: str,
-    image: Image,
+    init_image: str,
     height: int,
     width: int,
     steps: int,
@@ -156,7 +156,8 @@ def img2img_inf(
     args.seed = seed
     args.steps = steps
     args.scheduler = scheduler
-    args.img_path = "initial image"
+    args.img_path = init_image
+    image = Image.open(args.img_path)
 
     # set ckpt_loc and hf_model_id.
     types = (

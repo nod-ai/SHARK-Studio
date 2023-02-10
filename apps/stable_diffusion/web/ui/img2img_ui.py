@@ -94,7 +94,7 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         elem_id="prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image")
+                init_image = gr.Image(label="Input Image", type="filepath")
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
