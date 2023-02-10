@@ -1,7 +1,9 @@
 import logging
+import traceback
 import os
-from models.stable_diffusion.main import stable_diff_inf
-from models.stable_diffusion.utils import get_available_devices
+import sys
+from apps.stable_diffusion.src import get_available_devices
+from apps.stable_diffusion.scripts import txt2img_inf
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import BotCommand
@@ -9,16 +11,39 @@ from telegram.ext import Application, ApplicationBuilder, CallbackQueryHandler
 from telegram.ext import ContextTypes, MessageHandler, CommandHandler, filters
 from io import BytesIO
 import random
+from pathlib import Path
+if sys.platform == "darwin":
+    os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
+    return os.path.join(base_path, relative_path)
 
 log = logging.getLogger("TG.Bot")
 logging.basicConfig()
 log.warning("Start")
 load_dotenv()
-os.environ["AMD_ENABLE_LLPC"] = "0"
+if "AMD_ENABLE_LLPC" not in os.environ:
+    os.environ["AMD_ENABLE_LLPC"] = "1"
+
+if sys.platform == "darwin":
+    os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 TG_TOKEN = os.getenv("TG_TOKEN")
-SELECTED_MODEL = "stablediffusion"
+SELECTED_MODEL = "stabilityai/stable-diffusion-2-1-base"
 SELECTED_SCHEDULER = "EulerAncestralDiscrete"
 STEPS = 30
+HEIGHT = 512
+WIDTH = 512
+BATCH_SIZE = 1
+HF_MODEL_ID = ""
+CKPT_LOC = ""
+PRECISION = "fp16"
+MAX_LENGTH = 64
+SAVE_METADATA_TO_JSON = False
+SAVE_METADATA_TO_PNG = False
 NEGATIVE_PROMPT = (
     "Ugly,Morbid,Extra fingers,Poorly drawn hands,Mutation,Blurry,Extra"
     " limbs,Gross proportions,Missing arms,Mutated hands,Long"
@@ -33,11 +58,12 @@ NEGATIVE_PROMPT = (
 GUIDANCE_SCALE = 6
 available_devices = get_available_devices()
 models_list = [
-    "stablediffusion",
-    "anythingv3",
-    "analogdiffusion",
-    "openjourney",
-    "dreamlike",
+    "Linaqruf/anything-v3.0",
+    "prompthero/openjourney",
+    "wavymulder/Analog-Diffusion",
+    "stabilityai/stable-diffusion-2-1",
+    "stabilityai/stable-diffusion-2-1-base",
+    "CompVis/stable-diffusion-v1-4",
 ]
 sheds_list = [
     "DDIM",
@@ -68,15 +94,24 @@ def generate_image(prompt):
     seed = random.randint(1, 10000)
     log.warning(SELECTED_MODEL)
     log.warning(STEPS)
-    image, text = stable_diff_inf(
+    image, text = txt2img_inf(
         prompt=prompt,
         negative_prompt=NEGATIVE_PROMPT,
         steps=STEPS,
         guidance_scale=GUIDANCE_SCALE,
         seed=seed,
-        scheduler_key=SELECTED_SCHEDULER,
-        variant=SELECTED_MODEL,
-        device_key=available_devices[0],
+        scheduler=SELECTED_SCHEDULER,
+        hf_model_id=HF_MODEL_ID,
+        device=available_devices[0],
+        height = HEIGHT,
+        width = WIDTH,
+        batch_size = BATCH_SIZE,
+        custom_model = SELECTED_MODEL,
+        #ckpt_loc = CKPT_LOC,
+        precision = PRECISION,
+        max_length = MAX_LENGTH,
+        save_metadata_to_json = SAVE_METADATA_TO_JSON,
+        save_metadata_to_png = SAVE_METADATA_TO_PNG
     )
 
     return image, seed
@@ -88,13 +123,18 @@ async def generate_and_send_photo(
     progress_msg = await update.message.reply_text(
         "Generating image...", reply_to_message_id=update.message.message_id
     )
-    im, seed = generate_image(prompt=update.message.text)
-    await context.bot.delete_message(
+    try:
+        im, seed = generate_image(prompt=update.message.text)
+        await context.bot.delete_message(
         chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
-    )
+        )
+    except Exception as e:
+         log.exception("Exception")
+         await update.message.reply_text(traceback.format_exc()[:4096])
+         return
     await context.bot.send_photo(
         update.effective_user.id,
-        image_to_bytes(im),
+        image_to_bytes(im[0]),
         caption=f'"{update.message.text}" (Seed: {seed})',
         reply_markup=get_try_again_markup(),
         reply_to_message_id=update.message.message_id,
@@ -123,14 +163,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if query.data == "TRYAGAIN":
         prompt = replied_message.text
-        im, seed = generate_image(prompt)
-
+        try:
+            im, seed = generate_image(prompt)
+        except Exception as e:
+            log.exception("Exception")
+            await query.message.reply_text(traceback.format_exc()[:4096])
+            return
     await context.bot.delete_message(
         chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
     )
     await context.bot.send_photo(
         update.effective_user.id,
-        image_to_bytes(im),
+        image_to_bytes(im[0]),
         caption=f'"{prompt}" (Seed: {seed})',
         reply_markup=get_try_again_markup(),
         reply_to_message_id=replied_message.message_id,
