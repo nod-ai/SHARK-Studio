@@ -11,6 +11,7 @@ from telegram.ext import Application, ApplicationBuilder, CallbackQueryHandler
 from telegram.ext import ContextTypes, MessageHandler, CommandHandler, filters
 from io import BytesIO
 import random
+
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 
@@ -113,7 +114,7 @@ def generate_image(prompt):
         precision=PRECISION,
         max_length=MAX_LENGTH,
         save_metadata_to_json=SAVE_METADATA_TO_JSON,
-        save_metadata_to_png=SAVE_METADATA_TO_PNG
+        save_metadata_to_png=SAVE_METADATA_TO_PNG,
     )
 
     return image, seed
@@ -129,7 +130,7 @@ async def generate_and_send_photo(
         im, seed = generate_image(prompt=update.message.text)
         await context.bot.delete_message(
             chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
-            )
+        )
     except Exception:
         log.exception("Exception")
         await update.message.reply_text(traceback.format_exc()[:4096])
