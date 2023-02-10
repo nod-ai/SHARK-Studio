@@ -249,7 +249,7 @@ class SharkifyStableDiffusionModel:
 
     # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
     # configiration.
-    def compile_all(self, base_model_id, if_inpaint):
+    def compile_all(self, base_model_id, need_vae_encode):
         self.inputs = get_input_info(
             base_models[base_model_id],
             self.max_len,
@@ -260,7 +260,7 @@ class SharkifyStableDiffusionModel:
         compiled_unet = self.get_unet()
         compiled_vae = self.get_vae()
         compiled_clip = self.get_clip()
-        if if_inpaint:
+        if need_vae_encode:
             compiled_vae_encode = self.get_vae_encode()
             return compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode
 
@@ -269,9 +269,9 @@ class SharkifyStableDiffusionModel:
     def __call__(self):
         # Step 1:
         # --  Fetch all vmfbs for the model, if present, else delete the lot.
-        if_inpaint = "inpaint" in self.model_id
+        need_vae_encode = args.img_path is not None
         vmfbs = fetch_or_delete_vmfbs(
-            self.model_name, self.base_vae, if_inpaint, self.precision
+            self.model_name, self.base_vae, need_vae_encode, self.precision
         )
         if vmfbs[0]:
             # -- If all vmfbs are indeed present, we also try and fetch the base
@@ -300,7 +300,7 @@ class SharkifyStableDiffusionModel:
             print("Compiling all the models with the fetched base model configuration.")
             if args.ckpt_loc != "":
                 args.hf_model_id = base_model_fetched
-            return self.compile_all(base_model_fetched)
+            return self.compile_all(base_model_fetched, need_vae_encode)
 
         # Step 3:
         # -- This is the retry mechanism where the base model's configuration is not
@@ -308,10 +308,10 @@ class SharkifyStableDiffusionModel:
         print("Inferring base model configuration.")
         for model_id in base_models:
             try:
-                if if_inpaint:
-                    compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode = self.compile_all(model_id, if_inpaint)
+                if need_vae_encode:
+                    compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode = self.compile_all(model_id, need_vae_encode)
                 else:
-                    compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, if_inpaint)
+                    compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode)
             except Exception as e:
                 if args.enable_stack_trace:
                     traceback.print_exc()
@@ -326,7 +326,7 @@ class SharkifyStableDiffusionModel:
             # the knowledge of base model id accordingly into `args.hf_model_id`.
             if args.ckpt_loc != "":
                 args.hf_model_id = model_id
-            if if_inpaint:
+            if need_vae_encode:
                 return (
                     compiled_clip,
                     compiled_unet,
