@@ -58,25 +58,12 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    model_id = gr.Dropdown(
-                        label="Model ID",
-                        value="stabilityai/stable-diffusion-2-1-base",
-                        choices=[
-                            "Linaqruf/anything-v3.0",
-                            "prompthero/openjourney",
-                            "wavymulder/Analog-Diffusion",
-                            "stabilityai/stable-diffusion-2-1",
-                            "stabilityai/stable-diffusion-2-1-base",
-                            "CompVis/stable-diffusion-v1-4",
-                        ],
+                    ckpt_path = (
+                        Path(args.ckpt_dir)
+                        if args.ckpt_dir
+                        else Path(Path.cwd(), "models")
                     )
-                    custom_model_id = gr.Textbox(
-                        placeholder="SG161222/Realistic_Vision_V1.3",
-                        value="",
-                        label="HuggingFace Model ID",
-                    )
-                with gr.Group():
-                    ckpt_path = "models"
+                    ckpt_path.mkdir(parents=True, exist_ok=True)
                     types = (
                         "*.ckpt",
                         "*.safetensors",
@@ -85,10 +72,23 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                     for extn in types:
                         files = glob.glob(os.path.join(ckpt_path, extn))
                         ckpt_files.extend(files)
-                    ckpt_loc = gr.Dropdown(
-                        label="Place all checkpoints in models/",
+                    custom_model = gr.Dropdown(
+                        label=f"Models (Custom Model path: {ckpt_path})",
                         value="None",
-                        choices=ckpt_files,
+                        choices=ckpt_files
+                        + [
+                            "Linaqruf/anything-v3.0",
+                            "prompthero/openjourney",
+                            "wavymulder/Analog-Diffusion",
+                            "stabilityai/stable-diffusion-2-1",
+                            "stabilityai/stable-diffusion-2-1-base",
+                            "CompVis/stable-diffusion-v1-4",
+                        ],
+                    )
+                    hf_model_id = gr.Textbox(
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
+                        value="",
+                        label="HuggingFace Model ID",
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -104,7 +104,7 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                         lines=1,
                         elem_id="prompt_box",
                     )
-                with gr.Accordion(label="Advance Options", open=False):
+                with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
                             label="Scheduler",
@@ -119,9 +119,17 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                                 "SharkEulerDiscrete",
                             ],
                         )
-                        batch_size = gr.Slider(
-                            1, 4, value=1, step=1, label="Number of Images"
-                        )
+                        with gr.Group():
+                            save_metadata_to_png = gr.Checkbox(
+                                label="Save prompt information to PNG",
+                                value=True,
+                                interactive=True,
+                            )
+                            save_metadata_to_json = gr.Checkbox(
+                                label="Save prompt information to JSON file",
+                                value=False,
+                                interactive=True,
+                            )
                     with gr.Row():
                         height = gr.Slider(
                             384, 786, value=512, step=8, label="Height"
@@ -159,14 +167,20 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                             label="CFG Scale",
                         )
                     with gr.Row():
-                        save_metadata_to_png = gr.Checkbox(
-                            label="Save prompt information to PNG",
-                            value=True,
+                        batch_count = gr.Slider(
+                            1,
+                            10,
+                            value=1,
+                            step=1,
+                            label="Batch Count",
                             interactive=True,
                         )
-                        save_metadata_to_json = gr.Checkbox(
-                            label="Save prompt information to JSON file",
-                            value=False,
+                        batch_size = gr.Slider(
+                            1,
+                            4,
+                            value=1,
+                            step=1,
+                            label="Batch Size",
                             interactive=True,
                         )
                 with gr.Row():
@@ -213,55 +227,33 @@ with gr.Blocks(title="Stable Diffusion", css=demo_css) as shark_web:
                     value=output_dir,
                     interactive=False,
                 )
+        kwargs = dict(
+            fn=txt2img_inf,
+            inputs=[
+                prompt,
+                negative_prompt,
+                height,
+                width,
+                steps,
+                guidance_scale,
+                seed,
+                batch_count,
+                batch_size,
+                scheduler,
+                custom_model,
+                hf_model_id,
+                precision,
+                device,
+                max_length,
+                save_metadata_to_json,
+                save_metadata_to_png,
+            ],
+            outputs=[gallery, std_output],
+            show_progress=args.progress_bar,
+        )
 
-        prompt.submit(
-            txt2img_inf,
-            inputs=[
-                prompt,
-                negative_prompt,
-                height,
-                width,
-                steps,
-                guidance_scale,
-                seed,
-                batch_size,
-                scheduler,
-                model_id,
-                custom_model_id,
-                ckpt_loc,
-                precision,
-                device,
-                max_length,
-                save_metadata_to_json,
-                save_metadata_to_png,
-            ],
-            outputs=[gallery, std_output],
-            show_progress=args.progress_bar,
-        )
-        stable_diffusion.click(
-            txt2img_inf,
-            inputs=[
-                prompt,
-                negative_prompt,
-                height,
-                width,
-                steps,
-                guidance_scale,
-                seed,
-                batch_size,
-                scheduler,
-                model_id,
-                custom_model_id,
-                ckpt_loc,
-                precision,
-                device,
-                max_length,
-                save_metadata_to_json,
-                save_metadata_to_png,
-            ],
-            outputs=[gallery, std_output],
-            show_progress=args.progress_bar,
-        )
+        prompt.submit(**kwargs)
+        stable_diffusion.click(**kwargs)
 
 shark_web.queue()
 shark_web.launch(

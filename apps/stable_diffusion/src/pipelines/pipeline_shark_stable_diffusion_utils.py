@@ -1,4 +1,5 @@
 import torch
+import numpy as np
 from transformers import CLIPTokenizer
 from PIL import Image
 from tqdm.auto import tqdm
@@ -16,6 +17,7 @@ from shark.shark_inference import SharkInference
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.models import (
     SharkifyStableDiffusionModel,
+    get_vae_encode,
     get_vae,
     get_clip,
     get_unet,
@@ -24,7 +26,6 @@ from apps.stable_diffusion.src.models import (
 from apps.stable_diffusion.src.utils import (
     start_profiling,
     end_profiling,
-    preprocessCKPT,
 )
 
 
@@ -113,6 +114,8 @@ class StableDiffusionPipeline:
         total_timesteps,
         dtype,
         cpu_scheduling,
+        mask=None,
+        masked_image_latents=None,
         return_all_latents=False,
     ):
         step_time_sum = 0
@@ -123,6 +126,15 @@ class StableDiffusionPipeline:
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(dtype).detach().numpy()
             latent_model_input = self.scheduler.scale_model_input(latents, t)
+            if mask is not None and masked_image_latents is not None:
+                latent_model_input = torch.cat(
+                    [
+                        torch.from_numpy(np.asarray(latent_model_input)),
+                        mask,
+                        masked_image_latents,
+                    ],
+                    dim=1,
+                ).to(dtype)
             if cpu_scheduling:
                 latent_model_input = latent_model_input.detach().numpy()
 
@@ -184,13 +196,11 @@ class StableDiffusionPipeline:
         height: int,
         width: int,
         use_base_vae: bool,
+        use_tuned: bool,
     ):
         if import_mlir:
-            if ckpt_loc != "":
-                assert ckpt_loc.lower().endswith(
-                    (".ckpt", ".safetensors")
-                ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
-                ckpt_loc = preprocessCKPT()
+            # TODO: Delet this when on-the-fly tuning of models work.
+            use_tuned = False
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,
@@ -200,9 +210,25 @@ class StableDiffusionPipeline:
                 height=height,
                 width=width,
                 use_base_vae=use_base_vae,
+                use_tuned=use_tuned,
             )
+            if "inpaint" in model_id:
+                clip, unet, vae, vae_encode = mlir_import()
+                return cls(
+                    vae_encode, vae, clip, get_tokenizer(), unet, scheduler
+                )
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
+
+        if "inpaint" in model_id:
+            return cls(
+                get_vae_encode(),
+                get_vae(),
+                get_clip(),
+                get_tokenizer(),
+                get_unet(),
+                scheduler,
+            )
         return cls(
             get_vae(), get_clip(), get_tokenizer(), get_unet(), scheduler
         )

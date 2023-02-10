@@ -30,6 +30,18 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--img_path",
+    type=str,
+    help="Path to the image input for img2img/inpainting",
+)
+
+p.add_argument(
+    "--mask_path",
+    type=str,
+    help="Path to the mask image input for inpainting",
+)
+
+p.add_argument(
     "--steps",
     type=int,
     default=50,
@@ -294,6 +306,14 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="flag for removing the pregress bar animation during image generation",
 )
+
+p.add_argument(
+    "--ckpt_dir",
+    type=str,
+    default="",
+    help="Path to directory where all .ckpts are stored in order to populate them in the web UI",
+)
+
 
 p.add_argument(
     "--share",

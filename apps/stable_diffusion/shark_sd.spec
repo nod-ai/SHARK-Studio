@@ -30,6 +30,7 @@ datas += [
          ( 'src/utils/resources/model_db.json', 'resources' ),
          ( 'src/utils/resources/opt_flags.json', 'resources' ),
          ( 'src/utils/resources/base_model.json', 'resources' ),
+         ( 'web/css/*', 'css' ),
          ( 'web/logos/*', 'logos' )
          ]
 

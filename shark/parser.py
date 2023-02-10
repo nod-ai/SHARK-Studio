@@ -15,36 +15,12 @@
 import argparse
 import os
 
-
-def dir_path(path):
-    if os.path.isdir(path):
-        return path
-    else:
-        os.mkdir(path)
-        return path
-
-
-def dir_file(path):
-    if os.path.isfile(path):
-        return path
-    else:
-        raise argparse.ArgumentTypeError(
-            f"readable_file:{path} is not a valid file"
-        )
-
-
 parser = argparse.ArgumentParser(description="SHARK runner.")
 parser.add_argument(
     "--device",
     type=str,
     default="cpu",
     help="Device on which shark_runner runs. options are cpu, cuda, and vulkan",
-)
-parser.add_argument(
-    "--repro_dir",
-    help="Directory to which module files will be saved for reproduction or debugging.",
-    type=dir_path,
-    default="shark_tmp",
 )
 parser.add_argument(
     "--enable_tf32",
@@ -83,9 +59,15 @@ parser.add_argument(
 )
 parser.add_argument(
     "--update_tank",
-    default=False,
+    default=True,
     action="store_true",
     help="When enabled, SHARK downloader will update local shark_tank if local hash is different from latest upstream hash.",
+)
+parser.add_argument(
+    "--force_update_tank",
+    default=False,
+    action="store_true",
+    help="When enabled, SHARK downloader will force an update of local shark_tank artifacts for each request.",
 )
 parser.add_argument(
     "--local_tank_cache",

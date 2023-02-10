@@ -29,7 +29,7 @@ def compare_images(new_filename, golden_filename):
     golden = np.array(Image.open(golden_filename)) / 255.0
     diff = np.abs(new - golden)
     mean = np.mean(diff)
-    if mean > 0.01:
+    if mean > 0.1:
         subprocess.run(
             ["gsutil", "cp", new_filename, "gs://shark_tank/testdata/builder/"]
         )

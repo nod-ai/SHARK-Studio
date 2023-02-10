@@ -82,7 +82,7 @@ class SharkBenchmarkRunner(SharkRunner):
             self.vmfb_file = export_iree_module_to_vmfb(
                 mlir_module,
                 device,
-                shark_args.repro_dir,
+                ".",
                 self.mlir_dialect,
                 extra_args=self.extra_args,
             )

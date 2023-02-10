@@ -4,13 +4,16 @@ from collections import defaultdict
 import torch
 import traceback
 import re
-import os, sys, functools, operator
+import sys
 from apps.stable_diffusion.src.utils import (
     compile_through_fx,
     get_opt_flags,
     base_models,
     args,
-    get_vmfb_path_name,
+    fetch_or_delete_vmfbs,
+    preprocessCKPT,
+    get_path_to_diffusers_checkpoint,
+    fetch_and_update_base_model_id,
 )
 
 
@@ -25,15 +28,19 @@ def replace_shape_str(shape, max_len, width, height, batch_size):
         elif shape[i] == "width":
             new_shape.append(width)
         elif isinstance(shape[i], str):
+            mul_val = int(shape[i].split("*")[0])
             if "batch_size" in shape[i]:
-                mul_val = int(shape[i].split("*")[0])
                 new_shape.append(batch_size * mul_val)
+            elif "height" in shape[i]:
+                new_shape.append(height * mul_val)
+            elif "width" in shape[i]:
+                new_shape.append(width * mul_val)
         else:
             new_shape.append(shape[i])
     return new_shape
 
 
-# Get the input info for various models i.e. "unet", "clip", "vae".
+# Get the input info for various models i.e. "unet", "clip", "vae", "vae_encode".
 def get_input_info(model_info, max_len, width, height, batch_size):
     dtype_config = {"f32": torch.float32, "i64": torch.int64}
     input_map = defaultdict(list)
@@ -76,6 +83,12 @@ class SharkifyStableDiffusionModel:
         self.height = height // 8
         self.width = width // 8
         self.batch_size = batch_size
+        self.custom_weights = custom_weights
+        if custom_weights != "":
+            assert custom_weights.lower().endswith(
+                (".ckpt", ".safetensors")
+            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+            custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
         self.precision = precision
         self.base_vae = use_base_vae
@@ -91,6 +104,8 @@ class SharkifyStableDiffusionModel:
             + precision
         )
         self.use_tuned = use_tuned
+        if use_tuned:
+            self.model_name = self.model_name + "_tuned"
         # We need a better naming convention for the .vmfbs because despite
         # using the custom model variant the .vmfb names remain the same and
         # it'll always pick up the compiled .vmfb instead of compiling the
@@ -98,8 +113,6 @@ class SharkifyStableDiffusionModel:
         # So, currently, we add `self.model_id` in the `self.model_name` of
         # .vmfb file.
         # TODO: Have a better way of naming the vmfbs using self.model_name.
-        import re
-
         model_name = re.sub(r"\W+", "_", self.model_id)
         if model_name[0] == "_":
             model_name = model_name[1:]
@@ -112,6 +125,32 @@ class SharkifyStableDiffusionModel:
             sys.exit("width should be greater than 384 and multiple of 8")
         if not (height % 8 == 0 and height >= 384):
             sys.exit("height should be greater than 384 and multiple of 8")
+
+    def get_vae_encode(self):
+        class VaeEncodeModel(torch.nn.Module):
+            def __init__(self, model_id=self.model_id):
+                super().__init__()
+                self.vae = AutoencoderKL.from_pretrained(
+                    model_id,
+                    subfolder="vae",
+                )
+
+            def forward(self, input):
+                latents = self.vae.encode(input).latent_dist.sample()
+                return 0.18215 * latents
+
+        vae_encode = VaeEncodeModel()
+        inputs = tuple(self.inputs["vae_encode"])
+        is_f16 = True if self.precision == "fp16" else False
+        shark_vae_encode = compile_through_fx(
+            vae_encode,
+            inputs,
+            is_f16=is_f16,
+            use_tuned=self.use_tuned,
+            model_name="vae_encode" + self.model_name,
+            extra_args=get_opt_flags("vae", precision=self.precision),
+        )
+        return shark_vae_encode
 
     def get_vae(self):
         class VaeModel(torch.nn.Module):
@@ -208,46 +247,93 @@ class SharkifyStableDiffusionModel:
         )
         return shark_clip
 
+    # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
+    # configiration.
+    def compile_all(self, base_model_id, if_inpaint):
+        self.inputs = get_input_info(
+            base_models[base_model_id],
+            self.max_len,
+            self.width,
+            self.height,
+            self.batch_size,
+        )
+        compiled_unet = self.get_unet()
+        compiled_vae = self.get_vae()
+        compiled_clip = self.get_clip()
+        if if_inpaint:
+            compiled_vae_encode = self.get_vae_encode()
+            return compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode
+
+        return compiled_clip, compiled_unet, compiled_vae
+
     def __call__(self):
-        model_name = ["clip", "base_vae" if self.base_vae else "vae", "unet"]
-        vmfb_path = [
-            get_vmfb_path_name(model + self.model_name)[0]
-            for model in model_name
-        ]
+        # Step 1:
+        # --  Fetch all vmfbs for the model, if present, else delete the lot.
+        if_inpaint = "inpaint" in self.model_id
+        vmfbs = fetch_or_delete_vmfbs(
+            self.model_name, self.base_vae, if_inpaint, self.precision
+        )
+        if vmfbs[0]:
+            # -- If all vmfbs are indeed present, we also try and fetch the base
+            #    model configuration for running SD with custom checkpoints.
+            if self.custom_weights != "":
+                args.hf_model_id = fetch_and_update_base_model_id(self.custom_weights)
+            if args.hf_model_id == "":
+                sys.exit("Base model configuration for the custom model is missing. Use `--clear_all` and re-run.")
+            print("Loaded vmfbs from cache and successfully fetched base model configuration.")
+            return vmfbs
+
+        # Step 2:
+        # -- If vmfbs weren't found, we try to see if the base model configuration
+        #    for the required SD run is known to us and bypass the retry mechanism.
+        model_to_run = ""
+        if self.custom_weights != "":
+            model_to_run = self.custom_weights
+            assert self.custom_weights.lower().endswith(
+                (".ckpt", ".safetensors")
+            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+            preprocessCKPT(self.custom_weights)
+        else:
+            model_to_run = args.hf_model_id
+        base_model_fetched = fetch_and_update_base_model_id(model_to_run)
+        if base_model_fetched != "":
+            print("Compiling all the models with the fetched base model configuration.")
+            if args.ckpt_loc != "":
+                args.hf_model_id = base_model_fetched
+            return self.compile_all(base_model_fetched)
+
+        # Step 3:
+        # -- This is the retry mechanism where the base model's configuration is not
+        #    known to us and figure that out by trial and error.
+        print("Inferring base model configuration.")
         for model_id in base_models:
-            self.inputs = get_input_info(
-                base_models[model_id],
-                self.max_len,
-                self.width,
-                self.height,
-                self.batch_size,
-            )
             try:
-                compiled_unet = self.get_unet()
-                compiled_vae = self.get_vae()
-                compiled_clip = self.get_clip()
+                if if_inpaint:
+                    compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode = self.compile_all(model_id, if_inpaint)
+                else:
+                    compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, if_inpaint)
             except Exception as e:
                 if args.enable_stack_trace:
                     traceback.print_exc()
-                vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
-                all_vmfb_present = functools.reduce(
-                    operator.__and__, vmfb_present
-                )
-                # We need to delete vmfbs only if some of the models were compiled.
-                if not all_vmfb_present:
-                    for i in range(len(vmfb_path)):
-                        if vmfb_present[i]:
-                            os.remove(vmfb_path[i])
-                            print("Deleted: ", vmfb_path[i])
                 print("Retrying with a different base model configuration")
                 continue
+            # -- Once a successful compilation has taken place we'd want to store
+            #    the base model's configuration inferred.
+            fetch_and_update_base_model_id(model_to_run, model_id)
             # This is done just because in main.py we are basing the choice of tokenizer and scheduler
             # on `args.hf_model_id`. Since now, we don't maintain 1:1 mapping of variants and the base
             # model and rely on retrying method to find the input configuration, we should also update
             # the knowledge of base model id accordingly into `args.hf_model_id`.
             if args.ckpt_loc != "":
                 args.hf_model_id = model_id
+            if if_inpaint:
+                return (
+                    compiled_clip,
+                    compiled_unet,
+                    compiled_vae,
+                    compiled_vae_encode,
+                )
             return compiled_clip, compiled_unet, compiled_vae
         sys.exit(
-            "Cannot compile the model. Please use `enable_stack_trace` and create an issue at https://github.com/nod-ai/SHARK/issues"
+            "Cannot compile the model. Please re-run the command with `--enable_stack_trace` flag and create an issue with detailed log at https://github.com/nod-ai/SHARK/issues"
         )

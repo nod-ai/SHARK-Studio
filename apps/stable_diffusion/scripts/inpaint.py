@@ -9,13 +9,13 @@ import torch
 import re
 import time
 from pathlib import Path
-from PIL import PngImagePlugin
+from PIL import Image, PngImagePlugin
 from datetime import datetime as dt
 from dataclasses import dataclass
 from csv import DictWriter
 from apps.stable_diffusion.src import (
     args,
-    Text2ImagePipeline,
+    InpaintPipeline,
     get_schedulers,
     set_init_device_flags,
     utils,
@@ -102,6 +102,8 @@ def save_output_img(output_img, img_seed):
         "SCHEDULER": args.scheduler,
         "PROMPT": args.prompts[0],
         "NEG_PROMPT": args.negative_prompts[0],
+        "IMG_INPUT": args.img_path,
+        "MASK_INPUT": args.mask_path,
         "SEED": img_seed,
         "CFG_SCALE": args.guidance_scale,
         "PRECISION": args.precision,
@@ -124,15 +126,17 @@ def save_output_img(output_img, img_seed):
             json.dump(new_entry, f, indent=4)
 
 
-txt2img_obj = None
+inpaint_obj = None
 config_obj = None
 schedulers = None
 
 
 # Exposed to UI.
-def txt2img_inf(
+def inpaint_inf(
     prompt: str,
     negative_prompt: str,
+    image: Image,
+    mask_image: Image,
     height: int,
     width: int,
     steps: int,
@@ -149,7 +153,7 @@ def txt2img_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
-    global txt2img_obj
+    global inpaint_obj
     global config_obj
     global schedulers
 
@@ -207,11 +211,11 @@ def txt2img_inf(
         model_id = (
             args.hf_model_id
             if args.hf_model_id
-            else "stabilityai/stable-diffusion-2-1-base"
+            else "stabilityai/stable-diffusion-2-inpainting"
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
-        txt2img_obj = Text2ImagePipeline.from_pretrained(
+        inpaint_obj = InpaintPipeline.from_pretrained(
             scheduler_obj,
             args.import_mlir,
             args.hf_model_id,
@@ -225,22 +229,24 @@ def txt2img_inf(
             args.use_tuned,
         )
 
-    if not txt2img_obj:
+    if not inpaint_obj:
         sys.exit("text to image pipeline must not return a null value")
 
-    txt2img_obj.scheduler = schedulers[scheduler]
+    inpaint_obj.scheduler = schedulers[scheduler]
 
     start_time = time.time()
-    txt2img_obj.log = ""
+    inpaint_obj.log = ""
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
     for i in range(batch_count):
         if i > 0:
             img_seed = utils.sanitize_seed(-1)
-        out_imgs = txt2img_obj.generate_images(
+        out_imgs = inpaint_obj.generate_images(
             prompt,
             negative_prompt,
+            image,
+            mask_image,
             batch_size,
             height,
             width,
@@ -255,7 +261,7 @@ def txt2img_inf(
         save_output_img(out_imgs[0], img_seed)
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
-        txt2img_obj.log += "\n"
+        inpaint_obj.log += "\n"
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -264,21 +270,33 @@ def txt2img_inf(
     text_output += f"\nscheduler={args.scheduler}, device={device}"
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
     text_output += f"\nsize={args.height}x{args.width}, batch-count={batch_count}, batch-size={args.batch_size}, max_length={args.max_length}"
-    text_output += txt2img_obj.log
+    text_output += inpaint_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     return generated_imgs, text_output
 
 
 if __name__ == "__main__":
+    if args.img_path is None:
+        print("Flag --img_path is required.")
+        exit()
+    if args.mask_path is None:
+        print("Flag --mask_path is required.")
+        exit()
+    if "inpaint" not in args.hf_model_id:
+        print("Please use inpainting model with --hf_model_id.")
+        exit()
+
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     cpu_scheduling = not args.scheduler.startswith("Shark")
     set_init_device_flags()
     schedulers = get_schedulers(args.hf_model_id)
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
+    image = Image.open(args.img_path)
+    mask_image = Image.open(args.mask_path)
 
-    txt2img_obj = Text2ImagePipeline.from_pretrained(
+    inpaint_obj = InpaintPipeline.from_pretrained(
         scheduler_obj,
         args.import_mlir,
         args.hf_model_id,
@@ -298,9 +316,11 @@ if __name__ == "__main__":
         seed = utils.sanitize_seed(seed)
 
         start_time = time.time()
-        generated_imgs = txt2img_obj.generate_images(
+        generated_imgs = inpaint_obj.generate_images(
             args.prompts,
             args.negative_prompts,
+            image,
+            mask_image,
             args.batch_size,
             args.height,
             args.width,
@@ -323,8 +343,7 @@ if __name__ == "__main__":
         text_output += (
             f", batch size={args.batch_size}, max_length={args.max_length}"
         )
-        # TODO: if using --runs=x txt2img_obj.log will output on each display every iteration infos from the start
-        text_output += txt2img_obj.log
+        text_output += inpaint_obj.log
         text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
         save_output_img(generated_imgs[0], seed)

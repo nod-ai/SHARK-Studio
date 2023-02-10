@@ -136,7 +136,7 @@ class SharkModuleTester:
 
     def create_and_check_module(self, dynamic, device):
         shark_args.local_tank_cache = self.local_tank_cache
-        shark_args.update_tank = self.update_tank
+        shark_args.force_update_tank = self.update_tank
         if "nhcw-nhwc" in self.config["flags"] and not os.path.isfile(
             ".use-iree"
         ):
@@ -212,12 +212,11 @@ class SharkModuleTester:
         )
 
     def save_reproducers(self):
-        # Saves contents of IREE TempFileSaver temporary directory to ./shark_tmp/saved/<test_case>.
-        src = os.path.join(*self.temp_dir.split("/"))
-        saves = os.path.join(".", "shark_tmp", "saved")
-        trg = os.path.join(saves, self.tmp_prefix)
-        if not os.path.isdir(saves):
-            os.mkdir(saves)
+        # Saves contents of IREE TempFileSaver temporary directory to ./{temp_dir}/saved/<test_case>.
+        src = self.temp_dir
+        trg = os.path.join("reproducers", self.tmp_prefix)
+        if not os.path.isdir("reproducers"):
+            os.mkdir("reproducers")
         if not os.path.isdir(trg):
             os.mkdir(trg)
         files = os.listdir(src)
@@ -227,10 +226,7 @@ class SharkModuleTester:
     def upload_repro(self):
         import subprocess
 
-        src = os.path.join(*self.temp_dir.split("/"))
-        repro_path = os.path.join(
-            ".", "shark_tmp", "saved", self.tmp_prefix, "*"
-        )
+        repro_path = os.path.join("reproducers", self.tmp_prefix, "*")
 
         bashCommand = f"gsutil cp -r {repro_path} gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         process = subprocess.run(bashCommand.split())
@@ -329,11 +325,8 @@ class SharkModuleTest(unittest.TestCase):
         )
         self.module_tester.tmp_prefix = safe_name.replace("/", "_")
 
-        if not os.path.isdir("shark_tmp"):
-            os.mkdir("shark_tmp")
-
         tempdir = tempfile.TemporaryDirectory(
-            prefix=self.module_tester.tmp_prefix, dir="shark_tmp"
+            prefix=self.module_tester.tmp_prefix, dir="."
         )
         self.module_tester.temp_dir = tempdir.name
 

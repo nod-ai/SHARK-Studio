@@ -1,6 +1,9 @@
 import os
 import gc
+import json
 from pathlib import Path
+import numpy as np
+from random import randint
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
@@ -11,7 +14,7 @@ from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
-import sys
+import sys, functools, operator
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     load_pipeline_from_original_stable_diffusion_ckpt,
 )
@@ -54,11 +57,13 @@ def _compile_module(shark_module, model_name, extra_args=[]):
 
 # Downloads the model from shark_tank and returns the shark_module.
 def get_shark_model(tank_url, model_name, extra_args=[]):
-    from shark.shark_downloader import download_model
     from shark.parser import shark_args
 
     # Set local shark_tank cache directory.
     shark_args.local_tank_cache = args.local_tank_cache
+
+    from shark.shark_downloader import download_model
+
     if "cuda" in args.device:
         shark_args.enable_tf32 = True
 
@@ -93,27 +98,19 @@ def compile_through_fx(
     )
 
     if use_tuned:
-        model_name = model_name + "_tuned"
-        tuned_model_path = f"{args.annotation_output}/{model_name}_torch.mlir"
-        if not os.path.exists(tuned_model_path):
-            if "vae" in model_name.split("_")[0]:
-                args.annotation_model = "vae"
-
-            tuned_model, tuned_model_path = sd_model_annotation(
-                mlir_module, model_name
-            )
-            del mlir_module, tuned_model
-            gc.collect()
-
-        with open(tuned_model_path, "rb") as f:
-            mlir_module = f.read()
-            f.close()
+        if "vae" in model_name.split("_")[0]:
+            args.annotation_model = "vae"
+        mlir_module = sd_model_annotation(mlir_module, model_name)
 
     shark_module = SharkInference(
         mlir_module,
         device=args.device,
         mlir_dialect="linalg",
     )
+
+    del mlir_module
+    gc.collect()
+
     return _compile_module(shark_module, model_name, extra_args)
 
 
@@ -235,8 +232,8 @@ def set_init_device_flags():
 
     # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
     if (
-        args.hf_model_id
-        in ["prompthero/openjourney", "dreamlike-art/dreamlike-diffusion-1.0"]
+        args.hf_model_id == "prompthero/openjourney"
+        or args.ckpt_loc != ""
         or args.precision != "fp16"
         or args.height != 512
         or args.width != 512
@@ -251,12 +248,7 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif "cuda" in args.device and get_cuda_sm_cc() not in [
-        "sm_80",
-        "sm_84",
-        "sm_86",
-        "sm_89",
-    ]:
+    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80"]:
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
@@ -282,6 +274,8 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1",
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
+        "runwayml/stable-diffusion-inpainting",
+        "stabilityai/stable-diffusion-2-inpainting",
     ]:
         args.import_mlir = True
 
@@ -362,34 +356,115 @@ def get_opt_flags(model, precision="fp16"):
     return iree_flags
 
 
-def preprocessCKPT():
-    path = Path(args.ckpt_loc)
+def get_path_to_diffusers_checkpoint(custom_weights):
+    path = Path(custom_weights)
     diffusers_path = path.parent.absolute()
     diffusers_directory_name = path.stem
     complete_path_to_diffusers = diffusers_path / diffusers_directory_name
     complete_path_to_diffusers.mkdir(parents=True, exist_ok=True)
-    print(
-        "Created directory : ",
-        diffusers_directory_name,
-        " at -> ",
-        diffusers_path,
-    )
     path_to_diffusers = complete_path_to_diffusers.as_posix()
+    return path_to_diffusers
+
+
+def preprocessCKPT(custom_weights):
+    path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights)
+    if next(Path(path_to_diffusers).iterdir(), None):
+        print("Checkpoint already loaded at : ", path_to_diffusers)
+        return
+    else:
+        print(
+            "Diffusers' checkpoint will be identified here : ",
+            path_to_diffusers,
+        )
     from_safetensors = (
-        True if args.ckpt_loc.lower().endswith(".safetensors") else False
+        True if custom_weights.lower().endswith(".safetensors") else False
     )
     # EMA weights usually yield higher quality images for inference but non-EMA weights have
     # been yielding better results in our case.
     # TODO: Add an option `--ema` (`--no-ema`) for users to specify if they want to go for EMA
     #       weight extraction or not.
     extract_ema = False
-    print("Loading pipeline from original stable diffusion checkpoint")
+    print(
+        "Loading diffusers' pipeline from original stable diffusion checkpoint"
+    )
     pipe = load_pipeline_from_original_stable_diffusion_ckpt(
-        checkpoint_path=args.ckpt_loc,
+        checkpoint_path=custom_weights,
         extract_ema=extract_ema,
         from_safetensors=from_safetensors,
     )
     pipe.save_pretrained(path_to_diffusers)
     print("Loading complete")
-    print("Custom model path is : ", path_to_diffusers)
-    return path_to_diffusers
+
+
+def load_vmfb(vmfb_path, model, precision):
+    model = "vae" if "base_vae" in model or "vae_encode" in model else model
+    precision = "fp32" if "clip" in model else precision
+    extra_args = get_opt_flags(model, precision)
+    shark_module = SharkInference(mlir_module=None, device=args.device)
+    shark_module.load_module(vmfb_path, extra_args=extra_args)
+    return shark_module
+
+
+# This utility returns vmfbs of Clip, Unet, Vae and Vae_encode, in case all of them
+# are present; deletes them otherwise.
+def fetch_or_delete_vmfbs(
+    basic_model_name, use_base_vae, if_inpaint, precision="fp32"
+):
+    model_name = [
+        "clip",
+        "unet",
+        "base_vae" if use_base_vae else "vae",
+    ]
+    if if_inpaint:
+        model_name.append("vae_encode")
+    vmfb_path = [
+        get_vmfb_path_name(model + basic_model_name)[0] for model in model_name
+    ]
+    vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
+    all_vmfb_present = functools.reduce(operator.__and__, vmfb_present)
+    compiled_models = [None] * 4 if if_inpaint else [None] * 3
+    # We need to delete vmfbs only if some of the models were compiled.
+    if not all_vmfb_present:
+        for i in range(len(vmfb_path)):
+            if vmfb_present[i]:
+                os.remove(vmfb_path[i])
+                print("Deleted: ", vmfb_path[i])
+    else:
+        for i in range(len(vmfb_path)):
+            compiled_models[i] = load_vmfb(
+                vmfb_path[i], model_name[i], precision
+            )
+    return compiled_models
+
+
+# `fetch_and_update_base_model_id` is a resource utility function which
+# helps maintaining mapping of the model to run with its base model.
+# If `base_model` is "", then this function tries to fetch the base model
+# info for the `model_to_run`.
+def fetch_and_update_base_model_id(model_to_run, base_model=""):
+    variants_path = os.path.join(os.getcwd(), "variants.json")
+    data = {model_to_run: base_model}
+    json_data = {}
+    if os.path.exists(variants_path):
+        with open(variants_path, "r", encoding="utf-8") as jsonFile:
+            json_data = json.load(jsonFile)
+            # Return with base_model's info if base_model is "".
+            if base_model == "":
+                if model_to_run in json_data:
+                    base_model = json_data[model_to_run]
+                return base_model
+    elif base_model == "":
+        return base_model
+    # Update JSON data to contain an entry mapping model_to_run with base_model.
+    json_data.update(data)
+    with open(variants_path, "w", encoding="utf-8") as jsonFile:
+        json.dump(json_data, jsonFile)
+
+
+# Generate and return a new seed if the provided one is not in the supported range (including -1)
+def sanitize_seed(seed):
+    uint32_info = np.iinfo(np.uint32)
+    uint32_min, uint32_max = uint32_info.min, uint32_info.max
+    if seed < uint32_min or seed >= uint32_max:
+        seed = randint(uint32_min, uint32_max)
+    return seed

@@ -1,4 +1,5 @@
 import os
+import io
 from shark.model_annotation import model_annotation, create_context
 from shark.iree_utils._common import iree_target_map, run_cmd
 from shark.shark_downloader import (
@@ -26,7 +27,7 @@ def load_model_from_tank():
         get_variant_version,
     )
 
-    version, variant = get_variant_version(args.hf_model_id)
+    variant, version = get_variant_version(args.hf_model_id)
 
     shark_args.local_tank_cache = args.local_tank_cache
     bucket_key = f"{variant}/untuned"
@@ -62,7 +63,7 @@ def load_winograd_configs():
 def load_lower_configs():
     from apps.stable_diffusion.src.models import get_variant_version
 
-    version, variant = get_variant_version(args.hf_model_id)
+    variant, version = get_variant_version(args.hf_model_id)
 
     config_bucket = "gs://shark_tank/sd_tuned/configs/"
     config_version = version
@@ -97,22 +98,38 @@ def annotate_with_winograd(input_mlir, winograd_config_dir, model_name):
             search_op="conv",
             winograd=True,
         )
-        with open(out_file_path, "w") as f:
-            f.write(str(winograd_model))
-            f.close()
-    return winograd_model, out_file_path
+
+    bytecode_stream = io.BytesIO()
+    winograd_model.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
+    with open(out_file_path, "w") as f:
+        f.write(str(winograd_model))
+        f.close()
+    return bytecode, out_file_path
 
 
-# For Unet annotate the model with tuned lowering configs
-def annotate_with_lower_configs(
-    input_mlir, lowering_config_dir, model_name, use_winograd
-):
+def dump_after_mlir(input_mlir, model_name, use_winograd):
     if use_winograd:
         dump_after = "iree-linalg-ext-convert-conv2d-to-winograd"
+        preprocess_flag = (
+            "--iree-preprocessing-pass-pipeline='builtin.module"
+            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
+            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "iree-preprocessing-convert-conv2d-to-img2col,"
+            "iree-preprocessing-pad-linalg-ops{pad-size=32},"
+            "iree-linalg-ext-convert-conv2d-to-winograd))' "
+        )
     else:
-        dump_after = "iree-flow-pad-linalg-ops"
+        dump_after = "iree-preprocessing-pad-linalg-ops"
+        preprocess_flag = (
+            "--iree-preprocessing-pass-pipeline='builtin.module"
+            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
+            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "iree-preprocessing-convert-conv2d-to-img2col,"
+            "iree-preprocessing-pad-linalg-ops{pad-size=32}))' "
+        )
 
-    # Dump IR after padding/img2col/winograd passes
     device_spec_args = ""
     device = get_device()
     if device == "cuda":
@@ -132,15 +149,21 @@ def annotate_with_lower_configs(
         "--iree-input-type=tm_tensor "
         f"--iree-hal-target-backends={iree_target_map(device)} "
         f"{device_spec_args}"
+        f"{preprocess_flag}"
         "--iree-stream-resource-index-bits=64 "
         "--iree-vm-target-index-bits=64 "
-        "--iree-flow-enable-padding-linalg-ops "
-        "--iree-flow-linalg-ops-padding-size=32 "
-        "--iree-flow-enable-conv-img2col-transform "
         f"--mlir-print-ir-after={dump_after} "
         "--compile-to=flow "
         f"2>{args.annotation_output}/dump_after_winograd.mlir "
     )
+
+
+# For Unet annotate the model with tuned lowering configs
+def annotate_with_lower_configs(
+    input_mlir, lowering_config_dir, model_name, use_winograd
+):
+    # Dump IR after padding/img2col/winograd passes
+    dump_after_mlir(input_mlir, model_name, use_winograd)
 
     # Annotate the model with lowering configs in the config file
     with create_context() as ctx:
@@ -159,10 +182,15 @@ def annotate_with_lower_configs(
         )
     else:
         out_file_path = f"{args.annotation_output}/{model_name}_torch.mlir"
+
+    bytecode_stream = io.BytesIO()
+    tuned_model.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
     with open(out_file_path, "w") as f:
         f.write(str(tuned_model))
         f.close()
-    return tuned_model, out_file_path
+    return bytecode, out_file_path
 
 
 def sd_model_annotation(mlir_model, model_name, model_from_tank=False):
@@ -198,7 +226,7 @@ def sd_model_annotation(mlir_model, model_name, model_from_tank=False):
             mlir_model, lowering_config_dir, model_name, use_winograd
         )
     print(f"Saved the annotated mlir in {output_path}.")
-    return tuned_model, output_path
+    return tuned_model
 
 
 if __name__ == "__main__":

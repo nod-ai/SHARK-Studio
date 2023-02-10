@@ -79,23 +79,21 @@ input_type_to_np_dtype = {
 # Save the model in the home local so it needn't be fetched everytime in the CI.
 home = str(Path.home())
 alt_path = os.path.join(os.path.dirname(__file__), "../gen_shark_tank/")
-custom_path_list = None
-if shark_args.local_tank_cache is not None:
-    custom_path_list = shark_args.local_tank_cache.split("/")
+custom_path = shark_args.local_tank_cache
 
-if os.path.exists(alt_path):
-    WORKDIR = alt_path
-    print(
-        f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
-    )
-if custom_path_list:
-    custom_path = os.path.join(*custom_path_list)
+if custom_path is not None:
     if not os.path.exists(custom_path):
         os.mkdir(custom_path)
 
     WORKDIR = custom_path
 
     print(f"Using {WORKDIR} as local shark_tank cache directory.")
+
+elif os.path.exists(alt_path):
+    WORKDIR = alt_path
+    print(
+        f"Using {WORKDIR} as shark_tank directory. Delete this directory if you aren't working from locally generated shark_tank."
+    )
 else:
     WORKDIR = os.path.join(home, ".local/shark_tank/")
     print(
@@ -148,14 +146,13 @@ def download_model(
     model_dir = os.path.join(WORKDIR, model_dir_name)
     full_gs_url = tank_url.rstrip("/") + "/" + model_dir_name
 
-    if shark_args.update_tank == True:
-        print(f"Updating artifacts for model {model_name}...")
-        download_public_file(full_gs_url, model_dir)
-
-    elif not check_dir_exists(
+    if not check_dir_exists(
         model_dir_name, frontend=frontend, dynamic=dyn_str
     ):
         print(f"Downloading artifacts for model {model_name}...")
+        download_public_file(full_gs_url, model_dir)
+    elif shark_args.force_update_tank == True:
+        print(f"Force-updating artifacts for model {model_name}...")
         download_public_file(full_gs_url, model_dir)
     else:
         if not _internet_connected():
@@ -178,7 +175,11 @@ def download_model(
                 )
             except FileNotFoundError:
                 upstream_hash = None
-            if local_hash != upstream_hash:
+            if local_hash != upstream_hash and shark_args.update_tank == True:
+                print(f"Updating artifacts for model {model_name}...")
+                download_public_file(full_gs_url, model_dir)
+
+            elif local_hash != upstream_hash:
                 print(
                     "Hash does not match upstream in gs://shark_tank/latest. If you want to use locally generated artifacts, this is working as intended. Otherwise, run with --update_tank."
                 )
