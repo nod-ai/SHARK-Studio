@@ -336,6 +336,13 @@ p.add_argument(
     help="flag for setting server port",
 )
 
+p.add_argument(
+    "--theme",
+    type=str,
+    default="dark",
+    help="WebUi theme. dark or light",
+)
+
 ##############################################################################
 ### SD model auto-annotation flags
 ##############################################################################

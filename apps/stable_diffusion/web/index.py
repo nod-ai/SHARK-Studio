@@ -10,10 +10,11 @@ if sys.platform == "darwin":
 
 
 import gradio as gr
+import apps.stable_diffusion.web.ui.launch as launch
 from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui import txt2img_web, img2img_web
 
-
+launch.JavaScriptLoader()
 sd_web = gr.TabbedInterface(
     [txt2img_web, img2img_web], ["Text-to-Image", "Image-to-Image"]
 )
