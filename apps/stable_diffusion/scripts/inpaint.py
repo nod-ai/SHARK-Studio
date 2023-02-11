@@ -310,8 +310,8 @@ if __name__ == "__main__":
         args.use_tuned,
     )
 
-    for run in range(args.runs):
-        if run > 0:
+    for current_batch in range(args.batch_count):
+        if current_batch > 0:
             seed = -1
         seed = utils.sanitize_seed(seed)
 
