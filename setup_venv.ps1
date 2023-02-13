@@ -36,10 +36,10 @@ Write-Host $p
 Write-Host "Installing Build Dependencies"
 python -m venv .\shark.venv\
 .\shark.venv\Scripts\activate
-pip install -r requirements.txt
-pip install --pre torch-mlir torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/
-pip install --upgrade -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html iree-compiler iree-runtime
+pip install -r requirements.txt --no-cache-dir
+pip install --pre torch-mlir torch torchvision --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/  --no-cache-dir
+pip install --upgrade -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html iree-compiler iree-runtime --no-cache-dir
 Write-Host "Building SHARK..."
-pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
+pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html --no-cache-dir
 Write-Host "Build and installation completed successfully"
 Write-Host "Source your venv with ./shark.venv/Scripts/activate"
