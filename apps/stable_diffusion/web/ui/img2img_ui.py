@@ -5,25 +5,15 @@ from pathlib import Path
 import gradio as gr
 from PIL import Image
 from apps.stable_diffusion.scripts import img2img_inf
-from apps.stable_diffusion.src import (
-    args,
-    get_available_devices,
+from apps.stable_diffusion.src import args
+from apps.stable_diffusion.web.ui.utils import (
+    available_devices,
+    nodlogo_loc,
+    sdlogo_loc,
 )
 
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(
-        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
-    )
-    return os.path.join(base_path, relative_path)
-
-
-nodlogo_loc = resource_path("logos/nod-logo.png")
-sdlogo_loc = resource_path("logos/sd-demo-logo.png")
-demo_css = resource_path("css/sd_dark_theme.css")
-
-with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
+with gr.Blocks(title="Image-to-Image") as img2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         logo2 = Image.open(sdlogo_loc)
@@ -42,7 +32,6 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                     interactive=False,
                     elem_id="demo_title",
                 ).style(width=150, height=100)
-
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
@@ -78,6 +67,7 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
                         value="",
                         label="HuggingFace Model ID",
+                        lines=3,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -161,7 +151,7 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                     with gr.Row():
                         batch_count = gr.Slider(
                             1,
-                            10,
+                            100,
                             value=args.batch_count,
                             step=1,
                             label="Batch Count",
@@ -179,7 +169,6 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
                     )
-                    available_devices = get_available_devices()
                     device = gr.Dropdown(
                         label="Device",
                         value=available_devices[0],
