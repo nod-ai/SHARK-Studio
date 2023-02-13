@@ -252,7 +252,14 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80"]:
+    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80", "sm_89"]:
+        args.use_tuned = False
+
+    elif (
+        "cuda" in args.device
+        and get_cuda_sm_cc() == "sm_89"
+        and args.hf_model_id != "stabilityai/stable-diffusion-2-1-base"
+    ):
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
