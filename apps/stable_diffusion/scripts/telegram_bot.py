@@ -96,6 +96,7 @@ def generate_image(prompt):
     seed = random.randint(1, 10000)
     log.warning(SELECTED_MODEL)
     log.warning(STEPS)
+    log.warning(HF_MODEL_ID)
     image, text = txt2img_inf(
         prompt=prompt,
         negative_prompt=NEGATIVE_PROMPT,
@@ -133,7 +134,14 @@ async def generate_and_send_photo(
         )
     except Exception:
         log.exception("Exception")
-        await update.message.reply_text(traceback.format_exc()[:4096])
+        # await update.message.reply_text(traceback.format_exc()[:4096])
+        await context.bot.send_document(
+            update.effective_user.id,
+            str.encode(traceback.format_exc()),
+            filename="exception.txt",
+            reply_to_message_id=update.message.message_id,
+        )
+        os.execl(sys.executable, sys.executable, *sys.argv)
         return
     await context.bot.send_photo(
         update.effective_user.id,
@@ -149,6 +157,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if query.data in models_list:
         global SELECTED_MODEL
         SELECTED_MODEL = query.data
+        global HF_MODEL_ID
+        HF_MODEL_ID = "None"
         await query.answer()
         await query.edit_message_text(text=f"Selected model: {query.data}")
         return
@@ -170,7 +180,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             im, seed = generate_image(prompt)
         except Exception:
             log.exception("Exception")
-            await query.message.reply_text(traceback.format_exc()[:4096])
+            # await update.message.reply_text(traceback.format_exc()[:4096])
+            await context.bot.send_document(
+                update.effective_user.id,
+                str.encode(traceback.format_exc()),
+                filename="exception.txt",
+                reply_to_message_id=replied_message.message_id,
+            )
             return
     await context.bot.delete_message(
         chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
@@ -185,6 +201,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def select_model_handler(update, context):
+    input_mex = update.message.text
+    log.warning(input_mex)
+    try:
+        input_args = input_mex.split("/select_model ")[1]
+        global SELECTED_MODEL
+        SELECTED_MODEL = "None"
+        global HF_MODEL_ID
+        HF_MODEL_ID = input_args
+        await update.message.reply_text(input_args)
+        return
+    except Exception:
+        pass
     text = "Select model"
     keyboard = []
     for model in models_list:
