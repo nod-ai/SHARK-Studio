@@ -73,17 +73,3 @@ class JavaScriptLoader(ScriptLoader):
         )
         response.init_headers()
         return response
-
-
-# Overwrite Gradio to save images into shark_tmp
-def save_pil_to_file(pil_image, dir=None):
-    if not os.path.exists("./shark_tmp/"):
-        os.mkdir("./shark_tmp/")
-    file_obj = tempfile.NamedTemporaryFile(
-        delete=False, suffix=".png", dir="./shark_tmp/"
-    )
-    pil_image.save(file_obj)
-    return file_obj
-
-
-gradio.processing_utils.save_pil_to_file = save_pil_to_file
