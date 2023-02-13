@@ -12,7 +12,12 @@ if sys.platform == "darwin":
 import gradio as gr
 from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui import txt2img_web, img2img_web
+from apps.stable_diffusion.web.utils.gradio_configs import (
+    clear_gradio_tmp_imgs_folder,
+)
 
+# clear all gradio tmp images from the last session
+clear_gradio_tmp_imgs_folder()
 
 sd_web = gr.TabbedInterface(
     [txt2img_web, img2img_web], ["Text-to-Image", "Image-to-Image"]
