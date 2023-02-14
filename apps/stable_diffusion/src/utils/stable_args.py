@@ -187,13 +187,6 @@ p.add_argument(
     help="The repo-id of hugging face.",
 )
 
-p.add_argument(
-    "--enable_stack_trace",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Enable showing the stack trace when retrying the base model configuration",
-)
-
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
