@@ -14,26 +14,30 @@ from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
-import sys, functools, operator
+import sys
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     load_pipeline_from_original_stable_diffusion_ckpt,
 )
 
 
-def get_vmfb_path_name(model_name):
+def get_extended_name(model_name):
     device = (
         args.device
         if "://" not in args.device
         else "-".join(args.device.split("://"))
     )
     extended_name = "{}_{}".format(model_name, device)
-    vmfb_path = os.path.join(os.getcwd(), extended_name + ".vmfb")
-    return [vmfb_path, extended_name]
+    return extended_name
+
+
+def get_vmfb_path_name(model_name):
+    vmfb_path = os.path.join(os.getcwd(), model_name + ".vmfb")
+    return vmfb_path
 
 
 def _compile_module(shark_module, model_name, extra_args=[]):
     if args.load_vmfb or args.save_vmfb:
-        [vmfb_path, extended_name] = get_vmfb_path_name(model_name)
+        vmfb_path = get_vmfb_path_name(model_name)
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
             print(f"loading existing vmfb from: {vmfb_path}")
             shark_module.load_module(vmfb_path, extra_args=extra_args)
@@ -47,7 +51,7 @@ def _compile_module(shark_module, model_name, extra_args=[]):
                     )
                 )
             path = shark_module.save_module(
-                os.getcwd(), extended_name, extra_args
+                os.getcwd(), model_name, extra_args
             )
             shark_module.load_module(path, extra_args=extra_args)
     else:
@@ -248,7 +252,14 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80"]:
+    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80", "sm_89"]:
+        args.use_tuned = False
+
+    elif (
+        "cuda" in args.device
+        and get_cuda_sm_cc() == "sm_89"
+        and args.hf_model_id != "stabilityai/stable-diffusion-2-1-base"
+    ):
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
@@ -356,6 +367,11 @@ def get_opt_flags(model, precision="fp16"):
     return iree_flags
 
 
+def get_path_stem(path):
+    path = Path(path)
+    return path.stem
+
+
 def get_path_to_diffusers_checkpoint(custom_weights):
     path = Path(custom_weights)
     diffusers_path = path.parent.absolute()
@@ -408,29 +424,31 @@ def load_vmfb(vmfb_path, model, precision):
 # This utility returns vmfbs of Clip, Unet, Vae and Vae_encode, in case all of them
 # are present; deletes them otherwise.
 def fetch_or_delete_vmfbs(
-    basic_model_name, use_base_vae, if_inpaint, precision="fp32"
+    extended_model_name, need_vae_encode, precision="fp32"
 ):
-    model_name = [
-        "clip",
-        "unet",
-        "base_vae" if use_base_vae else "vae",
-    ]
-    if if_inpaint:
-        model_name.append("vae_encode")
     vmfb_path = [
-        get_vmfb_path_name(model + basic_model_name)[0] for model in model_name
+        get_vmfb_path_name(extended_model_name[model])
+        for model in extended_model_name
     ]
     vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
-    all_vmfb_present = functools.reduce(operator.__and__, vmfb_present)
-    compiled_models = [None] * 4 if if_inpaint else [None] * 3
+    all_vmfb_present = True
+    compiled_models = []
+    for i in range(3):
+        all_vmfb_present = all_vmfb_present and vmfb_present[i]
+        compiled_models.append(None)
+    if need_vae_encode:
+        all_vmfb_present = all_vmfb_present and vmfb_present[3]
+        compiled_models.append(None)
+
     # We need to delete vmfbs only if some of the models were compiled.
     if not all_vmfb_present:
-        for i in range(len(vmfb_path)):
+        for i in range(len(compiled_models)):
             if vmfb_present[i]:
                 os.remove(vmfb_path[i])
                 print("Deleted: ", vmfb_path[i])
     else:
-        for i in range(len(vmfb_path)):
+        model_name = [model for model in extended_model_name.keys()]
+        for i in range(len(compiled_models)):
             compiled_models[i] = load_vmfb(
                 vmfb_path[i], model_name[i], precision
             )

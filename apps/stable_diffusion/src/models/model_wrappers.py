@@ -14,6 +14,8 @@ from apps.stable_diffusion.src.utils import (
     preprocessCKPT,
     get_path_to_diffusers_checkpoint,
     fetch_and_update_base_model_id,
+    get_path_stem,
+    get_extended_name,
 )
 
 
@@ -70,6 +72,7 @@ class SharkifyStableDiffusionModel:
         self,
         model_id: str,
         custom_weights: str,
+        custom_vae: str,
         precision: str,
         max_len: int = 64,
         width: int = 512,
@@ -90,6 +93,7 @@ class SharkifyStableDiffusionModel:
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
+        self.custom_vae = custom_vae
         self.precision = precision
         self.base_vae = use_base_vae
         self.model_name = (
@@ -106,17 +110,21 @@ class SharkifyStableDiffusionModel:
         self.use_tuned = use_tuned
         if use_tuned:
             self.model_name = self.model_name + "_tuned"
-        # We need a better naming convention for the .vmfbs because despite
-        # using the custom model variant the .vmfb names remain the same and
-        # it'll always pick up the compiled .vmfb instead of compiling the
-        # custom model.
-        # So, currently, we add `self.model_id` in the `self.model_name` of
-        # .vmfb file.
-        # TODO: Have a better way of naming the vmfbs using self.model_name.
-        model_name = re.sub(r"\W+", "_", self.model_id)
-        if model_name[0] == "_":
-            model_name = model_name[1:]
-        self.model_name = self.model_name + "_" + model_name
+        self.model_name = self.model_name + "_" + get_path_stem(self.model_id)
+
+    def get_extended_name_for_all_model(self):
+        model_name = {}
+        sub_model_list = ["clip", "unet", "vae", "vae_encode"]
+        for model in sub_model_list:
+            sub_model = model
+            model_config = self.model_name
+            if "vae" == model:
+                if self.custom_vae != "":
+                    model_config = model_config + get_path_stem(self.custom_vae)
+                if self.base_vae:
+                    sub_model = "base_vae"
+            model_name[model] = get_extended_name(sub_model + model_config)
+        return model_name
 
     def check_params(self, max_len, width, height):
         if not (max_len >= 32 and max_len <= 77):
@@ -147,17 +155,17 @@ class SharkifyStableDiffusionModel:
             inputs,
             is_f16=is_f16,
             use_tuned=self.use_tuned,
-            model_name="vae_encode" + self.model_name,
+            model_name=self.model_name["vae_encode"],
             extra_args=get_opt_flags("vae", precision=self.precision),
         )
         return shark_vae_encode
 
     def get_vae(self):
         class VaeModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, base_vae=self.base_vae):
+            def __init__(self, model_id=self.model_id, base_vae=self.base_vae, custom_vae=self.custom_vae):
                 super().__init__()
                 self.vae = AutoencoderKL.from_pretrained(
-                    model_id,
+                    model_id if custom_vae == "" else custom_vae,
                     subfolder="vae",
                 )
                 self.base_vae = base_vae
@@ -175,13 +183,12 @@ class SharkifyStableDiffusionModel:
         vae = VaeModel()
         inputs = tuple(self.inputs["vae"])
         is_f16 = True if self.precision == "fp16" else False
-        vae_name = "base_vae" if self.base_vae else "vae"
         shark_vae = compile_through_fx(
             vae,
             inputs,
             is_f16=is_f16,
             use_tuned=self.use_tuned,
-            model_name=vae_name + self.model_name,
+            model_name=self.model_name["vae"],
             extra_args=get_opt_flags("vae", precision=self.precision),
         )
         return shark_vae
@@ -218,7 +225,7 @@ class SharkifyStableDiffusionModel:
         shark_unet = compile_through_fx(
             unet,
             inputs,
-            model_name="unet" + self.model_name,
+            model_name=self.model_name["unet"],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
@@ -242,7 +249,7 @@ class SharkifyStableDiffusionModel:
         shark_clip = compile_through_fx(
             clip_model,
             tuple(self.inputs["clip"]),
-            model_name="clip" + self.model_name,
+            model_name=self.model_name["clip"],
             extra_args=get_opt_flags("clip", precision="fp32"),
         )
         return shark_clip
@@ -258,6 +265,8 @@ class SharkifyStableDiffusionModel:
             self.batch_size,
         )
         compiled_unet = self.get_unet()
+        if self.custom_vae != "":
+            print("Plugging in custom Vae")
         compiled_vae = self.get_vae()
         compiled_clip = self.get_clip()
         if need_vae_encode:
@@ -270,9 +279,8 @@ class SharkifyStableDiffusionModel:
         # Step 1:
         # --  Fetch all vmfbs for the model, if present, else delete the lot.
         need_vae_encode = args.img_path is not None
-        vmfbs = fetch_or_delete_vmfbs(
-            self.model_name, self.base_vae, need_vae_encode, self.precision
-        )
+        self.model_name = self.get_extended_name_for_all_model()
+        vmfbs = fetch_or_delete_vmfbs(self.model_name, need_vae_encode, self.precision)   
         if vmfbs[0]:
             # -- If all vmfbs are indeed present, we also try and fetch the base
             #    model configuration for running SD with custom checkpoints.
@@ -295,6 +303,11 @@ class SharkifyStableDiffusionModel:
             preprocessCKPT(self.custom_weights)
         else:
             model_to_run = args.hf_model_id
+        # For custom Vae user can provide either the repo-id or a checkpoint file,
+        # and for a checkpoint file we'd need to process it via Diffusers' script.
+        if self.custom_vae.lower().endswith((".ckpt", ".safetensors")):
+            preprocessCKPT(self.custom_vae)
+            self.custom_vae = get_path_to_diffusers_checkpoint(self.custom_vae)
         base_model_fetched = fetch_and_update_base_model_id(model_to_run)
         if base_model_fetched != "":
             print("Compiling all the models with the fetched base model configuration.")
@@ -313,8 +326,6 @@ class SharkifyStableDiffusionModel:
                 else:
                     compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode)
             except Exception as e:
-                if args.enable_stack_trace:
-                    traceback.print_exc()
                 print("Retrying with a different base model configuration")
                 continue
             # -- Once a successful compilation has taken place we'd want to store
@@ -335,5 +346,5 @@ class SharkifyStableDiffusionModel:
                 )
             return compiled_clip, compiled_unet, compiled_vae
         sys.exit(
-            "Cannot compile the model. Please re-run the command with `--enable_stack_trace` flag and create an issue with detailed log at https://github.com/nod-ai/SHARK/issues"
+            "Cannot compile the model. Please create an issue with the detailed log at https://github.com/nod-ai/SHARK/issues"
         )

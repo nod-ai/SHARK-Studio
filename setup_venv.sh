@@ -42,7 +42,7 @@ Green=`tput setaf 2`
 Yellow=`tput setaf 3`
 
 # Assume no binary torch-mlir.
-# Currently available for macOS m1&intel (3.10) and Linux(3.7,3.8,3.9,3.10)
+# Currently available for macOS m1&intel (3.11) and Linux(3.8,3.10,3.11)
 torch_mlir_bin=false
 if [[ $(uname -s) = 'Darwin' ]]; then
   echo "${Yellow}Apple macOS detected"
@@ -60,12 +60,12 @@ if [[ $(uname -s) = 'Darwin' ]]; then
   fi
   echo "${Yellow}Run the following commands to setup your SSL certs for your Python version if you see SSL errors with tests"
   echo "${Yellow}/Applications/Python\ 3.XX/Install\ Certificates.command"
-  if [ "$PYTHON_VERSION_X_Y" == "3.10" ]; then
+  if [ "$PYTHON_VERSION_X_Y" == "3.11" ]; then
     torch_mlir_bin=true
   fi
 elif [[ $(uname -s) = 'Linux' ]]; then
   echo "${Yellow}Linux detected"
-  if [ "$PYTHON_VERSION_X_Y" == "3.7" ] || [ "$PYTHON_VERSION_X_Y" == "3.8" ]  || [ "$PYTHON_VERSION_X_Y" == "3.9" ] || [ "$PYTHON_VERSION_X_Y" == "3.10" ] ; then
+  if [ "$PYTHON_VERSION_X_Y" == "3.8" ]  || [ "$PYTHON_VERSION_X_Y" == "3.10" ] || [ "$PYTHON_VERSION_X_Y" == "3.11" ] ; then
     torch_mlir_bin=true
   fi
 else
@@ -89,7 +89,7 @@ if [ "$torch_mlir_bin" = true ]; then
   fi
 else
   echo "${Red}No binaries found for Python $PYTHON_VERSION_X_Y on $(uname -s)"
-  echo "${Yello}Python 3.10 supported on macOS and 3.7,3.8,3.9 and 3.10 on Linux"
+  echo "${Yello}Python 3.11 supported on macOS and 3.8,3.10 and 3.11 on Linux"
   echo "${Red}Please build torch-mlir from source in your environment"
   exit 1
 fi

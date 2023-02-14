@@ -31,7 +31,7 @@ jobs:
       matrix:
         os: [7950x, icelake, a100, MacStudio, ubuntu-latest]
         suite: [cpu,cuda,vulkan]
-        python-version: ["3.10"]
+        python-version: ["3.11"]
         include:
           - os: ubuntu-latest
             suite: lint

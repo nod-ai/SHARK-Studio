@@ -220,6 +220,7 @@ def inpaint_inf(
             args.import_mlir,
             args.hf_model_id,
             args.ckpt_loc,
+            args.custom_vae,
             args.precision,
             args.max_length,
             args.batch_size,
@@ -301,6 +302,7 @@ if __name__ == "__main__":
         args.import_mlir,
         args.hf_model_id,
         args.ckpt_loc,
+        args.custom_vae,
         args.precision,
         args.max_length,
         args.batch_size,
@@ -310,8 +312,8 @@ if __name__ == "__main__":
         args.use_tuned,
     )
 
-    for run in range(args.runs):
-        if run > 0:
+    for current_batch in range(args.batch_count):
+        if current_batch > 0:
             seed = -1
         seed = utils.sanitize_seed(seed)
 

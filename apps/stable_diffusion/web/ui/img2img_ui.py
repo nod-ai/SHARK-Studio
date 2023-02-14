@@ -5,25 +5,15 @@ from pathlib import Path
 import gradio as gr
 from PIL import Image
 from apps.stable_diffusion.scripts import img2img_inf
-from apps.stable_diffusion.src import (
-    args,
-    get_available_devices,
+from apps.stable_diffusion.src import args
+from apps.stable_diffusion.web.ui.utils import (
+    available_devices,
+    nodlogo_loc,
+    sdlogo_loc,
 )
 
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(
-        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
-    )
-    return os.path.join(base_path, relative_path)
-
-
-nodlogo_loc = resource_path("logos/nod-logo.png")
-sdlogo_loc = resource_path("logos/sd-demo-logo.png")
-demo_css = resource_path("css/sd_dark_theme.css")
-
-with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
+with gr.Blocks(title="Image-to-Image") as img2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         logo2 = Image.open(sdlogo_loc)
@@ -42,7 +32,6 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                     interactive=False,
                     elem_id="demo_title",
                 ).style(width=150, height=100)
-
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
@@ -63,7 +52,7 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         ckpt_files.extend(files)
                     custom_model = gr.Dropdown(
                         label=f"Models (Custom Model path: {ckpt_path})",
-                        value="None",
+                        value=args.ckpt_loc if args.ckpt_loc else "None",
                         choices=ckpt_files
                         + [
                             "Linaqruf/anything-v3.0",
@@ -78,29 +67,30 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
                         value="",
                         label="HuggingFace Model ID",
+                        lines=3,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
                         label="Prompt",
-                        value="cyberpunk forest by Salvador Dali",
+                        value=args.prompts[0],
                         lines=1,
                         elem_id="prompt_box",
                     )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
-                        value="trees, green",
+                        value=args.negative_prompts[0],
                         lines=1,
-                        elem_id="prompt_box",
+                        elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image")
+                init_image = gr.Image(label="Input Image", type="filepath")
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
                             label="Scheduler",
-                            value="SharkEulerDiscrete",
+                            value=args.scheduler,
                             choices=[
                                 "DDIM",
                                 "PNDM",
@@ -114,24 +104,24 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
                                 label="Save prompt information to PNG",
-                                value=True,
+                                value=args.write_metadata_to_png,
                                 interactive=True,
                             )
                             save_metadata_to_json = gr.Checkbox(
                                 label="Save prompt information to JSON file",
-                                value=False,
+                                value=args.save_metadata_to_json,
                                 interactive=True,
                             )
                     with gr.Row():
                         height = gr.Slider(
-                            384, 786, value=512, step=8, label="Height"
+                            384, 786, value=args.height, step=8, label="Height"
                         )
                         width = gr.Slider(
-                            384, 786, value=512, step=8, label="Width"
+                            384, 786, value=args.width, step=8, label="Width"
                         )
                         precision = gr.Radio(
                             label="Precision",
-                            value="fp16",
+                            value=args.precision,
                             choices=[
                                 "fp16",
                                 "fp32",
@@ -140,7 +130,7 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         )
                         max_length = gr.Radio(
                             label="Max Length",
-                            value=64,
+                            value=args.max_length,
                             choices=[
                                 64,
                                 77,
@@ -149,20 +139,20 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         )
                     with gr.Row():
                         steps = gr.Slider(
-                            1, 100, value=50, step=1, label="Steps"
+                            1, 100, value=args.steps, step=1, label="Steps"
                         )
                         guidance_scale = gr.Slider(
                             0,
                             50,
-                            value=7.5,
+                            value=args.guidance_scale,
                             step=0.1,
                             label="CFG Scale",
                         )
                     with gr.Row():
                         batch_count = gr.Slider(
                             1,
-                            10,
-                            value=1,
+                            100,
+                            value=args.batch_count,
                             step=1,
                             label="Batch Count",
                             interactive=False,
@@ -170,14 +160,15 @@ with gr.Blocks(title="Image-to-Image", css=demo_css) as img2img_web:
                         batch_size = gr.Slider(
                             1,
                             4,
-                            value=1,
+                            value=args.batch_size,
                             step=1,
                             label="Batch Size",
                             interactive=False,
                         )
                 with gr.Row():
-                    seed = gr.Number(value=-1, precision=0, label="Seed")
-                    available_devices = get_available_devices()
+                    seed = gr.Number(
+                        value=args.seed, precision=0, label="Seed"
+                    )
                     device = gr.Dropdown(
                         label="Device",
                         value=available_devices[0],
