@@ -150,10 +150,14 @@ def download_model(
     if not check_dir_exists(
         model_dir_name, frontend=frontend, dynamic=dyn_str
     ):
-        print(f"Downloading artifacts for model {model_name}...")
+        print(
+            f"Force-updating artifacts for model {model_name} from: {full_gs_url}"
+        )
         download_public_file(full_gs_url, model_dir)
     elif shark_args.force_update_tank == True:
-        print(f"Force-updating artifacts for model {model_name}...")
+        print(
+            f"Force-updating artifacts for model {model_name} from: {full_gs_url}"
+        )
         download_public_file(full_gs_url, model_dir)
     else:
         if not _internet_connected():

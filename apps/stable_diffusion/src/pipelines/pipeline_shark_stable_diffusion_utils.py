@@ -205,6 +205,7 @@ class StableDiffusionPipeline:
         use_base_vae: bool,
         use_tuned: bool,
         low_cpu_mem_usage: bool = False,
+        debug: bool,
     ):
         if import_mlir:
             mlir_import = SharkifyStableDiffusionModel(
@@ -219,6 +220,7 @@ class StableDiffusionPipeline:
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
+                debug=debug,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",

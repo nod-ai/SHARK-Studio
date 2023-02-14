@@ -90,8 +90,8 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
         def _import(self):
             scaling_model = ScalingModel()
             self.scaling_model = compile_through_fx(
-                scaling_model,
-                (example_latent, example_sigma),
+                model=scaling_model,
+                inputs=(example_latent, example_sigma),
                 model_name=f"euler_scale_model_input_{BATCH_SIZE}_{args.height}_{args.width}"
                 + args.precision,
                 extra_args=iree_flags,
