@@ -93,35 +93,6 @@ def get_try_again_markup():
     return reply_markup
 
 
-def generate_image(prompt):
-    seed = random.randint(1, 10000)
-    log.warning(SELECTED_MODEL)
-    log.warning(STEPS)
-    log.warning(HF_MODEL_ID)
-    image, text = txt2img_inf(
-        prompt=prompt,
-        negative_prompt=NEGATIVE_PROMPT,
-        steps=STEPS,
-        guidance_scale=GUIDANCE_SCALE,
-        seed=seed,
-        scheduler=SELECTED_SCHEDULER,
-        hf_model_id=HF_MODEL_ID,
-        device=available_devices[0],
-        height=HEIGHT,
-        width=WIDTH,
-        batch_size=BATCH_SIZE,
-        batch_count=1,
-        custom_model=SELECTED_MODEL,
-        # ckpt_loc = CKPT_LOC,
-        precision=PRECISION,
-        max_length=MAX_LENGTH,
-        save_metadata_to_json=SAVE_METADATA_TO_JSON,
-        save_metadata_to_png=SAVE_METADATA_TO_PNG,
-    )
-
-    return image, seed
-
-
 def generate_image(prompt, input_image):
     seed = random.randint(1, 10000)
     log.warning(SELECTED_MODEL)
@@ -151,24 +122,24 @@ def generate_image(prompt, input_image):
         )
         return image, seed
     image, text = txt2img_inf(
-    prompt=prompt,
-    negative_prompt=NEGATIVE_PROMPT,
-    steps=STEPS,
-    guidance_scale=GUIDANCE_SCALE,
-    seed=seed,
-    scheduler=SELECTED_SCHEDULER,
-    hf_model_id=HF_MODEL_ID,
-    device=available_devices[0],
-    height=HEIGHT,
-    width=WIDTH,
-    batch_size=BATCH_SIZE,
-    batch_count=1,
-    custom_model=SELECTED_MODEL,
-    # ckpt_loc = CKPT_LOC,
-    precision=PRECISION,
-    max_length=MAX_LENGTH,
-    save_metadata_to_json=SAVE_METADATA_TO_JSON,
-    save_metadata_to_png=SAVE_METADATA_TO_PNG,
+        prompt=prompt,
+        negative_prompt=NEGATIVE_PROMPT,
+        steps=STEPS,
+        guidance_scale=GUIDANCE_SCALE,
+        seed=seed,
+        scheduler=SELECTED_SCHEDULER,
+        hf_model_id=HF_MODEL_ID,
+        device=available_devices[0],
+        height=HEIGHT,
+        width=WIDTH,
+        batch_size=BATCH_SIZE,
+        batch_count=1,
+        custom_model=SELECTED_MODEL,
+        # ckpt_loc = CKPT_LOC,
+        precision=PRECISION,
+        max_length=MAX_LENGTH,
+        save_metadata_to_json=SAVE_METADATA_TO_JSON,
+        save_metadata_to_png=SAVE_METADATA_TO_PNG,
     )
     return image, seed
 
@@ -180,7 +151,7 @@ async def generate_and_send_photo(
         "Generating image...", reply_to_message_id=update.message.message_id
     )
     try:
-        im, seed = generate_image(prompt=update.message.text,input_image=None)
+        im, seed = generate_image(prompt=update.message.text, input_image=None)
         await context.bot.delete_message(
             chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
         )
@@ -194,7 +165,6 @@ async def generate_and_send_photo(
             reply_to_message_id=update.message.message_id,
         )
         os.execl(sys.executable, sys.executable, *sys.argv)
-        os.kill(os.getpid(), signal.SIGINT)
         return
     await context.bot.send_photo(
         update.effective_user.id,
@@ -209,7 +179,10 @@ async def generate_and_send_photo_from_photo(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
     if update.message.caption is None:
-        await update.message.reply_text("The photo must contain a text in the caption", reply_to_message_id=update.message.message_id)
+        await update.message.reply_text(
+            "The photo must contain a text in the caption",
+            reply_to_message_id=update.message.message_id,
+        )
         return
     progress_msg = await update.message.reply_text(
         "Generating image...", reply_to_message_id=update.message.message_id
@@ -217,7 +190,9 @@ async def generate_and_send_photo_from_photo(
     try:
         photo_file = await update.message.photo[-1].get_file()
         photo = await photo_file.download_as_bytearray()
-        im, seed = generate_image(prompt=update.message.caption, input_image=BytesIO(photo))
+        im, seed = generate_image(
+            prompt=update.message.caption, input_image=BytesIO(photo)
+        )
         await context.bot.delete_message(
             chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
         )
@@ -231,7 +206,6 @@ async def generate_and_send_photo_from_photo(
             reply_to_message_id=update.message.message_id,
         )
         os.execl(sys.executable, sys.executable, *sys.argv)
-        os.kill(os.getpid(), signal.SIGINT)
         return
     await context.bot.send_photo(
         update.effective_user.id,
@@ -400,7 +374,9 @@ app.add_handler(
 app.add_handler(
     MessageHandler(filters.TEXT & ~filters.COMMAND, generate_and_send_photo)
 )
-app.add_handler(MessageHandler(filters.PHOTO, generate_and_send_photo_from_photo))
+app.add_handler(
+    MessageHandler(filters.PHOTO, generate_and_send_photo_from_photo)
+)
 app.add_handler(CallbackQueryHandler(button))
 log.warning("Start bot")
 app.run_polling()
