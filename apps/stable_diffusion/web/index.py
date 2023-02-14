@@ -19,6 +19,7 @@ from apps.stable_diffusion.web.utils.gradio_configs import (
 # clear all gradio tmp images from the last session
 clear_gradio_tmp_imgs_folder()
 
+
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
     base_path = getattr(
