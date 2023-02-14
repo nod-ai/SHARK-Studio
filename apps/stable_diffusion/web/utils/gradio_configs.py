@@ -3,7 +3,7 @@ import tempfile
 import gradio
 from os import listdir
 
-gradio_tmp_imgs_folder = os.getcwd() + "/shark_tmp/"
+gradio_tmp_imgs_folder = os.path.join(os.getcwd(), "shark_tmp/")
 
 
 # Clear all gradio tmp images
