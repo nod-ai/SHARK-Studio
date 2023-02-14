@@ -241,7 +241,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if query.data == "TRYAGAIN":
         prompt = replied_message.text
         try:
-            im, seed = generate_image(prompt)
+            im, seed = generate_image(prompt, None)
         except Exception:
             log.exception("Exception")
             # await update.message.reply_text(traceback.format_exc()[:4096])
