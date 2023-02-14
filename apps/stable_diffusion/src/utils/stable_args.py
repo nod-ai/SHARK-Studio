@@ -355,10 +355,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--use_winograd",
+    "--save_annotation",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Apply Winograd on selected conv ops.",
+    help="Save annotated mlir file",
 )
 
 args, unknown = p.parse_known_args()
