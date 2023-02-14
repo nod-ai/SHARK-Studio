@@ -236,32 +236,43 @@ def img2img_inf(
 
     start_time = time.time()
     img2img_obj.log = ""
-    generated_imgs = img2img_obj.generate_images(
-        prompt,
-        negative_prompt,
-        image,
-        batch_size,
-        height,
-        width,
-        steps,
-        strength,
-        guidance_scale,
-        seed,
-        args.max_length,
-        dtype,
-        args.use_base_vae,
-        cpu_scheduling,
-    )
+    generated_imgs = []
+    seeds = []
+    img_seed = utils.sanitize_seed(seed)
+    for current_batch in range(batch_count):
+        if current_batch > 0:
+            img_seed = utils.sanitize_seed(-1)
+        out_imgs = img2img_obj.generate_images(
+            prompt,
+            negative_prompt,
+            image,
+            batch_size,
+            height,
+            width,
+            steps,
+            strength,
+            guidance_scale,
+            img_seed,
+            args.max_length,
+            dtype,
+            args.use_base_vae,
+            cpu_scheduling,
+        )
+        save_output_img(out_imgs[0], img_seed)
+        generated_imgs.extend(out_imgs)
+        seeds.append(img_seed)
+        img2img_obj.log += "\n"
+
+
     total_time = time.time() - start_time
-    save_output_img(generated_imgs[0])
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={args.height}x{args.width}"
     text_output += (
-        f", batch size={args.batch_size}, max_length={args.max_length}"
+        f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
     )
+    text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
     text_output += img2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
