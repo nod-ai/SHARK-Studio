@@ -260,8 +260,10 @@ def txt2img_inf(
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
-    text_output += f"\nsize={args.height}x{args.width}, batch-count={batch_count}, batch-size={args.batch_size}, max_length={args.max_length}"
+    text_output += (
+        f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
+    )
+    text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
     text_output += txt2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 

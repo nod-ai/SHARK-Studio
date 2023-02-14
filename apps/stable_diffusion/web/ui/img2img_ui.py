@@ -155,7 +155,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             value=args.batch_count,
                             step=1,
                             label="Batch Count",
-                            interactive=False,
+                            interactive=True,
                         )
                         batch_size = gr.Slider(
                             1,
