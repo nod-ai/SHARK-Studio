@@ -203,6 +203,7 @@ def img2img_inf(
         args.height = height
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
+        args.iree_vulkan_target_triple = ""
         args.use_tuned = True
         args.import_mlir = True
         set_init_device_flags()
