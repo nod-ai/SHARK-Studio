@@ -326,8 +326,6 @@ class SharkifyStableDiffusionModel:
                 else:
                     compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode)
             except Exception as e:
-                if args.enable_stack_trace:
-                    traceback.print_exc()
                 print("Retrying with a different base model configuration")
                 continue
             # -- Once a successful compilation has taken place we'd want to store
@@ -348,5 +346,5 @@ class SharkifyStableDiffusionModel:
                 )
             return compiled_clip, compiled_unet, compiled_vae
         sys.exit(
-            "Cannot compile the model. Please re-run the command with `--enable_stack_trace` flag and create an issue with detailed log at https://github.com/nod-ai/SHARK/issues"
+            "Cannot compile the model. Please create an issue with the detailed log at https://github.com/nod-ai/SHARK/issues"
         )
