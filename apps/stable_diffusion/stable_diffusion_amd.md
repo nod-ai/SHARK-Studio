@@ -6,20 +6,11 @@ If it works well for you, please "star" the following GitHub projects... this is
 * https://github.com/nod-ai/SHARK
 * https://github.com/iree-org/iree
 
-## Install this specific AMD Drivers (AMD latest may not have all the fixes).
+## Install this latest AMD Drivers
 
 ### AMD KB Drivers for RDNA2 and RDNA3:
 
-*AMD Software: Adrenalin Edition 22.11.1 for MLIR/IREE Driver Version 22.20.29.09 for Windows® 10 and Windows® 11 (Windows Driver Store Version 31.0.12029.9003)*
-
-First, for RDNA2 users, download this special driver in a folder of your choice. We recommend you keep the installation files around, since you may need to re-install it later, if Windows Update decides to overwrite it:
-https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mlir-iree
-
-For RDNA3, the latest driver 23.1.2 supports MLIR/IREE as well: https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-1-2-kb
-
-KNOWN ISSUES with this special AMD driver:
-* `Windows Update` may (depending how it's configured) automatically install a new official AMD driver that overwrites this IREE-specific driver. If Stable Diffusion used to work, then a few days later, it slows down a lot or produces incorrect results (e.g. black images), this may be the cause. To fix this problem, please check the installed driver version, and re-install the special driver if needed. (TODO: document how to prevent this `Windows Update` behavior!)
-* Some people using this special driver experience mouse pointer accuracy issues, especially if using a larger-than-default mouse pointer. The clicked point isn't centered properly. One possible work-around is to reset the pointer size to "1" in "Change pointer size and color".
+*AMD Software: (Adrenalin Edition 23.2.1) [https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-2-1] 
 
 ## Installation
 
@@ -35,7 +26,7 @@ Notes:
 ## Running
 
 * Open a Command Prompt or Powershell terminal, change folder (`cd`) to the .exe folder. Then run the EXE from the command prompt. That way, if an error occurs, you'll be able to cut-and-paste it to ask for help. (if it always works for you without error, you may simply double-click the EXE to start the web browser)
-* The first run may take about 10-15 minutes when the models are downloaded and compiled. Your patience is appreciated. The download could be about 5GB.
+* The first run may take few minutes when the models are downloaded and compiled. Your patience is appreciated. The download could be about 5GB.
 * If successful, you will likely see a Windows Defender message asking you to give permission to open a web server port. Accept it.
 * Open a browser to access the Stable Diffusion web server. By default, the port is 8080, so you can go to http://localhost:8080/?__theme=dark.
 
