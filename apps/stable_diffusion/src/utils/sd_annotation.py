@@ -91,7 +91,12 @@ def load_lower_configs():
             spec = spec.split("-")[0]
 
     if args.annotation_model == "vae":
-        config_name = f"{args.annotation_model}_{args.precision}_{device}.json"
+        if not spec or spec in ["rdna3", "sm_80"]:
+            config_name = (
+                f"{args.annotation_model}_{args.precision}_{device}.json"
+            )
+        else:
+            config_name = f"{args.annotation_model}_{args.precision}_{device}_{spec}.json"
     else:
         if not spec or spec in ["rdna3", "sm_80"]:
             config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}.json"
