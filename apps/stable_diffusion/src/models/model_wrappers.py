@@ -93,6 +93,9 @@ class SharkifyStableDiffusionModel:
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
+        # TODO: remove the following line when stable-diffusion-2-1 works
+        if self.model_id == "stabilityai/stable-diffusion-2-1":
+            self.model_id = "stabilityai/stable-diffusion-2-1-base"
         self.custom_vae = custom_vae
         self.precision = precision
         self.base_vae = use_base_vae
