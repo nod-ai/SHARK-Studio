@@ -31,7 +31,7 @@ datas += [
          ( 'src/utils/resources/opt_flags.json', 'resources' ),
          ( 'src/utils/resources/base_model.json', 'resources' ),
          ( 'web/ui/css/*', 'ui/css' ),
-         ( 'web/ui/logos/*', 'ui/logos' )
+         ( 'web/ui/logos/*', 'logos' )
          ]
 
 binaries = []
