@@ -240,7 +240,12 @@ def set_init_device_flags():
 
     # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
     if (
-        args.ckpt_loc != ""
+        args.hf_model_id
+        in [
+            "runwayml/stable-diffusion-inpainting",
+            "stabilityai/stable-diffusion-2-inpainting",
+        ]
+        or args.ckpt_loc != ""
         or args.precision != "fp16"
         or args.height != 512
         or args.width != 512
@@ -286,6 +291,27 @@ def set_init_device_flags():
         args.import_mlir = True
 
     elif args.height != 512 or args.width != 512 or args.batch_size != 1:
+        args.import_mlir = True
+
+    elif args.use_tuned and args.hf_model_id in [
+        "dreamlike-art/dreamlike-diffusion-1.0",
+        "prompthero/openjourney",
+        "stabilityai/stable-diffusion-2-1",
+    ]:
+        args.import_mlir = True
+
+    elif (
+        args.use_tuned
+        and "vulkan" in args.device
+        and "rdna2" in args.iree_vulkan_target_triple
+    ):
+        args.import_mlir = True
+
+    elif (
+        args.use_tuned
+        and "cuda" in args.device
+        and get_cuda_sm_cc() == "sm_89"
+    ):
         args.import_mlir = True
 
 
