@@ -12,5 +12,4 @@ def resource_path(relative_path):
 
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
-sdlogo_loc = resource_path("logos/sd-demo-logo.png")
 available_devices = get_available_devices()
