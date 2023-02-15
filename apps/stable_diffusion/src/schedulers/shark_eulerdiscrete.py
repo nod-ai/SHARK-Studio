@@ -87,7 +87,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
         if sys.platform == "darwin":
             iree_flags.append("-iree-stream-fuse-binding=false")
 
-        if args.import_mlir:
+        def _import(self):
             scaling_model = ScalingModel()
             self.scaling_model = compile_through_fx(
                 scaling_model,
@@ -105,15 +105,28 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
                 + args.precision,
                 extra_args=iree_flags,
             )
+
+        if args.import_mlir:
+            _import(self)
+
         else:
-            self.scaling_model = get_shark_model(
-                SCHEDULER_BUCKET,
-                "euler_scale_model_input_" + args.precision,
-                iree_flags,
-            )
-            self.step_model = get_shark_model(
-                SCHEDULER_BUCKET, "euler_step_" + args.precision, iree_flags
-            )
+            try:
+                self.scaling_model = get_shark_model(
+                    SCHEDULER_BUCKET,
+                    "euler_scale_model_input_" + args.precision,
+                    iree_flags,
+                )
+                self.step_model = get_shark_model(
+                    SCHEDULER_BUCKET,
+                    "euler_step_" + args.precision,
+                    iree_flags,
+                )
+            except:
+                print(
+                    "failed to download model, falling back and using import_mlir"
+                )
+                args.import_mlir = True
+                _import(self)
 
     def scale_model_input(self, sample, timestep):
         step_index = (self.timesteps == timestep).nonzero().item()
