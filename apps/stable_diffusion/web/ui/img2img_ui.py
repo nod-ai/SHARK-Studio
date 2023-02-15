@@ -90,15 +90,12 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     with gr.Row():
                         scheduler = gr.Dropdown(
                             label="Scheduler",
-                            value=args.scheduler,
+                            value="PNDM",
                             choices=[
                                 "DDIM",
                                 "PNDM",
-                                "LMSDiscrete",
                                 "DPMSolverMultistep",
-                                "EulerDiscrete",
                                 "EulerAncestralDiscrete",
-                                "SharkEulerDiscrete",
                             ],
                         )
                         with gr.Group():
