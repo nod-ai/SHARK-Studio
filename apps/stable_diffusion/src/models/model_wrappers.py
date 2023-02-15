@@ -2,8 +2,8 @@ from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from collections import defaultdict
 import torch
+import safetensors.torch
 import traceback
-import re
 import sys
 from apps.stable_diffusion.src.utils import (
     compile_through_fx,
@@ -164,10 +164,23 @@ class SharkifyStableDiffusionModel:
         class VaeModel(torch.nn.Module):
             def __init__(self, model_id=self.model_id, base_vae=self.base_vae, custom_vae=self.custom_vae):
                 super().__init__()
-                self.vae = AutoencoderKL.from_pretrained(
-                    model_id if custom_vae == "" else custom_vae,
-                    subfolder="vae",
-                )
+                self.vae = None
+                if custom_vae == "":
+                    self.vae = AutoencoderKL.from_pretrained(
+                        model_id,
+                        subfolder="vae",
+                    )
+                elif not isinstance(custom_vae, dict):
+                    self.vae = AutoencoderKL.from_pretrained(
+                        custom_vae,
+                        subfolder="vae",
+                    )
+                else:
+                    self.vae = AutoencoderKL.from_pretrained(
+                        model_id,
+                        subfolder="vae",
+                    )
+                    self.vae.load_state_dict(custom_vae)
                 self.base_vae = base_vae
 
             def forward(self, input):
@@ -254,6 +267,27 @@ class SharkifyStableDiffusionModel:
         )
         return shark_clip
 
+    def process_custom_vae(self):
+        custom_vae = self.custom_vae.lower()
+        if not custom_vae.endswith((".ckpt", ".safetensors")):
+            return self.custom_vae
+        try:
+            preprocessCKPT(self.custom_vae)
+            return get_path_to_diffusers_checkpoint(self.custom_vae)
+        except:
+            print("Processing standalone Vae checkpoint")
+            vae_checkpoint = None
+            vae_ignore_keys = {"model_ema.decay", "model_ema.num_updates"}
+            if custom_vae.endswith(".ckpt"):
+                vae_checkpoint = torch.load(self.custom_vae, map_location="cpu")
+            else:
+                vae_checkpoint = safetensors.torch.load_file(self.custom_vae, device="cpu")
+            if "state_dict" in vae_checkpoint:
+                vae_checkpoint = vae_checkpoint["state_dict"]
+            vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
+            return vae_dict
+        
+            
     # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
     # configiration.
     def compile_all(self, base_model_id, need_vae_encode):
@@ -305,9 +339,7 @@ class SharkifyStableDiffusionModel:
             model_to_run = args.hf_model_id
         # For custom Vae user can provide either the repo-id or a checkpoint file,
         # and for a checkpoint file we'd need to process it via Diffusers' script.
-        if self.custom_vae.lower().endswith((".ckpt", ".safetensors")):
-            preprocessCKPT(self.custom_vae)
-            self.custom_vae = get_path_to_diffusers_checkpoint(self.custom_vae)
+        self.custom_vae = self.process_custom_vae()
         base_model_fetched = fetch_and_update_base_model_id(model_to_run)
         if base_model_fetched != "":
             print("Compiling all the models with the fetched base model configuration.")
