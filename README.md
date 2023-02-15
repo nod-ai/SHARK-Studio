@@ -10,7 +10,7 @@ High Performance Machine Learning Distribution
   <summary>Prerequisites - Drivers </summary>
   
 #### Install your Windows hardware drivers
-* [AMD RDNA Users] Download this specific driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree). Latest drivers may not work.
+* [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-2-1).
 * [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work. 
 * [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
   
@@ -35,7 +35,7 @@ If you have custom models (ckpt, safetensors) put in a `models/` directory where
 
 Enjoy. 
 
-Some known AMD Driver quirks and fixes with cursors are documented [here](https://github.com/nod-ai/SHARK/blob/main/apps/stable_diffusion/stable_diffusion_amd.md ).
+Some known AMD Driver quirks and are documented [here](https://github.com/nod-ai/SHARK/blob/main/apps/stable_diffusion/stable_diffusion_amd.md ).
 
 
 <details>
@@ -54,7 +54,7 @@ cd SHARK
 
 ### Windows 10/11 Users
 
-* Install the latest Python 3.10.x version from [here](https://www.python.org/downloads/windows/)
+* Install the latest Python 3.11.x version from [here](https://www.python.org/downloads/windows/)
 
 * Install Git for Windows from [here](https://git-scm.com/download/win)
 
@@ -105,7 +105,7 @@ source shark.venv/bin/activate
 
 #### Linux / macOS Users
 ```shell
-python3.10 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
+python3.11 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
 
 You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
@@ -140,7 +140,7 @@ Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any
 This step sets up a new VirtualEnv for Python
 
 ```shell
-python --version #Check you have 3.10 on Linux, macOS or Windows Powershell
+python --version #Check you have 3.11 on Linux, macOS or Windows Powershell
 python -m venv shark_venv
 source shark_venv/bin/activate   # Use shark_venv/Scripts/activate on Windows
 
@@ -154,7 +154,7 @@ python -m pip install --upgrade pip
 
 ### Install SHARK
 
-This step pip installs SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
+This step pip installs SHARK and related packages on Linux Python 3.8, 3.10 and 3.11 and macOS / Windows Python 3.11
 
 ```shell
 pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
@@ -189,10 +189,10 @@ python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal
 <details>
   <summary>Development, Testing and Benchmarks</summary>
 
-If you want to use Python3.10 and with TF Import tools you can use the environment variables like:
+If you want to use Python3.11 and with TF Import tools you can use the environment variables like:
 Set `USE_IREE=1` to use upstream IREE
 ```
-# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
+# PYTHON=python3.11 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
 ```
 
 ### Run any of the hundreds of SHARK tank models via the test framework

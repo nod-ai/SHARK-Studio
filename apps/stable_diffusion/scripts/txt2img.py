@@ -1,8 +1,4 @@
 import os
-
-if "AMD_ENABLE_LLPC" not in os.environ:
-    os.environ["AMD_ENABLE_LLPC"] = "1"
-
 import sys
 import json
 import torch
