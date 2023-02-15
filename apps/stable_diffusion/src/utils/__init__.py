@@ -26,4 +26,6 @@ from apps.stable_diffusion.src.utils.utils import (
     sanitize_seed,
     get_path_stem,
     get_extended_name,
+    clear_all,
+    save_output_img,
 )
