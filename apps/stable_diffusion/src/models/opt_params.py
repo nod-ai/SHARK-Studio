@@ -9,10 +9,10 @@ from apps.stable_diffusion.src.utils import (
 
 
 hf_model_variant_map = {
-    "Linaqruf/anything-v3.0": ["anythingv3", "v2_1base"],
-    "dreamlike-art/dreamlike-diffusion-1.0": ["dreamlike", "v2_1base"],
-    "prompthero/openjourney": ["openjourney", "v2_1base"],
-    "wavymulder/Analog-Diffusion": ["analogdiffusion", "v2_1base"],
+    "Linaqruf/anything-v3.0": ["anythingv3", "v1_4"],
+    "dreamlike-art/dreamlike-diffusion-1.0": ["dreamlike", "v1_4"],
+    "prompthero/openjourney": ["openjourney", "v1_4"],
+    "wavymulder/Analog-Diffusion": ["analogdiffusion", "v1_4"],
     "stabilityai/stable-diffusion-2-1": ["stablediffusion", "v2_1base"],
     "stabilityai/stable-diffusion-2-1-base": ["stablediffusion", "v2_1base"],
     "CompVis/stable-diffusion-v1-4": ["stablediffusion", "v1_4"],
