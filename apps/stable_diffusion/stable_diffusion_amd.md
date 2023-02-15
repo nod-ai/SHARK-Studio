@@ -14,21 +14,18 @@ If it works well for you, please "star" the following GitHub projects... this is
 
 ## Installation
 
-Download the latest Windows SHARK SD binary [492 here](https://github.com/nod-ai/SHARK/releases/download/20230203.492/shark_sd_20230203_492.exe) in a folder of your choice. If you want nighly builds, you can look for them on the GitHub releases page.
+Download the latest Windows SHARK SD binary [530 here](https://github.com/nod-ai/SHARK/releases/download/20230214.530/shark_sd_20230214_530.exe) in a folder of your choice. If you want nighly builds, you can look for them on the GitHub releases page.
 
 Notes:
 * We recommend that you download this EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files. Those contain Vulkan dispatches compiled from MLIR which can be outdated if you run a new EXE from the same folder. You can use `--clear_all` flag once to clean all the old files. 
-* If you recently updated the driver or this binary (EXE file), we recommend you:
-  * clear all the local artifacts with `--clear_all` OR 
-  * clear the Vulkan shader cache: For Windows users this can be done by clearing the contents of `C:\Users\%username%\AppData\Local\AMD\VkCache\`. On Linux the same cache is typically located at `~/.cache/AMD/VkCache/`.
-  * clear the `huggingface` cache. In Windows, this is `C:\Users\%username%\.cache\huggingface`.
+* If you recently updated the driver or this binary (EXE file), we recommend you clear all the local artifacts with `--clear_all` OR 
 
 ## Running
 
 * Open a Command Prompt or Powershell terminal, change folder (`cd`) to the .exe folder. Then run the EXE from the command prompt. That way, if an error occurs, you'll be able to cut-and-paste it to ask for help. (if it always works for you without error, you may simply double-click the EXE to start the web browser)
 * The first run may take few minutes when the models are downloaded and compiled. Your patience is appreciated. The download could be about 5GB.
 * If successful, you will likely see a Windows Defender message asking you to give permission to open a web server port. Accept it.
-* Open a browser to access the Stable Diffusion web server. By default, the port is 8080, so you can go to http://localhost:8080/?__theme=dark.
+* Open a browser to access the Stable Diffusion web server. By default, the port is 8080, so you can go to http://localhost:8080/.
 
 ## Stopping
 
