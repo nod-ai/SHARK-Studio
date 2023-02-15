@@ -90,15 +90,12 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     with gr.Row():
                         scheduler = gr.Dropdown(
                             label="Scheduler",
-                            value=args.scheduler,
+                            value="PNDM",
                             choices=[
                                 "DDIM",
                                 "PNDM",
-                                "LMSDiscrete",
                                 "DPMSolverMultistep",
-                                "EulerDiscrete",
                                 "EulerAncestralDiscrete",
-                                "SharkEulerDiscrete",
                             ],
                         )
                         with gr.Group():
@@ -141,6 +138,14 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         steps = gr.Slider(
                             1, 100, value=args.steps, step=1, label="Steps"
                         )
+                        strength = gr.Slider(
+                            0,
+                            1,
+                            value=args.strength,
+                            step=0.1,
+                            label="Strength",
+                        )
+                    with gr.Row():
                         guidance_scale = gr.Slider(
                             0,
                             50,
@@ -148,14 +153,13 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             step=0.1,
                             label="CFG Scale",
                         )
-                    with gr.Row():
                         batch_count = gr.Slider(
                             1,
                             100,
                             value=args.batch_count,
                             step=1,
                             label="Batch Count",
-                            interactive=False,
+                            interactive=True,
                         )
                         batch_size = gr.Slider(
                             1,
@@ -164,6 +168,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             step=1,
                             label="Batch Size",
                             interactive=False,
+                            visible=False,
                         )
                 with gr.Row():
                     seed = gr.Number(
@@ -212,6 +217,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 height,
                 width,
                 steps,
+                strength,
                 guidance_scale,
                 seed,
                 batch_count,

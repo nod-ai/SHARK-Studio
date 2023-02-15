@@ -1,19 +1,16 @@
-import os
 import sys
-import json
 import torch
-import re
 import time
-from pathlib import Path
-from PIL import Image, PngImagePlugin
-from datetime import datetime as dt
+from PIL import Image
 from dataclasses import dataclass
-from csv import DictWriter
 from apps.stable_diffusion.src import (
     args,
     Image2ImagePipeline,
     get_schedulers,
     set_init_device_flags,
+    utils,
+    clear_all,
+    save_output_img,
 )
 
 
@@ -27,96 +24,6 @@ class Config:
     height: int
     width: int
     device: str
-
-
-# This has to come before importing cache objects
-if args.clear_all:
-    print("CLEARING ALL, EXPECT SEVERAL MINUTES TO RECOMPILE")
-    from glob import glob
-    import shutil
-
-    vmfbs = glob(os.path.join(os.getcwd(), "*.vmfb"))
-    for vmfb in vmfbs:
-        if os.path.exists(vmfb):
-            os.remove(vmfb)
-    # Temporary workaround of deleting yaml files to incorporate diffusers' pipeline.
-    # TODO: Remove this once we have better weight updation logic.
-    inference_yaml = ["v2-inference-v.yaml", "v1-inference.yaml"]
-    for yaml in inference_yaml:
-        if os.path.exists(yaml):
-            os.remove(yaml)
-    home = os.path.expanduser("~")
-    if os.name == "nt":  # Windows
-        appdata = os.getenv("LOCALAPPDATA")
-        shutil.rmtree(os.path.join(appdata, "AMD/VkCache"), ignore_errors=True)
-        shutil.rmtree(os.path.join(home, "shark_tank"), ignore_errors=True)
-    elif os.name == "unix":
-        shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
-        shutil.rmtree(os.path.join(home, ".local/shark_tank"))
-
-
-# save output images and the inputs correspoding to it.
-def save_output_img(output_img):
-    output_path = args.output_dir if args.output_dir else Path.cwd()
-    generated_imgs_path = Path(
-        output_path, "generated_imgs", dt.now().strftime("%Y%m%d")
-    )
-    generated_imgs_path.mkdir(parents=True, exist_ok=True)
-    csv_path = Path(generated_imgs_path, "imgs_details.csv")
-
-    prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[0][:15])
-    out_img_name = (
-        f"{prompt_slice}_{args.seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
-    )
-
-    if args.output_img_format == "jpg":
-        out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
-        output_img.save(out_img_path, quality=95, subsampling=0)
-    else:
-        out_img_path = Path(generated_imgs_path, f"{out_img_name}.png")
-        pngInfo = PngImagePlugin.PngInfo()
-
-        if args.write_metadata_to_png:
-            pngInfo.add_text(
-                "parameters",
-                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Strength: {args.strength}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {args.seed}, Size: {args.width}x{args.height}, Model: {args.hf_model_id}",
-            )
-
-        output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
-
-        if args.output_img_format not in ["png", "jpg"]:
-            print(
-                f"[ERROR] Format {args.output_img_format} is not supported yet."
-                "Image saved as png instead. Supported formats: png / jpg"
-            )
-
-    new_entry = {
-        "VARIANT": args.hf_model_id,
-        "SCHEDULER": args.scheduler,
-        "PROMPT": args.prompts[0],
-        "NEG_PROMPT": args.negative_prompts[0],
-        "IMG_INPUT": args.img_path,
-        "SEED": args.seed,
-        "CFG_SCALE": args.guidance_scale,
-        "PRECISION": args.precision,
-        "STEPS": args.steps,
-        "STRENGTH": args.strength,
-        "HEIGHT": args.height,
-        "WIDTH": args.width,
-        "MAX_LENGTH": args.max_length,
-        "OUTPUT": out_img_path,
-    }
-
-    with open(csv_path, "a") as csv_obj:
-        dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
-        dictwriter_obj.writerow(new_entry)
-        csv_obj.close()
-
-    if args.save_metadata_to_json:
-        del new_entry["OUTPUT"]
-        json_path = Path(generated_imgs_path, f"{out_img_name}.json")
-        with open(json_path, "w") as f:
-            json.dump(new_entry, f, indent=4)
 
 
 img2img_obj = None
@@ -205,6 +112,7 @@ def img2img_inf(
         args.height = height
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
+        args.iree_vulkan_target_triple = ""
         args.use_tuned = True
         args.import_mlir = True
         set_init_device_flags()
@@ -237,32 +145,40 @@ def img2img_inf(
 
     start_time = time.time()
     img2img_obj.log = ""
-    generated_imgs = img2img_obj.generate_images(
-        prompt,
-        negative_prompt,
-        image,
-        batch_size,
-        height,
-        width,
-        steps,
-        strength,
-        guidance_scale,
-        seed,
-        args.max_length,
-        dtype,
-        args.use_base_vae,
-        cpu_scheduling,
-    )
+    generated_imgs = []
+    seeds = []
+    img_seed = utils.sanitize_seed(seed)
+    for current_batch in range(batch_count):
+        if current_batch > 0:
+            img_seed = utils.sanitize_seed(-1)
+        out_imgs = img2img_obj.generate_images(
+            prompt,
+            negative_prompt,
+            image,
+            batch_size,
+            height,
+            width,
+            steps,
+            strength,
+            guidance_scale,
+            img_seed,
+            args.max_length,
+            dtype,
+            args.use_base_vae,
+            cpu_scheduling,
+        )
+        save_output_img(out_imgs[0], img_seed)
+        generated_imgs.extend(out_imgs)
+        seeds.append(img_seed)
+        img2img_obj.log += "\n"
+
     total_time = time.time() - start_time
-    save_output_img(generated_imgs[0])
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={args.height}x{args.width}"
-    text_output += (
-        f", batch size={args.batch_size}, max_length={args.max_length}"
-    )
+    text_output += f"\nsteps={steps}, strength={args.strength}, guidance_scale={guidance_scale}, seed={seeds}"
+    text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
     text_output += img2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
@@ -270,6 +186,9 @@ def img2img_inf(
 
 
 if __name__ == "__main__":
+    if args.clear_all:
+        clear_all()
+
     if args.img_path is None:
         print("Flag --img_path is required.")
         exit()
@@ -287,11 +206,14 @@ if __name__ == "__main__":
                 f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
             )
             args.scheduler = "PNDM"
-        print(
-            f"[WARNING] Img2Img works best with PNDM scheduler. Please use that"
-        )
+        else:
+            sys.exit(
+                "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
+            )
+
     scheduler_obj = schedulers[args.scheduler]
     image = Image.open(args.img_path)
+    seed = utils.sanitize_seed(args.seed)
 
     # Adjust for height and width based on model
 
@@ -321,7 +243,7 @@ if __name__ == "__main__":
         args.steps,
         args.strength,
         args.guidance_scale,
-        args.seed,
+        seed,
         args.max_length,
         dtype,
         args.use_base_vae,
@@ -332,12 +254,12 @@ if __name__ == "__main__":
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={args.device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={args.seed}, size={args.height}x{args.width}"
+    text_output += f"\nsteps={args.steps}, strength={args.strength}, guidance_scale={args.guidance_scale}, seed={seed}, size={args.height}x{args.width}"
     text_output += (
         f", batch size={args.batch_size}, max_length={args.max_length}"
     )
     text_output += img2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    save_output_img(generated_imgs[0])
+    save_output_img(generated_imgs[0], seed)
     print(text_output)

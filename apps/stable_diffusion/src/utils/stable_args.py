@@ -198,7 +198,7 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
-    "--iree-vulkan-target-triple",
+    "--iree_vulkan_target_triple",
     type=str,
     default="",
     help="Specify target triple for vulkan",
