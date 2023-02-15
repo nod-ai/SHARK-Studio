@@ -219,16 +219,37 @@ class StableDiffusionPipeline:
                 )
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
-
-        if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+        try:
+            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+                return cls(
+                    get_vae_encode(),
+                    get_vae(),
+                    get_clip(),
+                    get_tokenizer(),
+                    get_unet(),
+                    scheduler,
+                )
             return cls(
-                get_vae_encode(),
-                get_vae(),
-                get_clip(),
-                get_tokenizer(),
-                get_unet(),
-                scheduler,
+                get_vae(), get_clip(), get_tokenizer(), get_unet(), scheduler
             )
-        return cls(
-            get_vae(), get_clip(), get_tokenizer(), get_unet(), scheduler
-        )
+        except:
+            print("download pipeline failed, falling back to import_mlir")
+            mlir_import = SharkifyStableDiffusionModel(
+                model_id,
+                ckpt_loc,
+                custom_vae,
+                precision,
+                max_len=max_length,
+                batch_size=batch_size,
+                height=height,
+                width=width,
+                use_base_vae=use_base_vae,
+                use_tuned=use_tuned,
+            )
+            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+                clip, unet, vae, vae_encode = mlir_import()
+                return cls(
+                    vae_encode, vae, clip, get_tokenizer(), unet, scheduler
+                )
+            clip, unet, vae = mlir_import()
+            return cls(vae, clip, get_tokenizer(), unet, scheduler)
