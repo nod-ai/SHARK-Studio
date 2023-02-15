@@ -81,14 +81,7 @@ def load_lower_configs():
 
     variant, version = get_variant_version(args.hf_model_id)
 
-    config_bucket = "gs://shark_tank/sd_tuned/configs/"
-    config_version = version
-    config_max_length = args.max_length
-    if variant in ["anythingv3", "analogdiffusion"]:
-        config_max_length = 77
-        config_version = "v1_4"
-    if args.annotation_model == "vae":
-        config_max_length = 77
+    config_bucket = "gs://shark_tank/sd_tuned_configs/"
 
     device, device_spec_args = get_device_args()
     spec = ""
@@ -97,10 +90,14 @@ def load_lower_configs():
         if device == "vulkan":
             spec = spec.split("-")[0]
 
-    if not spec or spec in ["rdna3", "sm_80"]:
-        config_name = f"{args.annotation_model}_{config_version}_{args.precision}_len{config_max_length}_{device}.json"
+    if args.annotation_model == "vae":
+        config_name = f"{args.annotation_model}_{args.precision}_{device}.json"
     else:
-        config_name = f"{args.annotation_model}_{config_version}_{args.precision}_len{config_max_length}_{device}_{spec}.json"
+        if not spec or spec in ["rdna3", "sm_80"]:
+            config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}.json"
+        else:
+            config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}_{spec}.json"
+
     full_gs_url = config_bucket + config_name
     lowering_config_dir = f"{WORKDIR}configs/" + config_name
     print("Loading lowering config file from ", lowering_config_dir)
@@ -193,7 +190,7 @@ def annotate_with_lower_configs(
     return bytecode
 
 
-def sd_model_annotation(mlir_model, model_name, model_from_tank=False):
+def sd_model_annotation(mlir_model, model_name):
     device = get_device()
     if args.annotation_model == "unet" and device == "vulkan":
         use_winograd = True
@@ -222,4 +219,4 @@ def sd_model_annotation(mlir_model, model_name, model_from_tank=False):
 
 if __name__ == "__main__":
     mlir_model, model_name = load_model_from_tank()
-    sd_model_annotation(mlir_model, model_name, model_from_tank=True)
+    sd_model_annotation(mlir_model, model_name)

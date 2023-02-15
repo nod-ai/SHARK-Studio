@@ -236,8 +236,7 @@ def set_init_device_flags():
 
     # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
     if (
-        args.hf_model_id == "prompthero/openjourney"
-        or args.ckpt_loc != ""
+        args.ckpt_loc != ""
         or args.precision != "fp16"
         or args.height != 512
         or args.width != 512
@@ -246,20 +245,12 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif (
-        "vulkan" in args.device
-        and "rdna3" not in args.iree_vulkan_target_triple
+    elif "vulkan" in args.device and not any(
+        x in args.iree_vulkan_target_triple for x in ["rdna2", "rdna3"]
     ):
         args.use_tuned = False
 
     elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80", "sm_89"]:
-        args.use_tuned = False
-
-    elif (
-        "cuda" in args.device
-        and get_cuda_sm_cc() == "sm_89"
-        and args.hf_model_id != "stabilityai/stable-diffusion-2-1-base"
-    ):
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
