@@ -4,16 +4,17 @@ import sys
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 
-
 import gradio as gr
-from apps.stable_diffusion.src import args
-from apps.stable_diffusion.web.ui import txt2img_web, img2img_web
+from apps.stable_diffusion.src import args, clear_all
 from apps.stable_diffusion.web.utils.gradio_configs import (
     clear_gradio_tmp_imgs_folder,
 )
 
 # clear all gradio tmp images from the last session
 clear_gradio_tmp_imgs_folder()
+
+if args.clear_all:
+    clear_all()
 
 
 def resource_path(relative_path):
@@ -25,6 +26,8 @@ def resource_path(relative_path):
 
 
 dark_theme = resource_path("ui/css/sd_dark_theme.css")
+
+from apps.stable_diffusion.web.ui import txt2img_web, img2img_web
 
 sd_web = gr.TabbedInterface(
     [txt2img_web, img2img_web],
