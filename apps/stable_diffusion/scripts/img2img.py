@@ -58,7 +58,7 @@ if args.clear_all:
 # save output images and the inputs correspoding to it.
 def save_output_img(output_img):
     output_path = args.output_dir if args.output_dir else Path.cwd()
-    generated_imgs_path = Path(output_path, "generated_imgs")
+    generated_imgs_path = Path(output_path, "generated_imgs", dt.now().strftime('%Y%m%d'))
     generated_imgs_path.mkdir(parents=True, exist_ok=True)
     csv_path = Path(generated_imgs_path, "imgs_details.csv")
 
