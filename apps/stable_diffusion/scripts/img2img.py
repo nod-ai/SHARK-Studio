@@ -172,15 +172,12 @@ def img2img_inf(
         seeds.append(img_seed)
         img2img_obj.log += "\n"
 
-
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += (
-        f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
-    )
+    text_output += f"\nsteps={steps}, strength={args.strength}, guidance_scale={guidance_scale}, seed={seeds}"
     text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
     text_output += img2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
@@ -209,9 +206,11 @@ if __name__ == "__main__":
                 f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
             )
             args.scheduler = "PNDM"
-        print(
-            f"[WARNING] Img2Img works best with PNDM scheduler. Please use that"
-        )
+        else:
+            sys.exit(
+                "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
+            )
+
     scheduler_obj = schedulers[args.scheduler]
     image = Image.open(args.img_path)
     seed = utils.sanitize_seed(args.seed)
@@ -255,7 +254,7 @@ if __name__ == "__main__":
     text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
     text_output += f"\nscheduler={args.scheduler}, device={args.device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seed}, size={args.height}x{args.width}"
+    text_output += f"\nsteps={args.steps}, strength={args.strength}, guidance_scale={args.guidance_scale}, seed={seed}, size={args.height}x{args.width}"
     text_output += (
         f", batch size={args.batch_size}, max_length={args.max_length}"
     )
