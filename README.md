@@ -111,10 +111,9 @@ python3.11 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vu
 You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
 </details>
 
-The output on a 7900XTX would like:
+The output on a AMD 7900XTX would look something like:
 
-```shell 
-Stats for run 0:
+```shell
 Average step time: 47.19188690185547ms/it
 Clip Inference time (ms) = 109.531
 VAE Inference time (ms): 78.590
