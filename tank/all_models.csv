@@ -18,6 +18,8 @@ alexnet,linalg,torch,1e-2,1e-3,default,None,True,True,False,"https://github.com/
 bert-base-cased,linalg,torch,1e-2,1e-3,default,None,False,False,False,"",""
 bert-base-uncased,linalg,torch,1e-2,1e-3,default,None,False,False,False,"",""
 bert-base-uncased_fp16,linalg,torch,1e-1,1e-1,default,None,True,False,True,"",""
+bert-large-uncased,linalg,torch,1e-2,1e-3,default,None,False,False,False,"",""
+bert-large-uncased,mhlo,tf,1e-2,1e-3,default,None,False,False,False,"",""
 facebook/deit-small-distilled-patch16-224,linalg,torch,1e-2,1e-3,default,nhcw-nhwc,False,True,False,"Fails during iree-compile.",""
 google/vit-base-patch16-224,linalg,torch,1e-2,1e-3,default,nhcw-nhwc,False,True,False,"https://github.com/nod-ai/SHARK/issues/311",""
 microsoft/beit-base-patch16-224-pt22k-ft22k,linalg,torch,1e-2,1e-3,default,nhcw-nhwc,False,True,False,"https://github.com/nod-ai/SHARK/issues/390",""
