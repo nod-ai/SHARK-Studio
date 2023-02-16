@@ -14,7 +14,7 @@ if ($arguments -eq "--force"){
         Write-Host "removing and recreating venv..."
         Remove-Item .\shark.venv -Force -Recurse
         if (Test-Path .\shark.venv\) {
-            Write-Host "could not remove .\shark-venv - please try running setup_venv.ps1 again!"
+            Write-Host 'could not remove .\shark-venv - please try running ".\setup_venv.ps1 --force" again!'
             break
         }
     }
