@@ -65,7 +65,7 @@ def img2img_inf(
     args.strength = strength
     args.scheduler = scheduler
     args.img_path = init_image
-    image = Image.open(args.img_path)
+    image = Image.open(args.img_path).convert("RGB")
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -212,7 +212,7 @@ if __name__ == "__main__":
             )
 
     scheduler_obj = schedulers[args.scheduler]
-    image = Image.open(args.img_path)
+    image = Image.open(args.img_path).convert("RGB")
     seed = utils.sanitize_seed(args.seed)
 
     # Adjust for height and width based on model

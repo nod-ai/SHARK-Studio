@@ -25,18 +25,32 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
  
 ### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
 
-Install Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
+Install the Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
 
-Download the latest .exe https://github.com/nod-ai/SHARK/releases. 
+Download the stable release [539](https://github.com/nod-ai/SHARK/releases/download/20230216.539/shark_sd_20230216_539.exe) or if you are adventurous the latest .exe from [releases page](https://github.com/nod-ai/SHARK/releases).
 
-Double click the .exe and you should have the [UI]( http://localhost:8080/?__theme=dark) in the browser. 
+Double click the .exe and you should have the [UI](http://localhost:8080/) in the browser. 
 
-If you have custom models (ckpt, safetensors) put in a `models/` directory where the .exe is. 
+If you have custom models put them in a `models/` directory where the .exe is. 
 
 Enjoy. 
 
-Some known AMD Driver quirks and are documented [here](https://github.com/nod-ai/SHARK/blob/main/apps/stable_diffusion/stable_diffusion_amd.md ).
+<details>
+  <summary>More installation notes</summary>
+* We recommend that you download EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files with `rm *.vmfb`. You can also use `--clear_all` flag once to clean all the old files. 
+* If you recently updated the driver or this binary (EXE file), we recommend you clear all the local artifacts with `--clear_all` 
 
+## Running
+
+* Open a Command Prompt or Powershell terminal, change folder (`cd`) to the .exe folder. Then run the EXE from the command prompt. That way, if an error occurs, you'll be able to cut-and-paste it to ask for help. (if it always works for you without error, you may simply double-click the EXE)
+* The first run may take few minutes when the models are downloaded and compiled. Your patience is appreciated. The download could be about 5GB.
+* You will likely see a Windows Defender message asking you to give permission to open a web server port. Accept it.
+* Open a browser to access the Stable Diffusion web server. By default, the port is 8080, so you can go to http://localhost:8080/.
+
+## Stopping
+
+* Select the command prompt that's running the EXE. Press CTRL-C and wait a moment or close the terminal. 
+</details>
 
 <details>
   <summary>Advanced Installation (Only for developers)</summary>
