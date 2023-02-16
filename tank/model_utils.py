@@ -27,6 +27,10 @@ hf_img_cls_models = [
     "microsoft/beit-base-patch16-224-pt22k-ft22k",
     "nvidia/mit-b0",
 ]
+hf_seq2seq_models = [
+    "t5-base",
+    "t5-large",
+]
 
 
 def get_torch_model(modelname):
@@ -34,6 +38,8 @@ def get_torch_model(modelname):
         return get_vision_model(modelname)
     elif modelname in hf_img_cls_models:
         return get_hf_img_cls_model(modelname)
+    elif modelname in hf_seq2seq_models:
+        return get_hf_seq2seq_model(modelname)
     elif "fp16" in modelname:
         return get_fp16_model(modelname)
     else:
@@ -127,6 +133,47 @@ def get_hf_model(name):
     test_input = torch.randint(2, (BATCH_SIZE, 128))
     actual_out = model(test_input)
     return model, test_input, actual_out
+
+
+##################### Hugging Face Seq2SeqLM Models ###################################
+
+# We use a maximum sequence length of 512 since this is the default used in the T5 config.
+T5_MAX_SEQUENCE_LENGTH = 512
+
+
+class HFSeq2SeqLanguageModel(torch.nn.Module):
+    def __init__(self, model_name):
+        super().__init__()
+        from transformers import AutoTokenizer, T5Model
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenization_kwargs = {
+            "pad_to_multiple_of": T5_MAX_SEQUENCE_LENGTH,
+            "padding": True,
+            "return_tensors": "pt",
+        }
+        self.model = T5Model.from_pretrained(model_name, return_dict=True)
+
+    def preprocess_input(self, text):
+        return self.tokenizer(text, **self.tokenization_kwargs)
+
+    def forward(self, input_ids, decoder_input_ids):
+        return self.model.forward(
+            input_ids, decoder_input_ids=decoder_input_ids
+        )[0]
+
+
+def get_hf_seq2seq_model(name):
+    m = HFSeq2SeqLanguageModel(name)
+    encoded_input_ids = m.preprocess_input(
+        "Studies have been shown that owning a dog is good for you"
+    ).input_ids
+    decoder_input_ids = m.preprocess_input("Studies show that").input_ids
+    decoder_input_ids = m.model._shift_right(decoder_input_ids)
+
+    test_input = (encoded_input_ids, decoder_input_ids)
+    actual_out = m.forward(*test_input)
+    return m, test_input, actual_out
 
 
 ################################################################################
