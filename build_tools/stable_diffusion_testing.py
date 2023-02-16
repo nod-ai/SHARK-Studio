@@ -27,6 +27,9 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
     hf_model_names = model_config_dicts[0].values()
     tuned_options = ["--no-use_tuned", "--use_tuned"]
     import_options = ["--import_mlir", "--no-import_mlir"]
+    prompt_text = "--prompt=cyberpunk forest by Salvador Dali"
+    if os.name == "nt":
+        prompt_text = '--prompt="cyberpunk forest by Salvador Dali"'
     if beta:
         extra_flags.append("--beta_models=True")
     for import_opt in import_options:
@@ -36,7 +39,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                     executable,  # executable is the python from the venv used to run this
                     "apps/stable_diffusion/scripts/txt2img.py",
                     "--device=" + device,
-                    '--prompt="cyberpunk forest by Salvador Dali"',
+                    prompt_text,
                     "--negative_prompts=" + '""',
                     "--seed=42",
                     import_opt,
