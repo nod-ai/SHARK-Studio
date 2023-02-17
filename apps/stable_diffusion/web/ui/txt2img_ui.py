@@ -93,6 +93,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 "DDIM",
                                 "PNDM",
                                 "LMSDiscrete",
+                                "KDPM2Discrete",
                                 "DPMSolverMultistep",
                                 "EulerDiscrete",
                                 "EulerAncestralDiscrete",
