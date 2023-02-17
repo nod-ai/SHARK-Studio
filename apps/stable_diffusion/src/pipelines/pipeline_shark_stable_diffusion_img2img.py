@@ -64,10 +64,6 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
         image_arr = 2 * (image_arr - 0.5)
 
-        # image encode
-        latents = self.encode_image((image_arr,))
-        latents = torch.from_numpy(latents).to(dtype)
-
         # set scheduler steps
         self.scheduler.set_timesteps(num_inference_steps)
         init_timestep = min(
@@ -79,13 +75,16 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # new number of steps to be used as per strength will be
         # num_inference_steps = num_inference_steps - t_start
 
+        # image encode
+        latents = self.encode_image((image_arr,))
+        latents = torch.from_numpy(latents).to(dtype)
         # add noise to data
         noise = torch.randn(latents.shape, generator=generator, dtype=dtype)
         latents = self.scheduler.add_noise(
             latents, noise, timesteps[0].repeat(1)
         )
 
-        return latents
+        return latents, timesteps
 
     def encode_image(self, input_image):
         vae_encode_start = time.time()
@@ -136,7 +135,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
 
         # Prepare input image latent
-        image_latents = self.prepare_image_latents(
+        image_latents, final_timesteps = self.prepare_image_latents(
             image=image,
             batch_size=batch_size,
             height=height,
@@ -152,7 +151,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
             latents=image_latents,
             text_embeddings=text_embeddings,
             guidance_scale=guidance_scale,
-            total_timesteps=self.scheduler.timesteps,
+            total_timesteps=final_timesteps,
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
         )
