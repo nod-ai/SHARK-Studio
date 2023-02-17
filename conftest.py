@@ -62,7 +62,11 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--benchmark_dispatches",
-        action="store_true",
         default=None,
-        help="Benchmark individual dispatch kernels produced by IREE compiler.",
+        help="Benchmark individual dispatch kernels produced by IREE compiler. Use 'All' for all, or specific dispatches e.g. '0 1 2 10'",
+    )
+    parser.addoption(
+        "--dispatch_benchmarks_dir",
+        default="./temp_dispatch_benchmarks",
+        help="Directory in which dispatch benchmarks are saved.",
     )
