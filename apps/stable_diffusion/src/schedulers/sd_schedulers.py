@@ -3,6 +3,7 @@ from diffusers import (
     PNDMScheduler,
     DDIMScheduler,
     DPMSolverMultistepScheduler,
+    KDPM2DiscreteScheduler,
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
 )
@@ -14,6 +15,10 @@ from apps.stable_diffusion.src.schedulers.shark_eulerdiscrete import (
 def get_schedulers(model_id):
     schedulers = dict()
     schedulers["PNDM"] = PNDMScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+    )
+    schedulers["KDPM2Discrete"] = KDPM2DiscreteScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
     )
