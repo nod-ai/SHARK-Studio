@@ -10,6 +10,7 @@ from image_comparison import compare_images
 import argparse
 from glob import glob
 import shutil
+import requests
 
 model_config_dicts = get_json_file(
     os.path.join(
@@ -19,35 +20,72 @@ model_config_dicts = get_json_file(
 )
 
 
+def get_inpaint_inputs():
+    os.mkdir("./test_images/inputs")
+    img_url = (
+        "https://huggingface.co/datasets/diffusers/test-arrays/resolve"
+        "/main/stable_diffusion_inpaint/input_bench_image.png"
+    )
+    mask_url = (
+        "https://huggingface.co/datasets/diffusers/test-arrays/resolve"
+        "/main/stable_diffusion_inpaint/input_bench_mask.png"
+    )
+    img = requests.get(img_url)
+    mask = requests.get(mask_url)
+    open("./test_images/inputs/image.png", "wb").write(img.content)
+    open("./test_images/inputs/mask.png", "wb").write(mask.content)
+
+
 def test_loop(device="vulkan", beta=False, extra_flags=[]):
     # Get golden values from tank
     shutil.rmtree("./test_images", ignore_errors=True)
     os.mkdir("./test_images")
     os.mkdir("./test_images/golden")
+    get_inpaint_inputs()
     hf_model_names = model_config_dicts[0].values()
     tuned_options = ["--no-use_tuned", "--use_tuned"]
     import_options = ["--import_mlir", "--no-import_mlir"]
     prompt_text = "--prompt=cyberpunk forest by Salvador Dali"
+    inpaint_prompt_text = "--prompt=Face of a yellow cat, high resolution, sitting on a park bench"
     if os.name == "nt":
         prompt_text = '--prompt="cyberpunk forest by Salvador Dali"'
+        inpaint_prompt_text = '--prompt="Face of a yellow cat, high resolution, sitting on a park bench"'
     if beta:
         extra_flags.append("--beta_models=True")
     for import_opt in import_options:
         for model_name in hf_model_names:
             for use_tune in tuned_options:
-                command = [
-                    executable,  # executable is the python from the venv used to run this
-                    "apps/stable_diffusion/scripts/txt2img.py",
-                    "--device=" + device,
-                    prompt_text,
-                    "--negative_prompts=" + '""',
-                    "--seed=42",
-                    import_opt,
-                    "--output_dir="
-                    + os.path.join(os.getcwd(), "test_images", model_name),
-                    "--hf_model_id=" + model_name,
-                    use_tune,
-                ]
+                command = (
+                    [
+                        executable,  # executable is the python from the venv used to run this
+                        "apps/stable_diffusion/scripts/txt2img.py",
+                        "--device=" + device,
+                        prompt_text,
+                        "--negative_prompts=" + '""',
+                        "--seed=42",
+                        import_opt,
+                        "--output_dir="
+                        + os.path.join(os.getcwd(), "test_images", model_name),
+                        "--hf_model_id=" + model_name,
+                        use_tune,
+                    ]
+                    if "inpainting" not in model_name
+                    else [
+                        "python",
+                        "apps/stable_diffusion/scripts/inpaint.py",
+                        "--device=" + device,
+                        inpaint_prompt_text,
+                        "--negative_prompts=" + '""',
+                        "--img_path=./test_images/inputs/image.png",
+                        "--mask_path=./test_images/inputs/mask.png",
+                        "--seed=42",
+                        "--import_mlir",
+                        "--output_dir="
+                        + os.path.join(os.getcwd(), "test_images", model_name),
+                        "--hf_model_id=" + model_name,
+                        use_tune,
+                    ]
+                )
                 command += extra_flags
                 if os.name == "nt":
                     command = " ".join(command)
