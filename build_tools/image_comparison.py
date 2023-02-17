@@ -30,9 +30,15 @@ def compare_images(new_filename, golden_filename):
     diff = np.abs(new - golden)
     mean = np.mean(diff)
     if mean > 0.1:
-        subprocess.run(
-            ["gsutil", "cp", new_filename, "gs://shark_tank/testdata/builder/"]
-        )
+        if os.name != "nt":
+            subprocess.run(
+                [
+                    "gsutil",
+                    "cp",
+                    new_filename,
+                    "gs://shark_tank/testdata/builder/",
+                ]
+            )
         raise SystemExit("new and golden not close")
     else:
         print("SUCCESS")
