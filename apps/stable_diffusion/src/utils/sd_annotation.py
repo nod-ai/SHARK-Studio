@@ -78,8 +78,15 @@ def load_winograd_configs():
 
 def load_lower_configs():
     from apps.stable_diffusion.src.models import get_variant_version
+    from apps.stable_diffusion.src.utils.utils import (
+        fetch_and_update_base_model_id,
+    )
 
-    variant, version = get_variant_version(args.hf_model_id)
+    base_model_id = args.hf_model_id
+    if args.ckpt_loc != "":
+        base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
+
+    variant, version = get_variant_version(base_model_id)
 
     config_bucket = "gs://shark_tank/sd_tuned_configs/"
 

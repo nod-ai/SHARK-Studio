@@ -239,19 +239,33 @@ def set_init_device_flags():
         args.max_length = 64
 
     # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
+    base_model_id = args.hf_model_id
+    if args.ckpt_loc != "":
+        base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
+
     if (
         args.hf_model_id
         in [
             "runwayml/stable-diffusion-inpainting",
             "stabilityai/stable-diffusion-2-inpainting",
         ]
-        or args.ckpt_loc != ""
         or args.precision != "fp16"
         or args.height != 512
         or args.width != 512
         or args.batch_size != 1
         or ("vulkan" not in args.device and "cuda" not in args.device)
     ):
+        args.use_tuned = False
+
+    elif args.ckpt_loc != "" and base_model_id not in [
+        "Linaqruf/anything-v3.0",
+        "dreamlike-art/dreamlike-diffusion-1.0",
+        "prompthero/openjourney",
+        "wavymulder/Analog-Diffusion",
+        "stabilityai/stable-diffusion-2-1",
+        "stabilityai/stable-diffusion-2-1-base",
+        "CompVis/stable-diffusion-v1-4",
+    ]:
         args.use_tuned = False
 
     elif "vulkan" in args.device and not any(
@@ -269,7 +283,7 @@ def set_init_device_flags():
         args.use_tuned = False
 
     if args.use_tuned:
-        print(f"Using tuned models for {args.hf_model_id}/fp16/{args.device}.")
+        print(f"Using tuned models for {base_model_id}/fp16/{args.device}.")
     else:
         print("Tuned models are currently not supported for this setting.")
 
