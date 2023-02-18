@@ -136,6 +136,7 @@ def img2img_inf(
             args.width,
             args.use_base_vae,
             args.use_tuned,
+            low_cpu_mem_usage=args.low_cpu_mem_usage,
         )
 
     if not img2img_obj:
@@ -230,6 +231,7 @@ if __name__ == "__main__":
         args.width,
         args.use_base_vae,
         args.use_tuned,
+        low_cpu_mem_usage=args.low_cpu_mem_usage,
     )
 
     start_time = time.time()
