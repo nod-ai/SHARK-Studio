@@ -199,6 +199,7 @@ if __name__ == "__main__":
         args.width,
         args.use_base_vae,
         args.use_tuned,
+        low_cpu_mem_usage=args.low_cpu_mem_usage,
     )
 
     for current_batch in range(args.batch_count):
