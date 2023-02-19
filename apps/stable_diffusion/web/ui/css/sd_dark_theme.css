@@ -145,21 +145,20 @@
 }
 
 /* SHARK theme */
+body {
+    background-color: var(--color-background-primary);
+}
 
 /* display in full width for desktop devices */
 @media (min-width: 1536px)
 {
-    .gradio-container .contain {
+    .gradio-container {
         max-width: var(--size-full) !important;
     }
 }
 
 .gradio-container .contain {
     padding: 0 var(--size-4) !important;
-}
-
-.gradio-container {
-    background-color: var(--color-background-primary);
 }
 
 .container {
