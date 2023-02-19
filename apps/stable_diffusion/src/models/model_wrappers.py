@@ -80,7 +80,6 @@ class SharkifyStableDiffusionModel:
         batch_size: int = 1,
         use_base_vae: bool = False,
         use_tuned: bool = False,
-        low_cpu_mem_usage: bool = False
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -115,7 +114,6 @@ class SharkifyStableDiffusionModel:
         if use_tuned:
             self.model_name = self.model_name + "_tuned"
         self.model_name = self.model_name + "_" + get_path_stem(self.model_id)
-        self.low_cpu_mem_usage = low_cpu_mem_usage
 
     def get_extended_name_for_all_model(self):
         model_name = {}
@@ -146,7 +144,6 @@ class SharkifyStableDiffusionModel:
                 self.vae = AutoencoderKL.from_pretrained(
                     model_id,
                     subfolder="vae",
-                    low_cpu_mem_usage=self.low_cpu_mem_usage,
                 )
 
             def forward(self, input):
@@ -175,19 +172,16 @@ class SharkifyStableDiffusionModel:
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
-                        low_cpu_mem_usage=self.low_cpu_mem_usage,
                     )
                 elif not isinstance(custom_vae, dict):
                     self.vae = AutoencoderKL.from_pretrained(
                         custom_vae,
                         subfolder="vae",
-                        low_cpu_mem_usage=self.low_cpu_mem_usage,
                     )
                 else:
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
-                        low_cpu_mem_usage=self.low_cpu_mem_usage,
                     )
                     self.vae.load_state_dict(custom_vae)
                 self.base_vae = base_vae
@@ -222,7 +216,6 @@ class SharkifyStableDiffusionModel:
                 self.unet = UNet2DConditionModel.from_pretrained(
                     model_id,
                     subfolder="unet",
-                    low_cpu_mem_usage=self.low_cpu_mem_usage,
                 )
                 self.in_channels = self.unet.in_channels
                 self.train(False)
@@ -263,7 +256,6 @@ class SharkifyStableDiffusionModel:
                 self.text_encoder = CLIPTextModel.from_pretrained(
                     model_id,
                     subfolder="text_encoder",
-                    low_cpu_mem_usage=self.low_cpu_mem_usage,
                 )
 
             def forward(self, input):

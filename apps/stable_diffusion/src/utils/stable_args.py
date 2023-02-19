@@ -193,13 +193,6 @@ p.add_argument(
     help="The repo-id of hugging face.",
 )
 
-p.add_argument(
-    "--low_cpu_mem_usage",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Use the accelerate package to reduce cpu memory consumption",
-)
-
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################

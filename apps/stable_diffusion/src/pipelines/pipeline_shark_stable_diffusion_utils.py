@@ -201,7 +201,6 @@ class StableDiffusionPipeline:
         width: int,
         use_base_vae: bool,
         use_tuned: bool,
-        low_cpu_mem_usage: bool,
     ):
         if import_mlir:
             mlir_import = SharkifyStableDiffusionModel(
@@ -215,7 +214,6 @@ class StableDiffusionPipeline:
                 width=width,
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
-                low_cpu_mem_usage=low_cpu_mem_usage,
             )
             if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
                 clip, unet, vae, vae_encode = mlir_import()
@@ -250,7 +248,6 @@ class StableDiffusionPipeline:
                 width=width,
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
-                low_cpu_mem_usage=low_cpu_mem_usage,
             )
             if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
                 clip, unet, vae, vae_encode = mlir_import()
