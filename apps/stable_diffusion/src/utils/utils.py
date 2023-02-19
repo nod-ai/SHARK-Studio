@@ -265,6 +265,7 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1",
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
+        "runwayml/stable-diffusion-v1-5",
     ]:
         args.use_tuned = False
 

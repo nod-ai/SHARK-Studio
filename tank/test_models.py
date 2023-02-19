@@ -137,6 +137,19 @@ class SharkModuleTester:
     def create_and_check_module(self, dynamic, device):
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.force_update_tank = self.update_tank
+        shark_args.dispatch_benchmarks = self.benchmark_dispatches
+        if self.benchmark_dispatches is not None:
+            _m = self.config["model_name"].split("/")
+            _m.extend([self.config["framework"], str(dynamic), device])
+            _m = "_".join(_m)
+            shark_args.dispatch_benchmarks_dir = os.path.join(
+                self.dispatch_benchmarks_dir,
+                _m,
+            )
+            if not os.path.exists(self.dispatch_benchmarks_dir):
+                os.mkdir(self.dispatch_benchmarks_dir)
+            if not os.path.exists(shark_args.dispatch_benchmarks_dir):
+                os.mkdir(shark_args.dispatch_benchmarks_dir)
         if "nhcw-nhwc" in self.config["flags"] and not os.path.isfile(
             ".use-iree"
         ):
@@ -278,6 +291,12 @@ class SharkModuleTest(unittest.TestCase):
             "update_tank"
         )
         self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
+        self.module_tester.benchmark_dispatches = self.pytestconfig.getoption(
+            "benchmark_dispatches"
+        )
+        self.module_tester.dispatch_benchmarks_dir = (
+            self.pytestconfig.getoption("dispatch_benchmarks_dir")
+        )
 
         if config["xfail_cpu"] == "True" and device == "cpu":
             pytest.xfail(reason=config["xfail_reason"])

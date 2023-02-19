@@ -85,6 +85,8 @@ def load_lower_configs():
     base_model_id = args.hf_model_id
     if args.ckpt_loc != "":
         base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
+    if base_model_id == "runwayml/stable-diffusion-v1-5":
+        base_model_id = "CompVis/stable-diffusion-v1-4"
 
     variant, version = get_variant_version(base_model_id)
 

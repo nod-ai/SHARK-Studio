@@ -9,14 +9,12 @@ from apps.stable_diffusion.src import prompt_examples, args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
-    sdlogo_loc,
 )
 
 
 with gr.Blocks(title="Text-to-Image") as txt2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
-        logo2 = Image.open(sdlogo_loc)
         with gr.Row():
             with gr.Column(scale=1, elem_id="demo_title_outer"):
                 gr.Image(
@@ -24,15 +22,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     show_label=False,
                     interactive=False,
                     elem_id="top_logo",
-                ).style(width=150, height=100)
-            with gr.Column(scale=5, elem_id="demo_title_outer"):
-                gr.Image(
-                    value=logo2,
-                    show_label=False,
-                    interactive=False,
-                    elem_id="demo_title",
-                ).style(width=150, height=100)
-
+                ).style(width=150, height=50)
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
@@ -93,6 +83,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 "DDIM",
                                 "PNDM",
                                 "LMSDiscrete",
+                                "KDPM2Discrete",
                                 "DPMSolverMultistep",
                                 "EulerDiscrete",
                                 "EulerAncestralDiscrete",
@@ -180,7 +171,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         outputs=[seed],
                         _js="() => Math.floor(Math.random() * 4294967295)",
                     )
-                    stable_diffusion = gr.Button("Generate Image")
+                    stable_diffusion = gr.Button("Generate Image(s)")
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
@@ -195,10 +186,10 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
-                    ).style(grid=[2], height="auto")
+                    ).style(grid=[2])
                     std_output = gr.Textbox(
                         value="Nothing to show.",
-                        lines=4,
+                        lines=1,
                         show_label=False,
                     )
                 output_dir = args.output_dir if args.output_dir else Path.cwd()
@@ -234,4 +225,5 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         )
 
         prompt.submit(**kwargs)
+        negative_prompt.submit(**kwargs)
         stable_diffusion.click(**kwargs)
