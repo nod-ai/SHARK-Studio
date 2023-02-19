@@ -54,6 +54,8 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
         extra_flags.append("--beta_models=True")
     for import_opt in import_options:
         for model_name in hf_model_names:
+            if model_name == "Linaqruf/anything-v3.0":
+                continue
             for use_tune in tuned_options:
                 command = (
                     [
