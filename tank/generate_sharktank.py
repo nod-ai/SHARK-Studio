@@ -118,6 +118,7 @@ def save_torch_model(torch_model_list, local_tank_cache):
 def save_tf_model(tf_model_list, local_tank_cache):
     from tank.model_utils_tf import (
         get_causal_image_model,
+        get_masked_lm_model,
         get_causal_lm_model,
         get_keras_model,
         get_TFhf_model,
@@ -145,13 +146,15 @@ def save_tf_model(tf_model_list, local_tank_cache):
             input = None
             print(f"Generating artifacts for model {tf_model_name}")
             if model_type == "hf":
-                model, input, _ = get_causal_lm_model(tf_model_name)
+                model, input, _ = get_masked_lm_model(tf_model_name)
             if model_type == "img":
                 model, input, _ = get_causal_image_model(tf_model_name)
             if model_type == "keras":
                 model, input, _ = get_keras_model(tf_model_name)
             if model_type == "TFhf":
                 model, input, _ = get_TFhf_model(tf_model_name)
+            if model_type == "hf_causallm":
+                model, input, _ = get_causal_lm_model(tf_model_name)
 
             tf_model_name = tf_model_name.replace("/", "_")
             tf_model_dir = os.path.join(
