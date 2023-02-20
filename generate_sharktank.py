@@ -162,13 +162,13 @@ def save_tf_model(tf_model_list):
             tf_model_name = tf_model_name.replace("/", "_")
             tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
             os.makedirs(tf_model_dir, exist_ok=True)
-
             mlir_importer = SharkImporter(
                 model,
-                input,
+                inputs=input,
                 frontend="tf",
             )
             mlir_importer.import_debug(
+                is_dynamic=False,
                 dir=tf_model_dir,
                 model_name=tf_model_name,
             )
