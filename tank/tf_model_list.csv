@@ -19,3 +19,5 @@ facebook/convnext-tiny-224,img
 google/vit-base-patch16-224,img
 efficientnet-v2-s,keras
 bert-large-uncased,hf
+efficientnet_b0,keras
+efficientnet_b7,keras
