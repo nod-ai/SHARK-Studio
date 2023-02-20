@@ -11,7 +11,12 @@ MAX_SEQUENCE_LENGTH = 128
 
 ################################## MHLO/TF models #########################################
 # TODO : Generate these lists or fetch model source from tank/tf/tf_model_list.csv
-keras_models = ["resnet50", "efficientnet-v2-s"]
+keras_models = [
+    "resnet50",
+    "efficientnet_b0",
+    "efficientnet_b7",
+    "efficientnet-v2-s",
+]
 maskedlm_models = [
     "albert-base-v2",
     "bert-base-uncased",
@@ -178,7 +183,9 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
 # Static shape, including batch size (1).
 # Can be dynamic once dynamic shape support is ready.
 RESNET_INPUT_SHAPE = [BATCH_SIZE, 224, 224, 3]
-EFFICIENTNET_INPUT_SHAPE = [BATCH_SIZE, 384, 384, 3]
+EFFICIENTNET_V2_S_INPUT_SHAPE = [BATCH_SIZE, 384, 384, 3]
+EFFICIENTNET_B0_INPUT_SHAPE = [BATCH_SIZE, 224, 224, 3]
+EFFICIENTNET_B7_INPUT_SHAPE = [BATCH_SIZE, 600, 600, 3]
 
 
 class ResNetModule(tf.Module):
@@ -205,25 +212,79 @@ class ResNetModule(tf.Module):
         return tf.keras.applications.resnet50.preprocess_input(image)
 
 
-class EfficientNetModule(tf.Module):
+class EfficientNetB0Module(tf.Module):
     def __init__(self):
-        super(EfficientNetModule, self).__init__()
-        self.m = tf.keras.applications.efficientnet_v2.EfficientNetV2S(
+        super(EfficientNetB0Module, self).__init__()
+        self.m = tf.keras.applications.efficientnet.EfficientNetB0(
             weights="imagenet",
             include_top=True,
-            input_shape=tuple(EFFICIENTNET_INPUT_SHAPE[1:]),
+            input_shape=tuple(EFFICIENTNET_B0_INPUT_SHAPE[1:]),
         )
         self.m.predict = lambda x: self.m.call(x, training=False)
 
     @tf.function(
-        input_signature=[tf.TensorSpec(EFFICIENTNET_INPUT_SHAPE, tf.float32)],
+        input_signature=[
+            tf.TensorSpec(EFFICIENTNET_B0_INPUT_SHAPE, tf.float32)
+        ],
         jit_compile=True,
     )
     def forward(self, inputs):
         return self.m.predict(inputs)
 
     def input_shape(self):
-        return EFFICIENTNET_INPUT_SHAPE
+        return EFFICIENTNET_B0_INPUT_SHAPE
+
+    def preprocess_input(self, image):
+        return tf.keras.applications.efficientnet.preprocess_input(image)
+
+
+class EfficientNetB7Module(tf.Module):
+    def __init__(self):
+        super(EfficientNetB7Module, self).__init__()
+        self.m = tf.keras.applications.efficientnet.EfficientNetB7(
+            weights="imagenet",
+            include_top=True,
+            input_shape=tuple(EFFICIENTNET_B7_INPUT_SHAPE[1:]),
+        )
+        self.m.predict = lambda x: self.m.call(x, training=False)
+
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(EFFICIENTNET_B7_INPUT_SHAPE, tf.float32)
+        ],
+        jit_compile=True,
+    )
+    def forward(self, inputs):
+        return self.m.predict(inputs)
+
+    def input_shape(self):
+        return EFFICIENTNET_B7_INPUT_SHAPE
+
+    def preprocess_input(self, image):
+        return tf.keras.applications.efficientnet.preprocess_input(image)
+
+
+class EfficientNetV2SModule(tf.Module):
+    def __init__(self):
+        super(EfficientNetV2SModule, self).__init__()
+        self.m = tf.keras.applications.efficientnet_v2.EfficientNetV2S(
+            weights="imagenet",
+            include_top=True,
+            input_shape=tuple(EFFICIENTNET_V2_S_INPUT_SHAPE[1:]),
+        )
+        self.m.predict = lambda x: self.m.call(x, training=False)
+
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(EFFICIENTNET_V2_S_INPUT_SHAPE, tf.float32)
+        ],
+        jit_compile=True,
+    )
+    def forward(self, inputs):
+        return self.m.predict(inputs)
+
+    def input_shape(self):
+        return EFFICIENTNET_V2_S_INPUT_SHAPE
 
     def preprocess_input(self, image):
         return tf.keras.applications.efficientnet_v2.preprocess_input(image)
@@ -240,7 +301,11 @@ def load_image(path_to_image, width, height, channels):
 
 def get_keras_model(modelname):
     if modelname == "efficientnet-v2-s":
-        model = EfficientNetModule()
+        model = EfficientNetV2SModule()
+    elif modelname == "efficientnet_b0":
+        model = EfficientNetB0Module()
+    elif modelname == "efficientnet_b7":
+        model = EfficientNetB7Module()
     else:
         model = ResNetModule()
 
