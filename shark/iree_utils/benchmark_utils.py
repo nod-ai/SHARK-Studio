@@ -139,9 +139,14 @@ def run_benchmark_module(benchmark_cl):
         benchmark_path
     ), "Cannot find benchmark_module, Please contact SHARK maintainer on discord."
     bench_result = run_cmd(" ".join(benchmark_cl))
-    print(bench_result)
-    regex_split = re.compile("(\d+[.]*\d*)(  *)([a-zA-Z]+)")
-    match = regex_split.search(bench_result)
-    time = float(match.group(1))
-    unit = match.group(3)
+    try:
+        regex_split = re.compile("(\d+[.]*\d*)(  *)([a-zA-Z]+)")
+        match = regex_split.search(bench_result)
+        time = float(match.group(1))
+        unit = match.group(3)
+    except AttributeError:
+        regex_split = re.compile("(\d+[.]*\d*)([a-zA-Z]+)")
+        match = regex_split.search(bench_result)
+        time = float(match.group(1))
+        unit = match.group(2)
     return 1.0 / (time * 0.001)

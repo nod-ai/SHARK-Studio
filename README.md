@@ -215,14 +215,14 @@ python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use g
 pytest tank/test_models.py -k "MiniLM"
 ```
   
-
+### How to use your locally built IREE / Torch-MLIR with SHARK
 If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
 with Python bindings and set your PYTHONPATH as mentioned [here](https://github.com/iree-org/iree/tree/main/docs/api_docs/python#install-iree-binaries)
 for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
 for Torch-MLIR.
 
-### How to use your locally built Torch-MLIR with SHARK
+How to use your locally built Torch-MLIR with SHARK:
 ```shell
 1.) Run `./setup_venv.sh in SHARK` and activate `shark.venv` virtual env.
 2.) Run `pip uninstall torch-mlir`.
@@ -240,8 +240,14 @@ Now the SHARK will use your locally build Torch-MLIR repo.
 
 ## Benchmarking Dispatches
 
-To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your command line argument.  
+To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your pytest command line argument.  
 If you only want to compile specific dispatches, you can specify them with a space seperated string instead of `"All"`.  E.G. `--dispatch_benchmarks="0 1 2 10"`
+
+For example, to generate and run dispatch benchmarks for MiniLM on CUDA:
+```
+pytest -k "MiniLM and torch and static and cuda" --benchmark_dispatches=All -s --dispatch_benchmarks_dir=./my_dispatch_benchmarks                                                                                
+```
+The given command will populate `<dispatch_benchmarks_dir>/<model_name>/` with an `ordered_dispatches.txt` that lists and orders the dispatches and their latencies, as well as folders for each dispatch that contain .mlir, .vmfb, and results of the benchmark for that dispatch.
 
 if you want to instead incorporate this into a python script, you can pass the `dispatch_benchmarks` and `dispatch_benchmarks_dir` commands when initializing `SharkInference`, and the benchmarks will be generated when compiled.  E.G:
 
@@ -266,7 +272,7 @@ Output will include:
 - A .txt file containing benchmark output
 
 
-See tank/README.md for instructions on how to run model tests and benchmarks from the SHARK tank.
+See tank/README.md for further instructions on how to run model tests and benchmarks from the SHARK tank.
 
 </details>
 
