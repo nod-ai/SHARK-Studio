@@ -26,12 +26,6 @@
 .OUTPUTS
   None
 
-.NOTES
-  Version        1.01
-  Author         powderluv, xzuyn, cstueckrath
-  Modification Date  2023-02-19
-  PurposeChange Find correct Python version
-
 #>
 
 param([string]$arguments)
