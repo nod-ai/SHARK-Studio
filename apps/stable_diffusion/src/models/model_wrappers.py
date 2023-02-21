@@ -334,6 +334,8 @@ class SharkifyStableDiffusionModel:
             if args.hf_model_id == "":
                 sys.exit("Base model configuration for the custom model is missing. Use `--clear_all` and re-run.")
             print("Loaded vmfbs from cache and successfully fetched base model configuration.")
+            if not need_vae_encode:
+                return vmfbs[:3]
             return vmfbs
 
         # Step 2:
