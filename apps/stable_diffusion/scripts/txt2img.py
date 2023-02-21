@@ -94,7 +94,7 @@ def txt2img_inf(
         width,
         device,
     )
-    if config_obj != new_config_obj:
+    if not txt2img_obj or config_obj != new_config_obj:
         config_obj = new_config_obj
         args.precision = precision
         args.batch_size = batch_size
@@ -105,6 +105,7 @@ def txt2img_inf(
         args.iree_vulkan_target_triple = ""
         args.use_tuned = True
         args.import_mlir = False
+        args.img_path = ""
         set_init_device_flags()
         model_id = (
             args.hf_model_id
@@ -128,9 +129,6 @@ def txt2img_inf(
             args.use_tuned,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
         )
-
-    if not txt2img_obj:
-        sys.exit("text to image pipeline must not return a null value")
 
     txt2img_obj.scheduler = schedulers[scheduler]
 
