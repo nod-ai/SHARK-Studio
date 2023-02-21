@@ -105,7 +105,7 @@ def txt2img_inf(
         args.iree_vulkan_target_triple = ""
         args.use_tuned = True
         args.import_mlir = False
-        args.img_path = ""
+        args.img_path = None
         set_init_device_flags()
         model_id = (
             args.hf_model_id
