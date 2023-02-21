@@ -97,7 +97,7 @@ def inpaint_inf(
         width,
         device,
     )
-    if config_obj != new_config_obj:
+    if not inpaint_obj or config_obj != new_config_obj:
         config_obj = new_config_obj
         args.precision = precision
         args.batch_size = batch_size
@@ -130,9 +130,6 @@ def inpaint_inf(
             args.use_base_vae,
             args.use_tuned,
         )
-
-    if not inpaint_obj:
-        sys.exit("text to image pipeline must not return a null value")
 
     inpaint_obj.scheduler = schedulers[scheduler]
 
