@@ -70,7 +70,7 @@ def load_winograd_configs():
     config_bucket = "gs://shark_tank/sd_tuned/configs/"
     config_name = f"{args.annotation_model}_winograd_{device}.json"
     full_gs_url = config_bucket + config_name
-    winograd_config_dir = f"{WORKDIR}configs/" + config_name
+    winograd_config_dir = os.path.join(WORKDIR, "configs", config_name)
     print("Loading Winograd config file from ", winograd_config_dir)
     download_public_file(full_gs_url, winograd_config_dir, True)
     return winograd_config_dir
@@ -113,7 +113,7 @@ def load_lower_configs():
             config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}_{spec}.json"
 
     full_gs_url = config_bucket + config_name
-    lowering_config_dir = f"{WORKDIR}configs/" + config_name
+    lowering_config_dir = os.path.join(WORKDIR, "configs", config_name)
     print("Loading lowering config file from ", lowering_config_dir)
     download_public_file(full_gs_url, lowering_config_dir, True)
     return lowering_config_dir
@@ -136,11 +136,13 @@ def annotate_with_winograd(input_mlir, winograd_config_dir, model_name):
 
     if args.save_annotation:
         if model_name.split("_")[-1] != "tuned":
-            out_file_path = (
-                f"{args.annotation_output}/{model_name}_tuned_torch.mlir"
+            out_file_path = os.path.join(
+                args.annotation_output, model_name + "_tuned_torch.mlir"
             )
         else:
-            out_file_path = f"{args.annotation_output}/{model_name}_torch.mlir"
+            out_file_path = os.path.join(
+                args.annotation_output, model_name + "_torch.mlir"
+            )
         with open(out_file_path, "w") as f:
             f.write(str(winograd_model))
             f.close()
