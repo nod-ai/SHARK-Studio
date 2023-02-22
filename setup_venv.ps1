@@ -61,6 +61,7 @@ $version = if($p -is [System.Management.Automation.ErrorRecord])
 else
 {
     # otherwise return complete Python list
+    $ErrorActionPreference = 'SilentlyContinue'
     $PyVer = py --list
 }
 
@@ -68,7 +69,6 @@ else
 if ($PyVer -like "*venv*")
 {
   deactivate # make sure we don't update the wrong venv
-  $ErrorActionPreference = 'SilentlyContinue'
   $PyVer = py --list # update list
 }
 
