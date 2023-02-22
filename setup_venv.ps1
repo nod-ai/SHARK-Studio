@@ -61,6 +61,7 @@ $version = if($p -is [System.Management.Automation.ErrorRecord])
 else
 {
     # otherwise return complete Python list
+    $ErrorActionPreference = 'SilentlyContinue'
     $PyVer = py --list
 }
 
@@ -73,7 +74,8 @@ if ($PyVer -like "*venv*")
 
 Write-Host "Python versions found are"
 Write-Host ($PyVer | Out-String) # formatted output with line breaks
-if (!($PyVer -like "*3.11*")) # if 3.11 is not in list
+if (!($PyVer.length -ne 0)) {$p} # return Python --version String if py.exe is unavailable
+if (!($PyVer -like "*3.11*") -and !($p -like "*3.11*")) # if 3.11 is not in any list
 {
     Write-Host "Please install Python 3.11 and try again"
     break
@@ -81,7 +83,8 @@ if (!($PyVer -like "*3.11*")) # if 3.11 is not in list
 
 Write-Host "Installing Build Dependencies"
 # make sure we really use 3.11 from list, even if it's not the default.
-py -3.11 -m venv .\shark.venv\
+if (!($PyVer.length -ne 0)) {py -3.11 -m venv .\shark.venv\}
+else {python -m venv .\shark.venv\}
 .\shark.venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install wheel
