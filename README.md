@@ -10,7 +10,7 @@ High Performance Machine Learning Distribution
   <summary>Prerequisites - Drivers </summary>
   
 #### Install your Windows hardware drivers
-* [AMD RDNA Users] Download this specific driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-22-11-1-mril-iree). Latest drivers may not work.
+* [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-2-1).
 * [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work. 
 * [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
   
@@ -25,18 +25,32 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
  
 ### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
 
-Install Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
+Install the Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
 
-Download the latest .exe https://github.com/nod-ai/SHARK/releases. 
+Download the stable release [539](https://github.com/nod-ai/SHARK/releases/download/20230216.539/shark_sd_20230216_539.exe) or if you are adventurous the latest .exe from [releases page](https://github.com/nod-ai/SHARK/releases).
 
-Double click the .exe and you should have the [UI]( http://localhost:8080/?__theme=dark) in the browser. 
+Double click the .exe and you should have the [UI](http://localhost:8080/) in the browser. 
 
-If you have custom models (ckpt, safetensors) put in a `models/` directory where the .exe is. 
+If you have custom models put them in a `models/` directory where the .exe is. 
 
 Enjoy. 
 
-Some known AMD Driver quirks and fixes with cursors are documented [here](https://github.com/nod-ai/SHARK/blob/main/apps/stable_diffusion/stable_diffusion_amd.md ).
+<details>
+  <summary>More installation notes</summary>
+* We recommend that you download EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files with `rm *.vmfb`. You can also use `--clear_all` flag once to clean all the old files. 
+* If you recently updated the driver or this binary (EXE file), we recommend you clear all the local artifacts with `--clear_all` 
 
+## Running
+
+* Open a Command Prompt or Powershell terminal, change folder (`cd`) to the .exe folder. Then run the EXE from the command prompt. That way, if an error occurs, you'll be able to cut-and-paste it to ask for help. (if it always works for you without error, you may simply double-click the EXE)
+* The first run may take few minutes when the models are downloaded and compiled. Your patience is appreciated. The download could be about 5GB.
+* You will likely see a Windows Defender message asking you to give permission to open a web server port. Accept it.
+* Open a browser to access the Stable Diffusion web server. By default, the port is 8080, so you can go to http://localhost:8080/.
+
+## Stopping
+
+* Select the command prompt that's running the EXE. Press CTRL-C and wait a moment or close the terminal. 
+</details>
 
 <details>
   <summary>Advanced Installation (Only for developers)</summary>
@@ -54,7 +68,7 @@ cd SHARK
 
 ### Windows 10/11 Users
 
-* Install the latest Python 3.10.x version from [here](https://www.python.org/downloads/windows/)
+* Install the latest Python 3.11.x version from [here](https://www.python.org/downloads/windows/)
 
 * Install Git for Windows from [here](https://git-scm.com/download/win)
 
@@ -105,16 +119,15 @@ source shark.venv/bin/activate
 
 #### Linux / macOS Users
 ```shell
-python3.10 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
+python3.11 apps/stable_diffusion/scripts/txt2img.py --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
 
 You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
 </details>
 
-The output on a 7900XTX would like:
+The output on a AMD 7900XTX would look something like:
 
-```shell 
-Stats for run 0:
+```shell
 Average step time: 47.19188690185547ms/it
 Clip Inference time (ms) = 109.531
 VAE Inference time (ms): 78.590
@@ -140,7 +153,7 @@ Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any
 This step sets up a new VirtualEnv for Python
 
 ```shell
-python --version #Check you have 3.10 on Linux, macOS or Windows Powershell
+python --version #Check you have 3.11 on Linux, macOS or Windows Powershell
 python -m venv shark_venv
 source shark_venv/bin/activate   # Use shark_venv/Scripts/activate on Windows
 
@@ -154,7 +167,7 @@ python -m pip install --upgrade pip
 
 ### Install SHARK
 
-This step pip installs SHARK and related packages on Linux Python 3.7, 3.8, 3.9, 3.10 and macOS Python 3.10
+This step pip installs SHARK and related packages on Linux Python 3.8, 3.10 and 3.11 and macOS / Windows Python 3.11
 
 ```shell
 pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
@@ -189,10 +202,10 @@ python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal
 <details>
   <summary>Development, Testing and Benchmarks</summary>
 
-If you want to use Python3.10 and with TF Import tools you can use the environment variables like:
+If you want to use Python3.11 and with TF Import tools you can use the environment variables like:
 Set `USE_IREE=1` to use upstream IREE
 ```
-# PYTHON=python3.10 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
+# PYTHON=python3.11 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
 ```
 
 ### Run any of the hundreds of SHARK tank models via the test framework
@@ -202,14 +215,14 @@ python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use g
 pytest tank/test_models.py -k "MiniLM"
 ```
   
-
+### How to use your locally built IREE / Torch-MLIR with SHARK
 If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
 with Python bindings and set your PYTHONPATH as mentioned [here](https://github.com/iree-org/iree/tree/main/docs/api_docs/python#install-iree-binaries)
 for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
 for Torch-MLIR.
 
-### How to use your locally built Torch-MLIR with SHARK
+How to use your locally built Torch-MLIR with SHARK:
 ```shell
 1.) Run `./setup_venv.sh in SHARK` and activate `shark.venv` virtual env.
 2.) Run `pip uninstall torch-mlir`.
@@ -227,8 +240,14 @@ Now the SHARK will use your locally build Torch-MLIR repo.
 
 ## Benchmarking Dispatches
 
-To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your command line argument.  
+To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your pytest command line argument.  
 If you only want to compile specific dispatches, you can specify them with a space seperated string instead of `"All"`.  E.G. `--dispatch_benchmarks="0 1 2 10"`
+
+For example, to generate and run dispatch benchmarks for MiniLM on CUDA:
+```
+pytest -k "MiniLM and torch and static and cuda" --benchmark_dispatches=All -s --dispatch_benchmarks_dir=./my_dispatch_benchmarks                                                                                
+```
+The given command will populate `<dispatch_benchmarks_dir>/<model_name>/` with an `ordered_dispatches.txt` that lists and orders the dispatches and their latencies, as well as folders for each dispatch that contain .mlir, .vmfb, and results of the benchmark for that dispatch.
 
 if you want to instead incorporate this into a python script, you can pass the `dispatch_benchmarks` and `dispatch_benchmarks_dir` commands when initializing `SharkInference`, and the benchmarks will be generated when compiled.  E.G:
 
@@ -253,7 +272,7 @@ Output will include:
 - A .txt file containing benchmark output
 
 
-See tank/README.md for instructions on how to run model tests and benchmarks from the SHARK tank.
+See tank/README.md for further instructions on how to run model tests and benchmarks from the SHARK tank.
 
 </details>
 

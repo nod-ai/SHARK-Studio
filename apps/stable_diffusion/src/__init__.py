@@ -3,6 +3,8 @@ from apps.stable_diffusion.src.utils import (
     set_init_device_flags,
     prompt_examples,
     get_available_devices,
+    clear_all,
+    save_output_img,
 )
 from apps.stable_diffusion.src.pipelines import (
     Text2ImagePipeline,

@@ -50,6 +50,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         width,
         generator,
         num_inference_steps,
+        strength,
         dtype,
     ):
         # Pre process image -> get image encoded -> process latents
@@ -57,23 +58,33 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # TODO: process with variable HxW combos
 
         # Pre process image
-        image = image.resize((height, width))  # Current support for 512x512
+        image = image.resize((width, height))
         image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
         image_arr = image_arr / 255.0
         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
         image_arr = 2 * (image_arr - 0.5)
 
+        # set scheduler steps
+        self.scheduler.set_timesteps(num_inference_steps)
+        init_timestep = min(
+            int(num_inference_steps * strength), num_inference_steps
+        )
+        t_start = max(num_inference_steps - init_timestep, 0)
+        # timesteps reduced as per strength
+        timesteps = self.scheduler.timesteps[t_start:]
+        # new number of steps to be used as per strength will be
+        # num_inference_steps = num_inference_steps - t_start
+
         # image encode
         latents = self.encode_image((image_arr,))
         latents = torch.from_numpy(latents).to(dtype)
-
-        # set scheduler steps
-        self.scheduler.set_timesteps(num_inference_steps)
-
         # add noise to data
-        latents = latents * self.scheduler.init_noise_sigma
+        noise = torch.randn(latents.shape, generator=generator, dtype=dtype)
+        latents = self.scheduler.add_noise(
+            latents, noise, timesteps[0].repeat(1)
+        )
 
-        return latents
+        return latents, timesteps
 
     def encode_image(self, input_image):
         vae_encode_start = time.time()
@@ -92,6 +103,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         height,
         width,
         num_inference_steps,
+        strength,
         guidance_scale,
         seed,
         max_length,
@@ -123,13 +135,14 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
 
         # Prepare input image latent
-        image_latents = self.prepare_image_latents(
+        image_latents, final_timesteps = self.prepare_image_latents(
             image=image,
             batch_size=batch_size,
             height=height,
             width=width,
             generator=generator,
             num_inference_steps=num_inference_steps,
+            strength=strength,
             dtype=dtype,
         )
 
@@ -138,7 +151,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
             latents=image_latents,
             text_embeddings=text_embeddings,
             guidance_scale=guidance_scale,
-            total_timesteps=self.scheduler.timesteps,
+            total_timesteps=final_timesteps,
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
         )

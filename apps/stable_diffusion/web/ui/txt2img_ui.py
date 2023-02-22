@@ -5,29 +5,16 @@ from pathlib import Path
 import gradio as gr
 from PIL import Image
 from apps.stable_diffusion.scripts import txt2img_inf
-from apps.stable_diffusion.src import (
-    prompt_examples,
-    args,
-    get_available_devices,
+from apps.stable_diffusion.src import prompt_examples, args
+from apps.stable_diffusion.web.ui.utils import (
+    available_devices,
+    nodlogo_loc,
 )
 
 
-def resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(
-        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
-    )
-    return os.path.join(base_path, relative_path)
-
-
-nodlogo_loc = resource_path("logos/nod-logo.png")
-sdlogo_loc = resource_path("logos/sd-demo-logo.png")
-demo_css = resource_path("css/sd_dark_theme.css")
-
-with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
+with gr.Blocks(title="Text-to-Image") as txt2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
-        logo2 = Image.open(sdlogo_loc)
         with gr.Row():
             with gr.Column(scale=1, elem_id="demo_title_outer"):
                 gr.Image(
@@ -35,15 +22,7 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
                     show_label=False,
                     interactive=False,
                     elem_id="top_logo",
-                ).style(width=150, height=100)
-            with gr.Column(scale=5, elem_id="demo_title_outer"):
-                gr.Image(
-                    value=logo2,
-                    show_label=False,
-                    interactive=False,
-                    elem_id="demo_title",
-                ).style(width=150, height=100)
-
+                ).style(width=150, height=50)
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
@@ -79,6 +58,7 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
                         value="",
                         label="HuggingFace Model ID",
+                        lines=3,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -103,6 +83,7 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
                                 "DDIM",
                                 "PNDM",
                                 "LMSDiscrete",
+                                "KDPM2Discrete",
                                 "DPMSolverMultistep",
                                 "EulerDiscrete",
                                 "EulerAncestralDiscrete",
@@ -159,7 +140,7 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
                     with gr.Row():
                         batch_count = gr.Slider(
                             1,
-                            10,
+                            100,
                             value=args.batch_count,
                             step=1,
                             label="Batch Count",
@@ -177,7 +158,6 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
                     )
-                    available_devices = get_available_devices()
                     device = gr.Dropdown(
                         label="Device",
                         value=available_devices[0],
@@ -191,7 +171,7 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
                         outputs=[seed],
                         _js="() => Math.floor(Math.random() * 4294967295)",
                     )
-                    stable_diffusion = gr.Button("Generate Image")
+                    stable_diffusion = gr.Button("Generate Image(s)")
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
@@ -206,10 +186,10 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
-                    ).style(grid=[2], height="auto")
+                    ).style(grid=[2])
                     std_output = gr.Textbox(
                         value="Nothing to show.",
-                        lines=4,
+                        lines=1,
                         show_label=False,
                     )
                 output_dir = args.output_dir if args.output_dir else Path.cwd()
@@ -245,4 +225,5 @@ with gr.Blocks(title="Text-to-Image", css=demo_css) as txt2img_web:
         )
 
         prompt.submit(**kwargs)
+        negative_prompt.submit(**kwargs)
         stable_diffusion.click(**kwargs)

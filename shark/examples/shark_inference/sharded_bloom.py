@@ -303,7 +303,6 @@ def _prepare_attn_mask(
 
     return combined_attention_mask
 
-
 def download_model(destination_folder, model_name):
     download_public_file(
         f"https://{model_name}/config.json", destination_folder
@@ -650,6 +649,7 @@ def create_mlirs(destination_folder, model_name):
         model.model.lm_head,
         hidden_states,
         f"{destination_folder}/lm_head.mlir",
+
     )
 
 

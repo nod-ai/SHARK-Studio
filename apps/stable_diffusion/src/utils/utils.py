@@ -1,6 +1,10 @@
 import os
 import gc
 import json
+import re
+from PIL import PngImagePlugin
+from datetime import datetime as dt
+from csv import DictWriter
 from pathlib import Path
 import numpy as np
 from random import randint
@@ -235,9 +239,16 @@ def set_init_device_flags():
         args.max_length = 64
 
     # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
+    base_model_id = args.hf_model_id
+    if args.ckpt_loc != "":
+        base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
+
     if (
-        args.hf_model_id == "prompthero/openjourney"
-        or args.ckpt_loc != ""
+        args.hf_model_id
+        in [
+            "runwayml/stable-diffusion-inpainting",
+            "stabilityai/stable-diffusion-2-inpainting",
+        ]
         or args.precision != "fp16"
         or args.height != 512
         or args.width != 512
@@ -246,13 +257,24 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif (
-        "vulkan" in args.device
-        and "rdna3" not in args.iree_vulkan_target_triple
+    elif args.ckpt_loc != "" and base_model_id not in [
+        "Linaqruf/anything-v3.0",
+        "dreamlike-art/dreamlike-diffusion-1.0",
+        "prompthero/openjourney",
+        "wavymulder/Analog-Diffusion",
+        "stabilityai/stable-diffusion-2-1",
+        "stabilityai/stable-diffusion-2-1-base",
+        "CompVis/stable-diffusion-v1-4",
+        "runwayml/stable-diffusion-v1-5",
+    ]:
+        args.use_tuned = False
+
+    elif "vulkan" in args.device and not any(
+        x in args.iree_vulkan_target_triple for x in ["rdna2", "rdna3"]
     ):
         args.use_tuned = False
 
-    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80"]:
+    elif "cuda" in args.device and get_cuda_sm_cc() not in ["sm_80", "sm_89"]:
         args.use_tuned = False
 
     elif args.use_base_vae and args.hf_model_id not in [
@@ -262,7 +284,7 @@ def set_init_device_flags():
         args.use_tuned = False
 
     if args.use_tuned:
-        print(f"Using tuned models for {args.hf_model_id}/fp16/{args.device}.")
+        print(f"Using tuned models for {base_model_id}/fp16/{args.device}.")
     else:
         print("Tuned models are currently not supported for this setting.")
 
@@ -284,6 +306,27 @@ def set_init_device_flags():
         args.import_mlir = True
 
     elif args.height != 512 or args.width != 512 or args.batch_size != 1:
+        args.import_mlir = True
+
+    elif args.use_tuned and args.hf_model_id in [
+        "dreamlike-art/dreamlike-diffusion-1.0",
+        "prompthero/openjourney",
+        "stabilityai/stable-diffusion-2-1",
+    ]:
+        args.import_mlir = True
+
+    elif (
+        args.use_tuned
+        and "vulkan" in args.device
+        and "rdna2" in args.iree_vulkan_target_triple
+    ):
+        args.import_mlir = True
+
+    elif (
+        args.use_tuned
+        and "cuda" in args.device
+        and get_cuda_sm_cc() == "sm_89"
+    ):
         args.import_mlir = True
 
 
@@ -479,3 +522,95 @@ def sanitize_seed(seed):
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
     return seed
+
+
+# clear all the cached objects to recompile cleanly.
+def clear_all():
+    print("CLEARING ALL, EXPECT SEVERAL MINUTES TO RECOMPILE")
+    from glob import glob
+    import shutil
+
+    vmfbs = glob(os.path.join(os.getcwd(), "*.vmfb"))
+    for vmfb in vmfbs:
+        if os.path.exists(vmfb):
+            os.remove(vmfb)
+    # Temporary workaround of deleting yaml files to incorporate diffusers' pipeline.
+    # TODO: Remove this once we have better weight updation logic.
+    inference_yaml = ["v2-inference-v.yaml", "v1-inference.yaml"]
+    for yaml in inference_yaml:
+        if os.path.exists(yaml):
+            os.remove(yaml)
+    home = os.path.expanduser("~")
+    if os.name == "nt":  # Windows
+        appdata = os.getenv("LOCALAPPDATA")
+        shutil.rmtree(os.path.join(appdata, "AMD/VkCache"), ignore_errors=True)
+        shutil.rmtree(os.path.join(home, "shark_tank"), ignore_errors=True)
+    elif os.name == "unix":
+        shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
+        shutil.rmtree(os.path.join(home, ".local/shark_tank"))
+
+
+# save output images and the inputs corresponding to it.
+def save_output_img(output_img, img_seed):
+    output_path = args.output_dir if args.output_dir else Path.cwd()
+    generated_imgs_path = Path(
+        output_path, "generated_imgs", dt.now().strftime("%Y%m%d")
+    )
+    generated_imgs_path.mkdir(parents=True, exist_ok=True)
+    csv_path = Path(generated_imgs_path, "imgs_details.csv")
+
+    prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[0][:15])
+    out_img_name = (
+        f"{prompt_slice}_{img_seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
+    )
+
+    img_model = args.hf_model_id
+    if args.ckpt_loc:
+        img_model = os.path.basename(args.ckpt_loc)
+
+    if args.output_img_format == "jpg":
+        out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
+        output_img.save(out_img_path, quality=95, subsampling=0)
+    else:
+        out_img_path = Path(generated_imgs_path, f"{out_img_name}.png")
+        pngInfo = PngImagePlugin.PngInfo()
+
+        if args.write_metadata_to_png:
+            pngInfo.add_text(
+                "parameters",
+                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed}, Size: {args.width}x{args.height}, Model: {img_model}",
+            )
+
+        output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
+
+        if args.output_img_format not in ["png", "jpg"]:
+            print(
+                f"[ERROR] Format {args.output_img_format} is not supported yet."
+                "Image saved as png instead. Supported formats: png / jpg"
+            )
+
+    new_entry = {
+        "VARIANT": img_model,
+        "SCHEDULER": args.scheduler,
+        "PROMPT": args.prompts[0],
+        "NEG_PROMPT": args.negative_prompts[0],
+        "SEED": img_seed,
+        "CFG_SCALE": args.guidance_scale,
+        "PRECISION": args.precision,
+        "STEPS": args.steps,
+        "HEIGHT": args.height,
+        "WIDTH": args.width,
+        "MAX_LENGTH": args.max_length,
+        "OUTPUT": out_img_path,
+    }
+
+    with open(csv_path, "a") as csv_obj:
+        dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
+        dictwriter_obj.writerow(new_entry)
+        csv_obj.close()
+
+    if args.save_metadata_to_json:
+        del new_entry["OUTPUT"]
+        json_path = Path(generated_imgs_path, f"{out_img_name}.json")
+        with open(json_path, "w") as f:
+            json.dump(new_entry, f, indent=4)

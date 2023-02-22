@@ -44,18 +44,20 @@ jobs:
         body: |
           Automatic snapshot release of nod.ai SHARK.
         draft: true
-        prerelease: false
+        prerelease: true
 
     - name: Build Package 
       shell: powershell
       run: |
         ./setup_venv.ps1
+        python process_skipfiles.py
         pyinstaller .\apps\stable_diffusion\shark_sd.spec
         mv ./dist/shark_sd.exe ./dist/shark_sd_${{ env.package_version_ }}.exe
-        #signtool sign /f C:\shark_2023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_${{ env.package_version_ }}.exe
+        signtool sign /f c:\g\shark_02152023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_${{ env.package_version_ }}.exe
         pyinstaller .\apps\stable_diffusion\shark_sd_cli.spec
+        python process_skipfiles.py
         mv ./dist/shark_sd_cli.exe ./dist/shark_sd_cli_${{ env.package_version_ }}.exe
-        #signtool sign /f C:\shark_2023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_cli_${{ env.package_version_ }}.exe
+        signtool sign /f c:\g\shark_02152023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_cli_${{ env.package_version_ }}.exe
 
         
     # GHA windows VM OOMs so disable for now
@@ -65,18 +67,19 @@ jobs:
     #    $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
     #    pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
 
-    - uses: actions/upload-artifact@v2
-      with:
-        path: dist/*
+    #- uses: actions/upload-artifact@v2
+    #  with:
+    #    path: dist/*
     
     - name: Upload Release Assets
       id: upload-release-assets
-      uses: dwenegar/upload-release-assets@v1
+      uses: dwenegar/upload-release-assets@v1.0.1
       env:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         release_id: ${{ steps.create_release.outputs.id }}
         assets_path: ./dist/*
+        asset_content_type: application/vnd.microsoft.portable-executable 
 
     - name: Publish Release
       id: publish_release
@@ -131,7 +134,7 @@ jobs:
         source iree.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://iree-org.github.io/iree/pip-release-links.html
+        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://openxla.github.io/iree/pip-release-links.html
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models

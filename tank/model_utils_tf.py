@@ -15,6 +15,7 @@ keras_models = ["resnet50", "efficientnet-v2-s"]
 maskedlm_models = [
     "albert-base-v2",
     "bert-base-uncased",
+    "bert-large-uncased",
     "camembert-base",
     "dbmdz/convbert-base-turkish-cased",
     "deberta-base",

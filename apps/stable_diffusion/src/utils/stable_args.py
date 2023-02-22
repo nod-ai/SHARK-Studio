@@ -91,6 +91,12 @@ p.add_argument(
     help="max length of the tokenizer output, options are 64 and 77.",
 )
 
+p.add_argument(
+    "--strength",
+    type=float,
+    default=0.8,
+    help="the strength of change applied on the given input image for img2img",
+)
 ##############################################################################
 ### Model Config and Usage Params
 ##############################################################################
@@ -188,10 +194,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--enable_stack_trace",
+    "--low_cpu_mem_usage",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Enable showing the stack trace when retrying the base model configuration",
+    help="Use the accelerate package to reduce cpu memory consumption",
 )
 
 ##############################################################################
@@ -199,7 +205,7 @@ p.add_argument(
 ##############################################################################
 
 p.add_argument(
-    "--iree-vulkan-target-triple",
+    "--iree_vulkan_target_triple",
     type=str,
     default="",
     help="Specify target triple for vulkan",
@@ -355,10 +361,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--use_winograd",
+    "--save_annotation",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Apply Winograd on selected conv ops.",
+    help="Save annotated mlir file",
 )
 
 args, unknown = p.parse_known_args()

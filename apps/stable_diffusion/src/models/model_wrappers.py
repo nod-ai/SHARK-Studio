@@ -2,8 +2,8 @@ from diffusers import AutoencoderKL, UNet2DConditionModel
 from transformers import CLIPTextModel
 from collections import defaultdict
 import torch
+import safetensors.torch
 import traceback
-import re
 import sys
 from apps.stable_diffusion.src.utils import (
     compile_through_fx,
@@ -80,6 +80,7 @@ class SharkifyStableDiffusionModel:
         batch_size: int = 1,
         use_base_vae: bool = False,
         use_tuned: bool = False,
+        low_cpu_mem_usage: bool = False
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -93,6 +94,9 @@ class SharkifyStableDiffusionModel:
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
+        # TODO: remove the following line when stable-diffusion-2-1 works
+        if self.model_id == "stabilityai/stable-diffusion-2-1":
+            self.model_id = "stabilityai/stable-diffusion-2-1-base"
         self.custom_vae = custom_vae
         self.precision = precision
         self.base_vae = use_base_vae
@@ -111,6 +115,7 @@ class SharkifyStableDiffusionModel:
         if use_tuned:
             self.model_name = self.model_name + "_tuned"
         self.model_name = self.model_name + "_" + get_path_stem(self.model_id)
+        self.low_cpu_mem_usage = low_cpu_mem_usage
 
     def get_extended_name_for_all_model(self):
         model_name = {}
@@ -136,11 +141,12 @@ class SharkifyStableDiffusionModel:
 
     def get_vae_encode(self):
         class VaeEncodeModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
                 super().__init__()
                 self.vae = AutoencoderKL.from_pretrained(
                     model_id,
                     subfolder="vae",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
                 )
 
             def forward(self, input):
@@ -162,12 +168,28 @@ class SharkifyStableDiffusionModel:
 
     def get_vae(self):
         class VaeModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, base_vae=self.base_vae, custom_vae=self.custom_vae):
+            def __init__(self, model_id=self.model_id, base_vae=self.base_vae, custom_vae=self.custom_vae, low_cpu_mem_usage=False):
                 super().__init__()
-                self.vae = AutoencoderKL.from_pretrained(
-                    model_id if custom_vae == "" else custom_vae,
-                    subfolder="vae",
-                )
+                self.vae = None
+                if custom_vae == "":
+                    self.vae = AutoencoderKL.from_pretrained(
+                        model_id,
+                        subfolder="vae",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
+                elif not isinstance(custom_vae, dict):
+                    self.vae = AutoencoderKL.from_pretrained(
+                        custom_vae,
+                        subfolder="vae",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
+                else:
+                    self.vae = AutoencoderKL.from_pretrained(
+                        model_id,
+                        subfolder="vae",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
+                    self.vae.load_state_dict(custom_vae)
                 self.base_vae = base_vae
 
             def forward(self, input):
@@ -180,7 +202,7 @@ class SharkifyStableDiffusionModel:
                 x = x * 255.0
                 return x.round()
 
-        vae = VaeModel()
+        vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         inputs = tuple(self.inputs["vae"])
         is_f16 = True if self.precision == "fp16" else False
         shark_vae = compile_through_fx(
@@ -195,11 +217,12 @@ class SharkifyStableDiffusionModel:
 
     def get_unet(self):
         class UnetModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
                     model_id,
                     subfolder="unet",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
                 )
                 self.in_channels = self.unet.in_channels
                 self.train(False)
@@ -218,7 +241,7 @@ class SharkifyStableDiffusionModel:
                 )
                 return noise_pred
 
-        unet = UnetModel()
+        unet = UnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
         inputs = tuple(self.inputs["unet"])
         input_mask = [True, True, True, False]
@@ -235,17 +258,18 @@ class SharkifyStableDiffusionModel:
 
     def get_clip(self):
         class CLIPText(torch.nn.Module):
-            def __init__(self, model_id=self.model_id):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
                 super().__init__()
                 self.text_encoder = CLIPTextModel.from_pretrained(
                     model_id,
                     subfolder="text_encoder",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
                 )
 
             def forward(self, input):
                 return self.text_encoder(input)[0]
 
-        clip_model = CLIPText()
+        clip_model = CLIPText(low_cpu_mem_usage=self.low_cpu_mem_usage)
         shark_clip = compile_through_fx(
             clip_model,
             tuple(self.inputs["clip"]),
@@ -254,6 +278,27 @@ class SharkifyStableDiffusionModel:
         )
         return shark_clip
 
+    def process_custom_vae(self):
+        custom_vae = self.custom_vae.lower()
+        if not custom_vae.endswith((".ckpt", ".safetensors")):
+            return self.custom_vae
+        try:
+            preprocessCKPT(self.custom_vae)
+            return get_path_to_diffusers_checkpoint(self.custom_vae)
+        except:
+            print("Processing standalone Vae checkpoint")
+            vae_checkpoint = None
+            vae_ignore_keys = {"model_ema.decay", "model_ema.num_updates"}
+            if custom_vae.endswith(".ckpt"):
+                vae_checkpoint = torch.load(self.custom_vae, map_location="cpu")
+            else:
+                vae_checkpoint = safetensors.torch.load_file(self.custom_vae, device="cpu")
+            if "state_dict" in vae_checkpoint:
+                vae_checkpoint = vae_checkpoint["state_dict"]
+            vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
+            return vae_dict
+        
+            
     # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
     # configiration.
     def compile_all(self, base_model_id, need_vae_encode):
@@ -289,6 +334,8 @@ class SharkifyStableDiffusionModel:
             if args.hf_model_id == "":
                 sys.exit("Base model configuration for the custom model is missing. Use `--clear_all` and re-run.")
             print("Loaded vmfbs from cache and successfully fetched base model configuration.")
+            if not need_vae_encode:
+                return vmfbs[:3]
             return vmfbs
 
         # Step 2:
@@ -305,9 +352,7 @@ class SharkifyStableDiffusionModel:
             model_to_run = args.hf_model_id
         # For custom Vae user can provide either the repo-id or a checkpoint file,
         # and for a checkpoint file we'd need to process it via Diffusers' script.
-        if self.custom_vae.lower().endswith((".ckpt", ".safetensors")):
-            preprocessCKPT(self.custom_vae)
-            self.custom_vae = get_path_to_diffusers_checkpoint(self.custom_vae)
+        self.custom_vae = self.process_custom_vae()
         base_model_fetched = fetch_and_update_base_model_id(model_to_run)
         if base_model_fetched != "":
             print("Compiling all the models with the fetched base model configuration.")
@@ -326,8 +371,6 @@ class SharkifyStableDiffusionModel:
                 else:
                     compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode)
             except Exception as e:
-                if args.enable_stack_trace:
-                    traceback.print_exc()
                 print("Retrying with a different base model configuration")
                 continue
             # -- Once a successful compilation has taken place we'd want to store
@@ -348,5 +391,5 @@ class SharkifyStableDiffusionModel:
                 )
             return compiled_clip, compiled_unet, compiled_vae
         sys.exit(
-            "Cannot compile the model. Please re-run the command with `--enable_stack_trace` flag and create an issue with detailed log at https://github.com/nod-ai/SHARK/issues"
+            "Cannot compile the model. Please create an issue with the detailed log at https://github.com/nod-ai/SHARK/issues"
         )

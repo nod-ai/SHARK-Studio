@@ -4,7 +4,7 @@ import glob
 from pathlib import Path
 import gradio as gr
 from PIL import Image
-from apps.stable_diffusion.scripts import img2img_inf
+from apps.stable_diffusion.scripts import inpaint_inf
 from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
@@ -12,7 +12,7 @@ from apps.stable_diffusion.web.ui.utils import (
 )
 
 
-with gr.Blocks(title="Image-to-Image") as img2img_web:
+with gr.Blocks(title="Inpainting") as inpaint_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -46,12 +46,8 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         value=args.ckpt_loc if args.ckpt_loc else "None",
                         choices=ckpt_files
                         + [
-                            "Linaqruf/anything-v3.0",
-                            "prompthero/openjourney",
-                            "wavymulder/Analog-Diffusion",
-                            "stabilityai/stable-diffusion-2-1",
-                            "stabilityai/stable-diffusion-2-1-base",
-                            "CompVis/stable-diffusion-v1-4",
+                            "runwayml/stable-diffusion-inpainting",
+                            "stabilityai/stable-diffusion-2-inpainting",
                         ],
                     )
                     hf_model_id = gr.Textbox(
@@ -75,7 +71,12 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image", type="filepath")
+                init_image = gr.Image(
+                    label="Masked Image",
+                    source="upload",
+                    tool="sketch",
+                    type="filepath",
+                )
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
@@ -128,13 +129,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     with gr.Row():
                         steps = gr.Slider(
                             1, 100, value=args.steps, step=1, label="Steps"
-                        )
-                        strength = gr.Slider(
-                            0,
-                            1,
-                            value=args.strength,
-                            step=0.1,
-                            label="Strength",
                         )
                     with gr.Row():
                         guidance_scale = gr.Slider(
@@ -200,7 +194,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     interactive=False,
                 )
         kwargs = dict(
-            fn=img2img_inf,
+            fn=inpaint_inf,
             inputs=[
                 prompt,
                 negative_prompt,
@@ -208,7 +202,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 height,
                 width,
                 steps,
-                strength,
                 guidance_scale,
                 seed,
                 batch_count,

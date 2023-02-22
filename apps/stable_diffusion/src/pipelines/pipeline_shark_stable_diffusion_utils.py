@@ -9,6 +9,7 @@ from diffusers import (
     DDIMScheduler,
     PNDMScheduler,
     LMSDiscreteScheduler,
+    KDPM2DiscreteScheduler,
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
@@ -40,6 +41,7 @@ class StableDiffusionPipeline:
             DDIMScheduler,
             PNDMScheduler,
             LMSDiscreteScheduler,
+            KDPM2DiscreteScheduler,
             EulerDiscreteScheduler,
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
@@ -182,6 +184,7 @@ class StableDiffusionPipeline:
             DDIMScheduler,
             PNDMScheduler,
             LMSDiscreteScheduler,
+            KDPM2DiscreteScheduler,
             EulerDiscreteScheduler,
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
@@ -198,10 +201,9 @@ class StableDiffusionPipeline:
         width: int,
         use_base_vae: bool,
         use_tuned: bool,
+        low_cpu_mem_usage: bool = False,
     ):
         if import_mlir:
-            # TODO: Delet this when on-the-fly tuning of models work.
-            use_tuned = False
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,
@@ -213,6 +215,7 @@ class StableDiffusionPipeline:
                 width=width,
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
+                low_cpu_mem_usage=low_cpu_mem_usage,
             )
             if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
                 clip, unet, vae, vae_encode = mlir_import()
@@ -221,16 +224,38 @@ class StableDiffusionPipeline:
                 )
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
-
-        if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+        try:
+            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+                return cls(
+                    get_vae_encode(),
+                    get_vae(),
+                    get_clip(),
+                    get_tokenizer(),
+                    get_unet(),
+                    scheduler,
+                )
             return cls(
-                get_vae_encode(),
-                get_vae(),
-                get_clip(),
-                get_tokenizer(),
-                get_unet(),
-                scheduler,
+                get_vae(), get_clip(), get_tokenizer(), get_unet(), scheduler
             )
-        return cls(
-            get_vae(), get_clip(), get_tokenizer(), get_unet(), scheduler
-        )
+        except:
+            print("download pipeline failed, falling back to import_mlir")
+            mlir_import = SharkifyStableDiffusionModel(
+                model_id,
+                ckpt_loc,
+                custom_vae,
+                precision,
+                max_len=max_length,
+                batch_size=batch_size,
+                height=height,
+                width=width,
+                use_base_vae=use_base_vae,
+                use_tuned=use_tuned,
+                low_cpu_mem_usage=low_cpu_mem_usage,
+            )
+            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+                clip, unet, vae, vae_encode = mlir_import()
+                return cls(
+                    vae_encode, vae, clip, get_tokenizer(), unet, scheduler
+                )
+            clip, unet, vae = mlir_import()
+            return cls(vae, clip, get_tokenizer(), unet, scheduler)
