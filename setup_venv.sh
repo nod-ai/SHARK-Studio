@@ -98,7 +98,7 @@ if [[ -z "${USE_IREE}" ]]; then
   RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
 else
   touch ./.use-iree
-  RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
+  RUNTIME="https://openxla.github.io/iree/pip-release-links.html"
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
@@ -112,7 +112,7 @@ if [[ ! -z "${IMPORTER}" ]]; then
   if [[ $(uname -s) = 'Linux' ]]; then
     echo "${Yellow}Linux detected.. installing Linux importer tools"
     #Always get the importer tools from upstream IREE
-    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer.txt" -f https://iree-org.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer.txt" -f https://openxla.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   elif [[ $(uname -s) = 'Darwin' ]]; then
     echo "${Yellow}macOS detected.. installing macOS importer tools"
     #Conda seems to have some problems installing these packages and hope they get resolved upstream.
@@ -129,7 +129,7 @@ if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   TV_VERSION=${TV_VER:9:18}
   $PYTHON -m pip uninstall -y torch torchvision
   $PYTHON -m pip install -U --pre --no-warn-conflicts triton
-  $PYTHON -m pip install --no-deps https://download.pytorch.org/whl/nightly/cu117/torch-${TORCH_VERSION}%2Bcu117-cp310-cp310-linux_x86_64.whl https://download.pytorch.org/whl/nightly/cu117/torchvision-${TV_VERSION}%2Bcu117-cp310-cp310-linux_x86_64.whl
+  $PYTHON -m pip install --no-deps https://download.pytorch.org/whl/nightly/cu117/torch-${TORCH_VERSION}%2Bcu117-cp311-cp311-linux_x86_64.whl https://download.pytorch.org/whl/nightly/cu117/torchvision-${TV_VERSION}%2Bcu117-cp311-cp311-linux_x86_64.whl
   if [ $? -eq 0 ];then
     echo "Successfully Installed torch + cu117."
   else

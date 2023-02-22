@@ -104,7 +104,7 @@ def img2img_inf(
         width,
         device,
     )
-    if config_obj != new_config_obj:
+    if not img2img_obj or config_obj != new_config_obj:
         config_obj = new_config_obj
         args.precision = precision
         args.batch_size = batch_size
@@ -136,10 +136,8 @@ def img2img_inf(
             args.width,
             args.use_base_vae,
             args.use_tuned,
+            low_cpu_mem_usage=args.low_cpu_mem_usage,
         )
-
-    if not img2img_obj:
-        sys.exit("text to image pipeline must not return a null value")
 
     img2img_obj.scheduler = schedulers[scheduler]
 
@@ -230,6 +228,7 @@ if __name__ == "__main__":
         args.width,
         args.use_base_vae,
         args.use_tuned,
+        low_cpu_mem_usage=args.low_cpu_mem_usage,
     )
 
     start_time = time.time()

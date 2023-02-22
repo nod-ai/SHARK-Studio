@@ -99,6 +99,7 @@ else:
     print(
         f"shark_tank local cache is located at {WORKDIR} . You may change this by setting the --local_tank_cache= flag"
     )
+os.makedirs(WORKDIR, exist_ok=True)
 
 
 # Checks whether the directory and files exists.
