@@ -83,6 +83,58 @@
             "guidance_scale": {
                 "shape": 2,
                 "dtype": "f32"
+            },
+            "control1": {
+                "shape": [1, 320, 64, 64],
+                "dtype": "f32"
+            },
+            "control2": {
+                "shape": [1, 320, 64, 64],
+                "dtype": "f32"
+            },
+            "control3": {
+                "shape": [1, 320, 64, 64],
+                "dtype": "f32"
+            },
+            "control4": {
+                "shape": [1, 320, 32, 32],
+                "dtype": "f32"
+            },
+            "control5": {
+                "shape": [1, 640, 32, 32],
+                "dtype": "f32"
+            },
+            "control6": {
+                "shape": [1, 640, 32, 32],
+                "dtype": "f32"
+            },
+            "control7": {
+                "shape": [1, 640, 16, 16],
+                "dtype": "f32"
+            },
+            "control8": {
+                "shape": [1, 1280, 16, 16],
+                "dtype": "f32"
+            },
+            "control9": {
+                "shape": [1, 1280, 16, 16],
+                "dtype": "f32"
+            },
+            "control10": {
+                "shape": [1, 1280, 8, 8],
+                "dtype": "f32"
+            },
+            "control11": {
+                "shape": [1, 1280, 8, 8],
+                "dtype": "f32"
+            },
+            "control12": {
+                "shape": [1, 1280, 8, 8],
+                "dtype": "f32"
+            },
+            "control13": {
+                "shape": [1, 1280, 8, 8],
+                "dtype": "f32"
             }
         },
         "vae_encode": {
