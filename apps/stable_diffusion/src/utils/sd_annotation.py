@@ -136,11 +136,13 @@ def annotate_with_winograd(input_mlir, winograd_config_dir, model_name):
 
     if args.save_annotation:
         if model_name.split("_")[-1] != "tuned":
-            out_file_path = (
-                f"{args.annotation_output}/{model_name}_tuned_torch.mlir"
+            out_file_path = os.path.join(
+                args.annotation_output, model_name + "_tuned_torch.mlir"
             )
         else:
-            out_file_path = f"{args.annotation_output}/{model_name}_torch.mlir"
+            out_file_path = os.path.join(
+                args.annotation_output, model_name + "_torch.mlir"
+            )
         with open(out_file_path, "w") as f:
             f.write(str(winograd_model))
             f.close()
