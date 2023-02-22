@@ -9,10 +9,10 @@
   If that environment does not exist, it creates it.
   
 .PARAMETER update-src
-  updates to latest version from git .\source
+  git pulls latest version
 
 .PARAMETER force
-  removes and recreates venv to force update all dependencies
+  removes and recreates venv to force update of all dependencies
   
 .EXAMPLE
   .\setup_venv.ps1 --force
@@ -25,12 +25,6 @@
 
 .OUTPUTS
   None
-
-.NOTES
-  Version        1.0
-  Author         powderluv, xzuyn
-  Creation Date  2023-02-17
-  PurposeChange Initial script development
 
 #>
 
@@ -56,18 +50,6 @@ if ($arguments -eq "--force"){
     }
 }
 
-
-#Write-Host "Installing python"
-
-#Start-Process winget install Python.Python.3.10 '/quiet InstallAllUsers=1 PrependPath=1' -wait -NoNewWindow
-
-#Write-Host "python installation completed successfully"
-
-#Write-Host "Reload environment variables"
-#$env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
-#Write-Host "Reloaded environment variables"
-
-
 # redirect stderr into stdout
 $p = &{python -V} 2>&1
 # check if an ErrorRecord was returned
@@ -78,20 +60,31 @@ $version = if($p -is [System.Management.Automation.ErrorRecord])
 }
 else
 {
-    # otherwise return as is
-    $p
+    # otherwise return complete Python list
+    $ErrorActionPreference = 'SilentlyContinue'
+    $PyVer = py --list
 }
 
-Write-Host "Python version found is"
-Write-Host $p
-if ($p -notlike "*3.11*")
+# deactivate any activated venvs
+if ($PyVer -like "*venv*")
+{
+  deactivate # make sure we don't update the wrong venv
+  $PyVer = py --list # update list
+}
+
+Write-Host "Python versions found are"
+Write-Host ($PyVer | Out-String) # formatted output with line breaks
+if (!($PyVer.length -ne 0)) {$p} # return Python --version String if py.exe is unavailable
+if (!($PyVer -like "*3.11*") -and !($p -like "*3.11*")) # if 3.11 is not in any list
 {
     Write-Host "Please install Python 3.11 and try again"
     break
 }
 
 Write-Host "Installing Build Dependencies"
-py -3.11 -m venv .\shark.venv\
+# make sure we really use 3.11 from list, even if it's not the default.
+if (!($PyVer.length -ne 0)) {py -3.11 -m venv .\shark.venv\}
+else {python -m venv .\shark.venv\}
 .\shark.venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install wheel

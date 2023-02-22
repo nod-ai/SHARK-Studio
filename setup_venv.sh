@@ -98,7 +98,7 @@ if [[ -z "${USE_IREE}" ]]; then
   RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
 else
   touch ./.use-iree
-  RUNTIME="https://iree-org.github.io/iree/pip-release-links.html"
+  RUNTIME="https://openxla.github.io/iree/pip-release-links.html"
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
@@ -112,7 +112,7 @@ if [[ ! -z "${IMPORTER}" ]]; then
   if [[ $(uname -s) = 'Linux' ]]; then
     echo "${Yellow}Linux detected.. installing Linux importer tools"
     #Always get the importer tools from upstream IREE
-    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer.txt" -f https://iree-org.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer.txt" -f https://openxla.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
   elif [[ $(uname -s) = 'Darwin' ]]; then
     echo "${Yellow}macOS detected.. installing macOS importer tools"
     #Conda seems to have some problems installing these packages and hope they get resolved upstream.
