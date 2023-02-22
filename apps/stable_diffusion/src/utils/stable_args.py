@@ -36,12 +36,6 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--mask_path",
-    type=str,
-    help="Path to the mask image input for inpainting",
-)
-
-p.add_argument(
     "--steps",
     type=int,
     default=50,
@@ -97,6 +91,61 @@ p.add_argument(
     default=0.8,
     help="the strength of change applied on the given input image for img2img",
 )
+
+##############################################################################
+### Inpainting and Outpainting Params
+##############################################################################
+
+p.add_argument(
+    "--mask_path",
+    type=str,
+    help="Path to the mask image input for inpainting",
+)
+
+p.add_argument(
+    "--pixels",
+    type=int,
+    default=128,
+    choices=range(8, 256, 8),
+    help="Number of expended pixels for one direction for outpainting",
+)
+
+p.add_argument(
+    "--mask_blur",
+    type=int,
+    default=8,
+    choices=range(0, 64),
+    help="Number of blur pixels for outpainting",
+)
+
+p.add_argument(
+    "--left",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="If expend left for outpainting",
+)
+
+p.add_argument(
+    "--right",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="If expend right for outpainting",
+)
+
+p.add_argument(
+    "--top",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="If expend top for outpainting",
+)
+
+p.add_argument(
+    "--bottom",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="If expend bottom for outpainting",
+)
+
 ##############################################################################
 ### Model Config and Usage Params
 ##############################################################################

@@ -8,7 +8,8 @@ from apps.stable_diffusion.src.utils import (
 )
 from apps.stable_diffusion.src.pipelines import (
     Text2ImagePipeline,
-    InpaintPipeline,
     Image2ImagePipeline,
+    InpaintPipeline,
+    OutpaintPipeline,
 )
 from apps.stable_diffusion.src.schedulers import get_schedulers
