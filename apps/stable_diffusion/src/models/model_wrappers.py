@@ -232,13 +232,17 @@ class SharkifyStableDiffusionModel:
                     else:
                         self.unet.set_attention_slice(args.attention_slicing)
 
+            # TODO: Instead of flattening the `control` try to use the list.
             def forward(
-                self, latent, timestep, text_embedding, guidance_scale
+                self, latent, timestep, text_embedding, guidance_scale,
+                control1, control2, control3, control4, control5, control6, control7,
+                control8, control9, control10, control11, control12, control13
             ):
+                control = [control1, control2, control3, control4, control5, control6, control7, control8, control9, control10, control11, control12, control13]
                 # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
                 latents = torch.cat([latent] * 2)
                 unet_out = self.unet.forward(
-                    latents, timestep, text_embedding, return_dict=False
+                    latents, timestep, text_embedding, control=control, return_dict=False
                 )[0]
                 noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
                 noise_pred = noise_pred_uncond + guidance_scale * (
