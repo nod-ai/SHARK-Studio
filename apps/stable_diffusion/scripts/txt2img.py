@@ -135,6 +135,7 @@ def txt2img_inf(
     start_time = time.time()
     txt2img_obj.log = ""
     generated_imgs = []
+    text_output = ""
     seeds = []
     img_seed = utils.sanitize_seed(seed)
     for i in range(batch_count):
@@ -159,19 +160,23 @@ def txt2img_inf(
         seeds.append(img_seed)
         txt2img_obj.log += "\n"
 
-    total_time = time.time() - start_time
-    text_output = f"prompt={args.prompts}"
-    text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += (
-        f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
-    )
-    text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
-    text_output += txt2img_obj.log
-    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+        total_time = time.time() - start_time
+        text_output = f"prompt={args.prompts}"
+        text_output += f"\nnegative prompt={args.negative_prompts}"
+        text_output += (
+            f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
+        )
+        text_output += f"\nscheduler={args.scheduler}, device={device}"
+        text_output += (
+            f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
+        )
+        text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
+        text_output += txt2img_obj.log
+        text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+        if i < batch_count - 1:
+            yield generated_imgs, f"Processing batch {i + 2} / {batch_count}"
 
-    return generated_imgs, text_output
+    yield generated_imgs, text_output
 
 
 if __name__ == "__main__":
@@ -232,7 +237,6 @@ if __name__ == "__main__":
         text_output += (
             f", batch size={args.batch_size}, max_length={args.max_length}"
         )
-        # TODO: if using --batch_count=x txt2img_obj.log will output on each display every iteration infos from the start
         text_output += txt2img_obj.log
         text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 

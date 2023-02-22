@@ -213,3 +213,8 @@ footer {
 #gallery + div {
     border-radius: 0 !important;
 }
+
+/* Prevent progress bar to block gallery interaction (this problem appeared in gradio V3.19.0) */
+#gallery .wrap.default {
+    pointer-events: none;
+}

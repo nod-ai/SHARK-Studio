@@ -172,6 +172,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         _js="() => Math.floor(Math.random() * 4294967295)",
                     )
                     stable_diffusion = gr.Button("Generate Image(s)")
+                    clear_queue_button = gr.Button("Clear queue")
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
@@ -224,6 +225,12 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
             show_progress=args.progress_bar,
         )
 
-        prompt.submit(**kwargs)
-        negative_prompt.submit(**kwargs)
-        stable_diffusion.click(**kwargs)
+        prompt_click = prompt.submit(**kwargs)
+        negative_prompt_click = negative_prompt.submit(**kwargs)
+        stable_click = stable_diffusion.click(**kwargs)
+        clear_queue_button.click(
+            fn=None,
+            inputs=None,
+            outputs=None,
+            cancels=[stable_click, prompt_click, negative_prompt_click],
+        )
