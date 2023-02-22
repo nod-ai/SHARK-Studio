@@ -27,11 +27,11 @@ def resource_path(relative_path):
 
 dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
-from apps.stable_diffusion.web.ui import txt2img_web, img2img_web
+from apps.stable_diffusion.web.ui import txt2img_web, img2img_web, inpaint_web
 
 sd_web = gr.TabbedInterface(
-    [txt2img_web, img2img_web],
-    ["Text-to-Image", "Image-to-Image"],
+    [txt2img_web, img2img_web, inpaint_web],
+    ["Text-to-Image", "Image-to-Image", "Inpainting"],
     css=dark_theme,
 )
 
