@@ -73,10 +73,11 @@ jobs:
     
     - name: Upload Release Assets
       id: upload-release-assets
-      uses: actions/upload-release-assets@v1.0.1
+      uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
         release_id: ${{ steps.create_release.outputs.id }}
         assets_path: ./dist/*
         asset_content_type: application/vnd.microsoft.portable-executable 
