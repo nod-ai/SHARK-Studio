@@ -119,7 +119,7 @@ class SharkifyStableDiffusionModel:
 
     def get_extended_name_for_all_model(self):
         model_name = {}
-        sub_model_list = ["clip", "unet", "vae", "vae_encode"]
+        sub_model_list = ["clip", "unet", "vae", "vae_encode", "controlnet", "controlled_unet"]
         for model in sub_model_list:
             sub_model = model
             model_config = self.model_name
@@ -214,6 +214,109 @@ class SharkifyStableDiffusionModel:
             extra_args=get_opt_flags("vae", precision=self.precision),
         )
         return shark_vae
+
+    def get_controlled_unet(self):
+        class ControlledUnetModel(torch.nn.Module):
+            def __init__(
+                self, model_id=self.model_id, low_cpu_mem_usage=False
+            ):
+                super().__init__()
+                self.unet = UNet2DConditionModel.from_pretrained(
+                    "takuma104/control_sd15_canny",  # TODO: ADD with model ID
+                    subfolder="unet",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
+                )
+                self.in_channels = self.unet.in_channels
+                self.train(False)
+
+            def forward( self, latent, timestep, text_embedding, guidance_scale, control1,
+                         control2, control3, control4, control5, control6, control7,
+                         control8, control9, control10, control11, control12, control13,
+            ):
+                # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+                control = [ control1, control2, control3, control4, control5,
+                            control6, control7, control8, control9, control10,
+                            control11, control12, control13,]
+                latents = torch.cat([latent] * 2)
+                unet_out = self.unet.forward(
+                    latents,
+                    timestep,
+                    text_embedding,
+                    return_dict=False,
+                    control=control,
+                )[0]
+                noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (
+                    noise_pred_text - noise_pred_uncond
+                )
+                return noise_pred
+
+        unet = ControlledUnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        is_f16 = True if self.precision == "fp16" else False
+
+        inputs = tuple(self.inputs["controlled_unet"])
+        input_mask = [True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True,]
+        shark_controlled_unet = compile_through_fx(
+            unet,
+            inputs,
+            model_name=self.model_name["controlled_unet"],
+            is_f16=is_f16,
+            f16_input_mask=input_mask,
+            use_tuned=self.use_tuned,
+            extra_args=get_opt_flags("unet", precision=self.precision),
+        )
+        return shark_controlled_unet
+
+    def get_control_net(self):
+        class ControlNetModel(torch.nn.Module):
+            def __init__(
+                self, model_id=self.model_id, low_cpu_mem_usage=False
+            ):
+                super().__init__()
+                self.unet = UNet2DConditionModel.from_pretrained(
+                    "takuma104/control_sd15_canny", # TODO: ADD with model ID
+                    subfolder="controlnet",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
+                )
+                self.in_channels = self.unet.in_channels
+                self.train(False)
+
+            def forward(
+                self,
+                latent,
+                timestep,
+                text_embedding,
+                controlnet_hint,
+            ):
+                # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
+                # TODO: guidance NOT NEEDED change in `get_input_info` later
+                latents = torch.cat(
+                    [latent] * 2
+                )  # needs to be same as controlledUNET latents
+                controlnet_out = self.unet.forward(
+                    latents,
+                    timestep,
+                    text_embedding,
+                    return_dict=False,
+                    controlnet_hint=controlnet_hint,
+                )
+                return tuple(controlnet_out)
+
+        cunet = ControlNetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        is_f16 = True if self.precision == "fp16" else False
+
+        inputs = tuple(self.inputs["controlnet"])
+        input_mask = [True, True, True, True]
+        shark_unet = compile_through_fx(
+            cunet,
+            inputs,
+            model_name=self.model_name["controlnet"],
+            is_f16=is_f16,
+            f16_input_mask=input_mask,
+            use_tuned=self.use_tuned,
+            extra_args=get_opt_flags("unet", precision=self.precision),
+        )
+        return shark_unet
 
     def get_unet(self):
         class UnetModel(torch.nn.Module):
@@ -318,6 +421,9 @@ class SharkifyStableDiffusionModel:
             self.height,
             self.batch_size,
         )
+        compiled_controlnet = self.get_control_net()
+        compiled_controlled_unet = self.get_controlled_unet()
+        raise Exception("Testing stop - Compiled both Cnet CUNet")
         compiled_unet = self.get_unet()
         if self.custom_vae != "":
             print("Plugging in custom Vae")
