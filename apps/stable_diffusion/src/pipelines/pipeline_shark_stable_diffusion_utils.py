@@ -13,6 +13,7 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
+    DEISMultistepScheduler,
 )
 from shark.shark_inference import SharkInference
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
@@ -46,6 +47,7 @@ class StableDiffusionPipeline:
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            DEISMultistepScheduler,
         ],
     ):
         self.vae = vae
@@ -189,6 +191,7 @@ class StableDiffusionPipeline:
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            DEISMultistepScheduler,
         ],
         import_mlir: bool,
         model_id: str,
