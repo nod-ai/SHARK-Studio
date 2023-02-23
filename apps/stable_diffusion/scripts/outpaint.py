@@ -35,13 +35,12 @@ schedulers = None
 def outpaint_inf(
     prompt: str,
     negative_prompt: str,
-    image: Image,
+    init_image: str,
     pixels: int,
     mask_blur: int,
-    left: bool,
-    right: bool,
-    top: bool,
-    bottom: bool,
+    directions: list,
+    noise_q: float,
+    color_variation: float,
     height: int,
     width: int,
     steps: int,
@@ -67,6 +66,7 @@ def outpaint_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
+    args.img_path = init_image
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -143,6 +143,13 @@ def outpaint_inf(
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
+    image = Image.open(args.img_path)
+
+    left = True if "left" in directions else False
+    right = True if "right" in directions else False
+    top = True if "up" in directions else False
+    bottom = True if "down" in directions else False
+
     for i in range(batch_count):
         if i > 0:
             img_seed = utils.sanitize_seed(-1)
@@ -152,10 +159,12 @@ def outpaint_inf(
             image,
             args.pixels,
             args.mask_blur,
-            args.left,
-            args.right,
-            args.top,
-            args.bottom,
+            left,
+            right,
+            top,
+            bottom,
+            noise_q,
+            color_variation,
             batch_size,
             height,
             width,
@@ -235,6 +244,8 @@ if __name__ == "__main__":
             args.right,
             args.top,
             args.bottom,
+            args.noise_q,
+            args.color_variation,
             args.batch_size,
             args.height,
             args.width,

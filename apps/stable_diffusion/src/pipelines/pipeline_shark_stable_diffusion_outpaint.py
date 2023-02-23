@@ -341,6 +341,8 @@ class OutpaintPipeline(StableDiffusionPipeline):
         is_right,
         is_top,
         is_bottom,
+        noise_q,
+        color_variation,
         batch_size,
         height,
         width,
@@ -445,7 +447,9 @@ class OutpaintPipeline(StableDiffusionPipeline):
 
             np_image = (np.asarray(img) / 255.0).astype(np.float64)
             np_mask = (np.asarray(msk) / 255.0).astype(np.float64)
-            noised = self.get_matched_noise(np_image, np_mask)
+            noised = self.get_matched_noise(
+                np_image, np_mask, noise_q, color_variation
+            )
             output_image = Image.fromarray(
                 np.clip(noised * 255.0, 0.0, 255.0).astype(np.uint8),
                 mode="RGB",
