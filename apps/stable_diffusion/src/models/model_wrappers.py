@@ -226,6 +226,11 @@ class SharkifyStableDiffusionModel:
                 )
                 self.in_channels = self.unet.in_channels
                 self.train(False)
+                if(args.attention_slicing is not None and args.attention_slicing != "none"):
+                    if(args.attention_slicing.isdigit()):
+                        self.unet.set_attention_slice(int(args.attention_slicing))
+                    else:
+                        self.unet.set_attention_slice(args.attention_slicing)
 
             def forward(
                 self, latent, timestep, text_embedding, guidance_scale
