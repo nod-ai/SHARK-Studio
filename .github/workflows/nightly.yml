@@ -79,7 +79,7 @@ jobs:
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         release_id: ${{ steps.create_release.outputs.id }}
-        assets_path: ./dist/*
+        asset_path: ./dist/*
         asset_content_type: application/vnd.microsoft.portable-executable 
 
     - name: Publish Release
