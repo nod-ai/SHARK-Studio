@@ -47,9 +47,7 @@ def get_schedulers(model_id):
         model_id,
         subfolder="scheduler",
     )
-    schedulers[
-        "DEISMultistep"
-    ] = DEISMultistepScheduler.from_pretrained(
+    schedulers["DEISMultistep"] = DEISMultistepScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
     )
