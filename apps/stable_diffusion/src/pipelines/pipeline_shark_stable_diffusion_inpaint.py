@@ -41,8 +41,10 @@ class InpaintPipeline(StableDiffusionPipeline):
         super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
         self.vae_encode = vae_encode
 
-    def prepare_mask_and_masked_image(self, image, mask):
+    def prepare_mask_and_masked_image(self, image, mask, height, width):
         # preprocess image
+        image = image.resize((width, height))
+        mask = mask.resize((width, height))
         if isinstance(image, (Image.Image, np.ndarray)):
             image = [image]
 
@@ -191,7 +193,7 @@ class InpaintPipeline(StableDiffusionPipeline):
 
         # Preprocess mask and image
         mask, masked_image = self.prepare_mask_and_masked_image(
-            image, mask_image
+            image, mask_image, height, width
         )
 
         # Prepare mask latent variables
