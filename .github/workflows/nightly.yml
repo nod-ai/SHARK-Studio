@@ -73,13 +73,13 @@ jobs:
     
     - name: Upload Release Assets
       id: upload-release-assets
-      uses: dwenegar/upload-release-assets@v1.0.1
+      uses: dwenegar/upload-release-assets@v1
       env:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         release_id: ${{ steps.create_release.outputs.id }}
         assets_path: ./dist/*
-        asset_content_type: application/vnd.microsoft.portable-executable 
+        #asset_content_type: application/vnd.microsoft.portable-executable 
 
     - name: Publish Release
       id: publish_release

@@ -9,9 +9,11 @@
 # -d, --download: set to true if you want to redownload the mlir files
 # -t --token_count: the number of tokens you want to generate
 # -pr --prompt: the prompt you want to feed to the model
+# -m --model_namme: the name of the model, e.g. bloom-560m
 #####################################################################################
 
 import os
+import io
 import torch
 import torch.nn as nn
 from collections import OrderedDict
@@ -22,14 +24,18 @@ from transformers.models.bloom.configuration_bloom import BloomConfig
 import json
 import sys
 import argparse
-from cuda.cudart import cudaSetDevice
 import json
+import urllib.request
 
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_public_file
-
+from transformers import (
+    BloomTokenizerFast,
+    BloomForSequenceClassification,
+    BloomForCausalLM,
+)
 from transformers.models.bloom.modeling_bloom import (
     BloomBlock,
     build_alibi_tensor,
@@ -47,16 +53,22 @@ class ShardedBloom:
         self.layers_initialized = False
 
         self.src_folder = src_folder
-        self.n_embed = config["n_embed"]
+        try:
+            self.n_embed = config["n_embed"]
+        except KeyError:
+            self.n_embed = config["hidden_size"]
         self.vocab_size = config["vocab_size"]
         self.n_layer = config["n_layer"]
-        self.n_head = config["num_attention_heads"]
+        try:
+            self.n_head = config["num_attention_heads"]
+        except KeyError:
+            self.n_head = config["n_head"]
 
     def _init_layer(self, layer_name, device, replace, device_idx):
         if replace or not os.path.exists(
             f"{self.src_folder}/{layer_name}.vmfb"
         ):
-            f_ = open(f"{self.src_folder}/{layer_name}.mlir")
+            f_ = open(f"{self.src_folder}/{layer_name}.mlir", encoding="utf-8")
             module = f_.read()
             f_.close()
             module = bytes(module, "utf-8")
@@ -292,90 +304,352 @@ def _prepare_attn_mask(
     return combined_attention_mask
 
 
-def download_560m(destination_folder):
+def download_model(destination_folder, model_name):
     download_public_file(
-        "https://bloom-560m/bloom_block_0.mlir", destination_folder
+        f"https://{model_name}/config.json", destination_folder
+    )
+    f = open(f"{destination_folder}/config.json")
+    config = json.load(f)
+    f.close()
+    n_blocks = config["n_layer"]
+    download_public_file(
+        f"https://{model_name}/lm_head.mlir", destination_folder
+    )
+    download_public_file(f"https://{model_name}/ln_f.mlir", destination_folder)
+    download_public_file(
+        f"https://{model_name}/word_embeddings.mlir", destination_folder
     )
     download_public_file(
-        "https://bloom-560m/bloom_block_1.mlir", destination_folder
+        f"https://{model_name}/word_embeddings_layernorm.mlir",
+        destination_folder,
     )
     download_public_file(
-        "https://bloom-560m/bloom_block_2.mlir", destination_folder
+        f"https://{model_name}/tokenizer.json", destination_folder
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_3.mlir", destination_folder
+
+    for i in range(n_blocks):
+        download_public_file(
+            f"https://{model_name}/bloom_block_{i}.mlir", destination_folder
+        )
+
+
+def compile_embeddings(embeddings_layer, input_ids, path):
+    input_ids_placeholder = torch_mlir.TensorPlaceholder.like(
+        input_ids, dynamic_axes=[1]
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_4.mlir", destination_folder
+    module = torch_mlir.compile(
+        embeddings_layer,
+        (input_ids_placeholder),
+        torch_mlir.OutputType.LINALG_ON_TENSORS,
+        use_tracing=False,
+        verbose=False,
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_5.mlir", destination_folder
+
+    bytecode_stream = io.BytesIO()
+    module.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
+    f_ = open(path, "w+")
+    f_.write(str(module))
+    f_.close()
+    return
+
+
+def compile_word_embeddings_layernorm(
+    embeddings_layer_layernorm, embeds, path
+):
+    embeds_placeholder = torch_mlir.TensorPlaceholder.like(
+        embeds, dynamic_axes=[1]
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_6.mlir", destination_folder
+    module = torch_mlir.compile(
+        embeddings_layer_layernorm,
+        (embeds_placeholder),
+        torch_mlir.OutputType.LINALG_ON_TENSORS,
+        use_tracing=False,
+        verbose=False,
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_7.mlir", destination_folder
+
+    bytecode_stream = io.BytesIO()
+    module.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
+    f_ = open(path, "w+")
+    f_.write(str(module))
+    f_.close()
+    return
+
+
+def strip_overloads(gm):
+    """
+    Modifies the target of graph nodes in :attr:`gm` to strip overloads.
+    Args:
+        gm(fx.GraphModule): The input Fx graph module to be modified
+    """
+    for node in gm.graph.nodes:
+        if isinstance(node.target, torch._ops.OpOverload):
+            node.target = node.target.overloadpacket
+    gm.recompile()
+
+
+def compile_to_mlir(
+    bblock,
+    hidden_states,
+    layer_past=None,
+    attention_mask=None,
+    head_mask=None,
+    use_cache=None,
+    output_attentions=False,
+    alibi=None,
+    block_index=0,
+    path=".",
+):
+    fx_g = make_fx(
+        bblock,
+        decomposition_table=get_decompositions(
+            [
+                torch.ops.aten.split.Tensor,
+                torch.ops.aten.split_with_sizes,
+            ]
+        ),
+        tracing_mode="real",
+        _allow_non_fake_inputs=False,
+    )(hidden_states, alibi, attention_mask)
+
+    fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
+    fx_g.recompile()
+
+    strip_overloads(fx_g)
+
+    hidden_states_placeholder = TensorPlaceholder.like(
+        hidden_states, dynamic_axes=[1]
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_8.mlir", destination_folder
+    attention_mask_placeholder = TensorPlaceholder.like(
+        attention_mask, dynamic_axes=[2, 3]
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_9.mlir", destination_folder
+    alibi_placeholder = TensorPlaceholder.like(alibi, dynamic_axes=[2])
+
+    ts_g = torch.jit.script(fx_g)
+
+    module = torch_mlir.compile(
+        ts_g,
+        (
+            hidden_states_placeholder,
+            alibi_placeholder,
+            attention_mask_placeholder,
+        ),
+        torch_mlir.OutputType.LINALG_ON_TENSORS,
+        use_tracing=False,
+        verbose=False,
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_10.mlir", destination_folder
+
+    module_placeholder = module
+    module_context = module_placeholder.context
+
+    def check_valid_line(line, line_n, mlir_file_len):
+        if "private" in line:
+            return False
+        if "attributes" in line:
+            return False
+        if mlir_file_len - line_n == 2:
+            return False
+
+        return True
+
+    mlir_file_len = len(str(module).split("\n"))
+
+    def remove_constant_dim(line):
+        if "17x" in line:
+            line = re.sub("17x", "?x", line)
+            line = re.sub("tensor.empty\(\)", "tensor.empty(%dim)", line)
+        if "tensor.empty" in line and "?x?" in line:
+            line = re.sub(
+                "tensor.empty\(%dim\)", "tensor.empty(%dim, %dim)", line
+            )
+        if "arith.cmpi eq" in line:
+            line = re.sub("c17", "dim", line)
+        if " 17," in line:
+            line = re.sub(" 17,", " %dim,", line)
+        return line
+
+    module = "\n".join(
+        [
+            remove_constant_dim(line)
+            for line, line_n in zip(
+                str(module).split("\n"), range(mlir_file_len)
+            )
+            if check_valid_line(line, line_n, mlir_file_len)
+        ]
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_11.mlir", destination_folder
+
+    module = module_placeholder.parse(module, context=module_context)
+    bytecode_stream = io.BytesIO()
+    module.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
+    f_ = open(path, "w+")
+    f_.write(str(module))
+    f_.close()
+    return
+
+
+def compile_ln_f(ln_f, hidden_layers, path):
+    hidden_layers_placeholder = torch_mlir.TensorPlaceholder.like(
+        hidden_layers, dynamic_axes=[1]
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_12.mlir", destination_folder
+    module = torch_mlir.compile(
+        ln_f,
+        (hidden_layers_placeholder),
+        torch_mlir.OutputType.LINALG_ON_TENSORS,
+        use_tracing=False,
+        verbose=False,
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_13.mlir", destination_folder
+
+    bytecode_stream = io.BytesIO()
+    module.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
+    f_ = open(path, "w+")
+    f_.write(str(module))
+    f_.close()
+    return
+
+
+def compile_lm_head(lm_head, hidden_layers, path):
+    hidden_layers_placeholder = torch_mlir.TensorPlaceholder.like(
+        hidden_layers, dynamic_axes=[1]
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_14.mlir", destination_folder
+    module = torch_mlir.compile(
+        lm_head,
+        (hidden_layers_placeholder),
+        torch_mlir.OutputType.LINALG_ON_TENSORS,
+        use_tracing=False,
+        verbose=False,
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_15.mlir", destination_folder
+
+    bytecode_stream = io.BytesIO()
+    module.operation.write_bytecode(bytecode_stream)
+    bytecode = bytecode_stream.getvalue()
+
+    f_ = open(path, "w+")
+    f_.write(str(module))
+    f_.close()
+    return
+
+
+def create_mlirs(destination_folder, model_name):
+    model_config = "bigscience/" + model_name
+    sample_input_ids = torch.ones([1, 17], dtype=torch.int64)
+
+    urllib.request.urlretrieve(
+        f"https://huggingface.co/bigscience/{model_name}/resolve/main/config.json",
+        filename=f"{destination_folder}/config.json",
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_16.mlir", destination_folder
+    urllib.request.urlretrieve(
+        f"https://huggingface.co/bigscience/bloom/resolve/main/tokenizer.json",
+        filename=f"{destination_folder}/tokenizer.json",
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_17.mlir", destination_folder
+
+    class HuggingFaceLanguage(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.model = BloomForCausalLM.from_pretrained(model_config)
+
+        def forward(self, tokens):
+            return self.model.forward(tokens)[0]
+
+    class HuggingFaceBlock(torch.nn.Module):
+        def __init__(self, block):
+            super().__init__()
+            self.model = block
+
+        def forward(self, tokens, alibi, attention_mask):
+            output = self.model(
+                hidden_states=tokens,
+                alibi=alibi,
+                attention_mask=attention_mask,
+                use_cache=True,
+                output_attentions=False,
+            )
+            return (output[0], output[1][0], output[1][1])
+
+    model = HuggingFaceLanguage()
+
+    compile_embeddings(
+        model.model.transformer.word_embeddings,
+        sample_input_ids,
+        f"{destination_folder}/word_embeddings.mlir",
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_18.mlir", destination_folder
+
+    inputs_embeds = model.model.transformer.word_embeddings(sample_input_ids)
+
+    compile_word_embeddings_layernorm(
+        model.model.transformer.word_embeddings_layernorm,
+        inputs_embeds,
+        f"{destination_folder}/word_embeddings_layernorm.mlir",
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_19.mlir", destination_folder
+
+    hidden_states = model.model.transformer.word_embeddings_layernorm(
+        inputs_embeds
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_20.mlir", destination_folder
+
+    input_shape = sample_input_ids.size()
+
+    current_sequence_length = hidden_states.shape[1]
+    past_key_values_length = 0
+    past_key_values = tuple([None] * len(model.model.transformer.h))
+
+    attention_mask = torch.ones(
+        (hidden_states.shape[0], current_sequence_length), device="cpu"
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_21.mlir", destination_folder
+
+    alibi = build_alibi_tensor(
+        attention_mask,
+        model.model.transformer.n_head,
+        hidden_states.dtype,
+        "cpu",
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_22.mlir", destination_folder
+
+    causal_mask = _prepare_attn_mask(
+        attention_mask, input_shape, inputs_embeds, past_key_values_length
     )
-    download_public_file(
-        "https://bloom-560m/bloom_block_23.mlir", destination_folder
+
+    head_mask = model.model.transformer.get_head_mask(
+        None, model.model.transformer.config.n_layer
     )
-    download_public_file("https://bloom-560m/config.json", destination_folder)
-    download_public_file("https://bloom-560m/lm_head.mlir", destination_folder)
-    download_public_file("https://bloom-560m/ln_f.mlir", destination_folder)
-    download_public_file(
-        "https://bloom-560m/word_embeddings.mlir", destination_folder
+    output_attentions = model.model.transformer.config.output_attentions
+
+    all_hidden_states = ()
+
+    for i, (block, layer_past) in enumerate(
+        zip(model.model.transformer.h, past_key_values)
+    ):
+        all_hidden_states = all_hidden_states + (hidden_states,)
+
+        proxy_model = HuggingFaceBlock(block)
+
+        compile_to_mlir(
+            proxy_model,
+            hidden_states,
+            layer_past=layer_past,
+            attention_mask=causal_mask,
+            head_mask=head_mask[i],
+            use_cache=True,
+            output_attentions=output_attentions,
+            alibi=alibi,
+            block_index=i,
+            path=f"{destination_folder}/bloom_block_{i}.mlir",
+        )
+
+    compile_ln_f(
+        model.model.transformer.ln_f,
+        hidden_states,
+        f"{destination_folder}/ln_f.mlir",
     )
-    download_public_file(
-        "https://bloom-560m/word_embeddings_layernorm.mlir", destination_folder
-    )
-    download_public_file(
-        "https://bloom-560m/tokenizer.json", destination_folder
+    hidden_states = model.model.transformer.ln_f(hidden_states)
+    compile_lm_head(
+        model.model.lm_head,
+        hidden_states,
+        f"{destination_folder}/lm_head.mlir",
     )
 
 
@@ -387,6 +661,7 @@ if __name__ == "__main__":
     parser.add_argument("-c", "--recompile", default=False, type=bool)
     parser.add_argument("-d", "--download", default=False, type=bool)
     parser.add_argument("-t", "--token_count", default=10, type=int)
+    parser.add_argument("-m", "--model_name", default="bloom-560m")
     parser.add_argument(
         "-pr",
         "--prompt",
@@ -399,8 +674,10 @@ if __name__ == "__main__":
 
     if args.device == "cuda" and args.device_list is not None:
         IS_CUDA = True
+        from cuda.cudart import cudaSetDevice
     if args.download:
-        download_560m(args.model_path)
+        # download_model(args.model_path, args.model_name)
+        create_mlirs(args.model_path, args.model_name)
     from transformers import AutoTokenizer, AutoModelForCausalLM, BloomConfig
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)

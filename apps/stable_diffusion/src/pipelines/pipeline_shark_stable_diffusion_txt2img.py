@@ -13,6 +13,7 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
+    DEISMultistepScheduler,
 )
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
@@ -36,6 +37,7 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            DEISMultistepScheduler,
         ],
     ):
         super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
