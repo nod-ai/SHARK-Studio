@@ -83,6 +83,64 @@
             "guidance_scale": {
                 "shape": 2,
                 "dtype": "f32"
+            }
+        },
+        "controlnet": {
+            "latents": {
+                "shape": [
+                    "1*batch_size",
+                    4,
+                    "height",
+                    "width"
+                ],
+                "dtype": "f32"
+            },
+            "timesteps": {
+                "shape": [
+                    1
+                ],
+                "dtype": "f32"
+            },
+            "embedding": {
+                "shape": [
+                    "2*batch_size",
+                    "max_len",
+                    768
+                ],
+                "dtype": "f32"
+            },
+            "controlnet_hint": {
+                "shape": [1, 3, 512, 512],
+                "dtype": "f32"
+            }
+        },
+        "controlled_unet": {
+            "latents": {
+                "shape": [
+                    "1*batch_size",
+                    4,
+                    "height",
+                    "width"
+                ],
+                "dtype": "f32"
+            },
+            "timesteps": {
+                "shape": [
+                    1
+                ],
+                "dtype": "f32"
+            },
+            "embedding": {
+                "shape": [
+                    "2*batch_size",
+                    "max_len",
+                    768
+                ],
+                "dtype": "f32"
+            },
+            "guidance_scale": {
+                "shape": 2,
+                "dtype": "f32"
             },
             "control1": {
                 "shape": [1, 320, 64, 64],
