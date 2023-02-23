@@ -263,6 +263,13 @@ p.add_argument(
     help="Use the accelerate package to reduce cpu memory consumption",
 )
 
+p.add_argument(
+    "--attention_slicing",
+    type=str,
+    default="none",
+    help="Amount of attention slicing to use (one of 'max', 'auto', 'none', or an integer)"
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
