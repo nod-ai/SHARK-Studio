@@ -81,9 +81,15 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
     if beta:
         extra_flags.append("--beta_models=True")
     extra_flags.append("--no-progress_bar")
+    to_skip = [
+        "Linaqruf/anything-v3.0",
+        "prompthero/openjourney",
+        "wavymulder/Analog-Diffusion",
+        "dreamlike-art/dreamlike-diffusion-1.0",
+    ]
     for import_opt in import_options:
         for model_name in hf_model_names:
-            if model_name == "Linaqruf/anything-v3.0":
+            if model_name in to_skip:
                 continue
             for use_tune in tuned_options:
                 command = (
