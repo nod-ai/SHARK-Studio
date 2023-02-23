@@ -6,6 +6,7 @@ from diffusers import (
     KDPM2DiscreteScheduler,
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
+    DEISMultistepScheduler,
 )
 from apps.stable_diffusion.src.schedulers.shark_eulerdiscrete import (
     SharkEulerDiscreteScheduler,
@@ -43,6 +44,12 @@ def get_schedulers(model_id):
     schedulers[
         "EulerAncestralDiscrete"
     ] = EulerAncestralDiscreteScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+    )
+    schedulers[
+        "DEISMultistep"
+    ] = DEISMultistepScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
     )
