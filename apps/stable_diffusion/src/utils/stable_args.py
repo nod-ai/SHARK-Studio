@@ -146,6 +146,20 @@ p.add_argument(
     help="If expend bottom for outpainting",
 )
 
+p.add_argument(
+    "--noise_q",
+    type=float,
+    default=1.0,
+    help="Fall-off exponent for outpainting (lower=higher detail) (min=0.0, max=4.0)",
+)
+
+p.add_argument(
+    "--color_variation",
+    type=float,
+    default=0.05,
+    help="Color variation for outpainting (min=0.0, max=1.0)",
+)
+
 ##############################################################################
 ### Model Config and Usage Params
 ##############################################################################
