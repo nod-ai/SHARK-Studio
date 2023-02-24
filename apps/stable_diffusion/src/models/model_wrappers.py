@@ -418,7 +418,6 @@ class SharkifyStableDiffusionModel:
         )
         compiled_controlnet = self.get_control_net()
         compiled_controlled_unet = self.get_controlled_unet()
-        raise Exception("Testing stop - Compiled both Cnet CUNet")
         compiled_unet = self.get_unet()
         if self.custom_vae != "":
             print("Plugging in custom Vae")
