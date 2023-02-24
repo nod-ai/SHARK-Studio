@@ -196,10 +196,10 @@ if __name__ == "__main__":
     args.import_mlir = True
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
-    cpu_scheduling = not args.scheduler.startswith("Shark")
-    set_init_device_flags()
-    schedulers = get_schedulers(args.hf_model_id)
-    if args.scheduler != "PNDM":
+    use_stencil = args.use_stencil
+    if use_stencil:
+        args.scheduler = "DDIM"
+    elif args.scheduler != "PNDM":
         if "Shark" in args.scheduler:
             print(
                 f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
@@ -209,11 +209,13 @@ if __name__ == "__main__":
             sys.exit(
                 "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
             )
+    cpu_scheduling = not args.scheduler.startswith("Shark")
+    set_init_device_flags()
+    schedulers = get_schedulers(args.hf_model_id)
 
     scheduler_obj = schedulers[args.scheduler]
     image = Image.open(args.img_path).convert("RGB")
     seed = utils.sanitize_seed(args.seed)
-
     # Adjust for height and width based on model
 
     img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -230,6 +232,7 @@ if __name__ == "__main__":
         args.use_base_vae,
         args.use_tuned,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
+        use_stencil=use_stencil,
     )
 
     start_time = time.time()
@@ -248,6 +251,7 @@ if __name__ == "__main__":
         dtype,
         args.use_base_vae,
         cpu_scheduling,
+        use_stencil=use_stencil,
     )
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"

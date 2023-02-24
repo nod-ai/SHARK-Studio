@@ -20,6 +20,7 @@ from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
+from apps.stable_diffusion.src.utils import controlnet_hint_conversion
 
 
 class Image2ImagePipeline(StableDiffusionPipeline):
@@ -43,6 +44,31 @@ class Image2ImagePipeline(StableDiffusionPipeline):
     ):
         super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
         self.vae_encode = vae_encode
+
+    def prepare_latents(
+        self,
+        batch_size,
+        height,
+        width,
+        generator,
+        num_inference_steps,
+        dtype,
+    ):
+        latents = torch.randn(
+            (
+                batch_size,
+                4,
+                height // 8,
+                width // 8,
+            ),
+            generator=generator,
+            dtype=torch.float32,
+        ).to(dtype)
+
+        self.scheduler.set_timesteps(num_inference_steps)
+        self.scheduler.is_scale_input_called = True
+        latents = latents * self.scheduler.init_noise_sigma
+        return latents
 
     def prepare_image_latents(
         self,
@@ -112,7 +138,13 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         dtype,
         use_base_vae,
         cpu_scheduling,
+        use_stencil,
     ):
+        # Control Embedding check & conversion
+        # TODO: 1. Change `num_images_per_prompt`.
+        controlnet_hint = controlnet_hint_conversion(
+            image, use_stencil, height, width, num_images_per_prompt=1
+        )
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
             prompts = [prompts]
@@ -136,26 +168,40 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # guidance scale as a float32 tensor.
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
 
-        # Prepare input image latent
-        image_latents, final_timesteps = self.prepare_image_latents(
-            image=image,
-            batch_size=batch_size,
-            height=height,
-            width=width,
-            generator=generator,
-            num_inference_steps=num_inference_steps,
-            strength=strength,
-            dtype=dtype,
-        )
+        # Prepare initial latent.
+        init_latents = None
+        final_timesteps = None
+        if controlnet_hint is not None:
+            init_latents = self.prepare_latents(
+                batch_size=batch_size,
+                height=height,
+                width=width,
+                generator=generator,
+                num_inference_steps=num_inference_steps,
+                dtype=dtype,
+            )
+            final_timesteps = self.scheduler.timesteps
+        else:
+            init_latents, final_timesteps = self.prepare_image_latents(
+                image=image,
+                batch_size=batch_size,
+                height=height,
+                width=width,
+                generator=generator,
+                num_inference_steps=num_inference_steps,
+                strength=strength,
+                dtype=dtype,
+            )
 
         # Get Image latents
         latents = self.produce_img_latents(
-            latents=image_latents,
+            latents=init_latents,
             text_embeddings=text_embeddings,
             guidance_scale=guidance_scale,
             total_timesteps=final_timesteps,
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
+            controlnet_hint=controlnet_hint,
         )
 
         # Img latents -> PIL images
