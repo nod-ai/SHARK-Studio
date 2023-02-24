@@ -27,7 +27,7 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 
 Install the Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
 
-Download the stable release [539](https://github.com/nod-ai/SHARK/releases/download/20230216.539/shark_sd_20230216_539.exe) or if you are adventurous the latest .exe from [releases page](https://github.com/nod-ai/SHARK/releases).
+Download the [stable release](https://github.com/nod-ai/shark/releases/latest)
 
 Double click the .exe and you should have the [UI](http://localhost:8080/) in the browser. 
 

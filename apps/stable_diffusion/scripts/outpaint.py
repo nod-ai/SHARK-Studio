@@ -5,7 +5,7 @@ from PIL import Image
 from dataclasses import dataclass
 from apps.stable_diffusion.src import (
     args,
-    InpaintPipeline,
+    OutpaintPipeline,
     get_schedulers,
     set_init_device_flags,
     utils,
@@ -26,16 +26,21 @@ class Config:
     device: str
 
 
-inpaint_obj = None
+outpaint_obj = None
 config_obj = None
 schedulers = None
 
 
 # Exposed to UI.
-def inpaint_inf(
+def outpaint_inf(
     prompt: str,
     negative_prompt: str,
-    image_loc,
+    init_image: str,
+    pixels: int,
+    mask_blur: int,
+    directions: list,
+    noise_q: float,
+    color_variation: float,
     height: int,
     width: int,
     steps: int,
@@ -52,7 +57,7 @@ def inpaint_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
-    global inpaint_obj
+    global outpaint_obj
     global config_obj
     global schedulers
 
@@ -61,8 +66,7 @@ def inpaint_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
-    args.img_path = image_loc["image"]
-    args.mask_path = image_loc["mask"]
+    args.img_path = init_image
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -98,7 +102,7 @@ def inpaint_inf(
         width,
         device,
     )
-    if not inpaint_obj or config_obj != new_config_obj:
+    if not outpaint_obj or config_obj != new_config_obj:
         config_obj = new_config_obj
         args.precision = precision
         args.batch_size = batch_size
@@ -117,7 +121,7 @@ def inpaint_inf(
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
-        inpaint_obj = InpaintPipeline.from_pretrained(
+        outpaint_obj = OutpaintPipeline.from_pretrained(
             scheduler_obj,
             args.import_mlir,
             args.hf_model_id,
@@ -132,23 +136,35 @@ def inpaint_inf(
             args.use_tuned,
         )
 
-    inpaint_obj.scheduler = schedulers[scheduler]
+    outpaint_obj.scheduler = schedulers[scheduler]
 
     start_time = time.time()
-    inpaint_obj.log = ""
+    outpaint_obj.log = ""
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
     image = Image.open(args.img_path)
-    mask_image = Image.open(args.mask_path)
+
+    left = True if "left" in directions else False
+    right = True if "right" in directions else False
+    top = True if "up" in directions else False
+    bottom = True if "down" in directions else False
+
     for i in range(batch_count):
         if i > 0:
             img_seed = utils.sanitize_seed(-1)
-        out_imgs = inpaint_obj.generate_images(
+        out_imgs = outpaint_obj.generate_images(
             prompt,
             negative_prompt,
             image,
-            mask_image,
+            args.pixels,
+            args.mask_blur,
+            left,
+            right,
+            top,
+            bottom,
+            noise_q,
+            color_variation,
             batch_size,
             height,
             width,
@@ -163,7 +179,7 @@ def inpaint_inf(
         save_output_img(out_imgs[0], img_seed)
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
-        inpaint_obj.log += "\n"
+        outpaint_obj.log += "\n"
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -172,7 +188,7 @@ def inpaint_inf(
     text_output += f"\nscheduler={args.scheduler}, device={device}"
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
     text_output += f"\nsize={args.height}x{args.width}, batch-count={batch_count}, batch-size={args.batch_size}, max_length={args.max_length}"
-    text_output += inpaint_obj.log
+    text_output += outpaint_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     return generated_imgs, text_output
@@ -185,9 +201,6 @@ if __name__ == "__main__":
     if args.img_path is None:
         print("Flag --img_path is required.")
         exit()
-    if args.mask_path is None:
-        print("Flag --mask_path is required.")
-        exit()
     if "inpaint" not in args.hf_model_id:
         print("Please use inpainting model with --hf_model_id.")
         exit()
@@ -199,9 +212,8 @@ if __name__ == "__main__":
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
     image = Image.open(args.img_path)
-    mask_image = Image.open(args.mask_path)
 
-    inpaint_obj = InpaintPipeline.from_pretrained(
+    outpaint_obj = OutpaintPipeline.from_pretrained(
         scheduler_obj,
         args.import_mlir,
         args.hf_model_id,
@@ -222,11 +234,18 @@ if __name__ == "__main__":
         seed = utils.sanitize_seed(seed)
 
         start_time = time.time()
-        generated_imgs = inpaint_obj.generate_images(
+        generated_imgs = outpaint_obj.generate_images(
             args.prompts,
             args.negative_prompts,
             image,
-            mask_image,
+            args.pixels,
+            args.mask_blur,
+            args.left,
+            args.right,
+            args.top,
+            args.bottom,
+            args.noise_q,
+            args.color_variation,
             args.batch_size,
             args.height,
             args.width,
@@ -249,7 +268,7 @@ if __name__ == "__main__":
         text_output += (
             f", batch size={args.batch_size}, max_length={args.max_length}"
         )
-        text_output += inpaint_obj.log
+        text_output += outpaint_obj.log
         text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
         save_output_img(generated_imgs[0], seed)

@@ -13,6 +13,7 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
+    DEISMultistepScheduler,
 )
 from shark.shark_inference import SharkInference
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
@@ -46,6 +47,7 @@ class StableDiffusionPipeline:
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            DEISMultistepScheduler,
         ],
     ):
         self.vae = vae
@@ -189,6 +191,7 @@ class StableDiffusionPipeline:
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            DEISMultistepScheduler,
         ],
         import_mlir: bool,
         model_id: str,
@@ -217,7 +220,11 @@ class StableDiffusionPipeline:
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
             )
-            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+            if cls.__name__ in [
+                "Image2ImagePipeline",
+                "InpaintPipeline",
+                "OutpaintPipeline",
+            ]:
                 clip, unet, vae, vae_encode = mlir_import()
                 return cls(
                     vae_encode, vae, clip, get_tokenizer(), unet, scheduler
@@ -225,7 +232,11 @@ class StableDiffusionPipeline:
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
         try:
-            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+            if cls.__name__ in [
+                "Image2ImagePipeline",
+                "InpaintPipeline",
+                "OutpaintPipeline",
+            ]:
                 return cls(
                     get_vae_encode(),
                     get_vae(),
@@ -252,7 +263,11 @@ class StableDiffusionPipeline:
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
             )
-            if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+            if cls.__name__ in [
+                "Image2ImagePipeline",
+                "InpaintPipeline",
+                "OutpaintPipeline",
+            ]:
                 clip, unet, vae, vae_encode = mlir_import()
                 return cls(
                     vae_encode, vae, clip, get_tokenizer(), unet, scheduler

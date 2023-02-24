@@ -244,11 +244,7 @@ def set_init_device_flags():
         base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
 
     if (
-        args.hf_model_id
-        in [
-            "runwayml/stable-diffusion-inpainting",
-            "stabilityai/stable-diffusion-2-inpainting",
-        ]
+        "inpainting" in args.hf_model_id
         or args.precision != "fp16"
         or args.height != 512
         or args.width != 512
