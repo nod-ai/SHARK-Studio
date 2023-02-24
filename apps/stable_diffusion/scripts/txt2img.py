@@ -115,18 +115,18 @@ def txt2img_inf(
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
         txt2img_obj = Text2ImagePipeline.from_pretrained(
-            scheduler_obj,
-            args.import_mlir,
-            args.hf_model_id,
-            args.ckpt_loc,
-            args.custom_vae,
-            args.precision,
-            args.max_length,
-            args.batch_size,
-            args.height,
-            args.width,
-            args.use_base_vae,
-            args.use_tuned,
+            scheduler=scheduler_obj,
+            import_mlir=args.import_mlir,
+            model_id=args.hf_model_id,
+            ckpt_loc=args.ckpt_loc,
+            precision=args.precision,
+            max_length=args.max_length,
+            batch_size=args.batch_size,
+            height=args.height,
+            width=args.width,
+            use_base_vae=args.use_base_vae,
+            use_tuned=args.use_tuned,
+            custom_vae=args.custom_vae,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             debug=args.import_debug if args.import_mlir else False,
         )
@@ -185,13 +185,11 @@ if __name__ == "__main__":
     schedulers = get_schedulers(args.hf_model_id)
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
-    print(f"use tuned? {args.use_tuned}")
     txt2img_obj = Text2ImagePipeline.from_pretrained(
         scheduler=scheduler_obj,
         import_mlir=args.import_mlir,
         model_id=args.hf_model_id,
         ckpt_loc=args.ckpt_loc,
-        args.custom_vae,
         precision=args.precision,
         max_length=args.max_length,
         batch_size=args.batch_size,

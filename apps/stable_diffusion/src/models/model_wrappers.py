@@ -81,7 +81,7 @@ class SharkifyStableDiffusionModel:
         batch_size: int = 1,
         use_base_vae: bool = False,
         use_tuned: bool = False,
-        low_cpu_mem_usage: bool = False
+        low_cpu_mem_usage: bool = False,
         debug: bool = False,
         sharktank_dir: str = "",
         generate_vmfb: bool = True,
