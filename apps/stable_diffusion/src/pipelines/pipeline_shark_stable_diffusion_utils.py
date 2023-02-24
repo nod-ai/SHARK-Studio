@@ -58,9 +58,6 @@ class StableDiffusionPipeline:
         # TODO: Make this dynamic like other models which'll be passed to StableDiffusionPipeline.
         from diffusers import UNet2DConditionModel
 
-        self.controlnet = UNet2DConditionModel.from_pretrained(
-            "/home/abhishek/weights/canny_weight", subfolder="controlnet"
-        )
 
     def encode_prompts(self, prompts, neg_prompts, max_length):
         # Tokenize text and get embeddings
@@ -156,7 +153,7 @@ class StableDiffusionPipeline:
                     ).to(dtype)
                 else:
                     latent_model_input_1 = latent_model_input
-                control = self.controlnet(
+                control = self.vae_encode( # contains controlnet
                     latent_model_input_1,
                     timestep,
                     encoder_hidden_states=text_embeddings,
@@ -340,6 +337,7 @@ class StableDiffusionPipeline:
                 low_cpu_mem_usage=low_cpu_mem_usage,
             )
             if cls.__name__ in ["Image2ImagePipeline", "InpaintPipeline"]:
+                # TESTING - VAE ENCODE will contain controlnet when using stencil
                 clip, unet, vae, vae_encode = mlir_import()
                 return cls(
                     vae_encode, vae, clip, get_tokenizer(), unet, scheduler

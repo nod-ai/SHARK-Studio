@@ -408,7 +408,7 @@ class SharkifyStableDiffusionModel:
             
     # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
     # configiration.
-    def compile_all(self, base_model_id, need_vae_encode):
+    def compile_all(self, base_model_id, need_vae_encode, need_stencil):
         self.inputs = get_input_info(
             base_models[base_model_id],
             self.max_len,
@@ -416,24 +416,32 @@ class SharkifyStableDiffusionModel:
             self.height,
             self.batch_size,
         )
-        compiled_controlnet = self.get_control_net()
-        compiled_controlled_unet = self.get_controlled_unet()
-        raise Exception("Testing stop - Compiled both Cnet CUNet")
-        compiled_unet = self.get_unet()
         if self.custom_vae != "":
             print("Plugging in custom Vae")
         compiled_vae = self.get_vae()
         compiled_clip = self.get_clip()
+        if need_stencil:
+            compiled_controlnet = self.get_control_net()
+            compiled_controlled_unet = self.get_controlled_unet()
+            return compiled_clip, compiled_controlled_unet, compiled_vae, compiled_controlnet
+
+        compiled_unet = self.get_unet()
         if need_vae_encode:
             compiled_vae_encode = self.get_vae_encode()
             return compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode
 
-        return compiled_clip, compiled_unet, compiled_vae
+        return compiled_clip, compiled_unet, compiled_vae, None
 
     def __call__(self):
         # Step 1:
         # --  Fetch all vmfbs for the model, if present, else delete the lot.
-        need_vae_encode = args.img_path is not None
+        need_vae_encode, need_stencil = False, False
+        if args.img_path is not None:
+            if args.use_stencil is not None:
+                need_stencil = True
+            else:
+                need_vae_encode = True
+        print(f"[DEBUG] need_vae_encode: {need_vae_encode} need_stencil: {need_stencil}")
         self.model_name = self.get_extended_name_for_all_model()
         vmfbs = fetch_or_delete_vmfbs(self.model_name, need_vae_encode, self.precision)   
         if vmfbs[0]:
@@ -468,7 +476,7 @@ class SharkifyStableDiffusionModel:
             print("Compiling all the models with the fetched base model configuration.")
             if args.ckpt_loc != "":
                 args.hf_model_id = base_model_fetched
-            return self.compile_all(base_model_fetched, need_vae_encode)
+            return self.compile_all(base_model_fetched, need_vae_encode, need_stencil)
 
         # Step 3:
         # -- This is the retry mechanism where the base model's configuration is not
@@ -477,9 +485,11 @@ class SharkifyStableDiffusionModel:
         for model_id in base_models:
             try:
                 if need_vae_encode:
-                    compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode = self.compile_all(model_id, need_vae_encode)
+                    compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode = self.compile_all(model_id, need_vae_encode, need_stencil)
+                elif need_stencil:
+                    compiled_clip, compiled_unet, compiled_vae, compiled_controlnet = self.compile_all(model_id, need_vae_encode, need_stencil)
                 else:
-                    compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode)
+                    compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode, need_stencil)
             except Exception as e:
                 print("Retrying with a different base model configuration")
                 continue
@@ -499,6 +509,16 @@ class SharkifyStableDiffusionModel:
                     compiled_vae,
                     compiled_vae_encode,
                 )
+
+            if need_stencil:
+                print(f"[DEBUG] Returning need_stencil")
+                return (
+                    compiled_clip,
+                    compiled_unet,
+                    compiled_vae,
+                    compiled_controlnet,
+                )
+
             return compiled_clip, compiled_unet, compiled_vae
         sys.exit(
             "Cannot compile the model. Please create an issue with the detailed log at https://github.com/nod-ai/SHARK/issues"
