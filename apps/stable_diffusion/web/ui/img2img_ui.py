@@ -75,7 +75,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image", type="filepath")
+                init_image = gr.Image(label="Input Image", type="pil")
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
@@ -133,7 +133,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             0,
                             1,
                             value=args.strength,
-                            step=0.1,
+                            step=0.01,
                             label="Strength",
                         )
                     with gr.Row():
