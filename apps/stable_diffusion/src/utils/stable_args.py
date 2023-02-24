@@ -272,6 +272,12 @@ p.add_argument(
     help="Amount of attention slicing to use (one of 'max', 'auto', 'none', or an integer)",
 )
 
+p.add_argument(
+    "--use_stencil",
+    choices=["canny"],
+    help="Enable the stencil feature.",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
