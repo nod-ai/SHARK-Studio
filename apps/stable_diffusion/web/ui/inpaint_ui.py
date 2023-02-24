@@ -75,7 +75,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     label="Masked Image",
                     source="upload",
                     tool="sketch",
-                    type="filepath",
+                    type="pil",
                 )
 
                 with gr.Accordion(label="Advanced Options", open=False):

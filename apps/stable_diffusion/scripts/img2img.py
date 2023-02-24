@@ -35,7 +35,7 @@ schedulers = None
 def img2img_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: str,
+    init_image: Image,
     height: int,
     width: int,
     steps: int,
@@ -64,8 +64,11 @@ def img2img_inf(
     args.steps = steps
     args.strength = strength
     args.scheduler = scheduler
-    args.img_path = init_image
-    image = Image.open(args.img_path).convert("RGB")
+    args.img_path = "not none"
+
+    if init_image is None:
+        return None, "An Initial Image is required"
+    image = init_image.convert("RGB")
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -85,9 +88,6 @@ def img2img_inf(
         args.ckpt_loc = custom_model
     else:
         args.hf_model_id = custom_model
-
-    if image is None:
-        return None, "An Initial Image is required"
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png

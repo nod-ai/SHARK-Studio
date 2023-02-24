@@ -35,7 +35,7 @@ schedulers = None
 def inpaint_inf(
     prompt: str,
     negative_prompt: str,
-    image_loc,
+    image_dict,
     height: int,
     width: int,
     steps: int,
@@ -61,8 +61,8 @@ def inpaint_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
-    args.img_path = image_loc["image"]
-    args.mask_path = image_loc["mask"]
+    args.img_path = "not none"
+    args.mask_path = "not none"
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -139,8 +139,8 @@ def inpaint_inf(
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
-    image = Image.open(args.img_path)
-    mask_image = Image.open(args.mask_path)
+    image = image_dict["image"]
+    mask_image = image_dict["mask"]
     for i in range(batch_count):
         if i > 0:
             img_seed = utils.sanitize_seed(-1)
