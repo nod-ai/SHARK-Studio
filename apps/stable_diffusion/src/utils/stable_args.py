@@ -61,6 +61,7 @@ p.add_argument(
     "--height",
     type=int,
     default=512,
+    choices=range(384, 768, 8),
     help="the height of the output image.",
 )
 
@@ -68,6 +69,7 @@ p.add_argument(
     "--width",
     type=int,
     default=512,
+    choices=range(384, 768, 8),
     help="the width of the output image.",
 )
 
