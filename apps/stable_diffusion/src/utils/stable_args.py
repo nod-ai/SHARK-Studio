@@ -200,6 +200,12 @@ p.add_argument(
     help="Use the accelerate package to reduce cpu memory consumption",
 )
 
+p.add_argument(
+    "--use_stencil",
+    choices=["canny"],
+    help="Enable the stencil feature.",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
