@@ -20,6 +20,33 @@ model_config_dicts = get_json_file(
 )
 
 
+def parse_sd_out(filename, command, device, use_tune, model_name, import_mlir):
+    with open(filename, "r+") as f:
+        lines = f.readlines()
+    metrics = {}
+    vals_to_read = [
+        "Clip Inference time",
+        "Average step",
+        "VAE Inference time",
+        "Total image generation",
+    ]
+    for line in lines:
+        for val in vals_to_read:
+            if val in line:
+                metrics[val] = line.split(" ")[-1].strip("\n")
+
+    metrics["Average step"] = metrics["Average step"].strip("ms/it")
+    metrics["Total image generation"] = metrics[
+        "Total image generation"
+    ].strip("sec")
+    metrics["device"] = device
+    metrics["use_tune"] = use_tune
+    metrics["model_name"] = model_name
+    metrics["import_mlir"] = import_mlir
+    metrics["command"] = command
+    return metrics
+
+
 def get_inpaint_inputs():
     os.mkdir("./test_images/inputs")
     img_url = (
@@ -39,6 +66,7 @@ def get_inpaint_inputs():
 def test_loop(device="vulkan", beta=False, extra_flags=[]):
     # Get golden values from tank
     shutil.rmtree("./test_images", ignore_errors=True)
+    model_metrics = []
     os.mkdir("./test_images")
     os.mkdir("./test_images/golden")
     get_inpaint_inputs()
@@ -52,9 +80,16 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
         inpaint_prompt_text = '--prompt="Face of a yellow cat, high resolution, sitting on a park bench"'
     if beta:
         extra_flags.append("--beta_models=True")
+    extra_flags.append("--no-progress_bar")
+    to_skip = [
+        "Linaqruf/anything-v3.0",
+        "prompthero/openjourney",
+        "wavymulder/Analog-Diffusion",
+        "dreamlike-art/dreamlike-diffusion-1.0",
+    ]
     for import_opt in import_options:
         for model_name in hf_model_names:
-            if model_name == "Linaqruf/anything-v3.0":
+            if model_name in to_skip:
                 continue
             for use_tune in tuned_options:
                 command = (
@@ -73,7 +108,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                     ]
                     if "inpainting" not in model_name
                     else [
-                        "python",
+                        executable,
                         "apps/stable_diffusion/scripts/inpaint.py",
                         "--device=" + device,
                         inpaint_prompt_text,
@@ -91,12 +126,27 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                 command += extra_flags
                 if os.name == "nt":
                     command = " ".join(command)
-                generated_image = not subprocess.call(
-                    command, stdout=subprocess.DEVNULL
-                )
+                dumpfile_name = "_".join(model_name.split("/")) + ".txt"
+                dumpfile_name = os.path.join(os.getcwd(), dumpfile_name)
+                with open(dumpfile_name, "w+") as f:
+                    generated_image = not subprocess.call(
+                        command,
+                        stdout=f,
+                        stderr=f,
+                    )
                 if os.name != "nt":
                     command = " ".join(command)
                 if generated_image:
+                    model_metrics.append(
+                        parse_sd_out(
+                            dumpfile_name,
+                            command,
+                            device,
+                            use_tune,
+                            model_name,
+                            import_opt,
+                        )
+                    )
                     print(command)
                     print("Successfully generated image")
                     os.makedirs(
@@ -127,6 +177,22 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                     if "2_1_base" in model_name:
                         print("failed a known successful model.")
                         exit(1)
+    with open(os.path.join(os.getcwd(), "sd_testing_metrics.csv"), "w+") as f:
+        header = "model_name;device;use_tune;import_opt;Clip Inference time(ms);Average Step (ms/it);VAE Inference time(ms);total image generation(s);command\n"
+        f.write(header)
+        for metric in model_metrics:
+            output = [
+                metric["model_name"],
+                metric["device"],
+                metric["use_tune"],
+                metric["import_mlir"],
+                metric["Clip Inference time"],
+                metric["Average step"],
+                metric["VAE Inference time"],
+                metric["Total image generation"],
+                metric["command"],
+            ]
+            f.write(";".join(output) + "\n")
 
 
 parser = argparse.ArgumentParser()
