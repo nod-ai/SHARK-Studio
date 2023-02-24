@@ -234,16 +234,16 @@ class SharkifyStableDiffusionModel:
                          control8, control9, control10, control11, control12, control13,
             ):
                 # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-                control = [ control1, control2, control3, control4, control5,
-                            control6, control7, control8, control9, control10,
-                            control11, control12, control13,]
+                db_res_samples = [ control1, control2, control3, control4, control5, control6,]
+                mb_res_samples = [ control7, control8, control9, control10, control11, control12, control13,]
                 latents = torch.cat([latent] * 2)
                 unet_out = self.unet.forward(
                     latents,
                     timestep,
                     text_embedding,
+                    down_block_additional_residuals=db_res_samples,
+                    mid_block_additional_residual=mb_res_samples,
                     return_dict=False,
-                    control=control,
                 )[0]
                 noise_pred_uncond, noise_pred_text = unet_out.chunk(2)
                 noise_pred = noise_pred_uncond + guidance_scale * (
@@ -286,21 +286,21 @@ class SharkifyStableDiffusionModel:
                 latent,
                 timestep,
                 text_embedding,
-                controlnet_hint,
+                stencil_image,
             ):
                 # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
                 # TODO: guidance NOT NEEDED change in `get_input_info` later
                 latents = torch.cat(
                     [latent] * 2
                 )  # needs to be same as controlledUNET latents
-                controlnet_out = self.unet.forward(
+                down_block_res_samples, mid_block_res_sample = self.unet.forward(
                     latents,
                     timestep,
                     text_embedding,
                     return_dict=False,
-                    controlnet_hint=controlnet_hint,
+                    controlnet_cond=stencil_image,
                 )
-                return tuple(controlnet_out)
+                return tuple(down_block_res_samples + mid_block_res_sample)
 
         cunet = ControlNetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
