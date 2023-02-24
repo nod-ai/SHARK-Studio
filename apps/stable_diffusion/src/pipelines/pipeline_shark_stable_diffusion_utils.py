@@ -323,6 +323,7 @@ class StableDiffusionPipeline:
         use_base_vae: bool,
         use_tuned: bool,
         low_cpu_mem_usage: bool = False,
+        use_stencil: bool = False,
     ):
         if import_mlir:
             mlir_import = SharkifyStableDiffusionModel(
