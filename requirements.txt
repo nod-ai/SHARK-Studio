@@ -16,7 +16,7 @@ parameterized
 
 # Add transformers, diffusers and scipy since it most commonly used
 transformers
-diffusers @ git+https://github.com/nod-ai/diffusers@2226767529c805d7997d1a9f218437f2c7fb65e1
+diffusers @ git+https://github.com/nod-ai/diffusers@e5810e686ea4ac499e325c2961808c8972dee039
 scipy
 ftfy
 gradio
