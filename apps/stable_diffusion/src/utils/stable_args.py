@@ -61,7 +61,7 @@ p.add_argument(
     "--height",
     type=int,
     default=512,
-    choices=range(384, 768, 8),
+    choices=range(384, 769, 8),
     help="the height of the output image.",
 )
 
@@ -69,7 +69,7 @@ p.add_argument(
     "--width",
     type=int,
     default=512,
-    choices=range(384, 768, 8),
+    choices=range(384, 769, 8),
     help="the width of the output image.",
 )
 
@@ -108,7 +108,7 @@ p.add_argument(
     "--pixels",
     type=int,
     default=128,
-    choices=range(8, 256, 8),
+    choices=range(8, 257, 8),
     help="Number of expended pixels for one direction for outpainting",
 )
 
@@ -116,7 +116,7 @@ p.add_argument(
     "--mask_blur",
     type=int,
     default=8,
-    choices=range(0, 64),
+    choices=range(0, 65),
     help="Number of blur pixels for outpainting",
 )
 

@@ -51,7 +51,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         ],
                     )
                     hf_model_id = gr.Textbox(
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting",
                         value="",
                         label="HuggingFace Model ID",
                         lines=3,
@@ -134,10 +134,10 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         )
                     with gr.Row():
                         height = gr.Slider(
-                            384, 786, value=args.height, step=8, label="Height"
+                            384, 768, value=args.height, step=8, label="Height"
                         )
                         width = gr.Slider(
-                            384, 786, value=args.width, step=8, label="Width"
+                            384, 768, value=args.width, step=8, label="Width"
                         )
                         precision = gr.Radio(
                             label="Precision",

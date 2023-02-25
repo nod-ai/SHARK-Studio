@@ -102,10 +102,10 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             )
                     with gr.Row():
                         height = gr.Slider(
-                            384, 786, value=args.height, step=8, label="Height"
+                            384, 768, value=args.height, step=8, label="Height"
                         )
                         width = gr.Slider(
-                            384, 786, value=args.width, step=8, label="Width"
+                            384, 768, value=args.width, step=8, label="Width"
                         )
                         precision = gr.Radio(
                             label="Precision",
