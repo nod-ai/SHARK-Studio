@@ -153,11 +153,16 @@ class StableDiffusionPipeline:
                     ).to(dtype)
                 else:
                     latent_model_input_1 = latent_model_input
-                control = self.vae_encode( # contains controlnet
-                    latent_model_input_1,
-                    timestep,
-                    encoder_hidden_states=text_embeddings,
-                    controlnet_hint=controlnet_hint,
+                # contains control net for testing
+                control = self.vae_encode(
+                    "forward",
+                    (
+                        latent_model_input_1,
+                        timestep,
+                        text_embeddings,
+                        controlnet_hint,
+                    ),
+                    send_to_host=False,
                 )
                 timestep = timestep.detach().numpy()
                 # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.

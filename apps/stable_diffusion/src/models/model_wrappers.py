@@ -1,4 +1,4 @@
-from diffusers import AutoencoderKL, UNet2DConditionModel
+from diffusers import AutoencoderKL, UNet2DConditionModel, ControlNetModel
 from transformers import CLIPTextModel
 from collections import defaultdict
 import torch
@@ -234,13 +234,13 @@ class SharkifyStableDiffusionModel:
                          control8, control9, control10, control11, control12, control13,
             ):
                 # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
-                db_res_samples = [ control1, control2, control3, control4, control5, control6,]
-                mb_res_samples = [ control7, control8, control9, control10, control11, control12, control13,]
+                db_res_samples = tuple([ control1, control2, control3, control4, control5, control6, control7, control8, control9, control10, control11, control12,])
+                mb_res_samples = control13
                 latents = torch.cat([latent] * 2)
                 unet_out = self.unet.forward(
                     latents,
                     timestep,
-                    text_embedding,
+                    encoder_hidden_states=text_embedding,
                     down_block_additional_residuals=db_res_samples,
                     mid_block_additional_residual=mb_res_samples,
                     return_dict=False,
@@ -268,17 +268,17 @@ class SharkifyStableDiffusionModel:
         return shark_controlled_unet
 
     def get_control_net(self):
-        class ControlNetModel(torch.nn.Module):
+        class StencilControlNetModel(torch.nn.Module):
             def __init__(
                 self, model_id=self.model_id, low_cpu_mem_usage=False
             ):
                 super().__init__()
-                self.unet = UNet2DConditionModel.from_pretrained(
+                self.cnet = ControlNetModel.from_pretrained(
                     "takuma104/control_sd15_canny", # TODO: ADD with model ID
                     subfolder="controlnet",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
-                self.in_channels = self.unet.in_channels
+                self.in_channels = self.cnet.in_channels
                 self.train(False)
 
             def forward(
@@ -293,22 +293,22 @@ class SharkifyStableDiffusionModel:
                 latents = torch.cat(
                     [latent] * 2
                 )  # needs to be same as controlledUNET latents
-                down_block_res_samples, mid_block_res_sample = self.unet.forward(
+                down_block_res_samples, mid_block_res_sample = self.cnet.forward(
                     latents,
                     timestep,
-                    text_embedding,
-                    return_dict=False,
+                    encoder_hidden_states=text_embedding,
                     controlnet_cond=stencil_image,
+                    return_dict=False,
                 )
-                return tuple(down_block_res_samples + mid_block_res_sample)
+                return tuple(down_block_res_samples + [mid_block_res_sample])
 
-        cunet = ControlNetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        scnet = StencilControlNetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
 
         inputs = tuple(self.inputs["controlnet"])
         input_mask = [True, True, True, True]
-        shark_unet = compile_through_fx(
-            cunet,
+        shark_cnet = compile_through_fx(
+            scnet,
             inputs,
             model_name=self.model_name["controlnet"],
             is_f16=is_f16,
@@ -316,7 +316,7 @@ class SharkifyStableDiffusionModel:
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
         )
-        return shark_unet
+        return shark_cnet
 
     def get_unet(self):
         class UnetModel(torch.nn.Module):
