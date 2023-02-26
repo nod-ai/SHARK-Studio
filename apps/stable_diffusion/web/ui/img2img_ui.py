@@ -1,6 +1,3 @@
-import os
-import sys
-import glob
 from pathlib import Path
 import gradio as gr
 from PIL import Image
@@ -9,6 +6,10 @@ from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
+    get_custom_model_path,
+    get_custom_model_files,
+    scheduler_list,
+    predefined_models,
 )
 
 
@@ -27,32 +28,10 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    ckpt_path = (
-                        Path(args.ckpt_dir)
-                        if args.ckpt_dir
-                        else Path(Path.cwd(), "models")
-                    )
-                    ckpt_path.mkdir(parents=True, exist_ok=True)
-                    types = (
-                        "*.ckpt",
-                        "*.safetensors",
-                    )  # the tuple of file types
-                    ckpt_files = ["None"]
-                    for extn in types:
-                        files = glob.glob(os.path.join(ckpt_path, extn))
-                        ckpt_files.extend(files)
                     custom_model = gr.Dropdown(
-                        label=f"Models (Custom Model path: {ckpt_path})",
+                        label=f"Models (Custom Model path: {get_custom_model_path()})",
                         value=args.ckpt_loc if args.ckpt_loc else "None",
-                        choices=ckpt_files
-                        + [
-                            "Linaqruf/anything-v3.0",
-                            "prompthero/openjourney",
-                            "wavymulder/Analog-Diffusion",
-                            "stabilityai/stable-diffusion-2-1",
-                            "stabilityai/stable-diffusion-2-1-base",
-                            "CompVis/stable-diffusion-v1-4",
-                        ],
+                        choices=get_custom_model_files() + predefined_models,
                     )
                     hf_model_id = gr.Textbox(
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
@@ -91,12 +70,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         scheduler = gr.Dropdown(
                             label="Scheduler",
                             value="PNDM",
-                            choices=[
-                                "DDIM",
-                                "PNDM",
-                                "DPMSolverMultistep",
-                                "EulerAncestralDiscrete",
-                            ],
+                            choices=scheduler_list,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(

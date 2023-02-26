@@ -1,6 +1,3 @@
-import os
-import sys
-import glob
 from pathlib import Path
 import gradio as gr
 from PIL import Image
@@ -9,8 +6,11 @@ from apps.stable_diffusion.src import prompt_examples, args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
+    get_custom_model_path,
+    get_custom_model_files,
+    scheduler_list_txt2img,
+    predefined_models,
 )
-
 
 with gr.Blocks(title="Text-to-Image") as txt2img_web:
     with gr.Row(elem_id="ui_title"):
@@ -27,39 +27,30 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    ckpt_path = (
-                        Path(args.ckpt_dir)
-                        if args.ckpt_dir
-                        else Path(Path.cwd(), "models")
-                    )
-                    ckpt_path.mkdir(parents=True, exist_ok=True)
-                    types = (
-                        "*.ckpt",
-                        "*.safetensors",
-                    )  # the tuple of file types
-                    ckpt_files = ["None"]
-                    for extn in types:
-                        files = glob.glob(os.path.join(ckpt_path, extn))
-                        ckpt_files.extend(files)
-                    custom_model = gr.Dropdown(
-                        label=f"Models (Custom Model path: {ckpt_path})",
-                        value=args.ckpt_loc if args.ckpt_loc else "None",
-                        choices=ckpt_files
-                        + [
-                            "Linaqruf/anything-v3.0",
-                            "prompthero/openjourney",
-                            "wavymulder/Analog-Diffusion",
-                            "stabilityai/stable-diffusion-2-1",
-                            "stabilityai/stable-diffusion-2-1-base",
-                            "CompVis/stable-diffusion-v1-4",
-                        ],
-                    )
-                    hf_model_id = gr.Textbox(
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
-                        value="",
-                        label="HuggingFace Model ID",
-                        lines=3,
-                    )
+                    with gr.Column(scale=10):
+                        with gr.Row():
+                            custom_model = gr.Dropdown(
+                                label=f"Models (Custom Model path: {get_custom_model_path()})",
+                                value=args.ckpt_loc
+                                if args.ckpt_loc
+                                else "None",
+                                choices=get_custom_model_files()
+                                + predefined_models,
+                            )
+                            hf_model_id = gr.Textbox(
+                                placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
+                                value="",
+                                label="HuggingFace Model ID",
+                                lines=3,
+                            )
+                    with gr.Column(scale=1, min_width=170):
+                        png_info_img = gr.Image(
+                            label="Import PNG info",
+                            elem_id="txt2img_prompt_image",
+                            type="pil",
+                            tool="None",
+                            visible=True,
+                        )
 
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
@@ -79,16 +70,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         scheduler = gr.Dropdown(
                             label="Scheduler",
                             value=args.scheduler,
-                            choices=[
-                                "DDIM",
-                                "PNDM",
-                                "LMSDiscrete",
-                                "KDPM2Discrete",
-                                "DPMSolverMultistep",
-                                "EulerDiscrete",
-                                "EulerAncestralDiscrete",
-                                "SharkEulerDiscrete",
-                            ],
+                            choices=scheduler_list_txt2img,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -234,3 +216,27 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         prompt.submit(**kwargs)
         negative_prompt.submit(**kwargs)
         stable_diffusion.click(**kwargs)
+
+        from apps.stable_diffusion.web.utils.png_metadata import (
+            import_png_metadata,
+        )
+
+        png_info_img.change(
+            fn=import_png_metadata,
+            inputs=[
+                png_info_img,
+            ],
+            outputs=[
+                png_info_img,
+                prompt,
+                negative_prompt,
+                steps,
+                scheduler,
+                guidance_scale,
+                seed,
+                width,
+                height,
+                custom_model,
+                hf_model_id,
+            ],
+        )

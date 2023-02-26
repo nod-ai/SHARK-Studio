@@ -9,9 +9,12 @@ from apps.stable_diffusion.src import args, clear_all
 from apps.stable_diffusion.web.utils.gradio_configs import (
     clear_gradio_tmp_imgs_folder,
 )
+from apps.stable_diffusion.web.ui.utils import get_custom_model_path
 
-# clear all gradio tmp images from the last session
+# Clear all gradio tmp images from the last session
 clear_gradio_tmp_imgs_folder()
+# Create the custom model folder if it doesn't already exist
+get_custom_model_path().mkdir(parents=True, exist_ok=True)
 
 if args.clear_all:
     clear_all()

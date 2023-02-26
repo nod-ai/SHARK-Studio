@@ -219,3 +219,7 @@ footer {
     pointer-events: none;
 }
 
+/* Import Png info box */
+#txt2img_prompt_image .fixed-height {
+    height: var(--size-32);
+}
