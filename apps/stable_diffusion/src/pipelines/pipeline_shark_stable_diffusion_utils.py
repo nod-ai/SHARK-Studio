@@ -119,7 +119,7 @@ class StableDiffusionPipeline:
         total_timesteps,
         dtype,
         cpu_scheduling,
-        controlnet_hint=None,
+        stencil=None,
         mask=None,
         masked_image_latents=None,
         return_all_latents=False,
@@ -146,7 +146,7 @@ class StableDiffusionPipeline:
 
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
-            if controlnet_hint is not None:
+            if stencil is not None:
                 if not torch.is_tensor(latent_model_input):
                     latent_model_input_1 = torch.from_numpy(
                         np.asarray(latent_model_input)
@@ -160,7 +160,7 @@ class StableDiffusionPipeline:
                         latent_model_input_1,
                         timestep,
                         text_embeddings,
-                        controlnet_hint,
+                        stencil,
                     ),
                     send_to_host=False,
                 )
@@ -169,7 +169,7 @@ class StableDiffusionPipeline:
                 noise_pred = self.unet(
                     "forward",
                     (
-                        latent_model_input,
+                        latent_model_input_1,
                         timestep,
                         text_embeddings_numpy,
                         guidance_scale,

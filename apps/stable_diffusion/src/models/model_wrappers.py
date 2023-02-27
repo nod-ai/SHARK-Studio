@@ -300,7 +300,7 @@ class SharkifyStableDiffusionModel:
                     controlnet_cond=stencil_image,
                     return_dict=False,
                 )
-                return tuple(down_block_res_samples + [mid_block_res_sample])
+                return tuple(list(down_block_res_samples) + [mid_block_res_sample])
 
         scnet = StencilControlNetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False

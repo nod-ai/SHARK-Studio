@@ -68,6 +68,27 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         latents = latents * self.scheduler.init_noise_sigma
         return latents
 
+    def preprocess_img(
+        self,
+        input_image,
+        height,
+        width,
+        dtype,
+    ):
+        # TODO: process with variable HxW combos
+        # Pre process image
+        # expecting single image as input_image for stencil generation
+        if type(input_image) == torch.Tensor:
+            return input_image
+        # if input image is of type PIL.Image.Image
+        image_rs = np.resize(input_image, (width, height))
+        image_arr = np.stack([np.array(i) for i in (image_rs,)], axis=0)
+        image_arr = image_arr / 255.0
+        image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
+        image_t = 2 * (image_arr - 0.5)
+
+        return image_t
+
     def prepare_image_latents(
         self,
         image,
@@ -80,15 +101,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         dtype,
     ):
         # Pre process image -> get image encoded -> process latents
-
-        # TODO: process with variable HxW combos
-
-        # Pre process image
-        image = image.resize((width, height))
-        image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
-        image_arr = image_arr / 255.0
-        image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
-        image_arr = 2 * (image_arr - 0.5)
+        image_arr = self.preprocess_img(image, height, width, dtype)
 
         # set scheduler steps
         self.scheduler.set_timesteps(num_inference_steps)
@@ -140,7 +153,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
     ):
         # Control Embedding check & conversion
         # TODO: 1. Change `num_images_per_prompt`.
-        controlnet_hint = controlnet_hint_conversion(
+        stencil_unprocessed = controlnet_hint_conversion(
             image, use_stencil, height, width, num_images_per_prompt=1
         )
         # prompts and negative prompts must be a list.
@@ -169,7 +182,10 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # Prepare initial latent.
         init_latents = None
         final_timesteps = None
-        if controlnet_hint is not None:
+        stencil_t = None
+        if use_stencil is not None:
+            stencil_t1 = self.preprocess_img(stencil_unprocessed, height, width, dtype)
+            stencil_t = torch.cat([stencil_t1] * 2)
             init_latents = self.prepare_latents(
                 batch_size=batch_size,
                 height=height,
@@ -199,7 +215,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
             total_timesteps=final_timesteps,
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
-            controlnet_hint=controlnet_hint,
+            stencil=stencil_t,
         )
 
         # Img latents -> PIL images

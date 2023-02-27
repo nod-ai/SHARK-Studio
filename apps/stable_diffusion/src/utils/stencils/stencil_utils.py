@@ -128,9 +128,9 @@ def controlnet_hint_conversion(
             controlnet_hint = hint_canny(image, width)
         case _:
             return None
-    controlnet_hint = controlnet_hint_shaping(
-        controlnet_hint, height, width, num_images_per_prompt
-    )
+    # controlnet_hint = controlnet_hint_shaping(
+    #     controlnet_hint, height, width, num_images_per_prompt
+    # )
     return controlnet_hint
 
 
