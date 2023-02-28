@@ -55,9 +55,6 @@ class StableDiffusionPipeline:
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
-        # TODO: Make this dynamic like other models which'll be passed to StableDiffusionPipeline.
-        from diffusers import UNet2DConditionModel
-
 
     def encode_prompts(self, prompts, neg_prompts, max_length):
         # Tokenize text and get embeddings

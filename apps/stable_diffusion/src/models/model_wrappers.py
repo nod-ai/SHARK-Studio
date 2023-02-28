@@ -511,7 +511,6 @@ class SharkifyStableDiffusionModel:
                 )
 
             if need_stencil:
-                print(f"[DEBUG] Returning need_stencil")
                 return (
                     compiled_clip,
                     compiled_unet,

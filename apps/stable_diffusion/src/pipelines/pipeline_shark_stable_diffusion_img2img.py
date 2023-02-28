@@ -185,7 +185,9 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         final_timesteps = None
         stencil_t = None
         if use_stencil is not None:
-            stencil_t = self.preprocess_img(stencil_unprocessed, height, width, dtype)
+            stencil_t = self.preprocess_img(
+                stencil_unprocessed, height, width, dtype
+            )
             init_latents = self.prepare_latents(
                 batch_size=batch_size,
                 height=height,
