@@ -85,7 +85,7 @@
                 "dtype": "f32"
             }
         },
-        "controlnet": {
+        "stencil_adaptor": {
             "latents": {
                 "shape": [
                     "1*batch_size",
@@ -114,7 +114,7 @@
                 "dtype": "f32"
             }
         },
-        "controlled_unet": {
+        "stencil_unet": {
             "latents": {
                 "shape": [
                     "1*batch_size",
