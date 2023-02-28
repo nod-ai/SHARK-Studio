@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from apps.stable_diffusion.src import (
     args,
     Image2ImagePipeline,
+    StencilPipeline,
     get_schedulers,
     set_init_device_flags,
     utils,
@@ -24,6 +25,7 @@ class Config:
     height: int
     width: int
     device: str
+    use_stencil: str
 
 
 img2img_obj = None
@@ -50,6 +52,7 @@ def img2img_inf(
     precision: str,
     device: str,
     max_length: int,
+    use_stencil: str,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
@@ -92,8 +95,22 @@ def img2img_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
+    if use_stencil != "":
+        args.scheduler = "DDIM"
+        args.hf_model_id = "runwayml/stable-diffusion-v1-5"
+    elif args.scheduler != "PNDM":
+        if "Shark" in args.scheduler:
+            print(
+                f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
+            )
+            args.scheduler = "PNDM"
+        else:
+            sys.exit(
+                "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
+            )
+    cpu_scheduling = not args.scheduler.startswith("Shark")
+    args.precision = precision
     dtype = torch.float32 if precision == "fp32" else torch.half
-    cpu_scheduling = not scheduler.startswith("Shark")
     new_config_obj = Config(
         args.hf_model_id,
         args.ckpt_loc,
@@ -103,10 +120,10 @@ def img2img_inf(
         height,
         width,
         device,
+        use_stencil,
     )
     if not img2img_obj or config_obj != new_config_obj:
         config_obj = new_config_obj
-        args.precision = precision
         args.batch_size = batch_size
         args.max_length = max_length
         args.height = height
@@ -123,21 +140,41 @@ def img2img_inf(
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
-        img2img_obj = Image2ImagePipeline.from_pretrained(
-            scheduler_obj,
-            args.import_mlir,
-            args.hf_model_id,
-            args.ckpt_loc,
-            args.custom_vae,
-            args.precision,
-            args.max_length,
-            args.batch_size,
-            args.height,
-            args.width,
-            args.use_base_vae,
-            args.use_tuned,
-            low_cpu_mem_usage=args.low_cpu_mem_usage,
-        )
+        if use_stencil != "":
+            args.use_stencil = use_stencil
+            args.use_tuned = False
+            img2img_obj = StencilPipeline.from_pretrained(
+                scheduler_obj,
+                args.import_mlir,
+                args.hf_model_id,
+                args.ckpt_loc,
+                args.custom_vae,
+                args.precision,
+                args.max_length,
+                args.batch_size,
+                args.height,
+                args.width,
+                args.use_base_vae,
+                args.use_tuned,
+                low_cpu_mem_usage=args.low_cpu_mem_usage,
+                use_stencil=use_stencil,
+            )
+        else:
+            img2img_obj = Image2ImagePipeline.from_pretrained(
+                scheduler_obj,
+                args.import_mlir,
+                args.hf_model_id,
+                args.ckpt_loc,
+                args.custom_vae,
+                args.precision,
+                args.max_length,
+                args.batch_size,
+                args.height,
+                args.width,
+                args.use_base_vae,
+                args.use_tuned,
+                low_cpu_mem_usage=args.low_cpu_mem_usage,
+            )
 
     img2img_obj.scheduler = schedulers[scheduler]
 
@@ -165,6 +202,7 @@ def img2img_inf(
             dtype,
             args.use_base_vae,
             cpu_scheduling,
+            use_stencil=use_stencil,
         )
         save_output_img(out_imgs[0], img_seed, extra_info)
         generated_imgs.extend(out_imgs)
@@ -195,10 +233,10 @@ if __name__ == "__main__":
     # When the models get uploaded, it should be default to False.
     args.import_mlir = True
 
-    dtype = torch.float32 if args.precision == "fp32" else torch.half
     use_stencil = args.use_stencil
     if use_stencil:
         args.scheduler = "DDIM"
+        args.hf_model_id = "runwayml/stable-diffusion-v1-5"
     elif args.scheduler != "PNDM":
         if "Shark" in args.scheduler:
             print(
@@ -210,6 +248,7 @@ if __name__ == "__main__":
                 "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
             )
     cpu_scheduling = not args.scheduler.startswith("Shark")
+    dtype = torch.float32 if args.precision == "fp32" else torch.half
     set_init_device_flags()
     schedulers = get_schedulers(args.hf_model_id)
 
@@ -218,22 +257,39 @@ if __name__ == "__main__":
     seed = utils.sanitize_seed(args.seed)
     # Adjust for height and width based on model
 
-    img2img_obj = Image2ImagePipeline.from_pretrained(
-        scheduler_obj,
-        args.import_mlir,
-        args.hf_model_id,
-        args.ckpt_loc,
-        args.custom_vae,
-        args.precision,
-        args.max_length,
-        args.batch_size,
-        args.height,
-        args.width,
-        args.use_base_vae,
-        args.use_tuned,
-        low_cpu_mem_usage=args.low_cpu_mem_usage,
-        use_stencil=use_stencil,
-    )
+    if use_stencil:
+        img2img_obj = StencilPipeline.from_pretrained(
+            scheduler_obj,
+            args.import_mlir,
+            args.hf_model_id,
+            args.ckpt_loc,
+            args.custom_vae,
+            args.precision,
+            args.max_length,
+            args.batch_size,
+            args.height,
+            args.width,
+            args.use_base_vae,
+            args.use_tuned,
+            low_cpu_mem_usage=args.low_cpu_mem_usage,
+            use_stencil=use_stencil,
+        )
+    else:
+        img2img_obj = Image2ImagePipeline.from_pretrained(
+            scheduler_obj,
+            args.import_mlir,
+            args.hf_model_id,
+            args.ckpt_loc,
+            args.custom_vae,
+            args.precision,
+            args.max_length,
+            args.batch_size,
+            args.height,
+            args.width,
+            args.use_base_vae,
+            args.use_tuned,
+            low_cpu_mem_usage=args.low_cpu_mem_usage,
+        )
 
     start_time = time.time()
     generated_imgs = img2img_obj.generate_images(
