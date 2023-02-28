@@ -80,6 +80,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # expecting single image as input_image for stencil generation
         if type(input_image) == torch.Tensor:
             return input_image
+
         # if input image is of type PIL.Image.Image
         image_rs = np.resize(input_image, (width, height))
         image_arr = np.stack([np.array(i) for i in (image_rs,)], axis=0)
@@ -154,7 +155,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # Control Embedding check & conversion
         # TODO: 1. Change `num_images_per_prompt`.
         stencil_unprocessed = controlnet_hint_conversion(
-            image, use_stencil, height, width, num_images_per_prompt=1
+            image, use_stencil, height, width, dtype, num_images_per_prompt=1
         )
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
@@ -184,8 +185,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         final_timesteps = None
         stencil_t = None
         if use_stencil is not None:
-            stencil_t1 = self.preprocess_img(stencil_unprocessed, height, width, dtype)
-            stencil_t = torch.cat([stencil_t1] * 2)
+            stencil_t = self.preprocess_img(stencil_unprocessed, height, width, dtype)
             init_latents = self.prepare_latents(
                 batch_size=batch_size,
                 height=height,

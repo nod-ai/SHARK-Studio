@@ -44,7 +44,7 @@ def resize_image(input_image, resolution):
 
 
 def controlnet_hint_shaping(
-    controlnet_hint, height, width, num_images_per_prompt=1
+    controlnet_hint, height, width, dtype, num_images_per_prompt=1
 ):
     channels = 3
     if isinstance(controlnet_hint, torch.Tensor):
@@ -54,7 +54,7 @@ def controlnet_hint_shaping(
         shape_nchw = (num_images_per_prompt, channels, height, width)
         if controlnet_hint.shape in [shape_chw, shape_bchw, shape_nchw]:
             controlnet_hint = controlnet_hint.to(
-                dtype=torch.float32, device=torch.device("cpu")
+                dtype=dtype, device=torch.device("cpu")
             )
             if controlnet_hint.shape != shape_nchw:
                 controlnet_hint = controlnet_hint.repeat(
@@ -80,7 +80,7 @@ def controlnet_hint_shaping(
         if controlnet_hint.shape in [shape_hwc, shape_bhwc, shape_nhwc]:
             controlnet_hint = torch.from_numpy(controlnet_hint.copy())
             controlnet_hint = controlnet_hint.to(
-                dtype=torch.float32, device=torch.device("cpu")
+                dtype=dtype, device=torch.device("cpu")
             )
             controlnet_hint /= 255.0
             if controlnet_hint.shape != shape_nhwc:
@@ -119,7 +119,7 @@ def controlnet_hint_shaping(
 
 
 def controlnet_hint_conversion(
-    image, use_stencil, height, width, num_images_per_prompt=1
+    image, use_stencil, height, width, dtype, num_images_per_prompt=1
 ):
     controlnet_hint = None
     match use_stencil:
@@ -128,9 +128,9 @@ def controlnet_hint_conversion(
             controlnet_hint = hint_canny(image, width)
         case _:
             return None
-    # controlnet_hint = controlnet_hint_shaping(
-    #     controlnet_hint, height, width, num_images_per_prompt
-    # )
+    controlnet_hint = controlnet_hint_shaping(
+        controlnet_hint, height, width, dtype, num_images_per_prompt
+    )
     return controlnet_hint
 
 

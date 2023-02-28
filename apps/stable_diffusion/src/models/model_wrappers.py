@@ -286,12 +286,15 @@ class SharkifyStableDiffusionModel:
                 latent,
                 timestep,
                 text_embedding,
-                stencil_image,
+                stencil_image_input,
             ):
                 # expand the latents if we are doing classifier-free guidance to avoid doing two forward passes.
                 # TODO: guidance NOT NEEDED change in `get_input_info` later
                 latents = torch.cat(
                     [latent] * 2
+                )  # needs to be same as controlledUNET latents
+                stencil_image = torch.cat(
+                    [stencil_image_input] * 2
                 )  # needs to be same as controlledUNET latents
                 down_block_res_samples, mid_block_res_sample = self.cnet.forward(
                     latents,
