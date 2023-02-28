@@ -82,13 +82,19 @@ def load_lower_configs():
         fetch_and_update_base_model_id,
     )
 
-    base_model_id = args.hf_model_id
     if args.ckpt_loc != "":
         base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
-    if base_model_id == "runwayml/stable-diffusion-v1-5":
-        base_model_id = "CompVis/stable-diffusion-v1-4"
+    else:
+        base_model_id = fetch_and_update_base_model_id(args.hf_model_id)
+        if base_model_id == "":
+            base_model_id = args.hf_model_id
 
     variant, version = get_variant_version(base_model_id)
+
+    if version == "inpaint_v1":
+        version = "v1_4"
+    elif version == "inpaint_v2":
+        version = "v2_1base"
 
     config_bucket = "gs://shark_tank/sd_tuned_configs/"
 
