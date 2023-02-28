@@ -421,16 +421,21 @@ class SharkifyStableDiffusionModel:
             self.height,
             self.batch_size,
         )
+        compiled_controlnet = None
+        compiled_controlled_unet = None
+        compiled_unet = None
+        if need_stencil:
+            compiled_controlnet = self.get_control_net()
+            compiled_controlled_unet = self.get_controlled_unet()
+        else:
+            compiled_unet = self.get_unet()
         if self.custom_vae != "":
             print("Plugging in custom Vae")
         compiled_vae = self.get_vae()
         compiled_clip = self.get_clip()
-        if need_stencil:
-            compiled_controlnet = self.get_control_net()
-            compiled_controlled_unet = self.get_controlled_unet()
-            return compiled_clip, compiled_controlled_unet, compiled_vae, compiled_controlnet
 
-        compiled_unet = self.get_unet()
+        if need_stencil:
+            return compiled_clip, compiled_controlled_unet, compiled_vae, compiled_controlnet
         if need_vae_encode:
             compiled_vae_encode = self.get_vae_encode()
             return compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode
@@ -446,7 +451,6 @@ class SharkifyStableDiffusionModel:
                 need_stencil = True
             else:
                 need_vae_encode = True
-        print(f"[DEBUG] need_vae_encode: {need_vae_encode} need_stencil: {need_stencil}")
         self.model_name = self.get_extended_name_for_all_model()
         vmfbs = fetch_or_delete_vmfbs(self.model_name, need_vae_encode, self.precision)   
         if vmfbs[0]:
@@ -514,7 +518,6 @@ class SharkifyStableDiffusionModel:
                     compiled_vae,
                     compiled_vae_encode,
                 )
-
             if need_stencil:
                 return (
                     compiled_clip,
@@ -522,7 +525,6 @@ class SharkifyStableDiffusionModel:
                     compiled_vae,
                     compiled_controlnet,
                 )
-
             return compiled_clip, compiled_unet, compiled_vae
         sys.exit(
             "Cannot compile the model. Please create an issue with the detailed log at https://github.com/nod-ai/SHARK/issues"
