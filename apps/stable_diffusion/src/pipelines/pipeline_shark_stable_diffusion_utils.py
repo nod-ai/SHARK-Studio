@@ -57,12 +57,6 @@ class StableDiffusionPipeline:
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
-        # TODO: Make this dynamic like other models which'll be passed to StableDiffusionPipeline.
-        from diffusers import UNet2DConditionModel
-
-        self.controlnet = UNet2DConditionModel.from_pretrained(
-            "/home/abhishek/weights/canny_weight", subfolder="controlnet"
-        )
 
     def encode_prompts(self, prompts, neg_prompts, max_length):
         # Tokenize text and get embeddings
@@ -124,7 +118,7 @@ class StableDiffusionPipeline:
         total_timesteps,
         dtype,
         cpu_scheduling,
-        controlnet_hint=None,
+        stencil=None,
         mask=None,
         masked_image_latents=None,
         return_all_latents=False,
@@ -151,25 +145,30 @@ class StableDiffusionPipeline:
 
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
-            if controlnet_hint is not None:
+            if stencil is not None:
                 if not torch.is_tensor(latent_model_input):
                     latent_model_input_1 = torch.from_numpy(
                         np.asarray(latent_model_input)
                     ).to(dtype)
                 else:
                     latent_model_input_1 = latent_model_input
-                control = self.controlnet(
-                    latent_model_input_1,
-                    timestep,
-                    encoder_hidden_states=text_embeddings,
-                    controlnet_hint=controlnet_hint,
+                # contains control net for testing
+                control = self.vae_encode(
+                    "forward",
+                    (
+                        latent_model_input_1,
+                        timestep,
+                        text_embeddings,
+                        stencil,
+                    ),
+                    send_to_host=False,
                 )
                 timestep = timestep.detach().numpy()
                 # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.
                 noise_pred = self.unet(
                     "forward",
                     (
-                        latent_model_input,
+                        latent_model_input_1,
                         timestep,
                         text_embeddings_numpy,
                         guidance_scale,
