@@ -300,8 +300,6 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1",
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
-        "runwayml/stable-diffusion-inpainting",
-        "stabilityai/stable-diffusion-2-inpainting",
     ]:
         args.import_mlir = True
 
@@ -439,10 +437,12 @@ def preprocessCKPT(custom_weights):
     print(
         "Loading diffusers' pipeline from original stable diffusion checkpoint"
     )
+    num_in_channels = 9 if "inpainting" in custom_weights else 4
     pipe = load_pipeline_from_original_stable_diffusion_ckpt(
         checkpoint_path=custom_weights,
         extract_ema=extract_ema,
         from_safetensors=from_safetensors,
+        num_in_channels=num_in_channels,
     )
     pipe.save_pretrained(path_to_diffusers)
     print("Loading complete")
