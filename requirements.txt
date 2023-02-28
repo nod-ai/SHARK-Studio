@@ -16,14 +16,13 @@ parameterized
 
 # Add transformers, diffusers and scipy since it most commonly used
 transformers
-diffusers @ git+https://github.com/nod-ai/diffusers@SHARK
+diffusers @ git+https://github.com/nod-ai/diffusers@e5810e686ea4ac499e325c2961808c8972dee039
 scipy
 ftfy
 gradio
 altair
 omegaconf
 safetensors
-opencv-python
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
