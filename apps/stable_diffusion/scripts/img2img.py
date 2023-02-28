@@ -119,7 +119,7 @@ def img2img_inf(
         model_id = (
             args.hf_model_id
             if args.hf_model_id
-            else "runwayml/stable-diffusion-inpainting"
+            else "stabilityai/stable-diffusion-2-1-base"
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]

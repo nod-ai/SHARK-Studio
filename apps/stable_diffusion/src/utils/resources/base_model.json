@@ -111,7 +111,7 @@
             }
         }
     },
-    "runwayml/stable-diffusion-inpainting": {
+    "stabilityai/stable-diffusion-2-inpainting": {
         "unet": {
             "latents": {
                 "shape": [
@@ -132,7 +132,7 @@
                 "shape": [
                     "2*batch_size",
                     "max_len",
-                    768
+                    1024
                 ],
                 "dtype": "f32"
             },
@@ -167,7 +167,7 @@
             }
         }
     },
-    "stabilityai/stable-diffusion-2-inpainting": {
+    "runwayml/stable-diffusion-inpainting": {
         "unet": {
             "latents": {
                 "shape": [
@@ -188,7 +188,7 @@
                 "shape": [
                     "2*batch_size",
                     "max_len",
-                    1024
+                    768
                 ],
                 "dtype": "f32"
             },
