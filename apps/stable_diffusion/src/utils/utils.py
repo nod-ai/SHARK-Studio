@@ -551,7 +551,7 @@ def clear_all():
 
 
 # save output images and the inputs corresponding to it.
-def save_output_img(output_img, img_seed):
+def save_output_img(output_img, img_seed, extra_info={}):
     output_path = args.output_dir if args.output_dir else Path.cwd()
     generated_imgs_path = Path(
         output_path, "generated_imgs", dt.now().strftime("%Y%m%d")
@@ -603,6 +603,8 @@ def save_output_img(output_img, img_seed):
         "MAX_LENGTH": args.max_length,
         "OUTPUT": out_img_path,
     }
+
+    new_entry.update(extra_info)
 
     with open(csv_path, "a") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
