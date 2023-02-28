@@ -71,7 +71,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image", type="filepath")
+                init_image = gr.Image(label="Input Image", type="pil").style(
+                    height=300, full_width=True
+                )
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():

@@ -35,7 +35,7 @@ schedulers = None
 def outpaint_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: str,
+    init_image: Image,
     pixels: int,
     mask_blur: int,
     directions: list,
@@ -66,7 +66,7 @@ def outpaint_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
-    args.img_path = init_image
+    args.img_path = "not none"
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -143,7 +143,6 @@ def outpaint_inf(
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
-    image = Image.open(args.img_path)
 
     left = True if "left" in directions else False
     right = True if "right" in directions else False
@@ -156,7 +155,7 @@ def outpaint_inf(
         out_imgs = outpaint_obj.generate_images(
             prompt,
             negative_prompt,
-            image,
+            init_image,
             pixels,
             mask_blur,
             left,
@@ -271,5 +270,22 @@ if __name__ == "__main__":
         text_output += outpaint_obj.log
         text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-        save_output_img(generated_imgs[0], seed)
+        # save this information as metadata of output generated image.
+        directions = []
+        if args.left:
+            directions.append("left")
+        if args.right:
+            directions.append("right")
+        if args.top:
+            directions.append("up")
+        if args.bottom:
+            directions.append("down")
+        extra_info = {
+            "PIXELS": args.pixels,
+            "MASK_BLUR": args.mask_blur,
+            "DIRECTIONS": directions,
+            "NOISE_Q": args.noise_q,
+            "COLOR_VARIATION": args.color_variation,
+        }
+        save_output_img(generated_imgs[0], seed, extra_info)
         print(text_output)

@@ -158,6 +158,7 @@ def txt2img_inf(
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
         txt2img_obj.log += "\n"
+        yield generated_imgs, txt2img_obj.log
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -168,10 +169,10 @@ def txt2img_inf(
         f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
     )
     text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
-    text_output += txt2img_obj.log
+    # text_output += txt2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    return generated_imgs, text_output
+    yield generated_imgs, text_output
 
 
 if __name__ == "__main__":
