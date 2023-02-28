@@ -76,7 +76,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     source="upload",
                     tool="sketch",
                     type="pil",
-                )
+                ).style(height=350, full_width=True)
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():

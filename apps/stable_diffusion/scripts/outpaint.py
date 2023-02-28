@@ -35,7 +35,7 @@ schedulers = None
 def outpaint_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: str,
+    init_image: Image,
     pixels: int,
     mask_blur: int,
     directions: list,
@@ -66,7 +66,7 @@ def outpaint_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
-    args.img_path = init_image
+    args.img_path = "not none"
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -143,7 +143,6 @@ def outpaint_inf(
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
-    image = Image.open(args.img_path)
 
     left = True if "left" in directions else False
     right = True if "right" in directions else False
@@ -156,7 +155,7 @@ def outpaint_inf(
         out_imgs = outpaint_obj.generate_images(
             prompt,
             negative_prompt,
-            image,
+            init_image,
             pixels,
             mask_blur,
             left,
