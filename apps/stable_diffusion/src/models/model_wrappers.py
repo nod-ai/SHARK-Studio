@@ -119,7 +119,7 @@ class SharkifyStableDiffusionModel:
 
     def get_extended_name_for_all_model(self):
         model_name = {}
-        sub_model_list = ["clip", "unet", "vae", "vae_encode", "controlnet", "controlled_unet"]
+        sub_model_list = ["clip", "unet", "vae", "vae_encode", "stencil_adaptor", "stencil_unet"]
         for model in sub_model_list:
             sub_model = model
             model_config = self.model_name
@@ -254,12 +254,12 @@ class SharkifyStableDiffusionModel:
         unet = ControlledUnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
 
-        inputs = tuple(self.inputs["controlled_unet"])
+        inputs = tuple(self.inputs["stencil_unet"])
         input_mask = [True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True,]
         shark_controlled_unet = compile_through_fx(
             unet,
             inputs,
-            model_name=self.model_name["controlled_unet"],
+            model_name=self.model_name["stencil_unet"],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
@@ -308,12 +308,12 @@ class SharkifyStableDiffusionModel:
         scnet = StencilControlNetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
 
-        inputs = tuple(self.inputs["controlnet"])
+        inputs = tuple(self.inputs["stencil_adaptor"])
         input_mask = [True, True, True, True]
         shark_cnet = compile_through_fx(
             scnet,
             inputs,
-            model_name=self.model_name["controlnet"],
+            model_name=self.model_name["stencil_adaptor"],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,

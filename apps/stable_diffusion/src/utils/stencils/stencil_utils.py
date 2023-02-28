@@ -63,7 +63,7 @@ def controlnet_hint_shaping(
             return controlnet_hint
         else:
             raise ValueError(
-                f"Acceptble shape of `controlnet_hint` are any of ({channels}, {height}, {width}),"
+                f"Acceptble shape of `stencil` are any of ({channels}, {height}, {width}),"
                 + f" (1, {channels}, {height}, {width}) or ({num_images_per_prompt}, "
                 + f"{channels}, {height}, {width}) but is {controlnet_hint.shape}"
             )
@@ -93,7 +93,7 @@ def controlnet_hint_shaping(
             return controlnet_hint
         else:
             raise ValueError(
-                f"Acceptble shape of `controlnet_hint` are any of ({width}, {channels}), "
+                f"Acceptble shape of `stencil` are any of ({width}, {channels}), "
                 + f"({height}, {width}, {channels}), "
                 + f"(1, {height}, {width}, {channels}) or "
                 + f"({num_images_per_prompt}, {channels}, {height}, {width}) but is {controlnet_hint.shape}"
@@ -110,11 +110,11 @@ def controlnet_hint_shaping(
             )
         else:
             raise ValueError(
-                f"Acceptable image size of `controlnet_hint` is ({width}, {height}) but is {controlnet_hint.size}"
+                f"Acceptable image size of `stencil` is ({width}, {height}) but is {controlnet_hint.size}"
             )
     else:
         raise ValueError(
-            f"Acceptable type of `controlnet_hint` are any of torch.Tensor, np.ndarray, PIL.Image.Image but is {type(controlnet_hint)}"
+            f"Acceptable type of `stencil` are any of torch.Tensor, np.ndarray, PIL.Image.Image but is {type(controlnet_hint)}"
         )
 
 
