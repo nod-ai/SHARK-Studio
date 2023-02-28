@@ -119,7 +119,7 @@ def img2img_inf(
         model_id = (
             args.hf_model_id
             if args.hf_model_id
-            else "runwayml/stable-diffusion-inpainting"
+            else "stabilityai/stable-diffusion-2-1-base"
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
@@ -146,6 +146,7 @@ def img2img_inf(
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
+    extra_info = {"STRENGTH": strength}
     for current_batch in range(batch_count):
         if current_batch > 0:
             img_seed = utils.sanitize_seed(-1)
@@ -165,7 +166,7 @@ def img2img_inf(
             args.use_base_vae,
             cpu_scheduling,
         )
-        save_output_img(out_imgs[0], img_seed)
+        save_output_img(out_imgs[0], img_seed, extra_info)
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
         img2img_obj.log += "\n"
@@ -260,5 +261,6 @@ if __name__ == "__main__":
     text_output += img2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    save_output_img(generated_imgs[0], seed)
+    extra_info = {"STRENGTH": args.strength}
+    save_output_img(generated_imgs[0], seed, extra_info)
     print(text_output)

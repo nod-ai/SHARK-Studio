@@ -118,9 +118,10 @@ class SharkBenchmarkRunner(SharkRunner):
         )
         HFmodel, input = get_torch_model(modelname)[:2]
         frontend_model = HFmodel.model
-        # frontend_model = dynamo.optimize("inductor")(frontend_model)
         frontend_model.to(torch_device)
         input.to(torch_device)
+
+        # frontend_model = torch.compile(frontend_model, mode="max-autotune", backend="inductor")
 
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)

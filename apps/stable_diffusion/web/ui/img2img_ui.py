@@ -75,7 +75,9 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image", type="pil")
+                init_image = gr.Image(label="Input Image", type="pil").style(
+                    height=300, full_width=True
+                )
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
@@ -102,10 +104,10 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             )
                     with gr.Row():
                         height = gr.Slider(
-                            384, 786, value=args.height, step=8, label="Height"
+                            384, 768, value=args.height, step=8, label="Height"
                         )
                         width = gr.Slider(
-                            384, 786, value=args.width, step=8, label="Width"
+                            384, 768, value=args.width, step=8, label="Width"
                         )
                         precision = gr.Radio(
                             label="Precision",
