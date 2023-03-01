@@ -445,7 +445,7 @@ class SharkifyStableDiffusionModel:
             compiled_vae_encode = self.get_vae_encode()
             return compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode
 
-        return compiled_clip, compiled_unet, compiled_vae, None
+        return compiled_clip, compiled_unet, compiled_vae
 
     def __call__(self):
         # Step 1:
