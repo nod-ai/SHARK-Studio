@@ -300,6 +300,7 @@ def compile_module_to_flatbuffer(
     args += get_iree_common_args(debug=debug)
     args += get_model_specific_args()
     args += extra_args
+    args += shark_args.additional_compile_args
 
     if frontend in ["tensorflow", "tf"]:
         input_type = "auto"

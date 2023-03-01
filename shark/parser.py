@@ -14,7 +14,20 @@
 
 import argparse
 import os
+import shlex
 import subprocess
+
+
+class SplitStrToListAction(argparse.Action):
+    def __init__(self, option_strings, dest, *args, **kwargs):
+        super(SplitStrToListAction, self).__init__(
+            option_strings=option_strings, dest=dest, *args, **kwargs
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        del parser, option_string
+        setattr(namespace, self.dest, shlex.split(values[0]))
+
 
 parser = argparse.ArgumentParser(description="SHARK runner.")
 
@@ -23,6 +36,13 @@ parser.add_argument(
     type=str,
     default="cpu",
     help="Device on which shark_runner runs. options are cpu, cuda, and vulkan",
+)
+parser.add_argument(
+    "--additional_compile_args",
+    default=list(),
+    nargs=1,
+    action=SplitStrToListAction,
+    help="Additional arguments to pass to the compiler. These are appended as the last arguments.",
 )
 parser.add_argument(
     "--enable_tf32",
