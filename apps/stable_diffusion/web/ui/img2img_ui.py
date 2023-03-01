@@ -76,7 +76,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     )
 
                 init_image = gr.Image(label="Input Image", type="pil").style(
-                    height=300, full_width=True
+                    height=300
                 )
 
                 with gr.Accordion(label="Advanced Options", open=False):
