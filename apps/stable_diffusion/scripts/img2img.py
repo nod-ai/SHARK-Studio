@@ -95,7 +95,9 @@ def img2img_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
-    if use_stencil != "":
+    use_stencil = None if use_stencil == "None" else use_stencil
+    args.use_stencil = use_stencil
+    if use_stencil is not None:
         args.scheduler = "DDIM"
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
     elif args.scheduler != "PNDM":
@@ -140,8 +142,7 @@ def img2img_inf(
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
-        if use_stencil != "":
-            args.use_stencil = use_stencil
+        if use_stencil is not None:
             args.use_tuned = False
             img2img_obj = StencilPipeline.from_pretrained(
                 scheduler_obj,

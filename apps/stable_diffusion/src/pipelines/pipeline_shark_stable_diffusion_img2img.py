@@ -20,7 +20,6 @@ from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
-from apps.stable_diffusion.src.utils import controlnet_hint_conversion
 
 
 class Image2ImagePipeline(StableDiffusionPipeline):
@@ -45,53 +44,6 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
         self.vae_encode = vae_encode
 
-    def prepare_latents(
-        self,
-        batch_size,
-        height,
-        width,
-        generator,
-        num_inference_steps,
-        dtype,
-    ):
-        latents = torch.randn(
-            (
-                batch_size,
-                4,
-                height // 8,
-                width // 8,
-            ),
-            generator=generator,
-            dtype=torch.float32,
-        ).to(dtype)
-
-        self.scheduler.set_timesteps(num_inference_steps)
-        self.scheduler.is_scale_input_called = True
-        latents = latents * self.scheduler.init_noise_sigma
-        return latents
-
-    def preprocess_img(
-        self,
-        input_image,
-        height,
-        width,
-        dtype,
-    ):
-        # TODO: process with variable HxW combos
-        # Pre process image
-        # expecting single image as input_image for stencil generation
-        if type(input_image) == torch.Tensor:
-            return input_image
-
-        # if input image is of type PIL.Image.Image
-        image_rs = np.resize(input_image, (width, height))
-        image_arr = np.stack([np.array(i) for i in (image_rs,)], axis=0)
-        image_arr = image_arr / 255.0
-        image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
-        image_t = 2 * (image_arr - 0.5)
-
-        return image_t
-
     def prepare_image_latents(
         self,
         image,
@@ -104,7 +56,15 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         dtype,
     ):
         # Pre process image -> get image encoded -> process latents
-        image_arr = self.preprocess_img(image, height, width, dtype)
+
+        # TODO: process with variable HxW combos
+
+        # Pre process image
+        image = image.resize((width, height))
+        image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
+        image_arr = image_arr / 255.0
+        image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
+        image_arr = 2 * (image_arr - 0.5)
 
         # set scheduler steps
         self.scheduler.set_timesteps(num_inference_steps)
@@ -177,8 +137,8 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         # guidance scale as a float32 tensor.
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
 
-        # Prepare initial latent.
-        init_latents, final_timesteps = self.prepare_image_latents(
+        # Prepare input image latent
+        image_latents, final_timesteps = self.prepare_image_latents(
             image=image,
             batch_size=batch_size,
             height=height,
@@ -191,7 +151,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
 
         # Get Image latents
         latents = self.produce_img_latents(
-            latents=init_latents,
+            latents=image_latents,
             text_embeddings=text_embeddings,
             guidance_scale=guidance_scale,
             total_timesteps=final_timesteps,

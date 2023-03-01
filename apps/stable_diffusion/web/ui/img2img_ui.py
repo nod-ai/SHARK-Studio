@@ -83,8 +83,8 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     with gr.Row():
                         use_stencil = gr.Dropdown(
                             label="Stencil model",
-                            value="",
-                            choices=["canny"],
+                            value="None",
+                            choices=["None", "canny"],
                         )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():

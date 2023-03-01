@@ -117,10 +117,14 @@ class SharkifyStableDiffusionModel:
         self.model_name = self.model_name + "_" + get_path_stem(self.model_id)
         self.low_cpu_mem_usage = low_cpu_mem_usage
 
-    def get_extended_name_for_all_model(self):
+    def get_extended_name_for_all_model(self, mask_to_fetch):
         model_name = {}
-        sub_model_list = ["clip", "unet", "vae", "vae_encode", "stencil_adaptor", "stencil_unet"]
+        sub_model_list = ["clip", "unet", "stencil_unet", "vae", "vae_encode", "stencil_adaptor"]
+        index = 0
         for model in sub_model_list:
+            if mask_to_fetch[index] == False:
+                index += 1
+                continue
             sub_model = model
             model_config = self.model_name
             if "vae" == model:
@@ -129,6 +133,7 @@ class SharkifyStableDiffusionModel:
                 if self.base_vae:
                     sub_model = "base_vae"
             model_name[model] = get_extended_name(sub_model + model_config)
+            index += 1
         return model_name
 
     def check_params(self, max_len, width, height):
@@ -451,8 +456,15 @@ class SharkifyStableDiffusionModel:
                 need_stencil = True
             else:
                 need_vae_encode = True
-        self.model_name = self.get_extended_name_for_all_model()
-        vmfbs = fetch_or_delete_vmfbs(self.model_name, need_vae_encode, self.precision)   
+        # `mask_to_fetch` prepares a mask to pick a combination out of :-
+        # ["clip", "unet", "stencil_unet", "vae", "vae_encode", "stencil_adaptor"]
+        mask_to_fetch = [True, True, False, True, False, False]
+        if need_vae_encode:
+            mask_to_fetch = [True, True, False, True, True, False]
+        elif need_stencil:
+            mask_to_fetch = [True, False, True, True, False, True]
+        self.model_name = self.get_extended_name_for_all_model(mask_to_fetch)
+        vmfbs = fetch_or_delete_vmfbs(self.model_name, self.precision)   
         if vmfbs[0]:
             # -- If all vmfbs are indeed present, we also try and fetch the base
             #    model configuration for running SD with custom checkpoints.
@@ -461,8 +473,6 @@ class SharkifyStableDiffusionModel:
             if args.hf_model_id == "":
                 sys.exit("Base model configuration for the custom model is missing. Use `--clear_all` and re-run.")
             print("Loaded vmfbs from cache and successfully fetched base model configuration.")
-            if not need_vae_encode:
-                return vmfbs[:3]
             return vmfbs
 
         # Step 2:
