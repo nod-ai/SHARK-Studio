@@ -10,3 +10,6 @@ requires = [
     "iree-runtime>=20221022.190",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.black]
+line-length = 79
