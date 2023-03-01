@@ -450,6 +450,7 @@ def preprocessCKPT(custom_weights):
 
 def load_vmfb(vmfb_path, model, precision):
     model = "vae" if "base_vae" in model or "vae_encode" in model else model
+    model = "unet" if "stencil" in model else model
     precision = "fp32" if "clip" in model else precision
     extra_args = get_opt_flags(model, precision)
     shark_module = SharkInference(mlir_module=None, device=args.device)
@@ -459,32 +460,28 @@ def load_vmfb(vmfb_path, model, precision):
 
 # This utility returns vmfbs of Clip, Unet, Vae and Vae_encode, in case all of them
 # are present; deletes them otherwise.
-def fetch_or_delete_vmfbs(
-    extended_model_name, need_vae_encode, precision="fp32"
-):
+def fetch_or_delete_vmfbs(extended_model_name, precision="fp32"):
     vmfb_path = [
         get_vmfb_path_name(extended_model_name[model])
         for model in extended_model_name
     ]
+    number_of_vmfbs = len(vmfb_path)
     vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
     all_vmfb_present = True
-    compiled_models = []
-    for i in range(3):
+    compiled_models = [None] * number_of_vmfbs
+
+    for i in range(number_of_vmfbs):
         all_vmfb_present = all_vmfb_present and vmfb_present[i]
-        compiled_models.append(None)
-    if need_vae_encode:
-        all_vmfb_present = all_vmfb_present and vmfb_present[3]
-        compiled_models.append(None)
 
     # We need to delete vmfbs only if some of the models were compiled.
     if not all_vmfb_present:
-        for i in range(len(compiled_models)):
+        for i in range(number_of_vmfbs):
             if vmfb_present[i]:
                 os.remove(vmfb_path[i])
                 print("Deleted: ", vmfb_path[i])
     else:
         model_name = [model for model in extended_model_name.keys()]
-        for i in range(len(compiled_models)):
+        for i in range(number_of_vmfbs):
             compiled_models[i] = load_vmfb(
                 vmfb_path[i], model_name[i], precision
             )

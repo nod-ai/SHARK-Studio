@@ -79,6 +79,13 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     height=300
                 )
 
+                with gr.Accordion(label="Stencil Options", open=False):
+                    with gr.Row():
+                        use_stencil = gr.Dropdown(
+                            label="Stencil model",
+                            value="None",
+                            choices=["None", "canny"],
+                        )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
@@ -116,7 +123,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 "fp16",
                                 "fp32",
                             ],
-                            visible=False,
+                            visible=True,
                         )
                         max_length = gr.Radio(
                             label="Max Length",
@@ -221,6 +228,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 precision,
                 device,
                 max_length,
+                use_stencil,
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],

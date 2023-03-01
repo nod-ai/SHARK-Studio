@@ -1,7 +1,9 @@
 import torch
-from tqdm.auto import tqdm
+import time
 import numpy as np
+from tqdm.auto import tqdm
 from random import randint
+from PIL import Image
 from transformers import CLIPTokenizer
 from typing import Union
 from shark.shark_inference import SharkInference
@@ -9,24 +11,21 @@ from diffusers import (
     DDIMScheduler,
     PNDMScheduler,
     LMSDiscreteScheduler,
-    KDPM2DiscreteScheduler,
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
-    DEISMultistepScheduler,
 )
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
-
-import cv2
-from PIL import Image
+from apps.stable_diffusion.src.utils import controlnet_hint_conversion
 
 
-class Text2ImagePipeline(StableDiffusionPipeline):
+class StencilPipeline(StableDiffusionPipeline):
     def __init__(
         self,
+        controlnet: SharkInference,
         vae: SharkInference,
         text_encoder: SharkInference,
         tokenizer: CLIPTokenizer,
@@ -35,15 +34,14 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             DDIMScheduler,
             PNDMScheduler,
             LMSDiscreteScheduler,
-            KDPM2DiscreteScheduler,
             EulerDiscreteScheduler,
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
-            DEISMultistepScheduler,
         ],
     ):
         super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
+        self.controlnet = controlnet
 
     def prepare_latents(
         self,
@@ -74,17 +72,25 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         self,
         prompts,
         neg_prompts,
+        image,
         batch_size,
         height,
         width,
         num_inference_steps,
+        strength,
         guidance_scale,
         seed,
         max_length,
         dtype,
         use_base_vae,
         cpu_scheduling,
+        use_stencil,
     ):
+        # Control Embedding check & conversion
+        # TODO: 1. Change `num_images_per_prompt`.
+        controlnet_hint = controlnet_hint_conversion(
+            image, use_stencil, height, width, dtype, num_images_per_prompt=1
+        )
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
             prompts = [prompts]
@@ -96,14 +102,19 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         neg_prompts = neg_prompts * batch_size
 
         # seed generator to create the inital latent noise. Also handle out of range seeds.
-        # TODO: Wouldn't it be preferable to just report an error instead of modifying the seed on the fly?
         uint32_info = np.iinfo(np.uint32)
         uint32_min, uint32_max = uint32_info.min, uint32_info.max
         if seed < uint32_min or seed >= uint32_max:
             seed = randint(uint32_min, uint32_max)
         generator = torch.manual_seed(seed)
 
-        # Get initial latents
+        # Get text embeddings from prompts
+        text_embeddings = self.encode_prompts(prompts, neg_prompts, max_length)
+
+        # guidance scale as a float32 tensor.
+        guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
+
+        # Prepare initial latent.
         init_latents = self.prepare_latents(
             batch_size=batch_size,
             height=height,
@@ -112,21 +123,18 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             num_inference_steps=num_inference_steps,
             dtype=dtype,
         )
-
-        # Get text embeddings from prompts
-        text_embeddings = self.encode_prompts(prompts, neg_prompts, max_length)
-
-        # guidance scale as a float32 tensor.
-        guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
+        final_timesteps = self.scheduler.timesteps
 
         # Get Image latents
-        latents = self.produce_img_latents(
+        latents = self.produce_stencil_latents(
             latents=init_latents,
             text_embeddings=text_embeddings,
             guidance_scale=guidance_scale,
-            total_timesteps=self.scheduler.timesteps,
+            total_timesteps=final_timesteps,
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
+            controlnet_hint=controlnet_hint,
+            controlnet=self.controlnet,
         )
 
         # Img latents -> PIL images
