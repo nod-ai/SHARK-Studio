@@ -181,9 +181,6 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(grid=[2])
-                    inpaint_output = gr.Image(
-                        visible=False,
-                    )
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=1,
@@ -224,7 +221,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],
-            outputs=[inpaint_gallery, inpaint_output, std_output],
+            outputs=[inpaint_gallery, std_output],
             show_progress=args.progress_bar,
         )
 

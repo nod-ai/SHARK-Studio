@@ -29,22 +29,22 @@ dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
 from apps.stable_diffusion.web.ui import (
     txt2img_web,
-    txt2img_output,
+    txt2img_gallery,
     txt2img_sendto_img2img,
     txt2img_sendto_inpaint,
     txt2img_sendto_outpaint,
     img2img_web,
-    img2img_output,
+    img2img_gallery,
     img2img_init_image,
     img2img_sendto_inpaint,
     img2img_sendto_outpaint,
     inpaint_web,
-    inpaint_output,
+    inpaint_gallery,
     inpaint_init_image,
     inpaint_sendto_img2img,
     inpaint_sendto_outpaint,
     outpaint_web,
-    outpaint_output,
+    outpaint_gallery,
     outpaint_init_image,
     outpaint_sendto_img2img,
     outpaint_sendto_inpaint,
@@ -54,7 +54,7 @@ from apps.stable_diffusion.web.ui import (
 def register_button_click(button, selectedid, inputs, outputs):
     button.click(
         lambda x: (
-            x,
+            x[0]["name"] if len(x) != 0 else None,
             gr.Tabs.update(selected=selectedid),
         ),
         inputs,
@@ -78,32 +78,56 @@ with gr.Blocks(
     register_button_click(
         txt2img_sendto_img2img,
         1,
-        [txt2img_output],
+        [txt2img_gallery],
         [img2img_init_image, tabs],
     )
     register_button_click(
         txt2img_sendto_inpaint,
         2,
-        [txt2img_output],
+        [txt2img_gallery],
         [inpaint_init_image, tabs],
     )
     register_button_click(
         txt2img_sendto_outpaint,
         3,
-        [txt2img_output],
+        [txt2img_gallery],
         [outpaint_init_image, tabs],
     )
     register_button_click(
         img2img_sendto_inpaint,
         2,
-        [txt2img_output],
+        [img2img_gallery],
         [inpaint_init_image, tabs],
     )
     register_button_click(
         img2img_sendto_outpaint,
         3,
-        [txt2img_output],
+        [img2img_gallery],
         [outpaint_init_image, tabs],
+    )
+    register_button_click(
+        inpaint_sendto_img2img,
+        1,
+        [inpaint_gallery],
+        [img2img_init_image, tabs],
+    )
+    register_button_click(
+        inpaint_sendto_outpaint,
+        3,
+        [inpaint_gallery],
+        [outpaint_init_image, tabs],
+    )
+    register_button_click(
+        outpaint_sendto_img2img,
+        1,
+        [outpaint_gallery],
+        [img2img_init_image, tabs],
+    )
+    register_button_click(
+        outpaint_sendto_inpaint,
+        2,
+        [outpaint_gallery],
+        [inpaint_init_image, tabs],
     )
 
 

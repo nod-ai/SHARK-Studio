@@ -220,7 +220,7 @@ def img2img_inf(
     text_output += img2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    return generated_imgs, generated_imgs[0], text_output
+    return generated_imgs, text_output
 
 
 if __name__ == "__main__":
