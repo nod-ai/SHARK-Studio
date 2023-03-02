@@ -48,7 +48,9 @@ def load_csv_and_convert(filename, gen=False):
             )
     # This is a pytest workaround
     if gen:
-        with open("tank/dict_configs.py", "w+") as out:
+        with open(
+            os.path.join(os.path.dirname(__file__), "dict_configs.py"), "w+"
+        ) as out:
             out.write("ALL = [\n")
             for c in model_configs:
                 out.write(str(c) + ",\n")
@@ -68,7 +70,9 @@ def get_valid_test_params():
     dynamic_list = (True, False)
     # TODO: This is soooo ugly, but for some reason creating the dict at runtime
     # results in strange pytest failures.
-    load_csv_and_convert("tank/all_models.csv", True)
+    load_csv_and_convert(
+        os.path.join(os.path.dirname(__file__), "all_models.csv"), True
+    )
     from tank.dict_configs import ALL
 
     config_list = ALL
