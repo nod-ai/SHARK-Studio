@@ -25,11 +25,7 @@ from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
 
 
 def get_extended_name(model_name):
-    device = (
-        args.device
-        if "://" not in args.device
-        else "-".join(args.device.split("://"))
-    )
+    device = args.device.split("://", 1)[0]
     extended_name = "{}_{}".format(model_name, device)
     return extended_name
 
