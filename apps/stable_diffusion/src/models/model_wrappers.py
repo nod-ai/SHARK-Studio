@@ -229,7 +229,7 @@ class SharkifyStableDiffusionModel:
             ):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
-                    "takuma104/control_sd15_canny",  # TODO: ADD with model ID
+                    model_id,
                     subfolder="unet",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
@@ -281,8 +281,7 @@ class SharkifyStableDiffusionModel:
             ):
                 super().__init__()
                 self.cnet = ControlNetModel.from_pretrained(
-                    "takuma104/control_sd15_canny", # TODO: ADD with model ID
-                    subfolder="controlnet",
+                    "lllyasviel/sd-controlnet-canny", # TODO: ADD as model ID arg
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
                 self.in_channels = self.cnet.in_channels
