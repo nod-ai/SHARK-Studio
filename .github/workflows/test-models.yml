@@ -152,7 +152,6 @@ jobs:
       run: |
         ./setup_venv.ps1
         pytest -k vulkan -s
-        type bench_results.csv
 
     - name: Validate Stable Diffusion Models (Windows)
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'
