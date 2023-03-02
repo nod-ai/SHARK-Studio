@@ -188,14 +188,16 @@ if __name__ == "__main__":
     if args.mask_path is None:
         print("Flag --mask_path is required.")
         exit()
-    if "inpaint" not in args.hf_model_id:
-        print("Please use inpainting model with --hf_model_id.")
-        exit()
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     cpu_scheduling = not args.scheduler.startswith("Shark")
     set_init_device_flags()
-    schedulers = get_schedulers(args.hf_model_id)
+    model_id = (
+        args.hf_model_id
+        if "inpaint" in args.hf_model_id
+        else "stabilityai/stable-diffusion-2-inpainting"
+    )
+    schedulers = get_schedulers(model_id)
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
     image = Image.open(args.img_path)

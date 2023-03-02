@@ -416,7 +416,7 @@ def get_path_to_diffusers_checkpoint(custom_weights):
     return path_to_diffusers
 
 
-def preprocessCKPT(custom_weights):
+def preprocessCKPT(custom_weights, is_inpaint=False):
     path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights)
     if next(Path(path_to_diffusers).iterdir(), None):
         print("Checkpoint already loaded at : ", path_to_diffusers)
@@ -437,7 +437,7 @@ def preprocessCKPT(custom_weights):
     print(
         "Loading diffusers' pipeline from original stable diffusion checkpoint"
     )
-    num_in_channels = 9 if "inpainting" in custom_weights else 4
+    num_in_channels = 9 if is_inpaint else 4
     pipe = load_pipeline_from_original_stable_diffusion_ckpt(
         checkpoint_path=custom_weights,
         extract_ema=extract_ema,

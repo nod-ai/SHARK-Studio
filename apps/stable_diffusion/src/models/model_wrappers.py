@@ -80,7 +80,8 @@ class SharkifyStableDiffusionModel:
         batch_size: int = 1,
         use_base_vae: bool = False,
         use_tuned: bool = False,
-        low_cpu_mem_usage: bool = False
+        low_cpu_mem_usage: bool = False,
+        is_inpaint: bool = False
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -116,6 +117,7 @@ class SharkifyStableDiffusionModel:
             self.model_name = self.model_name + "_tuned"
         self.model_name = self.model_name + "_" + get_path_stem(self.model_id)
         self.low_cpu_mem_usage = low_cpu_mem_usage
+        self.is_inpaint = is_inpaint
 
     def get_extended_name_for_all_model(self, mask_to_fetch):
         model_name = {}
@@ -484,7 +486,7 @@ class SharkifyStableDiffusionModel:
             assert self.custom_weights.lower().endswith(
                 (".ckpt", ".safetensors")
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
-            preprocessCKPT(self.custom_weights)
+            preprocessCKPT(self.custom_weights, self.is_inpaint)
         else:
             model_to_run = args.hf_model_id
         # For custom Vae user can provide either the repo-id or a checkpoint file,
