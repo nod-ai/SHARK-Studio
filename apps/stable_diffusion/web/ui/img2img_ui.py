@@ -75,9 +75,9 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image", type="pil").style(
-                    height=300
-                )
+                img2img_init_image = gr.Image(
+                    label="Input Image", type="pil"
+                ).style(height=300)
 
                 with gr.Accordion(label="Stencil Options", open=False):
                     with gr.Row():
@@ -191,11 +191,14 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
-                    gallery = gr.Gallery(
+                    img2img_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
                     ).style(grid=[2])
+                    img2img_output = gr.Image(
+                        visible=False,
+                    )
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=1,
@@ -208,12 +211,18 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     value=output_dir,
                     interactive=False,
                 )
+                with gr.Row():
+                    img2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
+                    img2img_sendto_outpaint = gr.Button(
+                        value="SendTo Outpaint"
+                    )
+
         kwargs = dict(
             fn=img2img_inf,
             inputs=[
                 prompt,
                 negative_prompt,
-                init_image,
+                img2img_init_image,
                 height,
                 width,
                 steps,
@@ -232,7 +241,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],
-            outputs=[gallery, std_output],
+            outputs=[img2img_gallery, img2img_output, std_output],
             show_progress=args.progress_bar,
         )
 

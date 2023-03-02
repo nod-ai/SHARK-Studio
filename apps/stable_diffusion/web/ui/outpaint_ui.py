@@ -71,9 +71,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(label="Input Image", type="pil").style(
-                    height=300
-                )
+                outpaint_init_image = gr.Image(
+                    label="Input Image", type="pil"
+                ).style(height=300)
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
@@ -209,11 +209,14 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
-                    gallery = gr.Gallery(
+                    outpaint_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
                     ).style(grid=[2])
+                    outpaint_output = gr.Image(
+                        visible=False,
+                    )
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=1,
@@ -226,12 +229,16 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                     value=output_dir,
                     interactive=False,
                 )
+                with gr.Row():
+                    outpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
+                    outpaint_sendto_inpaint = gr.Button(value="SendTo Inpaint")
+
         kwargs = dict(
             fn=outpaint_inf,
             inputs=[
                 prompt,
                 negative_prompt,
-                init_image,
+                outpaint_init_image,
                 pixels,
                 mask_blur,
                 directions,
@@ -253,7 +260,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],
-            outputs=[gallery, std_output],
+            outputs=[outpaint_gallery, outpaint_output, std_output],
             show_progress=args.progress_bar,
         )
 
