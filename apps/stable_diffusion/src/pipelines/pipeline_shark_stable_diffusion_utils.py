@@ -319,6 +319,10 @@ class StableDiffusionPipeline:
         low_cpu_mem_usage: bool = False,
         use_stencil: bool = False,
     ):
+        is_inpaint = cls.__name__ in [
+            "InpaintPipeline",
+            "OutpaintPipeline",
+        ]
         if import_mlir:
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
@@ -332,6 +336,7 @@ class StableDiffusionPipeline:
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
+                is_inpaint=is_inpaint,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
@@ -386,6 +391,7 @@ class StableDiffusionPipeline:
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
+                is_inpaint=is_inpaint,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
