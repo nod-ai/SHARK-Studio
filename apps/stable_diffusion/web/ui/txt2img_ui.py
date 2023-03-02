@@ -187,9 +187,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(grid=[2])
-                    txt2img_output = gr.Image(
-                        visible=False,
-                    )
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=1,
@@ -230,7 +227,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],
-            outputs=[txt2img_gallery, txt2img_output, std_output],
+            outputs=[txt2img_gallery, std_output],
             show_progress=args.progress_bar,
         )
 
