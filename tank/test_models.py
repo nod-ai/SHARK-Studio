@@ -307,6 +307,9 @@ class SharkModuleTest(unittest.TestCase):
         if config["xfail_vkm"] == "True" and device in ["metal", "vulkan"]:
             pytest.xfail(reason=config["xfail_reason"])
 
+        if os.name == "nt" and "enabled_windows" not in config["xfail_other"]:
+            pytest.xfail(reason="this model skipped on windows")
+
         # Special cases that need to be marked.
         if "macos" in config["xfail_other"] and device in [
             "metal",
