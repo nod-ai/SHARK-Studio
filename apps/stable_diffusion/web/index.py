@@ -29,16 +29,83 @@ dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
 from apps.stable_diffusion.web.ui import (
     txt2img_web,
+    txt2img_output,
+    txt2img_sendto_img2img,
+    txt2img_sendto_inpaint,
+    txt2img_sendto_outpaint,
     img2img_web,
+    img2img_output,
+    img2img_init_image,
+    img2img_sendto_inpaint,
+    img2img_sendto_outpaint,
     inpaint_web,
+    inpaint_output,
+    inpaint_init_image,
+    inpaint_sendto_img2img,
+    inpaint_sendto_outpaint,
     outpaint_web,
+    outpaint_output,
+    outpaint_init_image,
+    outpaint_sendto_img2img,
+    outpaint_sendto_inpaint,
 )
 
-sd_web = gr.TabbedInterface(
-    [txt2img_web, img2img_web, inpaint_web, outpaint_web],
-    ["Text-to-Image", "Image-to-Image", "Inpainting", "Outpainting"],
-    css=dark_theme,
-)
+
+def register_button_click(button, selectedid, inputs, outputs):
+    button.click(
+        lambda x: (
+            x,
+            gr.Tabs.update(selected=selectedid),
+        ),
+        inputs,
+        outputs,
+    )
+
+
+with gr.Blocks(
+    css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
+) as sd_web:
+    with gr.Tabs() as tabs:
+        with gr.TabItem(label="Text-to-Image", id=0):
+            txt2img_web.render()
+        with gr.TabItem(label="Image-to-Image", id=1):
+            img2img_web.render()
+        with gr.TabItem(label="Inpainting", id=2):
+            inpaint_web.render()
+        with gr.TabItem(label="Outpainting", id=3):
+            outpaint_web.render()
+
+    register_button_click(
+        txt2img_sendto_img2img,
+        1,
+        [txt2img_output],
+        [img2img_init_image, tabs],
+    )
+    register_button_click(
+        txt2img_sendto_inpaint,
+        2,
+        [txt2img_output],
+        [inpaint_init_image, tabs],
+    )
+    register_button_click(
+        txt2img_sendto_outpaint,
+        3,
+        [txt2img_output],
+        [outpaint_init_image, tabs],
+    )
+    register_button_click(
+        img2img_sendto_inpaint,
+        2,
+        [txt2img_output],
+        [inpaint_init_image, tabs],
+    )
+    register_button_click(
+        img2img_sendto_outpaint,
+        3,
+        [txt2img_output],
+        [outpaint_init_image, tabs],
+    )
+
 
 sd_web.queue()
 sd_web.launch(

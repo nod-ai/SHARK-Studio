@@ -182,11 +182,14 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
-                    gallery = gr.Gallery(
+                    txt2img_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
                     ).style(grid=[2])
+                    txt2img_output = gr.Image(
+                        visible=False,
+                    )
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=1,
@@ -199,6 +202,13 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     value=output_dir,
                     interactive=False,
                 )
+                with gr.Row():
+                    txt2img_sendto_img2img = gr.Button(value="SendTo Img2Img")
+                    txt2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
+                    txt2img_sendto_outpaint = gr.Button(
+                        value="SendTo Outpaint"
+                    )
+
         kwargs = dict(
             fn=txt2img_inf,
             inputs=[
@@ -220,7 +230,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],
-            outputs=[gallery, std_output],
+            outputs=[txt2img_gallery, txt2img_output, std_output],
             show_progress=args.progress_bar,
         )
 

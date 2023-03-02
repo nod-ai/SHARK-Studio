@@ -71,7 +71,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(
+                inpaint_init_image = gr.Image(
                     label="Masked Image",
                     source="upload",
                     tool="sketch",
@@ -176,11 +176,14 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
-                    gallery = gr.Gallery(
+                    inpaint_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
                     ).style(grid=[2])
+                    inpaint_output = gr.Image(
+                        visible=False,
+                    )
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=1,
@@ -193,12 +196,18 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     value=output_dir,
                     interactive=False,
                 )
+                with gr.Row():
+                    inpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
+                    inpaint_sendto_outpaint = gr.Button(
+                        value="SendTo Outpaint"
+                    )
+
         kwargs = dict(
             fn=inpaint_inf,
             inputs=[
                 prompt,
                 negative_prompt,
-                init_image,
+                inpaint_init_image,
                 height,
                 width,
                 steps,
@@ -215,7 +224,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],
-            outputs=[gallery, std_output],
+            outputs=[inpaint_gallery, inpaint_output, std_output],
             show_progress=args.progress_bar,
         )
 

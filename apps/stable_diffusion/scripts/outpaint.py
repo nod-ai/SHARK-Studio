@@ -190,7 +190,7 @@ def outpaint_inf(
     text_output += outpaint_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    return generated_imgs, text_output
+    return generated_imgs, generated_imgs[0], text_output
 
 
 if __name__ == "__main__":
