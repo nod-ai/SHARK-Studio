@@ -32,6 +32,11 @@ img2img_obj = None
 config_obj = None
 schedulers = None
 
+# set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
+init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_use_tuned = args.use_tuned
+init_import_mlir = args.import_mlir
+
 
 # Exposed to UI.
 def img2img_inf(
@@ -131,9 +136,9 @@ def img2img_inf(
         args.height = height
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
-        args.iree_vulkan_target_triple = ""
-        args.use_tuned = True
-        args.import_mlir = True
+        args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.use_tuned = init_use_tuned
+        args.import_mlir = init_import_mlir
         set_init_device_flags()
         model_id = (
             args.hf_model_id
