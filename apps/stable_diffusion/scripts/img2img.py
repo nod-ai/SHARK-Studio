@@ -71,6 +71,8 @@ def img2img_inf(
     use_stencil: str,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
+    lora_weights: str,
+    lora_hf_id: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -112,6 +114,15 @@ def img2img_inf(
     else:
         args.hf_model_id = custom_model
 
+    use_lora = ""
+    if lora_weights == "None" and not lora_hf_id:
+        use_lora = ""
+    elif not lora_hf_id:
+        use_lora = lora_weights
+    else:
+        use_lora = lora_hf_id
+    args.use_lora = use_lora
+
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
@@ -144,7 +155,7 @@ def img2img_inf(
         height,
         width,
         device,
-        use_lora=None,
+        use_lora=use_lora,
         use_stencil=use_stencil,
     )
     if (
@@ -189,6 +200,7 @@ def img2img_inf(
                     low_cpu_mem_usage=args.low_cpu_mem_usage,
                     use_stencil=use_stencil,
                     debug=args.import_debug if args.import_mlir else False,
+                    use_lora=use_lora,
                 )
             )
         else:
@@ -208,6 +220,7 @@ def img2img_inf(
                     args.use_tuned,
                     low_cpu_mem_usage=args.low_cpu_mem_usage,
                     debug=args.import_debug if args.import_mlir else False,
+                    use_lora=use_lora,
                 )
             )
 
@@ -310,6 +323,7 @@ if __name__ == "__main__":
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             use_stencil=use_stencil,
             debug=args.import_debug if args.import_mlir else False,
+            use_lora=args.use_lora,
         )
     else:
         img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -327,6 +341,7 @@ if __name__ == "__main__":
             args.use_tuned,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             debug=args.import_debug if args.import_mlir else False,
+            use_lora=args.use_lora,
         )
 
     start_time = time.time()

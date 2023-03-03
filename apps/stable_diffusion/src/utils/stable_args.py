@@ -110,6 +110,31 @@ p.add_argument(
 )
 
 ##############################################################################
+### Stable Diffusion Training Params
+##############################################################################
+
+p.add_argument(
+    "--lora_save_dir",
+    type=str,
+    default="models/lora/",
+    help="Directory to save the lora fine tuned model",
+)
+
+p.add_argument(
+    "--training_images_dir",
+    type=str,
+    default="models/lora/training_images/",
+    help="Directory containing images that are an example of the prompt",
+)
+
+p.add_argument(
+    "--training_steps",
+    type=int,
+    default=2000,
+    help="The no. of steps to train",
+)
+
+##############################################################################
 ### Inpainting and Outpainting Params
 ##############################################################################
 
