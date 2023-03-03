@@ -274,6 +274,7 @@ imagenet_style_templates_small = [
     "a large painting in the style of {}",
 ]
 
+
 # Setup the dataset
 class TextualInversionDataset(Dataset):
     def __init__(
@@ -289,7 +290,6 @@ class TextualInversionDataset(Dataset):
         placeholder_token="*",
         center_crop=False,
     ):
-
         self.data_root = data_root
         self.tokenizer = tokenizer
         self.learnable_property = learnable_property
@@ -349,7 +349,10 @@ class TextualInversionDataset(Dataset):
 
         if self.center_crop:
             crop = min(img.shape[0], img.shape[1])
-            h, w, = (
+            (
+                h,
+                w,
+            ) = (
                 img.shape[0],
                 img.shape[1],
             )
@@ -668,6 +671,7 @@ def predictions(torch_func, jit_func, batchA, batchB):
 
 logger = logging.getLogger(__name__)
 
+
 # def save_progress(text_encoder, placeholder_token_id, accelerator, save_path):
 def save_progress(text_encoder, placeholder_token_id, save_path):
     logger.info("Saving embeddings")
@@ -697,6 +701,7 @@ optimizer = torch.optim.AdamW(
     text_encoder.get_input_embeddings().parameters(),  # only optimize the embeddings
     lr=learning_rate,
 )
+
 
 # Training function
 def train_func(batch_pixel_values, batch_input_ids):
