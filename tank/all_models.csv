@@ -5,7 +5,7 @@ bert-base-uncased,mhlo,tf,1e-2,1e-3,default,None,False,False,False,"","enabled_w
 camembert-base,mhlo,tf,1e-2,1e-3,default,None,True,True,True,"",""
 dbmdz/convbert-base-turkish-cased,mhlo,tf,1e-2,1e-3,default,nhcw-nhwc,True,True,False,"https://github.com/iree-org/iree/issues/9971",""
 distilbert-base-uncased,mhlo,tf,1e-2,1e-3,default,None,False,False,False,"",""
-facebook/convnext-tiny-224,mhlo,tf,1e-2,1e-3,tf_vit,nhcw-nhwc,True,True,False,"https://github.com/nod-ai/SHARK/issues/311 & https://github.com/nod-ai/SHARK/issues/342",""
+facebook/convnext-tiny-224,mhlo,tf,1e-2,1e-3,tf_vit,nhcw-nhwc,True,True,False,"https://github.com/nod-ai/SHARK/issues/311 & https://github.com/nod-ai/SHARK/issues/342","macos"
 funnel-transformer/small,mhlo,tf,1e-2,1e-3,default,None,True,True,False,"https://github.com/nod-ai/SHARK/issues/201",""
 google/electra-small-discriminator,mhlo,tf,1e-2,1e-3,default,None,False,False,False,"",""
 google/mobilebert-uncased,mhlo,tf,1e-2,1e-3,default,None,True,False,False,"Fails during iree-compile",""
