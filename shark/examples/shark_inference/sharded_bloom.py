@@ -7,9 +7,13 @@
 # -de --device: the device you want to run bloom on.  E.G. cpu, cuda
 # -c, --recompile: set to true if you want to recompile to vmfb.
 # -d, --download: set to true if you want to redownload the mlir files
+# -cm, --create_mlirs: set to true if you want to create the mlir files from scratch.  please make sure you have transformers 4.21.2 before using this option
 # -t --token_count: the number of tokens you want to generate
 # -pr --prompt: the prompt you want to feed to the model
-# -m --model_namme: the name of the model, e.g. bloom-560m
+# -m --model_name: the name of the model, e.g. bloom-560m
+#
+# If you don't specify a prompt when you run this example, you will be able to give prompts through the terminal.  Run the
+# example in this way if you want to run multiple examples without reinitializing the model
 #####################################################################################
 
 import os
@@ -306,31 +310,8 @@ def _prepare_attn_mask(
 
 def download_model(destination_folder, model_name):
     download_public_file(
-        f"https://{model_name}/config.json", destination_folder
+        f"gs://shark_tank/sharded_bloom/{model_name}", destination_folder
     )
-    f = open(f"{destination_folder}/config.json")
-    config = json.load(f)
-    f.close()
-    n_blocks = config["n_layer"]
-    download_public_file(
-        f"https://{model_name}/lm_head.mlir", destination_folder
-    )
-    download_public_file(f"https://{model_name}/ln_f.mlir", destination_folder)
-    download_public_file(
-        f"https://{model_name}/word_embeddings.mlir", destination_folder
-    )
-    download_public_file(
-        f"https://{model_name}/word_embeddings_layernorm.mlir",
-        destination_folder,
-    )
-    download_public_file(
-        f"https://{model_name}/tokenizer.json", destination_folder
-    )
-
-    for i in range(n_blocks):
-        download_public_file(
-            f"https://{model_name}/bloom_block_{i}.mlir", destination_folder
-        )
 
 
 def compile_embeddings(embeddings_layer, input_ids, path):
@@ -662,12 +643,16 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--download", default=False, type=bool)
     parser.add_argument("-t", "--token_count", default=10, type=int)
     parser.add_argument("-m", "--model_name", default="bloom-560m")
+    parser.add_argument("-cm", "--create_mlirs", default=False, type=bool)
     parser.add_argument(
         "-pr",
         "--prompt",
-        default="The SQL command to extract all the users whose name starts with A is: ",
+        default=None,
     )
     args = parser.parse_args()
+
+    if not os.path.isdir(args.model_path):
+        os.mkdir(args.model_path)
 
     if args.device_list is not None:
         args.device_list = json.loads(args.device_list)
@@ -675,13 +660,19 @@ if __name__ == "__main__":
     if args.device == "cuda" and args.device_list is not None:
         IS_CUDA = True
         from cuda.cudart import cudaSetDevice
+    if args.download and args.create_mlirs:
+        print(
+            "WARNING: It is not advised to turn on both download and create_mlirs"
+        )
     if args.download:
-        # download_model(args.model_path, args.model_name)
+        download_model(args.model_path, args.model_name)
+    if args.create_mlirs:
         create_mlirs(args.model_path, args.model_name)
     from transformers import AutoTokenizer, AutoModelForCausalLM, BloomConfig
 
     tokenizer = AutoTokenizer.from_pretrained(args.model_path)
-    input_ids = tokenizer.encode(args.prompt, return_tensors="pt")
+    if args.prompt is not None:
+        input_ids = tokenizer.encode(args.prompt, return_tensors="pt")
 
     shardedbloom = ShardedBloom(args.model_path)
     shardedbloom.init_layers(
@@ -689,10 +680,36 @@ if __name__ == "__main__":
     )
     shardedbloom.load_layers()
 
-    for _ in range(args.token_count):
-        next_token = shardedbloom.forward_pass(
-            torch.tensor(input_ids), device=args.device
-        )
-        input_ids = torch.cat([input_ids, next_token.unsqueeze(-1)], dim=-1)
+    if args.prompt is not None:
+        for _ in range(args.token_count):
+            next_token = shardedbloom.forward_pass(
+                torch.tensor(input_ids), device=args.device
+            )
+            input_ids = torch.cat(
+                [input_ids, next_token.unsqueeze(-1)], dim=-1
+            )
 
-    print(tokenizer.decode(input_ids.squeeze()))
+        print(tokenizer.decode(input_ids.squeeze()))
+
+    else:
+        while True:
+            prompt = input("Enter Prompt: ")
+            try:
+                token_count = int(
+                    input("Enter number of tokens you want to generate: ")
+                )
+            except:
+                print("Invalid integer entered.  Using default value of 10")
+                token_count = 10
+
+            input_ids = tokenizer.encode(prompt, return_tensors="pt")
+
+            for _ in range(token_count):
+                next_token = shardedbloom.forward_pass(
+                    torch.tensor(input_ids), device=args.device
+                )
+                input_ids = torch.cat(
+                    [input_ids, next_token.unsqueeze(-1)], dim=-1
+                )
+
+            print(tokenizer.decode(input_ids.squeeze()))
