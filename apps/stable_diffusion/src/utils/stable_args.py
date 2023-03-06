@@ -105,6 +105,21 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--inpaint_full_res",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="If inpaint only masked area or whole picture",
+)
+
+p.add_argument(
+    "--inpaint_full_res_padding",
+    type=int,
+    default=32,
+    choices=range(0, 257, 4),
+    help="Number of pixels for only masked padding",
+)
+
+p.add_argument(
     "--pixels",
     type=int,
     default=128,

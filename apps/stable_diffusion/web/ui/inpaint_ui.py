@@ -127,6 +127,20 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                             visible=False,
                         )
                     with gr.Row():
+                        inpaint_full_res = gr.Radio(
+                            choices=["Whole picture", "Only masked"],
+                            type="index",
+                            value="Whole picture",
+                            label="Inpaint area",
+                        )
+                        inpaint_full_res_padding = gr.Slider(
+                            minimum=0,
+                            maximum=256,
+                            step=4,
+                            value=32,
+                            label="Only masked padding, pixels",
+                        )
+                    with gr.Row():
                         steps = gr.Slider(
                             1, 100, value=args.steps, step=1, label="Steps"
                         )
@@ -207,6 +221,8 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 inpaint_init_image,
                 height,
                 width,
+                inpaint_full_res,
+                inpaint_full_res_padding,
                 steps,
                 guidance_scale,
                 seed,
