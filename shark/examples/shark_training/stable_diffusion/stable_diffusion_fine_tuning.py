@@ -663,7 +663,7 @@ def refbackend_torchdynamo_backend(
 def predictions(torch_func, jit_func, batchA, batchB):
     res = jit_func(batchA.numpy(), batchB.numpy())
     if res is not None:
-        prediction = torch.from_numpy(res)
+        prediction = res
     else:
         prediction = None
     return prediction
@@ -802,9 +802,13 @@ def training_function():
     progress_bar.set_description("Steps")
     global_step = 0
 
-    params__ = [i for i in text_encoder.get_input_embeddings().parameters()]
+    params_ = [i for i in text_encoder.get_input_embeddings().parameters()]
+    if args.use_torchdynamo:
+        print("******** TRAINING STARTED - TORCHYDNAMO PATH ********")
+    else:
+        print("******** TRAINING STARTED - PYTORCH PATH ********")
     print("Initial weights:")
-    print(params__, params__[0].shape)
+    print(params_, params_[0].shape)
 
     for epoch in range(num_train_epochs):
         text_encoder.train()
@@ -849,6 +853,7 @@ def training_function():
 
     # Create the pipeline using using the trained modules and save it.
     params__ = [i for i in text_encoder.get_input_embeddings().parameters()]
+    print("******** TRAINING PROCESS FINISHED ********")
     print("Updated weights:")
     print(params__, params__[0].shape)
     pipeline = StableDiffusionPipeline.from_pretrained(
