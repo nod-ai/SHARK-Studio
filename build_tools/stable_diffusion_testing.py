@@ -63,7 +63,9 @@ def get_inpaint_inputs():
     open("./test_images/inputs/mask.png", "wb").write(mask.content)
 
 
-def test_loop(device="vulkan", beta=False, extra_flags=[]):
+def test_loop(
+    device="vulkan", beta=False, test_executable=executable, extra_flags=[]
+):
     # Get golden values from tank
     shutil.rmtree("./test_images", ignore_errors=True)
     model_metrics = []
@@ -94,7 +96,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
             for use_tune in tuned_options:
                 command = (
                     [
-                        executable,  # executable is the python from the venv used to run this
+                        test_executable,  # sys.executable is the python from the venv used to run this
                         "apps/stable_diffusion/scripts/txt2img.py",
                         "--device=" + device,
                         prompt_text,
@@ -108,7 +110,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                     ]
                     if "inpainting" not in model_name
                     else [
-                        executable,
+                        test_executable,
                         "apps/stable_diffusion/scripts/inpaint.py",
                         "--device=" + device,
                         inpaint_prompt_text,
@@ -201,9 +203,14 @@ parser.add_argument("-d", "--device", default="vulkan")
 parser.add_argument(
     "-b", "--beta", action=argparse.BooleanOptionalAction, default=False
 )
-
+parser.add_argument(
+    "-e",
+    "--executable",
+    default=executable,
+    help="executable to run tests with",
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-    test_loop(args.device, args.beta, [])
+    test_loop(args.device, args.beta, args.executable, [])

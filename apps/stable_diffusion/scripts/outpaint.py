@@ -198,7 +198,7 @@ def outpaint_inf(
     return generated_imgs, text_output
 
 
-if __name__ == "__main__":
+def main():
     if args.clear_all:
         clear_all()
 
@@ -296,3 +296,7 @@ if __name__ == "__main__":
         }
         save_output_img(generated_imgs[0], seed, extra_info)
         print(text_output)
+
+
+if __name__ == "__main__":
+    main()

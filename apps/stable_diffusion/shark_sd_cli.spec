@@ -38,7 +38,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['scripts/txt2img.py'],
+    ['scripts/main.py'],
     pathex=['.'],
     binaries=binaries,
     datas=datas,
