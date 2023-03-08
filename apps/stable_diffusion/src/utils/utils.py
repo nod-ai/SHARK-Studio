@@ -603,7 +603,7 @@ def save_output_img(output_img, img_seed, extra_info={}):
 
     new_entry.update(extra_info)
 
-    with open(csv_path, "a") as csv_obj:
+    with open(csv_path, "a", encoding="utf-8") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()
