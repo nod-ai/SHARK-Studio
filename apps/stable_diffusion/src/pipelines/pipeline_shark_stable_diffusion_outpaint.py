@@ -65,7 +65,6 @@ class OutpaintPipeline(StableDiffusionPipeline):
         ).to(dtype)
 
         self.scheduler.set_timesteps(num_inference_steps)
-        self.scheduler.is_scale_input_called = True
         latents = latents * self.scheduler.init_noise_sigma
         return latents
 

@@ -714,9 +714,11 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--token_count", default=10, type=int)
     parser.add_argument("-m", "--model_name", default="bloom-560m")
     parser.add_argument("-cm", "--create_mlirs", default=False, type=bool)
+
     parser.add_argument(
         "-lm", "--large_model_memory_efficient", default=False, type=bool
     )
+
     parser.add_argument(
         "-pr",
         "--prompt",
@@ -728,6 +730,7 @@ if __name__ == "__main__":
         print(
             "Warning: If you need to use memory efficient mode, you probably want to use 'download' instead"
         )
+
 
     if not os.path.isdir(args.model_path):
         os.mkdir(args.model_path)
@@ -756,6 +759,7 @@ if __name__ == "__main__":
         f = open(f"{args.model_path}/config.json")
         config = json.load(f)
         f.close()
+
 
         self_path = os.path.dirname(os.path.abspath(__file__))
         script_path = os.path.join(self_path, "sharded_bloom_large_models.py")
