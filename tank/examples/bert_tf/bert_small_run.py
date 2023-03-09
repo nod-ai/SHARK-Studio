@@ -79,7 +79,7 @@ if __name__ == "__main__":
     # Compile the model using IREE
     backend = "dylib-llvm-aot"
     args = [
-        "--iree-llvm-target-cpu-features=host",
+        "--iree-llvmcpu-target-cpu-features=host",
         "--iree-mhlo-demote-i64-to-i32=false",
         "--iree-flow-demote-i64-to-i32",
     ]
