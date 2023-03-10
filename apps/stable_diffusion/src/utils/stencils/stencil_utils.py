@@ -134,6 +134,24 @@ def controlnet_hint_conversion(
     return controlnet_hint
 
 
+stencil_to_model_id_map = {
+    "canny": "lllyasviel/sd-controlnet-canny",
+    "depth": "lllyasviel/sd-controlnet-depth",
+    "hed": "lllyasviel/sd-controlnet-hed",
+    "mlsd": "lllyasviel/sd-controlnet-mlsd",
+    "normal": "lllyasviel/sd-controlnet-normal",
+    "openpose": "lllyasviel/sd-controlnet-openpose",
+    "scribble": "lllyasviel/sd-controlnet-scribble",
+    "seg": "lllyasviel/sd-controlnet-seg",
+}
+
+
+def get_stencil_model_id(use_stencil):
+    if use_stencil in stencil_to_model_id_map:
+        return stencil_to_model_id_map[use_stencil]
+    return None
+
+
 # Stencil 1. Canny
 def hint_canny(
     image: Image.Image,
