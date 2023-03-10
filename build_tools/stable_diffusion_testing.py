@@ -89,6 +89,9 @@ def test_loop(
         "wavymulder/Analog-Diffusion",
         "dreamlike-art/dreamlike-diffusion-1.0",
     ]
+    point_to_py_file = True if test_executable == executable else False
+    if point_to_py_file:
+        extra_flags.append("apps/stable_diffusion/scripts/main.py")
     for import_opt in import_options:
         for model_name in hf_model_names:
             if model_name in to_skip:
@@ -97,7 +100,6 @@ def test_loop(
                 command = (
                     [
                         test_executable,  # sys.executable is the python from the venv used to run this
-                        "apps/stable_diffusion/scripts/txt2img.py",
                         "--device=" + device,
                         prompt_text,
                         "--negative_prompts=" + '""',
@@ -111,7 +113,6 @@ def test_loop(
                     if "inpainting" not in model_name
                     else [
                         test_executable,
-                        "apps/stable_diffusion/scripts/inpaint.py",
                         "--device=" + device,
                         inpaint_prompt_text,
                         "--negative_prompts=" + '""',

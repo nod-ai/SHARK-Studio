@@ -160,4 +160,4 @@ jobs:
         ./setup_venv.ps1
         python process_skipfiles.py
         pyinstaller .\apps\stable_diffusion\shark_sd.spec
-        python build_tools/stable_diffusion_testing.py --device=vulkan --executable=./dist/shark_sd.exe
+        python build_tools/stable_diffusion_testing.py --device=vulkan --executable=./dist/shark_sd_cli.exe
