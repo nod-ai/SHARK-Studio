@@ -317,7 +317,7 @@ class StableDiffusionPipeline:
         use_base_vae: bool,
         use_tuned: bool,
         low_cpu_mem_usage: bool = False,
-        use_stencil: bool = False,
+        use_stencil: str = None,
     ):
         is_inpaint = cls.__name__ in [
             "InpaintPipeline",
@@ -337,6 +337,7 @@ class StableDiffusionPipeline:
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
                 is_inpaint=is_inpaint,
+                use_stencil=use_stencil,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
