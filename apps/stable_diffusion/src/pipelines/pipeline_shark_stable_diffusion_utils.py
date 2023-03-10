@@ -7,6 +7,7 @@ import time
 from typing import Union
 from diffusers import (
     DDIMScheduler,
+    DDPMScheduler,
     PNDMScheduler,
     LMSDiscreteScheduler,
     KDPM2DiscreteScheduler,
@@ -311,11 +312,13 @@ class StableDiffusionPipeline:
         debug: bool = False,
         use_stencil: str = None,
         use_lora: str = "",
+        ddpm_scheduler: DDPMScheduler = None,
     ):
         is_inpaint = cls.__name__ in [
             "InpaintPipeline",
             "OutpaintPipeline",
         ]
+        is_upscaler = cls.__name__ in ["UpscalerPipeline"]
         if import_mlir:
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
@@ -331,6 +334,7 @@ class StableDiffusionPipeline:
                 low_cpu_mem_usage=low_cpu_mem_usage,
                 debug=debug,
                 is_inpaint=is_inpaint,
+                is_upscaler=is_upscaler,
                 use_stencil=use_stencil,
                 use_lora=use_lora,
             )
@@ -348,6 +352,12 @@ class StableDiffusionPipeline:
                 return cls(
                     controlnet, vae, clip, get_tokenizer(), unet, scheduler
                 )
+            if cls.__name__ in ["UpscalerPipeline"]:
+                clip, unet, vae = mlir_import()
+                return cls(
+                    vae, clip, get_tokenizer(), unet, scheduler, ddpm_scheduler
+                )
+
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
         try:
@@ -388,6 +398,7 @@ class StableDiffusionPipeline:
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
                 is_inpaint=is_inpaint,
+                is_upscaler=is_upscaler,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
