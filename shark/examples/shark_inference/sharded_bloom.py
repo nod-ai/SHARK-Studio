@@ -731,7 +731,6 @@ if __name__ == "__main__":
             "Warning: If you need to use memory efficient mode, you probably want to use 'download' instead"
         )
 
-
     if not os.path.isdir(args.model_path):
         os.mkdir(args.model_path)
 
@@ -759,7 +758,6 @@ if __name__ == "__main__":
         f = open(f"{args.model_path}/config.json")
         config = json.load(f)
         f.close()
-
 
         self_path = os.path.dirname(os.path.abspath(__file__))
         script_path = os.path.join(self_path, "sharded_bloom_large_models.py")
