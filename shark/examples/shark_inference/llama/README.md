@@ -3,13 +3,13 @@
 ## TORCH-MLIR Version
 
 ```
-https://github.com/pashu123/torch-mlir.git
+https://github.com/nod-ai/torch-mlir.git
 ```
-Then checkout the `complex` branch and build.
+Then check out the `complex` branch and build.
 
 ### Setup & Run
 ```
-git clone https://github.com/pashu123/llama.git
+git clone https://github.com/nod-ai/llama.git
 ```
 Then in this repository
 ```
