@@ -69,7 +69,7 @@ p.add_argument(
     "--height",
     type=int,
     default=512,
-    choices=range(384, 769, 8),
+    choices=range(128, 769, 8),
     help="the height of the output image.",
 )
 
@@ -77,7 +77,7 @@ p.add_argument(
     "--width",
     type=int,
     default=512,
-    choices=range(384, 769, 8),
+    choices=range(128, 769, 8),
     help="the width of the output image.",
 )
 
@@ -86,6 +86,13 @@ p.add_argument(
     type=float,
     default=7.5,
     help="the value to be used for guidance scaling.",
+)
+
+p.add_argument(
+    "--noise_level",
+    type=int,
+    default=20,
+    help="the value to be used for noise level of upscaler.",
 )
 
 p.add_argument(
