@@ -445,8 +445,11 @@ freeze_params(params_to_freeze)
 
 
 # Move vae and unet to device
-vae.to(args.device)
-unet.to(args.device)
+# For the dynamo path default compilation device is `cpu`, since torch-mlir
+# supports only that. Therefore, convert to device only for PyTorch path.
+if not args.use_torchdynamo:
+    vae.to(args.device)
+    unet.to(args.device)
 
 # Keep vae in eval mode as we don't train it
 vae.eval()
@@ -885,7 +888,9 @@ pipe = StableDiffusionPipeline.from_pretrained(
     scheduler=DPMSolverMultistepScheduler.from_pretrained(
         hyperparameters["output_dir"], subfolder="scheduler"
     ),
-).to(args.device)
+)
+if not args.use_torchdynamo:
+    pipe.to(args.device)
 
 # Run the Stable Diffusion pipeline
 # Don't forget to use the placeholder token in your prompt
