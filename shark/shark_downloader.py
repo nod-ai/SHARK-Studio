@@ -19,6 +19,7 @@ import sys
 from pathlib import Path
 from shark.parser import shark_args
 from google.cloud import storage
+from shark.importer import gen_shark_files
 
 
 def download_public_file(
@@ -194,8 +195,14 @@ def download_model(
     suffix = f"{dyn_str}_{frontend}{tuned_str}.mlir"
     filename = os.path.join(model_dir, model_name + suffix)
 
-    with open(filename, mode="rb") as f:
-        mlir_file = f.read()
+    try:
+        with open(filename, mode="rb") as f:
+            mlir_file = f.read()
+    except FileNotFoundError:
+        from tank.generate_sharktank import gen_shark_files
+
+        tank_dir = WORKDIR
+        gen_shark_files(model_name, frontend, tank_dir)
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
     inputs = np.load(os.path.join(model_dir, "inputs.npz"))
