@@ -44,4 +44,4 @@ def get_iree_cpu_args():
         error_message = f"OS Type f{os_name} not supported and triple can't be determined, open issue to dSHARK team please :)"
         raise Exception(error_message)
     print(f"Target triple found:{target_triple}")
-    return [f"-iree-llvm-target-triple={target_triple}"]
+    return [f"--iree-llvmcpu-target-triple={target_triple}"]

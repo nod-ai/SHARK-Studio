@@ -25,11 +25,7 @@ from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
 
 
 def get_extended_name(model_name):
-    device = (
-        args.device
-        if "://" not in args.device
-        else "-".join(args.device.split("://"))
-    )
+    device = args.device.split("://", 1)[0]
     extended_name = "{}_{}".format(model_name, device)
     return extended_name
 
@@ -603,7 +599,7 @@ def save_output_img(output_img, img_seed, extra_info={}):
 
     new_entry.update(extra_info)
 
-    with open(csv_path, "a") as csv_obj:
+    with open(csv_path, "a", encoding="utf-8") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()

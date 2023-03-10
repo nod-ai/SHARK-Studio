@@ -30,6 +30,11 @@ inpaint_obj = None
 config_obj = None
 schedulers = None
 
+# set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
+init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_use_tuned = args.use_tuned
+init_import_mlir = args.import_mlir
+
 
 # Exposed to UI.
 def inpaint_inf(
@@ -38,6 +43,8 @@ def inpaint_inf(
     image_dict,
     height: int,
     width: int,
+    inpaint_full_res: bool,
+    inpaint_full_res_padding: int,
     steps: int,
     guidance_scale: float,
     seed: int,
@@ -106,9 +113,9 @@ def inpaint_inf(
         args.height = height
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
-        args.iree_vulkan_target_triple = ""
-        args.use_tuned = True
-        args.import_mlir = False
+        args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.use_tuned = init_use_tuned
+        args.import_mlir = init_import_mlir
         set_init_device_flags()
         model_id = (
             args.hf_model_id
@@ -152,6 +159,8 @@ def inpaint_inf(
             batch_size,
             height,
             width,
+            inpaint_full_res,
+            inpaint_full_res_padding,
             steps,
             guidance_scale,
             img_seed,
@@ -232,6 +241,8 @@ def main():
             args.batch_size,
             args.height,
             args.width,
+            args.inpaint_full_res,
+            args.inpaint_full_res_padding,
             args.steps,
             args.guidance_scale,
             seed,
