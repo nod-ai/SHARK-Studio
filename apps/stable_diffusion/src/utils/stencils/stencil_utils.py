@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from PIL import Image
 import torch
@@ -24,23 +23,6 @@ def HWC3(x):
         y = color * alpha + 255.0 * (1.0 - alpha)
         y = y.clip(0, 255).astype(np.uint8)
         return y
-
-
-def resize_image(input_image, resolution):
-    H, W, C = input_image.shape
-    H = float(H)
-    W = float(W)
-    k = float(resolution) / min(H, W)
-    H *= k
-    W *= k
-    H = int(np.round(H / 64.0)) * 64
-    W = int(np.round(W / 64.0)) * 64
-    img = cv2.resize(
-        input_image,
-        (W, H),
-        interpolation=cv2.INTER_LANCZOS4 if k > 1 else cv2.INTER_AREA,
-    )
-    return img
 
 
 def controlnet_hint_shaping(
@@ -125,7 +107,7 @@ def controlnet_hint_conversion(
     match use_stencil:
         case "canny":
             print("Detecting edge with canny")
-            controlnet_hint = hint_canny(image, width)
+            controlnet_hint = hint_canny(image)
         case _:
             return None
     controlnet_hint = controlnet_hint_shaping(
@@ -155,19 +137,16 @@ def get_stencil_model_id(use_stencil):
 # Stencil 1. Canny
 def hint_canny(
     image: Image.Image,
-    width=512,
-    height=512,
     low_threshold=100,
     high_threshold=200,
 ):
     with torch.no_grad():
         input_image = np.array(image)
-        image_resolution = width
-
-        img = resize_image(HWC3(input_image), image_resolution)
 
         if not "canny" in stencil:
             stencil["canny"] = CannyDetector()
-        detected_map = stencil["canny"](img, low_threshold, high_threshold)
+        detected_map = stencil["canny"](
+            input_image, low_threshold, high_threshold
+        )
         detected_map = HWC3(detected_map)
         return detected_map

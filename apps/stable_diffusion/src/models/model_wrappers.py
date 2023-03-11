@@ -31,13 +31,23 @@ def replace_shape_str(shape, max_len, width, height, batch_size):
         elif shape[i] == "width":
             new_shape.append(width)
         elif isinstance(shape[i], str):
-            mul_val = int(shape[i].split("*")[0])
-            if "batch_size" in shape[i]:
-                new_shape.append(batch_size * mul_val)
-            elif "height" in shape[i]:
-                new_shape.append(height * mul_val)
-            elif "width" in shape[i]:
-                new_shape.append(width * mul_val)
+            if "*" in shape[i]:
+                mul_val = int(shape[i].split("*")[0])
+                if "batch_size" in shape[i]:
+                    new_shape.append(batch_size * mul_val)
+                elif "height" in shape[i]:
+                    new_shape.append(height * mul_val)
+                elif "width" in shape[i]:
+                    new_shape.append(width * mul_val)
+            elif "/" in shape[i]:
+                import math
+                div_val = int(shape[i].split("/")[1])
+                if "batch_size" in shape[i]:
+                    new_shape.append(math.ceil(batch_size / div_val))
+                elif "height" in shape[i]:
+                    new_shape.append(math.ceil(height / div_val))
+                elif "width" in shape[i]:
+                    new_shape.append(math.ceil(width / div_val))
         else:
             new_shape.append(shape[i])
     return new_shape
