@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import gradio as gr
 from PIL import Image
 from apps.stable_diffusion.scripts import txt2img_inf
@@ -31,13 +32,16 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         with gr.Row():
                             custom_model = gr.Dropdown(
                                 label=f"Models (Custom Model path: {get_custom_model_path()})",
-                                value=args.ckpt_loc
+                                elem_id="custom_model",
+                                value=os.path.basename(args.ckpt_loc)
                                 if args.ckpt_loc
                                 else "None",
-                                choices=get_custom_model_files()
+                                choices=["None"]
+                                + get_custom_model_files()
                                 + predefined_models,
                             )
                             hf_model_id = gr.Textbox(
+                                elem_id="hf_model_id",
                                 placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
                                 value="",
                                 label="HuggingFace Model ID",
@@ -68,6 +72,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
+                            elem_id="scheduler",
                             label="Scheduler",
                             value=args.scheduler,
                             choices=scheduler_list_txt2img,
@@ -141,6 +146,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         value=args.seed, precision=0, label="Seed"
                     )
                     device = gr.Dropdown(
+                        elem_id="device",
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,

@@ -53,12 +53,19 @@ def get_custom_model_path():
     return Path(args.ckpt_dir) if args.ckpt_dir else Path(Path.cwd(), "models")
 
 
+def get_custom_model_pathfile(custom_model_name):
+    return os.path.join(get_custom_model_path(), custom_model_name)
+
+
 def get_custom_model_files():
-    ckpt_files = ["None"]
+    ckpt_files = []
     for extn in custom_model_filetypes:
-        files = glob.glob(os.path.join(get_custom_model_path(), extn))
+        files = [
+            os.path.basename(x)
+            for x in glob.glob(os.path.join(get_custom_model_path(), extn))
+        ]
         ckpt_files.extend(files)
-    return ckpt_files
+    return sorted(ckpt_files, key=str.casefold)
 
 
 nodlogo_loc = resource_path("logos/nod-logo.png")

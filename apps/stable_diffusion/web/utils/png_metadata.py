@@ -1,5 +1,4 @@
 import re
-import os
 from pathlib import Path
 from apps.stable_diffusion.web.ui.txt2img_ui import (
     png_info_img,
@@ -15,7 +14,7 @@ from apps.stable_diffusion.web.ui.txt2img_ui import (
     hf_model_id,
 )
 from apps.stable_diffusion.web.ui.utils import (
-    get_custom_model_path,
+    get_custom_model_pathfile,
     scheduler_list_txt2img,
     predefined_models,
 )
@@ -83,10 +82,9 @@ def import_png_metadata(pil_data):
         png_hf_model_id = ""
 
         # Check for a model match with one of the local ckpt or safetensors files
-        ckpt_path = get_custom_model_path()
-        png_custom_model = os.path.join(ckpt_path, metadata["Model"])
-        if not Path(png_custom_model).is_file():
-            png_custom_model = "None"
+        png_custom_model = "None"
+        if Path(get_custom_model_pathfile(metadata["Model"])).is_file():
+            png_custom_model = metadata["Model"]
         # Check for a model match with one of the default model list (ex: "Linaqruf/anything-v3.0")
         if metadata["Model"] in predefined_models:
             png_custom_model = metadata["Model"]
