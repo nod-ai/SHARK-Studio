@@ -110,7 +110,7 @@
                 "dtype": "f32"
             },
             "controlnet_hint": {
-                "shape": [1, 3, 512, 512],
+                "shape": [1, 3, "8*height", "8*width"],
                 "dtype": "f32"
             }
         },
@@ -143,55 +143,55 @@
                 "dtype": "f32"
             },
             "control1": {
-                "shape": [2, 320, 64, 64],
+                "shape": [2, 320, "height", "width"],
                 "dtype": "f32"
             },
             "control2": {
-                "shape": [2, 320, 64, 64],
+                "shape": [2, 320, "height", "width"],
                 "dtype": "f32"
             },
             "control3": {
-                "shape": [2, 320, 64, 64],
+                "shape": [2, 320, "height", "width"],
                 "dtype": "f32"
             },
             "control4": {
-                "shape": [2, 320, 32, 32],
+                "shape": [2, 320, "height/2", "width/2"],
                 "dtype": "f32"
             },
             "control5": {
-                "shape": [2, 640, 32, 32],
+                "shape": [2, 640, "height/2", "width/2"],
                 "dtype": "f32"
             },
             "control6": {
-                "shape": [2, 640, 32, 32],
+                "shape": [2, 640, "height/2", "width/2"],
                 "dtype": "f32"
             },
             "control7": {
-                "shape": [2, 640, 16, 16],
+                "shape": [2, 640, "height/4", "width/4"],
                 "dtype": "f32"
             },
             "control8": {
-                "shape": [2, 1280, 16, 16],
+                "shape": [2, 1280, "height/4", "width/4"],
                 "dtype": "f32"
             },
             "control9": {
-                "shape": [2, 1280, 16, 16],
+                "shape": [2, 1280, "height/4", "width/4"],
                 "dtype": "f32"
             },
             "control10": {
-                "shape": [2, 1280, 8, 8],
+                "shape": [2, 1280, "height/8", "width/8"],
                 "dtype": "f32"
             },
             "control11": {
-                "shape": [2, 1280, 8, 8],
+                "shape": [2, 1280, "height/8", "width/8"],
                 "dtype": "f32"
             },
             "control12": {
-                "shape": [2, 1280, 8, 8],
+                "shape": [2, 1280, "height/8", "width/8"],
                 "dtype": "f32"
             },
             "control13": {
-                "shape": [2, 1280, 8, 8],
+                "shape": [2, 1280, "height/8", "width/8"],
                 "dtype": "f32"
             }
         },
