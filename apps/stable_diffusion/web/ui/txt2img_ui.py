@@ -151,7 +151,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         None,
                         inputs=[],
                         outputs=[seed],
-                        _js="() => Math.floor(Math.random() * 4294967295)",
+                        _js="() => -1",
                     )
                     stable_diffusion = gr.Button("Generate Image(s)")
                 with gr.Accordion(label="Prompt Examples!", open=False):

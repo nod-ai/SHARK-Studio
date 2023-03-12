@@ -159,7 +159,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         None,
                         inputs=[],
                         outputs=[seed],
-                        _js="() => Math.floor(Math.random() * 4294967295)",
+                        _js="() => -1",
                     )
                     stable_diffusion = gr.Button("Generate Image(s)")
 
