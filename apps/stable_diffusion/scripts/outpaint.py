@@ -1,8 +1,8 @@
-import sys
 import torch
 import time
 from PIL import Image
 from dataclasses import dataclass
+from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
 from apps.stable_diffusion.src import (
     args,
     OutpaintPipeline,
@@ -88,7 +88,7 @@ def outpaint_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
