@@ -5,7 +5,7 @@
 ```
 https://github.com/nod-ai/torch-mlir.git
 ```
-Then check out the `complex` branch and build.
+Then check out the `complex` branch and `git submodule update --init` and then build with `.\build_tools\python_deploy\build_windows.ps1`
 
 ### Setup & Run
 ```
