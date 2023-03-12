@@ -559,7 +559,7 @@ def save_output_img(output_img, img_seed, extra_info={}):
 
     img_model = args.hf_model_id
     if args.ckpt_loc:
-        img_model = os.path.basename(args.ckpt_loc)
+        img_model = Path(os.path.basename(args.ckpt_loc)).stem
 
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
