@@ -5,6 +5,7 @@ import torch
 import safetensors.torch
 import traceback
 import sys
+import os
 from apps.stable_diffusion.src.utils import (
     compile_through_fx,
     get_opt_flags,
@@ -92,8 +93,12 @@ class SharkifyStableDiffusionModel:
         use_base_vae: bool = False,
         use_tuned: bool = False,
         low_cpu_mem_usage: bool = False,
+        debug: bool = False,
+        sharktank_dir: str = "",
+        generate_vmfb: bool = True,
         is_inpaint: bool = False,
         use_stencil: str = None
+
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -114,7 +119,8 @@ class SharkifyStableDiffusionModel:
         self.precision = precision
         self.base_vae = use_base_vae
         self.model_name = (
-            str(batch_size)
+            "_"
+            + str(batch_size)
             + "_"
             + str(max_len)
             + "_"
@@ -124,6 +130,7 @@ class SharkifyStableDiffusionModel:
             + "_"
             + precision
         )
+        print(f'use_tuned? sharkify: {use_tuned}')
         self.use_tuned = use_tuned
         if use_tuned:
             self.model_name = self.model_name + "_tuned"
@@ -131,6 +138,11 @@ class SharkifyStableDiffusionModel:
         self.low_cpu_mem_usage = low_cpu_mem_usage
         self.is_inpaint = is_inpaint
         self.use_stencil = get_stencil_model_id(use_stencil)
+
+        print(self.model_name)
+        self.debug = debug
+        self.sharktank_dir = sharktank_dir
+        self.generate_vmfb = generate_vmfb
 
     def get_extended_name_for_all_model(self, mask_to_fetch):
         model_name = {}
@@ -225,12 +237,18 @@ class SharkifyStableDiffusionModel:
         vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         inputs = tuple(self.inputs["vae"])
         is_f16 = True if self.precision == "fp16" else False
+        save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
+        if self.debug:
+            os.makedirs(save_dir, exist_ok=True)
         shark_vae = compile_through_fx(
             vae,
             inputs,
             is_f16=is_f16,
             use_tuned=self.use_tuned,
             model_name=self.model_name["vae"],
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
+            save_dir=save_dir,
             extra_args=get_opt_flags("vae", precision=self.precision),
         )
         return shark_vae
@@ -376,6 +394,12 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
         inputs = tuple(self.inputs["unet"])
         input_mask = [True, True, True, False]
+        save_dir = os.path.join(self.sharktank_dir, self.model_name["unet"])
+        if self.debug:
+            os.makedirs(
+                save_dir,
+                exist_ok=True,
+            )
         shark_unet = compile_through_fx(
             unet,
             inputs,
@@ -383,6 +407,9 @@ class SharkifyStableDiffusionModel:
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
+            save_dir=save_dir,
             extra_args=get_opt_flags("unet", precision=self.precision),
         )
         return shark_unet
@@ -401,10 +428,19 @@ class SharkifyStableDiffusionModel:
                 return self.text_encoder(input)[0]
 
         clip_model = CLIPText(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        save_dir = os.path.join(self.sharktank_dir, self.model_name["clip"])
+        if self.debug:
+            os.makedirs(
+                save_dir,
+                exist_ok=True,
+            )
         shark_clip = compile_through_fx(
             clip_model,
             tuple(self.inputs["clip"]),
             model_name=self.model_name["clip"],
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
+            save_dir=save_dir,
             extra_args=get_opt_flags("clip", precision="fp32"),
         )
         return shark_clip

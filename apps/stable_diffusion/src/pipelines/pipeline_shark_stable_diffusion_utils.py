@@ -317,6 +317,7 @@ class StableDiffusionPipeline:
         use_base_vae: bool,
         use_tuned: bool,
         low_cpu_mem_usage: bool = False,
+        debug: bool = False,
         use_stencil: str = None,
     ):
         is_inpaint = cls.__name__ in [
@@ -336,6 +337,7 @@ class StableDiffusionPipeline:
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
+                debug=debug,
                 is_inpaint=is_inpaint,
                 use_stencil=use_stencil,
             )

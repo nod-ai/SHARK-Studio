@@ -166,6 +166,7 @@ def img2img_inf(
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
+
         if use_stencil is not None:
             args.use_tuned = False
             img2img_obj = StencilPipeline.from_pretrained(
@@ -183,6 +184,7 @@ def img2img_inf(
                 args.use_tuned,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 use_stencil=use_stencil,
+                debug=args.import_debug if args.import_mlir else False,
             )
         else:
             img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -199,6 +201,7 @@ def img2img_inf(
                 args.use_base_vae,
                 args.use_tuned,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
+                debug=args.import_debug if args.import_mlir else False,
             )
 
     img2img_obj.scheduler = schedulers[scheduler]
@@ -298,6 +301,7 @@ if __name__ == "__main__":
             args.use_tuned,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             use_stencil=use_stencil,
+            debug=args.import_debug if args.import_mlir else False,
         )
     else:
         img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -314,6 +318,7 @@ if __name__ == "__main__":
             args.use_base_vae,
             args.use_tuned,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
+            debug=args.import_debug if args.import_mlir else False,
         )
 
     start_time = time.time()

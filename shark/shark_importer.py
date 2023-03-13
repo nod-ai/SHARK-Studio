@@ -4,6 +4,17 @@
 import sys
 import tempfile
 import os
+import hashlib
+
+
+def create_hash(file_name):
+    with open(file_name, "rb") as f:
+        file_hash = hashlib.blake2b()
+        while chunk := f.read(2**20):
+            file_hash.update(chunk)
+
+    return file_hash.hexdigest()
+
 
 # List of the supported frontends.
 supported_frontends = {
@@ -140,6 +151,7 @@ class SharkImporter:
         outputs_name = "golden_out.npz"
         func_file_name = "function_name"
         model_name_mlir = model_name + "_" + self.frontend + ".mlir"
+        print(f"saving {model_name_mlir} to {dir}")
         try:
             inputs = [x.cpu().detach() for x in inputs]
         except AttributeError:
@@ -150,11 +162,11 @@ class SharkImporter:
         np.savez(os.path.join(dir, inputs_name), *inputs)
         np.savez(os.path.join(dir, outputs_name), *outputs)
         np.save(os.path.join(dir, func_file_name), np.array(func_name))
-
         if self.frontend == "torch":
             with open(os.path.join(dir, model_name_mlir), "wb") as mlir_file:
                 mlir_file.write(mlir_data)
-
+            mlir_hash = create_hash(os.path.join(dir, model_name_mlir))
+            np.save(os.path.join(dir, "hash"), np.array(mlir_hash))
         return
 
     def import_debug(
@@ -377,7 +389,10 @@ def import_with_fx(
 
     golden_values = None
     if debug:
-        golden_values = model(*inputs)
+        try:
+            golden_values = model(*inputs)
+        except:
+            golden_values = None
     # TODO: Control the decompositions.
     fx_g = make_fx(
         model,
