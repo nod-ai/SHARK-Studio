@@ -80,17 +80,35 @@ def import_png_metadata(pil_data):
         png_info = pil_data.info["parameters"]
         metadata = parse_generation_parameters(png_info)
         png_hf_model_id = ""
+        png_custom_model = ""
 
-        # Check for a model match with one of the local ckpt or safetensors files
-        png_custom_model = "None"
-        if Path(get_custom_model_pathfile(metadata["Model"])).is_file():
-            png_custom_model = metadata["Model"]
-        # Check for a model match with one of the default model list (ex: "Linaqruf/anything-v3.0")
-        if metadata["Model"] in predefined_models:
-            png_custom_model = metadata["Model"]
-        # If nothing was found, fallback to hf model id
-        if png_custom_model == "None":
-            png_hf_model_id = metadata["Model"]
+        if "Model" in metadata:
+            # Remove extension from model info
+            if metadata["Model"].endswith(".safetensors") or metadata[
+                "Model"
+            ].endswith(".ckpt"):
+                metadata["Model"] = Path(metadata["Model"]).stem
+            # Check for the model name match with one of the local ckpt or safetensors files
+            if Path(
+                get_custom_model_pathfile(metadata["Model"] + ".ckpt")
+            ).is_file():
+                png_custom_model = metadata["Model"] + ".ckpt"
+            if Path(
+                get_custom_model_pathfile(metadata["Model"] + ".safetensors")
+            ).is_file():
+                png_custom_model = metadata["Model"] + ".safetensors"
+            # Check for a model match with one of the default model list (ex: "Linaqruf/anything-v3.0")
+            if metadata["Model"] in predefined_models:
+                png_custom_model = metadata["Model"]
+            # If nothing had matched, check vendor/hf_model_id
+            if not png_custom_model and metadata["Model"].count("/"):
+                png_hf_model_id = metadata["Model"]
+            # No matching model was found
+            if not png_custom_model and not png_hf_model_id:
+                print(
+                    "Import PNG info: Unable to find a matching model for %s"
+                    % metadata["Model"]
+                )
 
         outputs = {
             png_info_img: None,
@@ -100,13 +118,24 @@ def import_png_metadata(pil_data):
             seed: int(metadata["Seed"]),
             width: float(metadata["Size-1"]),
             height: float(metadata["Size-2"]),
-            custom_model: png_custom_model,
-            hf_model_id: png_hf_model_id,
         }
-        if metadata["Prompt"]:
+        if "Model" in metadata and png_custom_model:
+            outputs[custom_model] = png_custom_model
+            outputs[hf_model_id] = ""
+        if "Model" in metadata and png_hf_model_id:
+            outputs[custom_model] = "None"
+            outputs[hf_model_id] = png_hf_model_id
+        if "Prompt" in metadata:
             outputs[prompt] = metadata["Prompt"]
-        if metadata["Sampler"] in scheduler_list_txt2img:
-            outputs[scheduler] = metadata["Sampler"]
+        if "Sampler" in metadata:
+            if metadata["Sampler"] in scheduler_list_txt2img:
+                outputs[scheduler] = metadata["Sampler"]
+            else:
+                print(
+                    "Import PNG info: Unable to find a scheduler for %s"
+                    % metadata["Sampler"]
+                )
+
         return outputs
 
     except Exception as ex:
