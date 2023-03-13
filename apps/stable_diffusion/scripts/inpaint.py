@@ -1,8 +1,8 @@
-import sys
 import torch
 import time
 from PIL import Image
 from dataclasses import dataclass
+from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
 from apps.stable_diffusion.src import (
     args,
     InpaintPipeline,
@@ -30,6 +30,11 @@ inpaint_obj = None
 config_obj = None
 schedulers = None
 
+# set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
+init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_use_tuned = args.use_tuned
+init_import_mlir = args.import_mlir
+
 
 # Exposed to UI.
 def inpaint_inf(
@@ -38,6 +43,8 @@ def inpaint_inf(
     image_dict,
     height: int,
     width: int,
+    inpaint_full_res: bool,
+    inpaint_full_res_padding: int,
     steps: int,
     guidance_scale: float,
     seed: int,
@@ -79,7 +86,7 @@ def inpaint_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
@@ -106,9 +113,9 @@ def inpaint_inf(
         args.height = height
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
-        args.iree_vulkan_target_triple = ""
-        args.use_tuned = True
-        args.import_mlir = False
+        args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.use_tuned = init_use_tuned
+        args.import_mlir = init_import_mlir
         set_init_device_flags()
         model_id = (
             args.hf_model_id
@@ -154,6 +161,8 @@ def inpaint_inf(
             batch_size,
             height,
             width,
+            inpaint_full_res,
+            inpaint_full_res_padding,
             steps,
             guidance_scale,
             img_seed,
@@ -190,14 +199,16 @@ if __name__ == "__main__":
     if args.mask_path is None:
         print("Flag --mask_path is required.")
         exit()
-    if "inpaint" not in args.hf_model_id:
-        print("Please use inpainting model with --hf_model_id.")
-        exit()
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     cpu_scheduling = not args.scheduler.startswith("Shark")
     set_init_device_flags()
-    schedulers = get_schedulers(args.hf_model_id)
+    model_id = (
+        args.hf_model_id
+        if "inpaint" in args.hf_model_id
+        else "stabilityai/stable-diffusion-2-inpainting"
+    )
+    schedulers = get_schedulers(model_id)
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
     image = Image.open(args.img_path)
@@ -234,6 +245,8 @@ if __name__ == "__main__":
             args.batch_size,
             args.height,
             args.width,
+            args.inpaint_full_res,
+            args.inpaint_full_res_padding,
             args.steps,
             args.guidance_scale,
             seed,

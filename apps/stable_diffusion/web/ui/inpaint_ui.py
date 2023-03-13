@@ -1,7 +1,5 @@
-import os
-import sys
-import glob
 from pathlib import Path
+import os
 import gradio as gr
 from PIL import Image
 from apps.stable_diffusion.scripts import inpaint_inf
@@ -9,6 +7,10 @@ from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
+    get_custom_model_path,
+    get_custom_model_files,
+    scheduler_list,
+    predefined_paint_models,
 )
 
 
@@ -27,31 +29,19 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    ckpt_path = (
-                        Path(args.ckpt_dir)
-                        if args.ckpt_dir
-                        else Path(Path.cwd(), "models")
-                    )
-                    ckpt_path.mkdir(parents=True, exist_ok=True)
-                    types = (
-                        "*.ckpt",
-                        "*.safetensors",
-                    )  # the tuple of file types
-                    ckpt_files = ["None"]
-                    for extn in types:
-                        files = glob.glob(os.path.join(ckpt_path, extn))
-                        ckpt_files.extend(files)
                     custom_model = gr.Dropdown(
-                        label=f"Models (Custom Model path: {ckpt_path})",
-                        value=args.ckpt_loc if args.ckpt_loc else "None",
-                        choices=ckpt_files
-                        + [
-                            "runwayml/stable-diffusion-inpainting",
-                            "stabilityai/stable-diffusion-2-inpainting",
-                        ],
+                        label=f"Models (Custom Model path: {get_custom_model_path()})",
+                        elem_id="custom_model",
+                        value=os.path.basename(args.ckpt_loc)
+                        if args.ckpt_loc
+                        else "None",
+                        choices=["None"]
+                        + get_custom_model_files()
+                        + predefined_paint_models,
                     )
                     hf_model_id = gr.Textbox(
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
+                        elem_id="hf_model_id",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting",
                         value="",
                         label="HuggingFace Model ID",
                         lines=3,
@@ -71,24 +61,20 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         elem_id="negative_prompt_box",
                     )
 
-                init_image = gr.Image(
+                inpaint_init_image = gr.Image(
                     label="Masked Image",
                     source="upload",
                     tool="sketch",
                     type="pil",
-                )
+                ).style(height=350)
 
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
+                            elem_id="scheduler",
                             label="Scheduler",
                             value="PNDM",
-                            choices=[
-                                "DDIM",
-                                "PNDM",
-                                "DPMSolverMultistep",
-                                "EulerAncestralDiscrete",
-                            ],
+                            choices=scheduler_list,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -103,10 +89,10 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                             )
                     with gr.Row():
                         height = gr.Slider(
-                            384, 786, value=args.height, step=8, label="Height"
+                            384, 768, value=args.height, step=8, label="Height"
                         )
                         width = gr.Slider(
-                            384, 786, value=args.width, step=8, label="Width"
+                            384, 768, value=args.width, step=8, label="Width"
                         )
                         precision = gr.Radio(
                             label="Precision",
@@ -125,6 +111,20 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                                 77,
                             ],
                             visible=False,
+                        )
+                    with gr.Row():
+                        inpaint_full_res = gr.Radio(
+                            choices=["Whole picture", "Only masked"],
+                            type="index",
+                            value="Whole picture",
+                            label="Inpaint area",
+                        )
+                        inpaint_full_res_padding = gr.Slider(
+                            minimum=0,
+                            maximum=256,
+                            step=4,
+                            value=32,
+                            label="Only masked padding, pixels",
                         )
                     with gr.Row():
                         steps = gr.Slider(
@@ -160,6 +160,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         value=args.seed, precision=0, label="Seed"
                     )
                     device = gr.Dropdown(
+                        elem_id="device",
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
@@ -170,13 +171,13 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         None,
                         inputs=[],
                         outputs=[seed],
-                        _js="() => Math.floor(Math.random() * 4294967295)",
+                        _js="() => -1",
                     )
                     stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
-                    gallery = gr.Gallery(
+                    inpaint_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
@@ -193,14 +194,22 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     value=output_dir,
                     interactive=False,
                 )
+                with gr.Row():
+                    inpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
+                    inpaint_sendto_outpaint = gr.Button(
+                        value="SendTo Outpaint"
+                    )
+
         kwargs = dict(
             fn=inpaint_inf,
             inputs=[
                 prompt,
                 negative_prompt,
-                init_image,
+                inpaint_init_image,
                 height,
                 width,
+                inpaint_full_res,
+                inpaint_full_res_padding,
                 steps,
                 guidance_scale,
                 seed,
@@ -215,7 +224,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
             ],
-            outputs=[gallery, std_output],
+            outputs=[inpaint_gallery, std_output],
             show_progress=args.progress_bar,
         )
 

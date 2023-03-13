@@ -99,11 +99,12 @@ jobs:
       run: |
         # black format check
         black --version
-        black --line-length 79 --check .
+        black --check .
         # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude lit.cfg.py
+        flake8 . --statistics
         # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude lit.cfg.py
+        flake8 . --isolated --count --exit-zero --max-complexity=10 --max-line-length=127 \
+          --statistics --exclude lit.cfg.py
 
     - name: Validate Models on CPU
       if: matrix.suite == 'cpu'
@@ -111,7 +112,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank -k cpu
+        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank --tank_url="gs://shark_tank/nightly/" -k cpu 
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cpu_latest.csv
 
@@ -121,7 +122,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} BENCHMARK=1 IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank -k cuda
+        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank --tank_url="gs://shark_tank/nightly/" -k cuda
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cuda_latest.csv
         # Disabled due to black image bug
@@ -136,7 +137,7 @@ jobs:
         export DYLD_LIBRARY_PATH=/usr/local/lib/
         echo $PATH
         pip list | grep -E "torch|iree"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" -k vulkan --update_tank
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k vulkan --update_tank
 
     - name: Validate Vulkan Models (a100)
       if: matrix.suite == 'vulkan' && matrix.os == 'a100'
@@ -144,15 +145,14 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank -k vulkan
+        pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank --tank_url="gs://shark_tank/nightly/" -k vulkan
         python build_tools/stable_diffusion_testing.py --device=vulkan
 
     - name: Validate Vulkan Models (Windows)
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'
       run: |
         ./setup_venv.ps1
-        pytest --benchmark -k vulkan -s
-        type bench_results.csv
+        pytest -k vulkan -s
 
     - name: Validate Stable Diffusion Models (Windows)
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'

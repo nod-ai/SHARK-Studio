@@ -110,6 +110,118 @@ class StableDiffusionPipeline:
         pil_images = [Image.fromarray(image) for image in images.numpy()]
         return pil_images
 
+    def produce_stencil_latents(
+        self,
+        latents,
+        text_embeddings,
+        guidance_scale,
+        total_timesteps,
+        dtype,
+        cpu_scheduling,
+        controlnet_hint=None,
+        controlnet=None,
+        controlnet_conditioning_scale: float = 1.0,
+        mask=None,
+        masked_image_latents=None,
+        return_all_latents=False,
+    ):
+        step_time_sum = 0
+        latent_history = [latents]
+        text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
+        text_embeddings_numpy = text_embeddings.detach().numpy()
+        for i, t in tqdm(enumerate(total_timesteps)):
+            step_start_time = time.time()
+            timestep = torch.tensor([t]).to(dtype)
+            latent_model_input = self.scheduler.scale_model_input(latents, t)
+            if mask is not None and masked_image_latents is not None:
+                latent_model_input = torch.cat(
+                    [
+                        torch.from_numpy(np.asarray(latent_model_input)),
+                        mask,
+                        masked_image_latents,
+                    ],
+                    dim=1,
+                ).to(dtype)
+            if cpu_scheduling:
+                latent_model_input = latent_model_input.detach().numpy()
+
+            if not torch.is_tensor(latent_model_input):
+                latent_model_input_1 = torch.from_numpy(
+                    np.asarray(latent_model_input)
+                ).to(dtype)
+            else:
+                latent_model_input_1 = latent_model_input
+            control = controlnet(
+                "forward",
+                (
+                    latent_model_input_1,
+                    timestep,
+                    text_embeddings,
+                    controlnet_hint,
+                ),
+                send_to_host=False,
+            )
+            down_block_res_samples = control[0:12]
+            mid_block_res_sample = control[12:]
+            down_block_res_samples = [
+                down_block_res_sample * controlnet_conditioning_scale
+                for down_block_res_sample in down_block_res_samples
+            ]
+            mid_block_res_sample = (
+                mid_block_res_sample[0] * controlnet_conditioning_scale
+            )
+            timestep = timestep.detach().numpy()
+            # Profiling Unet.
+            profile_device = start_profiling(file_path="unet.rdc")
+            # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.
+            noise_pred = self.unet(
+                "forward",
+                (
+                    latent_model_input,
+                    timestep,
+                    text_embeddings_numpy,
+                    guidance_scale,
+                    down_block_res_samples[0],
+                    down_block_res_samples[1],
+                    down_block_res_samples[2],
+                    down_block_res_samples[3],
+                    down_block_res_samples[4],
+                    down_block_res_samples[5],
+                    down_block_res_samples[6],
+                    down_block_res_samples[7],
+                    down_block_res_samples[8],
+                    down_block_res_samples[9],
+                    down_block_res_samples[10],
+                    down_block_res_samples[11],
+                    mid_block_res_sample,
+                ),
+                send_to_host=False,
+            )
+            end_profiling(profile_device)
+
+            if cpu_scheduling:
+                noise_pred = torch.from_numpy(noise_pred.to_host())
+                latents = self.scheduler.step(
+                    noise_pred, t, latents
+                ).prev_sample
+            else:
+                latents = self.scheduler.step(noise_pred, t, latents)
+
+            latent_history.append(latents)
+            step_time = (time.time() - step_start_time) * 1000
+            #  self.log += (
+            #      f"\nstep = {i} | timestep = {t} | time = {step_time:.2f}ms"
+            #  )
+            step_time_sum += step_time
+
+        avg_step_time = step_time_sum / len(total_timesteps)
+        self.log += f"\nAverage step time: {avg_step_time}ms/it"
+
+        if not return_all_latents:
+            return latents
+        all_latents = torch.cat(latent_history, dim=0)
+        return all_latents
+
     def produce_img_latents(
         self,
         latents,
@@ -206,7 +318,12 @@ class StableDiffusionPipeline:
         use_tuned: bool,
         low_cpu_mem_usage: bool = False,
         debug: bool = False,
+        use_stencil: str = None,
     ):
+        is_inpaint = cls.__name__ in [
+            "InpaintPipeline",
+            "OutpaintPipeline",
+        ]
         if import_mlir:
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
@@ -221,6 +338,8 @@ class StableDiffusionPipeline:
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
                 debug=debug,
+                is_inpaint=is_inpaint,
+                use_stencil=use_stencil,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
@@ -230,6 +349,11 @@ class StableDiffusionPipeline:
                 clip, unet, vae, vae_encode = mlir_import()
                 return cls(
                     vae_encode, vae, clip, get_tokenizer(), unet, scheduler
+                )
+            if cls.__name__ in ["StencilPipeline"]:
+                clip, unet, vae, controlnet = mlir_import()
+                return cls(
+                    controlnet, vae, clip, get_tokenizer(), unet, scheduler
                 )
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
@@ -246,6 +370,12 @@ class StableDiffusionPipeline:
                     get_tokenizer(),
                     get_unet(),
                     scheduler,
+                )
+            if cls.__name__ == "StencilPipeline":
+                import sys
+
+                sys.exit(
+                    "StencilPipeline not supported with SharkTank currently."
                 )
             return cls(
                 get_vae(), get_clip(), get_tokenizer(), get_unet(), scheduler
@@ -264,6 +394,7 @@ class StableDiffusionPipeline:
                 use_base_vae=use_base_vae,
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
+                is_inpaint=is_inpaint,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
@@ -273,6 +404,11 @@ class StableDiffusionPipeline:
                 clip, unet, vae, vae_encode = mlir_import()
                 return cls(
                     vae_encode, vae, clip, get_tokenizer(), unet, scheduler
+                )
+            if cls.__name__ == "StencilPipeline":
+                clip, unet, vae, controlnet = mlir_import()
+                return cls(
+                    controlnet, vae, clip, get_tokenizer(), unet, scheduler
                 )
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)

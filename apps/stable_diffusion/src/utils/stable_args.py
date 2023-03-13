@@ -69,6 +69,7 @@ p.add_argument(
     "--height",
     type=int,
     default=512,
+    choices=range(384, 769, 8),
     help="the height of the output image.",
 )
 
@@ -76,6 +77,7 @@ p.add_argument(
     "--width",
     type=int,
     default=512,
+    choices=range(384, 769, 8),
     help="the width of the output image.",
 )
 
@@ -111,10 +113,25 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--inpaint_full_res",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="If inpaint only masked area or whole picture",
+)
+
+p.add_argument(
+    "--inpaint_full_res_padding",
+    type=int,
+    default=32,
+    choices=range(0, 257, 4),
+    help="Number of pixels for only masked padding",
+)
+
+p.add_argument(
     "--pixels",
     type=int,
     default=128,
-    choices=range(8, 256, 8),
+    choices=range(8, 257, 8),
     help="Number of expended pixels for one direction for outpainting",
 )
 
@@ -122,7 +139,7 @@ p.add_argument(
     "--mask_blur",
     type=int,
     default=8,
-    choices=range(0, 64),
+    choices=range(0, 65),
     help="Number of blur pixels for outpainting",
 )
 
@@ -276,6 +293,12 @@ p.add_argument(
     type=str,
     default="none",
     help="Amount of attention slicing to use (one of 'max', 'auto', 'none', or an integer)",
+)
+
+p.add_argument(
+    "--use_stencil",
+    choices=["canny"],
+    help="Enable the stencil feature.",
 )
 
 ##############################################################################

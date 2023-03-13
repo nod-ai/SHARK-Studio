@@ -2,7 +2,7 @@ import torch
 from tqdm.auto import tqdm
 import numpy as np
 from random import randint
-from PIL import Image
+from PIL import Image, ImageOps
 from transformers import CLIPTokenizer
 from typing import Union
 from shark.shark_inference import SharkInference
@@ -43,10 +43,222 @@ class InpaintPipeline(StableDiffusionPipeline):
         super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
         self.vae_encode = vae_encode
 
-    def prepare_mask_and_masked_image(self, image, mask, height, width):
+    def prepare_latents(
+        self,
+        batch_size,
+        height,
+        width,
+        generator,
+        num_inference_steps,
+        dtype,
+    ):
+        latents = torch.randn(
+            (
+                batch_size,
+                4,
+                height // 8,
+                width // 8,
+            ),
+            generator=generator,
+            dtype=torch.float32,
+        ).to(dtype)
+
+        self.scheduler.set_timesteps(num_inference_steps)
+        latents = latents * self.scheduler.init_noise_sigma
+        return latents
+
+    def get_crop_region(self, mask, pad=0):
+        h, w = mask.shape
+
+        crop_left = 0
+        for i in range(w):
+            if not (mask[:, i] == 0).all():
+                break
+            crop_left += 1
+
+        crop_right = 0
+        for i in reversed(range(w)):
+            if not (mask[:, i] == 0).all():
+                break
+            crop_right += 1
+
+        crop_top = 0
+        for i in range(h):
+            if not (mask[i] == 0).all():
+                break
+            crop_top += 1
+
+        crop_bottom = 0
+        for i in reversed(range(h)):
+            if not (mask[i] == 0).all():
+                break
+            crop_bottom += 1
+
+        return (
+            int(max(crop_left - pad, 0)),
+            int(max(crop_top - pad, 0)),
+            int(min(w - crop_right + pad, w)),
+            int(min(h - crop_bottom + pad, h)),
+        )
+
+    def expand_crop_region(
+        self,
+        crop_region,
+        processing_width,
+        processing_height,
+        image_width,
+        image_height,
+    ):
+        x1, y1, x2, y2 = crop_region
+
+        ratio_crop_region = (x2 - x1) / (y2 - y1)
+        ratio_processing = processing_width / processing_height
+
+        if ratio_crop_region > ratio_processing:
+            desired_height = (x2 - x1) / ratio_processing
+            desired_height_diff = int(desired_height - (y2 - y1))
+            y1 -= desired_height_diff // 2
+            y2 += desired_height_diff - desired_height_diff // 2
+            if y2 >= image_height:
+                diff = y2 - image_height
+                y2 -= diff
+                y1 -= diff
+            if y1 < 0:
+                y2 -= y1
+                y1 -= y1
+            if y2 >= image_height:
+                y2 = image_height
+        else:
+            desired_width = (y2 - y1) * ratio_processing
+            desired_width_diff = int(desired_width - (x2 - x1))
+            x1 -= desired_width_diff // 2
+            x2 += desired_width_diff - desired_width_diff // 2
+            if x2 >= image_width:
+                diff = x2 - image_width
+                x2 -= diff
+                x1 -= diff
+            if x1 < 0:
+                x2 -= x1
+                x1 -= x1
+            if x2 >= image_width:
+                x2 = image_width
+
+        return x1, y1, x2, y2
+
+    def resize_image(self, resize_mode, im, width, height):
+        """
+        resize_mode:
+            0: Resize the image to fill the specified width and height, maintaining the aspect ratio, and then center the image within the dimensions, cropping the excess.
+            1: Resize the image to fit within the specified width and height, maintaining the aspect ratio, and then center the image within the dimensions, filling empty with data from image.
+        """
+
+        if resize_mode == 0:
+            ratio = width / height
+            src_ratio = im.width / im.height
+
+            src_w = (
+                width if ratio > src_ratio else im.width * height // im.height
+            )
+            src_h = (
+                height if ratio <= src_ratio else im.height * width // im.width
+            )
+
+            resized = im.resize((src_w, src_h), resample=Image.LANCZOS)
+            res = Image.new("RGB", (width, height))
+            res.paste(
+                resized,
+                box=(width // 2 - src_w // 2, height // 2 - src_h // 2),
+            )
+
+        else:
+            ratio = width / height
+            src_ratio = im.width / im.height
+
+            src_w = (
+                width if ratio < src_ratio else im.width * height // im.height
+            )
+            src_h = (
+                height if ratio >= src_ratio else im.height * width // im.width
+            )
+
+            resized = im.resize((src_w, src_h), resample=Image.LANCZOS)
+            res = Image.new("RGB", (width, height))
+            res.paste(
+                resized,
+                box=(width // 2 - src_w // 2, height // 2 - src_h // 2),
+            )
+
+            if ratio < src_ratio:
+                fill_height = height // 2 - src_h // 2
+                res.paste(
+                    resized.resize((width, fill_height), box=(0, 0, width, 0)),
+                    box=(0, 0),
+                )
+                res.paste(
+                    resized.resize(
+                        (width, fill_height),
+                        box=(0, resized.height, width, resized.height),
+                    ),
+                    box=(0, fill_height + src_h),
+                )
+            elif ratio > src_ratio:
+                fill_width = width // 2 - src_w // 2
+                res.paste(
+                    resized.resize(
+                        (fill_width, height), box=(0, 0, 0, height)
+                    ),
+                    box=(0, 0),
+                )
+                res.paste(
+                    resized.resize(
+                        (fill_width, height),
+                        box=(resized.width, 0, resized.width, height),
+                    ),
+                    box=(fill_width + src_w, 0),
+                )
+
+        return res
+
+    def prepare_mask_and_masked_image(
+        self,
+        image,
+        mask,
+        height,
+        width,
+        inpaint_full_res,
+        inpaint_full_res_padding,
+    ):
         # preprocess image
         image = image.resize((width, height))
         mask = mask.resize((width, height))
+
+        paste_to = ()
+        overlay_image = None
+        if inpaint_full_res:
+            # prepare overlay image
+            overlay_image = Image.new("RGB", (image.width, image.height))
+            overlay_image.paste(
+                image.convert("RGB"),
+                mask=ImageOps.invert(mask.convert("L")),
+            )
+
+            # prepare mask
+            mask = mask.convert("L")
+            crop_region = self.get_crop_region(
+                np.array(mask), inpaint_full_res_padding
+            )
+            crop_region = self.expand_crop_region(
+                crop_region, width, height, mask.width, mask.height
+            )
+            x1, y1, x2, y2 = crop_region
+            mask = mask.crop(crop_region)
+            mask = self.resize_image(1, mask, width, height)
+            paste_to = (x1, y1, x2 - x1, y2 - y1)
+
+            # prepare image
+            image = image.crop(crop_region)
+            image = self.resize_image(1, image, width, height)
+
         if isinstance(image, (Image.Image, np.ndarray)):
             image = [image]
 
@@ -77,32 +289,7 @@ class InpaintPipeline(StableDiffusionPipeline):
 
         masked_image = image * (mask < 0.5)
 
-        return mask, masked_image
-
-    def prepare_latents(
-        self,
-        batch_size,
-        height,
-        width,
-        generator,
-        num_inference_steps,
-        dtype,
-    ):
-        latents = torch.randn(
-            (
-                batch_size,
-                4,
-                height // 8,
-                width // 8,
-            ),
-            generator=generator,
-            dtype=torch.float32,
-        ).to(dtype)
-
-        self.scheduler.set_timesteps(num_inference_steps)
-        self.scheduler.is_scale_input_called = True
-        latents = latents * self.scheduler.init_noise_sigma
-        return latents
+        return mask, masked_image, paste_to, overlay_image
 
     def prepare_mask_latents(
         self,
@@ -143,6 +330,13 @@ class InpaintPipeline(StableDiffusionPipeline):
             )
         return mask, masked_image_latents
 
+    def apply_overlay(self, image, paste_loc, overlay):
+        x, y, w, h = paste_loc
+        image = self.resize_image(0, image, w, h)
+        overlay.paste(image, (x, y))
+
+        return overlay
+
     def generate_images(
         self,
         prompts,
@@ -152,6 +346,8 @@ class InpaintPipeline(StableDiffusionPipeline):
         batch_size,
         height,
         width,
+        inpaint_full_res,
+        inpaint_full_res_padding,
         num_inference_steps,
         guidance_scale,
         seed,
@@ -194,8 +390,18 @@ class InpaintPipeline(StableDiffusionPipeline):
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
 
         # Preprocess mask and image
-        mask, masked_image = self.prepare_mask_and_masked_image(
-            image, mask_image, height, width
+        (
+            mask,
+            masked_image,
+            paste_to,
+            overlay_image,
+        ) = self.prepare_mask_and_masked_image(
+            image,
+            mask_image,
+            height,
+            width,
+            inpaint_full_res,
+            inpaint_full_res_padding,
         )
 
         # Prepare mask latent variables
@@ -229,5 +435,11 @@ class InpaintPipeline(StableDiffusionPipeline):
                 cpu_scheduling=cpu_scheduling,
             )
             all_imgs.extend(imgs)
+
+        if inpaint_full_res:
+            output_image = self.apply_overlay(
+                all_imgs[0], paste_to, overlay_image
+            )
+            return [output_image]
 
         return all_imgs

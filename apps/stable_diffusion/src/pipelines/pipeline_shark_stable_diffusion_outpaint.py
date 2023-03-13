@@ -65,15 +65,16 @@ class OutpaintPipeline(StableDiffusionPipeline):
         ).to(dtype)
 
         self.scheduler.set_timesteps(num_inference_steps)
-        self.scheduler.is_scale_input_called = True
         latents = latents * self.scheduler.init_noise_sigma
         return latents
 
-    def prepare_mask_and_masked_image(self, image, mask, mask_blur):
+    def prepare_mask_and_masked_image(
+        self, image, mask, mask_blur, width, height
+    ):
         if mask_blur > 0:
             mask = mask.filter(ImageFilter.GaussianBlur(mask_blur))
-        image = image.resize((512, 512))
-        mask = mask.resize((512, 512))
+        image = image.resize((width, height))
+        mask = mask.resize((width, height))
 
         # preprocess image
         if isinstance(image, (Image.Image, np.ndarray)):
@@ -478,7 +479,7 @@ class OutpaintPipeline(StableDiffusionPipeline):
 
             # Preprocess mask and image
             mask, masked_image = self.prepare_mask_and_masked_image(
-                image_to_process, mask_to_process, mask_blur
+                image_to_process, mask_to_process, mask_blur, width, height
             )
 
             # Prepare mask latent variables

@@ -1,8 +1,8 @@
-import sys
 import torch
 import time
 from PIL import Image
 from dataclasses import dataclass
+from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
 from apps.stable_diffusion.src import (
     args,
     OutpaintPipeline,
@@ -30,12 +30,17 @@ outpaint_obj = None
 config_obj = None
 schedulers = None
 
+# set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
+init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_use_tuned = args.use_tuned
+init_import_mlir = args.import_mlir
+
 
 # Exposed to UI.
 def outpaint_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: str,
+    init_image: Image,
     pixels: int,
     mask_blur: int,
     directions: list,
@@ -66,7 +71,7 @@ def outpaint_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
-    args.img_path = init_image
+    args.img_path = "not none"
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -83,7 +88,7 @@ def outpaint_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
@@ -110,9 +115,9 @@ def outpaint_inf(
         args.height = height
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
-        args.iree_vulkan_target_triple = ""
-        args.use_tuned = True
-        args.import_mlir = False
+        args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.use_tuned = init_use_tuned
+        args.import_mlir = init_import_mlir
         set_init_device_flags()
         model_id = (
             args.hf_model_id
@@ -143,7 +148,6 @@ def outpaint_inf(
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
-    image = Image.open(args.img_path)
 
     left = True if "left" in directions else False
     right = True if "right" in directions else False
@@ -156,9 +160,9 @@ def outpaint_inf(
         out_imgs = outpaint_obj.generate_images(
             prompt,
             negative_prompt,
-            image,
-            args.pixels,
-            args.mask_blur,
+            init_image,
+            pixels,
+            mask_blur,
             left,
             right,
             top,
@@ -201,14 +205,16 @@ if __name__ == "__main__":
     if args.img_path is None:
         print("Flag --img_path is required.")
         exit()
-    if "inpaint" not in args.hf_model_id:
-        print("Please use inpainting model with --hf_model_id.")
-        exit()
 
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     cpu_scheduling = not args.scheduler.startswith("Shark")
     set_init_device_flags()
-    schedulers = get_schedulers(args.hf_model_id)
+    model_id = (
+        args.hf_model_id
+        if "inpaint" in args.hf_model_id
+        else "stabilityai/stable-diffusion-2-inpainting"
+    )
+    schedulers = get_schedulers(model_id)
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
     image = Image.open(args.img_path)
@@ -271,5 +277,22 @@ if __name__ == "__main__":
         text_output += outpaint_obj.log
         text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-        save_output_img(generated_imgs[0], seed)
+        # save this information as metadata of output generated image.
+        directions = []
+        if args.left:
+            directions.append("left")
+        if args.right:
+            directions.append("right")
+        if args.top:
+            directions.append("up")
+        if args.bottom:
+            directions.append("down")
+        extra_info = {
+            "PIXELS": args.pixels,
+            "MASK_BLUR": args.mask_blur,
+            "DIRECTIONS": directions,
+            "NOISE_Q": args.noise_q,
+            "COLOR_VARIATION": args.color_variation,
+        }
+        save_output_img(generated_imgs[0], seed, extra_info)
         print(text_output)

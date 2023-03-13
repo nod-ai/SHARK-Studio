@@ -1,7 +1,7 @@
-import sys
 import torch
 import time
 from dataclasses import dataclass
+from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
 from apps.stable_diffusion.src import (
     args,
     Text2ImagePipeline,
@@ -28,6 +28,11 @@ class Config:
 txt2img_obj = None
 config_obj = None
 schedulers = None
+
+# set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
+init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_use_tuned = args.use_tuned
+init_import_mlir = args.import_mlir
 
 
 # Exposed to UI.
@@ -75,7 +80,7 @@ def txt2img_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
@@ -102,9 +107,9 @@ def txt2img_inf(
         args.height = height
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
-        args.iree_vulkan_target_triple = ""
-        args.use_tuned = True
-        args.import_mlir = False
+        args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.use_tuned = init_use_tuned
+        args.import_mlir = init_import_mlir
         args.img_path = None
         set_init_device_flags()
         model_id = (
@@ -159,6 +164,7 @@ def txt2img_inf(
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
         txt2img_obj.log += "\n"
+        yield generated_imgs, generated_imgs[0], txt2img_obj.log
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -169,10 +175,10 @@ def txt2img_inf(
         f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
     )
     text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
-    text_output += txt2img_obj.log
+    # text_output += txt2img_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    return generated_imgs, text_output
+    yield generated_imgs, text_output
 
 
 if __name__ == "__main__":

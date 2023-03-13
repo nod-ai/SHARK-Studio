@@ -11,5 +11,6 @@ from apps.stable_diffusion.src.pipelines import (
     Image2ImagePipeline,
     InpaintPipeline,
     OutpaintPipeline,
+    StencilPipeline,
 )
 from apps.stable_diffusion.src.schedulers import get_schedulers

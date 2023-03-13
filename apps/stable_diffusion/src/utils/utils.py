@@ -26,11 +26,7 @@ from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
 
 
 def get_extended_name(model_name):
-    device = (
-        args.device
-        if "://" not in args.device
-        else "-".join(args.device.split("://"))
-    )
+    device = args.device.split("://", 1)[0]
     extended_name = "{}_{}".format(model_name, device)
     return extended_name
 
@@ -259,13 +255,15 @@ def set_init_device_flags():
         args.max_length = 64
 
     # Use tuned models in the case of fp16, vulkan rdna3 or cuda sm devices.
-    base_model_id = args.hf_model_id
     if args.ckpt_loc != "":
         base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
+    else:
+        base_model_id = fetch_and_update_base_model_id(args.hf_model_id)
+        if base_model_id == "":
+            base_model_id = args.hf_model_id
 
     if (
-        "inpainting" in args.hf_model_id
-        or args.precision != "fp16"
+        args.precision != "fp16"
         or args.height != 512
         or args.width != 512
         or args.batch_size != 1
@@ -273,7 +271,7 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
-    elif args.ckpt_loc != "" and base_model_id not in [
+    elif base_model_id not in [
         "Linaqruf/anything-v3.0",
         "dreamlike-art/dreamlike-diffusion-1.0",
         "prompthero/openjourney",
@@ -282,6 +280,8 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
         "runwayml/stable-diffusion-v1-5",
+        "runwayml/stable-diffusion-inpainting",
+        "stabilityai/stable-diffusion-2-inpainting",
     ]:
         args.use_tuned = False
 
@@ -316,8 +316,6 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1",
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
-        "runwayml/stable-diffusion-inpainting",
-        "stabilityai/stable-diffusion-2-inpainting",
     ]:
         args.import_mlir = True
 
@@ -434,7 +432,7 @@ def get_path_to_diffusers_checkpoint(custom_weights):
     return path_to_diffusers
 
 
-def preprocessCKPT(custom_weights):
+def preprocessCKPT(custom_weights, is_inpaint=False):
     path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights)
     if next(Path(path_to_diffusers).iterdir(), None):
         print("Checkpoint already loaded at : ", path_to_diffusers)
@@ -455,10 +453,12 @@ def preprocessCKPT(custom_weights):
     print(
         "Loading diffusers' pipeline from original stable diffusion checkpoint"
     )
+    num_in_channels = 9 if is_inpaint else 4
     pipe = load_pipeline_from_original_stable_diffusion_ckpt(
         checkpoint_path=custom_weights,
         extract_ema=extract_ema,
         from_safetensors=from_safetensors,
+        num_in_channels=num_in_channels,
     )
     pipe.save_pretrained(path_to_diffusers)
     print("Loading complete")
@@ -466,6 +466,7 @@ def preprocessCKPT(custom_weights):
 
 def load_vmfb(vmfb_path, model, precision):
     model = "vae" if "base_vae" in model or "vae_encode" in model else model
+    model = "unet" if "stencil" in model else model
     precision = "fp32" if "clip" in model else precision
     extra_args = get_opt_flags(model, precision)
     shark_module = SharkInference(mlir_module=None, device=args.device)
@@ -475,32 +476,28 @@ def load_vmfb(vmfb_path, model, precision):
 
 # This utility returns vmfbs of Clip, Unet, Vae and Vae_encode, in case all of them
 # are present; deletes them otherwise.
-def fetch_or_delete_vmfbs(
-    extended_model_name, need_vae_encode, precision="fp32"
-):
+def fetch_or_delete_vmfbs(extended_model_name, precision="fp32"):
     vmfb_path = [
         get_vmfb_path_name(extended_model_name[model])
         for model in extended_model_name
     ]
+    number_of_vmfbs = len(vmfb_path)
     vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
     all_vmfb_present = True
-    compiled_models = []
-    for i in range(3):
+    compiled_models = [None] * number_of_vmfbs
+
+    for i in range(number_of_vmfbs):
         all_vmfb_present = all_vmfb_present and vmfb_present[i]
-        compiled_models.append(None)
-    if need_vae_encode:
-        all_vmfb_present = all_vmfb_present and vmfb_present[3]
-        compiled_models.append(None)
 
     # We need to delete vmfbs only if some of the models were compiled.
     if not all_vmfb_present:
-        for i in range(len(compiled_models)):
+        for i in range(number_of_vmfbs):
             if vmfb_present[i]:
                 os.remove(vmfb_path[i])
                 print("Deleted: ", vmfb_path[i])
     else:
         model_name = [model for model in extended_model_name.keys()]
-        for i in range(len(compiled_models)):
+        for i in range(number_of_vmfbs):
             compiled_models[i] = load_vmfb(
                 vmfb_path[i], model_name[i], precision
             )
@@ -567,7 +564,7 @@ def clear_all():
 
 
 # save output images and the inputs corresponding to it.
-def save_output_img(output_img, img_seed):
+def save_output_img(output_img, img_seed, extra_info={}):
     output_path = args.output_dir if args.output_dir else Path.cwd()
     generated_imgs_path = Path(
         output_path, "generated_imgs", dt.now().strftime("%Y%m%d")
@@ -582,7 +579,7 @@ def save_output_img(output_img, img_seed):
 
     img_model = args.hf_model_id
     if args.ckpt_loc:
-        img_model = os.path.basename(args.ckpt_loc)
+        img_model = Path(os.path.basename(args.ckpt_loc)).stem
 
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
@@ -620,7 +617,9 @@ def save_output_img(output_img, img_seed):
         "OUTPUT": out_img_path,
     }
 
-    with open(csv_path, "a") as csv_obj:
+    new_entry.update(extra_info)
+
+    with open(csv_path, "a", encoding="utf-8") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()
