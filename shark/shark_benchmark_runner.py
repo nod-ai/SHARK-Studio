@@ -21,8 +21,16 @@ from shark.iree_utils.benchmark_utils import (
 from shark.parser import shark_args
 from datetime import datetime
 import time
+from typing import Optional
 import csv
 import os
+
+TF_CPU_DEVICE = "/CPU:0"
+TF_GPU_DEVICE = "/GPU:0"
+
+
+def _bytes_to_mb_str(bytes_: Optional[int]) -> str:
+    return "" if bytes_ is None else f"{bytes_ / 1e6:.6f}"
 
 
 class OnnxFusionOptions(object):
@@ -126,18 +134,26 @@ class SharkBenchmarkRunner(SharkRunner):
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)
 
+        if self.device == "cuda":
+            torch.cuda.reset_peak_memory_stats()
         begin = time.time()
         for i in range(shark_args.num_iterations):
             out = frontend_model.forward(input)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
-                break
+        end = time.time()
+        if self.device == "cuda":
+            stats = torch.cuda.memory_stats()
+            device_peak_b = stats["allocated_bytes.all.peak"]
+        else:
+            device_peak_b = None
+
         print(
             f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
+            "",  # host_peak_b (CPU usage) is not reported by PyTorch.
+            _bytes_to_mb_str(device_peak_b),
         ]
 
     def benchmark_tf(self, modelname):
@@ -155,8 +171,8 @@ class SharkBenchmarkRunner(SharkRunner):
 
         from tank.model_utils_tf import get_tf_model
 
-        # tf_device = "/GPU:0" if self.device == "cuda" else "/CPU:0"
-        tf_device = "/CPU:0"
+        # tf_device = TF_GPU_DEVICE if self.device == "cuda" else TF_CPU_DEVICE
+        tf_device = TF_CPU_DEVICE
         with tf.device(tf_device):
             (
                 model,
@@ -169,24 +185,39 @@ class SharkBenchmarkRunner(SharkRunner):
             for i in range(shark_args.num_warmup_iterations):
                 frontend_model.forward(*input)
 
+            if tf_device == TF_GPU_DEVICE:
+                tf.config.experimental.reset_memory_stats(tf_device)
             begin = time.time()
             for i in range(shark_args.num_iterations):
                 out = frontend_model.forward(*input)
-                if i == shark_args.num_iterations - 1:
-                    end = time.time()
-                    break
+            end = time.time()
+            if tf_device == TF_GPU_DEVICE:
+                memory_info = tf.config.experimental.get_memory_info(tf_device)
+                device_peak_b = memory_info['peak']
+            else:
+                # tf.config.experimental does not currently support measuring
+                # CPU memory usage.
+                device_peak_b = None
+
             print(
                 f"TF benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
             )
             return [
                 f"{shark_args.num_iterations/(end-begin)}",
                 f"{((end-begin)/shark_args.num_iterations)*1000}",
+                "",  # host_peak_b (CPU usage) is not reported by TensorFlow.
+                _bytes_to_mb_str(device_peak_b),
             ]
 
     def benchmark_c(self):
-        result = run_benchmark_module(self.benchmark_cl)
-        print(f"Shark-IREE-C benchmark:{result} iter/second")
-        return [f"{result}", f"{1000/result}"]
+        iter_per_second, host_peak_b, device_peak_b = run_benchmark_module(self.benchmark_cl)
+        print(f"Shark-IREE-C benchmark:{iter_per_second} iter/second")
+        return [
+            f"{iter_per_second}",
+            f"{1000/iter_per_second}",
+            _bytes_to_mb_str(host_peak_b),
+            _bytes_to_mb_str(device_peak_b),
+        ]
 
     def benchmark_python(self, inputs):
         input_list = [x for x in inputs]
@@ -196,8 +227,7 @@ class SharkBenchmarkRunner(SharkRunner):
         begin = time.time()
         for i in range(shark_args.num_iterations):
             out = self.run("forward", input_list)
-            if i == shark_args.num_iterations - 1:
-                end = time.time()
+        end = time.time()
         print(
             f"Shark-IREE Python benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
@@ -324,7 +354,12 @@ for currently supported models. Exiting benchmark ONNX."
             "tags",
             "notes",
             "datetime",
+            "host_memory_mb",
+            "device_memory_mb",
+            "measured_host_memory_mb",
+            "measured_device_memory_mb",
         ]
+        # "frontend" must be the first element.
         engines = ["frontend", "shark_python", "shark_iree_c"]
         if shark_args.onnx_bench == True:
             engines.append("onnxruntime")
@@ -336,75 +371,76 @@ for currently supported models. Exiting benchmark ONNX."
 
         with open("bench_results.csv", mode="a", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=field_names)
-            bench_result = {}
-            bench_result["model"] = modelname
+            bench_info = {}
+            bench_info["model"] = modelname
+            bench_info["dialect"] = self.mlir_dialect
+            bench_info["iterations"] = shark_args.num_iterations
             if dynamic == True:
-                bench_result["shape_type"] = "dynamic"
+                bench_info["shape_type"] = "dynamic"
             else:
-                bench_result["shape_type"] = "static"
-            bench_result["device"] = device_str
+                bench_info["shape_type"] = "static"
+            bench_info["device"] = device_str
             if "fp16" in modelname:
-                bench_result["data_type"] = "float16"
+                bench_info["data_type"] = "float16"
             else:
-                bench_result["data_type"] = inputs[0].dtype
+                bench_info["data_type"] = inputs[0].dtype
+
             for e in engines:
-                (
-                    bench_result["param_count"],
-                    bench_result["tags"],
-                    bench_result["notes"],
-                ) = ["", "", ""]
+                engine_result = {}
                 if e == "frontend":
-                    bench_result["engine"] = frontend
+                    engine_result["engine"] = frontend
                     if check_requirements(frontend):
                         (
-                            bench_result["iter/sec"],
-                            bench_result["ms/iter"],
+                            engine_result["iter/sec"],
+                            engine_result["ms/iter"],
+                            engine_result["host_memory_mb"],
+                            engine_result["device_memory_mb"],
                         ) = self.benchmark_frontend(modelname)
-                        self.frontend_result = bench_result["ms/iter"]
-                        bench_result["vs. PyTorch/TF"] = "baseline"
+                        self.frontend_result = engine_result["ms/iter"]
+                        engine_result["vs. PyTorch/TF"] = "baseline"
                         (
-                            bench_result["param_count"],
-                            bench_result["tags"],
-                            bench_result["notes"],
+                            engine_result["param_count"],
+                            engine_result["tags"],
+                            engine_result["notes"],
                         ) = self.get_metadata(modelname)
                     else:
                         self.frontend_result = None
                         continue
 
                 elif e == "shark_python":
-                    bench_result["engine"] = "shark_python"
+                    engine_result["engine"] = "shark_python"
                     (
-                        bench_result["iter/sec"],
-                        bench_result["ms/iter"],
+                        engine_result["iter/sec"],
+                        engine_result["ms/iter"],
                     ) = self.benchmark_python(inputs)
 
-                    bench_result[
+                    engine_result[
                         "vs. PyTorch/TF"
                     ] = self.compare_bench_results(
-                        self.frontend_result, bench_result["ms/iter"]
+                        self.frontend_result, engine_result["ms/iter"]
                     )
 
                 elif e == "shark_iree_c":
-                    bench_result["engine"] = "shark_iree_c"
+                    engine_result["engine"] = "shark_iree_c"
                     (
-                        bench_result["iter/sec"],
-                        bench_result["ms/iter"],
+                        engine_result["iter/sec"],
+                        engine_result["ms/iter"],
+                        engine_result["host_memory_mb"],
+                        engine_result["device_memory_mb"],
                     ) = self.benchmark_c()
 
-                    bench_result[
+                    engine_result[
                         "vs. PyTorch/TF"
                     ] = self.compare_bench_results(
-                        self.frontend_result, bench_result["ms/iter"]
+                        self.frontend_result, engine_result["ms/iter"]
                     )
 
                 elif e == "onnxruntime":
-                    bench_result["engine"] = "onnxruntime"
+                    engine_result["engine"] = "onnxruntime"
                     (
-                        bench_result["iter/sec"],
-                        bench_result["ms/iter"],
+                        engine_result["iter/sec"],
+                        engine_result["ms/iter"],
                     ) = self.benchmark_onnx(modelname, inputs)
 
-                bench_result["dialect"] = self.mlir_dialect
-                bench_result["iterations"] = shark_args.num_iterations
-                bench_result["datetime"] = str(datetime.now())
-                writer.writerow(bench_result)
+                engine_result["datetime"] = str(datetime.now())
+                writer.writerow(bench_info | engine_result)

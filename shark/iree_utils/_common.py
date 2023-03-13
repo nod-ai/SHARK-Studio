@@ -35,8 +35,9 @@ def run_cmd(cmd, debug=False):
             stderr=subprocess.PIPE,
             check=True,
         )
-        result_str = result.stdout.decode()
-        return result_str
+        stdout = result.stdout.decode()
+        stderr = result.stderr.decode()
+        return stdout, stderr
     except subprocess.CalledProcessError as e:
         print(e.output)
         sys.exit(f"Exiting program due to error running {cmd}")

@@ -22,7 +22,8 @@ from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env_flag
 
 
 def get_vulkan_device_name():
-    vulkaninfo_dump = run_cmd("vulkaninfo").split(linesep)
+    vulkaninfo_dump, _ = run_cmd("vulkaninfo")
+    vulkaninfo_dump = vulkaninfo_dump.split(linesep)
     vulkaninfo_list = [s.strip() for s in vulkaninfo_dump if "deviceName" in s]
     if len(vulkaninfo_list) == 0:
         raise ValueError("No device name found in VulkanInfo!")

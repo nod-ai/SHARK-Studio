@@ -188,21 +188,21 @@ def compile_benchmark_dirs(bench_dir, device, dispatch_benchmarks):
                         benchmark_bash.write(" ".join(benchmark_cl))
                         benchmark_bash.close()
 
-                        benchmark_data = run_benchmark_module(benchmark_cl)
+                        iter_per_second, _, _ = run_benchmark_module(benchmark_cl)
 
                         benchmark_file = open(
                             f"{bench_dir}/{d_}/{d_}_data.txt", "w+"
                         )
                         benchmark_file.write(f"DISPATCH: {d_}\n")
-                        benchmark_file.write(str(benchmark_data) + "\n")
+                        benchmark_file.write(str(iter_per_second) + "\n")
                         benchmark_file.write(
                             "SHARK BENCHMARK RESULT: "
-                            + str(1 / (benchmark_data * 0.001))
+                            + str(1 / (iter_per_second * 0.001))
                             + "\n"
                         )
                         benchmark_file.close()
 
-                        benchmark_runtimes[d_] = 1 / (benchmark_data * 0.001)
+                        benchmark_runtimes[d_] = 1 / (iter_per_second * 0.001)
 
                     elif ".mlir" in f_ and "benchmark" not in f_:
                         dispatch_file = open(f"{bench_dir}/{d_}/{f_}", "r")
