@@ -161,15 +161,6 @@ class StableDiffusionPipeline:
                 ),
                 send_to_host=False,
             )
-            down_block_res_samples = control[0:12]
-            mid_block_res_sample = control[12:]
-            down_block_res_samples = [
-                down_block_res_sample * controlnet_conditioning_scale
-                for down_block_res_sample in down_block_res_samples
-            ]
-            mid_block_res_sample = (
-                mid_block_res_sample[0] * controlnet_conditioning_scale
-            )
             timestep = timestep.detach().numpy()
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
@@ -181,19 +172,19 @@ class StableDiffusionPipeline:
                     timestep,
                     text_embeddings_numpy,
                     guidance_scale,
-                    down_block_res_samples[0],
-                    down_block_res_samples[1],
-                    down_block_res_samples[2],
-                    down_block_res_samples[3],
-                    down_block_res_samples[4],
-                    down_block_res_samples[5],
-                    down_block_res_samples[6],
-                    down_block_res_samples[7],
-                    down_block_res_samples[8],
-                    down_block_res_samples[9],
-                    down_block_res_samples[10],
-                    down_block_res_samples[11],
-                    mid_block_res_sample,
+                    control[0],
+                    control[1],
+                    control[2],
+                    control[3],
+                    control[4],
+                    control[5],
+                    control[6],
+                    control[7],
+                    control[8],
+                    control[9],
+                    control[10],
+                    control[11],
+                    control[12],
                 ),
                 send_to_host=False,
             )
