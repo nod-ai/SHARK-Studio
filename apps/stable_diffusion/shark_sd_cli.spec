@@ -1,5 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_submodules
 from PyInstaller.utils.hooks import copy_metadata
 
 import sys ; sys.setrecursionlimit(sys.getrecursionlimit() * 5)
@@ -21,6 +22,7 @@ datas += copy_metadata('safetensors')
 datas += collect_data_files('diffusers')
 datas += collect_data_files('transformers')
 datas += collect_data_files('opencv-python')
+datas += collect_data_files('skimage')
 datas += collect_data_files('gradio')
 datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
@@ -36,13 +38,15 @@ binaries = []
 
 block_cipher = None
 
+hiddenimports = ['shark', 'shark.shark_inference', 'apps']
+hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
 
 a = Analysis(
     ['scripts/txt2img.py'],
     pathex=['.'],
     binaries=binaries,
     datas=datas,
-    hiddenimports=['shark', 'shark.shark_inference', 'apps'],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
