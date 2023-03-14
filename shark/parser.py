@@ -108,4 +108,14 @@ parser.add_argument(
     help="Enables the --iree-flow-enable-conv-winograd-transform flag.",
 )
 
+parser.add_argument(
+    "--device_allocator",
+    type=str,
+    nargs="*",
+    default=[],
+    help="Specifies one or more HAL device allocator specs "
+    "to augment the base device allocator",
+    choices=["debug", "caching"],
+)
+
 shark_args, unknown = parser.parse_known_args()
