@@ -475,3 +475,7 @@ p.add_argument(
 )
 
 args, unknown = p.parse_known_args()
+if args.import_debug:
+    os.environ["IREE_SAVE_TEMPS"] = os.path.join(
+        os.getcwd(), args.hf_model_id.replace("/", "_")
+    )
