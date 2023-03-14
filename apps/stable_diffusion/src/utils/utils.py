@@ -8,6 +8,7 @@ from csv import DictWriter
 from pathlib import Path
 import numpy as np
 from random import randint
+import tempfile
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
@@ -90,6 +91,9 @@ def compile_through_fx(
     is_f16=False,
     f16_input_mask=None,
     use_tuned=False,
+    save_dir=tempfile.gettempdir(),
+    debug=False,
+    generate_vmfb=True,
     extra_args=[],
 ):
     from shark.parser import shark_args
@@ -97,10 +101,18 @@ def compile_through_fx(
     if "cuda" in args.device:
         shark_args.enable_tf32 = True
 
-    mlir_module, func_name = import_with_fx(
-        model, inputs, is_f16, f16_input_mask
+    (
+        mlir_module,
+        func_name,
+    ) = import_with_fx(
+        model=model,
+        inputs=inputs,
+        is_f16=is_f16,
+        f16_input_mask=f16_input_mask,
+        debug=debug,
+        model_name=model_name,
+        save_dir=save_dir,
     )
-
     if use_tuned:
         if "vae" in model_name.split("_")[0]:
             args.annotation_model = "vae"
@@ -112,10 +124,18 @@ def compile_through_fx(
         mlir_dialect="linalg",
     )
 
+    if generate_vmfb:
+        shark_module = SharkInference(
+            mlir_module,
+            device=args.device,
+            mlir_dialect="linalg",
+        )
+        del mlir_module
+        gc.collect()
+        return _compile_module(shark_module, model_name, extra_args)
+
     del mlir_module
     gc.collect()
-
-    return _compile_module(shark_module, model_name, extra_args)
 
 
 def set_iree_runtime_flags():
@@ -559,7 +579,7 @@ def save_output_img(output_img, img_seed, extra_info={}):
 
     img_model = args.hf_model_id
     if args.ckpt_loc:
-        img_model = os.path.basename(args.ckpt_loc)
+        img_model = Path(os.path.basename(args.ckpt_loc)).stem
 
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")

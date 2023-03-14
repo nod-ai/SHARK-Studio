@@ -1,9 +1,17 @@
 import argparse
+import os
 from pathlib import Path
 
 
 def path_expand(s):
     return Path(s).expanduser().resolve()
+
+
+def is_valid_file(arg):
+    if not os.path.exists(arg):
+        return None
+    else:
+        return arg
 
 
 p = argparse.ArgumentParser(
@@ -295,7 +303,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_stencil",
-    choices=["canny"],
+    choices=["canny", "openpose"],
     help="Enable the stencil feature.",
 )
 
@@ -408,6 +416,12 @@ p.add_argument(
     help="flag for whether or not to save generation information in PNG chunk text to generated images.",
 )
 
+p.add_argument(
+    "--import_debug",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="if import_mlir is True, saves mlir via the debug option in shark importer. Does nothing if import_mlir is false (the default)",
+)
 ##############################################################################
 ### Web UI flags
 ##############################################################################
@@ -467,3 +481,7 @@ p.add_argument(
 )
 
 args, unknown = p.parse_known_args()
+if args.import_debug:
+    os.environ["IREE_SAVE_TEMPS"] = os.path.join(
+        os.getcwd(), args.hf_model_id.replace("/", "_")
+    )

@@ -52,7 +52,7 @@ def save_torch_model(torch_model_list):
 
             tracing_required = False if tracing_required == "False" else True
             is_dynamic = False if is_dynamic == "False" else True
-
+            print("generating artifacts for: " + torch_model_name)
             model = None
             input = None
             if model_type == "stable_diffusion":
@@ -105,12 +105,6 @@ def save_torch_model(torch_model_list):
                 dir=torch_model_dir,
                 model_name=torch_model_name,
             )
-            mlir_hash = create_hash(
-                os.path.join(
-                    torch_model_dir, torch_model_name + "_torch" + ".mlir"
-                )
-            )
-            np.save(os.path.join(torch_model_dir, "hash"), np.array(mlir_hash))
             # Generate torch dynamic models.
             if is_dynamic:
                 mlir_importer.import_debug(
@@ -276,6 +270,9 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "tank", "tflite", "tflite_model_list.csv"
     )
 
+    save_torch_model(
+        os.path.join(os.path.dirname(__file__), "tank", "torch_sd_list.csv")
+    )
     save_torch_model(torch_model_csv)
     save_tf_model(tf_model_csv)
     save_tflite_model(tflite_model_csv)

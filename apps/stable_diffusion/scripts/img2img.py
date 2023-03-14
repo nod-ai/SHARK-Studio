@@ -38,6 +38,33 @@ init_use_tuned = args.use_tuned
 init_import_mlir = args.import_mlir
 
 
+# For stencil, the input image can be of any size but we need to ensure that
+# it conforms with our model contraints :-
+#   Both width and height should be > 384 and multiple of 8.
+# This utility function performs the transformation on the input image while
+# also maintaining the aspect ratio before sending it to the stencil pipeline.
+def resize_stencil(image: Image.Image):
+    width, height = image.size
+    aspect_ratio = width / height
+    min_size = min(width, height)
+    if min_size < 384:
+        n_size = 384
+        if width == min_size:
+            width = n_size
+            height = n_size / aspect_ratio
+        else:
+            height = n_size
+            width = n_size * aspect_ratio
+    width = int(width)
+    height = int(height)
+    n_width = width // 8
+    n_height = height // 8
+    n_width *= 8
+    n_height *= 8
+    new_image = image.resize((n_width, n_height))
+    return new_image, n_width, n_height
+
+
 # Exposed to UI.
 def img2img_inf(
     prompt: str,
@@ -61,6 +88,8 @@ def img2img_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
+    from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
+
     global img2img_obj
     global config_obj
     global schedulers
@@ -93,7 +122,7 @@ def img2img_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
@@ -105,6 +134,7 @@ def img2img_inf(
     if use_stencil is not None:
         args.scheduler = "DDIM"
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
+        image, width, height = resize_stencil(image)
     elif args.scheduler != "PNDM":
         if "Shark" in args.scheduler:
             print(
@@ -147,6 +177,7 @@ def img2img_inf(
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
+
         if use_stencil is not None:
             args.use_tuned = False
             img2img_obj = StencilPipeline.from_pretrained(
@@ -164,6 +195,7 @@ def img2img_inf(
                 args.use_tuned,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 use_stencil=use_stencil,
+                debug=args.import_debug if args.import_mlir else False,
             )
         else:
             img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -180,6 +212,7 @@ def img2img_inf(
                 args.use_base_vae,
                 args.use_tuned,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
+                debug=args.import_debug if args.import_mlir else False,
             )
 
     img2img_obj.scheduler = schedulers[scheduler]
@@ -236,6 +269,7 @@ def main():
         print("Flag --img_path is required.")
         exit()
 
+    image = Image.open(args.img_path).convert("RGB")
     # When the models get uploaded, it should be default to False.
     args.import_mlir = True
 
@@ -243,6 +277,7 @@ def main():
     if use_stencil:
         args.scheduler = "DDIM"
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
+        image, args.width, args.height = resize_stencil(image)
     elif args.scheduler != "PNDM":
         if "Shark" in args.scheduler:
             print(
@@ -257,9 +292,7 @@ def main():
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     set_init_device_flags()
     schedulers = get_schedulers(args.hf_model_id)
-
     scheduler_obj = schedulers[args.scheduler]
-    image = Image.open(args.img_path).convert("RGB")
     seed = utils.sanitize_seed(args.seed)
     # Adjust for height and width based on model
 
@@ -279,6 +312,7 @@ def main():
             args.use_tuned,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             use_stencil=use_stencil,
+            debug=args.import_debug if args.import_mlir else False,
         )
     else:
         img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -295,6 +329,7 @@ def main():
             args.use_base_vae,
             args.use_tuned,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
+            debug=args.import_debug if args.import_mlir else False,
         )
 
     start_time = time.time()

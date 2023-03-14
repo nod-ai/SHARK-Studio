@@ -1,4 +1,3 @@
-import sys
 import torch
 import time
 from PIL import Image
@@ -59,6 +58,8 @@ def inpaint_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
+    from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
+
     global inpaint_obj
     global config_obj
     global schedulers
@@ -86,7 +87,7 @@ def inpaint_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
@@ -125,18 +126,20 @@ def inpaint_inf(
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
         inpaint_obj = InpaintPipeline.from_pretrained(
-            scheduler_obj,
-            args.import_mlir,
-            args.hf_model_id,
-            args.ckpt_loc,
-            args.custom_vae,
-            args.precision,
-            args.max_length,
-            args.batch_size,
-            args.height,
-            args.width,
-            args.use_base_vae,
-            args.use_tuned,
+            scheduler=scheduler_obj,
+            import_mlir=args.import_mlir,
+            model_id=args.hf_model_id,
+            ckpt_loc=args.ckpt_loc,
+            precision=args.precision,
+            max_length=args.max_length,
+            batch_size=args.batch_size,
+            height=args.height,
+            width=args.width,
+            use_base_vae=args.use_base_vae,
+            use_tuned=args.use_tuned,
+            custom_vae=args.custom_vae,
+            low_cpu_mem_usage=args.low_cpu_mem_usage,
+            debug=args.import_debug if args.import_mlir else False,
         )
 
     inpaint_obj.scheduler = schedulers[scheduler]
@@ -213,18 +216,20 @@ def main():
     mask_image = Image.open(args.mask_path)
 
     inpaint_obj = InpaintPipeline.from_pretrained(
-        scheduler_obj,
-        args.import_mlir,
-        args.hf_model_id,
-        args.ckpt_loc,
-        args.custom_vae,
-        args.precision,
-        args.max_length,
-        args.batch_size,
-        args.height,
-        args.width,
-        args.use_base_vae,
-        args.use_tuned,
+        scheduler=scheduler_obj,
+        import_mlir=args.import_mlir,
+        model_id=args.hf_model_id,
+        ckpt_loc=args.ckpt_loc,
+        precision=args.precision,
+        max_length=args.max_length,
+        batch_size=args.batch_size,
+        height=args.height,
+        width=args.width,
+        use_base_vae=args.use_base_vae,
+        use_tuned=args.use_tuned,
+        custom_vae=args.custom_vae,
+        low_cpu_mem_usage=args.low_cpu_mem_usage,
+        debug=args.import_debug if args.import_mlir else False,
     )
 
     for current_batch in range(args.batch_count):

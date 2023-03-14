@@ -1,7 +1,5 @@
-import os
-import sys
-import glob
 from pathlib import Path
+import os
 import gradio as gr
 from PIL import Image
 from apps.stable_diffusion.scripts import outpaint_inf
@@ -9,6 +7,10 @@ from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
+    get_custom_model_path,
+    get_custom_model_files,
+    scheduler_list,
+    predefined_paint_models,
 )
 
 
@@ -27,30 +29,18 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    ckpt_path = (
-                        Path(args.ckpt_dir)
-                        if args.ckpt_dir
-                        else Path(Path.cwd(), "models")
-                    )
-                    ckpt_path.mkdir(parents=True, exist_ok=True)
-                    types = (
-                        "*.ckpt",
-                        "*.safetensors",
-                    )  # the tuple of file types
-                    ckpt_files = ["None"]
-                    for extn in types:
-                        files = glob.glob(os.path.join(ckpt_path, extn))
-                        ckpt_files.extend(files)
                     custom_model = gr.Dropdown(
-                        label=f"Models (Custom Model path: {ckpt_path})",
-                        value=args.ckpt_loc if args.ckpt_loc else "None",
-                        choices=ckpt_files
-                        + [
-                            "runwayml/stable-diffusion-inpainting",
-                            "stabilityai/stable-diffusion-2-inpainting",
-                        ],
+                        label=f"Models (Custom Model path: {get_custom_model_path()})",
+                        elem_id="custom_model",
+                        value=os.path.basename(args.ckpt_loc)
+                        if args.ckpt_loc
+                        else "None",
+                        choices=["None"]
+                        + get_custom_model_files()
+                        + predefined_paint_models,
                     )
                     hf_model_id = gr.Textbox(
+                        elem_id="hf_model_id",
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting",
                         value="",
                         label="HuggingFace Model ID",
@@ -78,14 +68,10 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
+                            elem_id="scheduler",
                             label="Scheduler",
                             value="PNDM",
-                            choices=[
-                                "DDIM",
-                                "PNDM",
-                                "DPMSolverMultistep",
-                                "EulerAncestralDiscrete",
-                            ],
+                            choices=scheduler_list,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -193,6 +179,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         value=args.seed, precision=0, label="Seed"
                     )
                     device = gr.Dropdown(
+                        elem_id="device",
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
@@ -203,7 +190,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         None,
                         inputs=[],
                         outputs=[seed],
-                        _js="() => Math.floor(Math.random() * 4294967295)",
+                        _js="() => -1",
                     )
                     stable_diffusion = gr.Button("Generate Image(s)")
 

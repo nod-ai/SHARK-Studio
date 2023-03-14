@@ -19,10 +19,14 @@ import sys
 import subprocess
 
 
-def run_cmd(cmd):
+def run_cmd(cmd, debug=False):
     """
     Inputs: cli command string.
     """
+    if debug:
+        print("IREE run command: \n\n")
+        print(cmd)
+        print("\n\n")
     try:
         result = subprocess.run(
             cmd,

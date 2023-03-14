@@ -20,9 +20,6 @@ from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils i
     StableDiffusionPipeline,
 )
 
-import cv2
-from PIL import Image
-
 
 class Text2ImagePipeline(StableDiffusionPipeline):
     def __init__(

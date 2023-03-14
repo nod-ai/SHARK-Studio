@@ -219,3 +219,26 @@ footer {
     pointer-events: none;
 }
 
+/* Import Png info box */
+#txt2img_prompt_image .fixed-height {
+    height: var(--size-32);
+}
+
+/* Hide "remove buttons" from ui dropdowns */
+#custom_model .token-remove.remove-all,
+#scheduler .token-remove.remove-all,
+#device .token-remove.remove-all {
+    display: none;
+}
+
+/* Hide selected items from ui dropdowns */
+#custom_model .options .item .inner-item,
+#scheduler .options .item .inner-item,
+#device .options .item .inner-item {
+    display:none;
+}
+
+/* Hide the download icon from the nod logo */
+#top_logo .download {
+    display: none;
+}

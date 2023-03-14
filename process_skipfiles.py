@@ -42,3 +42,16 @@ for line in fileinput.input(path_to_skipfiles, inplace=True):
                 print(line, end="")
     else:
         print(line, end="")
+
+# For getting around scikit-image's packaging, laze_loader has had a patch merged but yet to be released.
+# Refer: https://github.com/scientific-python/lazy_loader
+path_to_lazy_loader = Path(get_python_lib() + "/lazy_loader/__init__.py")
+
+for line in fileinput.input(path_to_lazy_loader, inplace=True):
+    if 'stubfile = filename if filename.endswith("i")' in line:
+        print(
+            '    stubfile = (filename if filename.endswith("i") else f"{os.path.splitext(filename)[0]}.pyi")',
+            end="",
+        )
+    else:
+        print(line, end="")
