@@ -182,3 +182,6 @@ models/
 
 # models folder
 apps/stable_diffusion/web/models/
+
+# Stencil annotators.
+stencil_annotator/

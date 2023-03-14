@@ -21,6 +21,7 @@ datas += copy_metadata('safetensors')
 datas += collect_data_files('diffusers')
 datas += collect_data_files('transformers')
 datas += collect_data_files('opencv-python')
+datas += collect_data_files('skimage')
 datas += collect_data_files('gradio')
 datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
@@ -38,13 +39,15 @@ binaries = []
 
 block_cipher = None
 
+hiddenimports = ['shark', 'shark.shark_inference', 'apps']
+hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
 
 a = Analysis(
     ['web/index.py'],
     pathex=['.'],
     binaries=binaries,
     datas=datas,
-    hiddenimports=['shark', 'shark.shark_inference', 'apps'],
+    hiddenimports=hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

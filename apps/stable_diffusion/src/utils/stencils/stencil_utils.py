@@ -1,7 +1,10 @@
 import numpy as np
 from PIL import Image
 import torch
-from apps.stable_diffusion.src.utils.stencils.canny import CannyDetector
+from apps.stable_diffusion.src.utils.stencils import (
+    CannyDetector,
+    OpenposeDetector,
+)
 
 stencil = {}
 
@@ -108,6 +111,9 @@ def controlnet_hint_conversion(
         case "canny":
             print("Detecting edge with canny")
             controlnet_hint = hint_canny(image)
+        case "openpose":
+            print("Detecting human pose")
+            controlnet_hint = hint_openpose(image)
         case _:
             return None
     controlnet_hint = controlnet_hint_shaping(
@@ -148,5 +154,20 @@ def hint_canny(
         detected_map = stencil["canny"](
             input_image, low_threshold, high_threshold
         )
+        detected_map = HWC3(detected_map)
+        return detected_map
+
+
+# Stencil 2. OpenPose.
+def hint_openpose(
+    image: Image.Image,
+):
+    with torch.no_grad():
+        input_image = np.array(image)
+
+        if not "openpose" in stencil:
+            stencil["openpose"] = OpenposeDetector()
+
+        detected_map, _ = stencil["openpose"](input_image)
         detected_map = HWC3(detected_map)
         return detected_map

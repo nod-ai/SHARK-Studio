@@ -1,7 +1,6 @@
 import torch
 import time
 from dataclasses import dataclass
-from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
 from apps.stable_diffusion.src import (
     args,
     Text2ImagePipeline,
@@ -55,6 +54,8 @@ def txt2img_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
+    from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
+
     global txt2img_obj
     global config_obj
     global schedulers

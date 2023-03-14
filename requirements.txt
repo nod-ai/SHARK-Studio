@@ -24,6 +24,7 @@ altair
 omegaconf
 safetensors
 opencv-python
+scikit-image
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile

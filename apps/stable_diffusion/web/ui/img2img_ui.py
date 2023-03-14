@@ -70,7 +70,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         use_stencil = gr.Dropdown(
                             label="Stencil model",
                             value="None",
-                            choices=["None", "canny"],
+                            choices=["None", "canny", "openpose"],
                         )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
