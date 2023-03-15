@@ -97,9 +97,8 @@ class SharkifyStableDiffusionModel:
         sharktank_dir: str = "",
         generate_vmfb: bool = True,
         is_inpaint: bool = False,
-        use_stencil: str = None,
         is_upscaler: bool = False,
-        use_stencil: str = None
+        use_stencil: str = None,
         use_lora: str = ""
     ):
         self.check_params(max_len, width, height)
@@ -276,14 +275,12 @@ class SharkifyStableDiffusionModel:
 
         vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         inputs = tuple(self.inputs["vae"])
-        is_f16 = True if self.precision == "fp16" else False
         shark_vae = compile_through_fx(
             vae,
             inputs,
-            is_f16=is_f16,
             use_tuned=self.use_tuned,
             model_name=self.model_name["vae"],
-            extra_args=get_opt_flags("vae", precision=self.precision),
+            extra_args=get_opt_flags("vae", precision="fp32"),
         )
         return shark_vae
 

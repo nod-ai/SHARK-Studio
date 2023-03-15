@@ -207,10 +207,10 @@ class OutpaintPipeline(StableDiffusionPipeline):
             for y in range(height):
                 fy = (y / height * 2.0 - 1.0) * window_scale_y
                 if mode == 0:
-                    window[:, y] = np.exp(-(x ** 2 + fy ** 2) * std)
+                    window[:, y] = np.exp(-(x**2 + fy**2) * std)
                 else:
                     window[:, y] = (
-                        1 / ((x ** 2 + 1.0) * (fy ** 2 + 1.0))
+                        1 / ((x**2 + 1.0) * (fy**2 + 1.0))
                     ) ** (std / 3.14)
 
             return window
@@ -307,7 +307,7 @@ class OutpaintPipeline(StableDiffusionPipeline):
         shaped_noise_fft = _fft2(noise_rgb)
         shaped_noise_fft[:, :, :] = (
             np.absolute(shaped_noise_fft[:, :, :]) ** 2
-            * (src_dist ** noise_q)
+            * (src_dist**noise_q)
             * src_phase
         )  # perform the actual shaping
 
