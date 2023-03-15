@@ -97,8 +97,8 @@ class SharkifyStableDiffusionModel:
         sharktank_dir: str = "",
         generate_vmfb: bool = True,
         is_inpaint: bool = False,
-        use_stencil: str = None
-
+        use_stencil: str = None,
+        use_lora: str = ""
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -138,6 +138,9 @@ class SharkifyStableDiffusionModel:
         self.low_cpu_mem_usage = low_cpu_mem_usage
         self.is_inpaint = is_inpaint
         self.use_stencil = get_stencil_model_id(use_stencil)
+        if use_lora != "":
+            self.model_name = self.model_name + "_" + get_path_stem(use_lora)
+        self.use_lora = use_lora
 
         print(self.model_name)
         self.debug = debug
@@ -360,13 +363,15 @@ class SharkifyStableDiffusionModel:
 
     def get_unet(self):
         class UnetModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
                     model_id,
                     subfolder="unet",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    self.unet.load_attn_procs(use_lora)
                 self.in_channels = self.unet.in_channels
                 self.train(False)
                 if(args.attention_slicing is not None and args.attention_slicing != "none"):
