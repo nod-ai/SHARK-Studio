@@ -301,6 +301,13 @@ p.add_argument(
     help="Enable the stencil feature.",
 )
 
+p.add_argument(
+    "--use_lora",
+    type=str,
+    default="",
+    help="Use standalone LoRA weight using a HF ID or a checkpoint file (~3 MB)",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
