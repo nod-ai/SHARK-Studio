@@ -152,14 +152,19 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        None,
-                        inputs=[],
-                        outputs=[seed],
-                        _js="() => -1",
-                    )
-                    stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=2):
+                        random_seed = gr.Button("Randomize Seed")
+                        random_seed.click(
+                            None,
+                            inputs=[],
+                            outputs=[seed],
+                            _js="() => -1",
+                        )
+                    with gr.Column(scale=6):
+                        stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=1, min_width=150):
+                        clear_queue = gr.Button("Clear Queue")
+
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
@@ -219,9 +224,12 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
             show_progress=args.progress_bar,
         )
 
-        prompt.submit(**kwargs)
-        negative_prompt.submit(**kwargs)
-        stable_diffusion.click(**kwargs)
+        prompt_submit = prompt.submit(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**kwargs)
+        generate_click = stable_diffusion.click(**kwargs)
+        clear_queue.click(
+            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+        )
 
         from apps.stable_diffusion.web.utils.png_metadata import (
             import_png_metadata,
