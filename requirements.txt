@@ -19,7 +19,7 @@ transformers
 diffusers
 scipy
 ftfy
-gradio < 3.21.0 # temporary workaround for TypeError: issubclass() arg 1 must be a class
+gradio
 altair
 omegaconf
 safetensors
