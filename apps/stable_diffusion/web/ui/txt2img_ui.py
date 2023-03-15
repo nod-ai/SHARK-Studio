@@ -69,6 +69,23 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         lines=1,
                         elem_id="negative_prompt_box",
                     )
+                with gr.Accordion(
+                    label="Lora based inference option", open=False
+                ):
+                    with gr.Row():
+                        lora_weights = gr.Dropdown(
+                            label=f"Standlone LoRA weights (Path: {get_custom_model_path()})",
+                            elem_id="lora_weights",
+                            value="None",
+                            choices=["None"] + get_custom_model_files(),
+                        )
+                        lora_hf_id = gr.Textbox(
+                            elem_id="lora_hf_id",
+                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                            value="",
+                            label="HuggingFace Model ID",
+                            lines=3,
+                        )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
@@ -152,14 +169,19 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        None,
-                        inputs=[],
-                        outputs=[seed],
-                        _js="() => -1",
-                    )
-                    stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=2):
+                        random_seed = gr.Button("Randomize Seed")
+                        random_seed.click(
+                            None,
+                            inputs=[],
+                            outputs=[seed],
+                            _js="() => -1",
+                        )
+                    with gr.Column(scale=6):
+                        stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=1, min_width=150):
+                        clear_queue = gr.Button("Clear Queue")
+
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
@@ -214,14 +236,19 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 max_length,
                 save_metadata_to_json,
                 save_metadata_to_png,
+                lora_weights,
+                lora_hf_id,
             ],
             outputs=[txt2img_gallery, std_output],
             show_progress=args.progress_bar,
         )
 
-        prompt.submit(**kwargs)
-        negative_prompt.submit(**kwargs)
-        stable_diffusion.click(**kwargs)
+        prompt_submit = prompt.submit(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**kwargs)
+        generate_click = stable_diffusion.click(**kwargs)
+        clear_queue.click(
+            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+        )
 
         from apps.stable_diffusion.web.utils.png_metadata import (
             import_png_metadata,

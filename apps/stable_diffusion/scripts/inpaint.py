@@ -176,6 +176,7 @@ def inpaint_inf(
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
         inpaint_obj.log += "\n"
+        yield generated_imgs, generated_imgs[0], inpaint_obj.log
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -187,7 +188,7 @@ def inpaint_inf(
     text_output += inpaint_obj.log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    return generated_imgs, text_output
+    yield generated_imgs, text_output
 
 
 if __name__ == "__main__":

@@ -310,6 +310,7 @@ class StableDiffusionPipeline:
         low_cpu_mem_usage: bool = False,
         debug: bool = False,
         use_stencil: str = None,
+        use_lora: str = "",
     ):
         is_inpaint = cls.__name__ in [
             "InpaintPipeline",
@@ -331,6 +332,7 @@ class StableDiffusionPipeline:
                 debug=debug,
                 is_inpaint=is_inpaint,
                 use_stencil=use_stencil,
+                use_lora=use_lora,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",

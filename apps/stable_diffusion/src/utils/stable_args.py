@@ -297,8 +297,15 @@ p.add_argument(
 
 p.add_argument(
     "--use_stencil",
-    choices=["canny", "openpose"],
+    choices=["canny", "openpose", "scribble"],
     help="Enable the stencil feature.",
+)
+
+p.add_argument(
+    "--use_lora",
+    type=str,
+    default="",
+    help="Use standalone LoRA weight using a HF ID or a checkpoint file (~3 MB)",
 )
 
 ##############################################################################

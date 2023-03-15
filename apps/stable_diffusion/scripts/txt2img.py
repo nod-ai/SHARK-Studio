@@ -22,6 +22,7 @@ class Config:
     height: int
     width: int
     device: str
+    use_lora: str
 
 
 txt2img_obj = None
@@ -53,6 +54,8 @@ def txt2img_inf(
     max_length: int,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
+    lora_weights: str,
+    lora_hf_id: str,
 ):
     from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
 
@@ -88,6 +91,15 @@ def txt2img_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
+    use_lora = ""
+    if lora_weights == "None" and not lora_hf_id:
+        use_lora = ""
+    elif not lora_hf_id:
+        use_lora = lora_weights
+    else:
+        use_lora = lora_hf_id
+    args.use_lora = use_lora
+
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
     new_config_obj = Config(
@@ -99,6 +111,7 @@ def txt2img_inf(
         height,
         width,
         device,
+        use_lora,
     )
     if not txt2img_obj or config_obj != new_config_obj:
         config_obj = new_config_obj
@@ -135,6 +148,7 @@ def txt2img_inf(
             custom_vae=args.custom_vae,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             debug=args.import_debug if args.import_mlir else False,
+            use_lora=use_lora,
         )
 
     txt2img_obj.scheduler = schedulers[scheduler]
@@ -192,6 +206,7 @@ if __name__ == "__main__":
     schedulers = get_schedulers(args.hf_model_id)
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
+    use_lora = args.use_lora
     txt2img_obj = Text2ImagePipeline.from_pretrained(
         scheduler=scheduler_obj,
         import_mlir=args.import_mlir,
@@ -207,6 +222,7 @@ if __name__ == "__main__":
         custom_vae=args.custom_vae,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
         debug=args.import_debug if args.import_mlir else False,
+        use_lora=use_lora,
     )
 
     for current_batch in range(args.batch_count):
