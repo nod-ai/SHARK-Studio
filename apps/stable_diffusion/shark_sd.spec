@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import copy_metadata
+from PyInstaller.utils.hooks import collect_submodules
 
 import sys ; sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
