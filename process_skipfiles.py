@@ -7,14 +7,35 @@ import fileinput
 from pathlib import Path
 
 # Diffusers 0.13.1 fails with transformers __init.py errros in BLIP. So remove it for now until we fork it
-pix2pix_file = Path(
-    get_python_lib()
-    + "/diffusers/pipelines/stable_diffusion/pipeline_stable_diffusion_pix2pix_zero.py"
+pix2pix_init = Path(get_python_lib() + "/diffusers/__init__.py")
+for line in fileinput.input(pix2pix_init, inplace=True):
+    if "Pix2Pix" in line:
+        if not line.startswith("#"):
+            print(f"#{line}", end="")
+        else:
+            print(f"{line[1:]}", end="")
+    else:
+        print(line, end="")
+pix2pix_init = Path(get_python_lib() + "/diffusers/pipelines/__init__.py")
+for line in fileinput.input(pix2pix_init, inplace=True):
+    if "Pix2Pix" in line:
+        if not line.startswith("#"):
+            print(f"#{line}", end="")
+        else:
+            print(f"{line[1:]}", end="")
+    else:
+        print(line, end="")
+pix2pix_init = Path(
+    get_python_lib() + "/diffusers/pipelines/stable_diffusion/__init__.py"
 )
-if pix2pix_file.exists():
-    print("Removing..%s", pix2pix_file)
-    pix2pix_file.unlink()
-
+for line in fileinput.input(pix2pix_init, inplace=True):
+    if "StableDiffusionPix2PixZeroPipeline" in line:
+        if not line.startswith("#"):
+            print(f"#{line}", end="")
+        else:
+            print(f"{line[1:]}", end="")
+    else:
+        print(line, end="")
 
 path_to_skipfiles = Path(get_python_lib() + "/torch/_dynamo/skipfiles.py")
 
