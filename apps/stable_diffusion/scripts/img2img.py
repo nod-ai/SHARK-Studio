@@ -69,7 +69,7 @@ def resize_stencil(image: Image.Image):
 def img2img_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: Image,
+    init_image,
     height: int,
     width: int,
     steps: int,

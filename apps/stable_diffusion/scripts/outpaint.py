@@ -39,7 +39,7 @@ init_import_mlir = args.import_mlir
 def outpaint_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: Image,
+    init_image,
     pixels: int,
     mask_blur: int,
     directions: list,
