@@ -297,7 +297,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_stencil",
-    choices=["canny", "openpose"],
+    choices=["canny", "openpose", "scribble"],
     help="Enable the stencil feature.",
 )
 

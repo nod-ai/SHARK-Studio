@@ -114,6 +114,9 @@ def controlnet_hint_conversion(
         case "openpose":
             print("Detecting human pose")
             controlnet_hint = hint_openpose(image)
+        case "scribble":
+            print("Working with scribble")
+            controlnet_hint = hint_scribble(image)
         case _:
             return None
     controlnet_hint = controlnet_hint_shaping(
@@ -170,4 +173,14 @@ def hint_openpose(
 
         detected_map, _ = stencil["openpose"](input_image)
         detected_map = HWC3(detected_map)
+        return detected_map
+
+
+# Stencil 3. Scribble.
+def hint_scribble(image: Image.Image):
+    with torch.no_grad():
+        input_image = np.array(image)
+
+        detected_map = np.zeros_like(input_image, dtype=np.uint8)
+        detected_map[np.min(input_image, axis=2) < 127] = 255
         return detected_map
