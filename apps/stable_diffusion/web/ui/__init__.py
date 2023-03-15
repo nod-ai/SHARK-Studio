@@ -26,3 +26,11 @@ from apps.stable_diffusion.web.ui.outpaint_ui import (
     outpaint_sendto_img2img,
     outpaint_sendto_inpaint,
 )
+from apps.stable_diffusion.web.ui.upscaler_ui import (
+    upscaler_web,
+    upscaler_gallery,
+    upscaler_init_image,
+    upscaler_sendto_img2img,
+    upscaler_sendto_inpaint,
+    upscaler_sendto_outpaint,
+)

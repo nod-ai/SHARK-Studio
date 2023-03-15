@@ -52,6 +52,12 @@ from apps.stable_diffusion.web.ui import (
     outpaint_init_image,
     outpaint_sendto_img2img,
     outpaint_sendto_inpaint,
+    upscaler_web,
+    upscaler_gallery,
+    upscaler_init_image,
+    upscaler_sendto_img2img,
+    upscaler_sendto_inpaint,
+    upscaler_sendto_outpaint,
 )
 
 # init global sd pipeline and config
@@ -81,6 +87,8 @@ with gr.Blocks(
             inpaint_web.render()
         with gr.TabItem(label="Outpainting", id=3):
             outpaint_web.render()
+        with gr.TabItem(label="Upscaler", id=4):
+            upscaler_web.render()
 
     register_button_click(
         txt2img_sendto_img2img,
@@ -135,6 +143,24 @@ with gr.Blocks(
         2,
         [outpaint_gallery],
         [inpaint_init_image, tabs],
+    )
+    register_button_click(
+        upscaler_sendto_img2img,
+        1,
+        [upscaler_gallery],
+        [img2img_init_image, tabs],
+    )
+    register_button_click(
+        upscaler_sendto_inpaint,
+        2,
+        [upscaler_gallery],
+        [inpaint_init_image, tabs],
+    )
+    register_button_click(
+        upscaler_sendto_outpaint,
+        3,
+        [upscaler_gallery],
+        [outpaint_init_image, tabs],
     )
 
 

@@ -57,6 +57,9 @@ predefined_paint_models = [
     "runwayml/stable-diffusion-inpainting",
     "stabilityai/stable-diffusion-2-inpainting",
 ]
+predefined_upscaler_models = [
+    "stabilityai/stable-diffusion-x4-upscaler",
+]
 
 
 def resource_path(relative_path):

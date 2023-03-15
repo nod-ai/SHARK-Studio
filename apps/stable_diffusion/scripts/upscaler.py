@@ -40,7 +40,7 @@ init_import_mlir = args.import_mlir
 def upscaler_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: Image,
+    init_image,
     height: int,
     width: int,
     steps: int,
@@ -68,6 +68,8 @@ def upscaler_inf(
     args.seed = seed
     args.steps = steps
     args.scheduler = scheduler
+    args.height = height
+    args.width = width
 
     if init_image is None:
         return None, "An Initial Image is required"
@@ -112,8 +114,6 @@ def upscaler_inf(
         config_obj = new_config_obj
         args.batch_size = batch_size
         args.max_length = max_length
-        args.height = height
-        args.width = width
         args.device = device.split("=>", 1)[1].strip()
         args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
         args.use_tuned = init_use_tuned
@@ -205,7 +205,11 @@ if __name__ == "__main__":
     schedulers = get_schedulers(args.hf_model_id)
 
     scheduler_obj = schedulers[args.scheduler]
-    image = Image.open(args.img_path).convert("RGB").resize((args.height, args.width))
+    image = (
+        Image.open(args.img_path)
+        .convert("RGB")
+        .resize((args.height, args.width))
+    )
     seed = utils.sanitize_seed(args.seed)
     # Adjust for height and width based on model
 

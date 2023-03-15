@@ -101,7 +101,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
         return extra_step_kwargs
 
     def decode_latents(self, latents, use_base_vae, cpu_scheduling):
-        latents = 1 / 0.08333 * latents
+        latents = 1 / 0.08333 * (latents.float())
         latents_numpy = latents
         if cpu_scheduling:
             latents_numpy = latents.detach().numpy()
@@ -183,7 +183,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
                     timestep,
                     text_embeddings_numpy,
                     noise_level,
-                )
+                ),
             )
             end_profiling(profile_device)
             noise_pred = torch.from_numpy(noise_pred)
