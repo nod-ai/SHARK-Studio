@@ -215,6 +215,9 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     txt2img_sendto_outpaint = gr.Button(
                         value="SendTo Outpaint"
                     )
+                    txt2img_sendto_upscaler = gr.Button(
+                        value="SendTo Upscaler"
+                    )
 
         kwargs = dict(
             fn=txt2img_inf,

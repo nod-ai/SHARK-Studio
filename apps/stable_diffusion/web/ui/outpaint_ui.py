@@ -220,6 +220,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 with gr.Row():
                     outpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     outpaint_sendto_inpaint = gr.Button(value="SendTo Inpaint")
+                    outpaint_sendto_upscaler = gr.Button(
+                        value="SendTo Upscaler"
+                    )
 
         kwargs = dict(
             fn=outpaint_inf,

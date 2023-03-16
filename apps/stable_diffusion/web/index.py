@@ -37,21 +37,25 @@ from apps.stable_diffusion.web.ui import (
     txt2img_sendto_img2img,
     txt2img_sendto_inpaint,
     txt2img_sendto_outpaint,
+    txt2img_sendto_upscaler,
     img2img_web,
     img2img_gallery,
     img2img_init_image,
     img2img_sendto_inpaint,
     img2img_sendto_outpaint,
+    img2img_sendto_upscaler,
     inpaint_web,
     inpaint_gallery,
     inpaint_init_image,
     inpaint_sendto_img2img,
     inpaint_sendto_outpaint,
+    inpaint_sendto_upscaler,
     outpaint_web,
     outpaint_gallery,
     outpaint_init_image,
     outpaint_sendto_img2img,
     outpaint_sendto_inpaint,
+    outpaint_sendto_upscaler,
     upscaler_web,
     upscaler_gallery,
     upscaler_init_image,
@@ -109,6 +113,12 @@ with gr.Blocks(
         [outpaint_init_image, tabs],
     )
     register_button_click(
+        txt2img_sendto_upscaler,
+        4,
+        [txt2img_gallery],
+        [upscaler_init_image, tabs],
+    )
+    register_button_click(
         img2img_sendto_inpaint,
         2,
         [img2img_gallery],
@@ -119,6 +129,12 @@ with gr.Blocks(
         3,
         [img2img_gallery],
         [outpaint_init_image, tabs],
+    )
+    register_button_click(
+        img2img_sendto_upscaler,
+        4,
+        [img2img_gallery],
+        [upscaler_init_image, tabs],
     )
     register_button_click(
         inpaint_sendto_img2img,
@@ -133,6 +149,12 @@ with gr.Blocks(
         [outpaint_init_image, tabs],
     )
     register_button_click(
+        inpaint_sendto_upscaler,
+        4,
+        [inpaint_gallery],
+        [upscaler_init_image, tabs],
+    )
+    register_button_click(
         outpaint_sendto_img2img,
         1,
         [outpaint_gallery],
@@ -143,6 +165,12 @@ with gr.Blocks(
         2,
         [outpaint_gallery],
         [inpaint_init_image, tabs],
+    )
+    register_button_click(
+        outpaint_sendto_upscaler,
+        4,
+        [outpaint_gallery],
+        [upscaler_init_image, tabs],
     )
     register_button_click(
         upscaler_sendto_img2img,
