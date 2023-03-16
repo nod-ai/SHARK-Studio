@@ -5,6 +5,7 @@ if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 
 import gradio as gr
+import apps.stable_diffusion.web.utils.global_obj as global_obj
 from apps.stable_diffusion.src import args, clear_all
 from apps.stable_diffusion.web.utils.gradio_configs import (
     clear_gradio_tmp_imgs_folder,
@@ -52,6 +53,9 @@ from apps.stable_diffusion.web.ui import (
     outpaint_sendto_img2img,
     outpaint_sendto_inpaint,
 )
+
+# init global sd pipeline and config
+global_obj.init()
 
 
 def register_button_click(button, selectedid, inputs, outputs):
