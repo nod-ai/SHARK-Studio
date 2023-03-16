@@ -172,7 +172,7 @@ def inpaint_inf(
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
         global_obj.get_sd_obj().log += "\n"
-        yield generated_imgs, generated_imgs[0], global_obj.get_sd_obj().log
+        yield generated_imgs, global_obj.get_sd_obj().log
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"

@@ -160,14 +160,18 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        None,
-                        inputs=[],
-                        outputs=[seed],
-                        _js="() => -1",
-                    )
-                    stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=2):
+                        random_seed = gr.Button("Randomize Seed")
+                        random_seed.click(
+                            None,
+                            inputs=[],
+                            outputs=[seed],
+                            _js="() => -1",
+                        )
+                    with gr.Column(scale=6):
+                        stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=1, min_width=150):
+                        clear_queue = gr.Button("Clear Queue")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -222,6 +226,9 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
             show_progress=args.progress_bar,
         )
 
-        prompt.submit(**kwargs)
-        negative_prompt.submit(**kwargs)
-        stable_diffusion.click(**kwargs)
+        prompt_submit = prompt.submit(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**kwargs)
+        generate_click = stable_diffusion.click(**kwargs)
+        clear_queue.click(
+            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+        )
