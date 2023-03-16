@@ -2,18 +2,19 @@ from pathlib import Path
 import os
 import gradio as gr
 from PIL import Image
-from apps.stable_diffusion.scripts import txt2img_inf
-from apps.stable_diffusion.src import prompt_examples, args
+from apps.stable_diffusion.scripts import upscaler_inf
+from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
     get_custom_model_path,
     get_custom_model_files,
-    scheduler_list_txt2img,
-    predefined_models,
+    scheduler_list,
+    predefined_upscaler_models,
 )
 
-with gr.Blocks(title="Text-to-Image") as txt2img_web:
+
+with gr.Blocks(title="Upscaler") as upscaler_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -28,33 +29,23 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    with gr.Column(scale=10):
-                        with gr.Row():
-                            custom_model = gr.Dropdown(
-                                label=f"Models (Custom Model path: {get_custom_model_path()})",
-                                elem_id="custom_model",
-                                value=os.path.basename(args.ckpt_loc)
-                                if args.ckpt_loc
-                                else "None",
-                                choices=["None"]
-                                + get_custom_model_files()
-                                + predefined_models,
-                            )
-                            hf_model_id = gr.Textbox(
-                                elem_id="hf_model_id",
-                                placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
-                                value="",
-                                label="HuggingFace Model ID",
-                                lines=3,
-                            )
-                    with gr.Column(scale=1, min_width=170):
-                        png_info_img = gr.Image(
-                            label="Import PNG info",
-                            elem_id="txt2img_prompt_image",
-                            type="pil",
-                            tool="None",
-                            visible=True,
-                        )
+                    custom_model = gr.Dropdown(
+                        label=f"Models (Custom Model path: {get_custom_model_path()})",
+                        elem_id="custom_model",
+                        value=os.path.basename(args.ckpt_loc)
+                        if args.ckpt_loc
+                        else "None",
+                        choices=["None"]
+                        + get_custom_model_files()
+                        + predefined_upscaler_models,
+                    )
+                    hf_model_id = gr.Textbox(
+                        elem_id="hf_model_id",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
+                        value="",
+                        label="HuggingFace Model ID",
+                        lines=3,
+                    )
 
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
@@ -69,30 +60,18 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         lines=1,
                         elem_id="negative_prompt_box",
                     )
-                with gr.Accordion(
-                    label="Lora based inference option", open=False
-                ):
-                    with gr.Row():
-                        lora_weights = gr.Dropdown(
-                            label=f"Standlone LoRA weights (Path: {get_custom_model_path()})",
-                            elem_id="lora_weights",
-                            value="None",
-                            choices=["None"] + get_custom_model_files(),
-                        )
-                        lora_hf_id = gr.Textbox(
-                            elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
-                            value="",
-                            label="HuggingFace Model ID",
-                            lines=3,
-                        )
+
+                upscaler_init_image = gr.Image(
+                    label="Input Image", type="pil"
+                ).style(height=300)
+
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value=args.scheduler,
-                            choices=scheduler_list_txt2img,
+                            value="DDIM",
+                            choices=scheduler_list,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -107,10 +86,20 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             )
                     with gr.Row():
                         height = gr.Slider(
-                            384, 768, value=args.height, step=8, label="Height"
+                            128,
+                            512,
+                            value=128,
+                            step=128,
+                            label="Height",
+                            interactive=False,
                         )
                         width = gr.Slider(
-                            384, 768, value=args.width, step=8, label="Width"
+                            128,
+                            512,
+                            value=128,
+                            step=128,
+                            label="Width",
+                            interactive=False,
                         )
                         precision = gr.Radio(
                             label="Precision",
@@ -119,7 +108,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 "fp16",
                                 "fp32",
                             ],
-                            visible=False,
+                            visible=True,
+                            interactive=False,
                         )
                         max_length = gr.Radio(
                             label="Max Length",
@@ -134,6 +124,14 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         steps = gr.Slider(
                             1, 100, value=args.steps, step=1, label="Steps"
                         )
+                        noise_level = gr.Slider(
+                            0,
+                            100,
+                            value=args.noise_level,
+                            step=1,
+                            label="Noise Level",
+                        )
+                    with gr.Row():
                         guidance_scale = gr.Slider(
                             0,
                             50,
@@ -141,7 +139,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             step=0.1,
                             label="CFG Scale",
                         )
-                    with gr.Row():
                         batch_count = gr.Slider(
                             1,
                             100,
@@ -156,7 +153,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             value=args.batch_size,
                             step=1,
                             label="Batch Size",
-                            interactive=True,
+                            interactive=False,
+                            visible=False,
                         )
                 with gr.Row():
                     seed = gr.Number(
@@ -182,17 +180,9 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     with gr.Column(scale=1, min_width=150):
                         clear_queue = gr.Button("Clear Queue")
 
-                with gr.Accordion(label="Prompt Examples!", open=False):
-                    ex = gr.Examples(
-                        examples=prompt_examples,
-                        inputs=prompt,
-                        cache_examples=False,
-                        elem_id="prompt_examples",
-                    )
-
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
-                    txt2img_gallery = gr.Gallery(
+                    upscaler_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
@@ -210,23 +200,22 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     interactive=False,
                 )
                 with gr.Row():
-                    txt2img_sendto_img2img = gr.Button(value="SendTo Img2Img")
-                    txt2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
-                    txt2img_sendto_outpaint = gr.Button(
+                    upscaler_sendto_img2img = gr.Button(value="SendTo Img2Img")
+                    upscaler_sendto_inpaint = gr.Button(value="SendTo Inpaint")
+                    upscaler_sendto_outpaint = gr.Button(
                         value="SendTo Outpaint"
-                    )
-                    txt2img_sendto_upscaler = gr.Button(
-                        value="SendTo Upscaler"
                     )
 
         kwargs = dict(
-            fn=txt2img_inf,
+            fn=upscaler_inf,
             inputs=[
                 prompt,
                 negative_prompt,
+                upscaler_init_image,
                 height,
                 width,
                 steps,
+                noise_level,
                 guidance_scale,
                 seed,
                 batch_count,
@@ -239,10 +228,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 max_length,
                 save_metadata_to_json,
                 save_metadata_to_png,
-                lora_weights,
-                lora_hf_id,
             ],
-            outputs=[txt2img_gallery, std_output],
+            outputs=[upscaler_gallery, std_output],
             show_progress=args.progress_bar,
         )
 
@@ -251,28 +238,4 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         generate_click = stable_diffusion.click(**kwargs)
         clear_queue.click(
             fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
-        )
-
-        from apps.stable_diffusion.web.utils.png_metadata import (
-            import_png_metadata,
-        )
-
-        png_info_img.change(
-            fn=import_png_metadata,
-            inputs=[
-                png_info_img,
-            ],
-            outputs=[
-                png_info_img,
-                prompt,
-                negative_prompt,
-                steps,
-                scheduler,
-                guidance_scale,
-                seed,
-                width,
-                height,
-                custom_model,
-                hf_model_id,
-            ],
         )

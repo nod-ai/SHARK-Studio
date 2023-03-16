@@ -2,7 +2,6 @@ import sys
 import torch
 import time
 from PIL import Image
-from dataclasses import dataclass
 from apps.stable_diffusion.src import (
     args,
     Image2ImagePipeline,
@@ -15,21 +14,6 @@ from apps.stable_diffusion.src import (
 )
 
 
-@dataclass
-class Config:
-    model_id: str
-    ckpt_loc: str
-    precision: str
-    batch_size: int
-    max_length: int
-    height: int
-    width: int
-    device: str
-    use_stencil: str
-
-
-img2img_obj = None
-config_obj = None
 schedulers = None
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
@@ -69,7 +53,7 @@ def resize_stencil(image: Image.Image):
 def img2img_inf(
     prompt: str,
     negative_prompt: str,
-    init_image: Image,
+    init_image,
     height: int,
     width: int,
     steps: int,
@@ -88,10 +72,12 @@ def img2img_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
-    from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
+    from apps.stable_diffusion.web.ui.utils import (
+        get_custom_model_pathfile,
+        Config,
+    )
+    import apps.stable_diffusion.web.utils.global_obj as global_obj
 
-    global img2img_obj
-    global config_obj
     global schedulers
 
     args.prompts = [prompt]
@@ -149,6 +135,7 @@ def img2img_inf(
     args.precision = precision
     dtype = torch.float32 if precision == "fp32" else torch.half
     new_config_obj = Config(
+        "img2img",
         args.hf_model_id,
         args.ckpt_loc,
         precision,
@@ -157,10 +144,15 @@ def img2img_inf(
         height,
         width,
         device,
-        use_stencil,
+        use_lora=None,
+        use_stencil=use_stencil,
     )
-    if not img2img_obj or config_obj != new_config_obj:
-        config_obj = new_config_obj
+    if (
+        not global_obj.get_sd_obj()
+        or global_obj.get_cfg_obj() != new_config_obj
+    ):
+        global_obj.clear_cache()
+        global_obj.set_cfg_obj(new_config_obj)
         args.batch_size = batch_size
         args.max_length = max_length
         args.height = height
@@ -180,45 +172,49 @@ def img2img_inf(
 
         if use_stencil is not None:
             args.use_tuned = False
-            img2img_obj = StencilPipeline.from_pretrained(
-                scheduler_obj,
-                args.import_mlir,
-                args.hf_model_id,
-                args.ckpt_loc,
-                args.custom_vae,
-                args.precision,
-                args.max_length,
-                args.batch_size,
-                args.height,
-                args.width,
-                args.use_base_vae,
-                args.use_tuned,
-                low_cpu_mem_usage=args.low_cpu_mem_usage,
-                use_stencil=use_stencil,
-                debug=args.import_debug if args.import_mlir else False,
+            global_obj.set_sd_obj(
+                StencilPipeline.from_pretrained(
+                    scheduler_obj,
+                    args.import_mlir,
+                    args.hf_model_id,
+                    args.ckpt_loc,
+                    args.custom_vae,
+                    args.precision,
+                    args.max_length,
+                    args.batch_size,
+                    args.height,
+                    args.width,
+                    args.use_base_vae,
+                    args.use_tuned,
+                    low_cpu_mem_usage=args.low_cpu_mem_usage,
+                    use_stencil=use_stencil,
+                    debug=args.import_debug if args.import_mlir else False,
+                )
             )
         else:
-            img2img_obj = Image2ImagePipeline.from_pretrained(
-                scheduler_obj,
-                args.import_mlir,
-                args.hf_model_id,
-                args.ckpt_loc,
-                args.custom_vae,
-                args.precision,
-                args.max_length,
-                args.batch_size,
-                args.height,
-                args.width,
-                args.use_base_vae,
-                args.use_tuned,
-                low_cpu_mem_usage=args.low_cpu_mem_usage,
-                debug=args.import_debug if args.import_mlir else False,
+            global_obj.set_sd_obj(
+                Image2ImagePipeline.from_pretrained(
+                    scheduler_obj,
+                    args.import_mlir,
+                    args.hf_model_id,
+                    args.ckpt_loc,
+                    args.custom_vae,
+                    args.precision,
+                    args.max_length,
+                    args.batch_size,
+                    args.height,
+                    args.width,
+                    args.use_base_vae,
+                    args.use_tuned,
+                    low_cpu_mem_usage=args.low_cpu_mem_usage,
+                    debug=args.import_debug if args.import_mlir else False,
+                )
             )
 
-    img2img_obj.scheduler = schedulers[scheduler]
+    global_obj.set_schedulers(schedulers[scheduler])
 
     start_time = time.time()
-    img2img_obj.log = ""
+    global_obj.get_sd_obj().log = ""
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
@@ -226,7 +222,7 @@ def img2img_inf(
     for current_batch in range(batch_count):
         if current_batch > 0:
             img_seed = utils.sanitize_seed(-1)
-        out_imgs = img2img_obj.generate_images(
+        out_imgs = global_obj.get_sd_obj().generate_images(
             prompt,
             negative_prompt,
             image,
@@ -246,7 +242,8 @@ def img2img_inf(
         save_output_img(out_imgs[0], img_seed, extra_info)
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
-        img2img_obj.log += "\n"
+        global_obj.get_sd_obj().log += "\n"
+        yield generated_imgs, global_obj.get_sd_obj().log
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -255,10 +252,10 @@ def img2img_inf(
     text_output += f"\nscheduler={args.scheduler}, device={device}"
     text_output += f"\nsteps={steps}, strength={args.strength}, guidance_scale={guidance_scale}, seed={seeds}"
     text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
-    text_output += img2img_obj.log
+    text_output += global_obj.get_sd_obj().log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    return generated_imgs, text_output
+    yield generated_imgs, text_output
 
 
 def main():

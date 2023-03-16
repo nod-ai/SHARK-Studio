@@ -13,3 +13,6 @@ from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_outpain
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_stencil import (
     StencilPipeline,
 )
+from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_upscaler import (
+    UpscalerPipeline,
+)

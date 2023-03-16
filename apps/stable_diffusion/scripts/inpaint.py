@@ -1,7 +1,6 @@
 import torch
 import time
 from PIL import Image
-from dataclasses import dataclass
 from apps.stable_diffusion.src import (
     args,
     InpaintPipeline,
@@ -13,20 +12,6 @@ from apps.stable_diffusion.src import (
 )
 
 
-@dataclass
-class Config:
-    model_id: str
-    ckpt_loc: str
-    precision: str
-    batch_size: int
-    max_length: int
-    height: int
-    width: int
-    device: str
-
-
-inpaint_obj = None
-config_obj = None
 schedulers = None
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
@@ -58,10 +43,12 @@ def inpaint_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
 ):
-    from apps.stable_diffusion.web.ui.utils import get_custom_model_pathfile
+    from apps.stable_diffusion.web.ui.utils import (
+        get_custom_model_pathfile,
+        Config,
+    )
+    import apps.stable_diffusion.web.utils.global_obj as global_obj
 
-    global inpaint_obj
-    global config_obj
     global schedulers
 
     args.prompts = [prompt]
@@ -97,6 +84,7 @@ def inpaint_inf(
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
     new_config_obj = Config(
+        "inpaint",
         args.hf_model_id,
         args.ckpt_loc,
         precision,
@@ -105,9 +93,15 @@ def inpaint_inf(
         height,
         width,
         device,
+        use_lora=None,
+        use_stencil=None,
     )
-    if not inpaint_obj or config_obj != new_config_obj:
-        config_obj = new_config_obj
+    if (
+        not global_obj.get_sd_obj()
+        or global_obj.get_cfg_obj() != new_config_obj
+    ):
+        global_obj.clear_cache()
+        global_obj.set_cfg_obj(new_config_obj)
         args.precision = precision
         args.batch_size = batch_size
         args.max_length = max_length
@@ -125,27 +119,29 @@ def inpaint_inf(
         )
         schedulers = get_schedulers(model_id)
         scheduler_obj = schedulers[scheduler]
-        inpaint_obj = InpaintPipeline.from_pretrained(
-            scheduler=scheduler_obj,
-            import_mlir=args.import_mlir,
-            model_id=args.hf_model_id,
-            ckpt_loc=args.ckpt_loc,
-            precision=args.precision,
-            max_length=args.max_length,
-            batch_size=args.batch_size,
-            height=args.height,
-            width=args.width,
-            use_base_vae=args.use_base_vae,
-            use_tuned=args.use_tuned,
-            custom_vae=args.custom_vae,
-            low_cpu_mem_usage=args.low_cpu_mem_usage,
-            debug=args.import_debug if args.import_mlir else False,
+        global_obj.set_sd_obj(
+            InpaintPipeline.from_pretrained(
+                scheduler=scheduler_obj,
+                import_mlir=args.import_mlir,
+                model_id=args.hf_model_id,
+                ckpt_loc=args.ckpt_loc,
+                precision=args.precision,
+                max_length=args.max_length,
+                batch_size=args.batch_size,
+                height=args.height,
+                width=args.width,
+                use_base_vae=args.use_base_vae,
+                use_tuned=args.use_tuned,
+                custom_vae=args.custom_vae,
+                low_cpu_mem_usage=args.low_cpu_mem_usage,
+                debug=args.import_debug if args.import_mlir else False,
+            )
         )
 
-    inpaint_obj.scheduler = schedulers[scheduler]
+    global_obj.set_schedulers(schedulers[scheduler])
 
     start_time = time.time()
-    inpaint_obj.log = ""
+    global_obj.get_sd_obj().log = ""
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
@@ -154,7 +150,7 @@ def inpaint_inf(
     for i in range(batch_count):
         if i > 0:
             img_seed = utils.sanitize_seed(-1)
-        out_imgs = inpaint_obj.generate_images(
+        out_imgs = global_obj.get_sd_obj().generate_images(
             prompt,
             negative_prompt,
             image,
@@ -175,7 +171,8 @@ def inpaint_inf(
         save_output_img(out_imgs[0], img_seed)
         generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
-        inpaint_obj.log += "\n"
+        global_obj.get_sd_obj().log += "\n"
+        yield generated_imgs, global_obj.get_sd_obj().log
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -184,10 +181,10 @@ def inpaint_inf(
     text_output += f"\nscheduler={args.scheduler}, device={device}"
     text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
     text_output += f"\nsize={args.height}x{args.width}, batch-count={batch_count}, batch-size={args.batch_size}, max_length={args.max_length}"
-    text_output += inpaint_obj.log
+    text_output += global_obj.get_sd_obj().log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    return generated_imgs, text_output
+    yield generated_imgs, text_output
 
 
 def main():

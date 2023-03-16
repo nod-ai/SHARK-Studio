@@ -4,6 +4,23 @@ from apps.stable_diffusion.src import get_available_devices
 import glob
 from pathlib import Path
 from apps.stable_diffusion.src import args
+from dataclasses import dataclass
+
+
+@dataclass
+class Config:
+    mode: str
+    model_id: str
+    ckpt_loc: str
+    precision: str
+    batch_size: int
+    max_length: int
+    height: int
+    width: int
+    device: str
+    use_lora: str
+    use_stencil: str
+
 
 custom_model_filetypes = (
     "*.ckpt",
@@ -35,9 +52,13 @@ predefined_models = [
     "stabilityai/stable-diffusion-2-1-base",
     "CompVis/stable-diffusion-v1-4",
 ]
+
 predefined_paint_models = [
     "runwayml/stable-diffusion-inpainting",
     "stabilityai/stable-diffusion-2-inpainting",
+]
+predefined_upscaler_models = [
+    "stabilityai/stable-diffusion-x4-upscaler",
 ]
 
 

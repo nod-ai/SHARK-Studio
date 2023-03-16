@@ -185,14 +185,18 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        None,
-                        inputs=[],
-                        outputs=[seed],
-                        _js="() => -1",
-                    )
-                    stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=2):
+                        random_seed = gr.Button("Randomize Seed")
+                        random_seed.click(
+                            None,
+                            inputs=[],
+                            outputs=[seed],
+                            _js="() => -1",
+                        )
+                    with gr.Column(scale=6):
+                        stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=1, min_width=150):
+                        clear_queue = gr.Button("Clear Queue")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -216,6 +220,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 with gr.Row():
                     outpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     outpaint_sendto_inpaint = gr.Button(value="SendTo Inpaint")
+                    outpaint_sendto_upscaler = gr.Button(
+                        value="SendTo Upscaler"
+                    )
 
         kwargs = dict(
             fn=outpaint_inf,
@@ -248,6 +255,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
             show_progress=args.progress_bar,
         )
 
-        prompt.submit(**kwargs)
-        negative_prompt.submit(**kwargs)
-        stable_diffusion.click(**kwargs)
+        prompt_submit = prompt.submit(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**kwargs)
+        generate_click = stable_diffusion.click(**kwargs)
+        clear_queue.click(
+            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+        )
