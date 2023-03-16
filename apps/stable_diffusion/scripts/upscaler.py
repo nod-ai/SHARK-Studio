@@ -78,7 +78,7 @@ def upscaler_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
