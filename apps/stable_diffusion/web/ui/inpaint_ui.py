@@ -203,6 +203,9 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     inpaint_sendto_outpaint = gr.Button(
                         value="SendTo Outpaint"
                     )
+                    inpaint_sendto_upscaler = gr.Button(
+                        value="SendTo Upscaler"
+                    )
 
         kwargs = dict(
             fn=inpaint_inf,

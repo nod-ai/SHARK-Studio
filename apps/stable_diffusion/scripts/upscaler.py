@@ -97,6 +97,8 @@ def upscaler_inf(
         height,
         width,
         device,
+        use_lora=None,
+        use_stencil=None,
     )
     if (
         not global_obj.get_sd_obj()
@@ -177,7 +179,7 @@ def upscaler_inf(
     text_output += f"\nscheduler={args.scheduler}, device={device}"
     text_output += f"\nsteps={steps}, noise_level={noise_level}, guidance_scale={guidance_scale}, seed={seeds}"
     text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
-    text_output += upscaler_obj.log
+    text_output += global_obj.get_sd_obj().log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     yield generated_imgs, text_output

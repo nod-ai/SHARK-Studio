@@ -201,6 +201,9 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     img2img_sendto_outpaint = gr.Button(
                         value="SendTo Outpaint"
                     )
+                    img2img_sendto_upscaler = gr.Button(
+                        value="SendTo Upscaler"
+                    )
 
         kwargs = dict(
             fn=img2img_inf,
