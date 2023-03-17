@@ -319,7 +319,11 @@ class StableDiffusionPipeline:
             "OutpaintPipeline",
         ]
         is_upscaler = cls.__name__ in ["UpscalerPipeline"]
-        if import_mlir:
+        if import_mlir or use_lora:
+            if not import_mlir:
+                print(
+                    "Warning: LoRA provided but import_mlir not specified. Importing MLIR anyways."
+                )
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,

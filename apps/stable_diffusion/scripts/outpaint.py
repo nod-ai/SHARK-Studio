@@ -45,6 +45,8 @@ def outpaint_inf(
     max_length: int,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
+    lora_weights: str,
+    lora_hf_id: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -80,6 +82,15 @@ def outpaint_inf(
     else:
         args.hf_model_id = custom_model
 
+    use_lora = ""
+    if lora_weights == "None" and not lora_hf_id:
+        use_lora = ""
+    elif not lora_hf_id:
+        use_lora = lora_weights
+    else:
+        use_lora = lora_hf_id
+    args.use_lora = use_lora
+
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
@@ -95,7 +106,7 @@ def outpaint_inf(
         height,
         width,
         device,
-        use_lora=None,
+        use_lora=use_lora,
         use_stencil=None,
     )
     if (
@@ -135,6 +146,7 @@ def outpaint_inf(
                 args.width,
                 args.use_base_vae,
                 args.use_tuned,
+                use_lora=use_lora,
             )
         )
 
@@ -230,6 +242,7 @@ if __name__ == "__main__":
         args.width,
         args.use_base_vae,
         args.use_tuned,
+        use_lora=args.use_lora,
     )
 
     for current_batch in range(args.batch_count):
