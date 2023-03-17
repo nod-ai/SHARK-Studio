@@ -88,18 +88,16 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         height = gr.Slider(
                             128,
                             512,
-                            value=128,
+                            value=args.height,
                             step=128,
                             label="Height",
-                            interactive=False,
                         )
                         width = gr.Slider(
                             128,
                             512,
-                            value=128,
+                            value=args.width,
                             step=128,
                             label="Width",
-                            interactive=False,
                         )
                         precision = gr.Radio(
                             label="Precision",
@@ -109,7 +107,6 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                                 "fp32",
                             ],
                             visible=True,
-                            interactive=False,
                         )
                         max_length = gr.Radio(
                             label="Max Length",
