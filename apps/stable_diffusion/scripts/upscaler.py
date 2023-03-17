@@ -56,12 +56,10 @@ def upscaler_inf(
     args.seed = seed
     args.steps = steps
     args.scheduler = scheduler
-    args.height = height
-    args.width = width
 
     if init_image is None:
         return None, "An Initial Image is required"
-    image = init_image.convert("RGB").resize((args.height, args.width))
+    image = init_image.convert("RGB").resize((height, width))
 
     # set ckpt_loc and hf_model_id.
     types = (
@@ -87,6 +85,8 @@ def upscaler_inf(
 
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
+    args.height = 128
+    args.width = 128
     new_config_obj = Config(
         "upscaler",
         args.hf_model_id,
@@ -94,8 +94,8 @@ def upscaler_inf(
         precision,
         batch_size,
         max_length,
-        height,
-        width,
+        args.height,
+        args.width,
         device,
         use_lora=None,
         use_stencil=None,
@@ -150,24 +150,32 @@ def upscaler_inf(
     for current_batch in range(batch_count):
         if current_batch > 0:
             img_seed = utils.sanitize_seed(-1)
-        out_imgs = global_obj.get_sd_obj().generate_images(
-            prompt,
-            negative_prompt,
-            image,
-            batch_size,
-            height,
-            width,
-            steps,
-            noise_level,
-            guidance_scale,
-            img_seed,
-            args.max_length,
-            dtype,
-            args.use_base_vae,
-            cpu_scheduling,
-        )
-        save_output_img(out_imgs[0], img_seed, extra_info)
-        generated_imgs.extend(out_imgs)
+        low_res_img = image
+        high_res_img = Image.new("RGB", (height * 4, width * 4))
+
+        for i in range(0, width, 128):
+            for j in range(0, height, 128):
+                box = (j, i, j + 128, i + 128)
+                upscaled_image = global_obj.get_sd_obj().generate_images(
+                    prompt,
+                    negative_prompt,
+                    low_res_img.crop(box),
+                    batch_size,
+                    args.height,
+                    args.width,
+                    steps,
+                    noise_level,
+                    guidance_scale,
+                    img_seed,
+                    args.max_length,
+                    dtype,
+                    args.use_base_vae,
+                    cpu_scheduling,
+                )
+                high_res_img.paste(upscaled_image[0], (j * 4, i * 4))
+
+        save_output_img(high_res_img, img_seed, extra_info)
+        generated_imgs.append(high_res_img)
         seeds.append(img_seed)
         global_obj.get_sd_obj().log += "\n"
         yield generated_imgs, global_obj.get_sd_obj().log
