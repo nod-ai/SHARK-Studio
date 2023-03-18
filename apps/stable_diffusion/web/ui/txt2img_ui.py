@@ -140,22 +140,25 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="CFG Scale",
                         )
                     with gr.Row():
-                        batch_count = gr.Slider(
-                            1,
-                            100,
-                            value=args.batch_count,
-                            step=1,
-                            label="Batch Count",
-                            interactive=True,
-                        )
-                        batch_size = gr.Slider(
-                            1,
-                            4,
-                            value=args.batch_size,
-                            step=1,
-                            label="Batch Size",
-                            interactive=True,
-                        )
+                        with gr.Column(scale=3):
+                            batch_count = gr.Slider(
+                                1,
+                                100,
+                                value=args.batch_count,
+                                step=1,
+                                label="Batch Count",
+                                interactive=True,
+                            )
+                        with gr.Column(scale=3):
+                            batch_size = gr.Slider(
+                                1,
+                                4,
+                                value=args.batch_size,
+                                step=1,
+                                label="Batch Size",
+                                interactive=True,
+                            )
+                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
@@ -177,8 +180,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")
-                    with gr.Column(scale=1, min_width=150):
-                        clear_queue = gr.Button("Clear Queue")
 
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
@@ -247,7 +248,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         prompt_submit = prompt.submit(**kwargs)
         neg_prompt_submit = negative_prompt.submit(**kwargs)
         generate_click = stable_diffusion.click(**kwargs)
-        clear_queue.click(
+        stop_batch.click(
             fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
         )
 
