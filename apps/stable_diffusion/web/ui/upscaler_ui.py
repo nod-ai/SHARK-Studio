@@ -129,21 +129,23 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                             label="Noise Level",
                         )
                     with gr.Row():
-                        guidance_scale = gr.Slider(
-                            0,
-                            50,
-                            value=args.guidance_scale,
-                            step=0.1,
-                            label="CFG Scale",
-                        )
-                        batch_count = gr.Slider(
-                            1,
-                            100,
-                            value=args.batch_count,
-                            step=1,
-                            label="Batch Count",
-                            interactive=True,
-                        )
+                        with gr.Column(scale=3):
+                            guidance_scale = gr.Slider(
+                                0,
+                                50,
+                                value=args.guidance_scale,
+                                step=0.1,
+                                label="CFG Scale",
+                            )
+                        with gr.Column(scale=3):
+                            batch_count = gr.Slider(
+                                1,
+                                100,
+                                value=args.batch_count,
+                                step=1,
+                                label="Batch Count",
+                                interactive=True,
+                            )
                         batch_size = gr.Slider(
                             1,
                             4,
@@ -153,6 +155,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                             interactive=False,
                             visible=False,
                         )
+                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
@@ -174,8 +177,6 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")
-                    with gr.Column(scale=1, min_width=150):
-                        clear_queue = gr.Button("Clear Queue")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -233,6 +234,6 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
         prompt_submit = prompt.submit(**kwargs)
         neg_prompt_submit = negative_prompt.submit(**kwargs)
         generate_click = stable_diffusion.click(**kwargs)
-        clear_queue.click(
+        stop_batch.click(
             fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
         )

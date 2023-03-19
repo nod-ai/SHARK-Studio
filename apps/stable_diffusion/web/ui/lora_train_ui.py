@@ -111,22 +111,25 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                             label="CFG Scale",
                         )
                     with gr.Row():
-                        batch_count = gr.Slider(
-                            1,
-                            100,
-                            value=args.batch_count,
-                            step=1,
-                            label="Batch Count",
-                            interactive=True,
-                        )
-                        batch_size = gr.Slider(
-                            1,
-                            4,
-                            value=args.batch_size,
-                            step=1,
-                            label="Batch Size",
-                            interactive=True,
-                        )
+                        with gr.Column(scale=3):
+                            batch_count = gr.Slider(
+                                1,
+                                100,
+                                value=args.batch_count,
+                                step=1,
+                                label="Batch Count",
+                                interactive=True,
+                            )
+                        with gr.Column(scale=3):
+                            batch_size = gr.Slider(
+                                1,
+                                4,
+                                value=args.batch_size,
+                                step=1,
+                                label="Batch Size",
+                                interactive=True,
+                            )
+                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
@@ -148,8 +151,6 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                         )
                     with gr.Column(scale=6):
                         train_lora = gr.Button("Train LoRA")
-                    with gr.Column(scale=1, min_width=150):
-                        clear_queue = gr.Button("Clear Queue")
 
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
@@ -201,4 +202,4 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
 
         prompt_submit = prompt.submit(**kwargs)
         train_click = train_lora.click(**kwargs)
-        clear_queue.click(fn=None, cancels=[prompt_submit, train_click])
+        stop_batch.click(fn=None, cancels=[prompt_submit, train_click])
