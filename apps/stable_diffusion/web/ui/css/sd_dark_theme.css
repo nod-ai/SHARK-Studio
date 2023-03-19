@@ -7,93 +7,100 @@ Procedure to upgrade the dark theme:
 */
 
 :root {
-    --color-accent-soft: var(--neutral-700);
-    --color-background-primary: var(--neutral-950);
-    --color-background-secondary: var(--neutral-900);
-    --color-border-accent: var(--neutral-600);
-    --color-border-primary: var(--neutral-700);
-    --text-color-code-background: var(--neutral-800);
-    --text-color-link-active: var(--secondary-500);
-    --text-color-link: var(--secondary-500);
-    --text-color-link-hover: var(--secondary-400);
-    --text-color-link-visited: var(--secondary-600);
-    --text-color-subdued: var(--neutral-400);
-    --body-background-color: var(--color-background-primary);
+    --body-background-fill: var(--background-fill-primary);
     --body-text-color: var(--neutral-100);
+    --color-accent-soft: var(--neutral-700);
+    --background-fill-primary: var(--neutral-950);
+    --background-fill-secondary: var(--neutral-900);
+    --border-color-accent: var(--neutral-600);
+    --border-color-primary: var(--neutral-700);
+    --link-text-color-active: var(--secondary-500);
+    --link-text-color: var(--secondary-500);
+    --link-text-color-hover: var(--secondary-400);
+    --link-text-color-visited: var(--secondary-600);
+    --body-text-color-subdued: var(--neutral-400);
     --shadow-spread: 1px;
-    --block-background: var(--neutral-800);
-    --block-border-color: var(--color-border-primary);
-    --block-border-width: 1px;
-    --block-info-color: var(--text-color-subdued);
-    --block-label-background: var(--color-background-secondary);
-    --block-label-border-color: var(--color-border-primary);
-    --block-label-border-width: 1px;
-    --block-label-color: var(--neutral-200);
-    --block-shadow: none;
-    --block-title-background: none;
-    --block-title-border-color: none;
-    --block-title-border-width: 0px;
-    --block-title-color: var(--neutral-200);
-    --panel-background: var(--color-background-secondary);
-    --panel-border-color: var(--color-border-primary);
-    --checkbox-background: var(--neutral-800);
-    --checkbox-background-focus: var(--checkbox-background);
-    --checkbox-background-hover: var(--checkbox-background);
-    --checkbox-background-selected: var(--secondary-600);
+    --block-background-fill: var(--neutral-800);
+    --block-border-color: var(--border-color-primary);
+    --block_border_width: None;
+    --block-info-text-color: var(--body-text-color-subdued);
+    --block-label-background-fill: var(--background-fill-secondary);
+    --block-label-border-color: var(--border-color-primary);
+    --block_label_border_width: None;
+    --block-label-text-color: var(--neutral-200);
+    --block_shadow: None;
+    --block_title_background_fill: None;
+    --block_title_border_color: None;
+    --block_title_border_width: None;
+    --block-title-text-color: var(--neutral-200);
+    --panel-background-fill: var(--background-fill-secondary);
+    --panel-border-color: var(--border-color-primary);
+    --panel_border_width: None;
+    --checkbox-background-color: var(--neutral-800);
+    --checkbox-background-color-focus: var(--checkbox-background-color);
+    --checkbox-background-color-hover: var(--checkbox-background-color);
+    --checkbox-background-color-selected: var(--secondary-600);
     --checkbox-border-color: var(--neutral-700);
     --checkbox-border-color-focus: var(--secondary-500);
     --checkbox-border-color-hover: var(--neutral-600);
     --checkbox-border-color-selected: var(--secondary-600);
-    --checkbox-label-background: linear-gradient(to top, var(--neutral-900), var(--neutral-800));
-    --checkbox-label-background-hover: linear-gradient(to top, var(--neutral-900), var(--neutral-800));
-    --checkbox-label-background-selected: var(--checkbox-label-background);
-    --checkbox-label-border-color: var(--color-border-primary);
-    --checkbox-label-border-color-hover: var(--color-border-primary);
-    --checkbox-text-color: var(--body-text-color);
-    --checkbox-text-color-selected: var(--checkbox-text-color);
-    --error-background: var(--color-background-primary);
-    --error-border-color: var(--color-border-primary);
-    --error-border-width: var(--error-border-width);
-    --error-color: #ef4444;
-    --input-background: var(--neutral-800);
-    --input-background-focus: var(--secondary-600);
-    --input-background-hover: var(--input-background);
-    --input-border-color: var(--color-border-primary);
+    --checkbox-border-width: var(--input-border-width);
+    --checkbox-label-background-fill: linear-gradient(to top, var(--neutral-900), var(--neutral-800));
+    --checkbox-label-background-fill-hover: linear-gradient(to top, var(--neutral-900), var(--neutral-800));
+    --checkbox-label-background-fill-selected: var(--checkbox-label-background-fill);
+    --checkbox-label-border-color: var(--border-color-primary);
+    --checkbox-label-border-color-hover: var(--checkbox-label-border-color);
+    --checkbox-label-border-width: var(--input-border-width);
+    --checkbox-label-text-color: var(--body-text-color);
+    --checkbox-label-text-color-selected: var(--checkbox-label-text-color);
+    --error-background-fill: var(--background-fill-primary);
+    --error-border-color: var(--border-color-primary);
+    --error_border_width: None;
+    --error-text-color: #ef4444;
+    --input-background-fill: var(--neutral-800);
+    --input-background-fill-focus: var(--secondary-600);
+    --input-background-fill-hover: var(--input-background-fill);
+    --input-border-color: var(--border-color-primary);
     --input-border-color-focus: var(--neutral-700);
-    --input-border-color-hover: var(--color-border-primary);
+    --input-border-color-hover: var(--input-border-color);
+    --input_border_width: None;
     --input-placeholder-color: var(--neutral-500);
-    --input-shadow: var(--input-shadow);
+    --input_shadow: None;
     --input-shadow-focus: 0 0 0 var(--shadow-spread) var(--neutral-700), var(--shadow-inset);
-    --loader-color: var(--color-accent);
-    --stat-color-background: linear-gradient(to right, var(--primary-400), var(--primary-600));
+    --loader_color: None;
+    --slider_color: None;
+    --stat-background-fill: linear-gradient(to right, var(--primary-400), var(--primary-600));
     --table-border-color: var(--neutral-700);
-    --table-even-background: var(--neutral-950);
-    --table-odd-background: var(--neutral-900);
+    --table-even-background-fill: var(--neutral-950);
+    --table-odd-background-fill: var(--neutral-900);
     --table-row-focus: var(--color-accent-soft);
-    --button-cancel-background: linear-gradient(to bottom right, #dc2626, #b91c1c);
-    --button-cancel-background-hover: linear-gradient(to bottom right, #dc2626, #dc2626);
+    --button-border-width: var(--input-border-width);
+    --button-cancel-background-fill: linear-gradient(to bottom right, #dc2626, #b91c1c);
+    --button-cancel-background-fill-hover: linear-gradient(to bottom right, #dc2626, #dc2626);
     --button-cancel-border-color: #dc2626;
     --button-cancel-border-color-hover: var(--button-cancel-border-color);
     --button-cancel-text-color: white;
     --button-cancel-text-color-hover: var(--button-cancel-text-color);
-    --button-primary-background: linear-gradient(to bottom right, var(--primary-600), var(--primary-700));
-    --button-primary-background-hover: linear-gradient(to bottom right, var(--primary-600), var(--primary-600));
-    --button-primary-border-color: var(--primary-600);
+    --button-primary-background-fill: linear-gradient(to bottom right, var(--primary-500), var(--primary-600));
+    --button-primary-background-fill-hover: linear-gradient(to bottom right, var(--primary-500), var(--primary-500));
+    --button-primary-border-color: var(--primary-500);
     --button-primary-border-color-hover: var(--button-primary-border-color);
     --button-primary-text-color: white;
     --button-primary-text-color-hover: var(--button-primary-text-color);
-    --button-secondary-background: linear-gradient(to bottom right, var(--neutral-600), var(--neutral-700));
-    --button-secondary-background-hover: linear-gradient(to bottom right, var(--neutral-600), var(--neutral-600));
+    --button-secondary-background-fill: linear-gradient(to bottom right, var(--neutral-600), var(--neutral-700));
+    --button-secondary-background-fill-hover: linear-gradient(to bottom right, var(--neutral-600), var(--neutral-600));
     --button-secondary-border-color: var(--neutral-600);
     --button-secondary-border-color-hover: var(--button-secondary-border-color);
     --button-secondary-text-color: white;
     --button-secondary-text-color-hover: var(--button-secondary-text-color);
+    --block-border-width: 1px;
+    --block-label-border-width: 1px;
+    --form-gap-width: 1px;
+    --error-border-width: 1px;
+    --input-border-width: 1px;
 }
 
 /* SHARK theme */
-body {
-    background-color: var(--color-background-primary);
-}
 
 /* display in full width for desktop devices */
 @media (min-width: 1536px)
@@ -131,7 +138,7 @@ body {
 }
 
 #prompt_box textarea, #negative_prompt_box textarea {
-    background-color: var(--color-background-primary) !important;
+    background-color: var(--background-fill-primary) !important;
 }
 
 #prompt_examples {
@@ -143,7 +150,6 @@ body {
 }
 
 #ui_body {
-    background-color: var(--color-background-secondary) !important;
     padding: var(--size-2) !important;
     border-radius: 0.5em !important;
 }
