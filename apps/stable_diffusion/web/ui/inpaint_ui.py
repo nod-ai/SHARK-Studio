@@ -11,6 +11,7 @@ from apps.stable_diffusion.web.ui.utils import (
     get_custom_model_files,
     scheduler_list,
     predefined_paint_models,
+    cancel_sd,
 )
 
 
@@ -257,5 +258,6 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
         neg_prompt_submit = negative_prompt.submit(**kwargs)
         generate_click = stable_diffusion.click(**kwargs)
         stop_batch.click(
-            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+            fn=cancel_sd,
+            cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )

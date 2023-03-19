@@ -9,7 +9,7 @@ from apps.stable_diffusion.src import (
     clear_all,
     save_output_img,
 )
-
+from apps.stable_diffusion.src.utils import get_generation_text_info
 
 schedulers = None
 
@@ -46,6 +46,9 @@ def txt2img_inf(
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
+    from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+        SD_STATE_CANCEL,
+    )
 
     global schedulers
 
@@ -108,6 +111,7 @@ def txt2img_inf(
         global_obj.clear_cache()
         global_obj.set_cfg_obj(new_config_obj)
         args.precision = precision
+        args.batch_count = batch_count
         args.batch_size = batch_size
         args.max_length = max_length
         args.height = height
@@ -152,6 +156,7 @@ def txt2img_inf(
     generated_imgs = []
     seeds = []
     img_seed = utils.sanitize_seed(seed)
+    text_output = ""
     for i in range(batch_count):
         if i > 0:
             img_seed = utils.sanitize_seed(-1)
@@ -169,25 +174,20 @@ def txt2img_inf(
             args.use_base_vae,
             cpu_scheduling,
         )
-        save_output_img(out_imgs[0], img_seed)
-        generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
-        global_obj.get_sd_obj().log += "\n"
-        yield generated_imgs, global_obj.get_sd_obj().log
+        total_time = time.time() - start_time
+        text_output = get_generation_text_info(seeds, device)
+        text_output += "\n" + global_obj.get_sd_obj().log
+        text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
 
-    total_time = time.time() - start_time
-    text_output = f"prompt={args.prompts}"
-    text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += (
-        f"\nsteps={steps}, guidance_scale={guidance_scale}, seed={seeds}"
-    )
-    text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
-    # text_output += txt2img_obj.log
-    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+        if global_obj.get_sd_status() == SD_STATE_CANCEL:
+            break
+        else:
+            save_output_img(out_imgs[0], img_seed)
+            generated_imgs.extend(out_imgs)
+            yield generated_imgs, text_output
 
-    yield generated_imgs, text_output
+    return generated_imgs, text_output
 
 
 if __name__ == "__main__":
