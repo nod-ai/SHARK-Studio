@@ -19,6 +19,8 @@ vision_models = [
     "wide_resnet50_2",
     "mobilenet_v3_small",
     "mnasnet1_0",
+    "efficientnet_b0",
+    "efficientnet_b7",
 ]
 hf_img_cls_models = [
     "google/vit-base-patch16-224",
@@ -194,22 +196,48 @@ class VisionModule(torch.nn.Module):
 def get_vision_model(torch_model):
     import torchvision.models as models
 
+    default_image_size = (224, 224)
+
     vision_models_dict = {
-        "alexnet": models.alexnet(weights="DEFAULT"),
-        "resnet18": models.resnet18(weights="DEFAULT"),
-        "resnet50": models.resnet50(weights="DEFAULT"),
-        "resnet50_fp16": models.resnet50(weights="DEFAULT"),
-        "resnet101": models.resnet101(weights="DEFAULT"),
-        "squeezenet1_0": models.squeezenet1_0(weights="DEFAULT"),
-        "wide_resnet50_2": models.wide_resnet50_2(weights="DEFAULT"),
-        "mobilenet_v3_small": models.mobilenet_v3_small(weights="DEFAULT"),
-        "mnasnet1_0": models.mnasnet1_0(weights="DEFAULT"),
+        "alexnet": (models.alexnet(weights="DEFAULT"), default_image_size),
+        "resnet18": (models.resnet18(weights="DEFAULT"), default_image_size),
+        "resnet50": (models.resnet50(weights="DEFAULT"), default_image_size),
+        "resnet50_fp16": (
+            models.resnet50(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "resnet101": (models.resnet101(weights="DEFAULT"), default_image_size),
+        "squeezenet1_0": (
+            models.squeezenet1_0(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "wide_resnet50_2": (
+            models.wide_resnet50_2(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "mobilenet_v3_small": (
+            models.mobilenet_v3_small(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "mnasnet1_0": (
+            models.mnasnet1_0(weights="DEFAULT"),
+            default_image_size,
+        ),
+        # EfficientNet input image size varies on the size of the model.
+        "efficientnet_b0": (
+            models.efficientnet_b0(weights="DEFAULT"),
+            (224, 224),
+        ),
+        "efficientnet_b7": (
+            models.efficientnet_b7(weights="DEFAULT"),
+            (600, 600),
+        ),
     }
     if isinstance(torch_model, str):
         fp16_model = None
         if "fp16" in torch_model:
             fp16_model = True
-        torch_model = vision_models_dict[torch_model]
+        torch_model, input_image_size = vision_models_dict[torch_model]
     model = VisionModule(torch_model)
     test_input = torch.randn(BATCH_SIZE, 3, 224, 224)
     actual_out = model(test_input)
