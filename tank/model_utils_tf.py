@@ -42,6 +42,10 @@ causallm_models = [
 tfhf_models = [
     "microsoft/MiniLM-L12-H384-uncased",
 ]
+tfhf_seq2seq_models = [
+    "t5-base",
+    "t5-large",
+]
 img_models = [
     "google/vit-base-patch16-224",
     "facebook/convnext-tiny-224",
@@ -59,6 +63,8 @@ def get_tf_model(name):
         return get_TFhf_model(name)
     elif name in img_models:
         return get_causal_image_model(name)
+    elif name in tfhf_seq2seq_models:
+        return get_tfhf_seq2seq_model(name)
     else:
         raise Exception(
             "TF model not found! Please check that the modelname has been input correctly."
@@ -252,6 +258,68 @@ def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
     actual_out = model.forward(*test_input)
     return model, test_input, actual_out
+
+
+##################### TensorflowHugging Face Seq2SeqLM Models ###################################
+
+# We use a maximum sequence length of 512 since this is the default used in the T5 config.
+T5_MAX_SEQUENCE_LENGTH = 512
+
+input_signature_t5 = [
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, T5_MAX_SEQUENCE_LENGTH],
+        dtype=tf.int32,
+        name="input_ids",
+    ),
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, T5_MAX_SEQUENCE_LENGTH],
+        dtype=tf.int32,
+        name="attention_mask",
+    ),
+]
+
+
+class TFHFSeq2SeqLanguageModel(tf.Module):
+    def __init__(self, model_name):
+        super(TFHFSeq2SeqLanguageModel, self).__init__()
+        from transformers import (
+            AutoTokenizer,
+            AutoConfig,
+            TFAutoModelForSeq2SeqLM,
+            TFT5Model,
+        )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenization_kwargs = {
+            "pad_to_multiple_of": T5_MAX_SEQUENCE_LENGTH,
+            "padding": True,
+            "return_tensors": "tf",
+        }
+        self.model = TFT5Model.from_pretrained(model_name, return_dict=True)
+        self.model.predict = lambda x, y: self.model(x, decoder_input_ids=y)[0]
+
+    def preprocess_input(self, text):
+        return self.tokenizer(text, **self.tokenization_kwargs)
+
+    @tf.function(input_signature=input_signature_t5, jit_compile=True)
+    def forward(self, input_ids, decoder_input_ids):
+        return self.model.predict(input_ids, decoder_input_ids)
+
+
+def get_tfhf_seq2seq_model(name):
+    m = TFHFSeq2SeqLanguageModel(name)
+    text = "Studies have been shown that owning a dog is good for you"
+    batched_text = [text] * BATCH_SIZE
+    encoded_input_ids = m.preprocess_input(batched_text).input_ids
+
+    text = "Studies show that"
+    batched_text = [text] * BATCH_SIZE
+    decoder_input_ids = m.preprocess_input(batched_text).input_ids
+    decoder_input_ids = m.model._shift_right(decoder_input_ids)
+
+    test_input = (encoded_input_ids, decoder_input_ids)
+    actual_out = m.forward(*test_input)
+    return m, test_input, actual_out
 
 
 ##################### TensorFlow Keras Resnet Models #########################################################
