@@ -334,6 +334,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--vulkan_low_mem_usage",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Disable some memory-intensive performance optimizations. Enable if total available VRAM is less than 8 gigabytes.",
+)
+
+p.add_argument(
     "--vulkan_large_heap_block_size",
     default="4147483648",
     help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",

@@ -411,9 +411,13 @@ def get_opt_flags(model, precision="fp16"):
             ]
         ):
             device = "default_device"
+        if args.vulkan_low_mem_usage == True and "vae" in model:
+            device = "vulkan_lowmem"
         iree_flags += opt_flags[model][is_tuned][precision][
             "specified_compilation_flags"
         ][device]
+        print(iree_flags)
+
     return iree_flags
 
 
