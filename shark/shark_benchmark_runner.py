@@ -193,7 +193,7 @@ class SharkBenchmarkRunner(SharkRunner):
             end = time.time()
             if tf_device == TF_GPU_DEVICE:
                 memory_info = tf.config.experimental.get_memory_info(tf_device)
-                device_peak_b = memory_info['peak']
+                device_peak_b = memory_info["peak"]
             else:
                 # tf.config.experimental does not currently support measuring
                 # CPU memory usage.
@@ -210,7 +210,9 @@ class SharkBenchmarkRunner(SharkRunner):
             ]
 
     def benchmark_c(self):
-        iter_per_second, host_peak_b, device_peak_b = run_benchmark_module(self.benchmark_cl)
+        iter_per_second, host_peak_b, device_peak_b = run_benchmark_module(
+            self.benchmark_cl
+        )
         print(f"Shark-IREE-C benchmark:{iter_per_second} iter/second")
         return [
             f"{iter_per_second}",
