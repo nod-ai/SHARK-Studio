@@ -12,6 +12,7 @@ from apps.stable_diffusion.src import (
     clear_all,
     save_output_img,
 )
+from apps.stable_diffusion.src.utils import get_generation_text_info
 
 
 schedulers = None
@@ -71,12 +72,17 @@ def img2img_inf(
     use_stencil: str,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
+    lora_weights: str,
+    lora_hf_id: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
+    from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+        SD_STATE_CANCEL,
+    )
 
     global schedulers
 
@@ -112,6 +118,15 @@ def img2img_inf(
     else:
         args.hf_model_id = custom_model
 
+    use_lora = ""
+    if lora_weights == "None" and not lora_hf_id:
+        use_lora = ""
+    elif not lora_hf_id:
+        use_lora = lora_weights
+    else:
+        use_lora = lora_hf_id
+    args.use_lora = use_lora
+
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
@@ -144,7 +159,7 @@ def img2img_inf(
         height,
         width,
         device,
-        use_lora=None,
+        use_lora=use_lora,
         use_stencil=use_stencil,
     )
     if (
@@ -153,6 +168,7 @@ def img2img_inf(
     ):
         global_obj.clear_cache()
         global_obj.set_cfg_obj(new_config_obj)
+        args.batch_count = batch_count
         args.batch_size = batch_size
         args.max_length = max_length
         args.height = height
@@ -189,6 +205,7 @@ def img2img_inf(
                     low_cpu_mem_usage=args.low_cpu_mem_usage,
                     use_stencil=use_stencil,
                     debug=args.import_debug if args.import_mlir else False,
+                    use_lora=use_lora,
                 )
             )
         else:
@@ -208,6 +225,7 @@ def img2img_inf(
                     args.use_tuned,
                     low_cpu_mem_usage=args.low_cpu_mem_usage,
                     debug=args.import_debug if args.import_mlir else False,
+                    use_lora=use_lora,
                 )
             )
 
@@ -219,6 +237,7 @@ def img2img_inf(
     seeds = []
     img_seed = utils.sanitize_seed(seed)
     extra_info = {"STRENGTH": strength}
+    text_output = ""
     for current_batch in range(batch_count):
         if current_batch > 0:
             img_seed = utils.sanitize_seed(-1)
@@ -239,23 +258,20 @@ def img2img_inf(
             cpu_scheduling,
             use_stencil=use_stencil,
         )
-        save_output_img(out_imgs[0], img_seed, extra_info)
-        generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
-        global_obj.get_sd_obj().log += "\n"
-        yield generated_imgs, global_obj.get_sd_obj().log
+        total_time = time.time() - start_time
+        text_output = get_generation_text_info(seeds, device)
+        text_output += "\n" + global_obj.get_sd_obj().log
+        text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
 
-    total_time = time.time() - start_time
-    text_output = f"prompt={args.prompts}"
-    text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={steps}, strength={args.strength}, guidance_scale={guidance_scale}, seed={seeds}"
-    text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
-    text_output += global_obj.get_sd_obj().log
-    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+        if global_obj.get_sd_status() == SD_STATE_CANCEL:
+            break
+        else:
+            save_output_img(out_imgs[0], img_seed, extra_info)
+            generated_imgs.extend(out_imgs)
+            yield generated_imgs, text_output
 
-    yield generated_imgs, text_output
+    return generated_imgs, text_output
 
 
 if __name__ == "__main__":
@@ -310,6 +326,7 @@ if __name__ == "__main__":
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             use_stencil=use_stencil,
             debug=args.import_debug if args.import_mlir else False,
+            use_lora=args.use_lora,
         )
     else:
         img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -327,6 +344,7 @@ if __name__ == "__main__":
             args.use_tuned,
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             debug=args.import_debug if args.import_mlir else False,
+            use_lora=args.use_lora,
         )
 
     start_time = time.time()

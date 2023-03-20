@@ -38,6 +38,16 @@ def get_cfg_obj():
     return config_obj
 
 
+def set_sd_status(value):
+    global sd_obj
+    sd_obj.status = value
+
+
+def get_sd_status():
+    global sd_obj
+    return sd_obj.status
+
+
 def clear_cache():
     global sd_obj
     global config_obj

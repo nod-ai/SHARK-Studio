@@ -31,6 +31,9 @@ from apps.stable_diffusion.src.utils import (
     end_profiling,
 )
 
+SD_STATE_IDLE = "idle"
+SD_STATE_CANCEL = "cancel"
+
 
 class StableDiffusionPipeline:
     def __init__(
@@ -58,6 +61,7 @@ class StableDiffusionPipeline:
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
+        self.status = SD_STATE_IDLE
 
     def encode_prompts(self, prompts, neg_prompts, max_length):
         # Tokenize text and get embeddings
@@ -226,6 +230,7 @@ class StableDiffusionPipeline:
         masked_image_latents=None,
         return_all_latents=False,
     ):
+        self.status = SD_STATE_IDLE
         step_time_sum = 0
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
@@ -275,6 +280,9 @@ class StableDiffusionPipeline:
             #  )
             step_time_sum += step_time
 
+            if self.status == SD_STATE_CANCEL:
+                break
+
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -319,7 +327,11 @@ class StableDiffusionPipeline:
             "OutpaintPipeline",
         ]
         is_upscaler = cls.__name__ in ["UpscalerPipeline"]
-        if import_mlir:
+        if import_mlir or use_lora:
+            if not import_mlir:
+                print(
+                    "Warning: LoRA provided but import_mlir not specified. Importing MLIR anyways."
+                )
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,
