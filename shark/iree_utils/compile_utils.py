@@ -294,7 +294,7 @@ def get_iree_module(flatbuffer_blob, device, device_idx=None):
 
         haldevice = haldriver.create_device(
             haldriver.query_available_devices()[device_idx]["device_id"],
-            allocators=shark_args.device_allocator,
+            #allocators=shark_args.device_allocator,
         )
         config = ireert.Config(device=haldevice)
     else:
@@ -406,7 +406,7 @@ def get_iree_runtime_config(device):
     haldriver = ireert.get_driver(device)
     haldevice = haldriver.create_device_by_uri(
         device,
-        allocators=shark_args.device_allocator,
+        #allocators=shark_args.device_allocator,
     )
     config = ireert.Config(device=haldevice)
     return config

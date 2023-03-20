@@ -310,9 +310,12 @@ def _prepare_attn_mask(
 
 
 def download_model(destination_folder, model_name):
-    download_public_file(
-        f"gs://shark_tank/sharded_bloom/{model_name}/", destination_folder
-    )
+    if model_name == "bloom":
+        subprocess.run(["gsutil", "cp", "-r", "gs://shark_tank/sharded_bloom/bloom/", f"{destination_folder}"])
+    else:
+        download_public_file(
+            f"gs://shark_tank/sharded_bloom/{model_name}/", destination_folder
+        )
 
 
 def compile_embeddings(embeddings_layer, input_ids, path):
@@ -725,11 +728,6 @@ if __name__ == "__main__":
         default=None,
     )
     args = parser.parse_args()
-
-    if args.create_mlirs and args.large_model_memory_efficient:
-        print(
-            "Warning: If you need to use memory efficient mode, you probably want to use 'download' instead"
-        )
 
     if not os.path.isdir(args.model_path):
         os.mkdir(args.model_path)
