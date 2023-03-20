@@ -359,13 +359,6 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--vulkan_low_mem_usage",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="flag for disabling img2col on VAE",
-)
-
-p.add_argument(
     "--vulkan_large_heap_block_size",
     default="4147483648",
     help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
@@ -387,6 +380,13 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="use the default scheduler precompiled into the model if available",
+)
+
+p.add_argument(
+    "--vae_disable_img2col",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for disabling img2col on VAE",
 )
 
 p.add_argument(
