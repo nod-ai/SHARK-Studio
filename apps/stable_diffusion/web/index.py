@@ -5,6 +5,7 @@ if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 
 import gradio as gr
+import apps.stable_diffusion.web.utils.global_obj as global_obj
 from apps.stable_diffusion.src import args, clear_all
 from apps.stable_diffusion.web.utils.gradio_configs import (
     clear_gradio_tmp_imgs_folder,
@@ -36,22 +37,36 @@ from apps.stable_diffusion.web.ui import (
     txt2img_sendto_img2img,
     txt2img_sendto_inpaint,
     txt2img_sendto_outpaint,
+    txt2img_sendto_upscaler,
     img2img_web,
     img2img_gallery,
     img2img_init_image,
     img2img_sendto_inpaint,
     img2img_sendto_outpaint,
+    img2img_sendto_upscaler,
     inpaint_web,
     inpaint_gallery,
     inpaint_init_image,
     inpaint_sendto_img2img,
     inpaint_sendto_outpaint,
+    inpaint_sendto_upscaler,
     outpaint_web,
     outpaint_gallery,
     outpaint_init_image,
     outpaint_sendto_img2img,
     outpaint_sendto_inpaint,
+    outpaint_sendto_upscaler,
+    upscaler_web,
+    upscaler_gallery,
+    upscaler_init_image,
+    upscaler_sendto_img2img,
+    upscaler_sendto_inpaint,
+    upscaler_sendto_outpaint,
+    lora_train_web,
 )
+
+# init global sd pipeline and config
+global_obj.init()
 
 
 def register_button_click(button, selectedid, inputs, outputs):
@@ -77,6 +92,10 @@ with gr.Blocks(
             inpaint_web.render()
         with gr.TabItem(label="Outpainting", id=3):
             outpaint_web.render()
+        with gr.TabItem(label="Upscaler", id=4):
+            upscaler_web.render()
+        with gr.TabItem(label="LoRA Training", id=5):
+            lora_train_web.render()
 
     register_button_click(
         txt2img_sendto_img2img,
@@ -97,6 +116,12 @@ with gr.Blocks(
         [outpaint_init_image, tabs],
     )
     register_button_click(
+        txt2img_sendto_upscaler,
+        4,
+        [txt2img_gallery],
+        [upscaler_init_image, tabs],
+    )
+    register_button_click(
         img2img_sendto_inpaint,
         2,
         [img2img_gallery],
@@ -107,6 +132,12 @@ with gr.Blocks(
         3,
         [img2img_gallery],
         [outpaint_init_image, tabs],
+    )
+    register_button_click(
+        img2img_sendto_upscaler,
+        4,
+        [img2img_gallery],
+        [upscaler_init_image, tabs],
     )
     register_button_click(
         inpaint_sendto_img2img,
@@ -121,6 +152,12 @@ with gr.Blocks(
         [outpaint_init_image, tabs],
     )
     register_button_click(
+        inpaint_sendto_upscaler,
+        4,
+        [inpaint_gallery],
+        [upscaler_init_image, tabs],
+    )
+    register_button_click(
         outpaint_sendto_img2img,
         1,
         [outpaint_gallery],
@@ -131,6 +168,30 @@ with gr.Blocks(
         2,
         [outpaint_gallery],
         [inpaint_init_image, tabs],
+    )
+    register_button_click(
+        outpaint_sendto_upscaler,
+        4,
+        [outpaint_gallery],
+        [upscaler_init_image, tabs],
+    )
+    register_button_click(
+        upscaler_sendto_img2img,
+        1,
+        [upscaler_gallery],
+        [img2img_init_image, tabs],
+    )
+    register_button_click(
+        upscaler_sendto_inpaint,
+        2,
+        [upscaler_gallery],
+        [inpaint_init_image, tabs],
+    )
+    register_button_click(
+        upscaler_sendto_outpaint,
+        3,
+        [upscaler_gallery],
+        [outpaint_init_image, tabs],
     )
 
 

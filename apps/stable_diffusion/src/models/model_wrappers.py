@@ -97,8 +97,9 @@ class SharkifyStableDiffusionModel:
         sharktank_dir: str = "",
         generate_vmfb: bool = True,
         is_inpaint: bool = False,
-        use_stencil: str = None
-
+        is_upscaler: bool = False,
+        use_stencil: str = None,
+        use_lora: str = ""
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -137,7 +138,11 @@ class SharkifyStableDiffusionModel:
         self.model_name = self.model_name + "_" + get_path_stem(self.model_id)
         self.low_cpu_mem_usage = low_cpu_mem_usage
         self.is_inpaint = is_inpaint
+        self.is_upscaler = is_upscaler
         self.use_stencil = get_stencil_model_id(use_stencil)
+        if use_lora != "":
+            self.model_name = self.model_name + "_" + get_path_stem(use_lora)
+        self.use_lora = use_lora
 
         print(self.model_name)
         self.debug = debug
@@ -166,10 +171,10 @@ class SharkifyStableDiffusionModel:
     def check_params(self, max_len, width, height):
         if not (max_len >= 32 and max_len <= 77):
             sys.exit("please specify max_len in the range [32, 77].")
-        if not (width % 8 == 0 and width >= 384):
-            sys.exit("width should be greater than 384 and multiple of 8")
-        if not (height % 8 == 0 and height >= 384):
-            sys.exit("height should be greater than 384 and multiple of 8")
+        if not (width % 8 == 0 and width >= 128):
+            sys.exit("width should be greater than 128 and multiple of 8")
+        if not (height % 8 == 0 and height >= 128):
+            sys.exit("height should be greater than 128 and multiple of 8")
 
     def get_vae_encode(self):
         class VaeEncodeModel(torch.nn.Module):
@@ -250,6 +255,32 @@ class SharkifyStableDiffusionModel:
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("vae", precision=self.precision),
+        )
+        return shark_vae
+
+    def get_vae_upscaler(self):
+        class VaeModel(torch.nn.Module):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
+                super().__init__()
+                self.vae = AutoencoderKL.from_pretrained(
+                    model_id,
+                    subfolder="vae",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
+                )
+
+            def forward(self, input):
+                x = self.vae.decode(input, return_dict=False)[0]
+                x = (x / 2 + 0.5).clamp(0, 1)
+                return x
+
+        vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        inputs = tuple(self.inputs["vae"])
+        shark_vae = compile_through_fx(
+            vae,
+            inputs,
+            use_tuned=self.use_tuned,
+            model_name=self.model_name["vae"],
+            extra_args=get_opt_flags("vae", precision="fp32"),
         )
         return shark_vae
 
@@ -360,13 +391,15 @@ class SharkifyStableDiffusionModel:
 
     def get_unet(self):
         class UnetModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
                     model_id,
                     subfolder="unet",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    self.unet.load_attn_procs(use_lora)
                 self.in_channels = self.unet.in_channels
                 self.train(False)
                 if(args.attention_slicing is not None and args.attention_slicing != "none"):
@@ -410,6 +443,43 @@ class SharkifyStableDiffusionModel:
             debug=self.debug,
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
+            extra_args=get_opt_flags("unet", precision=self.precision),
+        )
+        return shark_unet
+
+    def get_unet_upscaler(self):
+        class UnetModel(torch.nn.Module):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
+                super().__init__()
+                self.unet = UNet2DConditionModel.from_pretrained(
+                    model_id,
+                    subfolder="unet",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
+                )
+                self.in_channels = self.unet.in_channels
+                self.train(False)
+
+            def forward(self, latent, timestep, text_embedding, noise_level):
+                unet_out = self.unet.forward(
+                    latent,
+                    timestep,
+                    text_embedding,
+                    noise_level,
+                    return_dict=False,
+                )[0]
+                return unet_out
+
+        unet = UnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        is_f16 = True if self.precision == "fp16" else False
+        inputs = tuple(self.inputs["unet"])
+        input_mask = [True, True, True, False]
+        shark_unet = compile_through_fx(
+            unet,
+            inputs,
+            model_name=self.model_name["unet"],
+            is_f16=is_f16,
+            f16_input_mask=input_mask,
+            use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
         )
         return shark_unet
@@ -476,6 +546,9 @@ class SharkifyStableDiffusionModel:
             self.height,
             self.batch_size,
         )
+        if self.is_upscaler:
+            return self.get_clip(), self.get_unet_upscaler(), self.get_vae_upscaler()
+
         compiled_controlnet = None
         compiled_controlled_unet = None
         compiled_unet = None
@@ -501,7 +574,7 @@ class SharkifyStableDiffusionModel:
         # Step 1:
         # --  Fetch all vmfbs for the model, if present, else delete the lot.
         need_vae_encode, need_stencil = False, False
-        if args.img_path is not None:
+        if not self.is_upscaler and args.img_path is not None:
             if self.use_stencil is not None:
                 need_stencil = True
             else:
@@ -560,6 +633,7 @@ class SharkifyStableDiffusionModel:
                 else:
                     compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode, need_stencil)
             except Exception as e:
+                print(e)
                 print("Retrying with a different base model configuration")
                 continue
             # -- Once a successful compilation has taken place we'd want to store

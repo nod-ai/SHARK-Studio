@@ -11,6 +11,7 @@ from apps.stable_diffusion.web.ui.utils import (
     get_custom_model_files,
     scheduler_list,
     predefined_models,
+    cancel_sd,
 )
 
 
@@ -68,9 +69,25 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 with gr.Accordion(label="Stencil Options", open=False):
                     with gr.Row():
                         use_stencil = gr.Dropdown(
+                            elem_id="stencil_model",
                             label="Stencil model",
                             value="None",
-                            choices=["None", "canny", "openpose"],
+                            choices=["None", "canny", "openpose", "scribble"],
+                        )
+                with gr.Accordion(label="LoRA Options", open=False):
+                    with gr.Row():
+                        lora_weights = gr.Dropdown(
+                            label=f"Standlone LoRA weights (Path: {get_custom_model_path()})",
+                            elem_id="lora_weights",
+                            value="None",
+                            choices=["None"] + get_custom_model_files(),
+                        )
+                        lora_hf_id = gr.Textbox(
+                            elem_id="lora_hf_id",
+                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                            value="",
+                            label="HuggingFace Model ID",
+                            lines=3,
                         )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
@@ -128,21 +145,23 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             label="Denoising Strength",
                         )
                     with gr.Row():
-                        guidance_scale = gr.Slider(
-                            0,
-                            50,
-                            value=args.guidance_scale,
-                            step=0.1,
-                            label="CFG Scale",
-                        )
-                        batch_count = gr.Slider(
-                            1,
-                            100,
-                            value=args.batch_count,
-                            step=1,
-                            label="Batch Count",
-                            interactive=True,
-                        )
+                        with gr.Column(scale=3):
+                            guidance_scale = gr.Slider(
+                                0,
+                                50,
+                                value=args.guidance_scale,
+                                step=0.1,
+                                label="CFG Scale",
+                            )
+                        with gr.Column(scale=3):
+                            batch_count = gr.Slider(
+                                1,
+                                100,
+                                value=args.batch_count,
+                                step=1,
+                                label="Batch Count",
+                                interactive=True,
+                            )
                         batch_size = gr.Slider(
                             1,
                             4,
@@ -152,6 +171,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             interactive=False,
                             visible=False,
                         )
+                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
@@ -163,14 +183,16 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        None,
-                        inputs=[],
-                        outputs=[seed],
-                        _js="() => -1",
-                    )
-                    stable_diffusion = gr.Button("Generate Image(s)")
+                    with gr.Column(scale=2):
+                        random_seed = gr.Button("Randomize Seed")
+                        random_seed.click(
+                            None,
+                            inputs=[],
+                            outputs=[seed],
+                            _js="() => -1",
+                        )
+                    with gr.Column(scale=6):
+                        stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -196,6 +218,9 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     img2img_sendto_outpaint = gr.Button(
                         value="SendTo Outpaint"
                     )
+                    img2img_sendto_upscaler = gr.Button(
+                        value="SendTo Upscaler"
+                    )
 
         kwargs = dict(
             fn=img2img_inf,
@@ -220,11 +245,17 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 use_stencil,
                 save_metadata_to_json,
                 save_metadata_to_png,
+                lora_weights,
+                lora_hf_id,
             ],
             outputs=[img2img_gallery, std_output],
             show_progress=args.progress_bar,
         )
 
-        prompt.submit(**kwargs)
-        negative_prompt.submit(**kwargs)
-        stable_diffusion.click(**kwargs)
+        prompt_submit = prompt.submit(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**kwargs)
+        generate_click = stable_diffusion.click(**kwargs)
+        stop_batch.click(
+            fn=cancel_sd,
+            cancels=[prompt_submit, neg_prompt_submit, generate_click],
+        )

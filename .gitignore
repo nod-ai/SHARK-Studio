@@ -168,6 +168,8 @@ shark_tmp/
 *.vmfb
 .use-iree
 tank/dict_configs.py
+*.csv
+reproducers/
 
 # ORT related artefacts
 cache_models/

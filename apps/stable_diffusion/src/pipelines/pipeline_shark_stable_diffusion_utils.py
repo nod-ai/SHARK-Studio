@@ -7,6 +7,7 @@ import time
 from typing import Union
 from diffusers import (
     DDIMScheduler,
+    DDPMScheduler,
     PNDMScheduler,
     LMSDiscreteScheduler,
     KDPM2DiscreteScheduler,
@@ -29,6 +30,9 @@ from apps.stable_diffusion.src.utils import (
     start_profiling,
     end_profiling,
 )
+
+SD_STATE_IDLE = "idle"
+SD_STATE_CANCEL = "cancel"
 
 
 class StableDiffusionPipeline:
@@ -57,6 +61,7 @@ class StableDiffusionPipeline:
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
+        self.status = SD_STATE_IDLE
 
     def encode_prompts(self, prompts, neg_prompts, max_length):
         # Tokenize text and get embeddings
@@ -225,6 +230,7 @@ class StableDiffusionPipeline:
         masked_image_latents=None,
         return_all_latents=False,
     ):
+        self.status = SD_STATE_IDLE
         step_time_sum = 0
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
@@ -274,6 +280,9 @@ class StableDiffusionPipeline:
             #  )
             step_time_sum += step_time
 
+            if self.status == SD_STATE_CANCEL:
+                break
+
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -310,12 +319,19 @@ class StableDiffusionPipeline:
         low_cpu_mem_usage: bool = False,
         debug: bool = False,
         use_stencil: str = None,
+        use_lora: str = "",
+        ddpm_scheduler: DDPMScheduler = None,
     ):
         is_inpaint = cls.__name__ in [
             "InpaintPipeline",
             "OutpaintPipeline",
         ]
-        if import_mlir:
+        is_upscaler = cls.__name__ in ["UpscalerPipeline"]
+        if import_mlir or use_lora:
+            if not import_mlir:
+                print(
+                    "Warning: LoRA provided but import_mlir not specified. Importing MLIR anyways."
+                )
             mlir_import = SharkifyStableDiffusionModel(
                 model_id,
                 ckpt_loc,
@@ -330,7 +346,9 @@ class StableDiffusionPipeline:
                 low_cpu_mem_usage=low_cpu_mem_usage,
                 debug=debug,
                 is_inpaint=is_inpaint,
+                is_upscaler=is_upscaler,
                 use_stencil=use_stencil,
+                use_lora=use_lora,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
@@ -346,6 +364,12 @@ class StableDiffusionPipeline:
                 return cls(
                     controlnet, vae, clip, get_tokenizer(), unet, scheduler
                 )
+            if cls.__name__ in ["UpscalerPipeline"]:
+                clip, unet, vae = mlir_import()
+                return cls(
+                    vae, clip, get_tokenizer(), unet, scheduler, ddpm_scheduler
+                )
+
             clip, unet, vae = mlir_import()
             return cls(vae, clip, get_tokenizer(), unet, scheduler)
         try:
@@ -386,6 +410,7 @@ class StableDiffusionPipeline:
                 use_tuned=use_tuned,
                 low_cpu_mem_usage=low_cpu_mem_usage,
                 is_inpaint=is_inpaint,
+                is_upscaler=is_upscaler,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",

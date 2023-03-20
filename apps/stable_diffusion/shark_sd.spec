@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_data_files
 from PyInstaller.utils.hooks import copy_metadata
+from PyInstaller.utils.hooks import collect_submodules
 
 import sys ; sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
@@ -20,6 +21,7 @@ datas += copy_metadata('omegaconf')
 datas += copy_metadata('safetensors')
 datas += collect_data_files('diffusers')
 datas += collect_data_files('transformers')
+datas += collect_data_files('pytorch_lightning')
 datas += collect_data_files('opencv-python')
 datas += collect_data_files('skimage')
 datas += collect_data_files('gradio')

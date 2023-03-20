@@ -4,6 +4,27 @@ from apps.stable_diffusion.src import get_available_devices
 import glob
 from pathlib import Path
 from apps.stable_diffusion.src import args
+from dataclasses import dataclass
+import apps.stable_diffusion.web.utils.global_obj as global_obj
+from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+    SD_STATE_CANCEL,
+)
+
+
+@dataclass
+class Config:
+    mode: str
+    model_id: str
+    ckpt_loc: str
+    precision: str
+    batch_size: int
+    max_length: int
+    height: int
+    width: int
+    device: str
+    use_lora: str
+    use_stencil: str
+
 
 custom_model_filetypes = (
     "*.ckpt",
@@ -35,9 +56,13 @@ predefined_models = [
     "stabilityai/stable-diffusion-2-1-base",
     "CompVis/stable-diffusion-v1-4",
 ]
+
 predefined_paint_models = [
     "runwayml/stable-diffusion-inpainting",
     "stabilityai/stable-diffusion-2-inpainting",
+]
+predefined_upscaler_models = [
+    "stabilityai/stable-diffusion-x4-upscaler",
 ]
 
 
@@ -66,6 +91,14 @@ def get_custom_model_files():
         ]
         ckpt_files.extend(files)
     return sorted(ckpt_files, key=str.casefold)
+
+
+def cancel_sd():
+    # Try catch it, as gc can delete global_obj.sd_obj while switching model
+    try:
+        global_obj.set_sd_status(SD_STATE_CANCEL)
+    except Exception:
+        pass
 
 
 nodlogo_loc = resource_path("logos/nod-logo.png")

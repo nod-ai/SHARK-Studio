@@ -629,3 +629,14 @@ def save_output_img(output_img, img_seed, extra_info={}):
         json_path = Path(generated_imgs_path, f"{out_img_name}.json")
         with open(json_path, "w") as f:
             json.dump(new_entry, f, indent=4)
+
+
+def get_generation_text_info(seeds, device):
+    text_output = f"prompt={args.prompts}"
+    text_output += f"\nnegative prompt={args.negative_prompts}"
+    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
+    text_output += f"\nscheduler={args.scheduler}, device={device}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
+    text_output += f"\nsize={args.height}x{args.width}, batch_count={args.batch_count}, batch_size={args.batch_size}, max_length={args.max_length}"
+
+    return text_output

@@ -16,15 +16,16 @@ parameterized
 
 # Add transformers, diffusers and scipy since it most commonly used
 transformers
-diffusers @ git+https://github.com/nod-ai/diffusers@stable_stencil_diffusers_v0p14p0
+diffusers
 scipy
 ftfy
-gradio < 3.21.0 # temporary workaround for TypeError: issubclass() arg 1 must be a class
+gradio
 altair
 omegaconf
 safetensors
 opencv-python
 scikit-image
+pytorch_lightning # for runwayml models
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
