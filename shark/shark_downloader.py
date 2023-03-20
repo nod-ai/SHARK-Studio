@@ -19,7 +19,6 @@ import sys
 from pathlib import Path
 from shark.parser import shark_args
 from google.cloud import storage
-from shark.shark_importer import gen_shark_files
 
 
 def download_public_file(
