@@ -362,7 +362,7 @@ p.add_argument(
     "--vulkan_low_mem_usage",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Disable some memory-intensive performance optimizations. Enable if total available VRAM is less than 8 gigabytes.",
+    help="flag for disabling img2col on VAE",
 )
 
 p.add_argument(
