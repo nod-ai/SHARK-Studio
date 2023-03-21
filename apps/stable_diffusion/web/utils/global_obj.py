@@ -11,8 +11,10 @@ Also we could avoid memory leak when switching models by clearing the cache.
 def _init():
     global _sd_obj
     global _config_obj
+    global _schedulers
     _sd_obj = None
     _config_obj = None
+    _schedulers = None
 
 
 def set_sd_obj(value):
@@ -20,9 +22,9 @@ def set_sd_obj(value):
     _sd_obj = value
 
 
-def set_schedulers(value):
+def set_sd_scheduler(key):
     global _sd_obj
-    _sd_obj.scheduler = value
+    _sd_obj.scheduler = _schedulers[key]
 
 
 def set_sd_status(value):
@@ -35,6 +37,11 @@ def set_cfg_obj(value):
     _config_obj = value
 
 
+def set_schedulers(value):
+    global _schedulers
+    _schedulers = value
+
+
 def get_sd_obj():
     return _sd_obj
 
@@ -45,6 +52,10 @@ def get_sd_status():
 
 def get_cfg_obj():
     return _config_obj
+
+
+def get_scheduler(key):
+    return _schedulers[key]
 
 
 def clear_cache():
