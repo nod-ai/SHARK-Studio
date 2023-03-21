@@ -52,7 +52,7 @@ def get_iree_device_args(device, extra_args=[]):
 
 # Get the iree-compiler arguments given frontend.
 def get_iree_frontend_args(frontend):
-    if frontend in ["torch", "pytorch", "linalg"]:
+    if frontend in ["torch", "pytorch", "linalg", "tm_tensor"]:
         return ["--iree-llvmcpu-target-cpu-features=host"]
     elif frontend in ["tensorflow", "tf", "mhlo"]:
         return [

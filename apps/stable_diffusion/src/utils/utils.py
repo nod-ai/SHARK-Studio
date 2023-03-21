@@ -80,7 +80,7 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
         frontend="torch",
     )
     shark_module = SharkInference(
-        mlir_model, device=args.device, mlir_dialect="linalg"
+        mlir_model, device=args.device, mlir_dialect="tm_tensor"
     )
     return _compile_module(shark_module, model_name, extra_args)
 
@@ -126,14 +126,14 @@ def compile_through_fx(
     shark_module = SharkInference(
         mlir_module,
         device=args.device,
-        mlir_dialect="linalg",
+        mlir_dialect="tm_tensor",
     )
 
     if generate_vmfb:
         shark_module = SharkInference(
             mlir_module,
             device=args.device,
-            mlir_dialect="linalg",
+            mlir_dialect="tm_tensor",
         )
         del mlir_module
         gc.collect()
