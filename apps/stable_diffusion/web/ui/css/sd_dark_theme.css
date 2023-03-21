@@ -178,6 +178,7 @@ footer {
 
 /* Hide "remove buttons" from ui dropdowns */
 #custom_model .token-remove.remove-all,
+#lora_weights .token-remove.remove-all,
 #scheduler .token-remove.remove-all,
 #device .token-remove.remove-all,
 #stencil_model .token-remove.remove-all {

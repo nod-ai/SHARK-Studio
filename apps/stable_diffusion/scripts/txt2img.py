@@ -43,6 +43,7 @@ def txt2img_inf(
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
+        get_custom_vae_or_lora_weights,
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
@@ -59,10 +60,6 @@ def txt2img_inf(
     args.scheduler = scheduler
 
     # set ckpt_loc and hf_model_id.
-    types = (
-        ".ckpt",
-        ".safetensors",
-    )  # the tuple of file types
     args.ckpt_loc = ""
     args.hf_model_id = ""
     if custom_model == "None":
@@ -80,14 +77,9 @@ def txt2img_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
-    use_lora = ""
-    if lora_weights == "None" and not lora_hf_id:
-        use_lora = ""
-    elif not lora_hf_id:
-        use_lora = lora_weights
-    else:
-        use_lora = lora_hf_id
-    args.use_lora = use_lora
+    args.use_lora = get_custom_vae_or_lora_weights(
+        lora_weights, lora_hf_id, "lora"
+    )
 
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
@@ -101,7 +93,7 @@ def txt2img_inf(
         height,
         width,
         device,
-        use_lora=use_lora,
+        use_lora=args.use_lora,
         use_stencil=None,
     )
     if (
@@ -145,7 +137,7 @@ def txt2img_inf(
                 custom_vae=args.custom_vae,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
-                use_lora=use_lora,
+                use_lora=args.use_lora,
             )
         )
 
@@ -200,7 +192,6 @@ if __name__ == "__main__":
     schedulers = get_schedulers(args.hf_model_id)
     scheduler_obj = schedulers[args.scheduler]
     seed = args.seed
-    use_lora = args.use_lora
     txt2img_obj = Text2ImagePipeline.from_pretrained(
         scheduler=scheduler_obj,
         import_mlir=args.import_mlir,
@@ -216,7 +207,7 @@ if __name__ == "__main__":
         custom_vae=args.custom_vae,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
         debug=args.import_debug if args.import_mlir else False,
-        use_lora=use_lora,
+        use_lora=args.use_lora,
     )
 
     for current_batch in range(args.batch_count):

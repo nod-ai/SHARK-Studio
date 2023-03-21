@@ -69,10 +69,10 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         lora_weights = gr.Dropdown(
-                            label=f"Standlone LoRA weights (Path: {get_custom_model_path()})",
+                            label=f"Standlone LoRA weights (Path: {get_custom_model_path('lora')})",
                             elem_id="lora_weights",
                             value="None",
-                            choices=["None"] + get_custom_model_files(),
+                            choices=["None"] + get_custom_model_files("lora"),
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
