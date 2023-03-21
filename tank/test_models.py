@@ -8,6 +8,7 @@ from parameterized import parameterized
 from shark.shark_downloader import download_model
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
+from tank.generate_sharktank import NoImportException
 import iree.compiler as ireec
 import pytest
 import unittest
@@ -161,11 +162,16 @@ class SharkModuleTester:
         if "winograd" in self.config["flags"]:
             shark_args.use_winograd = True
 
-        model, func_name, inputs, golden_out = download_model(
-            self.config["model_name"],
-            tank_url=self.tank_url,
-            frontend=self.config["framework"],
-        )
+        try:
+            model, func_name, inputs, golden_out = download_model(
+                self.config["model_name"],
+                tank_url=self.tank_url,
+                frontend=self.config["framework"],
+            )
+        except NoImportException:
+            pytest.xfail(
+                reason=f"Artifacts for this model/config must be generated locally. Please make sure {self.config['framework']} is installed."
+            )
 
         shark_module = SharkInference(
             model,
