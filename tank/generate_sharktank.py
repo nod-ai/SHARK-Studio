@@ -176,10 +176,6 @@ def save_tf_model(tf_model_list, local_tank_cache):
                 dir=tf_model_dir,
                 model_name=tf_model_name,
             )
-            mlir_hash = create_hash(
-                os.path.join(tf_model_dir, tf_model_name + "_tf" + ".mlir")
-            )
-            np.save(os.path.join(tf_model_dir, "hash"), np.array(mlir_hash))
 
 
 def save_tflite_model(tflite_model_list, local_tank_cache):
@@ -229,43 +225,69 @@ def save_tflite_model(tflite_model_list, local_tank_cache):
             )
 
 
+def check_requirements(frontend):
+    import importlib
+
+    has_pkgs = False
+    if frontend == "torch":
+        tv_spec = importlib.util.find_spec("torchvision")
+        has_pkgs = tv_spec is not None
+
+    elif frontend in ["tensorflow", "tf"]:
+        keras_spec = importlib.util.find_spec("keras")
+        tf_spec = importlib.util.find_spec("tensorflow")
+        has_pkgs = keras_spec is not None and tf_spec is not None
+
+    return has_pkgs
+
+
+class NoImportException(Exception):
+    "Raised when requirements are not met for OTF model artifact generation."
+    pass
+
+
 def gen_shark_files(modelname, frontend, tank_dir):
     # If a model's artifacts are requested by shark_downloader but they don't exist in the cloud, we call this function to generate the artifacts on-the-fly.
     # TODO: Add TFlite support.
     import tempfile
 
-    torch_model_csv = os.path.join(
-        os.path.dirname(__file__), "torch_model_list.csv"
-    )
-    tf_model_csv = os.path.join(os.path.dirname(__file__), "tf_model_list.csv")
-    custom_model_csv = tempfile.NamedTemporaryFile(
-        dir=os.path.dirname(__file__),
-        delete=True,
-    )
-    # Create a temporary .csv with only the desired entry.
-    if frontend == "tf":
-        with open(tf_model_csv, mode="r") as src:
-            reader = csv.reader(src)
-            for row in reader:
-                if row[0] == modelname:
-                    target = row
-        with open(custom_model_csv.name, mode="w") as trg:
-            writer = csv.writer(trg)
-            writer.writerow(["modelname", "src"])
-            writer.writerow(target)
-        save_tf_model(custom_model_csv.name, tank_dir)
+    if check_requirements(frontend):
+        torch_model_csv = os.path.join(
+            os.path.dirname(__file__), "torch_model_list.csv"
+        )
+        tf_model_csv = os.path.join(
+            os.path.dirname(__file__), "tf_model_list.csv"
+        )
+        custom_model_csv = tempfile.NamedTemporaryFile(
+            dir=os.path.dirname(__file__),
+            delete=True,
+        )
+        # Create a temporary .csv with only the desired entry.
+        if frontend == "tf":
+            with open(tf_model_csv, mode="r") as src:
+                reader = csv.reader(src)
+                for row in reader:
+                    if row[0] == modelname:
+                        target = row
+            with open(custom_model_csv.name, mode="w") as trg:
+                writer = csv.writer(trg)
+                writer.writerow(["modelname", "src"])
+                writer.writerow(target)
+            save_tf_model(custom_model_csv.name, tank_dir)
 
-    if frontend == "torch":
-        with open(torch_model_csv, mode="r") as src:
-            reader = csv.reader(src)
-            for row in reader:
-                if row[0] == modelname:
-                    target = row
-        with open(custom_model_csv.name, mode="w") as trg:
-            writer = csv.writer(trg)
-            writer.writerow(["modelname", "src"])
-            writer.writerow(target)
-        save_torch_model(custom_model_csv.name, tank_dir)
+        elif frontend == "torch":
+            with open(torch_model_csv, mode="r") as src:
+                reader = csv.reader(src)
+                for row in reader:
+                    if row[0] == modelname:
+                        target = row
+            with open(custom_model_csv.name, mode="w") as trg:
+                writer = csv.writer(trg)
+                writer.writerow(["modelname", "src"])
+                writer.writerow(target)
+            save_torch_model(custom_model_csv.name, tank_dir)
+    else:
+        raise NoImportException
 
 
 # Validates whether the file is present or not.
