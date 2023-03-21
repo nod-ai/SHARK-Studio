@@ -16,7 +16,7 @@ parameterized
 
 # Add transformers, diffusers and scipy since it most commonly used
 transformers
-diffusers
+diffusers @ git+https://github.com/huggingface/diffusers@main
 scipy
 ftfy
 gradio

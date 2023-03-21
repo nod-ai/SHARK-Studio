@@ -18,6 +18,7 @@ from apps.stable_diffusion.src.utils import (
     get_path_stem,
     get_extended_name,
     get_stencil_model_id,
+    update_lora_weight,
 )
 
 
@@ -399,7 +400,7 @@ class SharkifyStableDiffusionModel:
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
                 if use_lora != "":
-                    self.unet.load_attn_procs(use_lora)
+                    update_lora_weight(self.unet, use_lora, "unet")
                 self.in_channels = self.unet.in_channels
                 self.train(False)
                 if(args.attention_slicing is not None and args.attention_slicing != "none"):
@@ -486,13 +487,15 @@ class SharkifyStableDiffusionModel:
 
     def get_clip(self):
         class CLIPText(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora):
                 super().__init__()
                 self.text_encoder = CLIPTextModel.from_pretrained(
                     model_id,
                     subfolder="text_encoder",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    update_lora_weight(self.text_encoder, use_lora, "text_encoder")
 
             def forward(self, input):
                 return self.text_encoder(input)[0]

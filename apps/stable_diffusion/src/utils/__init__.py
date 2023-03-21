@@ -33,4 +33,5 @@ from apps.stable_diffusion.src.utils.utils import (
     clear_all,
     save_output_img,
     get_generation_text_info,
+    update_lora_weight,
 )
