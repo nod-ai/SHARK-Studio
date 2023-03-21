@@ -75,6 +75,7 @@ def save_torch_model(torch_model_list, local_tank_cache):
                             width=512,
                             height=512,
                             use_base_vae=False,
+                            custom_vae="",
                             debug=True,
                             sharktank_dir=local_tank_cache,
                             generate_vmfb=False,
