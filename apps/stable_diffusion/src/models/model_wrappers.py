@@ -288,7 +288,7 @@ class SharkifyStableDiffusionModel:
     def get_controlled_unet(self):
         class ControlledUnetModel(torch.nn.Module):
             def __init__(
-                self, model_id=self.model_id, low_cpu_mem_usage=False
+                self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora
             ):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
@@ -296,6 +296,8 @@ class SharkifyStableDiffusionModel:
                     subfolder="unet",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    update_lora_weight(self.unet, use_lora, "unet")
                 self.in_channels = self.unet.in_channels
                 self.train(False)
 

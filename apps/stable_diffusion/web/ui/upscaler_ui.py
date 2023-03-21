@@ -65,6 +65,21 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                     label="Input Image", type="pil"
                 ).style(height=300)
 
+                with gr.Accordion(label="LoRA Options", open=False):
+                    with gr.Row():
+                        lora_weights = gr.Dropdown(
+                            label=f"Standlone LoRA weights (Path: {get_custom_model_path('lora')})",
+                            elem_id="lora_weights",
+                            value="None",
+                            choices=["None"] + get_custom_model_files("lora"),
+                        )
+                        lora_hf_id = gr.Textbox(
+                            elem_id="lora_hf_id",
+                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                            value="",
+                            label="HuggingFace Model ID",
+                            lines=3,
+                        )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
@@ -226,6 +241,8 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                 max_length,
                 save_metadata_to_json,
                 save_metadata_to_png,
+                lora_weights,
+                lora_hf_id,
             ],
             outputs=[upscaler_gallery, std_output],
             show_progress=args.progress_bar,

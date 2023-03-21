@@ -48,6 +48,7 @@ def inpaint_inf(
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
+        get_custom_vae_or_lora_weights,
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
@@ -66,10 +67,6 @@ def inpaint_inf(
     args.mask_path = "not none"
 
     # set ckpt_loc and hf_model_id.
-    types = (
-        ".ckpt",
-        ".safetensors",
-    )  # the tuple of file types
     args.ckpt_loc = ""
     args.hf_model_id = ""
     if custom_model == "None":
@@ -84,14 +81,9 @@ def inpaint_inf(
     else:
         args.hf_model_id = custom_model
 
-    use_lora = ""
-    if lora_weights == "None" and not lora_hf_id:
-        use_lora = ""
-    elif not lora_hf_id:
-        use_lora = lora_weights
-    else:
-        use_lora = lora_hf_id
-    args.use_lora = use_lora
+    args.use_lora = get_custom_vae_or_lora_weights(
+        lora_weights, lora_hf_id, "lora"
+    )
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
@@ -108,7 +100,7 @@ def inpaint_inf(
         height,
         width,
         device,
-        use_lora=use_lora,
+        use_lora=args.use_lora,
         use_stencil=None,
     )
     if (
@@ -148,10 +140,9 @@ def inpaint_inf(
                 width=args.width,
                 use_base_vae=args.use_base_vae,
                 use_tuned=args.use_tuned,
-                custom_vae=args.custom_vae,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
-                use_lora=use_lora,
+                use_lora=args.use_lora,
             )
         )
 
@@ -239,7 +230,6 @@ if __name__ == "__main__":
         width=args.width,
         use_base_vae=args.use_base_vae,
         use_tuned=args.use_tuned,
-        custom_vae=args.custom_vae,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
         debug=args.import_debug if args.import_mlir else False,
         use_lora=args.use_lora,
