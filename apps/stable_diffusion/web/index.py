@@ -66,7 +66,7 @@ from apps.stable_diffusion.web.ui import (
 )
 
 # init global sd pipeline and config
-global_obj.init()
+global_obj._init()
 
 
 def register_button_click(button, selectedid, inputs, outputs):
