@@ -97,6 +97,7 @@ def compile_through_fx(
     debug=False,
     generate_vmfb=True,
     extra_args=[],
+    base_model_id=None,
 ):
     from shark.parser import shark_args
 
@@ -118,7 +119,9 @@ def compile_through_fx(
     if use_tuned:
         if "vae" in model_name.split("_")[0]:
             args.annotation_model = "vae"
-        mlir_module = sd_model_annotation(mlir_module, model_name)
+        mlir_module = sd_model_annotation(
+            mlir_module, model_name, base_model_id
+        )
 
     shark_module = SharkInference(
         mlir_module,
