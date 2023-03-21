@@ -321,6 +321,7 @@ class StableDiffusionPipeline:
         use_stencil: str = None,
         use_lora: str = "",
         ddpm_scheduler: DDPMScheduler = None,
+        use_quantize=None,
     ):
         is_inpaint = cls.__name__ in [
             "InpaintPipeline",
@@ -349,6 +350,7 @@ class StableDiffusionPipeline:
                 is_upscaler=is_upscaler,
                 use_stencil=use_stencil,
                 use_lora=use_lora,
+                use_quantize=use_quantize,
             )
             if cls.__name__ in [
                 "Image2ImagePipeline",
