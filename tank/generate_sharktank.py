@@ -317,7 +317,7 @@ if __name__ == "__main__":
     )
 
     save_torch_model(
-        os.path.join(os.path.dirname(__file__), "tank", "torch_sd_list.csv"),
+        os.path.join(os.path.dirname(__file__), "torch_sd_list.csv"),
         WORKDIR,
     )
     save_torch_model(torch_model_csv, WORKDIR)
