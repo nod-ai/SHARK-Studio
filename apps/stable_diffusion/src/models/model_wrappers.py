@@ -100,7 +100,8 @@ class SharkifyStableDiffusionModel:
         is_inpaint: bool = False,
         is_upscaler: bool = False,
         use_stencil: str = None,
-        use_lora: str = ""
+        use_lora: str = "",
+        use_quantize: str = None,
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -108,6 +109,7 @@ class SharkifyStableDiffusionModel:
         self.width = width // 8
         self.batch_size = batch_size
         self.custom_weights = custom_weights
+        self.use_quantize = use_quantize
         if custom_weights != "":
             assert custom_weights.lower().endswith(
                 (".ckpt", ".safetensors")
@@ -570,7 +572,12 @@ class SharkifyStableDiffusionModel:
             compiled_controlnet = self.get_control_net()
             compiled_controlled_unet = self.get_controlled_unet()
         else:
-            compiled_unet = self.get_unet()
+            # TODO: Plug the experimental "int8" support at right place.
+            if self.use_quantize == "int8":
+                from apps.stable_diffusion.src.models.opt_params import get_unet
+                compiled_unet = get_unet()
+            else:
+                compiled_unet = self.get_unet()
         if self.custom_vae != "":
             print("Plugging in custom Vae")
         compiled_vae = self.get_vae()

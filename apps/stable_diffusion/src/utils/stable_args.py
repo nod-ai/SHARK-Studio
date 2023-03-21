@@ -340,6 +340,14 @@ p.add_argument(
     help="Use standalone LoRA weight using a HF ID or a checkpoint file (~3 MB)",
 )
 
+p.add_argument(
+    "--use_quantize",
+    type=str,
+    default="none",
+    help="""Runs the quantized version of stable diffusion model. This is currently in experimental phase.
+            Currently, only runs the stable-diffusion-2-1-base model in int8 quantization.""",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################

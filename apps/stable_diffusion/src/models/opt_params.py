@@ -20,6 +20,15 @@ hf_model_variant_map = {
     "stabilityai/stable-diffusion-2-inpainting": ["stablediffusion", "inpaint_v2"],
 }
 
+# TODO: Add the quantized model as a part model_db.json.
+# This is currently in experimental phase.
+def get_quantize_model():
+    bucket_key = "gs://shark_tank/prashant_nod"
+    model_key = "unet_int8"
+    iree_flags = get_opt_flags("unet", precision="fp16")
+    if args.height != 512 and args.width != 512 and args.max_length != 77:
+        sys.exit("The int8 quantized model currently requires the height and width to be 512, and max_length to be 77")
+    return bucket_key, model_key, iree_flags
 
 def get_variant_version(hf_model_id):
     return hf_model_variant_map[hf_model_id]
@@ -41,6 +50,12 @@ def get_unet():
     variant, version = get_variant_version(args.hf_model_id)
     # Tuned model is present only for `fp16` precision.
     is_tuned = "tuned" if args.use_tuned else "untuned"
+
+    # TODO: Get the quantize model from model_db.json
+    if args.use_quantize == "int8":
+        bk, mk, flags = get_quantize_model()
+        return get_shark_model(bk, mk, flags)
+
     if "vulkan" not in args.device and args.use_tuned:
         bucket_key = f"{variant}/{is_tuned}/{args.device}"
         model_key = f"{variant}/{version}/unet/{args.precision}/length_{args.max_length}/{is_tuned}/{args.device}"
