@@ -1,5 +1,6 @@
 import os
 import sys
+import transformers
 
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"

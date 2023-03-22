@@ -1,4 +1,5 @@
 import torch
+import transformers
 import time
 from apps.stable_diffusion.src import (
     args,
@@ -11,7 +12,6 @@ from apps.stable_diffusion.src import (
 )
 from apps.stable_diffusion.src.utils import get_generation_text_info
 
-schedulers = None
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
@@ -50,8 +50,6 @@ def txt2img_inf(
     from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
         SD_STATE_CANCEL,
     )
-
-    global schedulers
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -119,8 +117,8 @@ def txt2img_inf(
             if args.hf_model_id
             else "stabilityai/stable-diffusion-2-1-base"
         )
-        schedulers = get_schedulers(model_id)
-        scheduler_obj = schedulers[scheduler]
+        global_obj.set_schedulers(get_schedulers(model_id))
+        scheduler_obj = global_obj.get_scheduler(scheduler)
         global_obj.set_sd_obj(
             Text2ImagePipeline.from_pretrained(
                 scheduler=scheduler_obj,
@@ -141,7 +139,7 @@ def txt2img_inf(
             )
         )
 
-    global_obj.set_schedulers(schedulers[scheduler])
+    global_obj.set_sd_scheduler(scheduler)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
@@ -208,6 +206,7 @@ if __name__ == "__main__":
         low_cpu_mem_usage=args.low_cpu_mem_usage,
         debug=args.import_debug if args.import_mlir else False,
         use_lora=args.use_lora,
+        use_quantize=args.use_quantize,
     )
 
     for current_batch in range(args.batch_count):

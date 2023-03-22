@@ -1,6 +1,7 @@
 import torch
 import time
 from PIL import Image
+import transformers
 from apps.stable_diffusion.src import (
     args,
     InpaintPipeline,
@@ -12,8 +13,6 @@ from apps.stable_diffusion.src import (
 )
 from apps.stable_diffusion.src.utils import get_generation_text_info
 
-
-schedulers = None
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
@@ -55,8 +54,6 @@ def inpaint_inf(
     from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
         SD_STATE_CANCEL,
     )
-
-    global schedulers
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -125,14 +122,15 @@ def inpaint_inf(
             if args.hf_model_id
             else "stabilityai/stable-diffusion-2-inpainting"
         )
-        schedulers = get_schedulers(model_id)
-        scheduler_obj = schedulers[scheduler]
+        global_obj.set_schedulers(get_schedulers(model_id))
+        scheduler_obj = global_obj.get_scheduler(scheduler)
         global_obj.set_sd_obj(
             InpaintPipeline.from_pretrained(
                 scheduler=scheduler_obj,
                 import_mlir=args.import_mlir,
                 model_id=args.hf_model_id,
                 ckpt_loc=args.ckpt_loc,
+                custom_vae=args.custom_vae,
                 precision=args.precision,
                 max_length=args.max_length,
                 batch_size=args.batch_size,
@@ -146,7 +144,7 @@ def inpaint_inf(
             )
         )
 
-    global_obj.set_schedulers(schedulers[scheduler])
+    global_obj.set_sd_scheduler(scheduler)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
@@ -223,6 +221,7 @@ if __name__ == "__main__":
         import_mlir=args.import_mlir,
         model_id=args.hf_model_id,
         ckpt_loc=args.ckpt_loc,
+        custom_vae=args.custom_vae,
         precision=args.precision,
         max_length=args.max_length,
         batch_size=args.batch_size,

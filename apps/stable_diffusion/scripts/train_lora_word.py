@@ -159,9 +159,6 @@ class LoraDataset(Dataset):
         return example
 
 
-schedulers = None
-
-
 ########## Setting up the model ##########
 def lora_train(
     prompt: str,
@@ -186,8 +183,6 @@ def lora_train(
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
-
-    global schedulers
 
     print(
         "Note LoRA training is not compatible with the latest torch-mlir branch"
@@ -227,7 +222,7 @@ def lora_train(
     args.max_length = max_length
     args.height = height
     args.width = width
-    args.device = device
+    args.device = device.split("=>", 1)[1].strip()
 
     # Load the Stable Diffusion model
     text_encoder = CLIPTextModel.from_pretrained(

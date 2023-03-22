@@ -1,6 +1,7 @@
 import torch
 import time
 from PIL import Image
+import transformers
 from apps.stable_diffusion.src import (
     args,
     UpscalerPipeline,
@@ -11,8 +12,6 @@ from apps.stable_diffusion.src import (
     save_output_img,
 )
 
-
-schedulers = None
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
@@ -50,8 +49,6 @@ def upscaler_inf(
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
-
-    global schedulers
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -121,8 +118,8 @@ def upscaler_inf(
             if args.hf_model_id
             else "stabilityai/stable-diffusion-2-1-base"
         )
-        schedulers = get_schedulers(model_id)
-        scheduler_obj = schedulers[scheduler]
+        global_obj.set_schedulers(get_schedulers(model_id))
+        scheduler_obj = global_obj.get_scheduler(scheduler)
         global_obj.set_sd_obj(
             UpscalerPipeline.from_pretrained(
                 scheduler_obj,
@@ -142,8 +139,10 @@ def upscaler_inf(
             )
         )
 
-    global_obj.set_schedulers(schedulers[scheduler])
-    global_obj.get_sd_obj().low_res_scheduler = schedulers["DDPM"]
+    global_obj.set_sd_scheduler(scheduler)
+    global_obj.get_sd_obj().low_res_scheduler = global_obj.get_scheduler(
+        "DDPM"
+    )
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
