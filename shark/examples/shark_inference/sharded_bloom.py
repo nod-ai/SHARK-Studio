@@ -742,6 +742,9 @@ if __name__ == "__main__":
         print(
             "WARNING: It is not advised to turn on both download and create_mlirs"
         )
+    if args.model_name == "bloom" and (args.create_mlirs or args.download):
+        
+        urllib.request.urlretrieve("https://huggingface.co/bigscience/bloom/resolve/main/pytorch_model_00001-of-00072.bin", f"{args.model_path}/pytorch_model_00001-of-00072.bin")
     if args.download:
         download_model(args.model_path, args.model_name)
     if args.create_mlirs:
