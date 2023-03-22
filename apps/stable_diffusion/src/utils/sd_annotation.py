@@ -76,18 +76,19 @@ def load_winograd_configs():
     return winograd_config_dir
 
 
-def load_lower_configs():
+def load_lower_configs(base_model_id=None):
     from apps.stable_diffusion.src.models import get_variant_version
     from apps.stable_diffusion.src.utils.utils import (
         fetch_and_update_base_model_id,
     )
 
-    if args.ckpt_loc != "":
-        base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
-    else:
-        base_model_id = fetch_and_update_base_model_id(args.hf_model_id)
-        if base_model_id == "":
-            base_model_id = args.hf_model_id
+    if not base_model_id:
+        if args.ckpt_loc != "":
+            base_model_id = fetch_and_update_base_model_id(args.ckpt_loc)
+        else:
+            base_model_id = fetch_and_update_base_model_id(args.hf_model_id)
+            if base_model_id == "":
+                base_model_id = args.hf_model_id
 
     variant, version = get_variant_version(base_model_id)
 
@@ -212,7 +213,7 @@ def annotate_with_lower_configs(
     return bytecode
 
 
-def sd_model_annotation(mlir_model, model_name):
+def sd_model_annotation(mlir_model, model_name, base_model_id=None):
     device = get_device()
     if args.annotation_model == "unet" and device == "vulkan":
         use_winograd = True
@@ -220,7 +221,7 @@ def sd_model_annotation(mlir_model, model_name):
         winograd_model = annotate_with_winograd(
             mlir_model, winograd_config_dir, model_name
         )
-        lowering_config_dir = load_lower_configs()
+        lowering_config_dir = load_lower_configs(base_model_id)
         tuned_model = annotate_with_lower_configs(
             winograd_model, lowering_config_dir, model_name, use_winograd
         )
@@ -232,7 +233,7 @@ def sd_model_annotation(mlir_model, model_name):
         )
     else:
         use_winograd = False
-        lowering_config_dir = load_lower_configs()
+        lowering_config_dir = load_lower_configs(base_model_id)
         tuned_model = annotate_with_lower_configs(
             mlir_model, lowering_config_dir, model_name, use_winograd
         )

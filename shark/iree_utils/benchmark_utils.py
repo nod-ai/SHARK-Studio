@@ -90,6 +90,7 @@ def build_benchmark_args(
             benchmark_cl.append(f"--task_topology_max_group_count={num_cpus}")
     # if time_extractor:
     #    benchmark_cl.append(time_extractor)
+    benchmark_cl.append(f"--print_statistics=true")
     return benchmark_cl
 
 
@@ -129,7 +130,8 @@ def build_benchmark_args_non_tensor_input(
 
 def run_benchmark_module(benchmark_cl):
     """
-    Run benchmark command, extract result and return iteration/seconds.
+    Run benchmark command, extract result and return iteration/seconds, host
+    peak memory, and device peak memory.
 
     # TODO: Add an example of the benchmark command.
     Input: benchmark command.
@@ -138,15 +140,22 @@ def run_benchmark_module(benchmark_cl):
     assert os.path.exists(
         benchmark_path
     ), "Cannot find benchmark_module, Please contact SHARK maintainer on discord."
-    bench_result = run_cmd(" ".join(benchmark_cl))
+    bench_stdout, bench_stderr = run_cmd(" ".join(benchmark_cl))
     try:
         regex_split = re.compile("(\d+[.]*\d*)(  *)([a-zA-Z]+)")
-        match = regex_split.search(bench_result)
-        time = float(match.group(1))
+        match = regex_split.search(bench_stdout)
+        time_ms = float(match.group(1))
         unit = match.group(3)
     except AttributeError:
         regex_split = re.compile("(\d+[.]*\d*)([a-zA-Z]+)")
-        match = regex_split.search(bench_result)
-        time = float(match.group(1))
+        match = regex_split.search(bench_stdout)
+        time_ms = float(match.group(1))
         unit = match.group(2)
-    return 1.0 / (time * 0.001)
+    iter_per_second = 1.0 / (time_ms * 0.001)
+
+    # Extract peak memory.
+    host_regex = re.compile(r".*HOST_LOCAL:\s*([0-9]+)B peak")
+    host_peak_b = int(host_regex.search(bench_stderr).group(1))
+    device_regex = re.compile(r".*DEVICE_LOCAL:\s*([0-9]+)B peak")
+    device_peak_b = int(device_regex.search(bench_stderr).group(1))
+    return iter_per_second, host_peak_b, device_peak_b

@@ -31,6 +31,9 @@ from apps.stable_diffusion.src.utils import (
     end_profiling,
 )
 
+SD_STATE_IDLE = "idle"
+SD_STATE_CANCEL = "cancel"
+
 
 class StableDiffusionPipeline:
     def __init__(
@@ -58,6 +61,7 @@ class StableDiffusionPipeline:
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
+        self.status = SD_STATE_IDLE
 
     def encode_prompts(self, prompts, neg_prompts, max_length):
         # Tokenize text and get embeddings
@@ -226,6 +230,7 @@ class StableDiffusionPipeline:
         masked_image_latents=None,
         return_all_latents=False,
     ):
+        self.status = SD_STATE_IDLE
         step_time_sum = 0
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
@@ -274,6 +279,9 @@ class StableDiffusionPipeline:
             #      f"\nstep = {i} | timestep = {t} | time = {step_time:.2f}ms"
             #  )
             step_time_sum += step_time
+
+            if self.status == SD_STATE_CANCEL:
+                break
 
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"

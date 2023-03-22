@@ -18,6 +18,7 @@ from apps.stable_diffusion.src.utils import (
     get_path_stem,
     get_extended_name,
     get_stencil_model_id,
+    update_lora_weight,
 )
 
 
@@ -200,6 +201,7 @@ class SharkifyStableDiffusionModel:
             use_tuned=self.use_tuned,
             model_name=self.model_name["vae_encode"],
             extra_args=get_opt_flags("vae", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_vae_encode
 
@@ -255,6 +257,7 @@ class SharkifyStableDiffusionModel:
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("vae", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_vae
 
@@ -281,13 +284,14 @@ class SharkifyStableDiffusionModel:
             use_tuned=self.use_tuned,
             model_name=self.model_name["vae"],
             extra_args=get_opt_flags("vae", precision="fp32"),
+            base_model_id=self.base_model_id,
         )
         return shark_vae
 
     def get_controlled_unet(self):
         class ControlledUnetModel(torch.nn.Module):
             def __init__(
-                self, model_id=self.model_id, low_cpu_mem_usage=False
+                self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora
             ):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
@@ -295,6 +299,8 @@ class SharkifyStableDiffusionModel:
                     subfolder="unet",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    update_lora_weight(self.unet, use_lora, "unet")
                 self.in_channels = self.unet.in_channels
                 self.train(False)
 
@@ -333,6 +339,7 @@ class SharkifyStableDiffusionModel:
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_controlled_unet
 
@@ -386,6 +393,7 @@ class SharkifyStableDiffusionModel:
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_cnet
 
@@ -399,7 +407,7 @@ class SharkifyStableDiffusionModel:
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
                 if use_lora != "":
-                    self.unet.load_attn_procs(use_lora)
+                    update_lora_weight(self.unet, use_lora, "unet")
                 self.in_channels = self.unet.in_channels
                 self.train(False)
                 if(args.attention_slicing is not None and args.attention_slicing != "none"):
@@ -444,6 +452,7 @@ class SharkifyStableDiffusionModel:
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_unet
 
@@ -481,18 +490,21 @@ class SharkifyStableDiffusionModel:
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_unet
 
     def get_clip(self):
         class CLIPText(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora):
                 super().__init__()
                 self.text_encoder = CLIPTextModel.from_pretrained(
                     model_id,
                     subfolder="text_encoder",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    update_lora_weight(self.text_encoder, use_lora, "text_encoder")
 
             def forward(self, input):
                 return self.text_encoder(input)[0]
@@ -512,6 +524,7 @@ class SharkifyStableDiffusionModel:
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("clip", precision="fp32"),
+            base_model_id=self.base_model_id,
         )
         return shark_clip
 
@@ -539,6 +552,7 @@ class SharkifyStableDiffusionModel:
     # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
     # configiration.
     def compile_all(self, base_model_id, need_vae_encode, need_stencil):
+        self.base_model_id = base_model_id
         self.inputs = get_input_info(
             base_models[base_model_id],
             self.max_len,

@@ -33,6 +33,7 @@ lit
 pyyaml
 python-dateutil
 sacremoses
+sentencepiece
 
 # web dependecies.
 gradio

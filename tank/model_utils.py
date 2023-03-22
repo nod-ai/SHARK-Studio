@@ -7,6 +7,8 @@ import sys
 
 torch.manual_seed(0)
 
+BATCH_SIZE = 1
+
 vision_models = [
     "alexnet",
     "resnet101",
@@ -17,6 +19,8 @@ vision_models = [
     "wide_resnet50_2",
     "mobilenet_v3_small",
     "mnasnet1_0",
+    "efficientnet_b0",
+    "efficientnet_b7",
 ]
 hf_img_cls_models = [
     "google/vit-base-patch16-224",
@@ -25,6 +29,10 @@ hf_img_cls_models = [
     "microsoft/beit-base-patch16-224-pt22k-ft22k",
     "nvidia/mit-b0",
 ]
+hf_seq2seq_models = [
+    "t5-base",
+    "t5-large",
+]
 
 
 def get_torch_model(modelname):
@@ -32,6 +40,8 @@ def get_torch_model(modelname):
         return get_vision_model(modelname)
     elif modelname in hf_img_cls_models:
         return get_hf_img_cls_model(modelname)
+    elif modelname in hf_seq2seq_models:
+        return get_hf_seq2seq_model(modelname)
     elif "fp16" in modelname:
         return get_fp16_model(modelname)
     else:
@@ -85,6 +95,7 @@ def get_hf_img_cls_model(name):
     # test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
     # print("test_input.shape: ", test_input.shape)
     # test_input.shape:  torch.Size([1, 3, 224, 224])
+    test_input = test_input.repeat(BATCH_SIZE, 1, 1, 1)
     actual_out = model(test_input)
     # print("actual_out.shape： ", actual_out.shape)
     # actual_out.shape：  torch.Size([1, 1000])
@@ -121,9 +132,50 @@ def get_hf_model(name):
 
     model = HuggingFaceLanguage(name)
     # TODO: Currently the test input is set to (1,128)
-    test_input = torch.randint(2, (1, 128))
+    test_input = torch.randint(2, (BATCH_SIZE, 128))
     actual_out = model(test_input)
     return model, test_input, actual_out
+
+
+##################### Hugging Face Seq2SeqLM Models ###################################
+
+# We use a maximum sequence length of 512 since this is the default used in the T5 config.
+T5_MAX_SEQUENCE_LENGTH = 512
+
+
+class HFSeq2SeqLanguageModel(torch.nn.Module):
+    def __init__(self, model_name):
+        super().__init__()
+        from transformers import AutoTokenizer, T5Model
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenization_kwargs = {
+            "pad_to_multiple_of": T5_MAX_SEQUENCE_LENGTH,
+            "padding": True,
+            "return_tensors": "pt",
+        }
+        self.model = T5Model.from_pretrained(model_name, return_dict=True)
+
+    def preprocess_input(self, text):
+        return self.tokenizer(text, **self.tokenization_kwargs)
+
+    def forward(self, input_ids, decoder_input_ids):
+        return self.model.forward(
+            input_ids, decoder_input_ids=decoder_input_ids
+        )[0]
+
+
+def get_hf_seq2seq_model(name):
+    m = HFSeq2SeqLanguageModel(name)
+    encoded_input_ids = m.preprocess_input(
+        "Studies have been shown that owning a dog is good for you"
+    ).input_ids
+    decoder_input_ids = m.preprocess_input("Studies show that").input_ids
+    decoder_input_ids = m.model._shift_right(decoder_input_ids)
+
+    test_input = (encoded_input_ids, decoder_input_ids)
+    actual_out = m.forward(*test_input)
+    return m, test_input, actual_out
 
 
 ################################################################################
@@ -144,24 +196,50 @@ class VisionModule(torch.nn.Module):
 def get_vision_model(torch_model):
     import torchvision.models as models
 
+    default_image_size = (224, 224)
+
     vision_models_dict = {
-        "alexnet": models.alexnet(weights="DEFAULT"),
-        "resnet18": models.resnet18(weights="DEFAULT"),
-        "resnet50": models.resnet50(weights="DEFAULT"),
-        "resnet50_fp16": models.resnet50(weights="DEFAULT"),
-        "resnet101": models.resnet101(weights="DEFAULT"),
-        "squeezenet1_0": models.squeezenet1_0(weights="DEFAULT"),
-        "wide_resnet50_2": models.wide_resnet50_2(weights="DEFAULT"),
-        "mobilenet_v3_small": models.mobilenet_v3_small(weights="DEFAULT"),
-        "mnasnet1_0": models.mnasnet1_0(weights="DEFAULT"),
+        "alexnet": (models.alexnet(weights="DEFAULT"), default_image_size),
+        "resnet18": (models.resnet18(weights="DEFAULT"), default_image_size),
+        "resnet50": (models.resnet50(weights="DEFAULT"), default_image_size),
+        "resnet50_fp16": (
+            models.resnet50(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "resnet101": (models.resnet101(weights="DEFAULT"), default_image_size),
+        "squeezenet1_0": (
+            models.squeezenet1_0(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "wide_resnet50_2": (
+            models.wide_resnet50_2(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "mobilenet_v3_small": (
+            models.mobilenet_v3_small(weights="DEFAULT"),
+            default_image_size,
+        ),
+        "mnasnet1_0": (
+            models.mnasnet1_0(weights="DEFAULT"),
+            default_image_size,
+        ),
+        # EfficientNet input image size varies on the size of the model.
+        "efficientnet_b0": (
+            models.efficientnet_b0(weights="DEFAULT"),
+            (224, 224),
+        ),
+        "efficientnet_b7": (
+            models.efficientnet_b7(weights="DEFAULT"),
+            (600, 600),
+        ),
     }
     if isinstance(torch_model, str):
         fp16_model = None
         if "fp16" in torch_model:
             fp16_model = True
-        torch_model = vision_models_dict[torch_model]
+        torch_model, input_image_size = vision_models_dict[torch_model]
     model = VisionModule(torch_model)
-    test_input = torch.randn(1, 3, 224, 224)
+    test_input = torch.randn(BATCH_SIZE, 3, 224, 224)
     actual_out = model(test_input)
     if fp16_model is not None:
         test_input_fp16 = test_input.to(
@@ -209,6 +287,7 @@ def get_fp16_model(torch_model):
     model = BertHalfPrecisionModel(modelname)
     tokenizer = AutoTokenizer.from_pretrained(modelname)
     text = "Replace me by any text you like."
+    text = [text] * BATCH_SIZE
     test_input_fp16 = tokenizer(
         text,
         truncation=True,

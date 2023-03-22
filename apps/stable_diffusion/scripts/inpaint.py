@@ -10,6 +10,7 @@ from apps.stable_diffusion.src import (
     clear_all,
     save_output_img,
 )
+from apps.stable_diffusion.src.utils import get_generation_text_info
 
 
 schedulers = None
@@ -47,9 +48,13 @@ def inpaint_inf(
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
+        get_custom_vae_or_lora_weights,
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
+    from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+        SD_STATE_CANCEL,
+    )
 
     global schedulers
 
@@ -62,10 +67,6 @@ def inpaint_inf(
     args.mask_path = "not none"
 
     # set ckpt_loc and hf_model_id.
-    types = (
-        ".ckpt",
-        ".safetensors",
-    )  # the tuple of file types
     args.ckpt_loc = ""
     args.hf_model_id = ""
     if custom_model == "None":
@@ -80,14 +81,9 @@ def inpaint_inf(
     else:
         args.hf_model_id = custom_model
 
-    use_lora = ""
-    if lora_weights == "None" and not lora_hf_id:
-        use_lora = ""
-    elif not lora_hf_id:
-        use_lora = lora_weights
-    else:
-        use_lora = lora_hf_id
-    args.use_lora = use_lora
+    args.use_lora = get_custom_vae_or_lora_weights(
+        lora_weights, lora_hf_id, "lora"
+    )
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
@@ -104,7 +100,7 @@ def inpaint_inf(
         height,
         width,
         device,
-        use_lora=use_lora,
+        use_lora=args.use_lora,
         use_stencil=None,
     )
     if (
@@ -114,6 +110,7 @@ def inpaint_inf(
         global_obj.clear_cache()
         global_obj.set_cfg_obj(new_config_obj)
         args.precision = precision
+        args.batch_count = batch_count
         args.batch_size = batch_size
         args.max_length = max_length
         args.height = height
@@ -143,10 +140,9 @@ def inpaint_inf(
                 width=args.width,
                 use_base_vae=args.use_base_vae,
                 use_tuned=args.use_tuned,
-                custom_vae=args.custom_vae,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
-                use_lora=use_lora,
+                use_lora=args.use_lora,
             )
         )
 
@@ -159,6 +155,7 @@ def inpaint_inf(
     img_seed = utils.sanitize_seed(seed)
     image = image_dict["image"]
     mask_image = image_dict["mask"]
+    text_output = ""
     for i in range(batch_count):
         if i > 0:
             img_seed = utils.sanitize_seed(-1)
@@ -180,23 +177,20 @@ def inpaint_inf(
             args.use_base_vae,
             cpu_scheduling,
         )
-        save_output_img(out_imgs[0], img_seed)
-        generated_imgs.extend(out_imgs)
         seeds.append(img_seed)
-        global_obj.get_sd_obj().log += "\n"
-        yield generated_imgs, global_obj.get_sd_obj().log
+        total_time = time.time() - start_time
+        text_output = get_generation_text_info(seeds, device)
+        text_output += "\n" + global_obj.get_sd_obj().log
+        text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
 
-    total_time = time.time() - start_time
-    text_output = f"prompt={args.prompts}"
-    text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
-    text_output += f"\nsize={args.height}x{args.width}, batch-count={batch_count}, batch-size={args.batch_size}, max_length={args.max_length}"
-    text_output += global_obj.get_sd_obj().log
-    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+        if global_obj.get_sd_status() == SD_STATE_CANCEL:
+            break
+        else:
+            save_output_img(out_imgs[0], img_seed)
+            generated_imgs.extend(out_imgs)
+            yield generated_imgs, text_output
 
-    yield generated_imgs, text_output
+    return generated_imgs, text_output
 
 
 if __name__ == "__main__":
@@ -236,7 +230,6 @@ if __name__ == "__main__":
         width=args.width,
         use_base_vae=args.use_base_vae,
         use_tuned=args.use_tuned,
-        custom_vae=args.custom_vae,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
         debug=args.import_debug if args.import_mlir else False,
         use_lora=args.use_lora,

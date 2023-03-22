@@ -41,9 +41,12 @@ def upscaler_inf(
     max_length: int,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
+    lora_weights: str,
+    lora_hf_id: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
+        get_custom_vae_or_lora_weights,
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
@@ -62,10 +65,6 @@ def upscaler_inf(
     image = init_image.convert("RGB").resize((height, width))
 
     # set ckpt_loc and hf_model_id.
-    types = (
-        ".ckpt",
-        ".safetensors",
-    )  # the tuple of file types
     args.ckpt_loc = ""
     args.hf_model_id = ""
     if custom_model == "None":
@@ -83,6 +82,10 @@ def upscaler_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
+    args.use_lora = get_custom_vae_or_lora_weights(
+        lora_weights, lora_hf_id, "lora"
+    )
+
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
     args.height = 128
@@ -97,7 +100,7 @@ def upscaler_inf(
         args.height,
         args.width,
         device,
-        use_lora=None,
+        use_lora=args.use_lora,
         use_stencil=None,
     )
     if (
@@ -135,6 +138,7 @@ def upscaler_inf(
                 args.use_base_vae,
                 args.use_tuned,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
+                use_lora=args.use_lora,
             )
         )
 
@@ -232,6 +236,7 @@ if __name__ == "__main__":
         args.use_base_vae,
         args.use_tuned,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
+        use_lora=args.use_lora,
         ddpm_scheduler=schedulers["DDPM"],
     )
 

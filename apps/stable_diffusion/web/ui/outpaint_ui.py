@@ -11,6 +11,7 @@ from apps.stable_diffusion.web.ui.utils import (
     get_custom_model_files,
     scheduler_list,
     predefined_paint_models,
+    cancel_sd,
 )
 
 
@@ -68,10 +69,10 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         lora_weights = gr.Dropdown(
-                            label=f"Standlone LoRA weights (Path: {get_custom_model_path()})",
+                            label=f"Standlone LoRA weights (Path: {get_custom_model_path('lora')})",
                             elem_id="lora_weights",
                             value="None",
-                            choices=["None"] + get_custom_model_files(),
+                            choices=["None"] + get_custom_model_files("lora"),
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
@@ -165,21 +166,23 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                             1, 100, value=20, step=1, label="Steps"
                         )
                     with gr.Row():
-                        guidance_scale = gr.Slider(
-                            0,
-                            50,
-                            value=args.guidance_scale,
-                            step=0.1,
-                            label="CFG Scale",
-                        )
-                        batch_count = gr.Slider(
-                            1,
-                            100,
-                            value=args.batch_count,
-                            step=1,
-                            label="Batch Count",
-                            interactive=True,
-                        )
+                        with gr.Column(scale=3):
+                            guidance_scale = gr.Slider(
+                                0,
+                                50,
+                                value=args.guidance_scale,
+                                step=0.1,
+                                label="CFG Scale",
+                            )
+                        with gr.Column(scale=3):
+                            batch_count = gr.Slider(
+                                1,
+                                100,
+                                value=args.batch_count,
+                                step=1,
+                                label="Batch Count",
+                                interactive=True,
+                            )
                         batch_size = gr.Slider(
                             1,
                             4,
@@ -189,6 +192,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                             interactive=False,
                             visible=False,
                         )
+                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
@@ -210,8 +214,6 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")
-                    with gr.Column(scale=1, min_width=150):
-                        clear_queue = gr.Button("Clear Queue")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -275,6 +277,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
         prompt_submit = prompt.submit(**kwargs)
         neg_prompt_submit = negative_prompt.submit(**kwargs)
         generate_click = stable_diffusion.click(**kwargs)
-        clear_queue.click(
-            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+        stop_batch.click(
+            fn=cancel_sd,
+            cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )
