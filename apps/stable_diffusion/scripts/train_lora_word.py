@@ -227,7 +227,7 @@ def lora_train(
     args.max_length = max_length
     args.height = height
     args.width = width
-    args.device = device
+    args.device = device.split("=>", 1)[1].strip()
 
     # Load the Stable Diffusion model
     text_encoder = CLIPTextModel.from_pretrained(
