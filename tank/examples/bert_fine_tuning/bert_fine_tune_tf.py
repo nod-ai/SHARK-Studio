@@ -146,7 +146,6 @@ if __name__ == "__main__":
         backend_config = "cuda"
         args = [
             "--iree-cuda-llvm-target-arch=sm_80",
-            "--iree-hal-cuda-disable-loop-nounroll-wa",
             "--iree-enable-fusion-with-reduction-ops",
         ]
 
