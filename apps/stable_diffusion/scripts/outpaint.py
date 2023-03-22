@@ -54,9 +54,10 @@ def outpaint_inf(
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
-    from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
-        SD_STATE_CANCEL,
-    )
+    import apps.stable_diffusion.src.utils.state_manager as state_manager
+
+    if not state_manager.app.is_ready():
+        return
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -83,120 +84,133 @@ def outpaint_inf(
     args.use_lora = get_custom_vae_or_lora_weights(
         lora_weights, lora_hf_id, "lora"
     )
+    try:
+        state_manager.app.set_job(f"Initializing model {custom_model}", False)
+        args.save_metadata_to_json = save_metadata_to_json
+        args.write_metadata_to_png = save_metadata_to_png
 
-    args.save_metadata_to_json = save_metadata_to_json
-    args.write_metadata_to_png = save_metadata_to_png
-
-    dtype = torch.float32 if precision == "fp32" else torch.half
-    cpu_scheduling = not scheduler.startswith("Shark")
-    new_config_obj = Config(
-        "outpaint",
-        args.hf_model_id,
-        args.ckpt_loc,
-        precision,
-        batch_size,
-        max_length,
-        height,
-        width,
-        device,
-        use_lora=args.use_lora,
-        use_stencil=None,
-    )
-    if (
-        not global_obj.get_sd_obj()
-        or global_obj.get_cfg_obj() != new_config_obj
-    ):
-        global_obj.clear_cache()
-        global_obj.set_cfg_obj(new_config_obj)
-        args.precision = precision
-        args.batch_count = batch_count
-        args.batch_size = batch_size
-        args.max_length = max_length
-        args.height = height
-        args.width = width
-        args.device = device.split("=>", 1)[1].strip()
-        args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
-        args.use_tuned = init_use_tuned
-        args.import_mlir = init_import_mlir
-        set_init_device_flags()
-        model_id = (
-            args.hf_model_id
-            if args.hf_model_id
-            else "stabilityai/stable-diffusion-2-inpainting"
-        )
-        global_obj.set_schedulers(get_schedulers(model_id))
-        scheduler_obj = global_obj.get_scheduler(scheduler)
-        global_obj.set_sd_obj(
-            OutpaintPipeline.from_pretrained(
-                scheduler_obj,
-                args.import_mlir,
-                args.hf_model_id,
-                args.ckpt_loc,
-                args.custom_vae,
-                args.precision,
-                args.max_length,
-                args.batch_size,
-                args.height,
-                args.width,
-                args.use_base_vae,
-                args.use_tuned,
-                use_lora=args.use_lora,
-            )
-        )
-
-    global_obj.set_sd_scheduler(scheduler)
-
-    start_time = time.time()
-    global_obj.get_sd_obj().log = ""
-    generated_imgs = []
-    seeds = []
-    img_seed = utils.sanitize_seed(seed)
-
-    left = True if "left" in directions else False
-    right = True if "right" in directions else False
-    top = True if "up" in directions else False
-    bottom = True if "down" in directions else False
-
-    text_output = ""
-    for i in range(batch_count):
-        if i > 0:
-            img_seed = utils.sanitize_seed(-1)
-        out_imgs = global_obj.get_sd_obj().generate_images(
-            prompt,
-            negative_prompt,
-            init_image,
-            pixels,
-            mask_blur,
-            left,
-            right,
-            top,
-            bottom,
-            noise_q,
-            color_variation,
+        dtype = torch.float32 if precision == "fp32" else torch.half
+        cpu_scheduling = not scheduler.startswith("Shark")
+        new_config_obj = Config(
+            "outpaint",
+            args.hf_model_id,
+            args.ckpt_loc,
+            precision,
             batch_size,
+            max_length,
             height,
             width,
-            steps,
-            guidance_scale,
-            img_seed,
-            args.max_length,
-            dtype,
-            args.use_base_vae,
-            cpu_scheduling,
+            device,
+            use_lora=args.use_lora,
+            use_stencil=None,
         )
-        seeds.append(img_seed)
-        total_time = time.time() - start_time
-        text_output = get_generation_text_info(seeds, device)
-        text_output += "\n" + global_obj.get_sd_obj().log
-        text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
+        if (
+            not global_obj.get_sd_obj()
+            or global_obj.get_cfg_obj() != new_config_obj
+        ):
+            global_obj.clear_cache()
+            global_obj.set_cfg_obj(new_config_obj)
+            args.precision = precision
+            args.batch_count = batch_count
+            args.batch_size = batch_size
+            args.max_length = max_length
+            args.height = height
+            args.width = width
+            args.device = device.split("=>", 1)[1].strip()
+            args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+            args.use_tuned = init_use_tuned
+            args.import_mlir = init_import_mlir
+            set_init_device_flags()
+            model_id = (
+                args.hf_model_id
+                if args.hf_model_id
+                else "stabilityai/stable-diffusion-2-inpainting"
+            )
+            try:
+                global_obj.set_schedulers(get_schedulers(model_id))
+                scheduler_obj = global_obj.get_scheduler(scheduler)
+                global_obj.set_sd_obj(
+                    OutpaintPipeline.from_pretrained(
+                        scheduler_obj,
+                        args.import_mlir,
+                        args.hf_model_id,
+                        args.ckpt_loc,
+                        args.custom_vae,
+                        args.precision,
+                        args.max_length,
+                        args.batch_size,
+                        args.height,
+                        args.width,
+                        args.use_base_vae,
+                        args.use_tuned,
+                        use_lora=args.use_lora,
+                    )
+                )
+            except Exception:
+                state_manager.app.set_ready()
+                raise
 
-        if global_obj.get_sd_status() == SD_STATE_CANCEL:
-            break
-        else:
+        global_obj.set_sd_scheduler(scheduler)
+
+        start_time = time.time()
+        global_obj.get_sd_obj().log = ""
+        generated_imgs = []
+        seeds = []
+        img_seed = utils.sanitize_seed(seed)
+
+        left = True if "left" in directions else False
+        right = True if "right" in directions else False
+        top = True if "up" in directions else False
+        bottom = True if "down" in directions else False
+
+        text_output = ""
+        for i in range(batch_count):
+            state_manager.app.set_job(
+                "Running outpaint job", False, i, batch_count, steps
+            )
+            if i > 0:
+                img_seed = utils.sanitize_seed(-1)
+            out_imgs = global_obj.get_sd_obj().generate_images(
+                prompt,
+                negative_prompt,
+                init_image,
+                pixels,
+                mask_blur,
+                left,
+                right,
+                top,
+                bottom,
+                noise_q,
+                color_variation,
+                batch_size,
+                height,
+                width,
+                steps,
+                guidance_scale,
+                img_seed,
+                args.max_length,
+                dtype,
+                args.use_base_vae,
+                cpu_scheduling,
+            )
+            seeds.append(img_seed)
+            total_time = time.time() - start_time
+            text_output = get_generation_text_info(seeds, device)
+            text_output += "\n" + global_obj.get_sd_obj().log
+            text_output += (
+                f"\nTotal image(s) generation time: {total_time:.4f}sec"
+            )
+
+            if state_manager.app.is_canceling():
+                break
             save_output_img(out_imgs[0], img_seed)
             generated_imgs.extend(out_imgs)
             yield generated_imgs, text_output
+    except Exception:
+        state_manager.app.set_ready()
+        raise
 
+    state_manager.app.set_ready()
     return generated_imgs, text_output
 
 

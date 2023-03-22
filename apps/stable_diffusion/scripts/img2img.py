@@ -96,9 +96,10 @@ def img2img_inf(
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
-    from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
-        SD_STATE_CANCEL,
-    )
+    import apps.stable_diffusion.src.utils.state_manager as state_manager
+
+    if not state_manager.app.is_ready():
+        return
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -132,150 +133,165 @@ def img2img_inf(
         lora_weights, lora_hf_id, "lora"
     )
 
-    args.save_metadata_to_json = save_metadata_to_json
-    args.write_metadata_to_png = save_metadata_to_png
+    try:
+        state_manager.app.set_job(f"Initializing model {custom_model}", False)
+        args.save_metadata_to_json = save_metadata_to_json
+        args.write_metadata_to_png = save_metadata_to_png
 
-    use_stencil = None if use_stencil == "None" else use_stencil
-    args.use_stencil = use_stencil
-    if use_stencil is not None:
-        args.scheduler = "DDIM"
-        args.hf_model_id = "runwayml/stable-diffusion-v1-5"
-        image, width, height = resize_stencil(image)
-    elif args.scheduler != "PNDM":
-        if "Shark" in args.scheduler:
-            print(
-                f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
-            )
-            args.scheduler = "PNDM"
-        else:
-            sys.exit(
-                "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
-            )
-    cpu_scheduling = not args.scheduler.startswith("Shark")
-    args.precision = precision
-    dtype = torch.float32 if precision == "fp32" else torch.half
-    new_config_obj = Config(
-        "img2img",
-        args.hf_model_id,
-        args.ckpt_loc,
-        precision,
-        batch_size,
-        max_length,
-        height,
-        width,
-        device,
-        use_lora=args.use_lora,
-        use_stencil=use_stencil,
-    )
-    if (
-        not global_obj.get_sd_obj()
-        or global_obj.get_cfg_obj() != new_config_obj
-    ):
-        global_obj.clear_cache()
-        global_obj.set_cfg_obj(new_config_obj)
-        args.batch_count = batch_count
-        args.batch_size = batch_size
-        args.max_length = max_length
-        args.height = height
-        args.width = width
-        args.device = device.split("=>", 1)[1].strip()
-        args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
-        args.use_tuned = init_use_tuned
-        args.import_mlir = init_import_mlir
-        set_init_device_flags()
-        model_id = (
-            args.hf_model_id
-            if args.hf_model_id
-            else "stabilityai/stable-diffusion-2-1-base"
-        )
-        global_obj.set_schedulers(get_schedulers(model_id))
-        scheduler_obj = global_obj.get_scheduler(args.scheduler)
-
+        use_stencil = None if use_stencil == "None" else use_stencil
+        args.use_stencil = use_stencil
         if use_stencil is not None:
-            args.use_tuned = False
-            global_obj.set_sd_obj(
-                StencilPipeline.from_pretrained(
-                    scheduler_obj,
-                    args.import_mlir,
-                    args.hf_model_id,
-                    args.ckpt_loc,
-                    args.custom_vae,
-                    args.precision,
-                    args.max_length,
-                    args.batch_size,
-                    args.height,
-                    args.width,
-                    args.use_base_vae,
-                    args.use_tuned,
-                    low_cpu_mem_usage=args.low_cpu_mem_usage,
-                    use_stencil=use_stencil,
-                    debug=args.import_debug if args.import_mlir else False,
-                    use_lora=args.use_lora,
+            args.scheduler = "DDIM"
+            args.hf_model_id = "runwayml/stable-diffusion-v1-5"
+            image, width, height = resize_stencil(image)
+        elif args.scheduler != "PNDM":
+            if "Shark" in args.scheduler:
+                print(
+                    f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
                 )
-            )
-        else:
-            global_obj.set_sd_obj(
-                Image2ImagePipeline.from_pretrained(
-                    scheduler_obj,
-                    args.import_mlir,
-                    args.hf_model_id,
-                    args.ckpt_loc,
-                    args.custom_vae,
-                    args.precision,
-                    args.max_length,
-                    args.batch_size,
-                    args.height,
-                    args.width,
-                    args.use_base_vae,
-                    args.use_tuned,
-                    low_cpu_mem_usage=args.low_cpu_mem_usage,
-                    debug=args.import_debug if args.import_mlir else False,
-                    use_lora=args.use_lora,
+                args.scheduler = "PNDM"
+            else:
+                sys.exit(
+                    "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
                 )
-            )
-
-    global_obj.set_sd_scheduler(args.scheduler)
-
-    start_time = time.time()
-    global_obj.get_sd_obj().log = ""
-    generated_imgs = []
-    seeds = []
-    img_seed = utils.sanitize_seed(seed)
-    extra_info = {"STRENGTH": strength}
-    text_output = ""
-    for current_batch in range(batch_count):
-        if current_batch > 0:
-            img_seed = utils.sanitize_seed(-1)
-        out_imgs = global_obj.get_sd_obj().generate_images(
-            prompt,
-            negative_prompt,
-            image,
+        cpu_scheduling = not args.scheduler.startswith("Shark")
+        args.precision = precision
+        dtype = torch.float32 if precision == "fp32" else torch.half
+        new_config_obj = Config(
+            "img2img",
+            args.hf_model_id,
+            args.ckpt_loc,
+            precision,
             batch_size,
+            max_length,
             height,
             width,
-            steps,
-            strength,
-            guidance_scale,
-            img_seed,
-            args.max_length,
-            dtype,
-            args.use_base_vae,
-            cpu_scheduling,
+            device,
+            use_lora=args.use_lora,
             use_stencil=use_stencil,
         )
-        seeds.append(img_seed)
-        total_time = time.time() - start_time
-        text_output = get_generation_text_info(seeds, device)
-        text_output += "\n" + global_obj.get_sd_obj().log
-        text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
+        if (
+            not global_obj.get_sd_obj()
+            or global_obj.get_cfg_obj() != new_config_obj
+        ):
+            global_obj.clear_cache()
+            global_obj.set_cfg_obj(new_config_obj)
+            args.batch_count = batch_count
+            args.batch_size = batch_size
+            args.max_length = max_length
+            args.height = height
+            args.width = width
+            args.device = device.split("=>", 1)[1].strip()
+            args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+            args.use_tuned = init_use_tuned
+            args.import_mlir = init_import_mlir
+            set_init_device_flags()
+            model_id = (
+                args.hf_model_id
+                if args.hf_model_id
+                else "stabilityai/stable-diffusion-2-1-base"
+            )
 
-        if global_obj.get_sd_status() == SD_STATE_CANCEL:
-            break
-        else:
+            global_obj.set_schedulers(get_schedulers(model_id))
+            scheduler_obj = global_obj.get_scheduler(args.scheduler)
+
+            if use_stencil is not None:
+                args.use_tuned = False
+                global_obj.set_sd_obj(
+                    StencilPipeline.from_pretrained(
+                        scheduler_obj,
+                        args.import_mlir,
+                        args.hf_model_id,
+                        args.ckpt_loc,
+                        args.custom_vae,
+                        args.precision,
+                        args.max_length,
+                        args.batch_size,
+                        args.height,
+                        args.width,
+                        args.use_base_vae,
+                        args.use_tuned,
+                        low_cpu_mem_usage=args.low_cpu_mem_usage,
+                        use_stencil=use_stencil,
+                        debug=args.import_debug if args.import_mlir else False,
+                        use_lora=args.use_lora,
+                    )
+                )
+            else:
+                global_obj.set_sd_obj(
+                    Image2ImagePipeline.from_pretrained(
+                        scheduler_obj,
+                        args.import_mlir,
+                        args.hf_model_id,
+                        args.ckpt_loc,
+                        args.custom_vae,
+                        args.precision,
+                        args.max_length,
+                        args.batch_size,
+                        args.height,
+                        args.width,
+                        args.use_base_vae,
+                        args.use_tuned,
+                        low_cpu_mem_usage=args.low_cpu_mem_usage,
+                        debug=args.import_debug if args.import_mlir else False,
+                        use_lora=args.use_lora,
+                    )
+                )
+
+        global_obj.set_sd_scheduler(args.scheduler)
+
+        start_time = time.time()
+        global_obj.get_sd_obj().log = ""
+        generated_imgs = []
+        seeds = []
+        img_seed = utils.sanitize_seed(seed)
+        extra_info = {"STRENGTH": strength}
+        text_output = ""
+        for current_batch in range(batch_count):
+            state_manager.app.set_job(
+                "Running img2img job",
+                False,
+                current_batch,
+                batch_count,
+                steps * strength,
+            )
+            if current_batch > 0:
+                img_seed = utils.sanitize_seed(-1)
+            out_imgs = global_obj.get_sd_obj().generate_images(
+                prompt,
+                negative_prompt,
+                image,
+                batch_size,
+                height,
+                width,
+                steps,
+                strength,
+                guidance_scale,
+                img_seed,
+                args.max_length,
+                dtype,
+                args.use_base_vae,
+                cpu_scheduling,
+                use_stencil=use_stencil,
+            )
+            seeds.append(img_seed)
+            total_time = time.time() - start_time
+            text_output = get_generation_text_info(seeds, device)
+            text_output += "\n" + global_obj.get_sd_obj().log
+            text_output += (
+                f"\nTotal image(s) generation time: {total_time:.4f}sec"
+            )
+
+            if state_manager.app.is_canceling():
+                break
             save_output_img(out_imgs[0], img_seed, extra_info)
             generated_imgs.extend(out_imgs)
             yield generated_imgs, text_output
+    except Exception:
+        state_manager.app.set_ready()
+        raise
 
+    state_manager.app.set_ready()
     return generated_imgs, text_output
 
 

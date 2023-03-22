@@ -1,6 +1,6 @@
 import os
 import sys
-import transformers
+import apps.stable_diffusion.src.utils.state_manager as state_manager
 
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
@@ -86,6 +86,13 @@ def register_button_click(button, selectedid, inputs, outputs):
 with gr.Blocks(
     css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
 ) as sd_web:
+    with gr.Row(elem_id="sd_status_outer"):
+        sd_status = gr.Textbox(
+            elem_id="sd_status",
+            value="Ready",
+            show_label=False,
+            lines=1,
+        )
     with gr.Tabs() as tabs:
         with gr.TabItem(label="Text-to-Image", id=0):
             txt2img_web.render()
@@ -101,6 +108,8 @@ with gr.Blocks(
     with gr.Tabs(visible=False) as experimental_tabs:
         with gr.TabItem(label="LoRA Training", id=5):
             lora_train_web.render()
+
+    sd_web.load(state_manager.app.get_status_message, None, sd_status, every=2)
 
     register_button_click(
         txt2img_sendto_img2img,
