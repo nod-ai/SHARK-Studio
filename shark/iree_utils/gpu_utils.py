@@ -30,11 +30,10 @@ def get_iree_gpu_args():
         in ["sm_70", "sm_72", "sm_75", "sm_80", "sm_84", "sm_86", "sm_89"]
     ) and (shark_args.enable_tf32 == True):
         return [
-            "--iree-hal-cuda-disable-loop-nounroll-wa",
             f"--iree-hal-cuda-llvm-target-arch={sm_arch}",
         ]
     else:
-        return ["--iree-hal-cuda-disable-loop-nounroll-wa"]
+        return []
 
 
 # Get the default gpu args given the architecture.
