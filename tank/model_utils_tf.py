@@ -7,11 +7,15 @@ from transformers import (
 )
 
 BATCH_SIZE = 1
-MAX_SEQUENCE_LENGTH = 128
 
 ################################## MHLO/TF models #########################################
 # TODO : Generate these lists or fetch model source from tank/tf/tf_model_list.csv
-keras_models = ["resnet50", "efficientnet-v2-s"]
+keras_models = [
+    "resnet50",
+    "efficientnet_b0",
+    "efficientnet_b7",
+    "efficientnet-v2-s",
+]
 maskedlm_models = [
     "albert-base-v2",
     "bert-base-uncased",
@@ -32,8 +36,15 @@ maskedlm_models = [
     "hf-internal-testing/tiny-random-flaubert",
     "xlm-roberta",
 ]
+causallm_models = [
+    "gpt2",
+]
 tfhf_models = [
     "microsoft/MiniLM-L12-H384-uncased",
+]
+tfhf_seq2seq_models = [
+    "t5-base",
+    "t5-large",
 ]
 img_models = [
     "google/vit-base-patch16-224",
@@ -45,23 +56,35 @@ def get_tf_model(name):
     if name in keras_models:
         return get_keras_model(name)
     elif name in maskedlm_models:
+        return get_masked_lm_model(name)
+    elif name in causallm_models:
         return get_causal_lm_model(name)
     elif name in tfhf_models:
         return get_TFhf_model(name)
     elif name in img_models:
         return get_causal_image_model(name)
+    elif name in tfhf_seq2seq_models:
+        return get_tfhf_seq2seq_model(name)
     else:
         raise Exception(
             "TF model not found! Please check that the modelname has been input correctly."
         )
 
 
-##################### Tensorflow Hugging Face LM Models ###################################
+##################### Tensorflow Hugging Face Bert Models ###################################
+BERT_MAX_SEQUENCE_LENGTH = 128
+
 # Create a set of 2-dimensional inputs
 tf_bert_input = [
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH], dtype=tf.int32
+    ),
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH], dtype=tf.int32
+    ),
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH], dtype=tf.int32
+    ),
 ]
 
 
@@ -87,21 +110,31 @@ def get_TFhf_model(name):
         "microsoft/MiniLM-L12-H384-uncased"
     )
     text = "Replace me by any text you'd like."
+    text = [text] * BATCH_SIZE
     encoded_input = tokenizer(
         text,
         padding="max_length",
         truncation=True,
-        max_length=MAX_SEQUENCE_LENGTH,
+        max_length=BERT_MAX_SEQUENCE_LENGTH,
     )
-    for key in encoded_input:
-        encoded_input[key] = tf.expand_dims(
-            tf.convert_to_tensor(encoded_input[key]), 0
-        )
-    test_input = (
-        encoded_input["input_ids"],
-        encoded_input["attention_mask"],
-        encoded_input["token_type_ids"],
-    )
+    test_input = [
+        tf.reshape(
+            tf.convert_to_tensor(encoded_input["input_ids"], dtype=tf.int32),
+            [BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH],
+        ),
+        tf.reshape(
+            tf.convert_to_tensor(
+                encoded_input["attention_mask"], dtype=tf.int32
+            ),
+            [BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH],
+        ),
+        tf.reshape(
+            tf.convert_to_tensor(
+                encoded_input["token_type_ids"], dtype=tf.int32
+            ),
+            [BATCH_SIZE, BERT_MAX_SEQUENCE_LENGTH],
+        ),
+    ]
     actual_out = model.forward(*test_input)
     return model, test_input, actual_out
 
@@ -115,34 +148,41 @@ def compare_tensors_tf(tf_tensor, numpy_tensor):
     return np.allclose(tf_to_numpy, numpy_tensor, rtol, atol)
 
 
-##################### Tensorflow Hugging Face Masked LM Models ###################################
-from transformers import TFAutoModelForMaskedLM, AutoTokenizer
-import tensorflow as tf
-
-# Create a set of input signature.
-input_signature_maskedlm = [
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-    tf.TensorSpec(shape=[BATCH_SIZE, MAX_SEQUENCE_LENGTH], dtype=tf.int32),
-]
-
-# For supported models please see here:
-# https://huggingface.co/docs/transformers/model_doc/auto#transformers.TFAutoModelForCasualLM
-
-
+# Tokenizer for language models
 def preprocess_input(
-    model_name, text="This is just used to compile the model"
+    model_name, max_length, text="This is just used to compile the model"
 ):
     tokenizer = AutoTokenizer.from_pretrained(model_name)
+    text = [text] * BATCH_SIZE
     inputs = tokenizer(
         text,
-        padding="max_length",
         return_tensors="tf",
+        padding="max_length",
         truncation=True,
-        max_length=MAX_SEQUENCE_LENGTH,
+        max_length=max_length,
     )
     return inputs
 
 
+##################### Tensorflow Hugging Face Masked LM Models ###################################
+from transformers import TFAutoModelForMaskedLM, AutoTokenizer
+import tensorflow as tf
+
+MASKED_LM_MAX_SEQUENCE_LENGTH = 128
+
+# Create a set of input signature.
+input_signature_maskedlm = [
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, MASKED_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32
+    ),
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, MASKED_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32
+    ),
+]
+
+
+# For supported models please see here:
+# https://huggingface.co/docs/transformers/model_doc/auto#transformers.TFAutoModelForMaskedLM
 class MaskedLM(tf.Module):
     def __init__(self, model_name):
         super(MaskedLM, self).__init__()
@@ -156,19 +196,139 @@ class MaskedLM(tf.Module):
         return self.m.predict(input_ids, attention_mask)
 
 
-def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
+def get_masked_lm_model(hf_name, text="Hello, this is the default text."):
     model = MaskedLM(hf_name)
-    encoded_input = preprocess_input(hf_name, text)
+    encoded_input = preprocess_input(
+        hf_name, MASKED_LM_MAX_SEQUENCE_LENGTH, text
+    )
     test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
     actual_out = model.forward(*test_input)
     return model, test_input, actual_out
 
 
+##################### Tensorflow Hugging Face Causal LM Models ###################################
+
+from transformers import AutoConfig, TFAutoModelForCausalLM, TFGPT2Model
+
+CAUSAL_LM_MAX_SEQUENCE_LENGTH = 1024
+
+input_signature_causallm = [
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, CAUSAL_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32
+    ),
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, CAUSAL_LM_MAX_SEQUENCE_LENGTH], dtype=tf.int32
+    ),
+]
+
+
+# For supported models please see here:
+# https://huggingface.co/docs/transformers/model_doc/auto#transformers.TFAutoModelForCausalLM
+# For more background, see:
+# https://huggingface.co/blog/tf-xla-generate
+class CausalLM(tf.Module):
+    def __init__(self, model_name):
+        super(CausalLM, self).__init__()
+        # Decoder-only models need left padding.
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name, padding_side="left", pad_token="</s>"
+        )
+        self.tokenization_kwargs = {
+            "pad_to_multiple_of": CAUSAL_LM_MAX_SEQUENCE_LENGTH,
+            "padding": True,
+            "return_tensors": "tf",
+        }
+        self.model = TFGPT2Model.from_pretrained(model_name, return_dict=True)
+        self.model.predict = lambda x, y: self.model(
+            input_ids=x, attention_mask=y
+        )[0]
+
+    def preprocess_input(self, text):
+        return self.tokenizer(text, **self.tokenization_kwargs)
+
+    @tf.function(input_signature=input_signature_causallm, jit_compile=True)
+    def forward(self, input_ids, attention_mask):
+        return self.model.predict(input_ids, attention_mask)
+
+
+def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
+    model = CausalLM(hf_name)
+    batched_text = [text] * BATCH_SIZE
+    encoded_input = model.preprocess_input(batched_text)
+    test_input = (encoded_input["input_ids"], encoded_input["attention_mask"])
+    actual_out = model.forward(*test_input)
+    return model, test_input, actual_out
+
+
+##################### TensorflowHugging Face Seq2SeqLM Models ###################################
+
+# We use a maximum sequence length of 512 since this is the default used in the T5 config.
+T5_MAX_SEQUENCE_LENGTH = 512
+
+input_signature_t5 = [
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, T5_MAX_SEQUENCE_LENGTH],
+        dtype=tf.int32,
+        name="input_ids",
+    ),
+    tf.TensorSpec(
+        shape=[BATCH_SIZE, T5_MAX_SEQUENCE_LENGTH],
+        dtype=tf.int32,
+        name="attention_mask",
+    ),
+]
+
+
+class TFHFSeq2SeqLanguageModel(tf.Module):
+    def __init__(self, model_name):
+        super(TFHFSeq2SeqLanguageModel, self).__init__()
+        from transformers import (
+            AutoTokenizer,
+            AutoConfig,
+            TFAutoModelForSeq2SeqLM,
+            TFT5Model,
+        )
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenization_kwargs = {
+            "pad_to_multiple_of": T5_MAX_SEQUENCE_LENGTH,
+            "padding": True,
+            "return_tensors": "tf",
+        }
+        self.model = TFT5Model.from_pretrained(model_name, return_dict=True)
+        self.model.predict = lambda x, y: self.model(x, decoder_input_ids=y)[0]
+
+    def preprocess_input(self, text):
+        return self.tokenizer(text, **self.tokenization_kwargs)
+
+    @tf.function(input_signature=input_signature_t5, jit_compile=True)
+    def forward(self, input_ids, decoder_input_ids):
+        return self.model.predict(input_ids, decoder_input_ids)
+
+
+def get_tfhf_seq2seq_model(name):
+    m = TFHFSeq2SeqLanguageModel(name)
+    text = "Studies have been shown that owning a dog is good for you"
+    batched_text = [text] * BATCH_SIZE
+    encoded_input_ids = m.preprocess_input(batched_text).input_ids
+
+    text = "Studies show that"
+    batched_text = [text] * BATCH_SIZE
+    decoder_input_ids = m.preprocess_input(batched_text).input_ids
+    decoder_input_ids = m.model._shift_right(decoder_input_ids)
+
+    test_input = (encoded_input_ids, decoder_input_ids)
+    actual_out = m.forward(*test_input)
+    return m, test_input, actual_out
+
+
 ##################### TensorFlow Keras Resnet Models #########################################################
 # Static shape, including batch size (1).
 # Can be dynamic once dynamic shape support is ready.
-RESNET_INPUT_SHAPE = [1, 224, 224, 3]
-EFFICIENTNET_INPUT_SHAPE = [1, 384, 384, 3]
+RESNET_INPUT_SHAPE = [BATCH_SIZE, 224, 224, 3]
+EFFICIENTNET_V2_S_INPUT_SHAPE = [BATCH_SIZE, 384, 384, 3]
+EFFICIENTNET_B0_INPUT_SHAPE = [BATCH_SIZE, 224, 224, 3]
+EFFICIENTNET_B7_INPUT_SHAPE = [BATCH_SIZE, 600, 600, 3]
 
 
 class ResNetModule(tf.Module):
@@ -195,25 +355,79 @@ class ResNetModule(tf.Module):
         return tf.keras.applications.resnet50.preprocess_input(image)
 
 
-class EfficientNetModule(tf.Module):
+class EfficientNetB0Module(tf.Module):
     def __init__(self):
-        super(EfficientNetModule, self).__init__()
-        self.m = tf.keras.applications.efficientnet_v2.EfficientNetV2S(
+        super(EfficientNetB0Module, self).__init__()
+        self.m = tf.keras.applications.efficientnet.EfficientNetB0(
             weights="imagenet",
             include_top=True,
-            input_shape=tuple(EFFICIENTNET_INPUT_SHAPE[1:]),
+            input_shape=tuple(EFFICIENTNET_B0_INPUT_SHAPE[1:]),
         )
         self.m.predict = lambda x: self.m.call(x, training=False)
 
     @tf.function(
-        input_signature=[tf.TensorSpec(EFFICIENTNET_INPUT_SHAPE, tf.float32)],
+        input_signature=[
+            tf.TensorSpec(EFFICIENTNET_B0_INPUT_SHAPE, tf.float32)
+        ],
         jit_compile=True,
     )
     def forward(self, inputs):
         return self.m.predict(inputs)
 
     def input_shape(self):
-        return EFFICIENTNET_INPUT_SHAPE
+        return EFFICIENTNET_B0_INPUT_SHAPE
+
+    def preprocess_input(self, image):
+        return tf.keras.applications.efficientnet.preprocess_input(image)
+
+
+class EfficientNetB7Module(tf.Module):
+    def __init__(self):
+        super(EfficientNetB7Module, self).__init__()
+        self.m = tf.keras.applications.efficientnet.EfficientNetB7(
+            weights="imagenet",
+            include_top=True,
+            input_shape=tuple(EFFICIENTNET_B7_INPUT_SHAPE[1:]),
+        )
+        self.m.predict = lambda x: self.m.call(x, training=False)
+
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(EFFICIENTNET_B7_INPUT_SHAPE, tf.float32)
+        ],
+        jit_compile=True,
+    )
+    def forward(self, inputs):
+        return self.m.predict(inputs)
+
+    def input_shape(self):
+        return EFFICIENTNET_B7_INPUT_SHAPE
+
+    def preprocess_input(self, image):
+        return tf.keras.applications.efficientnet.preprocess_input(image)
+
+
+class EfficientNetV2SModule(tf.Module):
+    def __init__(self):
+        super(EfficientNetV2SModule, self).__init__()
+        self.m = tf.keras.applications.efficientnet_v2.EfficientNetV2S(
+            weights="imagenet",
+            include_top=True,
+            input_shape=tuple(EFFICIENTNET_V2_S_INPUT_SHAPE[1:]),
+        )
+        self.m.predict = lambda x: self.m.call(x, training=False)
+
+    @tf.function(
+        input_signature=[
+            tf.TensorSpec(EFFICIENTNET_V2_S_INPUT_SHAPE, tf.float32)
+        ],
+        jit_compile=True,
+    )
+    def forward(self, inputs):
+        return self.m.predict(inputs)
+
+    def input_shape(self):
+        return EFFICIENTNET_V2_S_INPUT_SHAPE
 
     def preprocess_input(self, image):
         return tf.keras.applications.efficientnet_v2.preprocess_input(image)
@@ -224,12 +438,17 @@ def load_image(path_to_image, width, height, channels):
     image = tf.image.decode_image(image, channels=channels)
     image = tf.image.resize(image, (width, height))
     image = image[tf.newaxis, :]
+    image = tf.tile(image, [BATCH_SIZE, 1, 1, 1])
     return image
 
 
 def get_keras_model(modelname):
     if modelname == "efficientnet-v2-s":
-        model = EfficientNetModule()
+        model = EfficientNetV2SModule()
+    elif modelname == "efficientnet_b0":
+        model = EfficientNetB0Module()
+    elif modelname == "efficientnet_b7":
+        model = EfficientNetB7Module()
     else:
         model = ResNetModule()
 
@@ -256,7 +475,7 @@ import requests
 
 # Create a set of input signature.
 input_signature_img_cls = [
-    tf.TensorSpec(shape=[1, 3, 224, 224], dtype=tf.float32),
+    tf.TensorSpec(shape=[BATCH_SIZE, 3, 224, 224], dtype=tf.float32),
 ]
 
 
@@ -304,6 +523,9 @@ def preprocess_input_image(model_name):
     )
     # inputs: {'pixel_values': <tf.Tensor: shape=(1, 3, 224, 224), dtype=float32, numpy=array([[[[]]]], dtype=float32)>}
     inputs = feature_extractor(images=image, return_tensors="tf")
+    inputs["pixel_values"] = tf.tile(
+        inputs["pixel_values"], [BATCH_SIZE, 1, 1, 1]
+    )
 
     return [inputs[str(*inputs)]]
 

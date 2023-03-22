@@ -1,6 +1,7 @@
 import torch
 import time
 from PIL import Image
+import transformers
 from apps.stable_diffusion.src import (
     args,
     UpscalerPipeline,
@@ -11,8 +12,6 @@ from apps.stable_diffusion.src import (
     save_output_img,
 )
 
-
-schedulers = None
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
@@ -41,14 +40,15 @@ def upscaler_inf(
     max_length: int,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
+    lora_weights: str,
+    lora_hf_id: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
+        get_custom_vae_or_lora_weights,
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
-
-    global schedulers
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -56,18 +56,12 @@ def upscaler_inf(
     args.seed = seed
     args.steps = steps
     args.scheduler = scheduler
-    args.height = height
-    args.width = width
 
     if init_image is None:
         return None, "An Initial Image is required"
-    image = init_image.convert("RGB").resize((args.height, args.width))
+    image = init_image.convert("RGB").resize((height, width))
 
     # set ckpt_loc and hf_model_id.
-    types = (
-        ".ckpt",
-        ".safetensors",
-    )  # the tuple of file types
     args.ckpt_loc = ""
     args.hf_model_id = ""
     if custom_model == "None":
@@ -78,15 +72,21 @@ def upscaler_inf(
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = custom_model
+        args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
+    args.use_lora = get_custom_vae_or_lora_weights(
+        lora_weights, lora_hf_id, "lora"
+    )
+
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
+    args.height = 128
+    args.width = 128
     new_config_obj = Config(
         "upscaler",
         args.hf_model_id,
@@ -94,10 +94,10 @@ def upscaler_inf(
         precision,
         batch_size,
         max_length,
-        height,
-        width,
+        args.height,
+        args.width,
         device,
-        use_lora=None,
+        use_lora=args.use_lora,
         use_stencil=None,
     )
     if (
@@ -118,8 +118,8 @@ def upscaler_inf(
             if args.hf_model_id
             else "stabilityai/stable-diffusion-2-1-base"
         )
-        schedulers = get_schedulers(model_id)
-        scheduler_obj = schedulers[scheduler]
+        global_obj.set_schedulers(get_schedulers(model_id))
+        scheduler_obj = global_obj.get_scheduler(scheduler)
         global_obj.set_sd_obj(
             UpscalerPipeline.from_pretrained(
                 scheduler_obj,
@@ -135,11 +135,14 @@ def upscaler_inf(
                 args.use_base_vae,
                 args.use_tuned,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
+                use_lora=args.use_lora,
             )
         )
 
-    global_obj.set_schedulers(schedulers[scheduler])
-    global_obj.get_sd_obj().low_res_scheduler = schedulers["DDPM"]
+    global_obj.set_sd_scheduler(scheduler)
+    global_obj.get_sd_obj().low_res_scheduler = global_obj.get_scheduler(
+        "DDPM"
+    )
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
@@ -150,24 +153,32 @@ def upscaler_inf(
     for current_batch in range(batch_count):
         if current_batch > 0:
             img_seed = utils.sanitize_seed(-1)
-        out_imgs = global_obj.get_sd_obj().generate_images(
-            prompt,
-            negative_prompt,
-            image,
-            batch_size,
-            height,
-            width,
-            steps,
-            noise_level,
-            guidance_scale,
-            img_seed,
-            args.max_length,
-            dtype,
-            args.use_base_vae,
-            cpu_scheduling,
-        )
-        save_output_img(out_imgs[0], img_seed, extra_info)
-        generated_imgs.extend(out_imgs)
+        low_res_img = image
+        high_res_img = Image.new("RGB", (height * 4, width * 4))
+
+        for i in range(0, width, 128):
+            for j in range(0, height, 128):
+                box = (j, i, j + 128, i + 128)
+                upscaled_image = global_obj.get_sd_obj().generate_images(
+                    prompt,
+                    negative_prompt,
+                    low_res_img.crop(box),
+                    batch_size,
+                    args.height,
+                    args.width,
+                    steps,
+                    noise_level,
+                    guidance_scale,
+                    img_seed,
+                    args.max_length,
+                    dtype,
+                    args.use_base_vae,
+                    cpu_scheduling,
+                )
+                high_res_img.paste(upscaled_image[0], (j * 4, i * 4))
+
+        save_output_img(high_res_img, img_seed, extra_info)
+        generated_imgs.append(high_res_img)
         seeds.append(img_seed)
         global_obj.get_sd_obj().log += "\n"
         yield generated_imgs, global_obj.get_sd_obj().log
@@ -224,6 +235,7 @@ if __name__ == "__main__":
         args.use_base_vae,
         args.use_tuned,
         low_cpu_mem_usage=args.low_cpu_mem_usage,
+        use_lora=args.use_lora,
         ddpm_scheduler=schedulers["DDPM"],
     )
 

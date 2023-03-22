@@ -33,9 +33,10 @@ def create_hash(file_name):
     return file_hash.hexdigest()
 
 
-def save_torch_model(torch_model_list):
+def save_torch_model(torch_model_list, local_tank_cache):
     from tank.model_utils import (
         get_hf_model,
+        get_hf_seq2seq_model,
         get_vision_model,
         get_hf_img_cls_model,
         get_fp16_model,
@@ -59,7 +60,7 @@ def save_torch_model(torch_model_list):
                 args.use_tuned = False
                 args.import_mlir = True
                 args.use_tuned = False
-                args.local_tank_cache = WORKDIR
+                args.local_tank_cache = local_tank_cache
 
                 precision_values = ["fp16"]
                 seq_lengths = [64, 77]
@@ -75,7 +76,7 @@ def save_torch_model(torch_model_list):
                             height=512,
                             use_base_vae=False,
                             debug=True,
-                            sharktank_dir=WORKDIR,
+                            sharktank_dir=local_tank_cache,
                             generate_vmfb=False,
                         )
                         model()
@@ -84,13 +85,15 @@ def save_torch_model(torch_model_list):
                 model, input, _ = get_vision_model(torch_model_name)
             elif model_type == "hf":
                 model, input, _ = get_hf_model(torch_model_name)
+            elif model_type == "hf_seq2seq":
+                model, input, _ = get_hf_seq2seq_model(torch_model_name)
             elif model_type == "hf_img_cls":
                 model, input, _ = get_hf_img_cls_model(torch_model_name)
             elif model_type == "fp16":
                 model, input, _ = get_fp16_model(torch_model_name)
             torch_model_name = torch_model_name.replace("/", "_")
             torch_model_dir = os.path.join(
-                WORKDIR, str(torch_model_name) + "_torch"
+                local_tank_cache, str(torch_model_name) + "_torch"
             )
             os.makedirs(torch_model_dir, exist_ok=True)
 
@@ -115,12 +118,14 @@ def save_torch_model(torch_model_list):
                 )
 
 
-def save_tf_model(tf_model_list):
+def save_tf_model(tf_model_list, local_tank_cache):
     from tank.model_utils_tf import (
         get_causal_image_model,
+        get_masked_lm_model,
         get_causal_lm_model,
         get_keras_model,
         get_TFhf_model,
+        get_tfhf_seq2seq_model,
     )
     import tensorflow as tf
 
@@ -146,15 +151,19 @@ def save_tf_model(tf_model_list):
             print(f"Generating artifacts for model {tf_model_name}")
             if model_type == "hf":
                 model, input, _ = get_causal_lm_model(tf_model_name)
-            if model_type == "img":
+            elif model_type == "img":
                 model, input, _ = get_causal_image_model(tf_model_name)
-            if model_type == "keras":
+            elif model_type == "keras":
                 model, input, _ = get_keras_model(tf_model_name)
-            if model_type == "TFhf":
+            elif model_type == "TFhf":
                 model, input, _ = get_TFhf_model(tf_model_name)
+            elif model_type == "tfhf_seq2seq":
+                model, input, _ = get_tfhf_seq2seq_model(tf_model_name)
 
             tf_model_name = tf_model_name.replace("/", "_")
-            tf_model_dir = os.path.join(WORKDIR, str(tf_model_name) + "_tf")
+            tf_model_dir = os.path.join(
+                local_tank_cache, str(tf_model_name) + "_tf"
+            )
             os.makedirs(tf_model_dir, exist_ok=True)
             mlir_importer = SharkImporter(
                 model,
@@ -172,7 +181,7 @@ def save_tf_model(tf_model_list):
             np.save(os.path.join(tf_model_dir, "hash"), np.array(mlir_hash))
 
 
-def save_tflite_model(tflite_model_list):
+def save_tflite_model(tflite_model_list, local_tank_cache):
     from shark.tflite_utils import TFLitePreprocessor
 
     with open(tflite_model_list) as csvfile:
@@ -184,7 +193,7 @@ def save_tflite_model(tflite_model_list):
             print("tflite_model_name", tflite_model_name)
             print("tflite_model_link", tflite_model_link)
             tflite_model_name_dir = os.path.join(
-                WORKDIR, str(tflite_model_name) + "_tflite"
+                local_tank_cache, str(tflite_model_name) + "_tflite"
             )
             os.makedirs(tflite_model_name_dir, exist_ok=True)
             print(f"TMP_TFLITE_MODELNAME_DIR = {tflite_model_name_dir}")
@@ -217,6 +226,45 @@ def save_tflite_model(tflite_model_list):
                 os.path.join(tflite_model_name_dir, "hash"),
                 np.array(mlir_hash),
             )
+
+
+def gen_shark_files(modelname, frontend, tank_dir):
+    # If a model's artifacts are requested by shark_downloader but they don't exist in the cloud, we call this function to generate the artifacts on-the-fly.
+    # TODO: Add TFlite support.
+    import tempfile
+
+    torch_model_csv = os.path.join(
+        os.path.dirname(__file__), "torch_model_list.csv"
+    )
+    tf_model_csv = os.path.join(os.path.dirname(__file__), "tf_model_list.csv")
+    custom_model_csv = tempfile.NamedTemporaryFile(
+        dir=os.path.dirname(__file__),
+        delete=True,
+    )
+    # Create a temporary .csv with only the desired entry.
+    if frontend == "tf":
+        with open(tf_model_csv, mode="r") as src:
+            reader = csv.reader(src)
+            for row in reader:
+                if row[0] == modelname:
+                    target = row
+        with open(custom_model_csv.name, mode="w") as trg:
+            writer = csv.writer(trg)
+            writer.writerow(["modelname", "src"])
+            writer.writerow(target)
+        save_tf_model(custom_model_csv.name, tank_dir)
+
+    if frontend == "torch":
+        with open(torch_model_csv, mode="r") as src:
+            reader = csv.reader(src)
+            for row in reader:
+                if row[0] == modelname:
+                    target = row
+        with open(custom_model_csv.name, mode="w") as trg:
+            writer = csv.writer(trg)
+            writer.writerow(["modelname", "src"])
+            writer.writerow(target)
+        save_torch_model(custom_model_csv.name, tank_dir)
 
 
 # Validates whether the file is present or not.
@@ -259,20 +307,19 @@ if __name__ == "__main__":
     # old_args = parser.parse_args()
 
     home = str(Path.home())
-    WORKDIR = os.path.join(os.path.dirname(__file__), "gen_shark_tank")
+    WORKDIR = os.path.join(os.path.dirname(__file__), "..", "gen_shark_tank")
     torch_model_csv = os.path.join(
-        os.path.dirname(__file__), "tank", "torch_model_list.csv"
+        os.path.dirname(__file__), "torch_model_list.csv"
     )
-    tf_model_csv = os.path.join(
-        os.path.dirname(__file__), "tank", "tf_model_list.csv"
-    )
+    tf_model_csv = os.path.join(os.path.dirname(__file__), "tf_model_list.csv")
     tflite_model_csv = os.path.join(
-        os.path.dirname(__file__), "tank", "tflite", "tflite_model_list.csv"
+        os.path.dirname(__file__), "tflite", "tflite_model_list.csv"
     )
 
     save_torch_model(
-        os.path.join(os.path.dirname(__file__), "tank", "torch_sd_list.csv")
+        os.path.join(os.path.dirname(__file__), "torch_sd_list.csv"),
+        WORKDIR,
     )
-    save_torch_model(torch_model_csv)
-    save_tf_model(tf_model_csv)
-    save_tflite_model(tflite_model_csv)
+    save_torch_model(torch_model_csv, WORKDIR)
+    save_tf_model(tf_model_csv, WORKDIR)
+    save_tflite_model(tflite_model_csv, WORKDIR)

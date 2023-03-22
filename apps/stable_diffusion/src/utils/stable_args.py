@@ -116,6 +116,31 @@ p.add_argument(
 )
 
 ##############################################################################
+### Stable Diffusion Training Params
+##############################################################################
+
+p.add_argument(
+    "--lora_save_dir",
+    type=str,
+    default="models/lora/",
+    help="Directory to save the lora fine tuned model",
+)
+
+p.add_argument(
+    "--training_images_dir",
+    type=str,
+    default="models/lora/training_images/",
+    help="Directory containing images that are an example of the prompt",
+)
+
+p.add_argument(
+    "--training_steps",
+    type=int,
+    default=2000,
+    help="The no. of steps to train",
+)
+
+##############################################################################
 ### Inpainting and Outpainting Params
 ##############################################################################
 
@@ -321,6 +346,14 @@ p.add_argument(
     help="Use standalone LoRA weight using a HF ID or a checkpoint file (~3 MB)",
 )
 
+p.add_argument(
+    "--use_quantize",
+    type=str,
+    default="none",
+    help="""Runs the quantized version of stable diffusion model. This is currently in experimental phase.
+            Currently, only runs the stable-diffusion-2-1-base model in int8 quantization.""",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################
@@ -341,7 +374,7 @@ p.add_argument(
 
 p.add_argument(
     "--vulkan_large_heap_block_size",
-    default="4147483648",
+    default="2073741824",
     help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
 )
 

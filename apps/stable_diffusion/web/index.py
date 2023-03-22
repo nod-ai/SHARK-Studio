@@ -1,5 +1,6 @@
 import os
 import sys
+import transformers
 
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
@@ -62,10 +63,11 @@ from apps.stable_diffusion.web.ui import (
     upscaler_sendto_img2img,
     upscaler_sendto_inpaint,
     upscaler_sendto_outpaint,
+    lora_train_web,
 )
 
 # init global sd pipeline and config
-global_obj.init()
+global_obj._init()
 
 
 def register_button_click(button, selectedid, inputs, outputs):
@@ -93,6 +95,8 @@ with gr.Blocks(
             outpaint_web.render()
         with gr.TabItem(label="Upscaler", id=4):
             upscaler_web.render()
+        with gr.TabItem(label="LoRA Training", id=5):
+            lora_train_web.render()
 
     register_button_click(
         txt2img_sendto_img2img,

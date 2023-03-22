@@ -297,6 +297,7 @@ def transform_fx(fx_g):
             if node.target in [
                 torch.ops.aten.arange,
                 torch.ops.aten.empty,
+                torch.ops.aten.zeros,
             ]:
                 node.kwargs = kwargs_dict
             # Inputs and outputs of aten.var.mean should be upcasted to fp32.

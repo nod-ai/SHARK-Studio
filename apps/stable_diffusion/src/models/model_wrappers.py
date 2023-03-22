@@ -18,6 +18,7 @@ from apps.stable_diffusion.src.utils import (
     get_path_stem,
     get_extended_name,
     get_stencil_model_id,
+    update_lora_weight,
 )
 
 
@@ -99,7 +100,8 @@ class SharkifyStableDiffusionModel:
         is_inpaint: bool = False,
         is_upscaler: bool = False,
         use_stencil: str = None,
-        use_lora: str = ""
+        use_lora: str = "",
+        use_quantize: str = None,
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -107,6 +109,7 @@ class SharkifyStableDiffusionModel:
         self.width = width // 8
         self.batch_size = batch_size
         self.custom_weights = custom_weights
+        self.use_quantize = use_quantize
         if custom_weights != "":
             assert custom_weights.lower().endswith(
                 (".ckpt", ".safetensors")
@@ -200,6 +203,7 @@ class SharkifyStableDiffusionModel:
             use_tuned=self.use_tuned,
             model_name=self.model_name["vae_encode"],
             extra_args=get_opt_flags("vae", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_vae_encode
 
@@ -255,6 +259,7 @@ class SharkifyStableDiffusionModel:
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("vae", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_vae
 
@@ -281,13 +286,14 @@ class SharkifyStableDiffusionModel:
             use_tuned=self.use_tuned,
             model_name=self.model_name["vae"],
             extra_args=get_opt_flags("vae", precision="fp32"),
+            base_model_id=self.base_model_id,
         )
         return shark_vae
 
     def get_controlled_unet(self):
         class ControlledUnetModel(torch.nn.Module):
             def __init__(
-                self, model_id=self.model_id, low_cpu_mem_usage=False
+                self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora
             ):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
@@ -295,6 +301,8 @@ class SharkifyStableDiffusionModel:
                     subfolder="unet",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    update_lora_weight(self.unet, use_lora, "unet")
                 self.in_channels = self.unet.in_channels
                 self.train(False)
 
@@ -333,6 +341,7 @@ class SharkifyStableDiffusionModel:
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_controlled_unet
 
@@ -386,6 +395,7 @@ class SharkifyStableDiffusionModel:
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_cnet
 
@@ -399,7 +409,7 @@ class SharkifyStableDiffusionModel:
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
                 if use_lora != "":
-                    self.unet.load_attn_procs(use_lora)
+                    update_lora_weight(self.unet, use_lora, "unet")
                 self.in_channels = self.unet.in_channels
                 self.train(False)
                 if(args.attention_slicing is not None and args.attention_slicing != "none"):
@@ -444,6 +454,7 @@ class SharkifyStableDiffusionModel:
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_unet
 
@@ -481,18 +492,21 @@ class SharkifyStableDiffusionModel:
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
         )
         return shark_unet
 
     def get_clip(self):
         class CLIPText(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
+            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora):
                 super().__init__()
                 self.text_encoder = CLIPTextModel.from_pretrained(
                     model_id,
                     subfolder="text_encoder",
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
+                if use_lora != "":
+                    update_lora_weight(self.text_encoder, use_lora, "text_encoder")
 
             def forward(self, input):
                 return self.text_encoder(input)[0]
@@ -512,6 +526,7 @@ class SharkifyStableDiffusionModel:
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("clip", precision="fp32"),
+            base_model_id=self.base_model_id,
         )
         return shark_clip
 
@@ -539,6 +554,7 @@ class SharkifyStableDiffusionModel:
     # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
     # configiration.
     def compile_all(self, base_model_id, need_vae_encode, need_stencil):
+        self.base_model_id = base_model_id
         self.inputs = get_input_info(
             base_models[base_model_id],
             self.max_len,
@@ -556,7 +572,12 @@ class SharkifyStableDiffusionModel:
             compiled_controlnet = self.get_control_net()
             compiled_controlled_unet = self.get_controlled_unet()
         else:
-            compiled_unet = self.get_unet()
+            # TODO: Plug the experimental "int8" support at right place.
+            if self.use_quantize == "int8":
+                from apps.stable_diffusion.src.models.opt_params import get_unet
+                compiled_unet = get_unet()
+            else:
+                compiled_unet = self.get_unet()
         if self.custom_vae != "":
             print("Plugging in custom Vae")
         compiled_vae = self.get_vae()

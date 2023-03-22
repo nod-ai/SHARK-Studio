@@ -9,6 +9,8 @@ from pathlib import Path
 import numpy as np
 from random import randint
 import tempfile
+import torch
+from safetensors.torch import load_file
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
@@ -21,7 +23,7 @@ from apps.stable_diffusion.src.utils.resources import opt_flags
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
 import sys
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
-    load_pipeline_from_original_stable_diffusion_ckpt,
+    download_from_original_stable_diffusion_ckpt,
 )
 
 
@@ -78,7 +80,7 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
         frontend="torch",
     )
     shark_module = SharkInference(
-        mlir_model, device=args.device, mlir_dialect="linalg"
+        mlir_model, device=args.device, mlir_dialect="tm_tensor"
     )
     return _compile_module(shark_module, model_name, extra_args)
 
@@ -95,6 +97,7 @@ def compile_through_fx(
     debug=False,
     generate_vmfb=True,
     extra_args=[],
+    base_model_id=None,
 ):
     from shark.parser import shark_args
 
@@ -116,19 +119,21 @@ def compile_through_fx(
     if use_tuned:
         if "vae" in model_name.split("_")[0]:
             args.annotation_model = "vae"
-        mlir_module = sd_model_annotation(mlir_module, model_name)
+        mlir_module = sd_model_annotation(
+            mlir_module, model_name, base_model_id
+        )
 
     shark_module = SharkInference(
         mlir_module,
         device=args.device,
-        mlir_dialect="linalg",
+        mlir_dialect="tm_tensor",
     )
 
     if generate_vmfb:
         shark_module = SharkInference(
             mlir_module,
             device=args.device,
-            mlir_dialect="linalg",
+            mlir_dialect="tm_tensor",
         )
         del mlir_module
         gc.collect()
@@ -454,7 +459,7 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
         "Loading diffusers' pipeline from original stable diffusion checkpoint"
     )
     num_in_channels = 9 if is_inpaint else 4
-    pipe = load_pipeline_from_original_stable_diffusion_ckpt(
+    pipe = download_from_original_stable_diffusion_ckpt(
         checkpoint_path=custom_weights,
         extract_ema=extract_ema,
         from_safetensors=from_safetensors,
@@ -462,6 +467,115 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     )
     pipe.save_pretrained(path_to_diffusers)
     print("Loading complete")
+
+
+def processLoRA(model, use_lora, splitting_prefix):
+    state_dict = ""
+    if ".safetensors" in use_lora:
+        state_dict = load_file(use_lora)
+    else:
+        state_dict = torch.load(use_lora)
+    alpha = 0.75
+    visited = []
+
+    # directly update weight in model
+    process_unet = "te" not in splitting_prefix
+    for key in state_dict:
+        if ".alpha" in key or key in visited:
+            continue
+
+        curr_layer = model
+        if ("text" not in key and process_unet) or (
+            "text" in key and not process_unet
+        ):
+            layer_infos = (
+                key.split(".")[0].split(splitting_prefix)[-1].split("_")
+            )
+        else:
+            continue
+
+        # find the target layer
+        temp_name = layer_infos.pop(0)
+        while len(layer_infos) > -1:
+            try:
+                curr_layer = curr_layer.__getattr__(temp_name)
+                if len(layer_infos) > 0:
+                    temp_name = layer_infos.pop(0)
+                elif len(layer_infos) == 0:
+                    break
+            except Exception:
+                if len(temp_name) > 0:
+                    temp_name += "_" + layer_infos.pop(0)
+                else:
+                    temp_name = layer_infos.pop(0)
+
+        pair_keys = []
+        if "lora_down" in key:
+            pair_keys.append(key.replace("lora_down", "lora_up"))
+            pair_keys.append(key)
+        else:
+            pair_keys.append(key)
+            pair_keys.append(key.replace("lora_up", "lora_down"))
+
+        # update weight
+        if len(state_dict[pair_keys[0]].shape) == 4:
+            weight_up = (
+                state_dict[pair_keys[0]]
+                .squeeze(3)
+                .squeeze(2)
+                .to(torch.float32)
+            )
+            weight_down = (
+                state_dict[pair_keys[1]]
+                .squeeze(3)
+                .squeeze(2)
+                .to(torch.float32)
+            )
+            curr_layer.weight.data += alpha * torch.mm(
+                weight_up, weight_down
+            ).unsqueeze(2).unsqueeze(3)
+        else:
+            weight_up = state_dict[pair_keys[0]].to(torch.float32)
+            weight_down = state_dict[pair_keys[1]].to(torch.float32)
+            curr_layer.weight.data += alpha * torch.mm(weight_up, weight_down)
+        # update visited list
+        for item in pair_keys:
+            visited.append(item)
+    return model
+
+
+def update_lora_weight_for_unet(unet, use_lora):
+    extensions = [".bin", ".safetensors", ".pt"]
+    if not any([extension in use_lora for extension in extensions]):
+        # We assume if it is a HF ID with standalone LoRA weights.
+        unet.load_attn_procs(use_lora)
+        return unet
+
+    main_file_name = get_path_stem(use_lora)
+    if ".bin" in use_lora:
+        main_file_name += ".bin"
+    elif ".safetensors" in use_lora:
+        main_file_name += ".safetensors"
+    elif ".pt" in use_lora:
+        main_file_name += ".pt"
+    else:
+        sys.exit("Only .bin and .safetensors format for LoRA is supported")
+
+    try:
+        dir_name = os.path.dirname(use_lora)
+        unet.load_attn_procs(dir_name, weight_name=main_file_name)
+        return unet
+    except:
+        return processLoRA(unet, use_lora, "lora_unet_")
+
+
+def update_lora_weight(model, use_lora, model_name):
+    if "unet" in model_name:
+        return update_lora_weight_for_unet(model, use_lora)
+    try:
+        return processLoRA(model, use_lora, "lora_te_")
+    except:
+        return None
 
 
 def load_vmfb(vmfb_path, model, precision):
@@ -629,3 +743,14 @@ def save_output_img(output_img, img_seed, extra_info={}):
         json_path = Path(generated_imgs_path, f"{out_img_name}.json")
         with open(json_path, "w") as f:
             json.dump(new_entry, f, indent=4)
+
+
+def get_generation_text_info(seeds, device):
+    text_output = f"prompt={args.prompts}"
+    text_output += f"\nnegative prompt={args.negative_prompts}"
+    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
+    text_output += f"\nscheduler={args.scheduler}, device={device}"
+    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
+    text_output += f"\nsize={args.height}x{args.width}, batch_count={args.batch_count}, batch_size={args.batch_size}, max_length={args.max_length}"
+
+    return text_output
