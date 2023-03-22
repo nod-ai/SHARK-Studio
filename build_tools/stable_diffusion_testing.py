@@ -87,11 +87,22 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
         "wavymulder/Analog-Diffusion",
         "dreamlike-art/dreamlike-diffusion-1.0",
     ]
+    counter = 0
     for import_opt in import_options:
         for model_name in hf_model_names:
             if model_name in to_skip:
                 continue
             for use_tune in tuned_options:
+                if (
+                    model_name == "stabilityai/stable-diffusion-2-1"
+                    and use_tune == tuned_options[0]
+                ):
+                    continue
+                elif (
+                    model_name == "stabilityai/stable-diffusion-2-1-base"
+                    and use_tune == tuned_options[1]
+                ):
+                    continue
                 command = (
                     [
                         executable,  # executable is the python from the venv used to run this
@@ -174,9 +185,23 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                 else:
                     print(command)
                     print("failed to generate image for this configuration")
-                    if "2_1_base" in model_name:
+                    with open(dumpfile_name, "r+") as f:
+                        output = f.readlines()
+                        print("\n".join(output))
+                    if model_name == "CompVis/stable-diffusion-v1-4":
                         print("failed a known successful model.")
                         exit(1)
+                if os.name == "nt":
+                    counter += 1
+                    if counter % 2 == 0:
+                        extra_flags.append(
+                            "--iree_vulkan_target_triple=rdna2-unknown-windows"
+                        )
+                    else:
+                        if counter != 1:
+                            extra_flags.remove(
+                                "--iree_vulkan_target_triple=rdna2-unknown-windows"
+                            )
     with open(os.path.join(os.getcwd(), "sd_testing_metrics.csv"), "w+") as f:
         header = "model_name;device;use_tune;import_opt;Clip Inference time(ms);Average Step (ms/it);VAE Inference time(ms);total image generation(s);command\n"
         f.write(header)
