@@ -6,36 +6,16 @@ from distutils.sysconfig import get_python_lib
 import fileinput
 from pathlib import Path
 
-# Diffusers 0.13.1 fails with transformers __init.py errros in BLIP. So remove it for now until we fork it
-pix2pix_init = Path(get_python_lib() + "/diffusers/__init__.py")
-for line in fileinput.input(pix2pix_init, inplace=True):
-    if "Pix2Pix" in line:
-        if not line.startswith("#"):
-            print(f"#{line}", end="")
-        else:
-            print(f"{line[1:]}", end="")
-    else:
-        print(line, end="")
-pix2pix_init = Path(get_python_lib() + "/diffusers/pipelines/__init__.py")
-for line in fileinput.input(pix2pix_init, inplace=True):
-    if "Pix2Pix" in line:
-        if not line.startswith("#"):
-            print(f"#{line}", end="")
-        else:
-            print(f"{line[1:]}", end="")
-    else:
-        print(line, end="")
-pix2pix_init = Path(
-    get_python_lib() + "/diffusers/pipelines/stable_diffusion/__init__.py"
+# Temorary workaround for transformers/__init__.py.
+path_to_tranformers_hook = Path(
+    get_python_lib()
+    + "/_pyinstaller_hooks_contrib/hooks/stdhooks/hook-transformers.py"
 )
-for line in fileinput.input(pix2pix_init, inplace=True):
-    if "StableDiffusionPix2PixZeroPipeline" in line:
-        if not line.startswith("#"):
-            print(f"#{line}", end="")
-        else:
-            print(f"{line[1:]}", end="")
-    else:
-        print(line, end="")
+if path_to_tranformers_hook.is_file():
+    pass
+else:
+    with open(path_to_tranformers_hook, "w") as f:
+        f.write("module_collection_mode = 'pyz+py'")
 
 path_to_skipfiles = Path(get_python_lib() + "/torch/_dynamo/skipfiles.py")
 

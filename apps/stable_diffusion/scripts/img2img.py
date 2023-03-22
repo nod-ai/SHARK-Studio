@@ -2,6 +2,7 @@ import sys
 import torch
 import time
 from PIL import Image
+import transformers
 from apps.stable_diffusion.src import (
     args,
     Image2ImagePipeline,

@@ -1,4 +1,5 @@
 import torch
+import transformers
 import time
 from apps.stable_diffusion.src import (
     args,
