@@ -324,7 +324,7 @@ if __name__ == "__main__":
 
             mlir_str = bytes(mlir_str, "utf-8")
 
-        if config["n_embed"] == 14336:
+        if "n_embed" in config.keys() and config["n_embed"] == 14336:
 
             def get_state_dict():
                 d = torch.load(
