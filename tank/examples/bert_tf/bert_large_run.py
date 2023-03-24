@@ -91,7 +91,7 @@ if __name__ == "__main__":
     backend_config = "dylib"
     # backend = "cuda"
     # backend_config = "cuda"
-    # args = ["--iree-cuda-llvm-target-arch=sm_80", "--iree-hal-cuda-disable-loop-nounroll-wa", "--iree-enable-fusion-with-reduction-ops"]
+    # args = ["--iree-cuda-llvm-target-arch=sm_80", "--iree-enable-fusion-with-reduction-ops"]
     flatbuffer_blob = compile_str(
         compiler_module,
         target_backends=[backend],

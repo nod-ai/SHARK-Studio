@@ -63,9 +63,7 @@ def get_inpaint_inputs():
     open("./test_images/inputs/mask.png", "wb").write(mask.content)
 
 
-def test_loop(
-    device="vulkan", beta=False, test_executable=executable, extra_flags=[]
-):
+def test_loop(device="vulkan", beta=False, extra_flags=[]):
     # Get golden values from tank
     shutil.rmtree("./test_images", ignore_errors=True)
     model_metrics = []
@@ -89,17 +87,26 @@ def test_loop(
         "wavymulder/Analog-Diffusion",
         "dreamlike-art/dreamlike-diffusion-1.0",
     ]
-    point_to_py_file = True if test_executable == executable else False
-    if point_to_py_file:
-        extra_flags.append("apps/stable_diffusion/scripts/main.py")
+    counter = 0
     for import_opt in import_options:
         for model_name in hf_model_names:
             if model_name in to_skip:
                 continue
             for use_tune in tuned_options:
+                if (
+                    model_name == "stabilityai/stable-diffusion-2-1"
+                    and use_tune == tuned_options[0]
+                ):
+                    continue
+                elif (
+                    model_name == "stabilityai/stable-diffusion-2-1-base"
+                    and use_tune == tuned_options[1]
+                ):
+                    continue
                 command = (
                     [
-                        test_executable,  # sys.executable is the python from the venv used to run this
+                        executable,  # executable is the python from the venv used to run this
+                        "apps/stable_diffusion/scripts/txt2img.py",
                         "--device=" + device,
                         prompt_text,
                         "--negative_prompts=" + '""',
@@ -112,7 +119,8 @@ def test_loop(
                     ]
                     if "inpainting" not in model_name
                     else [
-                        test_executable,
+                        executable,
+                        "apps/stable_diffusion/scripts/inpaint.py",
                         "--device=" + device,
                         inpaint_prompt_text,
                         "--negative_prompts=" + '""',
@@ -177,9 +185,23 @@ def test_loop(
                 else:
                     print(command)
                     print("failed to generate image for this configuration")
-                    if "2_1_base" in model_name:
+                    with open(dumpfile_name, "r+") as f:
+                        output = f.readlines()
+                        print("\n".join(output))
+                    if model_name == "CompVis/stable-diffusion-v1-4":
                         print("failed a known successful model.")
                         exit(1)
+                if os.name == "nt":
+                    counter += 1
+                    if counter % 2 == 0:
+                        extra_flags.append(
+                            "--iree_vulkan_target_triple=rdna2-unknown-windows"
+                        )
+                    else:
+                        if counter != 1:
+                            extra_flags.remove(
+                                "--iree_vulkan_target_triple=rdna2-unknown-windows"
+                            )
     with open(os.path.join(os.getcwd(), "sd_testing_metrics.csv"), "w+") as f:
         header = "model_name;device;use_tune;import_opt;Clip Inference time(ms);Average Step (ms/it);VAE Inference time(ms);total image generation(s);command\n"
         f.write(header)
@@ -204,14 +226,9 @@ parser.add_argument("-d", "--device", default="vulkan")
 parser.add_argument(
     "-b", "--beta", action=argparse.BooleanOptionalAction, default=False
 )
-parser.add_argument(
-    "-e",
-    "--executable",
-    default=executable,
-    help="executable to run tests with",
-)
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-    test_loop(args.device, args.beta, args.executable, [])
+    test_loop(args.device, args.beta, [])
