@@ -42,6 +42,7 @@ def upscaler_inf(
     save_metadata_to_png: bool,
     lora_weights: str,
     lora_hf_id: str,
+    ondemand: bool,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -56,6 +57,7 @@ def upscaler_inf(
     args.seed = seed
     args.steps = steps
     args.scheduler = scheduler
+    args.ondemand = ondemand
 
     if init_image is None:
         return None, "An Initial Image is required"
@@ -136,6 +138,7 @@ def upscaler_inf(
                 args.use_tuned,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 use_lora=args.use_lora,
+                ondemand=args.ondemand,
             )
         )
 
@@ -237,6 +240,7 @@ if __name__ == "__main__":
         low_cpu_mem_usage=args.low_cpu_mem_usage,
         use_lora=args.use_lora,
         ddpm_scheduler=schedulers["DDPM"],
+        ondemand=args.ondemand,
     )
 
     start_time = time.time()

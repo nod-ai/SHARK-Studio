@@ -165,6 +165,11 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         steps = gr.Slider(
                             1, 100, value=20, step=1, label="Steps"
                         )
+                        ondemand = gr.Checkbox(
+                            value=args.ondemand,
+                            label="Low VRAM",
+                            interactive=True,
+                        )
                     with gr.Row():
                         with gr.Column(scale=3):
                             guidance_scale = gr.Slider(
@@ -269,6 +274,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 save_metadata_to_png,
                 lora_weights,
                 lora_hf_id,
+                ondemand,
             ],
             outputs=[outpaint_gallery, std_output],
             show_progress=args.progress_bar,

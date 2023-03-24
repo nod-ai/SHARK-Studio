@@ -39,6 +39,7 @@ def main():
         debug=args.import_debug if args.import_mlir else False,
         use_lora=args.use_lora,
         use_quantize=args.use_quantize,
+        ondemand=args.ondemand,
     )
 
     for current_batch in range(args.batch_count):

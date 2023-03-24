@@ -20,16 +20,16 @@ from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils i
     StableDiffusionPipeline,
 )
 from apps.stable_diffusion.src.utils import controlnet_hint_conversion
+from apps.stable_diffusion.src.utils import (
+    start_profiling,
+    end_profiling,
+)
+from apps.stable_diffusion.src.models import SharkifyStableDiffusionModel
 
 
 class StencilPipeline(StableDiffusionPipeline):
     def __init__(
         self,
-        controlnet: SharkInference,
-        vae: SharkInference,
-        text_encoder: SharkInference,
-        tokenizer: CLIPTokenizer,
-        unet: SharkInference,
         scheduler: Union[
             DDIMScheduler,
             PNDMScheduler,
@@ -39,9 +39,22 @@ class StencilPipeline(StableDiffusionPipeline):
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
         ],
+        sd_model: SharkifyStableDiffusionModel,
+        import_mlir: bool,
+        use_lora: str,
+        ondemand: bool,
     ):
-        super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
-        self.controlnet = controlnet
+        super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        self.controlnet = None
+
+    def load_controlnet(self):
+        if self.controlnet is not None:
+            return
+        self.controlnet = self.sd_model.controlnet()
+
+    def unload_controlnet(self):
+        del self.controlnet
+        self.controlnet = None
 
     def prepare_latents(
         self,
@@ -67,6 +80,113 @@ class StencilPipeline(StableDiffusionPipeline):
         self.scheduler.is_scale_input_called = True
         latents = latents * self.scheduler.init_noise_sigma
         return latents
+
+    def produce_stencil_latents(
+        self,
+        latents,
+        text_embeddings,
+        guidance_scale,
+        total_timesteps,
+        dtype,
+        cpu_scheduling,
+        controlnet_hint=None,
+        controlnet_conditioning_scale: float = 1.0,
+        mask=None,
+        masked_image_latents=None,
+        return_all_latents=False,
+    ):
+        step_time_sum = 0
+        latent_history = [latents]
+        text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
+        text_embeddings_numpy = text_embeddings.detach().numpy()
+        self.load_unet()
+        self.load_controlnet()
+        for i, t in tqdm(enumerate(total_timesteps)):
+            step_start_time = time.time()
+            timestep = torch.tensor([t]).to(dtype)
+            latent_model_input = self.scheduler.scale_model_input(latents, t)
+            if mask is not None and masked_image_latents is not None:
+                latent_model_input = torch.cat(
+                    [
+                        torch.from_numpy(np.asarray(latent_model_input)),
+                        mask,
+                        masked_image_latents,
+                    ],
+                    dim=1,
+                ).to(dtype)
+            if cpu_scheduling:
+                latent_model_input = latent_model_input.detach().numpy()
+
+            if not torch.is_tensor(latent_model_input):
+                latent_model_input_1 = torch.from_numpy(
+                    np.asarray(latent_model_input)
+                ).to(dtype)
+            else:
+                latent_model_input_1 = latent_model_input
+            control = self.controlnet(
+                "forward",
+                (
+                    latent_model_input_1,
+                    timestep,
+                    text_embeddings,
+                    controlnet_hint,
+                ),
+                send_to_host=False,
+            )
+            timestep = timestep.detach().numpy()
+            # Profiling Unet.
+            profile_device = start_profiling(file_path="unet.rdc")
+            # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.
+            noise_pred = self.unet(
+                "forward",
+                (
+                    latent_model_input,
+                    timestep,
+                    text_embeddings_numpy,
+                    guidance_scale,
+                    control[0],
+                    control[1],
+                    control[2],
+                    control[3],
+                    control[4],
+                    control[5],
+                    control[6],
+                    control[7],
+                    control[8],
+                    control[9],
+                    control[10],
+                    control[11],
+                    control[12],
+                ),
+                send_to_host=False,
+            )
+            end_profiling(profile_device)
+
+            if cpu_scheduling:
+                noise_pred = torch.from_numpy(noise_pred.to_host())
+                latents = self.scheduler.step(
+                    noise_pred, t, latents
+                ).prev_sample
+            else:
+                latents = self.scheduler.step(noise_pred, t, latents)
+
+            latent_history.append(latents)
+            step_time = (time.time() - step_start_time) * 1000
+            #  self.log += (
+            #      f"\nstep = {i} | timestep = {t} | time = {step_time:.2f}ms"
+            #  )
+            step_time_sum += step_time
+
+        if self.ondemand:
+            self.unload_unet()
+            self.unload_controlnet()
+        avg_step_time = step_time_sum / len(total_timesteps)
+        self.log += f"\nAverage step time: {avg_step_time}ms/it"
+
+        if not return_all_latents:
+            return latents
+        all_latents = torch.cat(latent_history, dim=0)
+        return all_latents
 
     def generate_images(
         self,
@@ -134,11 +254,11 @@ class StencilPipeline(StableDiffusionPipeline):
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
             controlnet_hint=controlnet_hint,
-            controlnet=self.controlnet,
         )
 
         # Img latents -> PIL images
         all_imgs = []
+        self.load_vae()
         for i in tqdm(range(0, latents.shape[0], batch_size)):
             imgs = self.decode_latents(
                 latents=latents[i : i + batch_size],
@@ -146,5 +266,7 @@ class StencilPipeline(StableDiffusionPipeline):
                 cpu_scheduling=cpu_scheduling,
             )
             all_imgs.extend(imgs)
+        if self.ondemand:
+            self.unload_vae()
 
         return all_imgs

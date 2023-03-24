@@ -44,6 +44,7 @@ def inpaint_inf(
     save_metadata_to_png: bool,
     lora_weights: str,
     lora_hf_id: str,
+    ondemand: bool,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -62,6 +63,7 @@ def inpaint_inf(
     args.scheduler = scheduler
     args.img_path = "not none"
     args.mask_path = "not none"
+    args.ondemand = ondemand
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -141,6 +143,7 @@ def inpaint_inf(
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
                 use_lora=args.use_lora,
+                ondemand=args.ondemand,
             )
         )
 
@@ -232,6 +235,7 @@ def main():
         low_cpu_mem_usage=args.low_cpu_mem_usage,
         debug=args.import_debug if args.import_mlir else False,
         use_lora=args.use_lora,
+        ondemand=args.ondemand,
     )
 
     for current_batch in range(args.batch_count):

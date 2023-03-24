@@ -354,6 +354,13 @@ p.add_argument(
             Currently, only runs the stable-diffusion-2-1-base model in int8 quantization.""",
 )
 
+p.add_argument(
+    "--ondemand",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Load and unload models for low VRAM",
+)
+
 ##############################################################################
 ### IREE - Vulkan supported flags
 ##############################################################################

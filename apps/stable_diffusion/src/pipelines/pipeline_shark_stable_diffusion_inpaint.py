@@ -19,16 +19,15 @@ from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
+from apps.stable_diffusion.src.models import (
+    SharkifyStableDiffusionModel,
+    get_vae_encode,
+)
 
 
 class InpaintPipeline(StableDiffusionPipeline):
     def __init__(
         self,
-        vae_encode: SharkInference,
-        vae: SharkInference,
-        text_encoder: SharkInference,
-        tokenizer: CLIPTokenizer,
-        unet: SharkInference,
         scheduler: Union[
             DDIMScheduler,
             PNDMScheduler,
@@ -39,9 +38,30 @@ class InpaintPipeline(StableDiffusionPipeline):
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
         ],
+        sd_model: SharkifyStableDiffusionModel,
+        import_mlir: bool,
+        use_lora: str,
+        ondemand: bool,
     ):
-        super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
-        self.vae_encode = vae_encode
+        super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        self.vae_encode = None
+
+    def load_vae_encode(self):
+        if self.vae_encode is not None:
+            return
+
+        if self.import_mlir or self.use_lora:
+            self.vae_encode = self.sd_model.vae_encode()
+        else:
+            try:
+                self.vae_encode = get_vae_encode()
+            except:
+                print("download pipeline failed, falling back to import_mlir")
+                self.vae_encode = self.sd_model.vae_encode()
+
+    def unload_vae_encode(self):
+        del self.vae_encode
+        self.vae_encode = None
 
     def prepare_latents(
         self,
@@ -305,9 +325,12 @@ class InpaintPipeline(StableDiffusionPipeline):
         )
         mask = mask.to(dtype)
 
+        self.load_vae_encode()
         masked_image = masked_image.to(dtype)
         masked_image_latents = self.vae_encode("forward", (masked_image,))
         masked_image_latents = torch.from_numpy(masked_image_latents)
+        if self.ondemand:
+            self.unload_vae_encode()
 
         # duplicate mask and masked_image_latents for each generation per prompt, using mps friendly method
         if mask.shape[0] < batch_size:
@@ -428,6 +451,7 @@ class InpaintPipeline(StableDiffusionPipeline):
 
         # Img latents -> PIL images
         all_imgs = []
+        self.load_vae()
         for i in tqdm(range(0, latents.shape[0], batch_size)):
             imgs = self.decode_latents(
                 latents=latents[i : i + batch_size],
@@ -435,6 +459,8 @@ class InpaintPipeline(StableDiffusionPipeline):
                 cpu_scheduling=cpu_scheduling,
             )
             all_imgs.extend(imgs)
+        if self.ondemand:
+            self.unload_vae()
 
         if inpaint_full_res:
             output_image = self.apply_overlay(

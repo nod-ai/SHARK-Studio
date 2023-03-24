@@ -41,6 +41,7 @@ def txt2img_inf(
     save_metadata_to_png: bool,
     lora_weights: str,
     lora_hf_id: str,
+    ondemand: bool,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -57,6 +58,7 @@ def txt2img_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
+    args.ondemand = ondemand
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -137,6 +139,7 @@ def txt2img_inf(
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
                 use_lora=args.use_lora,
+                ondemand=args.ondemand,
             )
         )
 
@@ -389,6 +392,11 @@ def get_txt2img_web():
                             lines=1,
                             show_label=False,
                         )
+                        ondemand = gr.Checkbox(
+                            value=args.ondemand,
+                            label="Low VRAM",
+                            interactive=True,
+                        )
                     output_dir = (
                         args.output_dir if args.output_dir else Path.cwd()
                     )
@@ -434,6 +442,7 @@ def get_txt2img_web():
                     save_metadata_to_png,
                     lora_weights,
                     lora_hf_id,
+                    ondemand,
                 ],
                 outputs=[txt2img_gallery, std_output],
                 show_progress=args.progress_bar,
