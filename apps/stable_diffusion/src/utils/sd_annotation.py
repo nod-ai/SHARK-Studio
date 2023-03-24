@@ -115,7 +115,14 @@ def load_lower_configs(base_model_id=None):
             config_name = f"{args.annotation_model}_{args.precision}_{device}_{spec}.json"
     else:
         if not spec or spec in ["rdna3", "sm_80"]:
-            config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}.json"
+            if (
+                version in ["v2_1", "v2_1base"]
+                and args.height == 768
+                and args.width == 768
+            ):
+                config_name = f"{args.annotation_model}_v2_1_768_{args.precision}_{device}.json"
+            else:
+                config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}.json"
         else:
             config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}_{spec}.json"
 
