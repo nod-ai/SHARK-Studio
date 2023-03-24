@@ -95,6 +95,8 @@ with gr.Blocks(
             outpaint_web.render()
         with gr.TabItem(label="Upscaler", id=4):
             upscaler_web.render()
+
+    with gr.Tabs(visible=False) as experimental_tabs:
         with gr.TabItem(label="LoRA Training", id=5):
             lora_train_web.render()
 
