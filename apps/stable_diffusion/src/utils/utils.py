@@ -269,8 +269,8 @@ def set_init_device_flags():
 
     if (
         args.precision != "fp16"
-        or args.height != 512
-        or args.width != 512
+        or args.height not in [512, 768]
+        or args.width not in [512, 768]
         or args.batch_size != 1
         or ("vulkan" not in args.device and "cuda" not in args.device)
     ):
@@ -302,6 +302,20 @@ def set_init_device_flags():
         "stabilityai/stable-diffusion-2-1-base",
         "CompVis/stable-diffusion-v1-4",
     ]:
+        args.use_tuned = False
+
+    elif (
+        args.height == 768
+        and args.width == 768
+        and (
+            base_model_id
+            not in [
+                "stabilityai/stable-diffusion-2-1",
+                "stabilityai/stable-diffusion-2-1-base",
+            ]
+            or "rdna3" not in args.iree_vulkan_target_triple
+        )
+    ):
         args.use_tuned = False
 
     if args.use_tuned:
