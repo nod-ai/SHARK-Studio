@@ -1,5 +1,4 @@
 from shark.shark_inference import SharkInference
-from shark.parser import shark_args
 
 import torch
 import numpy as np
@@ -35,17 +34,17 @@ hf_seq2seq_models = [
 ]
 
 
-def get_torch_model(modelname):
+def get_torch_model(modelname, import_args):
     if modelname in vision_models:
-        return get_vision_model(modelname)
+        return get_vision_model(modelname, import_args)
     elif modelname in hf_img_cls_models:
-        return get_hf_img_cls_model(modelname)
+        return get_hf_img_cls_model(modelname, import_args)
     elif modelname in hf_seq2seq_models:
-        return get_hf_seq2seq_model(modelname)
+        return get_hf_seq2seq_model(modelname, import_args)
     elif "fp16" in modelname:
-        return get_fp16_model(modelname)
+        return get_fp16_model(modelname, import_args)
     else:
-        return get_hf_model(modelname)
+        return get_hf_model(modelname, import_args)
 
 
 ##################### Hugging Face Image Classification Models ###################################
@@ -88,14 +87,14 @@ class HuggingFaceImageClassification(torch.nn.Module):
         return self.model.forward(inputs)[0]
 
 
-def get_hf_img_cls_model(name):
+def get_hf_img_cls_model(name, import_args):
     model = HuggingFaceImageClassification(name)
     # you can use preprocess_input_image to get the test_input or just random value.
     test_input = preprocess_input_image(name)
     # test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
     # print("test_input.shape: ", test_input.shape)
     # test_input.shape:  torch.Size([1, 3, 224, 224])
-    test_input = test_input.repeat(BATCH_SIZE, 1, 1, 1)
+    test_input = test_input.repeat(import_args["batch_size"], 1, 1, 1)
     actual_out = model(test_input)
     # print("actual_out.shape： ", actual_out.shape)
     # actual_out.shape：  torch.Size([1, 1000])
@@ -125,14 +124,13 @@ class HuggingFaceLanguage(torch.nn.Module):
         return self.model.forward(tokens)[0]
 
 
-def get_hf_model(name):
+def get_hf_model(name, import_args):
     from transformers import (
         BertTokenizer,
     )
 
     model = HuggingFaceLanguage(name)
-    # TODO: Currently the test input is set to (1,128)
-    test_input = torch.randint(2, (BATCH_SIZE, 128))
+    test_input = torch.randint(2, (import_args["batch_size"], 128))
     actual_out = model(test_input)
     return model, test_input, actual_out
 
@@ -149,7 +147,7 @@ class HFSeq2SeqLanguageModel(torch.nn.Module):
         from transformers import AutoTokenizer, T5Model
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.tokenization_kwargs = {
+        self.tokenization_kwimport_args = {
             "pad_to_multiple_of": T5_MAX_SEQUENCE_LENGTH,
             "padding": True,
             "return_tensors": "pt",
@@ -157,7 +155,7 @@ class HFSeq2SeqLanguageModel(torch.nn.Module):
         self.model = T5Model.from_pretrained(model_name, return_dict=True)
 
     def preprocess_input(self, text):
-        return self.tokenizer(text, **self.tokenization_kwargs)
+        return self.tokenizer(text, **self.tokenization_kwimport_args)
 
     def forward(self, input_ids, decoder_input_ids):
         return self.model.forward(
@@ -165,7 +163,7 @@ class HFSeq2SeqLanguageModel(torch.nn.Module):
         )[0]
 
 
-def get_hf_seq2seq_model(name):
+def get_hf_seq2seq_model(name, import_args):
     m = HFSeq2SeqLanguageModel(name)
     encoded_input_ids = m.preprocess_input(
         "Studies have been shown that owning a dog is good for you"
@@ -193,7 +191,7 @@ class VisionModule(torch.nn.Module):
         return self.model.forward(input)
 
 
-def get_vision_model(torch_model):
+def get_vision_model(torch_model, import_args):
     import torchvision.models as models
 
     default_image_size = (224, 224)
@@ -239,7 +237,7 @@ def get_vision_model(torch_model):
             fp16_model = True
         torch_model, input_image_size = vision_models_dict[torch_model]
     model = VisionModule(torch_model)
-    test_input = torch.randn(BATCH_SIZE, 3, 224, 224)
+    test_input = torch.randn(import_args["batch_size"], 3, *input_image_size)
     actual_out = model(test_input)
     if fp16_model is not None:
         test_input_fp16 = test_input.to(
@@ -280,14 +278,14 @@ class BertHalfPrecisionModel(torch.nn.Module):
         return self.model.forward(tokens)[0]
 
 
-def get_fp16_model(torch_model):
+def get_fp16_model(torch_model, import_args):
     from transformers import AutoTokenizer
 
     modelname = torch_model.replace("_fp16", "")
     model = BertHalfPrecisionModel(modelname)
     tokenizer = AutoTokenizer.from_pretrained(modelname)
     text = "Replace me by any text you like."
-    text = [text] * BATCH_SIZE
+    text = [text] * import_args["batch_size"]
     test_input_fp16 = tokenizer(
         text,
         truncation=True,

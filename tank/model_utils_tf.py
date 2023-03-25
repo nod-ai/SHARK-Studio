@@ -52,19 +52,19 @@ img_models = [
 ]
 
 
-def get_tf_model(name):
+def get_tf_model(name, import_args):
     if name in keras_models:
-        return get_keras_model(name)
+        return get_keras_model(name, import_args)
     elif name in maskedlm_models:
-        return get_masked_lm_model(name)
+        return get_masked_lm_model(name, import_args)
     elif name in causallm_models:
-        return get_causal_lm_model(name)
+        return get_causal_lm_model(name, import_args)
     elif name in tfhf_models:
-        return get_TFhf_model(name)
+        return get_TFhf_model(name, import_args)
     elif name in img_models:
-        return get_causal_image_model(name)
+        return get_causal_image_model(name, import_args)
     elif name in tfhf_seq2seq_models:
-        return get_tfhf_seq2seq_model(name)
+        return get_tfhf_seq2seq_model(name, import_args)
     else:
         raise Exception(
             "TF model not found! Please check that the modelname has been input correctly."
@@ -104,7 +104,7 @@ class TFHuggingFaceLanguage(tf.Module):
         return self.m.predict(input_ids, attention_mask, token_type_ids)
 
 
-def get_TFhf_model(name):
+def get_TFhf_model(name, import_args):
     model = TFHuggingFaceLanguage(name)
     tokenizer = BertTokenizer.from_pretrained(
         "microsoft/MiniLM-L12-H384-uncased"
@@ -196,7 +196,9 @@ class MaskedLM(tf.Module):
         return self.m.predict(input_ids, attention_mask)
 
 
-def get_masked_lm_model(hf_name, text="Hello, this is the default text."):
+def get_masked_lm_model(
+    hf_name, import_args, text="Hello, this is the default text."
+):
     model = MaskedLM(hf_name)
     encoded_input = preprocess_input(
         hf_name, MASKED_LM_MAX_SEQUENCE_LENGTH, text
@@ -251,7 +253,9 @@ class CausalLM(tf.Module):
         return self.model.predict(input_ids, attention_mask)
 
 
-def get_causal_lm_model(hf_name, text="Hello, this is the default text."):
+def get_causal_lm_model(
+    hf_name, import_args, text="Hello, this is the default text."
+):
     model = CausalLM(hf_name)
     batched_text = [text] * BATCH_SIZE
     encoded_input = model.preprocess_input(batched_text)
@@ -306,7 +310,7 @@ class TFHFSeq2SeqLanguageModel(tf.Module):
         return self.model.predict(input_ids, decoder_input_ids)
 
 
-def get_tfhf_seq2seq_model(name):
+def get_tfhf_seq2seq_model(name, import_args):
     m = TFHFSeq2SeqLanguageModel(name)
     text = "Studies have been shown that owning a dog is good for you"
     batched_text = [text] * BATCH_SIZE
@@ -442,7 +446,7 @@ def load_image(path_to_image, width, height, channels):
     return image
 
 
-def get_keras_model(modelname):
+def get_keras_model(modelname, import_args):
     if modelname == "efficientnet-v2-s":
         model = EfficientNetV2SModule()
     elif modelname == "efficientnet_b0":
@@ -530,7 +534,7 @@ def preprocess_input_image(model_name):
     return [inputs[str(*inputs)]]
 
 
-def get_causal_image_model(hf_name):
+def get_causal_image_model(hf_name, import_args):
     model = AutoModelImageClassfication(hf_name)
     test_input = preprocess_input_image(hf_name)
     # TFSequenceClassifierOutput(loss=None, logits=<tf.Tensor: shape=(1, 1000), dtype=float32, numpy=
