@@ -113,7 +113,6 @@ class SharkBenchmarkRunner(SharkRunner):
 
     def benchmark_torch(self, modelname):
         import torch
-        import torch._dynamo as dynamo
         from tank.model_utils import get_torch_model
 
         if self.device == "cuda":

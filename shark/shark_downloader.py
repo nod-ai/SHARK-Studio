@@ -145,7 +145,7 @@ def download_model(
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
     print(import_args["batch_size"])
-    if import_args["batch_size"] is not 1:
+    if import_args["batch_size"] != 1:
         model_dir_name = (
             model_name
             + "_"

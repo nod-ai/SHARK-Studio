@@ -362,10 +362,7 @@ class SharkModuleTest(unittest.TestCase):
             pytest.xfail(
                 reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/476"
             )
-        if (
-            config["framework"] == "tf"
-            and self.module_tester.batch_size is not 1
-        ):
+        if config["framework"] == "tf" and self.module_tester.batch_size != 1:
             pytest.xfail(
                 reason="Configurable batch sizes temp. unavailable for tensorflow models."
             )

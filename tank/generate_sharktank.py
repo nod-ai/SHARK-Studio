@@ -98,7 +98,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
             elif model_type == "fp16":
                 model, input, _ = get_fp16_model(torch_model_name, import_args)
             torch_model_name = torch_model_name.replace("/", "_")
-            if import_args["batch_size"] is not 1:
+            if import_args["batch_size"] != 1:
                 torch_model_dir = os.path.join(
                     local_tank_cache,
                     str(torch_model_name)
@@ -185,7 +185,7 @@ def save_tf_model(tf_model_list, local_tank_cache, import_args):
                 )
 
             tf_model_name = tf_model_name.replace("/", "_")
-            if import_args["batch_size"] is not 1:
+            if import_args["batch_size"] != 1:
                 tf_model_dir = os.path.join(
                     local_tank_cache,
                     str(tf_model_name)
