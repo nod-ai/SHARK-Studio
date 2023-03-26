@@ -83,7 +83,7 @@ if (!($PyVer -like "*3.11*") -and !($p -like "*3.11*")) # if 3.11 is not in any 
 
 Write-Host "Installing Build Dependencies"
 # make sure we really use 3.11 from list, even if it's not the default.
-if (!($PyVer.length -ne 0)) {py -3.11 -m venv .\shark.venv\}
+if ($NULL -ne $PyVer) {py -3.11 -m venv .\shark.venv\}
 else {python -m venv .\shark.venv\}
 .\shark.venv\Scripts\activate
 python -m pip install --upgrade pip
