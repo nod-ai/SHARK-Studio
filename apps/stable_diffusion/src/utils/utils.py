@@ -602,9 +602,8 @@ def load_vmfb(vmfb_path, model, precision):
     return shark_module
 
 
-# This utility returns vmfbs of Clip, Unet, Vae and Vae_encode, in case all of them
-# are present; deletes them otherwise.
-def fetch_or_delete_vmfbs(extended_model_name, precision="fp32"):
+# This utility returns vmfbs of sub-models of the SD pipeline, if present.
+def fetch_vmfbs(extended_model_name, precision="fp32"):
     vmfb_path = [
         get_vmfb_path_name(extended_model_name[model])
         for model in extended_model_name
@@ -617,15 +616,9 @@ def fetch_or_delete_vmfbs(extended_model_name, precision="fp32"):
     for i in range(number_of_vmfbs):
         all_vmfb_present = all_vmfb_present and vmfb_present[i]
 
-    # We need to delete vmfbs only if some of the models were compiled.
-    if not all_vmfb_present:
-        for i in range(number_of_vmfbs):
-            if vmfb_present[i]:
-                os.remove(vmfb_path[i])
-                print("Deleted: ", vmfb_path[i])
-    else:
-        model_name = [model for model in extended_model_name.keys()]
-        for i in range(number_of_vmfbs):
+    model_name = [model for model in extended_model_name.keys()]
+    for i in range(number_of_vmfbs):
+        if vmfb_present[i]:
             compiled_models[i] = load_vmfb(
                 vmfb_path[i], model_name[i], precision
             )
