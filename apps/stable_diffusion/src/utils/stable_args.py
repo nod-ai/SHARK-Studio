@@ -502,6 +502,12 @@ p.add_argument(
     help="flag for setting server port",
 )
 
+p.add_argument(
+    "--api",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for enabling rest API",
+)
 ##############################################################################
 ### SD model auto-annotation flags
 ##############################################################################

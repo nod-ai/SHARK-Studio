@@ -1,10 +1,6 @@
 from apps.stable_diffusion.web.ui.txt2img_ui import (
-    txt2img_web,
-    txt2img_gallery,
-    txt2img_sendto_img2img,
-    txt2img_sendto_inpaint,
-    txt2img_sendto_outpaint,
-    txt2img_sendto_upscaler,
+    txt2img_inf,
+    get_txt2img_web,
 )
 from apps.stable_diffusion.web.ui.img2img_ui import (
     img2img_web,
