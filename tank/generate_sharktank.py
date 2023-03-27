@@ -265,9 +265,8 @@ def check_requirements(frontend):
         has_pkgs = tv_spec is not None
 
     elif frontend in ["tensorflow", "tf"]:
-        keras_spec = importlib.util.find_spec("keras")
         tf_spec = importlib.util.find_spec("tensorflow")
-        has_pkgs = keras_spec is not None and tf_spec is not None
+        has_pkgs = tf_spec is not None
 
     return has_pkgs
 

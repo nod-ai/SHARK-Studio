@@ -130,9 +130,12 @@ class SharkBenchmarkRunner(SharkRunner):
         frontend_model.to(torch_device)
         input.to(torch_device)
 
-        frontend_model = torch.compile(
-            frontend_model, mode="max-autotune", backend="inductor"
-        )
+        try:
+            frontend_model = torch.compile(
+                frontend_model, mode="max-autotune", backend="inductor"
+            )
+        except RuntimeError:
+            frontend_model = HFmodel.model
 
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)

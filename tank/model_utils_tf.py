@@ -1,10 +1,5 @@
 import tensorflow as tf
 import numpy as np
-from transformers import (
-    AutoModelForSequenceClassification,
-    BertTokenizer,
-    TFBertModel,
-)
 
 BATCH_SIZE = 1
 
@@ -72,6 +67,12 @@ def get_tf_model(name, import_args):
 
 
 ##################### Tensorflow Hugging Face Bert Models ###################################
+from transformers import (
+    AutoModelForSequenceClassification,
+    BertTokenizer,
+    TFBertModel,
+)
+
 BERT_MAX_SEQUENCE_LENGTH = 128
 
 # Create a set of 2-dimensional inputs
@@ -166,7 +167,6 @@ def preprocess_input(
 
 ##################### Tensorflow Hugging Face Masked LM Models ###################################
 from transformers import TFAutoModelForMaskedLM, AutoTokenizer
-import tensorflow as tf
 
 MASKED_LM_MAX_SEQUENCE_LENGTH = 128
 
