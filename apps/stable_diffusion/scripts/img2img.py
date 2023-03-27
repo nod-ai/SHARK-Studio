@@ -173,7 +173,7 @@ def img2img_inf(
             else "stabilityai/stable-diffusion-2-1-base"
         )
         global_obj.set_schedulers(get_schedulers(model_id))
-        scheduler_obj = global_obj.get_scheduler(scheduler)
+        scheduler_obj = global_obj.get_scheduler(args.scheduler)
 
         if use_stencil is not None:
             args.use_tuned = False
@@ -218,7 +218,7 @@ def img2img_inf(
                 )
             )
 
-    global_obj.set_sd_scheduler(scheduler)
+    global_obj.set_sd_scheduler(args.scheduler)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
