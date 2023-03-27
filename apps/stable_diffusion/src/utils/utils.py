@@ -270,7 +270,8 @@ def set_init_device_flags():
     if (
         args.precision != "fp16"
         or args.height not in [512, 768]
-        or args.width not in [512, 768]
+        or (args.height == 512 and args.width != 512)
+        or (args.height == 768 and args.width != 768)
         or args.batch_size != 1
         or ("vulkan" not in args.device and "cuda" not in args.device)
     ):
