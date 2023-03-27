@@ -61,8 +61,11 @@ def get_scheduler(key):
 def clear_cache():
     global _sd_obj
     global _config_obj
+    global _schedulers
     del _sd_obj
     del _config_obj
+    del _schedulers
     gc.collect()
     _sd_obj = None
     _config_obj = None
+    _schedulers = None
