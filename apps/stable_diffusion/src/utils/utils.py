@@ -388,7 +388,7 @@ def get_available_devices():
     available_devices.extend(vulkan_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
-    available_devices.append("cpu")
+    available_devices.append("device => cpu")
     return available_devices
 
 
