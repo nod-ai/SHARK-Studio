@@ -2,8 +2,8 @@
 --pre
 
 numpy>1.22.4
-torchvision
 pytorch-triton
+torchvision==0.16.0.dev20230322 
 tabulate
 
 tqdm
@@ -15,8 +15,8 @@ iree-tools-tf
 
 # TensorFlow and JAX.
 gin-config
-tf-nightly
-keras>=2.10
+tensorflow>2.11
+keras
 #tf-models-nightly
 #tensorflow-text-nightly
 transformers

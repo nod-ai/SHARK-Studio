@@ -139,11 +139,21 @@ def download_model(
     tank_url="gs://shark_tank/latest",
     frontend=None,
     tuned=None,
+    import_args={"batch_size": "1"},
 ):
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
-    model_dir_name = model_name + "_" + frontend
+    if import_args["batch_size"] != 1:
+        model_dir_name = (
+            model_name
+            + "_"
+            + frontend
+            + "_BS"
+            + str(import_args["batch_size"])
+        )
+    else:
+        model_dir_name = model_name + "_" + frontend
     model_dir = os.path.join(WORKDIR, model_dir_name)
     full_gs_url = tank_url.rstrip("/") + "/" + model_dir_name
 
@@ -201,7 +211,9 @@ def download_model(
         from tank.generate_sharktank import gen_shark_files
 
         tank_dir = WORKDIR
-        gen_shark_files(model_name, frontend, tank_dir)
+        gen_shark_files(model_name, frontend, tank_dir, import_args)
+        with open(filename, mode="rb") as f:
+            mlir_file = f.read()
 
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
     inputs = np.load(os.path.join(model_dir, "inputs.npz"))

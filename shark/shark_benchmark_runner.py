@@ -78,6 +78,7 @@ class SharkBenchmarkRunner(SharkRunner):
         self.vmfb_file = None
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
+        self.import_args = {}
         SharkRunner.__init__(
             self,
             mlir_module,
@@ -112,24 +113,31 @@ class SharkBenchmarkRunner(SharkRunner):
 
     def benchmark_torch(self, modelname):
         import torch
-        import torch._dynamo as dynamo
         from tank.model_utils import get_torch_model
 
         if self.device == "cuda":
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
             if self.enable_tf32:
-                torch.backends.cuda.matmul.allow_tf32 = True
+                print(
+                    "Currently disabled TensorFloat32 calculations in pytorch benchmarks."
+                )
+                # torch.backends.cuda.matmul.allow_tf32 = True
         else:
             torch.set_default_tensor_type(torch.FloatTensor)
         torch_device = torch.device(
             "cuda:0" if self.device == "cuda" else "cpu"
         )
-        HFmodel, input = get_torch_model(modelname)[:2]
+        HFmodel, input = get_torch_model(modelname, self.import_args)[:2]
         frontend_model = HFmodel.model
         frontend_model.to(torch_device)
         input.to(torch_device)
 
-        # frontend_model = torch.compile(frontend_model, mode="max-autotune", backend="inductor")
+        try:
+            frontend_model = torch.compile(
+                frontend_model, mode="max-autotune", backend="inductor"
+            )
+        except RuntimeError:
+            frontend_model = HFmodel.model
 
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)
@@ -178,7 +186,7 @@ class SharkBenchmarkRunner(SharkRunner):
                 model,
                 input,
             ) = get_tf_model(
-                modelname
+                modelname, self.import_args
             )[:2]
             frontend_model = model
 
@@ -338,11 +346,19 @@ for currently supported models. Exiting benchmark ONNX."
         return comp_str
 
     def benchmark_all_csv(
-        self, inputs: tuple, modelname, dynamic, device_str, frontend
+        self,
+        inputs: tuple,
+        modelname,
+        dynamic,
+        device_str,
+        frontend,
+        import_args,
     ):
         self.setup_cl(inputs)
+        self.import_args = import_args
         field_names = [
             "model",
+            "batch_size",
             "engine",
             "dialect",
             "device",
@@ -375,6 +391,7 @@ for currently supported models. Exiting benchmark ONNX."
             writer = csv.DictWriter(f, fieldnames=field_names)
             bench_info = {}
             bench_info["model"] = modelname
+            bench_info["batch_size"] = str(import_args["batch_size"])
             bench_info["dialect"] = self.mlir_dialect
             bench_info["iterations"] = shark_args.num_iterations
             if dynamic == True:
