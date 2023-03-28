@@ -330,26 +330,26 @@ def is_valid_file(arg):
 
 
 if __name__ == "__main__":
-    # Note, all of these flags are overridden by the import of import_args from stable_import_args.py, flags are duplicated temporarily to preserve functionality
+    # Note, all of these flags are overridden by the import of import_args from stable_args.py, flags are duplicated temporarily to preserve functionality
     # parser = argparse.ArgumentParser()
     # parser.add_argument(
     #    "--torch_model_csv",
     #    type=lambda x: is_valid_file(x),
     #    default="./tank/torch_model_list.csv",
-    #    help="""Contains the file with torch_model name and import_args.
+    #    help="""Contains the file with torch_model name and args.
     #         Please see: https://github.com/nod-ai/SHARK/blob/main/tank/torch_model_list.csv""",
     # )
     # parser.add_argument(
     #    "--tf_model_csv",
     #    type=lambda x: is_valid_file(x),
     #    default="./tank/tf_model_list.csv",
-    #    help="Contains the file with tf model name and import_args.",
+    #    help="Contains the file with tf model name and args.",
     # )
     # parser.add_argument(
     #    "--tflite_model_csv",
     #    type=lambda x: is_valid_file(x),
     #    default="./tank/tflite/tflite_model_list.csv",
-    #    help="Contains the file with tf model name and import_args.",
+    #    help="Contains the file with tf model name and args.",
     # )
     # parser.add_argument(
     #    "--ci_tank_dir",
