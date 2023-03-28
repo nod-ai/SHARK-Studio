@@ -117,9 +117,9 @@ class SharkBenchmarkRunner(SharkRunner):
 
         if self.device == "cuda":
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
-            # TODO: get pytorch+cuda to not break with this option.
-            # if self.enable_tf32:
-            #    torch.backends.cuda.matmul.allow_tf32 = True
+            if self.enable_tf32:
+                print("Currently disabled TensorFloat32 calculations in pytorch benchmarks.")
+                #torch.backends.cuda.matmul.allow_tf32 = True
         else:
             torch.set_default_tensor_type(torch.FloatTensor)
         torch_device = torch.device(
