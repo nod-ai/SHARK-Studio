@@ -75,13 +75,14 @@ def resource_path(relative_path):
 
 
 def get_custom_model_path(model="models"):
+    prefix = Path(args.ckpt_dir) if args.ckpt_dir else Path(Path.cwd())
     match model:
         case "models":
-            return Path(Path.cwd(), "models")
+            return Path(prefix, "models")
         case "vae":
-            return Path(Path.cwd(), "models/vae")
+            return Path(prefix, "models/vae")
         case "lora":
-            return Path(Path.cwd(), "models/lora")
+            return Path(prefix, "models/lora")
         case _:
             return ""
 
