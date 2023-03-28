@@ -147,7 +147,7 @@ class HFSeq2SeqLanguageModel(torch.nn.Module):
         from transformers import AutoTokenizer, T5Model
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.tokenization_kwimport_args = {
+        self.tokenization_kwargs = {
             "pad_to_multiple_of": T5_MAX_SEQUENCE_LENGTH,
             "padding": True,
             "return_tensors": "pt",
@@ -155,7 +155,7 @@ class HFSeq2SeqLanguageModel(torch.nn.Module):
         self.model = T5Model.from_pretrained(model_name, return_dict=True)
 
     def preprocess_input(self, text):
-        return self.tokenizer(text, **self.tokenization_kwimport_args)
+        return self.tokenizer(text, **self.tokenization_kwargs)
 
     def forward(self, input_ids, decoder_input_ids):
         return self.model.forward(
