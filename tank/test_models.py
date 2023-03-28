@@ -169,7 +169,7 @@ class SharkModuleTester:
         if "winograd" in self.config["flags"]:
             shark_args.use_winograd = True
 
-        dl_gen_attempts = 3
+        dl_gen_attempts = 2
         for i in range(dl_gen_attempts):
             try:
                 model, func_name, inputs, golden_out = download_model(

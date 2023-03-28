@@ -212,7 +212,7 @@ def download_model(
         )
         gen_shark_files(model_name, frontend, WORKDIR, import_args)
 
-    assert os.path.exists(filename)
+    assert os.path.exists(filename), f"MLIR not found at {filename}"
     with open(filename, mode="rb") as f:
         mlir_file = f.read()
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
