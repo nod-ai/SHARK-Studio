@@ -110,7 +110,7 @@ jobs:
       if: matrix.suite == 'cpu'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 BENCHMARK=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank --tank_url="gs://shark_tank/nightly/" -k cpu 
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cpu_${SHORT_SHA}.csv
