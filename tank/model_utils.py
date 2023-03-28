@@ -94,7 +94,7 @@ def get_hf_img_cls_model(name, import_args):
     # test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
     # print("test_input.shape: ", test_input.shape)
     # test_input.shape:  torch.Size([1, 3, 224, 224])
-    test_input = test_input.repeat(import_args["batch_size"], 1, 1, 1)
+    test_input = test_input.repeat(int(import_args["batch_size"]), 1, 1, 1)
     actual_out = model(test_input)
     # print("actual_out.shape： ", actual_out.shape)
     # actual_out.shape：  torch.Size([1, 1000])
@@ -130,7 +130,7 @@ def get_hf_model(name, import_args):
     )
 
     model = HuggingFaceLanguage(name)
-    test_input = torch.randint(2, (import_args["batch_size"], 128))
+    test_input = torch.randint(2, (int(import_args["batch_size"]), 128))
     actual_out = model(test_input)
     return model, test_input, actual_out
 
@@ -237,7 +237,9 @@ def get_vision_model(torch_model, import_args):
             fp16_model = True
         torch_model, input_image_size = vision_models_dict[torch_model]
     model = VisionModule(torch_model)
-    test_input = torch.randn(import_args["batch_size"], 3, *input_image_size)
+    test_input = torch.randn(
+        int(import_args["batch_size"]), 3, *input_image_size
+    )
     actual_out = model(test_input)
     if fp16_model is not None:
         test_input_fp16 = test_input.to(
@@ -285,7 +287,7 @@ def get_fp16_model(torch_model, import_args):
     model = BertHalfPrecisionModel(modelname)
     tokenizer = AutoTokenizer.from_pretrained(modelname)
     text = "Replace me by any text you like."
-    text = [text] * import_args["batch_size"]
+    text = [text] * int(import_args["batch_size"])
     test_input_fp16 = tokenizer(
         text,
         truncation=True,
