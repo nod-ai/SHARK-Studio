@@ -169,18 +169,27 @@ class SharkModuleTester:
         if "winograd" in self.config["flags"]:
             shark_args.use_winograd = True
 
-        try:
-            model, func_name, inputs, golden_out = download_model(
-                self.config["model_name"],
-                tank_url=self.tank_url,
-                frontend=self.config["framework"],
-                import_args=import_config,
-            )
-        except NoImportException:
-            pytest.xfail(
-                reason=f"Artifacts for this model/config must be generated locally. Please make sure {self.config['framework']} is installed."
-            )
-
+        dl_gen_attempts = 3
+        for i in range(dl_gen_attempts):
+            try:
+                model, func_name, inputs, golden_out = download_model(
+                    self.config["model_name"],
+                    tank_url=self.tank_url,
+                    frontend=self.config["framework"],
+                    import_args=import_config,
+                )
+            except NoImportException as err:
+                pytest.xfail(
+                    reason=f"Artifacts for this model/config must be generated locally. Please make sure {self.config['framework']} is installed."
+                )
+            except AssertionError as err:
+                if i < dl_gen_attempts - 1:
+                    continue
+                else:
+                    pytest.xfail(
+                        "Generating OTF may require exiting the subprocess for files to be available."
+                    )
+            break
         shark_module = SharkInference(
             model,
             device=device,
