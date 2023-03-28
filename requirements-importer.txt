@@ -15,8 +15,8 @@ iree-tools-tf
 
 # TensorFlow and JAX.
 gin-config
-tf-nightly
-keras-nightly
+tensorflow>2.11
+keras
 #tf-models-nightly
 #tensorflow-text-nightly
 transformers
