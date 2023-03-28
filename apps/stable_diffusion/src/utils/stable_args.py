@@ -23,6 +23,12 @@ p = argparse.ArgumentParser(
 ##############################################################################
 
 p.add_argument(
+    "-a",
+    "--app",
+    default="txt2img",
+    help="which app to use, one of: txt2img, img2img, outpaint, inpaint",
+)
+p.add_argument(
     "-p",
     "--prompts",
     nargs="+",

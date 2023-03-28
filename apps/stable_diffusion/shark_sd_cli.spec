@@ -43,7 +43,7 @@ hiddenimports = ['shark', 'shark.shark_inference', 'apps']
 hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
 
 a = Analysis(
-    ['scripts/txt2img.py'],
+    ['scripts/main.py'],
     pathex=['.'],
     binaries=binaries,
     datas=datas,
