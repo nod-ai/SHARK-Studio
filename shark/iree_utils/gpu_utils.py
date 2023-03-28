@@ -22,7 +22,7 @@ from shark.parser import shark_args
 # Get the default gpu args given the architecture.
 def get_iree_gpu_args():
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
-    ireert.flags.parse_flags("--cuda_allow_inline_execution")
+    ireert.flags.parse_flags("--cuda_allow_inline_execution", "--device_allocator=caching")
     # TODO: Give the user_interface to pass the sm_arch.
     sm_arch = get_cuda_sm_cc()
     if (
