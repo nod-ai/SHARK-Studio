@@ -132,6 +132,7 @@ class SharkBenchmarkRunner(SharkRunner):
         frontend_model.to(torch_device)
         input.to(torch_device)
 
+        # TODO: re-enable as soon as pytorch CUDA context issues are resolved
         # try:
         #    frontend_model = torch.compile(
         #        frontend_model, mode="max-autotune", backend="inductor"
