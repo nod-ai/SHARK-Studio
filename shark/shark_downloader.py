@@ -204,17 +204,17 @@ def download_model(
     suffix = f"{dyn_str}_{frontend}{tuned_str}.mlir"
     filename = os.path.join(model_dir, model_name + suffix)
 
-    try:
-        with open(filename, mode="rb") as f:
-            mlir_file = f.read()
-    except FileNotFoundError:
+    if not os.path.exists(filename):
         from tank.generate_sharktank import gen_shark_files
 
-        tank_dir = WORKDIR
-        gen_shark_files(model_name, frontend, tank_dir, import_args)
-        with open(filename, mode="rb") as f:
-            mlir_file = f.read()
+        print(
+            "The model data was not found. Trying to generate artifacts locally."
+        )
+        gen_shark_files(model_name, frontend, WORKDIR, import_args)
 
+    assert os.path.exists(filename), f"MLIR not found at {filename}"
+    with open(filename, mode="rb") as f:
+        mlir_file = f.read()
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
     inputs = np.load(os.path.join(model_dir, "inputs.npz"))
     golden_out = np.load(os.path.join(model_dir, "golden_out.npz"))
