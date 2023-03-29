@@ -109,6 +109,9 @@ def get_vulkan_target_triple(device_name):
         triple = f"rdna3-7900-{system_os}"
     elif any(x in device_name for x in ("AMD", "Radeon")):
         triple = f"rdna2-unknown-{system_os}"
+    # Intel Targets
+    elif any(x in device_name for x in ("A770", "A750")):
+        triple = f"arc-770-{system_os}"
     else:
         triple = None
     return triple
@@ -140,7 +143,7 @@ def get_vulkan_triple_flag(device_name="", extra_args=[]):
 
 
 def get_iree_vulkan_args(extra_args=[]):
-    # vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
+    # res_vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
 
     res_vulkan_flag = []
     vulkan_triple_flag = None
