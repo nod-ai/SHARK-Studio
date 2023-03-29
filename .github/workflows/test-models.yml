@@ -152,7 +152,7 @@ jobs:
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'
       run: |
         ./setup_venv.ps1
-        pytest -k vulkan -s
+        pytest -k vulkan -s --ci
 
     - name: Validate Stable Diffusion Models (Windows)
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'
