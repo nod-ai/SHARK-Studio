@@ -166,6 +166,9 @@ class SharkBenchmarkRunner(SharkRunner):
         ]
 
     def benchmark_tf(self, modelname):
+        import os
+
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
         import tensorflow as tf
 
         visible_default = tf.config.list_physical_devices("GPU")

@@ -4,11 +4,8 @@ from shark.iree_utils._common import (
     get_supported_device_list,
 )
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
-from parameterized import parameterized
-from shark.shark_downloader import download_model
-from shark.shark_inference import SharkInference
 from shark.parser import shark_args
-from tank.generate_sharktank import NoImportException
+from parameterized import parameterized
 import iree.compiler as ireec
 import pytest
 import unittest
@@ -17,7 +14,6 @@ import csv
 import tempfile
 import os
 import shutil
-import multiprocessing
 
 
 def load_csv_and_convert(filename, gen=False):
@@ -140,11 +136,10 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
-        import_config = {
-            "batch_size": self.batch_size,
-        }
+        shark_args.update_tank = self.update_tank
+        shark_args.force_update_tank = self.force_update_tank
+        shark_args.shark_prefix = self.shark_tank_prefix
         shark_args.local_tank_cache = self.local_tank_cache
-        shark_args.force_update_tank = self.update_tank
         shark_args.dispatch_benchmarks = self.benchmark_dispatches
         if self.benchmark_dispatches is not None:
             _m = self.config["model_name"].split("/")
@@ -169,12 +164,19 @@ class SharkModuleTester:
         if "winograd" in self.config["flags"]:
             shark_args.use_winograd = True
 
+        import_config = {
+            "batch_size": self.batch_size,
+        }
+
+        from shark.shark_downloader import download_model
+        from shark.shark_inference import SharkInference
+        from tank.generate_sharktank import NoImportException
+
         dl_gen_attempts = 2
         for i in range(dl_gen_attempts):
             try:
                 model, func_name, inputs, golden_out = download_model(
                     self.config["model_name"],
-                    tank_url=self.tank_url,
                     frontend=self.config["framework"],
                     import_args=import_config,
                 )
@@ -319,7 +321,12 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.update_tank = self.pytestconfig.getoption(
             "update_tank"
         )
-        self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
+        self.module_tester.force_update_tank = self.pytestconfig.getoption(
+            "force_update_tank"
+        )
+        self.module_tester.shark_tank_prefix = self.pytestconfig.getoption(
+            "tank_prefix"
+        )
         self.module_tester.benchmark_dispatches = self.pytestconfig.getoption(
             "benchmark_dispatches"
         )

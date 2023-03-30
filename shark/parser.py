@@ -14,8 +14,10 @@
 
 import argparse
 import os
+import subprocess
 
 parser = argparse.ArgumentParser(description="SHARK runner.")
+
 parser.add_argument(
     "--device",
     type=str,
@@ -54,7 +56,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--shark_prefix",
-    default="latest",
+    default=None,
     help="gs://shark_tank/<this_flag>/model_directories",
 )
 parser.add_argument(

@@ -40,7 +40,13 @@ def pytest_addoption(parser):
         "--update_tank",
         action="store_true",
         default="False",
-        help="Update local shark tank with latest artifacts.",
+        help="Update local shark tank with latest artifacts if model artifact hash mismatched.",
+    )
+    parser.addoption(
+        "--force_update_tank",
+        action="store_true",
+        default="False",
+        help="Force-update local shark tank with artifacts from specified shark_tank URL (defaults to nightly).",
     )
     parser.addoption(
         "--ci_sha",
@@ -51,14 +57,20 @@ def pytest_addoption(parser):
     parser.addoption(
         "--local_tank_cache",
         action="store",
-        default="",
+        default=None,
         help="Specify the directory in which all downloaded shark_tank artifacts will be cached.",
     )
     parser.addoption(
         "--tank_url",
         type=str,
-        default="gs://shark_tank/latest",
+        default="gs://shark_tank/nightly",
         help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/latest",
+    )
+    parser.addoption(
+        "--tank_prefix",
+        type=str,
+        default="nightly",
+        help="Prefix to gs://shark_tank/ model directories from which to download SHARK tank artifacts. Default is 'latest'.",
     )
     parser.addoption(
         "--benchmark_dispatches",
