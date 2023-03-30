@@ -166,11 +166,11 @@ class SharkImporter:
             with open(os.path.join(dir, model_name_mlir), "wb") as mlir_file:
                 mlir_file.write(mlir_data)
         hash_gen_attempts = 2
-        for i in range(dl_gen_attempts):
+        for i in range(hash_gen_attempts):
             try:
                 mlir_hash = create_hash(os.path.join(dir, model_name_mlir))
             except FileNotFoundError as err:
-                if i < dl_gen_attempts:
+                if i < hash_gen_attempts:
                     continue
                 else:
                     raise err
