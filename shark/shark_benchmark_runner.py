@@ -118,10 +118,7 @@ class SharkBenchmarkRunner(SharkRunner):
         if self.device == "cuda":
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
             if self.enable_tf32:
-                print(
-                    "Currently disabled TensorFloat32 calculations in pytorch benchmarks."
-                )
-                # torch.backends.cuda.matmul.allow_tf32 = True
+                torch.backends.cuda.matmul.allow_tf32 = True
         else:
             torch.set_default_tensor_type(torch.FloatTensor)
         torch_device = torch.device(
@@ -152,17 +149,18 @@ class SharkBenchmarkRunner(SharkRunner):
         if self.device == "cuda":
             stats = torch.cuda.memory_stats()
             device_peak_b = stats["allocated_bytes.all.peak"]
+            frontend_model.to(torch.device("cpu"))
+            input.to(torch.device("cpu"))
+            torch.cuda.empty_cache()
         else:
             device_peak_b = None
 
         print(
             f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
-        del frontend_model
-        del input
-        del torch_device
         if self.device == "cuda":
-            torch.cuda.empty_cache()
+            # Set device to CPU so we don't run into segfaults exiting pytest subprocesses.
+            torch_device = torch.device("cpu")
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
