@@ -2,9 +2,11 @@ def pytest_addoption(parser):
     # Attaches SHARK command-line arguments to the pytest machinery.
     parser.addoption(
         "--benchmark",
+        action="store",
         type=str,
         default=None,
-        help="Benchmarks (frontend/native) and write results.csv. e.g. --benchmark=native .",
+        choices=("baseline", "native", "all"),
+        help="Benchmarks specified engine(s) and writes bench_results.csv.",
     )
     parser.addoption(
         "--onnx_bench",

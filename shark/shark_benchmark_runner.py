@@ -393,6 +393,8 @@ for currently supported models. Exiting benchmark ONNX."
             engines = ["shark_python", "shark_iree_c"]
         if self.mode == "baseline":
             engines = ["frontend"]
+        if self.mode == "all":
+            engines = ["frontend", "shark_python", "shark_iree_c"]
 
         if shark_args.onnx_bench == True:
             engines.append("onnxruntime")
@@ -421,6 +423,7 @@ for currently supported models. Exiting benchmark ONNX."
 
             for e in engines:
                 engine_result = {}
+                self.frontend_result = None
                 if e == "frontend":
                     engine_result["engine"] = frontend
                     if check_requirements(frontend):
