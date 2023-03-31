@@ -11,7 +11,7 @@ from apps.stable_diffusion.src.utils import (
     get_opt_flags,
     base_models,
     args,
-    fetch_or_delete_vmfbs,
+    fetch_vmfbs,
     preprocessCKPT,
     get_path_to_diffusers_checkpoint,
     fetch_and_update_base_model_id,
@@ -53,31 +53,6 @@ def replace_shape_str(shape, max_len, width, height, batch_size):
         else:
             new_shape.append(shape[i])
     return new_shape
-
-
-# Get the input info for various models i.e. "unet", "clip", "vae", "vae_encode".
-def get_input_info(model_info, max_len, width, height, batch_size):
-    dtype_config = {"f32": torch.float32, "i64": torch.int64}
-    input_map = defaultdict(list)
-    for k in model_info:
-        for inp in model_info[k]:
-            shape = model_info[k][inp]["shape"]
-            dtype = dtype_config[model_info[k][inp]["dtype"]]
-            tensor = None
-            if isinstance(shape, list):
-                clean_shape = replace_shape_str(
-                    shape, max_len, width, height, batch_size
-                )
-                if dtype == torch.int64:
-                    tensor = torch.randint(1, 3, tuple(clean_shape))
-                else:
-                    tensor = torch.randn(*clean_shape).to(dtype)
-            elif isinstance(shape, int):
-                tensor = torch.tensor(shape).to(dtype)
-            else:
-                sys.exit("shape isn't specified correctly.")
-            input_map[k].append(tensor)
-    return input_map
 
 
 class SharkifyStableDiffusionModel:
@@ -179,6 +154,29 @@ class SharkifyStableDiffusionModel:
         if not (height % 8 == 0 and height >= 128):
             sys.exit("height should be greater than 128 and multiple of 8")
 
+    # Get the input info for a model i.e. "unet", "clip", "vae", etc.
+    def get_input_info_for(self, model_info):
+        dtype_config = {"f32": torch.float32, "i64": torch.int64}
+        input_map = []
+        for inp in model_info:
+            shape = model_info[inp]["shape"]
+            dtype = dtype_config[model_info[inp]["dtype"]]
+            tensor = None
+            if isinstance(shape, list):
+                clean_shape = replace_shape_str(
+                    shape, self.max_len, self.width, self.height, self.batch_size
+                )
+                if dtype == torch.int64:
+                    tensor = torch.randint(1, 3, tuple(clean_shape))
+                else:
+                    tensor = torch.randn(*clean_shape).to(dtype)
+            elif isinstance(shape, int):
+                tensor = torch.tensor(shape).to(dtype)
+            else:
+                sys.exit("shape isn't specified correctly.")
+            input_map.append(tensor)
+        return input_map
+    
     def get_vae_encode(self):
         class VaeEncodeModel(torch.nn.Module):
             def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
@@ -263,33 +261,6 @@ class SharkifyStableDiffusionModel:
         )
         return shark_vae
 
-    def get_vae_upscaler(self):
-        class VaeModel(torch.nn.Module):
-            def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
-                super().__init__()
-                self.vae = AutoencoderKL.from_pretrained(
-                    model_id,
-                    subfolder="vae",
-                    low_cpu_mem_usage=low_cpu_mem_usage,
-                )
-
-            def forward(self, input):
-                x = self.vae.decode(input, return_dict=False)[0]
-                x = (x / 2 + 0.5).clamp(0, 1)
-                return x
-
-        vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
-        inputs = tuple(self.inputs["vae"])
-        shark_vae = compile_through_fx(
-            vae,
-            inputs,
-            use_tuned=self.use_tuned,
-            model_name=self.model_name["vae"],
-            extra_args=get_opt_flags("vae", precision="fp32"),
-            base_model_id=self.base_model_id,
-        )
-        return shark_vae
-
     def get_controlled_unet(self):
         class ControlledUnetModel(torch.nn.Module):
             def __init__(
@@ -331,7 +302,7 @@ class SharkifyStableDiffusionModel:
         unet = ControlledUnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
 
-        inputs = tuple(self.inputs["stencil_unet"])
+        inputs = tuple(self.inputs["unet"])
         input_mask = [True, True, True, False, True, True, True, True, True, True, True, True, True, True, True, True, True,]
         shark_controlled_unet = compile_through_fx(
             unet,
@@ -549,28 +520,13 @@ class SharkifyStableDiffusionModel:
                 vae_checkpoint = vae_checkpoint["state_dict"]
             vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
             return vae_dict
-        
-            
-    # Compiles Clip, Unet and Vae with `base_model_id` as defining their input
-    # configiration.
-    def compile_all(self, base_model_id, need_vae_encode, need_stencil):
-        self.base_model_id = base_model_id
-        self.inputs = get_input_info(
-            base_models[base_model_id],
-            self.max_len,
-            self.width,
-            self.height,
-            self.batch_size,
-        )
-        if self.is_upscaler:
-            return self.get_clip(), self.get_unet_upscaler(), self.get_vae_upscaler()
 
-        compiled_controlnet = None
-        compiled_controlled_unet = None
+    def compile_unet_variants(self, need_stencil):
         compiled_unet = None
-        if need_stencil:
-            compiled_controlnet = self.get_control_net()
-            compiled_controlled_unet = self.get_controlled_unet()
+        if self.is_upscaler:
+            compiled_unet = self.get_unet_upscaler()
+        elif need_stencil:
+            compiled_unet = self.get_controlled_unet()
         else:
             # TODO: Plug the experimental "int8" support at right place.
             if self.use_quantize == "int8":
@@ -578,17 +534,89 @@ class SharkifyStableDiffusionModel:
                 compiled_unet = get_unet()
             else:
                 compiled_unet = self.get_unet()
-        if self.custom_vae != "":
-            print("Plugging in custom Vae")
-        compiled_vae = self.get_vae()
-        compiled_clip = self.get_clip()
+        return compiled_unet
+    
+    def compile_models(self, vmfbs, need_stencil, need_vae_encode, model_to_run):
+        def check_compilation(model, model_name):
+            if not model:
+                raise Exception(f"Could not compile {model_name}. Please create an issue with the detailed log at https://github.com/nod-ai/SHARK/issues")
+
+        compiled_clip = None
+        compiled_unet = None
+        compiled_vae = None
+        compiled_vae_encode = None
+        compiled_stencil_adaptor = None
+
+        self.inputs = dict()
+
+        # 1. Process UNET.
+        if vmfbs[1]:
+            compiled_unet = vmfbs[1]
+        else:
+            unet_inputs = base_models["stencil_unet"] if need_stencil else base_models["unet"]
+            if self.base_model_id != "":
+                self.inputs["unet"] = self.get_input_info_for(unet_inputs[self.base_model_id])
+                compiled_unet = self.compile_unet_variants(need_stencil)
+            else:
+                for model_id in unet_inputs:
+                    self.base_model_id = model_id
+                    self.inputs["unet"] = self.get_input_info_for(unet_inputs[model_id])
+                    try:
+                        compiled_unet = self.compile_unet_variants(need_stencil)
+                    except Exception as e:
+                        print(e)
+                        print("Retrying with a different base model configuration")
+                        continue
+                    # -- Once a successful compilation has taken place we'd want to store
+                    #    the base model's configuration inferred.
+                    fetch_and_update_base_model_id(model_to_run, model_id)
+                    # This is done just because in main.py we are basing the choice of tokenizer and scheduler
+                    # on `args.hf_model_id`. Since now, we don't maintain 1:1 mapping of variants and the base
+                    # model and rely on retrying method to find the input configuration, we should also update
+                    # the knowledge of base model id accordingly into `args.hf_model_id`.
+                    if args.ckpt_loc != "":
+                        args.hf_model_id = model_id
+                    break
+        check_compilation(compiled_unet, "Unet")
+
+        # 2. Process VAE.
+        vae_input = base_models["vae"]
+        is_base_vae = self.base_vae
+        if self.is_upscaler:
+            self.base_vae = True
+        if vmfbs[2]:
+            compiled_vae = vmfbs[2]
+        else:
+            if self.is_upscaler:
+                vae_input = vae_input["vae_upscaler"]
+            else:
+                vae_input = vae_input["vae"]
+            self.inputs["vae"] = self.get_input_info_for(vae_input)
+            compiled_vae = self.get_vae()
+        self.base_vae = is_base_vae
+        check_compilation(compiled_vae, "Vae")
+        
+        # 3. Process CLIP.
+        self.inputs["clip"] = self.get_input_info_for(base_models["clip"])
+        compiled_clip = vmfbs[0] if vmfbs[0] else self.get_clip()
+        check_compilation(compiled_clip, "Clip")
+
+        # 4. Process VAE_ENCODE.
+        if need_vae_encode:
+            self.inputs["vae_encode"] = self.get_input_info_for(base_models["vae_encode"])
+            compiled_vae_encode = vmfbs[3] if vmfbs[3] else self.get_vae_encode()
+            check_compilation(compiled_vae_encode, "Vae Encode")
+        
+        # 5. Process STENCIL.
+        if need_stencil:
+            self.inputs["stencil_adaptor"] = self.get_input_info_for(base_models["stencil_adaptor"])
+            compiled_stencil_adaptor = vmfbs[3] if vmfbs[3] else self.get_control_net()
+            check_compilation(compiled_stencil_adaptor, "Stencil")
 
         if need_stencil:
-            return compiled_clip, compiled_controlled_unet, compiled_vae, compiled_controlnet
+            return compiled_clip, compiled_unet, compiled_vae, compiled_stencil_adaptor
         if need_vae_encode:
-            compiled_vae_encode = self.get_vae_encode()
             return compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode
-
         return compiled_clip, compiled_unet, compiled_vae
 
     def __call__(self):
@@ -607,21 +635,11 @@ class SharkifyStableDiffusionModel:
             mask_to_fetch = [True, True, False, True, True, False]
         elif need_stencil:
             mask_to_fetch = [True, False, True, True, False, True]
+        self.models_to_compile = mask_to_fetch
         self.model_name = self.get_extended_name_for_all_model(mask_to_fetch)
-        vmfbs = fetch_or_delete_vmfbs(self.model_name, self.precision)   
-        if vmfbs[0]:
-            # -- If all vmfbs are indeed present, we also try and fetch the base
-            #    model configuration for running SD with custom checkpoints.
-            if self.custom_weights != "":
-                args.hf_model_id = fetch_and_update_base_model_id(self.custom_weights)
-            if args.hf_model_id == "":
-                sys.exit("Base model configuration for the custom model is missing. Use `--clear_all` and re-run.")
-            print("Loaded vmfbs from cache and successfully fetched base model configuration.")
-            return vmfbs
-
-        # Step 2:
-        # -- If vmfbs weren't found, we try to see if the base model configuration
-        #    for the required SD run is known to us and bypass the retry mechanism.
+        vmfbs = fetch_vmfbs(self.model_name, self.precision)
+        # We try to see if the base model configuration for the required SD run is
+        # known to us and bypass the retry mechanism.
         model_to_run = ""
         if self.custom_weights != "":
             model_to_run = self.custom_weights
@@ -634,53 +652,10 @@ class SharkifyStableDiffusionModel:
         # For custom Vae user can provide either the repo-id or a checkpoint file,
         # and for a checkpoint file we'd need to process it via Diffusers' script.
         self.custom_vae = self.process_custom_vae()
-        base_model_fetched = fetch_and_update_base_model_id(model_to_run)
-        if base_model_fetched != "":
-            print("Compiling all the models with the fetched base model configuration.")
-            if args.ckpt_loc != "":
-                args.hf_model_id = base_model_fetched
-            return self.compile_all(base_model_fetched, need_vae_encode, need_stencil)
-
-        # Step 3:
-        # -- This is the retry mechanism where the base model's configuration is not
-        #    known to us and figure that out by trial and error.
-        print("Inferring base model configuration.")
-        for model_id in base_models:
-            try:
-                if need_vae_encode:
-                    compiled_clip, compiled_unet, compiled_vae, compiled_vae_encode = self.compile_all(model_id, need_vae_encode, need_stencil)
-                elif need_stencil:
-                    compiled_clip, compiled_unet, compiled_vae, compiled_controlnet = self.compile_all(model_id, need_vae_encode, need_stencil)
-                else:
-                    compiled_clip, compiled_unet, compiled_vae = self.compile_all(model_id, need_vae_encode, need_stencil)
-            except Exception as e:
-                print(e)
-                print("Retrying with a different base model configuration")
-                continue
-            # -- Once a successful compilation has taken place we'd want to store
-            #    the base model's configuration inferred.
-            fetch_and_update_base_model_id(model_to_run, model_id)
-            # This is done just because in main.py we are basing the choice of tokenizer and scheduler
-            # on `args.hf_model_id`. Since now, we don't maintain 1:1 mapping of variants and the base
-            # model and rely on retrying method to find the input configuration, we should also update
-            # the knowledge of base model id accordingly into `args.hf_model_id`.
-            if args.ckpt_loc != "":
-                args.hf_model_id = model_id
-            if need_vae_encode:
-                return (
-                    compiled_clip,
-                    compiled_unet,
-                    compiled_vae,
-                    compiled_vae_encode,
-                )
-            if need_stencil:
-                return (
-                    compiled_clip,
-                    compiled_unet,
-                    compiled_vae,
-                    compiled_controlnet,
-                )
-            return compiled_clip, compiled_unet, compiled_vae
-        sys.exit(
-            "Cannot compile the model. Please create an issue with the detailed log at https://github.com/nod-ai/SHARK/issues"
-        )
+        self.base_model_id = fetch_and_update_base_model_id(model_to_run)
+        if self.base_model_id != "" and args.ckpt_loc != "":
+            args.hf_model_id = self.base_model_id
+        try:
+            return self.compile_models(vmfbs, need_stencil, need_vae_encode, model_to_run)
+        except Exception as e:
+            sys.exit(e)
