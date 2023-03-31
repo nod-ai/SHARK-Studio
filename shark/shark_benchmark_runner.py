@@ -133,12 +133,12 @@ class SharkBenchmarkRunner(SharkRunner):
         input.to(torch_device)
 
         # TODO: re-enable as soon as pytorch CUDA context issues are resolved
-        # try:
-        #    frontend_model = torch.compile(
-        #        frontend_model, mode="max-autotune", backend="inductor"
-        #    )
-        # except RuntimeError:
-        #    frontend_model = HFmodel.model
+        try:
+            frontend_model = torch.compile(
+                frontend_model, mode="max-autotune", backend="inductor"
+            )
+        except RuntimeError:
+            frontend_model = HFmodel.model
 
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)
@@ -158,6 +158,11 @@ class SharkBenchmarkRunner(SharkRunner):
         print(
             f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
+        del frontend_model
+        del input
+        del torch_device
+        if self.device == "cuda":
+            torch.cuda.empty_cache()
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
@@ -357,9 +362,11 @@ for currently supported models. Exiting benchmark ONNX."
         device_str,
         frontend,
         import_args,
+        mode="native",
     ):
         self.setup_cl(inputs)
         self.import_args = import_args
+        self.mode = mode
         field_names = [
             "model",
             "batch_size",
@@ -382,7 +389,11 @@ for currently supported models. Exiting benchmark ONNX."
             "measured_device_memory_mb",
         ]
         # "frontend" must be the first element.
-        engines = ["frontend", "shark_python", "shark_iree_c"]
+        if self.mode == "native":
+            engines = ["shark_python", "shark_iree_c"]
+        if self.mode == "baseline":
+            engines = ["frontend"]
+
         if shark_args.onnx_bench == True:
             engines.append("onnxruntime")
 
