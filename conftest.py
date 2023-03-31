@@ -70,3 +70,9 @@ def pytest_addoption(parser):
         default="./temp_dispatch_benchmarks",
         help="Directory in which dispatch benchmarks are saved.",
     )
+    parser.addoption(
+        "--batchsize",
+        default=1,
+        type=int,
+        help="Batch size for the tested model.",
+    )

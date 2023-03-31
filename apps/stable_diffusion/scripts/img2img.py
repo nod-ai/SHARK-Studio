@@ -24,21 +24,37 @@ init_import_mlir = args.import_mlir
 
 # For stencil, the input image can be of any size but we need to ensure that
 # it conforms with our model contraints :-
-#   Both width and height should be > 384 and multiple of 8.
+#   Both width and height should be in the range of [128, 768] and multiple of 8.
 # This utility function performs the transformation on the input image while
 # also maintaining the aspect ratio before sending it to the stencil pipeline.
 def resize_stencil(image: Image.Image):
     width, height = image.size
     aspect_ratio = width / height
     min_size = min(width, height)
-    if min_size < 384:
-        n_size = 384
+    if min_size < 128:
+        n_size = 128
         if width == min_size:
             width = n_size
             height = n_size / aspect_ratio
         else:
             height = n_size
             width = n_size * aspect_ratio
+    width = int(width)
+    height = int(height)
+    n_width = width // 8
+    n_height = height // 8
+    n_width *= 8
+    n_height *= 8
+
+    min_size = min(width, height)
+    if min_size > 768:
+        n_size = 768
+        if width == min_size:
+            height = n_size
+            width = n_size * aspect_ratio
+        else:
+            width = n_size
+            height = n_size / aspect_ratio
     width = int(width)
     height = int(height)
     n_width = width // 8
@@ -173,7 +189,7 @@ def img2img_inf(
             else "stabilityai/stable-diffusion-2-1-base"
         )
         global_obj.set_schedulers(get_schedulers(model_id))
-        scheduler_obj = global_obj.get_scheduler(scheduler)
+        scheduler_obj = global_obj.get_scheduler(args.scheduler)
 
         if use_stencil is not None:
             args.use_tuned = False
@@ -218,7 +234,7 @@ def img2img_inf(
                 )
             )
 
-    global_obj.set_sd_scheduler(scheduler)
+    global_obj.set_sd_scheduler(args.scheduler)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
@@ -263,7 +279,7 @@ def img2img_inf(
     return generated_imgs, text_output
 
 
-if __name__ == "__main__":
+def main():
     if args.clear_all:
         clear_all()
 
@@ -369,3 +385,7 @@ if __name__ == "__main__":
     extra_info = {"STRENGTH": args.strength}
     save_output_img(generated_imgs[0], seed, extra_info)
     print(text_output)
+
+
+if __name__ == "__main__":
+    main()

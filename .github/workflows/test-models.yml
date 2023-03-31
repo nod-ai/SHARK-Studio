@@ -120,7 +120,7 @@ jobs:
       if: matrix.suite == 'cuda'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} BENCHMARK=1 IMPORTER=1 ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --forked --benchmark --ci --ci_sha=${SHORT_SHA} --update_tank --tank_url="gs://shark_tank/nightly/" -k cuda
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
@@ -158,4 +158,6 @@ jobs:
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'
       run: |
         ./setup_venv.ps1
+        python process_skipfiles.py
+        pyinstaller .\apps\stable_diffusion\shark_sd.spec
         python build_tools/stable_diffusion_testing.py --device=vulkan

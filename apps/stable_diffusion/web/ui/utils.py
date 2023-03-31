@@ -75,6 +75,13 @@ def resource_path(relative_path):
 
 
 def get_custom_model_path(model="models"):
+    # If `--ckpt_dir` is provided it'd override the heirarchical folder
+    # structure in WebUI :-
+    #       model
+    #         |___lora
+    #         |___vae
+    if args.ckpt_dir:
+        return Path(args.ckpt_dir)
     match model:
         case "models":
             return Path(Path.cwd(), "models")

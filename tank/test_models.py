@@ -8,6 +8,7 @@ from parameterized import parameterized
 from shark.shark_downloader import download_model
 from shark.shark_inference import SharkInference
 from shark.parser import shark_args
+from tank.generate_sharktank import NoImportException
 import iree.compiler as ireec
 import pytest
 import unittest
@@ -139,6 +140,9 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
+        import_config = {
+            "batch_size": self.batch_size,
+        }
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.force_update_tank = self.update_tank
         shark_args.dispatch_benchmarks = self.benchmark_dispatches
@@ -165,12 +169,27 @@ class SharkModuleTester:
         if "winograd" in self.config["flags"]:
             shark_args.use_winograd = True
 
-        model, func_name, inputs, golden_out = download_model(
-            self.config["model_name"],
-            tank_url=self.tank_url,
-            frontend=self.config["framework"],
-        )
-
+        dl_gen_attempts = 2
+        for i in range(dl_gen_attempts):
+            try:
+                model, func_name, inputs, golden_out = download_model(
+                    self.config["model_name"],
+                    tank_url=self.tank_url,
+                    frontend=self.config["framework"],
+                    import_args=import_config,
+                )
+            except NoImportException as err:
+                pytest.xfail(
+                    reason=f"Artifacts for this model/config must be generated locally. Please make sure {self.config['framework']} is installed."
+                )
+            except AssertionError as err:
+                if i < dl_gen_attempts - 1:
+                    continue
+                else:
+                    pytest.xfail(
+                        "Generating OTF may require exiting the subprocess for files to be available."
+                    )
+            break
         shark_module = SharkInference(
             model,
             device=device,
@@ -214,10 +233,12 @@ class SharkModuleTester:
             self.save_reproducers()
 
     def benchmark_module(self, shark_module, inputs, dynamic, device):
+        model_config = {
+            "batch_size": self.batch_size,
+        }
         shark_args.enable_tf32 = self.tf32
         if shark_args.enable_tf32 == True:
             shark_module.compile()
-            shark_args.enable_tf32 = False
 
         shark_args.onnx_bench = self.onnx_bench
         shark_module.shark_runner.benchmark_all_csv(
@@ -226,6 +247,7 @@ class SharkModuleTester:
             dynamic,
             device,
             self.config["framework"],
+            import_args=model_config,
         )
 
     def save_reproducers(self):
@@ -275,6 +297,9 @@ class SharkModuleTest(unittest.TestCase):
     @parameterized.expand(param_list, name_func=shark_test_name_func)
     def test_module(self, dynamic, device, config):
         self.module_tester = SharkModuleTester(config)
+        self.module_tester.batch_size = self.pytestconfig.getoption(
+            "batchsize"
+        )
         self.module_tester.benchmark = self.pytestconfig.getoption("benchmark")
         self.module_tester.save_repro = self.pytestconfig.getoption(
             "save_repro"
@@ -345,6 +370,10 @@ class SharkModuleTest(unittest.TestCase):
         ):
             pytest.xfail(
                 reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/476"
+            )
+        if config["framework"] == "tf" and self.module_tester.batch_size != 1:
+            pytest.xfail(
+                reason="Configurable batch sizes temp. unavailable for tensorflow models."
             )
         safe_name = (
             f"{config['model_name']}_{config['framework']}_{dynamic}_{device}"
