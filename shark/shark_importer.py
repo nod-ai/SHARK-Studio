@@ -9,8 +9,8 @@ import hashlib
 
 def create_hash(file_name):
     with open(file_name, "rb") as f:
-        file_hash = hashlib.blake2b()
-        while chunk := f.read(2**20):
+        file_hash = hashlib.blake2b(digest_size=64)
+        while chunk := f.read(2**10):
             file_hash.update(chunk)
 
     return file_hash.hexdigest()
@@ -165,8 +165,17 @@ class SharkImporter:
         if self.frontend == "torch":
             with open(os.path.join(dir, model_name_mlir), "wb") as mlir_file:
                 mlir_file.write(mlir_data)
-            mlir_hash = create_hash(os.path.join(dir, model_name_mlir))
-            np.save(os.path.join(dir, "hash"), np.array(mlir_hash))
+        hash_gen_attempts = 2
+        for i in range(hash_gen_attempts):
+            try:
+                mlir_hash = create_hash(os.path.join(dir, model_name_mlir))
+            except FileNotFoundError as err:
+                if i < hash_gen_attempts:
+                    continue
+                else:
+                    raise err
+
+        np.save(os.path.join(dir, "hash"), np.array(mlir_hash))
         return
 
     def import_debug(

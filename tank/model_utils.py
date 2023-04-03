@@ -195,47 +195,47 @@ def get_vision_model(torch_model, import_args):
     import torchvision.models as models
 
     default_image_size = (224, 224)
+    modelname = torch_model
+    if modelname == "alexnet":
+        torch_model = models.alexnet(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "resnet18":
+        torch_model = models.resnet18(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "resnet50":
+        torch_model = models.resnet50(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "resnet50_fp16":
+        torch_model = models.resnet50(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "resnet50_fp16":
+        torch_model = models.resnet50(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "resnet101":
+        torch_model = models.resnet101(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "squeezenet1_0":
+        torch_model = models.squeezenet1_0(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "wide_resnet50_2":
+        torch_model = models.wide_resnet50_2(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "mobilenet_v3_small":
+        torch_model = models.mobilenet_v3_small(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "mnasnet1_0":
+        torch_model = models.mnasnet1_0(weights="DEFAULT")
+        input_image_size = default_image_size
+    if modelname == "efficientnet_b0":
+        torch_model = models.efficientnet_b0(weights="DEFAULT")
+        input_image_size = (224, 224)
+    if modelname == "efficientnet_b7":
+        torch_model = models.efficientnet_b7(weights="DEFAULT")
+        input_image_size = (600, 600)
 
-    vision_models_dict = {
-        "alexnet": (models.alexnet(weights="DEFAULT"), default_image_size),
-        "resnet18": (models.resnet18(weights="DEFAULT"), default_image_size),
-        "resnet50": (models.resnet50(weights="DEFAULT"), default_image_size),
-        "resnet50_fp16": (
-            models.resnet50(weights="DEFAULT"),
-            default_image_size,
-        ),
-        "resnet101": (models.resnet101(weights="DEFAULT"), default_image_size),
-        "squeezenet1_0": (
-            models.squeezenet1_0(weights="DEFAULT"),
-            default_image_size,
-        ),
-        "wide_resnet50_2": (
-            models.wide_resnet50_2(weights="DEFAULT"),
-            default_image_size,
-        ),
-        "mobilenet_v3_small": (
-            models.mobilenet_v3_small(weights="DEFAULT"),
-            default_image_size,
-        ),
-        "mnasnet1_0": (
-            models.mnasnet1_0(weights="DEFAULT"),
-            default_image_size,
-        ),
-        # EfficientNet input image size varies on the size of the model.
-        "efficientnet_b0": (
-            models.efficientnet_b0(weights="DEFAULT"),
-            (224, 224),
-        ),
-        "efficientnet_b7": (
-            models.efficientnet_b7(weights="DEFAULT"),
-            (600, 600),
-        ),
-    }
-    if isinstance(torch_model, str):
-        fp16_model = None
-        if "fp16" in torch_model:
-            fp16_model = True
-        torch_model, input_image_size = vision_models_dict[torch_model]
+    fp16_model = False
+    if "fp16" in modelname:
+        fp16_model = True
     model = VisionModule(torch_model)
     test_input = torch.randn(
         int(import_args["batch_size"]), 3, *input_image_size

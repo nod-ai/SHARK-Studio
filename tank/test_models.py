@@ -4,11 +4,8 @@ from shark.iree_utils._common import (
     get_supported_device_list,
 )
 from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
-from parameterized import parameterized
-from shark.shark_downloader import download_model
-from shark.shark_inference import SharkInference
 from shark.parser import shark_args
-from tank.generate_sharktank import NoImportException
+from parameterized import parameterized
 import iree.compiler as ireec
 import pytest
 import unittest
@@ -16,8 +13,8 @@ import numpy as np
 import csv
 import tempfile
 import os
+import sys
 import shutil
-import multiprocessing
 
 
 def load_csv_and_convert(filename, gen=False):
@@ -140,12 +137,12 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
-        import_config = {
-            "batch_size": self.batch_size,
-        }
+        shark_args.update_tank = self.update_tank
+        shark_args.force_update_tank = self.force_update_tank
+        shark_args.shark_prefix = self.shark_tank_prefix
         shark_args.local_tank_cache = self.local_tank_cache
-        shark_args.force_update_tank = self.update_tank
         shark_args.dispatch_benchmarks = self.benchmark_dispatches
+
         if self.benchmark_dispatches is not None:
             _m = self.config["model_name"].split("/")
             _m.extend([self.config["framework"], str(dynamic), device])
@@ -169,12 +166,19 @@ class SharkModuleTester:
         if "winograd" in self.config["flags"]:
             shark_args.use_winograd = True
 
+        import_config = {
+            "batch_size": self.batch_size,
+        }
+
+        from shark.shark_downloader import download_model
+        from shark.shark_inference import SharkInference
+        from tank.generate_sharktank import NoImportException
+
         dl_gen_attempts = 2
         for i in range(dl_gen_attempts):
             try:
                 model, func_name, inputs, golden_out = download_model(
                     self.config["model_name"],
-                    tank_url=self.tank_url,
                     frontend=self.config["framework"],
                     import_args=import_config,
                 )
@@ -190,11 +194,12 @@ class SharkModuleTester:
                         "Generating OTF may require exiting the subprocess for files to be available."
                     )
             break
+        is_bench = True if self.benchmark is not None else False
         shark_module = SharkInference(
             model,
             device=device,
             mlir_dialect=self.config["dialect"],
-            is_benchmark=self.benchmark,
+            is_benchmark=is_bench,
         )
 
         try:
@@ -208,6 +213,10 @@ class SharkModuleTester:
 
         result = shark_module(func_name, inputs)
         golden_out, result = self.postprocess_outputs(golden_out, result)
+        if self.tf32 == "true":
+            print("Validating with relaxed tolerances.")
+            atol = 1e-02
+            rtol = 1e-03
         try:
             np.testing.assert_allclose(
                 golden_out,
@@ -220,19 +229,25 @@ class SharkModuleTester:
                 self.save_reproducers()
             if self.ci == True:
                 self.upload_repro()
-            if self.benchmark == True:
-                self.benchmark_module(shark_module, inputs, dynamic, device)
+            if self.benchmark is not None:
+                self.benchmark_module(
+                    shark_module, inputs, dynamic, device, mode=self.benchmark
+                )
                 print(msg)
                 pytest.xfail(
                     reason=f"Numerics Mismatch: Use -s flag to print stderr during pytests."
                 )
-        if self.benchmark == True:
-            self.benchmark_module(shark_module, inputs, dynamic, device)
+        if self.benchmark is not None:
+            self.benchmark_module(
+                shark_module, inputs, dynamic, device, mode=self.benchmark
+            )
 
         if self.save_repro == True:
             self.save_reproducers()
 
-    def benchmark_module(self, shark_module, inputs, dynamic, device):
+    def benchmark_module(
+        self, shark_module, inputs, dynamic, device, mode="native"
+    ):
         model_config = {
             "batch_size": self.batch_size,
         }
@@ -248,6 +263,7 @@ class SharkModuleTester:
             device,
             self.config["framework"],
             import_args=model_config,
+            mode=mode,
         )
 
     def save_reproducers(self):
@@ -319,7 +335,12 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.update_tank = self.pytestconfig.getoption(
             "update_tank"
         )
-        self.module_tester.tank_url = self.pytestconfig.getoption("tank_url")
+        self.module_tester.force_update_tank = self.pytestconfig.getoption(
+            "force_update_tank"
+        )
+        self.module_tester.shark_tank_prefix = self.pytestconfig.getoption(
+            "tank_prefix"
+        )
         self.module_tester.benchmark_dispatches = self.pytestconfig.getoption(
             "benchmark_dispatches"
         )
@@ -336,19 +357,26 @@ class SharkModuleTest(unittest.TestCase):
         if config["xfail_vkm"] == "True" and device in ["metal", "vulkan"]:
             pytest.xfail(reason=config["xfail_reason"])
 
-        if os.name == "nt" and "enabled_windows" not in config["xfail_other"]:
+        if (
+            self.pytestconfig.getoption("ci") == True
+            and os.name == "nt"
+            and "enabled_windows" not in config["xfail_other"]
+        ):
             pytest.xfail(reason="this model skipped on windows")
 
         # Special cases that need to be marked.
-        if "macos" in config["xfail_other"] and device in [
-            "metal",
-            "vulkan",
-        ]:
-            if get_vulkan_triple_flag() is not None:
-                if "m1-moltenvk-macos" in get_vulkan_triple_flag():
-                    pytest.xfail(
-                        reason="conv-related issue on MacStudio, returns VK_ERROR_DEVICE_LOST."
-                    )
+        if (
+            "macos" in config["xfail_other"]
+            and device
+            in [
+                "metal",
+                "vulkan",
+            ]
+            and sys.platform == "darwin"
+        ):
+            pytest.skip(
+                reason="conv-related issue on MacStudio, returns VK_ERROR_DEVICE_LOST."
+            )
         if (
             config["model_name"]
             in [

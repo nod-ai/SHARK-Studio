@@ -127,16 +127,73 @@ def check_dir_exists(model_name, frontend="torch", dynamic=""):
             and os.path.isfile(os.path.join(model_dir, "golden_out.npz"))
             and os.path.isfile(os.path.join(model_dir, "hash.npy"))
         ):
-            print(f"""Using cached models from {WORKDIR}...""")
+            print(
+                f"""Model artifacts for {model_name} found at {WORKDIR}..."""
+            )
             return True
     return False
+
+
+def _internet_connected():
+    import requests as req
+
+    try:
+        req.get("http://1.1.1.1")
+        return True
+    except:
+        return False
+
+
+def get_git_revision_short_hash() -> str:
+    import subprocess
+
+    if shark_args.shark_prefix is not None:
+        prefix_kw = shark_args.shark_prefix
+    else:
+        prefix_kw = (
+            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
+            .decode("ascii")
+            .strip()
+        )
+    return prefix_kw
+
+
+def get_sharktank_prefix():
+    tank_prefix = ""
+    if not _internet_connected():
+        print(
+            "No internet connection. Using the model already present in the tank."
+        )
+        tank_prefix = "none"
+    else:
+        desired_prefix = get_git_revision_short_hash()
+        storage_client_a = storage.Client.create_anonymous_client()
+        base_bucket_name = "shark_tank"
+        base_bucket = storage_client_a.bucket(base_bucket_name)
+        dir_blobs = base_bucket.list_blobs(prefix=f"{desired_prefix}")
+        for blob in dir_blobs:
+            dir_blob_name = blob.name.split("/")
+            if desired_prefix in dir_blob_name[0]:
+                tank_prefix = dir_blob_name[0]
+                break
+            else:
+                continue
+        if tank_prefix == "":
+            print(
+                f"shark_tank bucket not found matching ({desired_prefix}). Defaulting to nightly."
+            )
+            tank_prefix = "nightly"
+    return tank_prefix
+
+
+shark_args.shark_prefix = get_sharktank_prefix()
 
 
 # Downloads the torch model from gs://shark_tank dir.
 def download_model(
     model_name,
     dynamic=False,
-    tank_url="gs://shark_tank/latest",
+    tank_url=None,
     frontend=None,
     tuned=None,
     import_args={"batch_size": "1"},
@@ -155,15 +212,19 @@ def download_model(
     else:
         model_dir_name = model_name + "_" + frontend
     model_dir = os.path.join(WORKDIR, model_dir_name)
-    full_gs_url = tank_url.rstrip("/") + "/" + model_dir_name
 
+    if not tank_url:
+        tank_url = "gs://shark_tank/" + shark_args.shark_prefix
+
+    full_gs_url = tank_url.rstrip("/") + "/" + model_dir_name
     if not check_dir_exists(
         model_dir_name, frontend=frontend, dynamic=dyn_str
     ):
         print(
-            f"Force-updating artifacts for model {model_name} from: {full_gs_url}"
+            f"Downloading artifacts for model {model_name} from: {full_gs_url}"
         )
         download_public_file(full_gs_url, model_dir)
+
     elif shark_args.force_update_tank == True:
         print(
             f"Force-updating artifacts for model {model_name} from: {full_gs_url}"
@@ -189,6 +250,7 @@ def download_model(
                     np.load(os.path.join(model_dir, "upstream_hash.npy"))
                 )
             except FileNotFoundError:
+                print(f"Model artifact hash not found at {model_dir}.")
                 upstream_hash = None
             if local_hash != upstream_hash and shark_args.update_tank == True:
                 print(f"Updating artifacts for model {model_name}...")
@@ -196,14 +258,17 @@ def download_model(
 
             elif local_hash != upstream_hash:
                 print(
-                    "Hash does not match upstream in gs://shark_tank/latest. If you want to use locally generated artifacts, this is working as intended. Otherwise, run with --update_tank."
+                    "Hash does not match upstream in gs://shark_tank/. If you want to use locally generated artifacts, this is working as intended. Otherwise, run with --update_tank."
+                )
+            else:
+                print(
+                    "Local and upstream hashes match. Using cached model artifacts."
                 )
 
     model_dir = os.path.join(WORKDIR, model_dir_name)
     tuned_str = "" if tuned is None else "_" + tuned
     suffix = f"{dyn_str}_{frontend}{tuned_str}.mlir"
     filename = os.path.join(model_dir, model_name + suffix)
-
     if not os.path.exists(filename):
         from tank.generate_sharktank import gen_shark_files
 
@@ -222,13 +287,3 @@ def download_model(
     inputs_tuple = tuple([inputs[key] for key in inputs])
     golden_out_tuple = tuple([golden_out[key] for key in golden_out])
     return mlir_file, function_name, inputs_tuple, golden_out_tuple
-
-
-def _internet_connected():
-    import requests as req
-
-    try:
-        req.get("http://1.1.1.1")
-        return True
-    except:
-        return False

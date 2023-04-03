@@ -26,8 +26,8 @@ from apps.stable_diffusion.src.utils.stable_args import (
 
 def create_hash(file_name):
     with open(file_name, "rb") as f:
-        file_hash = hashlib.blake2b()
-        while chunk := f.read(2**20):
+        file_hash = hashlib.blake2b(digest_size=64)
+        while chunk := f.read(2**10):
             file_hash.update(chunk)
 
     return file_hash.hexdigest()
@@ -141,6 +141,9 @@ def save_tf_model(tf_model_list, local_tank_cache, import_args):
         get_TFhf_model,
         get_tfhf_seq2seq_model,
     )
+    import os
+
+    os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
     import tensorflow as tf
 
     visible_default = tf.config.list_physical_devices("GPU")

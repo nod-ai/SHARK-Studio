@@ -118,10 +118,7 @@ class SharkBenchmarkRunner(SharkRunner):
         if self.device == "cuda":
             torch.set_default_tensor_type(torch.cuda.FloatTensor)
             if self.enable_tf32:
-                print(
-                    "Currently disabled TensorFloat32 calculations in pytorch benchmarks."
-                )
-                # torch.backends.cuda.matmul.allow_tf32 = True
+                torch.backends.cuda.matmul.allow_tf32 = True
         else:
             torch.set_default_tensor_type(torch.FloatTensor)
         torch_device = torch.device(
@@ -133,12 +130,12 @@ class SharkBenchmarkRunner(SharkRunner):
         input.to(torch_device)
 
         # TODO: re-enable as soon as pytorch CUDA context issues are resolved
-        # try:
-        #    frontend_model = torch.compile(
-        #        frontend_model, mode="max-autotune", backend="inductor"
-        #    )
-        # except RuntimeError:
-        #    frontend_model = HFmodel.model
+        try:
+            frontend_model = torch.compile(
+                frontend_model, mode="max-autotune", backend="inductor"
+            )
+        except RuntimeError:
+            frontend_model = HFmodel.model
 
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)
@@ -152,12 +149,18 @@ class SharkBenchmarkRunner(SharkRunner):
         if self.device == "cuda":
             stats = torch.cuda.memory_stats()
             device_peak_b = stats["allocated_bytes.all.peak"]
+            frontend_model.to(torch.device("cpu"))
+            input.to(torch.device("cpu"))
+            torch.cuda.empty_cache()
         else:
             device_peak_b = None
 
         print(
             f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
+        if self.device == "cuda":
+            # Set device to CPU so we don't run into segfaults exiting pytest subprocesses.
+            torch_device = torch.device("cpu")
         return [
             f"{shark_args.num_iterations/(end-begin)}",
             f"{((end-begin)/shark_args.num_iterations)*1000}",
@@ -166,6 +169,9 @@ class SharkBenchmarkRunner(SharkRunner):
         ]
 
     def benchmark_tf(self, modelname):
+        import os
+
+        os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
         import tensorflow as tf
 
         visible_default = tf.config.list_physical_devices("GPU")
@@ -354,9 +360,11 @@ for currently supported models. Exiting benchmark ONNX."
         device_str,
         frontend,
         import_args,
+        mode="native",
     ):
         self.setup_cl(inputs)
         self.import_args = import_args
+        self.mode = mode
         field_names = [
             "model",
             "batch_size",
@@ -379,7 +387,13 @@ for currently supported models. Exiting benchmark ONNX."
             "measured_device_memory_mb",
         ]
         # "frontend" must be the first element.
-        engines = ["frontend", "shark_python", "shark_iree_c"]
+        if self.mode == "native":
+            engines = ["shark_python", "shark_iree_c"]
+        if self.mode == "baseline":
+            engines = ["frontend"]
+        if self.mode == "all":
+            engines = ["frontend", "shark_python", "shark_iree_c"]
+
         if shark_args.onnx_bench == True:
             engines.append("onnxruntime")
 
@@ -407,6 +421,7 @@ for currently supported models. Exiting benchmark ONNX."
 
             for e in engines:
                 engine_result = {}
+                self.frontend_result = None
                 if e == "frontend":
                     engine_result["engine"] = frontend
                     if check_requirements(frontend):
