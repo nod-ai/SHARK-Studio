@@ -25,6 +25,7 @@ import sys
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     download_from_original_stable_diffusion_ckpt,
 )
+import apps.stable_diffusion.src.utils.state_manager as state_manager
 
 
 def get_extended_name(model_name):
@@ -42,16 +43,16 @@ def _compile_module(shark_module, model_name, extra_args=[]):
     if args.load_vmfb or args.save_vmfb:
         vmfb_path = get_vmfb_path_name(model_name)
         if args.load_vmfb and os.path.isfile(vmfb_path) and not args.save_vmfb:
-            print(f"loading existing vmfb from: {vmfb_path}")
+            state_manager.app.set_job(
+                f"Loading existing vmfb from: {vmfb_path}"
+            )
             shark_module.load_module(vmfb_path, extra_args=extra_args)
         else:
             if args.save_vmfb:
                 print("Saving to {}".format(vmfb_path))
             else:
-                print(
-                    "No vmfb found. Compiling and saving to {}".format(
-                        vmfb_path
-                    )
+                state_manager.app.set_job(
+                    "No vmfb found. Compiling {}".format(vmfb_path)
                 )
             path = shark_module.save_module(
                 os.getcwd(), model_name, extra_args
@@ -458,9 +459,8 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
         print("Checkpoint already loaded at : ", path_to_diffusers)
         return
     else:
-        print(
-            "Diffusers' checkpoint will be identified here : ",
-            path_to_diffusers,
+        state_manager.app.set_job(
+            f"Exporting Diffusers' checkpoint in {path_to_diffusers}"
         )
     from_safetensors = (
         True if custom_weights.lower().endswith(".safetensors") else False

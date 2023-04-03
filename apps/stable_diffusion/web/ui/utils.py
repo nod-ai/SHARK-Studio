@@ -5,10 +5,6 @@ import glob
 from pathlib import Path
 from apps.stable_diffusion.src import args
 from dataclasses import dataclass
-import apps.stable_diffusion.web.utils.global_obj as global_obj
-from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
-    SD_STATE_CANCEL,
-)
 
 
 @dataclass
@@ -122,14 +118,6 @@ def get_custom_vae_or_lora_weights(weights, hf_id, model):
     else:
         use_weight = hf_id
     return use_weight
-
-
-def cancel_sd():
-    # Try catch it, as gc can delete global_obj.sd_obj while switching model
-    try:
-        global_obj.set_sd_status(SD_STATE_CANCEL)
-    except Exception:
-        pass
 
 
 nodlogo_loc = resource_path("logos/nod-logo.png")

@@ -101,6 +101,9 @@ Procedure to upgrade the dark theme:
 }
 
 /* SHARK theme */
+body {
+    background-color: var(--background-fill-primary);
+}
 
 /* display in full width for desktop devices */
 @media (min-width: 1536px)
@@ -196,4 +199,27 @@ footer {
 /* Hide the download icon from the nod logo */
 #top_logo .download {
     display: none;
+}
+
+/* Header status bar */
+#sd_status_outer {
+    position: absolute;
+    top: 50px;
+    left: 52%;
+    width: 46%;
+    margin: auto;
+    z-index: 1;
+}
+#sd_status, #sd_status textarea {
+    background-color: var(--background-fill-primary);
+    border: none;
+}
+#sd_status textarea {
+    text-align: center;
+}
+#sd_status.padded {
+    padding: 0;
+}
+#sd_status .generating {
+    border: none;
 }
