@@ -20,16 +20,15 @@ from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
+from apps.stable_diffusion.src.models import (
+    SharkifyStableDiffusionModel,
+    get_vae_encode,
+)
 
 
 class Image2ImagePipeline(StableDiffusionPipeline):
     def __init__(
         self,
-        vae_encode: SharkInference,
-        vae: SharkInference,
-        text_encoder: SharkInference,
-        tokenizer: CLIPTokenizer,
-        unet: SharkInference,
         scheduler: Union[
             DDIMScheduler,
             PNDMScheduler,
@@ -40,9 +39,30 @@ class Image2ImagePipeline(StableDiffusionPipeline):
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
         ],
+        sd_model: SharkifyStableDiffusionModel,
+        import_mlir: bool,
+        use_lora: str,
+        ondemand: bool,
     ):
-        super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
-        self.vae_encode = vae_encode
+        super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        self.vae_encode = None
+
+    def load_vae_encode(self):
+        if self.vae_encode is not None:
+            return
+
+        if self.import_mlir or self.use_lora:
+            self.vae_encode = self.sd_model.vae_encode()
+        else:
+            try:
+                self.vae_encode = get_vae_encode()
+            except:
+                print("download pipeline failed, falling back to import_mlir")
+                self.vae_encode = self.sd_model.vae_encode()
+
+    def unload_vae_encode(self):
+        del self.vae_encode
+        self.vae_encode = None
 
     def prepare_image_latents(
         self,
@@ -89,9 +109,12 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         return latents, timesteps
 
     def encode_image(self, input_image):
+        self.load_vae_encode()
         vae_encode_start = time.time()
         latents = self.vae_encode("forward", input_image)
         vae_inf_time = (time.time() - vae_encode_start) * 1000
+        if self.ondemand:
+            self.unload_vae_encode()
         self.log += f"\nVAE Encode Inference time (ms): {vae_inf_time:.3f}"
 
         return latents
@@ -161,6 +184,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
 
         # Img latents -> PIL images
         all_imgs = []
+        self.load_vae()
         for i in tqdm(range(0, latents.shape[0], batch_size)):
             imgs = self.decode_latents(
                 latents=latents[i : i + batch_size],
@@ -168,5 +192,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
                 cpu_scheduling=cpu_scheduling,
             )
             all_imgs.extend(imgs)
+        if self.ondemand:
+            self.unload_vae()
 
         return all_imgs

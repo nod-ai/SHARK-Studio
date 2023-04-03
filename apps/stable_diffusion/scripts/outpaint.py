@@ -47,6 +47,7 @@ def outpaint_inf(
     save_metadata_to_png: bool,
     lora_weights: str,
     lora_hf_id: str,
+    ondemand: bool,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -64,6 +65,7 @@ def outpaint_inf(
     args.steps = steps
     args.scheduler = scheduler
     args.img_path = "not none"
+    args.ondemand = ondemand
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -141,6 +143,7 @@ def outpaint_inf(
                 args.use_base_vae,
                 args.use_tuned,
                 use_lora=args.use_lora,
+                ondemand=args.ondemand,
             )
         )
 
@@ -235,6 +238,7 @@ def main():
         args.use_base_vae,
         args.use_tuned,
         use_lora=args.use_lora,
+        ondemand=args.ondemand,
     )
 
     for current_batch in range(args.batch_count):
