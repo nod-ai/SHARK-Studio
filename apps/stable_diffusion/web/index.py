@@ -45,7 +45,12 @@ if __name__ == "__main__":
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
     from apps.stable_diffusion.web.ui import (
-        get_txt2img_web,
+        txt2img_web,
+        txt2img_gallery,
+        txt2img_sendto_img2img,
+        txt2img_sendto_inpaint,
+        txt2img_sendto_outpaint,
+        txt2img_sendto_upscaler,
         img2img_web,
         img2img_gallery,
         img2img_init_image,
@@ -91,14 +96,6 @@ if __name__ == "__main__":
     ) as sd_web:
         with gr.Tabs() as tabs:
             with gr.TabItem(label="Text-to-Image", id=0):
-                (
-                    txt2img_web,
-                    txt2img_gallery,
-                    txt2img_sendto_img2img,
-                    txt2img_sendto_inpaint,
-                    txt2img_sendto_outpaint,
-                    txt2img_sendto_upscaler,
-                ) = get_txt2img_web()
                 txt2img_web.render()
             with gr.TabItem(label="Image-to-Image", id=1):
                 img2img_web.render()
