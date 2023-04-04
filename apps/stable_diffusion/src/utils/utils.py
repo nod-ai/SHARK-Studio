@@ -603,27 +603,14 @@ def load_vmfb(vmfb_path, model, precision):
     return shark_module
 
 
-# This utility returns vmfbs of sub-models of the SD pipeline, if present.
-def fetch_vmfbs(extended_model_name, precision="fp32"):
-    vmfb_path = [
-        get_vmfb_path_name(extended_model_name[model])
-        for model in extended_model_name
-    ]
-    number_of_vmfbs = len(vmfb_path)
-    vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
-    all_vmfb_present = True
-    compiled_models = [None] * number_of_vmfbs
-
-    for i in range(number_of_vmfbs):
-        all_vmfb_present = all_vmfb_present and vmfb_present[i]
-
-    model_name = [model for model in extended_model_name.keys()]
-    for i in range(number_of_vmfbs):
-        if vmfb_present[i]:
-            compiled_models[i] = load_vmfb(
-                vmfb_path[i], model_name[i], precision
-            )
-    return compiled_models
+# This utility returns vmfb of sub-model of the SD pipeline, if present.
+def fetch_vmfb(model, extended_model_name, precision="fp32"):
+    vmfb_path = get_vmfb_path_name(extended_model_name)
+    vmfb_present = os.path.isfile(vmfb_path)
+    compiled_model = (
+        load_vmfb(vmfb_path, model, precision) if vmfb_present else None
+    )
+    return compiled_model
 
 
 # `fetch_and_update_base_model_id` is a resource utility function which

@@ -89,6 +89,7 @@ def img2img_inf(
     save_metadata_to_png: bool,
     lora_weights: str,
     lora_hf_id: str,
+    ondemand: bool,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -108,6 +109,7 @@ def img2img_inf(
     args.strength = strength
     args.scheduler = scheduler
     args.img_path = "not none"
+    args.ondemand = ondemand
 
     if init_image is None:
         return None, "An Initial Image is required"
@@ -211,6 +213,7 @@ def img2img_inf(
                     use_stencil=use_stencil,
                     debug=args.import_debug if args.import_mlir else False,
                     use_lora=args.use_lora,
+                    ondemand=args.ondemand,
                 )
             )
         else:
@@ -231,6 +234,7 @@ def img2img_inf(
                     low_cpu_mem_usage=args.low_cpu_mem_usage,
                     debug=args.import_debug if args.import_mlir else False,
                     use_lora=args.use_lora,
+                    ondemand=args.ondemand,
                 )
             )
 
@@ -332,6 +336,7 @@ def main():
             use_stencil=use_stencil,
             debug=args.import_debug if args.import_mlir else False,
             use_lora=args.use_lora,
+            ondemand=args.ondemand,
         )
     else:
         img2img_obj = Image2ImagePipeline.from_pretrained(
@@ -350,6 +355,7 @@ def main():
             low_cpu_mem_usage=args.low_cpu_mem_usage,
             debug=args.import_debug if args.import_mlir else False,
             use_lora=args.use_lora,
+            ondemand=args.ondemand,
         )
 
     start_time = time.time()

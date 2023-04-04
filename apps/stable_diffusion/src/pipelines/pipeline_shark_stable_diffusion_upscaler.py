@@ -27,6 +27,7 @@ from apps.stable_diffusion.src.utils import (
     end_profiling,
 )
 from PIL import Image
+from apps.stable_diffusion.src.models import SharkifyStableDiffusionModel
 
 
 def preprocess(image):
@@ -55,10 +56,6 @@ def preprocess(image):
 class UpscalerPipeline(StableDiffusionPipeline):
     def __init__(
         self,
-        vae: SharkInference,
-        text_encoder: SharkInference,
-        tokenizer: CLIPTokenizer,
-        unet: SharkInference,
         scheduler: Union[
             DDIMScheduler,
             PNDMScheduler,
@@ -80,8 +77,12 @@ class UpscalerPipeline(StableDiffusionPipeline):
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
         ],
+        sd_model: SharkifyStableDiffusionModel,
+        import_mlir: bool,
+        use_lora: str,
+        ondemand: bool,
     ):
-        super().__init__(vae, text_encoder, tokenizer, unet, scheduler)
+        super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
         self.low_res_scheduler = low_res_scheduler
 
     def prepare_extra_step_kwargs(self, generator, eta):
@@ -163,6 +164,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
+        self.load_unet()
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
             latent_model_input = torch.cat([latents] * 2)
@@ -208,6 +210,8 @@ class UpscalerPipeline(StableDiffusionPipeline):
             #  )
             step_time_sum += step_time
 
+        if self.ondemand:
+            self.unload_unet()
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -299,6 +303,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
 
         # Img latents -> PIL images
         all_imgs = []
+        self.load_vae()
         for i in tqdm(range(0, latents.shape[0], batch_size)):
             imgs = self.decode_latents(
                 latents=latents[i : i + batch_size],
@@ -306,5 +311,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
                 cpu_scheduling=cpu_scheduling,
             )
             all_imgs.extend(imgs)
+        if self.ondemand:
+            self.unload_vae()
 
         return all_imgs

@@ -144,6 +144,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             step=0.01,
                             label="Denoising Strength",
                         )
+                        ondemand = gr.Checkbox(
+                            value=args.ondemand,
+                            label="Low VRAM",
+                            interactive=True,
+                        )
                     with gr.Row():
                         with gr.Column(scale=3):
                             guidance_scale = gr.Slider(
@@ -247,6 +252,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 save_metadata_to_png,
                 lora_weights,
                 lora_hf_id,
+                ondemand,
             ],
             outputs=[img2img_gallery, std_output],
             show_progress=args.progress_bar,

@@ -1,4 +1,5 @@
 from apps.stable_diffusion.web.ui.txt2img_ui import (
+    txt2img_inf,
     txt2img_web,
     txt2img_gallery,
     txt2img_sendto_img2img,
