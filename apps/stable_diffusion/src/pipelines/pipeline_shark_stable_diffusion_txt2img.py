@@ -1,5 +1,4 @@
 import torch
-from tqdm.auto import tqdm
 import numpy as np
 from random import randint
 from transformers import CLIPTokenizer
@@ -111,8 +110,8 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             dtype=dtype,
         )
 
-        # Get text embeddings from prompts
-        text_embeddings = self.encode_prompts(prompts, neg_prompts, max_length)
+        # Get text embeddings with weight emphasis from prompts
+        text_embeddings = self.encode_prompts_weight(prompts, neg_prompts)
 
         # guidance scale as a float32 tensor.
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
@@ -130,7 +129,7 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         # Img latents -> PIL images
         all_imgs = []
         self.load_vae()
-        for i in tqdm(range(0, latents.shape[0], batch_size)):
+        for i in range(0, latents.shape[0], batch_size):
             imgs = self.decode_latents(
                 latents=latents[i : i + batch_size],
                 use_base_vae=use_base_vae,
