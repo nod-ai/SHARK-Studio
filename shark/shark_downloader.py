@@ -153,11 +153,7 @@ def get_git_revision_short_hash() -> str:
         import json
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
-        res_path = os.path.join(dir_path, "resources", "shark_version.json")
-        if os.path.exists(res_path):
-            src = res_path
-        else:
-            src = os.path.join(dir_path, "shark_version.json")
+        src = os.path.join(dir_path, "shark_version.json")
         with open(src, "r") as f:
             data = json.loads(f.read())
             prefix_kw = data["version"]

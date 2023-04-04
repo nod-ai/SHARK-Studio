@@ -35,3 +35,5 @@ base_models = get_json_file("resources/base_model.json")
 
 # Contains optimization flags for different models.
 opt_flags = get_json_file("resources/opt_flags.json")
+
+shark_version = get_json_file("resources/shark_version.json")

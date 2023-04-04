@@ -19,7 +19,7 @@ from shark.iree_utils.vulkan_utils import (
 )
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from apps.stable_diffusion.src.utils.stable_args import args
-from apps.stable_diffusion.src.utils.resources import opt_flags
+from apps.stable_diffusion.src.utils.resources import opt_flags, shark_version
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
 import sys
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
@@ -68,6 +68,7 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
     # Set local shark_tank cache directory.
     shark_args.local_tank_cache = args.local_tank_cache
+    shark_args.shark_prefix = shark_version["version"]
 
     from shark.shark_downloader import download_model
 
