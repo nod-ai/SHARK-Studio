@@ -34,6 +34,7 @@ datas += [
          ( 'src/utils/resources/model_db.json', 'resources' ),
          ( 'src/utils/resources/opt_flags.json', 'resources' ),
          ( 'src/utils/resources/base_model.json', 'resources' ),
+         ( 'src/utils/resources/shark_version.json', 'resources' ),
          ]
 
 binaries = []
