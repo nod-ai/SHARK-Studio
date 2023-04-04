@@ -1,18 +1,5 @@
 import re
 from pathlib import Path
-from apps.stable_diffusion.web.ui.txt2img_ui import (
-    png_info_img,
-    prompt,
-    negative_prompt,
-    steps,
-    scheduler,
-    guidance_scale,
-    seed,
-    width,
-    height,
-    custom_model,
-    hf_model_id,
-)
 from apps.stable_diffusion.web.ui.utils import (
     get_custom_model_pathfile,
     scheduler_list_txt2img,
@@ -75,7 +62,19 @@ def parse_generation_parameters(x: str):
     return res
 
 
-def import_png_metadata(pil_data):
+def import_png_metadata(
+    pil_data,
+    prompt,
+    negative_prompt,
+    steps,
+    sampler,
+    cfg_scale,
+    seed,
+    width,
+    height,
+    custom_model,
+    hf_model_id,
+):
     try:
         png_info = pil_data.info["parameters"]
         metadata = parse_generation_parameters(png_info)
@@ -110,39 +109,44 @@ def import_png_metadata(pil_data):
                     % metadata["Model"]
                 )
 
-        outputs = {
-            png_info_img: None,
-            negative_prompt: metadata["Negative prompt"],
-            steps: int(metadata["Steps"]),
-            guidance_scale: float(metadata["CFG scale"]),
-            seed: int(metadata["Seed"]),
-            width: float(metadata["Size-1"]),
-            height: float(metadata["Size-2"]),
-        }
+        negative_prompt = metadata["Negative prompt"]
+        steps = int(metadata["Steps"])
+        cfg_scale = float(metadata["CFG scale"])
+        seed = int(metadata["Seed"])
+        width = float(metadata["Size-1"])
+        height = float(metadata["Size-2"])
         if "Model" in metadata and png_custom_model:
-            outputs[custom_model] = png_custom_model
-            outputs[hf_model_id] = ""
+            custom_model = png_custom_model
+            hf_model_id = ""
         if "Model" in metadata and png_hf_model_id:
-            outputs[custom_model] = "None"
-            outputs[hf_model_id] = png_hf_model_id
+            custom_model = "None"
+            hf_model_id = png_hf_model_id
         if "Prompt" in metadata:
-            outputs[prompt] = metadata["Prompt"]
+            prompt = metadata["Prompt"]
         if "Sampler" in metadata:
             if metadata["Sampler"] in scheduler_list_txt2img:
-                outputs[scheduler] = metadata["Sampler"]
+                sampler = metadata["Sampler"]
             else:
                 print(
                     "Import PNG info: Unable to find a scheduler for %s"
                     % metadata["Sampler"]
                 )
 
-        return outputs
-
     except Exception as ex:
         if pil_data and pil_data.info.get("parameters"):
             print("import_png_metadata failed with %s" % ex)
         pass
 
-    return {
-        png_info_img: None,
-    }
+    return (
+        None,
+        prompt,
+        negative_prompt,
+        steps,
+        sampler,
+        cfg_scale,
+        seed,
+        width,
+        height,
+        custom_model,
+        hf_model_id,
+    )
