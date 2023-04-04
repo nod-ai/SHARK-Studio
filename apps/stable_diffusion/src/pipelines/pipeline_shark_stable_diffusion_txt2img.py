@@ -1,5 +1,4 @@
 import torch
-from tqdm.auto import tqdm
 import numpy as np
 from random import randint
 from transformers import CLIPTokenizer
@@ -130,7 +129,7 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         # Img latents -> PIL images
         all_imgs = []
         self.load_vae()
-        for i in tqdm(range(0, latents.shape[0], batch_size)):
+        for i in range(0, latents.shape[0], batch_size):
             imgs = self.decode_latents(
                 latents=latents[i : i + batch_size],
                 use_base_vae=use_base_vae,
