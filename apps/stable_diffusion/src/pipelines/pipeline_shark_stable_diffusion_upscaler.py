@@ -255,8 +255,8 @@ class UpscalerPipeline(StableDiffusionPipeline):
             seed = randint(uint32_min, uint32_max)
         generator = torch.manual_seed(seed)
 
-        # Get text embeddings from prompts
-        text_embeddings = self.encode_prompts(prompts, neg_prompts, max_length)
+        # Get text embeddings with weight emphasis from prompts
+        text_embeddings = self.encode_prompts_weight(prompts, neg_prompts)
 
         # 4. Preprocess image
         image = preprocess(image).to(dtype)
