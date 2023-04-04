@@ -71,8 +71,8 @@ def pytest_addoption(parser):
     parser.addoption(
         "--tank_prefix",
         type=str,
-        default="nightly",
-        help="Prefix to gs://shark_tank/ model directories from which to download SHARK tank artifacts. Default is 'latest'.",
+        default=None,
+        help="Prefix to gs://shark_tank/ model directories from which to download SHARK tank artifacts. Default is nightly.",
     )
     parser.addoption(
         "--benchmark_dispatches",
