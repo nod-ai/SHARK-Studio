@@ -110,8 +110,8 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             dtype=dtype,
         )
 
-        # Get text embeddings from prompts
-        text_embeddings = self.encode_prompts(prompts, neg_prompts, max_length)
+        # Get text embeddings with weight emphasis from prompts
+        text_embeddings = self.encode_prompts_weight(prompts, neg_prompts)
 
         # guidance scale as a float32 tensor.
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
