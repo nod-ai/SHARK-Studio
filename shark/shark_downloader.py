@@ -150,11 +150,14 @@ def get_git_revision_short_hash() -> str:
     if shark_args.shark_prefix is not None:
         prefix_kw = shark_args.shark_prefix
     else:
-        prefix_kw = (
-            subprocess.check_output(["git", "rev-parse", "--short", "HEAD"])
-            .decode("ascii")
-            .strip()
-        )
+        import json
+
+        dir_path = os.path.dirname(os.path.realpath(__file__))
+        src = os.path.join(dir_path, "..", "tank_version.json")
+        with open(src, "r") as f:
+            data = json.loads(f.read())
+            prefix_kw = data["version"]
+    print(f"Checking for updates from gs://shark_tank/{prefix_kw}")
     return prefix_kw
 
 
@@ -186,9 +189,6 @@ def get_sharktank_prefix():
     return tank_prefix
 
 
-shark_args.shark_prefix = get_sharktank_prefix()
-
-
 # Downloads the torch model from gs://shark_tank dir.
 def download_model(
     model_name,
@@ -201,6 +201,7 @@ def download_model(
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
+    shark_args.shark_prefix = get_sharktank_prefix()
     if import_args["batch_size"] != 1:
         model_dir_name = (
             model_name
