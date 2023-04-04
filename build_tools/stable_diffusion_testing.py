@@ -188,9 +188,7 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                     with open(dumpfile_name, "r+") as f:
                         output = f.readlines()
                         print("\n".join(output))
-                    if model_name == "CompVis/stable-diffusion-v1-4":
-                        print("failed a known successful model.")
-                        exit(1)
+                    exit(1)
                 if os.name == "nt":
                     counter += 1
                     if counter % 2 == 0:
