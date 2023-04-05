@@ -57,7 +57,6 @@ class StableDiffusionPipeline:
         self.vae = None
         self.text_encoder = None
         self.unet = None
-        self.tokenizer = get_tokenizer()
         self.model_max_length = 77
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
@@ -67,6 +66,13 @@ class StableDiffusionPipeline:
         self.import_mlir = import_mlir
         self.use_lora = use_lora
         self.ondemand = ondemand
+        # TODO: Find a better workaround for fetching base_model_id early enough for CLIPTokenizer.
+        try:
+            self.tokenizer = get_tokenizer()
+        except:
+            self.load_unet()
+            self.unload_unet()
+            self.tokenizer = get_tokenizer()
 
     def load_clip(self):
         if self.text_encoder is not None:
