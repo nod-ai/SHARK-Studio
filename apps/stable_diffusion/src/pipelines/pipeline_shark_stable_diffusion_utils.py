@@ -58,6 +58,7 @@ class StableDiffusionPipeline:
         self.text_encoder = None
         self.unet = None
         self.tokenizer = get_tokenizer()
+        self.model_max_length = 77
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
@@ -337,6 +338,7 @@ class StableDiffusionPipeline:
         self,
         prompt,
         negative_prompt,
+        model_max_length,
         do_classifier_free_guidance=True,
         max_embeddings_multiples=1,
         num_images_per_prompt=1,
@@ -349,6 +351,8 @@ class StableDiffusionPipeline:
             negative_prompt (`str` or `List[str]`):
                 The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored
                 if `guidance_scale` is less than `1`).
+            model_max_length (int):
+                SHARK: pass the max length instead of relying on pipe.tokenizer.model_max_length
             do_classifier_free_guidance (`bool`):
                 whether to use classifier free guidance or not,
                 SHARK: must be set to True as we always expect neg embeddings (defaulted to True)
@@ -360,7 +364,8 @@ class StableDiffusionPipeline:
                 SHARK: num_images_per_prompt is not used (defaulted to 1)
         """
 
-        # SHARK: Load the clip and prepare inference time
+        # SHARK: Save model_max_length, load the clip and init inference time
+        self.model_max_length = model_max_length
         self.load_clip()
         clip_inf_start = time.time()
 
@@ -689,9 +694,7 @@ def get_weighted_text_embeddings(
         skip_weighting (`bool`, *optional*, defaults to `False`):
             Skip the weighting. When the parsing is skipped, it is forced True.
     """
-    max_length = (
-        pipe.tokenizer.model_max_length - 2
-    ) * max_embeddings_multiples + 2
+    max_length = (pipe.model_max_length - 2) * max_embeddings_multiples + 2
     if isinstance(prompt, str):
         prompt = [prompt]
 
@@ -733,12 +736,10 @@ def get_weighted_text_embeddings(
 
     max_embeddings_multiples = min(
         max_embeddings_multiples,
-        (max_length - 1) // (pipe.tokenizer.model_max_length - 2) + 1,
+        (max_length - 1) // (pipe.model_max_length - 2) + 1,
     )
     max_embeddings_multiples = max(1, max_embeddings_multiples)
-    max_length = (
-        pipe.tokenizer.model_max_length - 2
-    ) * max_embeddings_multiples + 2
+    max_length = (pipe.model_max_length - 2) * max_embeddings_multiples + 2
 
     # pad the length of tokens and weights
     bos = pipe.tokenizer.bos_token_id
@@ -750,7 +751,7 @@ def get_weighted_text_embeddings(
         bos,
         eos,
         no_boseos_middle=no_boseos_middle,
-        chunk_length=pipe.tokenizer.model_max_length,
+        chunk_length=pipe.model_max_length,
     )
     # prompt_tokens = torch.tensor(prompt_tokens, dtype=torch.long, device=pipe.device)
     prompt_tokens = torch.tensor(prompt_tokens, dtype=torch.long, device="cpu")
@@ -762,7 +763,7 @@ def get_weighted_text_embeddings(
             bos,
             eos,
             no_boseos_middle=no_boseos_middle,
-            chunk_length=pipe.tokenizer.model_max_length,
+            chunk_length=pipe.model_max_length,
         )
         # uncond_tokens = torch.tensor(uncond_tokens, dtype=torch.long, device=pipe.device)
         uncond_tokens = torch.tensor(
@@ -773,7 +774,7 @@ def get_weighted_text_embeddings(
     text_embeddings = get_unweighted_text_embeddings(
         pipe,
         prompt_tokens,
-        pipe.tokenizer.model_max_length,
+        pipe.model_max_length,
         no_boseos_middle=no_boseos_middle,
     )
     # prompt_weights = torch.tensor(prompt_weights, dtype=text_embeddings.dtype, device=pipe.device)
@@ -784,7 +785,7 @@ def get_weighted_text_embeddings(
         uncond_embeddings = get_unweighted_text_embeddings(
             pipe,
             uncond_tokens,
-            pipe.tokenizer.model_max_length,
+            pipe.model_max_length,
             no_boseos_middle=no_boseos_middle,
         )
         # uncond_weights = torch.tensor(uncond_weights, dtype=uncond_embeddings.dtype, device=pipe.device)
