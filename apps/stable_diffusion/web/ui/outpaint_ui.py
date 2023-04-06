@@ -9,7 +9,7 @@ from apps.stable_diffusion.web.ui.utils import (
     nodlogo_loc,
     get_custom_model_path,
     get_custom_model_files,
-    scheduler_list,
+    scheduler_list_cpu_only,
     predefined_paint_models,
     cancel_sd,
 )
@@ -86,8 +86,8 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value="PNDM",
-                            choices=scheduler_list,
+                            value="EulerDiscrete",
+                            choices=scheduler_list_cpu_only,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(

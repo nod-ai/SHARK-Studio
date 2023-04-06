@@ -14,7 +14,7 @@ from apps.stable_diffusion.web.ui.utils import (
     nodlogo_loc,
     get_custom_model_path,
     get_custom_model_files,
-    scheduler_list,
+    scheduler_list_cpu_only,
     predefined_models,
     cancel_sd,
 )
@@ -119,16 +119,11 @@ def img2img_inf(
         args.scheduler = "DDIM"
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
         image, width, height = resize_stencil(image)
-    elif args.scheduler != "PNDM":
-        if "Shark" in args.scheduler:
-            print(
-                f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
-            )
-            args.scheduler = "PNDM"
-        else:
-            sys.exit(
-                "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
-            )
+    elif "Shark" in args.scheduler:
+        print(
+            f"Shark schedulers are not supported. Switching to EulerDiscrete scheduler"
+        )
+        args.scheduler = "EulerDiscrete"
     cpu_scheduling = not args.scheduler.startswith("Shark")
     args.precision = precision
     dtype = torch.float32 if precision == "fp32" else torch.half
@@ -308,7 +303,7 @@ def img2img_api(
         InputData["seed"],
         batch_count=1,
         batch_size=1,
-        scheduler="PNDM",
+        scheduler="EulerDiscrete",
         custom_model="None",
         hf_model_id="stabilityai/stable-diffusion-2-1-base",
         precision="fp16",
@@ -407,8 +402,8 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value="PNDM",
-                            choices=scheduler_list,
+                            value="EulerDiscrete",
+                            choices=scheduler_list_cpu_only,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(

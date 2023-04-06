@@ -10,7 +10,7 @@ from apps.stable_diffusion.web.ui.utils import (
     get_custom_model_path,
     get_custom_model_files,
     get_custom_vae_or_lora_weights,
-    scheduler_list_txt2img,
+    scheduler_list,
     predefined_models,
 )
 
@@ -83,7 +83,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                             elem_id="scheduler",
                             label="Scheduler",
                             value=args.scheduler,
-                            choices=scheduler_list_txt2img,
+                            choices=scheduler_list,
                         )
                     with gr.Row():
                         height = gr.Slider(
