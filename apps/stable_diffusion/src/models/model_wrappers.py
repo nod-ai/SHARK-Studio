@@ -211,7 +211,7 @@ class SharkifyStableDiffusionModel:
 
         vae_encode = VaeEncodeModel()
         inputs = tuple(self.inputs["vae_encode"])
-        is_f16 = True if self.precision == "fp16" else False
+        is_f16 = True if not self.is_upscaler and self.precision == "fp16" else False
         shark_vae_encode = compile_through_fx(
             vae_encode,
             inputs,
