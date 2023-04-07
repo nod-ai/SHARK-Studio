@@ -539,8 +539,6 @@ class OutpaintPipeline(StableDiffusionPipeline):
                     cpu_scheduling=cpu_scheduling,
                 )
                 all_imgs.extend(imgs)
-            if self.ondemand:
-                self.unload_vae()
 
             res_img = all_imgs[0].resize(
                 (image_to_process.width, image_to_process.height)
