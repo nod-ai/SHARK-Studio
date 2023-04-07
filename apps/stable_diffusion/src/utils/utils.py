@@ -135,9 +135,10 @@ def compile_through_fx(
             device=args.device,
             mlir_dialect="tm_tensor",
         )
-        del mlir_module
-        gc.collect()
-        return _compile_module(shark_module, model_name, extra_args)
+        return (
+            _compile_module(shark_module, model_name, extra_args),
+            mlir_module,
+        )
 
     del mlir_module
     gc.collect()
