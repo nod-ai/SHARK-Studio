@@ -1,5 +1,5 @@
 # Install the required libs
-# pip install -U git+https://github.com/huggingface/diffusers.git
+# apip install -U git+https://github.com/huggingface/diffusers.git
 # pip install accelerate transformers ftfy
 
 # HuggingFace Token
@@ -37,13 +37,9 @@ from diffusers.loaders import AttnProcsLayers
 from diffusers.models.cross_attention import LoRACrossAttnProcessor
 
 import torch_mlir
-from torch_mlir.dynamo import make_simple_dynamo_backend
-import torch._dynamo as dynamo
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch_mlir_e2e_test.linalg_on_tensors_backends import refbackend
 from shark.shark_inference import SharkInference
-
-torch._dynamo.config.verbose = True
 
 from diffusers import (
     AutoencoderKL,
@@ -184,12 +180,6 @@ def lora_train(
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
 
-    print(
-        "Note LoRA training is not compatible with the latest torch-mlir branch"
-    )
-    print(
-        "To run LoRA training you'll need this to follow this guide for the torch-mlir branch: https://github.com/nod-ai/SHARK/tree/main/shark/examples/shark_training/stable_diffusion"
-    )
     torch.manual_seed(seed)
 
     args.prompts = [prompt]
@@ -432,7 +422,6 @@ def lora_train(
 
         fx_g.graph.lint()
 
-    @make_simple_dynamo_backend
     def refbackend_torchdynamo_backend(
         fx_graph: torch.fx.GraphModule, example_inputs: List[torch.Tensor]
     ):
@@ -443,7 +432,6 @@ def lora_train(
             return fx_graph
         removed_none_indexes = _remove_nones(fx_graph)
         was_unwrapped = _unwrap_single_tuple_return(fx_graph)
-
         mlir_module = torch_mlir.compile(
             fx_graph, example_inputs, output_type="linalg-on-tensors"
         )
@@ -608,10 +596,7 @@ def lora_train(
         for epoch in range(num_train_epochs):
             unet.train()
             for step, batch in enumerate(train_dataloader):
-                dynamo_callable = dynamo.optimize(
-                    refbackend_torchdynamo_backend
-                )(train_func)
-                lam_func = lambda x, y: dynamo_callable(
+                lam_func = lambda x, y: train_func(
                     torch.from_numpy(x), torch.from_numpy(y)
                 )
                 loss = predictions(
