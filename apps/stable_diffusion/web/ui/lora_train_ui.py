@@ -9,6 +9,7 @@ from apps.stable_diffusion.web.ui.utils import (
     nodlogo_loc,
     get_custom_model_path,
     get_custom_model_files,
+    get_custom_vae_or_lora_weights,
     scheduler_list_txt2img,
     predefined_models,
 )
@@ -48,6 +49,20 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                                 lines=3,
                             )
 
+                with gr.Row():
+                    lora_weights = gr.Dropdown(
+                        label=f"Standlone LoRA weights to initialize weights (Path: {get_custom_model_path('lora')})",
+                        elem_id="lora_weights",
+                        value="None",
+                        choices=["None"] + get_custom_model_files("lora"),
+                    )
+                    lora_hf_id = gr.Textbox(
+                        elem_id="lora_hf_id",
+                        placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                        value="",
+                        label="HuggingFace Model ID to initialize weights",
+                        lines=3,
+                    )
                 with gr.Group(elem_id="image_dir_box_outer"):
                     training_images_dir = gr.Textbox(
                         label="ImageDirectory",
@@ -195,6 +210,9 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                 max_length,
                 training_images_dir,
                 output_loc,
+                get_custom_vae_or_lora_weights(
+                    lora_weights, lora_hf_id, "lora"
+                ),
             ],
             outputs=[std_output],
             show_progress=args.progress_bar,

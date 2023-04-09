@@ -73,6 +73,7 @@ from apps.stable_diffusion.src import (
     set_init_device_flags,
     clear_all,
 )
+from apps.stable_diffusion.src.utils import update_lora_weight
 
 
 # Setup the dataset
@@ -159,6 +160,21 @@ class LoraDataset(Dataset):
         return example
 
 
+def torch_device(device):
+    device_tokens = device.split("=>")
+    if len(device_tokens) == 1:
+        device_str = device_tokens[0].strip()
+    else:
+        device_str = device_tokens[1].strip()
+    device_type_tokens = device_str.split("://")
+    if device_type_tokens[0] == "metal":
+        device_type_tokens[0] = "vulkan"
+    if len(device_type_tokens) > 1:
+        return device_type_tokens[0] + ":" + device_type_tokens[1]
+    else:
+        return device_type_tokens[0]
+
+
 ########## Setting up the model ##########
 def lora_train(
     prompt: str,
@@ -177,6 +193,7 @@ def lora_train(
     max_length: int,
     training_images_dir: str,
     lora_save_dir: str,
+    use_lora: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -222,12 +239,8 @@ def lora_train(
     args.max_length = max_length
     args.height = height
     args.width = width
-    device_str = device.split("=>", 1)[1].strip().split("://")
-    if len(device_str) > 1:
-        device_str = device_str[0] + ":" + device_str[1]
-    else:
-        device_str = device_str[0]
-    args.device = device_str
+    args.device = torch_device(device)
+    args.use_lora = use_lora
 
     # Load the Stable Diffusion model
     text_encoder = CLIPTextModel.from_pretrained(
@@ -252,29 +265,33 @@ def lora_train(
     unet.to(args.device)
     text_encoder.to(args.device)
 
-    lora_attn_procs = {}
-    for name in unet.attn_processors.keys():
-        cross_attention_dim = (
-            None
-            if name.endswith("attn1.processor")
-            else unet.config.cross_attention_dim
-        )
-        if name.startswith("mid_block"):
-            hidden_size = unet.config.block_out_channels[-1]
-        elif name.startswith("up_blocks"):
-            block_id = int(name[len("up_blocks.")])
-            hidden_size = list(reversed(unet.config.block_out_channels))[
-                block_id
-            ]
-        elif name.startswith("down_blocks"):
-            block_id = int(name[len("down_blocks.")])
-            hidden_size = unet.config.block_out_channels[block_id]
+    if use_lora != "":
+        update_lora_weight(unet, args.use_lora, "unet")
+    else:
+        lora_attn_procs = {}
+        for name in unet.attn_processors.keys():
+            cross_attention_dim = (
+                None
+                if name.endswith("attn1.processor")
+                else unet.config.cross_attention_dim
+            )
+            if name.startswith("mid_block"):
+                hidden_size = unet.config.block_out_channels[-1]
+            elif name.startswith("up_blocks"):
+                block_id = int(name[len("up_blocks.")])
+                hidden_size = list(reversed(unet.config.block_out_channels))[
+                    block_id
+                ]
+            elif name.startswith("down_blocks"):
+                block_id = int(name[len("down_blocks.")])
+                hidden_size = unet.config.block_out_channels[block_id]
 
-        lora_attn_procs[name] = LoRACrossAttnProcessor(
-            hidden_size=hidden_size, cross_attention_dim=cross_attention_dim
-        )
+            lora_attn_procs[name] = LoRACrossAttnProcessor(
+                hidden_size=hidden_size,
+                cross_attention_dim=cross_attention_dim,
+            )
 
-    unet.set_attn_processor(lora_attn_procs)
+        unet.set_attn_processor(lora_attn_procs)
     lora_layers = AttnProcsLayers(unet.attn_processors)
 
     class VaeModel(torch.nn.Module):
@@ -671,4 +688,5 @@ if __name__ == "__main__":
         args.max_length,
         args.training_images_dir,
         args.lora_save_dir,
+        args.use_lora,
     )
