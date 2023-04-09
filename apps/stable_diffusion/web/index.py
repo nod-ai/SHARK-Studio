@@ -2,6 +2,7 @@ import os
 import sys
 import transformers
 from apps.stable_diffusion.src import args, clear_all
+import apps.stable_diffusion.web.utils.global_obj as global_obj
 
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
@@ -11,18 +12,21 @@ if args.clear_all:
 
 if __name__ == "__main__":
     if args.api:
-        from apps.stable_diffusion.web.ui import txt2img_inf
+        from apps.stable_diffusion.web.ui import txt2img_inf, img2img_api
         from fastapi import FastAPI, APIRouter
         import uvicorn
 
+        # init global sd pipeline and config
+        global_obj._init()
+
         app = FastAPI()
-        app.add_api_route("/sdapi/txt2img", txt2img_inf, methods=["post"])
+        app.add_api_route("/sdapi/v1/txt2img", txt2img_inf, methods=["post"])
+        app.add_api_route("/sdapi/v1/img2img", img2img_api, methods=["post"])
         app.include_router(APIRouter())
-        uvicorn.run(app, host="0.0.0.0", port=args.server_port)
+        uvicorn.run(app, host="127.0.0.1", port=args.server_port)
         sys.exit(0)
 
     import gradio as gr
-    import apps.stable_diffusion.web.utils.global_obj as global_obj
     from apps.stable_diffusion.web.utils.gradio_configs import (
         clear_gradio_tmp_imgs_folder,
     )
