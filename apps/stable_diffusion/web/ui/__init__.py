@@ -8,6 +8,8 @@ from apps.stable_diffusion.web.ui.txt2img_ui import (
     txt2img_sendto_upscaler,
 )
 from apps.stable_diffusion.web.ui.img2img_ui import (
+    img2img_api,
+    img2img_inf,
     img2img_web,
     img2img_gallery,
     img2img_init_image,

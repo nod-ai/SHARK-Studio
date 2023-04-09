@@ -48,18 +48,22 @@ def set_schedulers(value):
 
 
 def get_sd_obj():
+    global _sd_obj
     return _sd_obj
 
 
 def get_sd_status():
+    global _sd_obj
     return _sd_obj.status
 
 
 def get_cfg_obj():
+    global _config_obj
     return _config_obj
 
 
 def get_scheduler(key):
+    global _schedulers
     return _schedulers[key]
 
 
