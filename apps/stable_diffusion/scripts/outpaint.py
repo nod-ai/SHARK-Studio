@@ -65,6 +65,9 @@ def outpaint_inf(
     args.steps = steps
     args.scheduler = scheduler
     args.img_path = "not none"
+    if ondemand:
+        print("Outpainting is not supporting ondemand yet.")
+        ondemand = False
     args.ondemand = ondemand
 
     # set ckpt_loc and hf_model_id.

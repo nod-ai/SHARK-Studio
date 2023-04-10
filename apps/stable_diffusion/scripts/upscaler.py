@@ -103,7 +103,8 @@ def upscaler_inf(
         use_stencil=None,
     )
     if (
-        not global_obj.get_sd_obj()
+        args.ondemand
+        or not global_obj.get_sd_obj()
         or global_obj.get_cfg_obj() != new_config_obj
     ):
         global_obj.clear_cache()
@@ -146,6 +147,7 @@ def upscaler_inf(
     global_obj.get_sd_obj().low_res_scheduler = global_obj.get_scheduler(
         "DDPM"
     )
+    global_obj.set_sd_ondemand(args.ondemand)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""

@@ -170,7 +170,8 @@ def img2img_inf(
         use_stencil=use_stencil,
     )
     if (
-        not global_obj.get_sd_obj()
+        args.ondemand
+        or not global_obj.get_sd_obj()
         or global_obj.get_cfg_obj() != new_config_obj
     ):
         global_obj.clear_cache()
@@ -239,6 +240,7 @@ def img2img_inf(
             )
 
     global_obj.set_sd_scheduler(args.scheduler)
+    global_obj.set_sd_ondemand(args.ondemand)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""

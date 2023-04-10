@@ -153,7 +153,8 @@ class StableDiffusionPipeline:
         clip_inf_start = time.time()
         text_embeddings = self.text_encoder("forward", (text_input,))
         clip_inf_time = (time.time() - clip_inf_start) * 1000
-        # self.unload_clip()
+        if self.ondemand:
+            self.unload_clip()
         self.log += f"\nClip Inference time (ms) = {clip_inf_time:.3f}"
 
         return text_embeddings
@@ -410,7 +411,8 @@ class StableDiffusionPipeline:
 
         # SHARK: Report clip inference time
         clip_inf_time = (time.time() - clip_inf_start) * 1000
-        # self.unload_clip()
+        if self.ondemand:
+            self.unload_clip()
         self.log += f"\nClip Inference time (ms) = {clip_inf_time:.3f}"
 
         return text_embeddings.numpy()
