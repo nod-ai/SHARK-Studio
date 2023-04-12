@@ -54,7 +54,8 @@ The [AI-Render README](https://github.com/benrugg/AI-Render/blob/main/README.md)
 ![image](https://user-images.githubusercontent.com/87458719/231440729-2fe69586-41cb-4274-9ce7-f6c08def600b.png)
 
 ## Examples:
-Scene:
+Scene (Input image):
+
 ![blender-sample-2](https://user-images.githubusercontent.com/87458719/231450408-0e680086-3e52-4962-a5c1-c703a94d1583.png)
 
 Prompt:
@@ -64,6 +65,7 @@ Negative Prompt (default):
 "ugly, bad art, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, blurry, bad anatomy, blurred, watermark, grainy, tiling, signature, cut off, draft"
 
 Example output:
+
 ![blender-sample-2_out](https://user-images.githubusercontent.com/87458719/231451145-a0b56897-a7d0-4add-bbed-7e8af21a65df.png)
 
 
