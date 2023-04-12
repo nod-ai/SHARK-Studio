@@ -13,6 +13,7 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
+from apps.stable_diffusion.web.utils.png_metadata import import_png_metadata
 from apps.stable_diffusion.src import (
     args,
     Text2ImagePipeline,
@@ -452,14 +453,20 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )
 
-        from apps.stable_diffusion.web.utils.png_metadata import (
-            import_png_metadata,
-        )
-
         png_info_img.change(
             fn=import_png_metadata,
             inputs=[
                 png_info_img,
+                prompt,
+                negative_prompt,
+                steps,
+                scheduler,
+                guidance_scale,
+                seed,
+                width,
+                height,
+                custom_model,
+                hf_model_id,
             ],
             outputs=[
                 png_info_img,
