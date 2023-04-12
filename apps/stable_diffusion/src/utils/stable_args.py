@@ -539,6 +539,31 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="Save annotated mlir file",
 )
+##############################################################################
+### SD model auto-tuner flags
+##############################################################################
+
+p.add_argument(
+    "--tuned_config_dir",
+    type=path_expand,
+    default="./",
+    help="Directory to save the tuned config file",
+)
+
+p.add_argument(
+    "--num_iters",
+    type=int,
+    default=400,
+    help="Number of iterations for tuning",
+)
+
+p.add_argument(
+    "--search_op",
+    type=str,
+    default="all",
+    help="Op to be optimized, options are matmul, bmm, conv and all",
+)
+
 
 args, unknown = p.parse_known_args()
 if args.import_debug:

@@ -89,7 +89,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
 
         def _import(self):
             scaling_model = ScalingModel()
-            self.scaling_model = compile_through_fx(
+            self.scaling_model, _ = compile_through_fx(
                 model=scaling_model,
                 inputs=(example_latent, example_sigma),
                 model_name=f"euler_scale_model_input_{BATCH_SIZE}_{args.height}_{args.width}"
@@ -98,7 +98,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
             )
 
             step_model = SchedulerStepModel()
-            self.step_model = compile_through_fx(
+            self.step_model, _ = compile_through_fx(
                 step_model,
                 (example_output, example_sigma, example_latent, example_dt),
                 model_name=f"euler_step_{BATCH_SIZE}_{args.height}_{args.width}"
