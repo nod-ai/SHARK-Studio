@@ -32,11 +32,6 @@ def set_sd_status(value):
     _sd_obj.status = value
 
 
-def set_sd_ondemand(value):
-    global _sd_obj
-    _sd_obj.ondemand = value
-
-
 def set_cfg_obj(value):
     global _config_obj
     _config_obj = value

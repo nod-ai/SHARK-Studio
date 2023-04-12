@@ -64,6 +64,9 @@ def inpaint_inf(
     args.img_path = "not none"
     args.mask_path = "not none"
     args.ondemand = ondemand
+    if ondemand and batch_count > 1:
+        print("Low VRAM mode currently only supports 1 batch count.")
+        batch_count = 1
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -101,6 +104,7 @@ def inpaint_inf(
         device,
         use_lora=args.use_lora,
         use_stencil=None,
+        ondemand=ondemand,
     )
     if (
         args.ondemand
@@ -149,7 +153,6 @@ def inpaint_inf(
         )
 
     global_obj.set_sd_scheduler(scheduler)
-    global_obj.set_sd_ondemand(args.ondemand)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
