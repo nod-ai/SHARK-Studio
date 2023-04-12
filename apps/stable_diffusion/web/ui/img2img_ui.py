@@ -83,6 +83,9 @@ def img2img_inf(
     args.scheduler = scheduler
     args.img_path = "not none"
     args.ondemand = ondemand
+    if ondemand and batch_count > 1:
+        print("Low VRAM mode currently only supports 1 batch count.")
+        batch_count = 1
 
     if init_image is None:
         return None, "An Initial Image is required"
@@ -141,9 +144,11 @@ def img2img_inf(
         device,
         use_lora=args.use_lora,
         use_stencil=use_stencil,
+        ondemand=ondemand,
     )
     if (
-        not global_obj.get_sd_obj()
+        args.ondemand
+        or not global_obj.get_sd_obj()
         or global_obj.get_cfg_obj() != new_config_obj
     ):
         global_obj.clear_cache()

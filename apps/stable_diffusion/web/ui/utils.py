@@ -24,6 +24,7 @@ class Config:
     device: str
     use_lora: str
     use_stencil: str
+    ondemand: str
 
 
 custom_model_filetypes = (
