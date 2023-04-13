@@ -101,6 +101,9 @@ Procedure to upgrade the dark theme:
 }
 
 /* SHARK theme */
+body {
+    background-color: var(--background-fill-primary);
+}
 
 /* display in full width for desktop devices */
 @media (min-width: 1536px)
@@ -166,14 +169,21 @@ footer {
     border-radius: 0 !important;
 }
 
+/* Gallery: Remove the default square ratio thumbnail and limit images height to the container */
+#gallery .thumbnail-item.thumbnail-lg {
+    aspect-ratio: unset;
+    max-height: calc(55vh - (2 * var(--spacing-lg)));
+    min-height: 390px
+}
+
 /* Prevent progress bar to block gallery navigation while building images (Gradio V3.19.0) */
 #gallery .wrap.default {
     pointer-events: none;
 }
 
 /* Import Png info box */
-#txt2img_prompt_image .fixed-height {
-    height: var(--size-32);
+#txt2img_prompt_image {
+    height: var(--size-32) !important;
 }
 
 /* Hide "remove buttons" from ui dropdowns */
