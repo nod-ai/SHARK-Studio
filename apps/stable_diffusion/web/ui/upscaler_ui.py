@@ -204,7 +204,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
-                    ).style(grid=[2])
+                    ).style(columns=[2], object_fit="contain")
                     std_output = gr.Textbox(
                         value="Nothing to show.",
                         lines=1,
