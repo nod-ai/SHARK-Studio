@@ -107,6 +107,8 @@ def get_vulkan_target_triple(device_name):
     # Windows: AMD Radeon RX 7900 XTX
     elif all(x in device_name for x in ("RX", "7900")):
         triple = f"rdna3-7900-{system_os}"
+    elif all(x in device_name for x in ("AMD", "PRO", "W7900")):
+        triple = f"rdna3-w7900-{system_os}"
     elif any(x in device_name for x in ("AMD", "Radeon")):
         triple = f"rdna2-unknown-{system_os}"
     # Intel Targets
