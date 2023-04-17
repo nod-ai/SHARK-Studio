@@ -106,6 +106,7 @@ def outpaint_inf(
         device,
         use_lora=args.use_lora,
         use_stencil=None,
+        ondemand=ondemand,
     )
     if (
         not global_obj.get_sd_obj()
