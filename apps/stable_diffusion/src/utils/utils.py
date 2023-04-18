@@ -120,6 +120,8 @@ def compile_through_fx(
     if use_tuned:
         if "vae" in model_name.split("_")[0]:
             args.annotation_model = "vae"
+        if "unet" in model_name.split("_")[0]:
+            args.annotation_model = "unet"
         mlir_module = sd_model_annotation(
             mlir_module, model_name, base_model_id
         )
