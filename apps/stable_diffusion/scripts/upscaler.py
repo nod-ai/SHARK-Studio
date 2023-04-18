@@ -58,9 +58,6 @@ def upscaler_inf(
     args.steps = steps
     args.scheduler = scheduler
     args.ondemand = ondemand
-    if ondemand and batch_count > 1:
-        print("Low VRAM mode currently only supports 1 batch count.")
-        batch_count = 1
 
     if init_image is None:
         return None, "An Initial Image is required"
@@ -107,8 +104,7 @@ def upscaler_inf(
         ondemand=ondemand,
     )
     if (
-        args.ondemand
-        or not global_obj.get_sd_obj()
+        not global_obj.get_sd_obj()
         or global_obj.get_cfg_obj() != new_config_obj
     ):
         global_obj.clear_cache()
