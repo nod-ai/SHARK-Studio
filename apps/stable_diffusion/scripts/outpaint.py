@@ -40,6 +40,7 @@ def outpaint_inf(
     scheduler: str,
     custom_model: str,
     hf_model_id: str,
+    custom_vae: str,
     precision: str,
     device: str,
     max_length: int,
@@ -81,6 +82,7 @@ def outpaint_inf(
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
+    args.custom_vae = custom_vae
 
     args.use_lora = get_custom_vae_or_lora_weights(
         lora_weights, lora_hf_id, "lora"

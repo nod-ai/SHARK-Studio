@@ -35,6 +35,7 @@ def upscaler_inf(
     scheduler: str,
     custom_model: str,
     hf_model_id: str,
+    custom_vae: str,
     precision: str,
     device: str,
     max_length: int,
@@ -77,6 +78,7 @@ def upscaler_inf(
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
+    args.custom_vae = custom_vae
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
