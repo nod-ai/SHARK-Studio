@@ -92,7 +92,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
             self.scaling_model, _ = compile_through_fx(
                 model=scaling_model,
                 inputs=(example_latent, example_sigma),
-                model_name=f"euler_scale_model_input_{BATCH_SIZE}_{args.height}_{args.width}"
+                extended_model_name=f"euler_scale_model_input_{BATCH_SIZE}_{args.height}_{args.width}"
                 + args.precision,
                 extra_args=iree_flags,
             )
@@ -101,7 +101,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
             self.step_model, _ = compile_through_fx(
                 step_model,
                 (example_output, example_sigma, example_latent, example_dt),
-                model_name=f"euler_step_{BATCH_SIZE}_{args.height}_{args.width}"
+                extended_model_name=f"euler_step_{BATCH_SIZE}_{args.height}_{args.width}"
                 + args.precision,
                 extra_args=iree_flags,
             )

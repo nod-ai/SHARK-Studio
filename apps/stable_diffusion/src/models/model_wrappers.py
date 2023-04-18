@@ -11,7 +11,6 @@ from apps.stable_diffusion.src.utils import (
     get_opt_flags,
     base_models,
     args,
-    fetch_vmfb,
     preprocessCKPT,
     get_path_to_diffusers_checkpoint,
     fetch_and_update_base_model_id,
@@ -219,9 +218,12 @@ class SharkifyStableDiffusionModel:
             inputs,
             is_f16=is_f16,
             use_tuned=self.use_tuned,
-            model_name=self.model_name["vae_encode"],
+            extended_model_name=self.model_name["vae_encode"],
             extra_args=get_opt_flags("vae", precision=self.precision),
             base_model_id=self.base_model_id,
+            model_name="vae_encode",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
         )
         return shark_vae_encode, vae_encode_mlir
 
@@ -272,12 +274,15 @@ class SharkifyStableDiffusionModel:
             inputs,
             is_f16=is_f16,
             use_tuned=self.use_tuned,
-            model_name=self.model_name["vae"],
+            extended_model_name=self.model_name["vae"],
             debug=self.debug,
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("vae", precision=self.precision),
             base_model_id=self.base_model_id,
+            model_name="vae",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
         )
         return shark_vae, vae_mlir
 
@@ -327,12 +332,15 @@ class SharkifyStableDiffusionModel:
         shark_controlled_unet, controlled_unet_mlir = compile_through_fx(
             unet,
             inputs,
-            model_name=self.model_name["stencil_unet"],
+            extended_model_name=self.model_name["stencil_unet"],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
+            model_name="stencil_unet",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
         )
         return shark_controlled_unet, controlled_unet_mlir
 
@@ -381,12 +389,15 @@ class SharkifyStableDiffusionModel:
         shark_cnet, cnet_mlir = compile_through_fx(
             scnet,
             inputs,
-            model_name=self.model_name["stencil_adaptor"],
+            extended_model_name=self.model_name["stencil_adaptor"],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
+            model_name="stencil_adaptor",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
         )
         return shark_cnet, cnet_mlir
 
@@ -437,7 +448,7 @@ class SharkifyStableDiffusionModel:
         shark_unet, unet_mlir = compile_through_fx(
             unet,
             inputs,
-            model_name=self.model_name["unet"],
+            extended_model_name=self.model_name["unet"],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
@@ -446,6 +457,9 @@ class SharkifyStableDiffusionModel:
             save_dir=save_dir,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
+            model_name="unet",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
         )
         return shark_unet, unet_mlir
 
@@ -478,12 +492,15 @@ class SharkifyStableDiffusionModel:
         shark_unet, unet_mlir = compile_through_fx(
             unet,
             inputs,
-            model_name=self.model_name["unet"],
+            extended_model_name=self.model_name["unet"],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
+            model_name="unet",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
         )
         return shark_unet, unet_mlir
 
@@ -512,12 +529,15 @@ class SharkifyStableDiffusionModel:
         shark_clip, clip_mlir = compile_through_fx(
             clip_model,
             tuple(self.inputs["clip"]),
-            model_name=self.model_name["clip"],
+            extended_model_name=self.model_name["clip"],
             debug=self.debug,
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
             extra_args=get_opt_flags("clip", precision="fp32"),
             base_model_id=self.base_model_id,
+            model_name="clip",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
         )
         return shark_clip, clip_mlir
 
@@ -555,11 +575,6 @@ class SharkifyStableDiffusionModel:
             return self.get_controlled_unet()
 
     def vae_encode(self):
-        # Fetch vmfb for the model if present
-        vmfb = fetch_vmfb("vae_encode", self.model_name["vae_encode"], self.precision)
-        if vmfb and not self.return_mlir:
-            return vmfb
-
         try:
             self.inputs["vae_encode"] = self.get_input_info_for(base_models["vae_encode"])
             compiled_vae_encode, vae_encode_mlir = self.get_vae_encode()
@@ -572,10 +587,6 @@ class SharkifyStableDiffusionModel:
             sys.exit(e)
 
     def clip(self):
-        vmfb = fetch_vmfb("clip", self.model_name["clip"], self.precision)
-        if vmfb and not self.return_mlir:
-            return vmfb
-
         try:
             self.inputs["clip"] = self.get_input_info_for(base_models["clip"])
             compiled_clip, clip_mlir = self.get_clip()
@@ -588,12 +599,8 @@ class SharkifyStableDiffusionModel:
             sys.exit(e)
 
     def unet(self):
-        model = "stencil_unet" if self.use_stencil is not None else "unet"
-        vmfb = fetch_vmfb(model, self.model_name[model], self.precision)
-        if vmfb and not self.return_mlir:
-            return vmfb
-
         try:
+            model = "stencil_unet" if self.use_stencil is not None else "unet"
             compiled_unet = None
             unet_inputs = base_models[model]
 
@@ -631,10 +638,6 @@ class SharkifyStableDiffusionModel:
             sys.exit(e)
 
     def vae(self):
-        vmfb = fetch_vmfb("vae", self.model_name["vae"], self.precision)
-        if vmfb and not self.return_mlir:
-            return vmfb
-
         try:
             vae_input = base_models["vae"]["vae_upscaler"] if self.is_upscaler else base_models["vae"]["vae"]
             self.inputs["vae"] = self.get_input_info_for(vae_input)
@@ -653,10 +656,6 @@ class SharkifyStableDiffusionModel:
             sys.exit(e)
 
     def controlnet(self):
-        vmfb = fetch_vmfb("stencil_adaptor", self.model_name["stencil_adaptor"], self.precision)
-        if vmfb and not self.return_mlir:
-            return vmfb
-
         try:
             self.inputs["stencil_adaptor"] = self.get_input_info_for(base_models["stencil_adaptor"])
             compiled_stencil_adaptor, controlnet_mlir = self.get_control_net()

@@ -39,6 +39,15 @@ def get_vmfb_path_name(model_name):
     return vmfb_path
 
 
+def _load_vmfb(shark_module, vmfb_path, model, precision):
+    model = "vae" if "base_vae" in model or "vae_encode" in model else model
+    model = "unet" if "stencil" in model else model
+    precision = "fp32" if "clip" in model else precision
+    extra_args = get_opt_flags(model, precision)
+    shark_module.load_module(vmfb_path, extra_args=extra_args)
+    return shark_module
+
+
 def _compile_module(shark_module, model_name, extra_args=[]):
     if args.load_vmfb or args.save_vmfb:
         vmfb_path = get_vmfb_path_name(model_name)
@@ -90,7 +99,7 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 def compile_through_fx(
     model,
     inputs,
-    model_name,
+    extended_model_name,
     is_f16=False,
     f16_input_mask=None,
     use_tuned=False,
@@ -99,7 +108,19 @@ def compile_through_fx(
     generate_vmfb=True,
     extra_args=[],
     base_model_id=None,
+    model_name=None,
+    precision=None,
+    return_mlir=False,
 ):
+    if not return_mlir and model_name is not None:
+        vmfb_path = get_vmfb_path_name(extended_model_name)
+        if os.path.isfile(vmfb_path):
+            shark_module = SharkInference(mlir_module=None, device=args.device)
+            return (
+                _load_vmfb(shark_module, vmfb_path, model_name, precision),
+                None,
+            )
+
     from shark.parser import shark_args
 
     if "cuda" in args.device:
@@ -114,16 +135,16 @@ def compile_through_fx(
         is_f16=is_f16,
         f16_input_mask=f16_input_mask,
         debug=debug,
-        model_name=model_name,
+        model_name=extended_model_name,
         save_dir=save_dir,
     )
     if use_tuned:
-        if "vae" in model_name.split("_")[0]:
+        if "vae" in extended_model_name.split("_")[0]:
             args.annotation_model = "vae"
         if "unet" in model_name.split("_")[0]:
             args.annotation_model = "unet"
         mlir_module = sd_model_annotation(
-            mlir_module, model_name, base_model_id
+            mlir_module, extended_model_name, base_model_id
         )
 
     shark_module = SharkInference(
@@ -131,15 +152,9 @@ def compile_through_fx(
         device=args.device,
         mlir_dialect="tm_tensor",
     )
-
     if generate_vmfb:
-        shark_module = SharkInference(
-            mlir_module,
-            device=args.device,
-            mlir_dialect="tm_tensor",
-        )
         return (
-            _compile_module(shark_module, model_name, extra_args),
+            _compile_module(shark_module, extended_model_name, extra_args),
             mlir_module,
         )
 
@@ -595,26 +610,6 @@ def update_lora_weight(model, use_lora, model_name):
         return processLoRA(model, use_lora, "lora_te_")
     except:
         return None
-
-
-def load_vmfb(vmfb_path, model, precision):
-    model = "vae" if "base_vae" in model or "vae_encode" in model else model
-    model = "unet" if "stencil" in model else model
-    precision = "fp32" if "clip" in model else precision
-    extra_args = get_opt_flags(model, precision)
-    shark_module = SharkInference(mlir_module=None, device=args.device)
-    shark_module.load_module(vmfb_path, extra_args=extra_args)
-    return shark_module
-
-
-# This utility returns vmfb of sub-model of the SD pipeline, if present.
-def fetch_vmfb(model, extended_model_name, precision="fp32"):
-    vmfb_path = get_vmfb_path_name(extended_model_name)
-    vmfb_present = os.path.isfile(vmfb_path)
-    compiled_model = (
-        load_vmfb(vmfb_path, model, precision) if vmfb_present else None
-    )
-    return compiled_model
 
 
 # `fetch_and_update_base_model_id` is a resource utility function which

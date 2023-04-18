@@ -64,9 +64,6 @@ def inpaint_inf(
     args.img_path = "not none"
     args.mask_path = "not none"
     args.ondemand = ondemand
-    if ondemand and batch_count > 1:
-        print("Low VRAM mode currently only supports 1 batch count.")
-        batch_count = 1
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -107,8 +104,7 @@ def inpaint_inf(
         ondemand=ondemand,
     )
     if (
-        args.ondemand
-        or not global_obj.get_sd_obj()
+        not global_obj.get_sd_obj()
         or global_obj.get_cfg_obj() != new_config_obj
     ):
         global_obj.clear_cache()
