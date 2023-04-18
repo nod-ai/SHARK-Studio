@@ -34,16 +34,11 @@ def main():
         args.scheduler = "DDIM"
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
         image, args.width, args.height = resize_stencil(image)
-    elif args.scheduler != "PNDM":
-        if "Shark" in args.scheduler:
-            print(
-                f"SharkEulerDiscrete scheduler not supported. Switching to PNDM scheduler"
-            )
-            args.scheduler = "PNDM"
-        else:
-            sys.exit(
-                "Img2Img works best with PNDM scheduler. Other schedulers are not supported yet."
-            )
+    elif "Shark" in args.scheduler:
+        print(
+            f"Shark schedulers are not supported. Switching to EulerDiscrete scheduler"
+        )
+        args.scheduler = "EulerDiscrete"
     cpu_scheduling = not args.scheduler.startswith("Shark")
     dtype = torch.float32 if args.precision == "fp32" else torch.half
     set_init_device_flags()

@@ -2,7 +2,7 @@ import re
 from pathlib import Path
 from apps.stable_diffusion.web.ui.utils import (
     get_custom_model_pathfile,
-    scheduler_list_txt2img,
+    scheduler_list,
     predefined_models,
 )
 
@@ -124,7 +124,7 @@ def import_png_metadata(
         if "Prompt" in metadata:
             prompt = metadata["Prompt"]
         if "Sampler" in metadata:
-            if metadata["Sampler"] in scheduler_list_txt2img:
+            if metadata["Sampler"] in scheduler_list:
                 sampler = metadata["Sampler"]
             else:
                 print(

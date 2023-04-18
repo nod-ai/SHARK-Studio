@@ -32,13 +32,7 @@ custom_model_filetypes = (
     "*.safetensors",
 )  # the tuple of file types
 
-scheduler_list = [
-    "DDIM",
-    "PNDM",
-    "DPMSolverMultistep",
-    "EulerAncestralDiscrete",
-]
-scheduler_list_txt2img = [
+scheduler_list_cpu_only = [
     "DDIM",
     "PNDM",
     "LMSDiscrete",
@@ -46,6 +40,8 @@ scheduler_list_txt2img = [
     "DPMSolverMultistep",
     "EulerDiscrete",
     "EulerAncestralDiscrete",
+]
+scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
 ]
 
