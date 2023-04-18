@@ -665,7 +665,9 @@ def clear_all():
     if os.name == "nt":  # Windows
         appdata = os.getenv("LOCALAPPDATA")
         shutil.rmtree(os.path.join(appdata, "AMD/VkCache"), ignore_errors=True)
-        shutil.rmtree(os.path.join(home, "shark_tank"), ignore_errors=True)
+        shutil.rmtree(
+            os.path.join(home, ".local/shark_tank"), ignore_errors=True
+        )
     elif os.name == "unix":
         shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
