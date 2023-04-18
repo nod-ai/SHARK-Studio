@@ -196,7 +196,7 @@ def download_model(
     tank_url=None,
     frontend=None,
     tuned=None,
-    import_args={"batch_size": "1"},
+    import_args=None,
 ):
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""

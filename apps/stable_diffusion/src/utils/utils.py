@@ -141,6 +141,8 @@ def compile_through_fx(
     if use_tuned:
         if "vae" in extended_model_name.split("_")[0]:
             args.annotation_model = "vae"
+        if "unet" in model_name.split("_")[0]:
+            args.annotation_model = "unet"
         mlir_module = sd_model_annotation(
             mlir_module, extended_model_name, base_model_id
         )
@@ -663,7 +665,9 @@ def clear_all():
     if os.name == "nt":  # Windows
         appdata = os.getenv("LOCALAPPDATA")
         shutil.rmtree(os.path.join(appdata, "AMD/VkCache"), ignore_errors=True)
-        shutil.rmtree(os.path.join(home, "shark_tank"), ignore_errors=True)
+        shutil.rmtree(
+            os.path.join(home, ".local/shark_tank"), ignore_errors=True
+        )
     elif os.name == "unix":
         shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
