@@ -70,6 +70,8 @@ def load_winograd_configs():
     config_bucket = "gs://shark_tank/sd_tuned/configs/"
     config_name = f"{args.annotation_model}_winograd_{device}.json"
     full_gs_url = config_bucket + config_name
+    if not os.path.exists(WORKDIR):
+        os.mkdir(WORKDIR)
     winograd_config_dir = os.path.join(WORKDIR, "configs", config_name)
     print("Loading Winograd config file from ", winograd_config_dir)
     download_public_file(full_gs_url, winograd_config_dir, True)
