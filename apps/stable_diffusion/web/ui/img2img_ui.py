@@ -306,11 +306,15 @@ def img2img_api(
         batch_size=1,
         scheduler="EulerDiscrete",
         custom_model="None",
-        hf_model_id="stabilityai/stable-diffusion-2-1-base",
+        hf_model_id=InputData["hf_model_id"]
+        if "hf_model_id" in InputData.keys()
+        else "stabilityai/stable-diffusion-2-1-base",
         precision="fp16",
         device=available_devices[0],
         max_length=64,
-        use_stencil="None",
+        use_stencil=InputData["use_stencil"]
+        if "use_stencil" in InputData.keys()
+        else "None",
         save_metadata_to_json=False,
         save_metadata_to_png=False,
         lora_weights="None",
