@@ -16,6 +16,7 @@ class Config:
     mode: str
     model_id: str
     ckpt_loc: str
+    custom_vae: str
     precision: str
     batch_size: int
     max_length: int
