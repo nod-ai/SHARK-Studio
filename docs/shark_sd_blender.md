@@ -13,7 +13,7 @@ We currently make use of the [AI-Render Plugin](https://github.com/benrugg/AI-Re
 .\shark_sd_<date>_<ver>.exe --api
 
 ## For example:
-.\shark_sd_20230411_671.exe --api --server_port=8082
+.\shark_sd_20230411_684.exe --api --server_port=8082
 
 ## From a the base directory of a source clone of SHARK:
 ./setup_venv.ps1
