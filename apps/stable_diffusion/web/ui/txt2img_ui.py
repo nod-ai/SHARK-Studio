@@ -44,6 +44,7 @@ def txt2img_inf(
     scheduler: str,
     custom_model: str,
     hf_model_id: str,
+    custom_vae: str,
     precision: str,
     device: str,
     max_length: int,
@@ -84,6 +85,7 @@ def txt2img_inf(
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
+    args.custom_vae = custom_vae
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
@@ -228,6 +230,16 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 value="",
                                 label="HuggingFace Model ID",
                                 lines=3,
+                            )
+                            custom_vae = gr.Dropdown(
+                                label=f"Custom Vae Models",
+                                elem_id="custom_model",
+                                value=os.path.basename(args.custom_vae)
+                                if args.custom_vae
+                                else "None",
+                                choices=["None"]
+                                + get_custom_model_files()
+                                + predefined_models,
                             )
                     with gr.Column(scale=1, min_width=170):
                         png_info_img = gr.Image(
@@ -428,6 +440,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 scheduler,
                 custom_model,
                 hf_model_id,
+                custom_vae,
                 precision,
                 device,
                 max_length,
