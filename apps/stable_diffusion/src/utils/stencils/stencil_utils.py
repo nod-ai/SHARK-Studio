@@ -126,14 +126,14 @@ def controlnet_hint_conversion(
 
 
 stencil_to_model_id_map = {
-    "canny": "lllyasviel/sd-controlnet-canny",
-    "depth": "lllyasviel/sd-controlnet-depth",
+    "canny": "lllyasviel/control_v11p_sd15_canny",
+    "depth": "lllyasviel/control_v11p_sd15_depth",
     "hed": "lllyasviel/sd-controlnet-hed",
-    "mlsd": "lllyasviel/sd-controlnet-mlsd",
-    "normal": "lllyasviel/sd-controlnet-normal",
-    "openpose": "lllyasviel/sd-controlnet-openpose",
-    "scribble": "lllyasviel/sd-controlnet-scribble",
-    "seg": "lllyasviel/sd-controlnet-seg",
+    "mlsd": "lllyasviel/control_v11p_sd15_mlsd",
+    "normal": "lllyasviel/control_v11p_sd15_normalbae",
+    "openpose": "lllyasviel/control_v11p_sd15_openpose",
+    "scribble": "lllyasviel/control_v11p_sd15_scribble",
+    "seg": "lllyasviel/control_v11p_sd15_seg",
 }
 
 

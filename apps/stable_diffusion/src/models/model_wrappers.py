@@ -161,6 +161,8 @@ class SharkifyStableDiffusionModel:
                     model_config = model_config + get_path_stem(self.custom_vae)
                 if self.base_vae:
                     sub_model = "base_vae"
+            if "stencil_adaptor" == model and self.use_stencil is not None:
+                model_config = model_config + get_path_stem(self.use_stencil)
             model_name[model] = get_extended_name(sub_model + model_config)
             index += 1
         return model_name
