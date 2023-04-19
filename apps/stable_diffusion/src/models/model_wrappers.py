@@ -667,45 +667,43 @@ class SharkifyStableDiffusionModel:
         except Exception as e:
             sys.exit(e)
 
-    def __call__(self):
-        from apps.stable_diffusion.src.utils.utils import get_vmfb_path_name
-        import traceback, functools, operator, os
-
-        model_name = ["clip", "base_vae" if self.base_vae else "vae", "unet"]
-        vmfb_path = [
-            get_vmfb_path_name(model + self.model_name)[0]
-            for model in model_name
-        ]
-        for model_id in base_models:
-            self.inputs = self.get_input_info_for(
-                base_models[model_id],
-            )
-            try:
-                compiled_unet = self.get_unet()
-                compiled_vae = self.get_vae()
-                compiled_clip = self.get_clip()
-            except Exception as e:
-                if args.enable_stack_trace:
-                    traceback.print_exc()
-                vmfb_present = [os.path.isfile(vmfb) for vmfb in vmfb_path]
-                all_vmfb_present = functools.reduce(
-                    operator.__and__, vmfb_present
-                )
-                # We need to delete vmfbs only if some of the models were compiled.
-                if not all_vmfb_present:
-                    for i in range(len(vmfb_path)):
-                        if vmfb_present[i]:
-                            os.remove(vmfb_path[i])
-                            print("Deleted: ", vmfb_path[i])
-                print("Retrying with a different base model configuration")
-                continue
-            # This is done just because in main.py we are basing the choice of tokenizer and scheduler
-            # on `args.hf_model_id`. Since now, we don't maintain 1:1 mapping of variants and the base
-            # model and rely on retrying method to find the input configuration, we should also update
-            # the knowledge of base model id accordingly into `args.hf_model_id`.
-            if args.ckpt_loc != "":
-                args.hf_model_id = model_id
-            return compiled_clip, compiled_unet, compiled_vae
-        sys.exit(
-            "Cannot compile the model. Please use `enable_stack_trace` and create an issue at https://github.com/nod-ai/SHARK/issues"
-        )
+	 def __call__(self):
+			# Step 1:
+			# --  Fetch all vmfbs for the model, if present, else delete the lot.
+			need_vae_encode, need_stencil = False, False
+			if not self.is_upscaler and args.img_path is not None:
+				if self.use_stencil is not None:
+					need_stencil = True
+				else:
+					need_vae_encode = True
+			# `mask_to_fetch` prepares a mask to pick a combination out of :-
+			# ["clip", "unet", "stencil_unet", "vae", "vae_encode", "stencil_adaptor"]
+			mask_to_fetch = [True, True, False, True, False, False]
+			if need_vae_encode:
+				mask_to_fetch = [True, True, False, True, True, False]
+			elif need_stencil:
+				mask_to_fetch = [True, False, True, True, False, True]
+			self.models_to_compile = mask_to_fetch
+			self.model_name = self.get_extended_name_for_all_model(mask_to_fetch)
+			vmfbs = fetch_vmfbs(self.model_name, self.precision)
+			# We try to see if the base model configuration for the required SD run is
+			# known to us and bypass the retry mechanism.
+			model_to_run = ""
+			if self.custom_weights != "":
+				model_to_run = self.custom_weights
+				assert self.custom_weights.lower().endswith(
+					(".ckpt", ".safetensors")
+				), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+				preprocessCKPT(self.custom_weights, self.is_inpaint)
+			else:
+				model_to_run = args.hf_model_id
+			# For custom Vae user can provide either the repo-id or a checkpoint file,
+			# and for a checkpoint file we'd need to process it via Diffusers' script.
+			self.custom_vae = self.process_custom_vae()
+			self.base_model_id = fetch_and_update_base_model_id(model_to_run)
+			if self.base_model_id != "" and args.ckpt_loc != "":
+				args.hf_model_id = self.base_model_id
+			try:
+				return self.compile_models(vmfbs, need_stencil, need_vae_encode, model_to_run)
+			except Exception as e:
+				sys.exit(e)
