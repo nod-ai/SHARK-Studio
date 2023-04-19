@@ -309,6 +309,7 @@ def img2img_api(
         hf_model_id=InputData["hf_model_id"]
         if "hf_model_id" in InputData.keys()
         else "stabilityai/stable-diffusion-2-1-base",
+        custom_vae="None",
         precision="fp16",
         device=available_devices[0],
         max_length=64,
