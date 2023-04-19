@@ -92,6 +92,7 @@ def img2img_inf(
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
     args.hf_model_id = ""
+    args.custom_vae = ""
     if custom_model == "None":
         if not hf_model_id:
             return (
@@ -103,7 +104,8 @@ def img2img_inf(
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
-    args.custom_vae = custom_vae
+    if custom_vae != "None":
+        args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
     args.use_lora = get_custom_vae_or_lora_weights(
         lora_weights, lora_hf_id, "lora"
@@ -130,6 +132,7 @@ def img2img_inf(
         "img2img",
         args.hf_model_id,
         args.ckpt_loc,
+        args.custom_vae,
         precision,
         batch_size,
         max_length,
@@ -354,14 +357,12 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
-                        label=f"Custom Vae Models",
+                        label=f"Custom Vae Models (Path: {get_custom_model_path('vae')})",
                         elem_id="custom_model",
                         value=os.path.basename(args.custom_vae)
                         if args.custom_vae
                         else "None",
-                        choices=["None"]
-                        + get_custom_model_files()
-                        + predefined_models,
+                        choices=["None"] + get_custom_model_files("vae"),
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
