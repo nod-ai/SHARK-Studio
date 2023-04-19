@@ -290,7 +290,9 @@ def encode_pil_to_base64(images):
 def img2img_api(
     InputData: dict,
 ):
-    print(InputData)
+    print(
+        f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
+    )
     init_image = decode_base64_to_image(InputData["init_images"][0])
     res = img2img_inf(
         InputData["prompt"],
