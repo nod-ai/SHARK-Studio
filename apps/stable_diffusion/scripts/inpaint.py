@@ -69,6 +69,7 @@ def inpaint_inf(
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
     args.hf_model_id = ""
+    args.custom_vae = ""
     if custom_model == "None":
         if not hf_model_id:
             return (
@@ -80,7 +81,8 @@ def inpaint_inf(
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
-    args.custom_vae = custom_vae
+    if custom_vae != "None":
+        args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
     args.use_lora = get_custom_vae_or_lora_weights(
         lora_weights, lora_hf_id, "lora"
@@ -95,6 +97,7 @@ def inpaint_inf(
         "inpaint",
         args.hf_model_id,
         args.ckpt_loc,
+        args.custom_vae,
         precision,
         batch_size,
         max_length,
