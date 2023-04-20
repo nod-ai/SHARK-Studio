@@ -3,6 +3,7 @@ import torch
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
 import torch_mlir
+from io import BytesIO
 
 tokenizer = AutoTokenizer.from_pretrained("StabilityAI/stablelm-base-alpha-7b")
 inputs = tokenizer("What's your mood today?", return_tensors="pt")
