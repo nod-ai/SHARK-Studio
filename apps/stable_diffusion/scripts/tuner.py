@@ -54,12 +54,19 @@ def main():
     # Get device and device specific arguments
     device, device_spec_args = get_device_args()
     device_spec = ""
+    vulkan_target_triple = ""
     if device_spec_args:
         device_spec = device_spec_args[-1].split("=")[-1].strip()
         if device == "vulkan":
+            vulkan_target_triple = device_spec
             device_spec = device_spec.split("-")[0]
 
     # Add winograd annotation for vulkan device
+    use_winograd = (
+        True
+        if device == "vulkan" and args.annotation_model in ["unet", "vae"]
+        else False
+    )
     winograd_config = (
         load_winograd_configs()
         if device == "vulkan" and args.annotation_model in ["unet", "vae"]
@@ -71,19 +78,23 @@ def main():
             input_contents=mlir_module,
             config_path=winograd_config,
             search_op="conv",
-            winograd=True,
+            winograd=use_winograd,
         )
 
     # Dump model dispatches
-    if device == "vulkan" and device_spec == "rdna3":
-        device = "vulkan/RX 7900"
     generates_dir = Path.home() / "tmp"
     if not os.path.exists(generates_dir):
         os.makedirs(generates_dir)
     dump_mlir = generates_dir / "temp.mlir"
     dispatch_dir = generates_dir / f"{model_name}_{device_spec}_dispatches"
     export_module_to_mlir_file(input_module, dump_mlir)
-    dump_dispatches(dump_mlir, device, dispatch_dir, False)
+    dump_dispatches(
+        dump_mlir,
+        device,
+        dispatch_dir,
+        vulkan_target_triple,
+        use_winograd=use_winograd,
+    )
 
     # Tune each dispatch
     dtype = "f16" if args.precision == "fp16" else "f32"
@@ -106,6 +117,7 @@ def main():
             batch_size=1,
             config_filename=config_filename,
             use_dispatch=True,
+            vulkan_target_triple=vulkan_target_triple,
         )
         tuner.tune()
 
