@@ -12,7 +12,12 @@ if args.clear_all:
 
 if __name__ == "__main__":
     if args.api:
-        from apps.stable_diffusion.web.ui import txt2img_inf, img2img_api
+        from apps.stable_diffusion.web.ui import (
+            txt2img_api,
+            img2img_api,
+            upscaler_api,
+            inpaint_api,
+        )
         from fastapi import FastAPI, APIRouter
         import uvicorn
 
@@ -20,8 +25,13 @@ if __name__ == "__main__":
         global_obj._init()
 
         app = FastAPI()
-        app.add_api_route("/sdapi/v1/txt2img", txt2img_inf, methods=["post"])
+        app.add_api_route("/sdapi/v1/txt2img", txt2img_api, methods=["post"])
         app.add_api_route("/sdapi/v1/img2img", img2img_api, methods=["post"])
+        app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
+        #  app.add_api_route(
+        #      "/sdapi/v1/outpaint", outpaint_api, methods=["post"]
+        #  )
+        app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
         app.include_router(APIRouter())
         uvicorn.run(app, host="127.0.0.1", port=args.server_port)
         sys.exit(0)
