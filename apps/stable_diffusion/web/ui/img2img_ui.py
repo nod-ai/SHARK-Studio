@@ -54,6 +54,7 @@ def img2img_inf(
     scheduler: str,
     custom_model: str,
     hf_model_id: str,
+    custom_vae: str,
     precision: str,
     device: str,
     max_length: int,
@@ -91,6 +92,7 @@ def img2img_inf(
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
     args.hf_model_id = ""
+    args.custom_vae = ""
     if custom_model == "None":
         if not hf_model_id:
             return (
@@ -102,6 +104,8 @@ def img2img_inf(
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
         args.hf_model_id = custom_model
+    if custom_vae != "None":
+        args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
     args.use_lora = get_custom_vae_or_lora_weights(
         lora_weights, lora_hf_id, "lora"
@@ -128,6 +132,7 @@ def img2img_inf(
         "img2img",
         args.hf_model_id,
         args.ckpt_loc,
+        args.custom_vae,
         precision,
         batch_size,
         max_length,
@@ -285,7 +290,9 @@ def encode_pil_to_base64(images):
 def img2img_api(
     InputData: dict,
 ):
-    print(InputData)
+    print(
+        f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
+    )
     init_image = decode_base64_to_image(InputData["init_images"][0])
     res = img2img_inf(
         InputData["prompt"],
@@ -301,11 +308,16 @@ def img2img_api(
         batch_size=1,
         scheduler="EulerDiscrete",
         custom_model="None",
-        hf_model_id="stabilityai/stable-diffusion-2-1-base",
+        hf_model_id=InputData["hf_model_id"]
+        if "hf_model_id" in InputData.keys()
+        else "stabilityai/stable-diffusion-2-1-base",
+        custom_vae="None",
         precision="fp16",
         device=available_devices[0],
         max_length=64,
-        use_stencil="None",
+        use_stencil=InputData["use_stencil"]
+        if "use_stencil" in InputData.keys()
+        else "None",
         save_metadata_to_json=False,
         save_metadata_to_png=False,
         lora_weights="None",
@@ -350,6 +362,14 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         value="",
                         label="HuggingFace Model ID",
                         lines=3,
+                    )
+                    custom_vae = gr.Dropdown(
+                        label=f"Custom Vae Models (Path: {get_custom_model_path('vae')})",
+                        elem_id="custom_model",
+                        value=os.path.basename(args.custom_vae)
+                        if args.custom_vae
+                        else "None",
+                        choices=["None"] + get_custom_model_files("vae"),
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -548,6 +568,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 scheduler,
                 custom_model,
                 hf_model_id,
+                custom_vae,
                 precision,
                 device,
                 max_length,

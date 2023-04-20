@@ -47,6 +47,14 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         label="HuggingFace Model ID",
                         lines=3,
                     )
+                    custom_vae = gr.Dropdown(
+                        label=f"Custom Vae Models (Path: {get_custom_model_path('vae')})",
+                        elem_id="custom_model",
+                        value=os.path.basename(args.custom_vae)
+                        if args.custom_vae
+                        else "None",
+                        choices=["None"] + get_custom_model_files("vae"),
+                    )
 
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
@@ -267,6 +275,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 scheduler,
                 custom_model,
                 hf_model_id,
+                custom_vae,
                 precision,
                 device,
                 max_length,
