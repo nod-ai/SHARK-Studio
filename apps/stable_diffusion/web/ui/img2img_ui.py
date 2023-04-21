@@ -8,7 +8,6 @@ from PIL import Image
 import base64
 from io import BytesIO
 from fastapi.exceptions import HTTPException
-from apps.stable_diffusion.src import args
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,

@@ -2,8 +2,12 @@ from pathlib import Path
 import os
 import torch
 import time
+import sys
 import gradio as gr
 from PIL import Image
+import base64
+from io import BytesIO
+from fastapi.exceptions import HTTPException
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -198,6 +202,63 @@ def txt2img_inf(
             yield generated_imgs, text_output
 
     return generated_imgs, text_output
+
+
+def encode_pil_to_base64(images):
+    encoded_imgs = []
+    for image in images:
+        with BytesIO() as output_bytes:
+            if args.output_img_format.lower() == "png":
+                image.save(output_bytes, format="PNG")
+
+            elif args.output_img_format.lower() in ("jpg", "jpeg"):
+                image.save(output_bytes, format="JPEG")
+            else:
+                raise HTTPException(
+                    status_code=500, detail="Invalid image format"
+                )
+            bytes_data = output_bytes.getvalue()
+            encoded_imgs.append(base64.b64encode(bytes_data))
+    return encoded_imgs
+
+
+# Text2Img Rest API.
+def txt2img_api(
+    InputData: dict,
+):
+    print(
+        f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
+    )
+    res = txt2img_inf(
+        InputData["prompt"],
+        InputData["negative_prompt"],
+        InputData["height"],
+        InputData["width"],
+        InputData["steps"],
+        InputData["cfg_scale"],
+        InputData["seed"],
+        batch_count=1,
+        batch_size=1,
+        scheduler="EulerDiscrete",
+        custom_model="None",
+        hf_model_id=InputData["hf_model_id"]
+        if "hf_model_id" in InputData.keys()
+        else "stabilityai/stable-diffusion-2-1-base",
+        custom_vae="None",
+        precision="fp16",
+        device=available_devices[0],
+        max_length=64,
+        save_metadata_to_json=False,
+        save_metadata_to_png=False,
+        lora_weights="None",
+        lora_hf_id="",
+        ondemand=False,
+    )
+    return {
+        "images": encode_pil_to_base64(res[0]),
+        "parameters": {},
+        "info": res[1],
+    }
 
 
 with gr.Blocks(title="Text-to-Image") as txt2img_web:
