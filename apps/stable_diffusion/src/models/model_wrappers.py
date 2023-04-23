@@ -267,7 +267,7 @@ class SharkifyStableDiffusionModel:
 
         vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         inputs = tuple(self.inputs["vae"])
-        is_f16 = True if self.precision == "fp16" else False
+        is_f16 = True if not self.is_upscaler and self.precision == "fp16" else False
         save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
         if self.debug:
             os.makedirs(save_dir, exist_ok=True)
