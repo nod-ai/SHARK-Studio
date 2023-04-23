@@ -489,18 +489,16 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
+                    output_dir = (
+                        args.output_dir if args.output_dir else Path.cwd()
+                    )
+                    output_dir = Path(output_dir, "generated_imgs")
                     std_output = gr.Textbox(
-                        value="Nothing to show.",
+                        value=f"Images will be saved at {output_dir}",
                         lines=1,
+                        elem_id="std_output",
                         show_label=False,
                     )
-                output_dir = args.output_dir if args.output_dir else Path.cwd()
-                output_dir = Path(output_dir, "generated_imgs")
-                output_loc = gr.Textbox(
-                    label="Saving Images at",
-                    value=output_dir,
-                    interactive=False,
-                )
                 with gr.Row():
                     inpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     inpaint_sendto_outpaint = gr.Button(
