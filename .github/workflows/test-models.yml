@@ -137,7 +137,7 @@ jobs:
         export DYLD_LIBRARY_PATH=/usr/local/lib/
         echo $PATH
         pip list | grep -E "torch|iree"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k vulkan --update_tank
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k vulkan
 
     - name: Validate Vulkan Models (a100)
       if: matrix.suite == 'vulkan' && matrix.os == 'a100'
