@@ -133,7 +133,7 @@ def get_vendor(triple):
         return "Apple"
     if arch in ["arc", "UHD"]:
         return "Intel"
-    if arch in ["turing", "ampere"]:
+    if arch in ["turing", "ampere", "pascal"]:
         return "NVIDIA"
     if arch == "ardeno":
         return "Qualcomm"
@@ -151,7 +151,7 @@ def get_device_type(triple):
         return "Unknown"
     if arch == "cpu":
         return "CPU"
-    if arch in ["turing", "ampere", "arc"]:
+    if arch in ["turing", "ampere", "arc", "pascal"]:
         return "DiscreteGPU"
     if arch in ["rdna1", "rdna2", "rdna3", "rgcn3", "rgcn5"]:
         if product == "ivega10":
@@ -388,6 +388,39 @@ def get_vulkan_target_capabilities(triple):
                 "Shuffle",
                 "ShuffleRelative",
             ]
+
+    elif arch in ["pascal"]:
+        cap["maxComputeSharedMemorySize"] = 49152
+        cap["maxComputeWorkGroupInvocations"] = 1536
+        cap["maxComputeWorkGroupSize"] = [1536, 1024, 64]
+
+        cap["subgroupSize"] = 32
+        cap["minSubgroupSize"] = 32
+        cap["maxSubgroupSize"] = 32
+        cap["subgroupFeatures"] = [
+            "Basic",
+            "Vote",
+            "Arithmetic",
+            "Ballot",
+            "Shuffle",
+            "ShuffleRelative",
+            "Clustered",
+            "Quad",
+        ]
+
+        cap["shaderFloat16"] = True
+        cap["shaderFloat64"] = True
+        cap["shaderInt8"] = True
+        cap["shaderInt16"] = True
+        cap["shaderInt64"] = True
+        cap["storageBuffer16BitAccess"] = True
+        cap["storagePushConstant16"] = True
+        cap["uniformAndStorageBuffer16BitAccess"] = True
+        cap["storageBuffer8BitAccess"] = True
+        cap["storagePushConstant8"] = True
+        cap["uniformAndStorageBuffer8BitAccess"] = True
+        cap["variablePointers"] = True
+        cap["variablePointersStorageBuffer"] = True
 
     elif arch in ["ampere", "turing"]:
         cap["maxComputeSharedMemorySize"] = 49152
