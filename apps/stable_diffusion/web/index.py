@@ -59,6 +59,7 @@ if __name__ == "__main__":
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
     from apps.stable_diffusion.web.ui import (
+        chatbot_web,
         txt2img_web,
         txt2img_gallery,
         txt2img_sendto_img2img,
@@ -119,6 +120,8 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
+            with gr.TabItem(label="Chatbot", id=5):
+                chatbot_web.render()
 
         with gr.Tabs(visible=False) as experimental_tabs:
             with gr.TabItem(label="LoRA Training", id=5):
