@@ -29,6 +29,7 @@ from apps.stable_diffusion.src import (
     save_output_img,
 )
 from apps.stable_diffusion.src.utils import get_generation_text_info
+import numpy as np
 
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
@@ -41,7 +42,7 @@ init_import_mlir = args.import_mlir
 def img2img_inf(
     prompt: str,
     negative_prompt: str,
-    init_image,
+    image_dict,
     height: int,
     width: int,
     steps: int,
@@ -84,9 +85,12 @@ def img2img_inf(
     args.img_path = "not none"
     args.ondemand = ondemand
 
-    if init_image is None:
+    if image_dict is None:
         return None, "An Initial Image is required"
-    image = init_image.convert("RGB")
+    if use_stencil == "scribble":
+        image = image_dict["mask"].convert("RGB")
+    else:
+        image = image_dict["image"].convert("RGB")
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -292,7 +296,7 @@ def img2img_api(
     print(
         f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
     )
-    init_image = decode_base64_to_image(InputData["init_images"][0])
+    init_image = decode_base64_to_image(InputData["image"])
     res = img2img_inf(
         InputData["prompt"],
         InputData["negative_prompt"],
@@ -386,7 +390,10 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     )
 
                 img2img_init_image = gr.Image(
-                    label="Input Image", type="pil"
+                    label="Input Image",
+                    source="upload",
+                    tool="sketch",
+                    type="pil",
                 ).style(height=300)
 
                 with gr.Accordion(label="Stencil Options", open=False):
@@ -397,6 +404,57 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             value="None",
                             choices=["None", "canny", "openpose", "scribble"],
                         )
+
+                    def show_canvas(choice):
+                        if choice == "scribble":
+                            return (
+                                gr.Slider.update(visible=True),
+                                gr.Slider.update(visible=True),
+                                gr.Button.update(visible=True),
+                            )
+                        else:
+                            return (
+                                gr.Slider.update(visible=False),
+                                gr.Slider.update(visible=False),
+                                gr.Button.update(visible=False),
+                            )
+
+                    def create_canvas(w, h):
+                        return np.zeros(shape=(h, w, 3), dtype=np.uint8) + 255
+
+                    with gr.Row():
+                        canvas_width = gr.Slider(
+                            label="Canvas Width",
+                            minimum=256,
+                            maximum=1024,
+                            value=512,
+                            step=1,
+                            visible=False,
+                        )
+                        canvas_height = gr.Slider(
+                            label="Canvas Height",
+                            minimum=256,
+                            maximum=1024,
+                            value=512,
+                            step=1,
+                            visible=False,
+                        )
+                    create_button = gr.Button(
+                        label="Start",
+                        value="Open drawing canvas!",
+                        visible=False,
+                    )
+                    create_button.click(
+                        fn=create_canvas,
+                        inputs=[canvas_width, canvas_height],
+                        outputs=[img2img_init_image],
+                    )
+                    use_stencil.change(
+                        fn=show_canvas,
+                        inputs=use_stencil,
+                        outputs=[canvas_width, canvas_height, create_button],
+                    )
+
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         lora_weights = gr.Dropdown(
