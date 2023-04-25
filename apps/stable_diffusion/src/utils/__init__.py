@@ -24,6 +24,7 @@ from apps.stable_diffusion.src.utils.utils import (
     get_available_devices,
     get_opt_flags,
     preprocessCKPT,
+    convert_original_vae,
     fetch_and_update_base_model_id,
     get_path_to_diffusers_checkpoint,
     sanitize_seed,

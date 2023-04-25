@@ -14,6 +14,7 @@ from apps.stable_diffusion.src.utils import (
     base_models,
     args,
     preprocessCKPT,
+    convert_original_vae,
     get_path_to_diffusers_checkpoint,
     fetch_and_update_base_model_id,
     get_path_stem,
@@ -571,8 +572,12 @@ class SharkifyStableDiffusionModel:
                 vae_checkpoint = safetensors.torch.load_file(self.custom_vae, device="cpu")
             if "state_dict" in vae_checkpoint:
                 vae_checkpoint = vae_checkpoint["state_dict"]
-            vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
-            return vae_dict
+
+            try:
+                vae_checkpoint = convert_original_vae(vae_checkpoint)
+            finally:
+                vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
+                return vae_dict
 
     def compile_unet_variants(self, model):
         if model == "unet":
