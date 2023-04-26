@@ -91,7 +91,10 @@ def inpaint_inf(
                 None,
                 "Please provide either custom model or huggingface model ID, both must not be empty",
             )
-        args.hf_model_id = hf_model_id
+        if "civitai" in hf_model_id:
+            args.ckpt_loc = hf_model_id
+        else:
+            args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
@@ -315,9 +318,9 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     )
                     hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting, https://civitai.com/api/download/models/3433",
                         value="",
-                        label="HuggingFace Model ID",
+                        label="HuggingFace Model ID or Civitai model download url",
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
