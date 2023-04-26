@@ -90,6 +90,7 @@ if __name__ == "__main__":
         upscaler_sendto_inpaint,
         upscaler_sendto_outpaint,
         lora_train_web,
+        model_web,
     )
 
     # init global sd pipeline and config
@@ -119,6 +120,8 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
+            with gr.TabItem(label="Model Base", id=5):
+                model_web.render()
 
         with gr.Tabs(visible=False) as experimental_tabs:
             with gr.TabItem(label="LoRA Training", id=5):

@@ -320,7 +320,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         elem_id="hf_model_id",
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting, https://civitai.com/api/download/models/3433",
                         value="",
-                        label="HuggingFace Model ID or Civitai model download url",
+                        label="HuggingFace Model ID or Civitai model download URL",
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
