@@ -48,4 +48,7 @@ from apps.stable_diffusion.web.ui.upscaler_ui import (
     upscaler_sendto_inpaint,
     upscaler_sendto_outpaint,
 )
+
 from apps.stable_diffusion.web.ui.lora_train_ui import lora_train_web
+
+from apps.stable_diffusion.web.ui.model_page import model_web
