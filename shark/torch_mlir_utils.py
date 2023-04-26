@@ -19,6 +19,12 @@ import tempfile
 from shark.parser import shark_args
 import io
 
+mlir_type_mapping_dict = {
+    "linalg": torch_mlir.OutputType.LINALG_ON_TENSORS,
+    "mhlo": torch_mlir.OutputType.STABLEHLO,
+    "tosa": torch_mlir.OutputType.TOSA,
+}
+
 
 def get_module_name_for_asm_dump(module):
     """Gets a name suitable for an assembly dump.
@@ -57,6 +63,7 @@ def get_torch_mlir_module(
     dynamic: bool,
     jit_trace: bool,
     return_str: bool = False,
+    mlir_type: str = "linalg",
 ):
     """Get the MLIR's linalg-on-tensors module from the torchscipt module."""
     ignore_traced_shapes = False
@@ -70,10 +77,11 @@ def get_torch_mlir_module(
     mlir_module = torch_mlir.compile(
         module,
         input,
-        output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
+        output_type=mlir_type_mapping_dict[mlir_type],
         use_tracing=jit_trace,
         ignore_traced_shapes=ignore_traced_shapes,
     )
+
     if return_str:
         return mlir_module.operation.get_asm()
     bytecode_stream = io.BytesIO()
