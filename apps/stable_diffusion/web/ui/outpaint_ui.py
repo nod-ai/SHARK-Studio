@@ -329,9 +329,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                     )
                     hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting, https://civitai.com/api/download/models/3433",
                         value="",
-                        label="HuggingFace Model ID",
+                        label="HuggingFace Model ID or Civitai model download URL",
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
@@ -371,9 +371,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4, https://civitai.com/api/download/models/3433",
+                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
                             value="",
-                            label="HuggingFace Model ID or Civitai model download url",
+                            label="HuggingFace Model ID",
                             lines=3,
                         )
                 with gr.Accordion(label="Advanced Options", open=False):
