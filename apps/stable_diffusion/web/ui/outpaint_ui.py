@@ -93,7 +93,10 @@ def outpaint_inf(
                 None,
                 "Please provide either custom model or huggingface model ID, both must not be empty",
             )
-        args.hf_model_id = hf_model_id
+        if "civitai" in hf_model_id:
+            args.ckpt_loc = hf_model_id
+        else:
+            args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
@@ -368,9 +371,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4, https://civitai.com/api/download/models/3433",
                             value="",
-                            label="HuggingFace Model ID",
+                            label="HuggingFace Model ID or Civitai model download url",
                             lines=3,
                         )
                 with gr.Accordion(label="Advanced Options", open=False):

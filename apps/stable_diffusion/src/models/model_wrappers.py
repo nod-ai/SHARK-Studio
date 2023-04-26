@@ -1,9 +1,11 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel, ControlNetModel
 from transformers import CLIPTextModel
 from collections import defaultdict
+from pathlib import Path
 import torch
 import safetensors.torch
 import traceback
+import subprocess
 import sys
 import os
 from apps.stable_diffusion.src.utils import (
@@ -91,10 +93,19 @@ class SharkifyStableDiffusionModel:
         self.custom_weights = custom_weights
         self.use_quantize = use_quantize
         if custom_weights != "":
-            assert custom_weights.lower().endswith(
-                (".ckpt", ".safetensors")
-            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
-            custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
+            if "civitai" in custom_weights:
+                weights_id = custom_weights.split("/")[-1]
+                # TODO: use model name and identify file type by civitai rest api
+                weights_path = str(Path.cwd()) + "/models/" + weights_id + ".safetensors"
+                if not os.path.isfile(weights_path):
+                    subprocess.run(["wget", custom_weights, "-O", weights_path])
+                custom_weights = get_path_to_diffusers_checkpoint(weights_path)
+                self.custom_weights = weights_path
+            else:
+                assert custom_weights.lower().endswith(
+                    (".ckpt", ".safetensors")
+                ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+                custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
         # TODO: remove the following line when stable-diffusion-2-1 works
         if self.model_id == "stabilityai/stable-diffusion-2-1":
