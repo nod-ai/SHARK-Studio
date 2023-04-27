@@ -493,6 +493,13 @@ p.add_argument(
     default="",
     help="Path to directory where all .ckpts are stored in order to populate them in the web UI",
 )
+# TODO: replace API flag when these can be run together
+p.add_argument(
+    "--web_mode",
+    type=str,
+    default="app",
+    help="any number of: [api, app, webui]. Currently api can't be run with others.",
+)
 
 
 p.add_argument(

@@ -1,3 +1,4 @@
+from multiprocessing import Process, freeze_support
 import os
 import sys
 import transformers
@@ -10,8 +11,22 @@ if sys.platform == "darwin":
 if args.clear_all:
     clear_all()
 
+
+def launch_app(address):
+    from tkinter import Tk
+    import webview
+
+    tk = Tk()
+    #  size of the window where we show our website
+    tk.geometry("1280x720")
+    webview.create_window("SHARK", address)
+    webview.start(private_mode=False)
+
+
 if __name__ == "__main__":
-    if args.api:
+    # required to do multiprocessing in a pyinstaller freeze
+    freeze_support()
+    if args.api or "api" in args.web_mode.split(","):
         from apps.stable_diffusion.web.ui import (
             txt2img_api,
             img2img_api,
@@ -221,9 +236,14 @@ if __name__ == "__main__":
             [outpaint_init_image, tabs],
         )
     sd_web.queue()
+    if "app" in args.web_mode.split(","):
+        t = Process(
+            target=launch_app, args=[f"http://localhost:{args.server_port}"]
+        )
+        t.start()
     sd_web.launch(
         share=args.share,
-        inbrowser=True,
+        inbrowser="webui" in args.web_mode.split(","),
         server_name="0.0.0.0",
         server_port=args.server_port,
     )
