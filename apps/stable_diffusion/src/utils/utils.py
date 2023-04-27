@@ -464,7 +464,7 @@ def get_path_stem(path):
 def get_path_to_diffusers_checkpoint(custom_weights):
     path = Path(custom_weights)
     diffusers_path = path.parent.absolute()
-    diffusers_directory_name = path.stem
+    diffusers_directory_name = os.path.join("diffusers", path.stem)
     complete_path_to_diffusers = diffusers_path / diffusers_directory_name
     complete_path_to_diffusers.mkdir(parents=True, exist_ok=True)
     path_to_diffusers = complete_path_to_diffusers.as_posix()

@@ -286,7 +286,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 elem_id="custom_model",
                                 value=os.path.basename(args.ckpt_loc)
                                 if args.ckpt_loc
-                                else "None",
+                                else "stabilityai/stable-diffusion-2-1-base",
                                 choices=["None"]
                                 + get_custom_model_files()
                                 + predefined_models,

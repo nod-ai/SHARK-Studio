@@ -55,14 +55,12 @@ if __name__ == "__main__":
     from apps.stable_diffusion.web.utils.gradio_configs import (
         clear_gradio_tmp_imgs_folder,
     )
-    from apps.stable_diffusion.web.ui.utils import get_custom_model_path
+    from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
 
     # Clear all gradio tmp images from the last session
     clear_gradio_tmp_imgs_folder()
-    # Create the custom model folder if it doesn't already exist
-    dir = ["models", "vae", "lora"]
-    for root in dir:
-        get_custom_model_path(root).mkdir(parents=True, exist_ok=True)
+    # Create custom models folders if they don't exist
+    create_custom_models_folders()
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
