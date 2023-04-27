@@ -364,9 +364,9 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     )
                     hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3, https://a88802436301955b3a.gradio.live",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3, https://civitai.com/api/download/models/15236",
                         value="",
-                        label="HuggingFace Model ID or Civitai model download url",
+                        label="HuggingFace Model ID or Civitai model download URL",
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
