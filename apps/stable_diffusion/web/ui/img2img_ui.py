@@ -366,7 +366,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="hf_model_id",
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3, https://a88802436301955b3a.gradio.live",
                         value="",
-                        label="HuggingFace Model ID or Civitai model download URL",
+                        label="HuggingFace Model ID or Civitai model download url",
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
