@@ -1,6 +1,7 @@
 import os
 import gradio as gr
 import requests
+from io import BytesIO
 from PIL import Image
 from shark.iree_utils._common import run_cmd
 
@@ -61,15 +62,14 @@ def get_civit_list(num_of_models=50):
 
 def get_image_from_model(model_json):
     model_id = model_json["modelId"]
-    path = None
+    image = None
     for img_info in model_json["images"]:
         if img_info["nsfw"] == "None":
             image_url = model_json["images"][0]["url"]
-            save_img = f"curl {image_url} -o /tmp/{model_id}.jpeg"
-            run_cmd(save_img)
-            path = f"/tmp/{model_id}.jpeg"
+            response = requests.get(image_url)
+            image = BytesIO(response.content)
             break
-    return path
+    return image
 
 
 hf_model_list = get_hf_list()
@@ -101,10 +101,10 @@ with gr.Blocks() as model_web:
     with gr.Column(visible=False) as civit_block:
         for model in civit_model_list:
             with gr.Row():
-                img_path = get_image_from_model(model)
-                if img_path is None:
+                image = get_image_from_model(model)
+                if image is None:
                     continue
-                model_img = Image.open(img_path)
+                model_img = Image.open(image)
                 gr.Image(
                     value=model_img,
                     show_label=False,
