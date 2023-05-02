@@ -307,7 +307,7 @@ def get_iree_module(flatbuffer_blob, device, device_idx=None):
     )
     ctx = ireert.SystemContext(config=config)
     ctx.add_vm_module(vm_module)
-    ModuleCompiled = ctx.modules.module
+    ModuleCompiled = getattr(ctx.modules, vm_module.name)
     return ModuleCompiled, config
 
 
