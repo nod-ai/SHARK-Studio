@@ -1,0 +1,5 @@
+flax
+jax
+nodai-SHARK
+transformers
+torch
