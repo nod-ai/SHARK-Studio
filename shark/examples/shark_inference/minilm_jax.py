@@ -48,9 +48,7 @@ sample_input = get_sample_input()
 mlir = export_to_mlir(sample_input)
 
 # Compile and load module.
-shark_inference = SharkInference(
-    mlir_module=mlir, mlir_dialect="mhlo", device="cpu"
-)
+shark_inference = SharkInference(mlir_module=mlir, mlir_dialect="mhlo")
 shark_inference.compile()
 
 # Run main function.
