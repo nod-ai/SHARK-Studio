@@ -322,9 +322,11 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
-                        else "None",
+                        else "stabilityai/stable-diffusion-2-inpainting",
                         choices=["None"]
-                        + get_custom_model_files()
+                        + get_custom_model_files(
+                            custom_checkpoint_type="inpainting"
+                        )
                         + predefined_paint_models,
                     )
                     hf_model_id = gr.Textbox(

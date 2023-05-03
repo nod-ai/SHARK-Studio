@@ -314,9 +314,11 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
-                        else "None",
+                        else "stabilityai/stable-diffusion-x4-upscaler",
                         choices=["None"]
-                        + get_custom_model_files()
+                        + get_custom_model_files(
+                            custom_checkpoint_type="upscaler"
+                        )
                         + predefined_upscaler_models,
                     )
                     hf_model_id = gr.Textbox(
