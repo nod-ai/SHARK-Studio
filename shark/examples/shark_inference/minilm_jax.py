@@ -39,9 +39,7 @@ def get_sample_input():
 def export_to_mlir(sample_input: NumpyTree):
     model = FlaxAutoModel.from_pretrained("microsoft/MiniLM-L12-H384-uncased")
     model_mlir = jax.jit(model).lower(**sample_input).compiler_ir()
-    byte_stream = io.BytesIO()
-    model_mlir.operation.write_bytecode(file=byte_stream)
-    return byte_stream.getvalue()
+    return str(model_mlir).encode()
 
 
 sample_input = get_sample_input()
