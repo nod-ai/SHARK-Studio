@@ -4,6 +4,7 @@ import torch
 import time
 import sys
 import gradio as gr
+import PIL
 from PIL import Image
 import base64
 from io import BytesIO
@@ -89,6 +90,8 @@ def img2img_inf(
         return None, "An Initial Image is required"
     if use_stencil == "scribble":
         image = image_dict["mask"].convert("RGB")
+    elif isinstance(image_dict, PIL.Image.Image):
+        image = image_dict.convert("RGB")
     else:
         image = image_dict["image"].convert("RGB")
 
@@ -299,7 +302,7 @@ def img2img_api(
     print(
         f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
     )
-    init_image = decode_base64_to_image(InputData["image"])
+    init_image = decode_base64_to_image(InputData["init_images"][0])
     res = img2img_inf(
         InputData["prompt"],
         InputData["negative_prompt"],
