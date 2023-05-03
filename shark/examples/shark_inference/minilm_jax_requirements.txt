@@ -1,5 +1,5 @@
 flax
-jax
+jax[cpu]
 nodai-SHARK
 transformers
 torch
