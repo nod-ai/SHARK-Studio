@@ -45,10 +45,15 @@ def run_cmd(cmd, debug=False):
 
 def iree_device_map(device):
     uri_parts = device.split("://", 2)
+    iree_driver = (
+        _IREE_DEVICE_MAP[uri_parts[0]]
+        if uri_parts[0] in _IREE_DEVICE_MAP
+        else uri_parts[0]
+    )
     if len(uri_parts) == 1:
-        return _IREE_DEVICE_MAP[uri_parts[0]]
+        return iree_driver
     else:
-        return f"{_IREE_DEVICE_MAP[uri_parts[0]]}://{uri_parts[1]}"
+        return f"{iree_driver}://{uri_parts[1]}"
 
 
 def get_supported_device_list():
@@ -68,7 +73,7 @@ _IREE_DEVICE_MAP = {
 def iree_target_map(device):
     if "://" in device:
         device = device.split("://")[0]
-    return _IREE_TARGET_MAP[device]
+    return _IREE_TARGET_MAP[device] if device in _IREE_TARGET_MAP else device
 
 
 _IREE_TARGET_MAP = {
@@ -110,10 +115,8 @@ def check_device_drivers(device):
             subprocess.check_output("rocminfo")
         except Exception:
             return True
-    # Unknown device.
-    else:
-        return True
 
+    # Unknown device. We assume drivers are installed.
     return False
 
 
