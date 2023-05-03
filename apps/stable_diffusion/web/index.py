@@ -106,6 +106,7 @@ if __name__ == "__main__":
         upscaler_sendto_outpaint,
         lora_train_web,
         model_web,
+        stablelm_chat,
     )
 
     # init global sd pipeline and config
@@ -138,9 +139,11 @@ if __name__ == "__main__":
             with gr.TabItem(label="Model Manager", id=5):
                 model_web.render()
 
-        with gr.Tabs(visible=False) as experimental_tabs:
-            with gr.TabItem(label="LoRA Training", id=5):
+        with gr.Tabs(visible=True) as experimental_tabs:
+            with gr.TabItem(label="LoRA Training", id=6):
                 lora_train_web.render()
+            with gr.TabItem(label="Chat Bot", id=7):
+                stablelm_chat.render()
 
         register_button_click(
             txt2img_sendto_img2img,
