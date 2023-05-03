@@ -2,9 +2,10 @@
 # Sets up a venv suitable for running samples.
 # e.g:
 # ./setup_venv.sh  #setup a default $PYTHON3 shark.venv
-# Environment Variables by the script.
+# Environment variables used by the script.
 # PYTHON=$PYTHON3.10 ./setup_venv.sh  #pass a version of $PYTHON to use
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
+# SKIP_VENV=1 #Don't create and activate a Python venv. Use the current environment. 
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
 # IMPORTER=1 #Install importer deps
 # BENCHMARK=1 #Install benchmark deps
@@ -26,15 +27,17 @@ PYTHON_VERSION_X_Y=`${PYTHON} -c 'import sys; version=sys.version_info[:2]; prin
 echo "Python: $PYTHON"
 echo "Python version: $PYTHON_VERSION_X_Y"
 
-if [[ -z "${CONDA_PREFIX}" ]]; then
-  # Not a conda env. So create a new VENV dir
-  VENV_DIR=${VENV_DIR:-shark.venv}
-  echo "Using pip venv.. Setting up venv dir: $VENV_DIR"
-  $PYTHON -m venv "$VENV_DIR" || die "Could not create venv."
-  source "$VENV_DIR/bin/activate" || die "Could not activate venv"
-  PYTHON="$(which python3)"
-else
-  echo "Found conda env $CONDA_DEFAULT_ENV. Running pip install inside the conda env"
+if [[ "$SKIP_VENV" != "1" ]]; then
+  if [[ -z "${CONDA_PREFIX}" ]]; then
+    # Not a conda env. So create a new VENV dir
+    VENV_DIR=${VENV_DIR:-shark.venv}
+    echo "Using pip venv.. Setting up venv dir: $VENV_DIR"
+    $PYTHON -m venv "$VENV_DIR" || die "Could not create venv."
+    source "$VENV_DIR/bin/activate" || die "Could not activate venv"
+    PYTHON="$(which python3)"
+  else
+    echo "Found conda env $CONDA_DEFAULT_ENV. Running pip install inside the conda env"
+  fi
 fi
 
 Red=`tput setaf 1`
@@ -147,8 +150,7 @@ if [[ ! -z "${ONNX}" ]]; then
   fi
 fi
 
-if [[ -z "${CONDA_PREFIX}" ]]; then
+if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
   echo "${Green}Before running examples activate venv with:"
   echo "  ${Green}source $VENV_DIR/bin/activate"
 fi
-
