@@ -14,6 +14,7 @@ from transformers import (
     TextIteratorStreamer,
     StoppingCriteriaList,
 )
+from apps.stable_diffusion.web.ui.utils import available_devices
 
 start_message = """<|SYSTEM|># StableLM Tuned (Alpha version)
 - StableLM is a helpful and harmless open-source AI language model developed by StabilityAI.
@@ -90,8 +91,25 @@ def chat(curr_system_message, history):
     return words_list
 
 
-with gr.Blocks(title="StableLM chatbot") as stablelm_chat:
-    gr.Markdown("## StableLM-Tuned-Alpha-3b Chat")
+with gr.Blocks(title="Chatbot") as stablelm_chat:
+    with gr.Row():
+        model = gr.Dropdown(
+            label="Select Model",
+            value="stabilityai/stablelm-tuned-alpha-3b",
+            choices=["stabilityai/stablelm-tuned-alpha-3b"],
+        )
+        device_value = None
+        for d in available_devices:
+            if "cuda" in d:
+                device_value = d
+                break
+
+        device = gr.Dropdown(
+            label="Device",
+            value=device_value if device_value else available_devices[0],
+            interactive=False,
+            choices=available_devices,
+        )
     chatbot = gr.Chatbot().style(height=500)
     with gr.Row():
         with gr.Column():
