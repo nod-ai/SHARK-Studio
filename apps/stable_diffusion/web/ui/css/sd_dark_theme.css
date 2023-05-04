@@ -173,7 +173,30 @@ footer {
 #gallery .thumbnail-item.thumbnail-lg {
     aspect-ratio: unset;
     max-height: calc(55vh - (2 * var(--spacing-lg)));
-    min-height: 390px
+}
+@media (min-width: 1921px) {
+    /* Force a 768px_height + 4px_margin_height + navbar_height for the gallery */
+    #gallery .grid-wrap, #gallery .preview{
+        min-height: calc(768px + 4px + var(--size-14));
+        max-height: calc(768px + 4px + var(--size-14));
+    }
+    /* Limit height to 768px_height + 2px_margin_height for the thumbnails */
+    #gallery .thumbnail-item.thumbnail-lg {
+        max-height: 770px !important;
+    }
+}
+/* Don't upscale when viewing in solo image mode */
+#gallery .preview img {
+    object-fit: scale-down;
+}
+/* Navbar images in cover mode*/
+#gallery .preview .thumbnail-item img {
+    object-fit: cover;
+}
+
+/* Limit the stable diffusion text output height */
+#std_output textarea {
+    max-height: 215px;
 }
 
 /* Prevent progress bar to block gallery navigation while building images (Gradio V3.19.0) */

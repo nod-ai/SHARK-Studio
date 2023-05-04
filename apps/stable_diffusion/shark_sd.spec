@@ -29,6 +29,8 @@ datas += collect_data_files('gradio_client')
 datas += collect_data_files('iree')
 datas += collect_data_files('google-cloud-storage')
 datas += collect_data_files('shark')
+datas += collect_data_files('tkinter')
+datas += collect_data_files('webview')
 datas += [
          ( 'src/utils/resources/prompts.json', 'resources' ),
          ( 'src/utils/resources/model_db.json', 'resources' ),

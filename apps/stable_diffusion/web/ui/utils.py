@@ -72,30 +72,36 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
+def create_custom_models_folders():
+    dir = ["vae", "lora"]
+    if not args.ckpt_dir:
+        dir.insert(0, "models")
+    else:
+        if not os.path.isdir(args.ckpt_dir):
+            sys.exit(
+                f"Invalid --ckpt_dir argument, {args.ckpt_dir} folder does not exists."
+            )
+    for root in dir:
+        get_custom_model_path(root).mkdir(parents=True, exist_ok=True)
+
+
 def get_custom_model_path(model="models"):
-    # If `--ckpt_dir` is provided it'd override the heirarchical folder
     # structure in WebUI :-
-    #       model
+    #       models or args.ckpt_dir
     #         |___lora
     #         |___vae
+    sub_folder = "" if model == "models" else model
     if args.ckpt_dir:
-        return Path(args.ckpt_dir)
-    match model:
-        case "models":
-            return Path(Path.cwd(), "models")
-        case "vae":
-            return Path(Path.cwd(), "models/vae")
-        case "lora":
-            return Path(Path.cwd(), "models/lora")
-        case _:
-            return ""
+        return Path(Path(args.ckpt_dir), sub_folder)
+    else:
+        return Path(Path.cwd(), "models/" + sub_folder)
 
 
 def get_custom_model_pathfile(custom_model_name, model="models"):
     return os.path.join(get_custom_model_path(model), custom_model_name)
 
 
-def get_custom_model_files(model="models"):
+def get_custom_model_files(model="models", custom_checkpoint_type=""):
     ckpt_files = []
     file_types = custom_model_filetypes
     if model == "lora":
@@ -107,6 +113,28 @@ def get_custom_model_files(model="models"):
                 os.path.join(get_custom_model_path(model), extn)
             )
         ]
+        match custom_checkpoint_type:
+            case "inpainting":
+                files = [
+                    val
+                    for val in files
+                    if val.endswith("inpainting" + extn.removeprefix("*"))
+                ]
+            case "upscaler":
+                files = [
+                    val
+                    for val in files
+                    if val.endswith("upscaler" + extn.removeprefix("*"))
+                ]
+            case _:
+                files = [
+                    val
+                    for val in files
+                    if not (
+                        val.endswith("inpainting" + extn.removeprefix("*"))
+                        or val.endswith("upscaler" + extn.removeprefix("*"))
+                    )
+                ]
         ckpt_files.extend(files)
     return sorted(ckpt_files, key=str.casefold)
 

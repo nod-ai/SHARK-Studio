@@ -1,9 +1,11 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel, ControlNetModel
 from transformers import CLIPTextModel
 from collections import defaultdict
+from pathlib import Path
 import torch
 import safetensors.torch
 import traceback
+import subprocess
 import sys
 import os
 from apps.stable_diffusion.src.utils import (
@@ -12,6 +14,7 @@ from apps.stable_diffusion.src.utils import (
     base_models,
     args,
     preprocessCKPT,
+    convert_original_vae,
     get_path_to_diffusers_checkpoint,
     fetch_and_update_base_model_id,
     get_path_stem,
@@ -91,10 +94,19 @@ class SharkifyStableDiffusionModel:
         self.custom_weights = custom_weights
         self.use_quantize = use_quantize
         if custom_weights != "":
-            assert custom_weights.lower().endswith(
-                (".ckpt", ".safetensors")
-            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
-            custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
+            if "civitai" in custom_weights:
+                weights_id = custom_weights.split("/")[-1]
+                # TODO: use model name and identify file type by civitai rest api
+                weights_path = str(Path.cwd()) + "/models/" + weights_id + ".safetensors"
+                if not os.path.isfile(weights_path):
+                    subprocess.run(["wget", custom_weights, "-O", weights_path])
+                custom_weights = get_path_to_diffusers_checkpoint(weights_path)
+                self.custom_weights = weights_path
+            else:
+                assert custom_weights.lower().endswith(
+                    (".ckpt", ".safetensors")
+                ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+                custom_weights = get_path_to_diffusers_checkpoint(custom_weights)
         self.model_id = model_id if custom_weights == "" else custom_weights
         # TODO: remove the following line when stable-diffusion-2-1 works
         if self.model_id == "stabilityai/stable-diffusion-2-1":
@@ -267,7 +279,7 @@ class SharkifyStableDiffusionModel:
 
         vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         inputs = tuple(self.inputs["vae"])
-        is_f16 = True if self.precision == "fp16" else False
+        is_f16 = True if not self.is_upscaler and self.precision == "fp16" else False
         save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
         if self.debug:
             os.makedirs(save_dir, exist_ok=True)
@@ -560,8 +572,12 @@ class SharkifyStableDiffusionModel:
                 vae_checkpoint = safetensors.torch.load_file(self.custom_vae, device="cpu")
             if "state_dict" in vae_checkpoint:
                 vae_checkpoint = vae_checkpoint["state_dict"]
-            vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
-            return vae_dict
+
+            try:
+                vae_checkpoint = convert_original_vae(vae_checkpoint)
+            finally:
+                vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
+                return vae_dict
 
     def compile_unet_variants(self, model):
         if model == "unet":

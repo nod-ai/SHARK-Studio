@@ -93,7 +93,10 @@ def outpaint_inf(
                 None,
                 "Please provide either custom model or huggingface model ID, both must not be empty",
             )
-        args.hf_model_id = hf_model_id
+        if "civitai" in hf_model_id:
+            args.ckpt_loc = hf_model_id
+        else:
+            args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
@@ -319,16 +322,18 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
-                        else "None",
+                        else "stabilityai/stable-diffusion-2-inpainting",
                         choices=["None"]
-                        + get_custom_model_files()
+                        + get_custom_model_files(
+                            custom_checkpoint_type="inpainting"
+                        )
                         + predefined_paint_models,
                     )
                     hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting, https://civitai.com/api/download/models/3433",
                         value="",
-                        label="HuggingFace Model ID",
+                        label="HuggingFace Model ID or Civitai model download URL",
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
@@ -519,18 +524,16 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
+                    output_dir = (
+                        args.output_dir if args.output_dir else Path.cwd()
+                    )
+                    output_dir = Path(output_dir, "generated_imgs")
                     std_output = gr.Textbox(
-                        value="Nothing to show.",
+                        value=f"Images will be saved at {output_dir}",
                         lines=1,
+                        elem_id="std_output",
                         show_label=False,
                     )
-                output_dir = args.output_dir if args.output_dir else Path.cwd()
-                output_dir = Path(output_dir, "generated_imgs")
-                output_loc = gr.Textbox(
-                    label="Saving Images at",
-                    value=output_dir,
-                    interactive=False,
-                )
                 with gr.Row():
                     outpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     outpaint_sendto_inpaint = gr.Button(value="SendTo Inpaint")

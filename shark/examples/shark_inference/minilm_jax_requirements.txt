@@ -1,0 +1,5 @@
+flax
+jax[cpu]
+nodai-SHARK
+transformers
+torch

@@ -25,7 +25,12 @@ from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
 import sys
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     download_from_original_stable_diffusion_ckpt,
+    create_vae_diffusers_config,
+    convert_ldm_vae_checkpoint,
 )
+import requests
+from io import BytesIO
+from omegaconf import OmegaConf
 
 
 def get_extended_name(model_name):
@@ -464,7 +469,7 @@ def get_path_stem(path):
 def get_path_to_diffusers_checkpoint(custom_weights):
     path = Path(custom_weights)
     diffusers_path = path.parent.absolute()
-    diffusers_directory_name = path.stem
+    diffusers_directory_name = os.path.join("diffusers", path.stem)
     complete_path_to_diffusers = diffusers_path / diffusers_directory_name
     complete_path_to_diffusers.mkdir(parents=True, exist_ok=True)
     path_to_diffusers = complete_path_to_diffusers.as_posix()
@@ -501,6 +506,22 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     )
     pipe.save_pretrained(path_to_diffusers)
     print("Loading complete")
+
+
+def convert_original_vae(vae_checkpoint):
+    vae_state_dict = {}
+    for key in list(vae_checkpoint.keys()):
+        vae_state_dict["first_stage_model." + key] = vae_checkpoint.get(key)
+
+    config_url = "https://raw.githubusercontent.com/CompVis/stable-diffusion/main/configs/stable-diffusion/v1-inference.yaml"
+    original_config_file = BytesIO(requests.get(config_url).content)
+    original_config = OmegaConf.load(original_config_file)
+    vae_config = create_vae_diffusers_config(original_config, image_size=512)
+
+    converted_vae_checkpoint = convert_ldm_vae_checkpoint(
+        vae_state_dict, vae_config
+    )
+    return converted_vae_checkpoint
 
 
 def processLoRA(model, use_lora, splitting_prefix):

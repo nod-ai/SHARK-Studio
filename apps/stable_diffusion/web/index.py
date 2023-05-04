@@ -1,3 +1,4 @@
+from multiprocessing import Process, freeze_support
 import os
 import sys
 import transformers
@@ -10,8 +11,22 @@ if sys.platform == "darwin":
 if args.clear_all:
     clear_all()
 
+
+def launch_app(address):
+    from tkinter import Tk
+    import webview
+
+    tk = Tk()
+    #  size of the window where we show our website
+    tk.geometry("1280x720")
+    webview.create_window("SHARK", address)
+    webview.start(private_mode=False)
+
+
 if __name__ == "__main__":
-    if args.api:
+    # required to do multiprocessing in a pyinstaller freeze
+    freeze_support()
+    if args.api or "api" in args.web_mode.split(","):
         from apps.stable_diffusion.web.ui import (
             txt2img_api,
             img2img_api,
@@ -40,14 +55,12 @@ if __name__ == "__main__":
     from apps.stable_diffusion.web.utils.gradio_configs import (
         clear_gradio_tmp_imgs_folder,
     )
-    from apps.stable_diffusion.web.ui.utils import get_custom_model_path
+    from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
 
     # Clear all gradio tmp images from the last session
     clear_gradio_tmp_imgs_folder()
-    # Create the custom model folder if it doesn't already exist
-    dir = ["models", "vae", "lora"]
-    for root in dir:
-        get_custom_model_path(root).mkdir(parents=True, exist_ok=True)
+    # Create custom models folders if they don't exist
+    create_custom_models_folders()
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -90,6 +103,8 @@ if __name__ == "__main__":
         upscaler_sendto_inpaint,
         upscaler_sendto_outpaint,
         lora_train_web,
+        model_web,
+        stablelm_chat,
     )
 
     # init global sd pipeline and config
@@ -119,10 +134,14 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
+            with gr.TabItem(label="Model Manager", id=5):
+                model_web.render()
 
-        with gr.Tabs(visible=False) as experimental_tabs:
-            with gr.TabItem(label="LoRA Training", id=5):
+        with gr.Tabs(visible=True) as experimental_tabs:
+            with gr.TabItem(label="LoRA Training", id=6):
                 lora_train_web.render()
+            with gr.TabItem(label="Chat Bot", id=7):
+                stablelm_chat.render()
 
         register_button_click(
             txt2img_sendto_img2img,
@@ -221,9 +240,14 @@ if __name__ == "__main__":
             [outpaint_init_image, tabs],
         )
     sd_web.queue()
+    if "app" in args.web_mode.split(","):
+        t = Process(
+            target=launch_app, args=[f"http://localhost:{args.server_port}"]
+        )
+        t.start()
     sd_web.launch(
         share=args.share,
-        inbrowser=True,
+        inbrowser="webui" in args.web_mode.split(","),
         server_name="0.0.0.0",
         server_port=args.server_port,
     )

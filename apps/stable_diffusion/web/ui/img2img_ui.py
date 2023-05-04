@@ -4,6 +4,7 @@ import torch
 import time
 import sys
 import gradio as gr
+import PIL
 from PIL import Image
 import base64
 from io import BytesIO
@@ -29,6 +30,7 @@ from apps.stable_diffusion.src import (
     save_output_img,
 )
 from apps.stable_diffusion.src.utils import get_generation_text_info
+import numpy as np
 
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
@@ -41,7 +43,7 @@ init_import_mlir = args.import_mlir
 def img2img_inf(
     prompt: str,
     negative_prompt: str,
-    init_image,
+    image_dict,
     height: int,
     width: int,
     steps: int,
@@ -84,9 +86,14 @@ def img2img_inf(
     args.img_path = "not none"
     args.ondemand = ondemand
 
-    if init_image is None:
+    if image_dict is None:
         return None, "An Initial Image is required"
-    image = init_image.convert("RGB")
+    if use_stencil == "scribble":
+        image = image_dict["mask"].convert("RGB")
+    elif isinstance(image_dict, PIL.Image.Image):
+        image = image_dict.convert("RGB")
+    else:
+        image = image_dict["image"].convert("RGB")
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -98,7 +105,10 @@ def img2img_inf(
                 None,
                 "Please provide either custom model or huggingface model ID, both must not be empty",
             )
-        args.hf_model_id = hf_model_id
+        if "civitai" in hf_model_id:
+            args.ckpt_loc = hf_model_id
+        else:
+            args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:
         args.ckpt_loc = get_custom_model_pathfile(custom_model)
     else:
@@ -350,16 +360,16 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
-                        else "None",
+                        else "stabilityai/stable-diffusion-2-1-base",
                         choices=["None"]
                         + get_custom_model_files()
                         + predefined_models,
                     )
                     hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
+                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3, https://civitai.com/api/download/models/15236",
                         value="",
-                        label="HuggingFace Model ID",
+                        label="HuggingFace Model ID or Civitai model download URL",
                         lines=3,
                     )
                     custom_vae = gr.Dropdown(
@@ -386,7 +396,10 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     )
 
                 img2img_init_image = gr.Image(
-                    label="Input Image", type="pil"
+                    label="Input Image",
+                    source="upload",
+                    tool="sketch",
+                    type="pil",
                 ).style(height=300)
 
                 with gr.Accordion(label="Stencil Options", open=False):
@@ -397,6 +410,57 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             value="None",
                             choices=["None", "canny", "openpose", "scribble"],
                         )
+
+                    def show_canvas(choice):
+                        if choice == "scribble":
+                            return (
+                                gr.Slider.update(visible=True),
+                                gr.Slider.update(visible=True),
+                                gr.Button.update(visible=True),
+                            )
+                        else:
+                            return (
+                                gr.Slider.update(visible=False),
+                                gr.Slider.update(visible=False),
+                                gr.Button.update(visible=False),
+                            )
+
+                    def create_canvas(w, h):
+                        return np.zeros(shape=(h, w, 3), dtype=np.uint8) + 255
+
+                    with gr.Row():
+                        canvas_width = gr.Slider(
+                            label="Canvas Width",
+                            minimum=256,
+                            maximum=1024,
+                            value=512,
+                            step=1,
+                            visible=False,
+                        )
+                        canvas_height = gr.Slider(
+                            label="Canvas Height",
+                            minimum=256,
+                            maximum=1024,
+                            value=512,
+                            step=1,
+                            visible=False,
+                        )
+                    create_button = gr.Button(
+                        label="Start",
+                        value="Open drawing canvas!",
+                        visible=False,
+                    )
+                    create_button.click(
+                        fn=create_canvas,
+                        inputs=[canvas_width, canvas_height],
+                        outputs=[img2img_init_image],
+                    )
+                    use_stencil.change(
+                        fn=show_canvas,
+                        inputs=use_stencil,
+                        outputs=[canvas_width, canvas_height, create_button],
+                    )
+
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         lora_weights = gr.Dropdown(
@@ -529,18 +593,16 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
+                    output_dir = (
+                        args.output_dir if args.output_dir else Path.cwd()
+                    )
+                    output_dir = Path(output_dir, "generated_imgs")
                     std_output = gr.Textbox(
-                        value="Nothing to show.",
+                        value=f"Images will be saved at {output_dir}",
                         lines=1,
+                        elem_id="std_output",
                         show_label=False,
                     )
-                output_dir = args.output_dir if args.output_dir else Path.cwd()
-                output_dir = Path(output_dir, "generated_imgs")
-                output_loc = gr.Textbox(
-                    label="Saving Images at",
-                    value=output_dir,
-                    interactive=False,
-                )
                 with gr.Row():
                     img2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
                     img2img_sendto_outpaint = gr.Button(

@@ -81,7 +81,7 @@ class SharkImporter:
 
     # NOTE: The default function for torch is "forward" and tf-lite is "main".
 
-    def _torch_mlir(self, is_dynamic, tracing_required):
+    def _torch_mlir(self, is_dynamic, tracing_required, mlir_type):
         from shark.torch_mlir_utils import get_torch_mlir_module
 
         return get_torch_mlir_module(
@@ -90,6 +90,7 @@ class SharkImporter:
             is_dynamic,
             tracing_required,
             self.return_str,
+            mlir_type,
         )
 
     def _tf_mlir(self, func_name, save_dir="."):
@@ -120,6 +121,7 @@ class SharkImporter:
         tracing_required=False,
         func_name="forward",
         save_dir="./shark_tmp/",
+        mlir_type="linalg",
     ):
         if self.frontend in ["torch", "pytorch"]:
             if self.inputs == None:
@@ -127,7 +129,10 @@ class SharkImporter:
                     "Please pass in the inputs, the inputs are required to determine the shape of the mlir_module"
                 )
                 sys.exit(1)
-            return self._torch_mlir(is_dynamic, tracing_required), func_name
+            return (
+                self._torch_mlir(is_dynamic, tracing_required, mlir_type),
+                func_name,
+            )
         if self.frontend in ["tf", "tensorflow"]:
             return self._tf_mlir(func_name, save_dir), func_name
         if self.frontend in ["tflite", "tf-lite"]:
