@@ -16,17 +16,21 @@ def launch_app(address):
     from tkinter import Tk
     import webview
 
-    tk = Tk()
-    #  size of the window where we show our website
-    tk.geometry("1280x720")
-    webview.create_window("SHARK", address)
+    window = Tk()
+
+    # getting screen width and height of display
+    width = window.winfo_screenwidth()
+    height = window.winfo_screenheight()
+    webview.create_window(
+        "SHARK AI Studio", url=address, width=width, height=height
+    )
     webview.start(private_mode=False)
 
 
 if __name__ == "__main__":
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
-    if args.api or "api" in args.web_mode.split(","):
+    if args.api or "api" in args.ui.split(","):
         from apps.stable_diffusion.web.ui import (
             txt2img_api,
             img2img_api,
@@ -240,14 +244,14 @@ if __name__ == "__main__":
             [outpaint_init_image, tabs],
         )
     sd_web.queue()
-    if "app" in args.web_mode.split(","):
+    if args.ui == "app":
         t = Process(
             target=launch_app, args=[f"http://localhost:{args.server_port}"]
         )
         t.start()
     sd_web.launch(
         share=args.share,
-        inbrowser="webui" in args.web_mode.split(","),
+        inbrowser=args.ui == "web",
         server_name="0.0.0.0",
         server_port=args.server_port,
     )

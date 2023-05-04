@@ -495,12 +495,11 @@ p.add_argument(
 )
 # TODO: replace API flag when these can be run together
 p.add_argument(
-    "--web_mode",
+    "--ui",
     type=str,
-    default="app",
-    help="any number of: [api, app, webui]. Currently api can't be run with others.",
+    default="app" if os.name == "nt" else "web",
+    help="one of: [api, app, web]",
 )
-
 
 p.add_argument(
     "--share",
