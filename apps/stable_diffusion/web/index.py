@@ -136,11 +136,9 @@ if __name__ == "__main__":
                 upscaler_web.render()
             with gr.TabItem(label="Model Manager", id=5):
                 model_web.render()
-            with gr.TabItem(label="Chat Bot", id=6):
+            with gr.TabItem(label="Chat Bot(Experimental)", id=6):
                 stablelm_chat.render()
-
-        with gr.Tabs(visible=False) as experimental_tabs:
-            with gr.TabItem(label="LoRA Training", id=7):
+            with gr.TabItem(label="LoRA Training(Experimental)", id=7):
                 lora_train_web.render()
 
         register_button_click(
