@@ -73,30 +73,40 @@ if __name__ == "__main__":
 
     from apps.stable_diffusion.web.ui import (
         txt2img_web,
+        txt2img_custom_model,
+        txt2img_hf_model_id,
         txt2img_gallery,
         txt2img_sendto_img2img,
         txt2img_sendto_inpaint,
         txt2img_sendto_outpaint,
         txt2img_sendto_upscaler,
         img2img_web,
+        img2img_custom_model,
+        img2img_hf_model_id,
         img2img_gallery,
         img2img_init_image,
         img2img_sendto_inpaint,
         img2img_sendto_outpaint,
         img2img_sendto_upscaler,
         inpaint_web,
+        inpaint_custom_model,
+        inpaint_hf_model_id,
         inpaint_gallery,
         inpaint_init_image,
         inpaint_sendto_img2img,
         inpaint_sendto_outpaint,
         inpaint_sendto_upscaler,
         outpaint_web,
+        outpaint_custom_model,
+        outpaint_hf_model_id,
         outpaint_gallery,
         outpaint_init_image,
         outpaint_sendto_img2img,
         outpaint_sendto_inpaint,
         outpaint_sendto_upscaler,
         upscaler_web,
+        upscaler_custom_model,
+        upscaler_hf_model_id,
         upscaler_gallery,
         upscaler_init_image,
         upscaler_sendto_img2img,
@@ -104,6 +114,12 @@ if __name__ == "__main__":
         upscaler_sendto_outpaint,
         lora_train_web,
         model_web,
+        hf_models,
+        modelmanager_sendto_txt2img,
+        modelmanager_sendto_img2img,
+        modelmanager_sendto_inpaint,
+        modelmanager_sendto_outpaint,
+        modelmanager_sendto_upscaler,
         stablelm_chat,
     )
 
@@ -114,6 +130,17 @@ if __name__ == "__main__":
         button.click(
             lambda x: (
                 x[0]["name"] if len(x) != 0 else None,
+                gr.Tabs.update(selected=selectedid),
+            ),
+            inputs,
+            outputs,
+        )
+
+    def register_modelmanager_button(button, selectedid, inputs, outputs):
+        button.click(
+            lambda x: (
+                "None",
+                x,
                 gr.Tabs.update(selected=selectedid),
             ),
             inputs,
@@ -237,6 +264,37 @@ if __name__ == "__main__":
             [upscaler_gallery],
             [outpaint_init_image, tabs],
         )
+        register_modelmanager_button(
+            modelmanager_sendto_txt2img,
+            0,
+            [hf_models],
+            [txt2img_custom_model, txt2img_hf_model_id, tabs],
+        )
+        register_modelmanager_button(
+            modelmanager_sendto_img2img,
+            1,
+            [hf_models],
+            [img2img_custom_model, img2img_hf_model_id, tabs],
+        )
+        register_modelmanager_button(
+            modelmanager_sendto_inpaint,
+            2,
+            [hf_models],
+            [inpaint_custom_model, inpaint_hf_model_id, tabs],
+        )
+        register_modelmanager_button(
+            modelmanager_sendto_outpaint,
+            3,
+            [hf_models],
+            [outpaint_custom_model, outpaint_hf_model_id, tabs],
+        )
+        register_modelmanager_button(
+            modelmanager_sendto_upscaler,
+            4,
+            [hf_models],
+            [upscaler_custom_model, upscaler_hf_model_id, tabs],
+        )
+
     sd_web.queue()
     if "app" in args.web_mode.split(","):
         t = Process(

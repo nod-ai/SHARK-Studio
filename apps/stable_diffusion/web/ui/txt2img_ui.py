@@ -281,7 +281,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 with gr.Row():
                     with gr.Column(scale=10):
                         with gr.Row():
-                            custom_model = gr.Dropdown(
+                            txt2img_custom_model = gr.Dropdown(
                                 label=f"Models (Custom Model path: {get_custom_model_path()})",
                                 elem_id="custom_model",
                                 value=os.path.basename(args.ckpt_loc)
@@ -291,7 +291,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 + get_custom_model_files()
                                 + predefined_models,
                             )
-                            hf_model_id = gr.Textbox(
+                            txt2img_hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
                                 placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3, https://civitai.com/api/download/models/15236",
                                 value="",
@@ -502,8 +502,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 batch_count,
                 batch_size,
                 scheduler,
-                custom_model,
-                hf_model_id,
+                txt2img_custom_model,
+                txt2img_hf_model_id,
                 custom_vae,
                 precision,
                 device,
@@ -538,8 +538,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 seed,
                 width,
                 height,
-                custom_model,
-                hf_model_id,
+                txt2img_custom_model,
+                txt2img_hf_model_id,
             ],
             outputs=[
                 png_info_img,
@@ -551,7 +551,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 seed,
                 width,
                 height,
-                custom_model,
-                hf_model_id,
+                txt2img_custom_model,
+                txt2img_hf_model_id,
             ],
         )
