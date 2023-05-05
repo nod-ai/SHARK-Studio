@@ -55,14 +55,12 @@ if __name__ == "__main__":
     from apps.stable_diffusion.web.utils.gradio_configs import (
         clear_gradio_tmp_imgs_folder,
     )
-    from apps.stable_diffusion.web.ui.utils import get_custom_model_path
+    from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
 
     # Clear all gradio tmp images from the last session
     clear_gradio_tmp_imgs_folder()
-    # Create the custom model folder if it doesn't already exist
-    dir = ["models", "vae", "lora"]
-    for root in dir:
-        get_custom_model_path(root).mkdir(parents=True, exist_ok=True)
+    # Create custom models folders if they don't exist
+    create_custom_models_folders()
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -138,12 +136,10 @@ if __name__ == "__main__":
                 upscaler_web.render()
             with gr.TabItem(label="Model Manager", id=5):
                 model_web.render()
-
-        with gr.Tabs(visible=True) as experimental_tabs:
-            with gr.TabItem(label="LoRA Training", id=6):
-                lora_train_web.render()
-            with gr.TabItem(label="Chat Bot", id=7):
+            with gr.TabItem(label="Chat Bot(Experimental)", id=6):
                 stablelm_chat.render()
+            with gr.TabItem(label="LoRA Training(Experimental)", id=7):
+                lora_train_web.render()
 
         register_button_click(
             txt2img_sendto_img2img,
