@@ -317,7 +317,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    custom_model = gr.Dropdown(
+                    outpaint_custom_model = gr.Dropdown(
                         label=f"Models (Custom Model path: {get_custom_model_path()})",
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
@@ -329,7 +329,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         )
                         + predefined_paint_models,
                     )
-                    hf_model_id = gr.Textbox(
+                    outpaint_hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
                         placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: ghunkins/stable-diffusion-liberty-inpainting, https://civitai.com/api/download/models/3433",
                         value="",
@@ -560,8 +560,8 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 batch_count,
                 batch_size,
                 scheduler,
-                custom_model,
-                hf_model_id,
+                outpaint_custom_model,
+                outpaint_hf_model_id,
                 custom_vae,
                 precision,
                 device,

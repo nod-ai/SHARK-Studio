@@ -3,16 +3,15 @@ import gradio as gr
 import requests
 from io import BytesIO
 from PIL import Image
-from shark.iree_utils._common import run_cmd
 
 
-def get_hf_list(limit=20):
+def get_hf_list(num_of_models=20):
     path = "https://huggingface.co/api/models"
     params = {
         "search": "stable-diffusion",
         "sort": "downloads",
         "direction": "-1",
-        "limit": {limit},
+        "limit": {num_of_models},
         "full": "true",
     }
     response = requests.get(path, params=params)
@@ -72,65 +71,87 @@ def get_image_from_model(model_json):
     return image
 
 
-hf_model_list = get_hf_list()
-civit_model_list = get_civit_list()
-
-
 with gr.Blocks() as model_web:
-    model_source = gr.Radio(
-        choices=["Hugging Face", "Civitai"],
-        type="index",
-        value="Hugging Face",
-        label="Model Source",
+    with gr.Row():
+        model_source = gr.Radio(
+            value=None,
+            choices=["Hugging Face", "Civitai"],
+            type="value",
+            label="Model Source",
+        )
+        model_numebr = gr.Slider(
+            1,
+            100,
+            value=10,
+            step=1,
+            label="Number of models",
+            interactive=True,
+        )
+        # TODO: add more filters
+    get_model_btn = gr.Button(value="Get Models")
+
+    hf_models = gr.Dropdown(
+        label="Hugging Face Model List",
+        choices=None,
+        value=None,
+        visible=False,
     )
-    with gr.Column(visible=True) as hf_block:
-        for model in hf_model_list:
-            with gr.Row():
-                model_url = gr.Textbox(
-                    label="Model ID:",
-                    value=model["modelId"],
-                    lines=1,
-                    interactive=False,
-                )
-                model_info = gr.Textbox(
-                    value=f'Download Count: {model["downloads"]}{os.linesep}Favorite Count: {model["likes"]}',
-                    lines=2,
-                    show_label=False,
-                    interactive=False,
-                )
-    with gr.Column(visible=False) as civit_block:
-        for model in civit_model_list:
-            with gr.Row():
+    # TODO: select and SendTo
+    civit_models = gr.Gallery(
+        label="Civitai Model Gallery",
+        value=None,
+        interactive=True,
+        visible=False,
+    )
+
+    with gr.Row(visible=False) as sendto_btns:
+        modelmanager_sendto_txt2img = gr.Button(value="SendTo Txt2Img")
+        modelmanager_sendto_img2img = gr.Button(value="SendTo Img2Img")
+        modelmanager_sendto_inpaint = gr.Button(value="SendTo Inpaint")
+        modelmanager_sendto_outpaint = gr.Button(value="SendTo Outpaint")
+        modelmanager_sendto_upscaler = gr.Button(value="SendTo Upscaler")
+
+    def get_model_list(model_source, model_numebr):
+        if model_source == "Hugging Face":
+            hf_model_list = get_hf_list(model_numebr)
+            models = []
+            for model in hf_model_list:
+                # TODO: add model info
+                models.append(f'{model["modelId"]}')
+            return (
+                gr.Dropdown.update(choices=models, visible=True),
+                gr.Gallery.update(value=None, visible=False),
+                gr.Row.update(visible=True),
+            )
+        elif model_source == "Civitai":
+            civit_model_list = get_civit_list(model_numebr)
+            models = []
+            for model in civit_model_list:
                 image = get_image_from_model(model)
                 if image is None:
                     continue
-                model_img = Image.open(image)
-                gr.Image(
-                    value=model_img,
-                    show_label=False,
-                    interactive=False,
-                    elem_id="top_logo",
-                ).style(width=300, height=300)
-                with gr.Column():
-                    gr.Textbox(
-                        label=f'{model["modelName"]}',
-                        value=f'Rating: {model["rating"]}{os.linesep}Favorite Count: {model["favoriteCount"]}{os.linesep}Download Count: {model["downloadCount"]}{os.linesep}File Format: {model["files"][0]["metadata"]["format"]}',
-                        lines=4,
-                    )
-                    gr.Textbox(
-                        label="Download URL:",
-                        value=f'{model["files"][0]["downloadUrl"]}',
-                        lines=1,
-                    )
-
-    def update_model_list(model_source):
-        if model_source:
-            return gr.update(visible=False), gr.update(visible=True)
+                # TODO: add model info
+                models.append(
+                    (Image.open(image), f'{model["files"][0]["downloadUrl"]}')
+                )
+            return (
+                gr.Dropdown.update(value=None, choices=None, visible=False),
+                gr.Gallery.update(value=models, visible=True),
+                gr.Row.update(visible=False),
+            )
         else:
-            return gr.update(visible=True), gr.update(visible=False)
+            return (
+                gr.Dropdown.update(value=None, choices=None, visible=False),
+                gr.Gallery.update(value=None, visible=False),
+                gr.Row.update(visible=False),
+            )
 
-    model_source.change(
-        fn=update_model_list,
-        inputs=model_source,
-        outputs=[hf_block, civit_block],
+    get_model_btn.click(
+        fn=get_model_list,
+        inputs=[model_source, model_numebr],
+        outputs=[
+            hf_models,
+            civit_models,
+            sendto_btns,
+        ],
     )
