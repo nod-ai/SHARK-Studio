@@ -196,13 +196,13 @@ def download_model(
     tank_url=None,
     frontend=None,
     tuned=None,
-    import_args=None,
+    import_args={"batch_size": 1},
 ):
     model_name = model_name.replace("/", "_")
     dyn_str = "_dynamic" if dynamic else ""
     os.makedirs(WORKDIR, exist_ok=True)
     shark_args.shark_prefix = get_sharktank_prefix()
-    if import_args["batch_size"] and import_args["batch_size"] != 1:
+    if import_args["batch_size"] != 1:
         model_dir_name = (
             model_name
             + "_"
