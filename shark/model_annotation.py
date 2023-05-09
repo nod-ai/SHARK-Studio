@@ -31,6 +31,7 @@ import sys
 from typing import Dict, List
 
 from iree.compiler import ir
+from iree.compiler.transforms import ireec as ireec_trans
 
 
 def model_annotation(
@@ -408,6 +409,7 @@ def shape_list_to_string(input):
 
 def create_context() -> ir.Context:
     context = ir.Context()
+    ireec_trans.register_all_dialects(context)
     context.allow_unregistered_dialects = True
     return context
 
