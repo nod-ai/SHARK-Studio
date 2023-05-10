@@ -621,6 +621,7 @@ if __name__ == "__main__":
         )
         prompt = prompt_history.strip()
         input_ids = tokenizer(prompt).input_ids
+        tokens = input_ids
         prompt = print("Robot:", end=" ")
         new_sentence = ""
         for _ in range(200):
@@ -650,9 +651,10 @@ if __name__ == "__main__":
                 break
             new_sentence += " " + new_word
             next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
+            tokens.append(int(next_token[0]))
             original_input_ids.append(next_token)
             input_ids = [next_token]
-        print(new_sentence)
+        print(tokenizer.decode(tokens))
         prompt_history += f"\n{new_sentence}\n"
         if len(tokenizer(prompt_history).input_ids) > SAMPLE_INPUT_LEN:
             print("Chat history too long, starting fresh!\n")
