@@ -1,3 +1,9 @@
+import sys
+import warnings
+
+warnings.filterwarnings("ignore")
+sys.path.insert(0, "D:\S\SB\I\python_packages\iree_compiler")
+sys.path.insert(0, "D:\S\SB\I\python_packages\iree_runtime")
 import torch
 import torch_mlir
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -404,8 +410,12 @@ def compile_to_vmfb(inputs, layers, is_first=True):
     for idx, layer in tqdm(enumerate(layers), desc="Getting mlirs"):
         if is_first:
             mlir_path = Path(f"{idx}_0.mlir")
+            vmfb_path = Path(f"{idx}_0.vmfb")
         else:
             mlir_path = Path(f"{idx}_1.mlir")
+            vmfb_path = Path(f"{idx}_1.vmfb")
+        if vmfb_path.exists():
+            continue
         if mlir_path.exists():
             # print(f"Found layer {idx} mlir")
             f_ = open(mlir_path, "rb")
@@ -534,7 +544,7 @@ def compile_to_vmfb(inputs, layers, is_first=True):
         else:
             vmfb_path = Path(f"{idx}_1.vmfb")
             if idx < 25:
-                device = "cuda"
+                device = "vulkan"
             else:
                 device = "cpu"
             if vmfb_path.exists():
@@ -591,39 +601,49 @@ sharded_model = ShardedVicunaModel(vicuna_model, shark_layers0, shark_layers1)
 past_key_values = None
 
 if __name__ == "__main__":
-    prompt = input("Enter Prompt: ")
-    # prompt = "It was a dark and stormy"
-    prompt = prompt.strip()
-    input_ids = tokenizer(prompt).input_ids
-    for _ in range(200):
-        original_input_ids = input_ids
-        input_id_len = len(input_ids)
-        pad_len = SAMPLE_INPUT_LEN - input_id_len
-        attention_mask = torch.ones([1, input_id_len], dtype=torch.int64)
-        # input_ids = torch.nn.functional.pad(
-        #    torch.tensor(input_ids), (0, pad_len), mode="constant", value=259
-        # )
-        input_ids = torch.tensor(input_ids)
-        input_ids = input_ids.reshape([1, input_id_len])
-        attention_mask = torch.nn.functional.pad(
-            torch.tensor(attention_mask),
-            (0, pad_len),
-            mode="constant",
-            value=0,
+    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    prologue_prompt = "ASSISTANT:\n"
+    while True:
+        print("\n\n")
+        user_prompt = input("User: ")
+        prompt_history = (
+            prompt_history + "USER:\n" + user_prompt + prologue_prompt
         )
-
-        # print(input_ids)
-        # print(attention_mask)
-
-        if _ == 0:
-            output = sharded_model.forward(input_ids, is_first=True)
-        else:
-            output = sharded_model.forward(
-                input_ids, past_key_values=past_key_values, is_first=False
+        prompt = prompt_history.strip()
+        input_ids = tokenizer(prompt).input_ids
+        prompt = print("Robot:", end=" ")
+        new_sentence = ""
+        for _ in range(200):
+            original_input_ids = input_ids
+            input_id_len = len(input_ids)
+            pad_len = SAMPLE_INPUT_LEN - input_id_len
+            attention_mask = torch.ones([1, input_id_len], dtype=torch.int64)
+            input_ids = torch.tensor(input_ids)
+            input_ids = input_ids.reshape([1, input_id_len])
+            attention_mask = torch.nn.functional.pad(
+                torch.tensor(attention_mask),
+                (0, pad_len),
+                mode="constant",
+                value=0,
             )
-        logits = output["logits"]
-        past_key_values = output["past_key_values"]
-        print(tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1)), end=" ")
-        next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
-        original_input_ids.append(next_token)
-        input_ids = [next_token]
+
+            if _ == 0:
+                output = sharded_model.forward(input_ids, is_first=True)
+            else:
+                output = sharded_model.forward(
+                    input_ids, past_key_values=past_key_values, is_first=False
+                )
+            logits = output["logits"]
+            past_key_values = output["past_key_values"]
+            new_word = tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1))
+            if new_word == "</s>":
+                break
+            new_sentence += " " + new_word
+            next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
+            original_input_ids.append(next_token)
+            input_ids = [next_token]
+        print(new_sentence)
+        prompt_history += f"\n{new_sentence}\n"
+        if len(tokenizer(prompt_history).input_ids) > SAMPLE_INPUT_LEN:
+            print("Chat history too long, starting fresh!\n")
+            prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
