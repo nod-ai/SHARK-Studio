@@ -588,7 +588,7 @@ class SharkVicuna:
                 )
             logits = output["logits"]
             past_key_values = output["past_key_values"]
-            #print(self.tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1)), end=" ")
+            print(self.tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1)), end=" ")
             next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
             original_input_ids.append(next_token)
             input_ids = [next_token]
@@ -598,8 +598,8 @@ class SharkVicuna:
             first = False
         if debug:
             print(f"Average time per token: {sum(times)/len(times)}")
-            print(self.tokenizer.decode(original_input_ids))
-        return self.tokenizer.decode(original_input_ids)
+            #print(self.tokenizer.decode(original_input_ids))
+        #return self.tokenizer.decode(original_input_ids)
 
     def conversation(self):
         system="A chat between a curious user and an artificial intelligence assistant. "
