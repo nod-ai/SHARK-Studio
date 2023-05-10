@@ -19,7 +19,7 @@ transformers
 diffusers @ git+https://github.com/huggingface/diffusers@e47459c80f6f6a5a1c19d32c3fd74edf94f47aa2
 scipy
 ftfy
-gradio
+gradio==3.22.0
 altair
 omegaconf
 safetensors
