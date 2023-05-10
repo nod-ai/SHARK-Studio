@@ -12,6 +12,8 @@ import re
 from shark.shark_inference import SharkInference
 from tqdm import tqdm
 from torch_mlir import TensorPlaceholder
+import os
+from time import time
 
 
 class FirstVicunaLayer(torch.nn.Module):
@@ -162,7 +164,7 @@ class ShardedVicunaModel(torch.nn.Module):
         super().__init__()
         self.model = model
         assert len(layers0) == len(model.model.layers)
-        # self.model.model.layers = torch.nn.modules.container.ModuleList(layers0)
+        assert len(layers1) == len(model.model.layers)
         self.model.model.config.use_cache = True
         self.model.model.config.output_attentions = False
         self.layers0 = layers0
@@ -392,13 +394,6 @@ def compile_vicuna_layer(
     ts_g = torch.jit.script(fx_g)
     return ts_g
 
-
-path = "TheBloke/vicuna-7B-1.1-HF"
-kwargs = {"torch_dtype": torch.float}
-vicuna_model = AutoModelForCausalLM.from_pretrained(path, **kwargs)
-tokenizer = AutoTokenizer.from_pretrained(path, use_fast=False)
-
-
 def compile_to_vmfb(inputs, layers, is_first=True):
     mlirs, modules = [], []
     for idx, layer in tqdm(enumerate(layers), desc="Getting mlirs"):
@@ -407,7 +402,6 @@ def compile_to_vmfb(inputs, layers, is_first=True):
         else:
             mlir_path = Path(f"{idx}_1.mlir")
         if mlir_path.exists():
-            # print(f"Found layer {idx} mlir")
             f_ = open(mlir_path, "rb")
             bytecode = f_.read()
             f_.close()
@@ -467,10 +461,6 @@ def compile_to_vmfb(inputs, layers, is_first=True):
                     verbose=False,
                 )
 
-            # bytecode_stream = BytesIO()
-            # module.operation.write_bytecode(bytecode_stream)
-            # bytecode = bytecode_stream.getvalue()
-
             if is_first:
                 module = write_in_dynamic_inputs0(str(module), 137)
                 bytecode = module.encode("UTF-8")
@@ -479,20 +469,6 @@ def compile_to_vmfb(inputs, layers, is_first=True):
 
             else:
                 module = write_in_dynamic_inputs1(str(module), 138)
-                if idx in [0, 5, 6, 7]:
-                    module_str = module
-                    module_str = module_str.splitlines()
-                    new_lines = []
-                    for line in module_str:
-                        if len(line) < 1000:
-                            new_lines.append(line)
-                        else:
-                            new_lines.append(line[:999])
-                    module_str = "\n".join(new_lines)
-                    f1_ = open(f"{idx}_1_test.mlir", "w+")
-                    f1_.write(module_str)
-                    f1_.close()
-
                 bytecode = module.encode("UTF-8")
                 bytecode_stream = BytesIO(bytecode)
                 bytecode = bytecode_stream.read()
@@ -510,7 +486,6 @@ def compile_to_vmfb(inputs, layers, is_first=True):
             else:
                 device = "cpu"
             if vmfb_path.exists():
-                # print(f"Found layer {idx} vmfb")
                 module = SharkInference(
                     None, device=device, mlir_dialect="tm_tensor"
                 )
@@ -538,7 +513,6 @@ def compile_to_vmfb(inputs, layers, is_first=True):
             else:
                 device = "cpu"
             if vmfb_path.exists():
-                # print(f"Found layer {idx} vmfb")
                 module = SharkInference(
                     None, device=device, mlir_dialect="tm_tensor"
                 )
@@ -562,68 +536,102 @@ def compile_to_vmfb(inputs, layers, is_first=True):
 
     return mlirs, modules
 
+class SharkVicuna:
 
-SAMPLE_INPUT_LEN = 137
+    def __init__(self):
+        self.path = "TheBloke/vicuna-7B-1.1-HF"
+        kwargs = {"torch_dtype": torch.float}
+        vicuna_model = AutoModelForCausalLM.from_pretrained(self.path, **kwargs)
+        self.tokenizer = AutoTokenizer.from_pretrained(self.path, use_fast=False)
+        SAMPLE_INPUT_LEN = 137
 
-placeholder_input0 = (
-    torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
-    torch.zeros([1, 1, SAMPLE_INPUT_LEN, SAMPLE_INPUT_LEN]),
-    torch.zeros([1, SAMPLE_INPUT_LEN], dtype=torch.int64),
-)
-
-placeholder_input1 = (
-    torch.zeros([1, 1, 4096]),
-    torch.zeros([1, 1, 1, SAMPLE_INPUT_LEN + 1]),
-    torch.zeros([1, 1], dtype=torch.int64),
-    torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
-    torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
-)
-
-layers0 = [FirstVicunaLayer(layer) for layer in vicuna_model.model.layers]
-_, modules0 = compile_to_vmfb(placeholder_input0, layers0, is_first=True)
-shark_layers0 = [CompiledFirstVicunaLayer(m) for m in modules0]
-
-layers1 = [SecondVicunaLayer(layer) for layer in vicuna_model.model.layers]
-_, modules1 = compile_to_vmfb(placeholder_input1, layers1, is_first=False)
-shark_layers1 = [CompiledSecondVicunaLayer(m) for m in modules1]
-
-sharded_model = ShardedVicunaModel(vicuna_model, shark_layers0, shark_layers1)
-past_key_values = None
-
-if __name__ == "__main__":
-    prompt = input("Enter Prompt: ")
-    # prompt = "It was a dark and stormy"
-    prompt = prompt.strip()
-    input_ids = tokenizer(prompt).input_ids
-    for _ in range(200):
-        original_input_ids = input_ids
-        input_id_len = len(input_ids)
-        pad_len = SAMPLE_INPUT_LEN - input_id_len
-        attention_mask = torch.ones([1, input_id_len], dtype=torch.int64)
-        # input_ids = torch.nn.functional.pad(
-        #    torch.tensor(input_ids), (0, pad_len), mode="constant", value=259
-        # )
-        input_ids = torch.tensor(input_ids)
-        input_ids = input_ids.reshape([1, input_id_len])
-        attention_mask = torch.nn.functional.pad(
-            torch.tensor(attention_mask),
-            (0, pad_len),
-            mode="constant",
-            value=0,
+        self.placeholder_input0 = (
+            torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
+            torch.zeros([1, 1, SAMPLE_INPUT_LEN, SAMPLE_INPUT_LEN]),
+            torch.zeros([1, SAMPLE_INPUT_LEN], dtype=torch.int64),
         )
 
-        # print(input_ids)
-        # print(attention_mask)
+        self.placeholder_input1 = (
+            torch.zeros([1, 1, 4096]),
+            torch.zeros([1, 1, 1, SAMPLE_INPUT_LEN + 1]),
+            torch.zeros([1, 1], dtype=torch.int64),
+            torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+            torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+        )
+        layers0 = [FirstVicunaLayer(layer) for layer in vicuna_model.model.layers]
+        _, modules0 = compile_to_vmfb(self.placeholder_input0, layers0, is_first=True)
+        shark_layers0 = [CompiledFirstVicunaLayer(m) for m in modules0]
 
-        if _ == 0:
-            output = sharded_model.forward(input_ids, is_first=True)
-        else:
-            output = sharded_model.forward(
-                input_ids, past_key_values=past_key_values, is_first=False
-            )
-        logits = output["logits"]
-        past_key_values = output["past_key_values"]
-        print(tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1)), end=" ")
-        next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
-        original_input_ids.append(next_token)
-        input_ids = [next_token]
+        layers1 = [SecondVicunaLayer(layer) for layer in vicuna_model.model.layers]
+        _, modules1 = compile_to_vmfb(self.placeholder_input1, layers1, is_first=False)
+        shark_layers1 = [CompiledSecondVicunaLayer(m) for m in modules1]
+
+        self.sharded_model = ShardedVicunaModel(vicuna_model, shark_layers0, shark_layers1)
+
+    def generate_response(self, prompt, debug=False):
+        prompt = prompt.strip()
+        input_ids = self.tokenizer(prompt).input_ids
+        first = True
+        times = []
+        tokens = []
+        while True:
+            t1 = time()
+            original_input_ids = input_ids
+            input_id_len = len(input_ids)
+            input_ids = torch.tensor(input_ids)
+            input_ids = input_ids.reshape([1, input_id_len])
+            if first:
+                output = self.sharded_model.forward(input_ids, is_first=True)
+            else:
+                output = self.sharded_model.forward(
+                    input_ids, past_key_values=past_key_values, is_first=False
+                )
+            logits = output["logits"]
+            past_key_values = output["past_key_values"]
+            #print(self.tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1)), end=" ")
+            next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
+            original_input_ids.append(next_token)
+            input_ids = [next_token]
+            times.append(time() - t1)
+            if next_token == 2:
+                break
+            first = False
+        if debug:
+            print(f"Average time per token: {sum(times)/len(times)}")
+            print(self.tokenizer.decode(original_input_ids))
+        return self.tokenizer.decode(original_input_ids)
+
+    def conversation(self):
+        system="A chat between a curious user and an artificial intelligence assistant. "
+        roles=("USER", "ASSISTANT")
+        messages=[]
+        sep=" "
+        sep2="</s>"
+        seps = [sep, sep2]
+
+        while True:
+            ret = system
+            
+            prompt = input("enter text: ")
+            messages.append(["USER", prompt])
+            for i, x in enumerate(messages):
+                role = x[0]
+                message = x[1]
+                if message:
+                    ret += role + ": " + message + seps[i % 2]
+                else:
+                    ret += role + ":"
+                    ret += "ASSISTANT: "
+            response = self.generate_response(ret, True)
+            messages.append(["ASSISTANT", response])
+
+
+
+
+if __name__ == "__main__":
+
+    m = SharkVicuna()
+    #m.conversation()
+    while True:
+        prompt = input("Enter Prompt: ")
+        m.generate_response(prompt, True)
