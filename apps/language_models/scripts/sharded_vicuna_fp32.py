@@ -573,11 +573,10 @@ def compile_to_vmfb(inputs, layers, is_first=True):
     return mlirs, modules
 
 
-SAMPLE_INPUT_LEN = 137
-
-
 def get_sharded_model():
-    global SAMPLE_INPUT_LEN
+    # SAMPLE_INPUT_LEN is used for creating mlir with dynamic inputs, which is currently an increadibly hacky proccess
+    # please don't change it
+    SAMPLE_INPUT_LEN = 137
     global vicuna_model
 
     placeholder_input0 = (
@@ -621,23 +620,17 @@ if __name__ == "__main__":
         )
         prompt = prompt_history.strip()
         input_ids = tokenizer(prompt).input_ids
+        tokens = input_ids
         prompt = print("Robot:", end=" ")
-        new_sentence = ""
-        for _ in range(200):
+        new_sentence = []
+        max_response_len = 1000
+        for iteration in range(max_response_len):
             original_input_ids = input_ids
             input_id_len = len(input_ids)
-            pad_len = SAMPLE_INPUT_LEN - input_id_len
-            attention_mask = torch.ones([1, input_id_len], dtype=torch.int64)
             input_ids = torch.tensor(input_ids)
             input_ids = input_ids.reshape([1, input_id_len])
-            attention_mask = torch.nn.functional.pad(
-                torch.tensor(attention_mask),
-                (0, pad_len),
-                mode="constant",
-                value=0,
-            )
 
-            if _ == 0:
+            if iteration == 0:
                 output = sharded_model.forward(input_ids, is_first=True)
             else:
                 output = sharded_model.forward(
@@ -645,15 +638,17 @@ if __name__ == "__main__":
                 )
             logits = output["logits"]
             past_key_values = output["past_key_values"]
-            new_word = tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1))
-            if new_word == "</s>":
+            new_token = int(torch.argmax(logits[:, -1, :], dim=1)[0])
+            if new_token == 2:
                 break
-            new_sentence += " " + new_word
-            next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
-            original_input_ids.append(next_token)
-            input_ids = [next_token]
-        print(new_sentence)
-        prompt_history += f"\n{new_sentence}\n"
-        if len(tokenizer(prompt_history).input_ids) > SAMPLE_INPUT_LEN:
-            print("Chat history too long, starting fresh!\n")
-            prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+            new_sentence += [new_token]
+            tokens.append(new_token)
+            original_input_ids.append(new_token)
+            input_ids = [new_token]
+
+        for i in range(len(tokens)):
+            if type(tokens[i]) != int:
+                tokens[i] = int(tokens[i][0])
+        new_sentence_str = tokenizer.decode(new_sentence)
+        print(new_sentence_str)
+        prompt_history += f"\n{new_sentence_str}\n"
