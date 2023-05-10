@@ -575,34 +575,44 @@ def compile_to_vmfb(inputs, layers, is_first=True):
 
 SAMPLE_INPUT_LEN = 137
 
-placeholder_input0 = (
-    torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
-    torch.zeros([1, 1, SAMPLE_INPUT_LEN, SAMPLE_INPUT_LEN]),
-    torch.zeros([1, SAMPLE_INPUT_LEN], dtype=torch.int64),
-)
 
-placeholder_input1 = (
-    torch.zeros([1, 1, 4096]),
-    torch.zeros([1, 1, 1, SAMPLE_INPUT_LEN + 1]),
-    torch.zeros([1, 1], dtype=torch.int64),
-    torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
-    torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
-)
+def get_sharded_model():
+    global SAMPLE_INPUT_LEN
+    global vicuna_model
 
-layers0 = [FirstVicunaLayer(layer) for layer in vicuna_model.model.layers]
-_, modules0 = compile_to_vmfb(placeholder_input0, layers0, is_first=True)
-shark_layers0 = [CompiledFirstVicunaLayer(m) for m in modules0]
+    placeholder_input0 = (
+        torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
+        torch.zeros([1, 1, SAMPLE_INPUT_LEN, SAMPLE_INPUT_LEN]),
+        torch.zeros([1, SAMPLE_INPUT_LEN], dtype=torch.int64),
+    )
 
-layers1 = [SecondVicunaLayer(layer) for layer in vicuna_model.model.layers]
-_, modules1 = compile_to_vmfb(placeholder_input1, layers1, is_first=False)
-shark_layers1 = [CompiledSecondVicunaLayer(m) for m in modules1]
+    placeholder_input1 = (
+        torch.zeros([1, 1, 4096]),
+        torch.zeros([1, 1, 1, SAMPLE_INPUT_LEN + 1]),
+        torch.zeros([1, 1], dtype=torch.int64),
+        torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+        torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+    )
 
-sharded_model = ShardedVicunaModel(vicuna_model, shark_layers0, shark_layers1)
-past_key_values = None
+    layers0 = [FirstVicunaLayer(layer) for layer in vicuna_model.model.layers]
+    _, modules0 = compile_to_vmfb(placeholder_input0, layers0, is_first=True)
+    shark_layers0 = [CompiledFirstVicunaLayer(m) for m in modules0]
+
+    layers1 = [SecondVicunaLayer(layer) for layer in vicuna_model.model.layers]
+    _, modules1 = compile_to_vmfb(placeholder_input1, layers1, is_first=False)
+    shark_layers1 = [CompiledSecondVicunaLayer(m) for m in modules1]
+
+    sharded_model = ShardedVicunaModel(
+        vicuna_model, shark_layers0, shark_layers1
+    )
+    return sharded_model
+
 
 if __name__ == "__main__":
     prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
     prologue_prompt = "ASSISTANT:\n"
+    sharded_model = get_sharded_model()
+    past_key_values = None
     while True:
         print("\n\n")
         user_prompt = input("User: ")
