@@ -21,7 +21,7 @@ from sys import platform
 from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env_flag
 
 
-def get_vulkan_device_name():
+def get_vulkan_device_name(device_num=0):
     vulkaninfo_dump, _ = run_cmd("vulkaninfo")
     vulkaninfo_dump = vulkaninfo_dump.split(linesep)
     vulkaninfo_list = [s.strip() for s in vulkaninfo_dump if "deviceName" in s]
@@ -31,8 +31,8 @@ def get_vulkan_device_name():
         print("Following devices found:")
         for i, dname in enumerate(vulkaninfo_list):
             print(f"{i}. {dname}")
-        print(f"Choosing first one: {vulkaninfo_list[0]}")
-    return vulkaninfo_list[0]
+        print(f"Choosing device: {vulkaninfo_list[device_num]}")
+    return vulkaninfo_list[device_num]
 
 
 def get_os_name():
@@ -119,14 +119,14 @@ def get_vulkan_target_triple(device_name):
     return triple
 
 
-def get_vulkan_triple_flag(device_name="", extra_args=[]):
+def get_vulkan_triple_flag(device_name="", device_num=0, extra_args=[]):
     for flag in extra_args:
         if "-iree-vulkan-target-triple=" in flag:
             print(f"Using target triple {flag.split('=')[1]}")
             return None
 
     if device_name == "" or device_name == [] or device_name is None:
-        vulkan_device = get_vulkan_device_name()
+        vulkan_device = get_vulkan_device_name(device_num=device_num)
     else:
         vulkan_device = device_name
     triple = get_vulkan_target_triple(vulkan_device)
@@ -144,7 +144,7 @@ def get_vulkan_triple_flag(device_name="", extra_args=[]):
     return None
 
 
-def get_iree_vulkan_args(extra_args=[]):
+def get_iree_vulkan_args(device_num=0,extra_args=[]):
     # res_vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
 
     res_vulkan_flag = []
@@ -156,7 +156,7 @@ def get_iree_vulkan_args(extra_args=[]):
             break
 
     if vulkan_triple_flag is None:
-        vulkan_triple_flag = get_vulkan_triple_flag(extra_args=extra_args)
+        vulkan_triple_flag = get_vulkan_triple_flag(device_num=device_num,extra_args=extra_args)
 
     if vulkan_triple_flag is not None:
         vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)
