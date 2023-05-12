@@ -50,6 +50,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
             tracing_required = row[1]
             model_type = row[2]
             is_dynamic = row[3]
+            mlir_type = row[4]
 
             tracing_required = False if tracing_required == "False" else True
             is_dynamic = False if is_dynamic == "False" else True
@@ -121,6 +122,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 tracing_required=tracing_required,
                 dir=torch_model_dir,
                 model_name=torch_model_name,
+                mlir_type=mlir_type,
             )
             # Generate torch dynamic models.
             if is_dynamic:
@@ -129,6 +131,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                     tracing_required=tracing_required,
                     dir=torch_model_dir,
                     model_name=torch_model_name + "_dynamic",
+                    mlir_type=mlir_type,
                 )
 
 

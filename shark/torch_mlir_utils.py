@@ -21,7 +21,7 @@ import io
 
 mlir_type_mapping_dict = {
     "linalg": torch_mlir.OutputType.LINALG_ON_TENSORS,
-    "mhlo": torch_mlir.OutputType.STABLEHLO,
+    "stablehlo": torch_mlir.OutputType.STABLEHLO,
     "tosa": torch_mlir.OutputType.TOSA,
 }
 
