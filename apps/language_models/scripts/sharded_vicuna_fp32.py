@@ -399,10 +399,11 @@ def compile_vicuna_layer(
     return ts_g
 
 
-path = "TheBloke/vicuna-7B-1.1-HF"
-kwargs = {"torch_dtype": torch.float}
-vicuna_model = AutoModelForCausalLM.from_pretrained(path, **kwargs)
-tokenizer = AutoTokenizer.from_pretrained(path, use_fast=False)
+def get_model_and_tokenizer(path="TheBloke/vicuna-7B-1.1-HF"):
+    kwargs = {"torch_dtype": torch.float}
+    vicuna_model = AutoModelForCausalLM.from_pretrained(path, **kwargs)
+    tokenizer = AutoTokenizer.from_pretrained(path, use_fast=False)
+    return vicuna_model, tokenizer
 
 
 def compile_to_vmfb(inputs, layers, is_first=True):
@@ -577,7 +578,7 @@ def get_sharded_model():
     # SAMPLE_INPUT_LEN is used for creating mlir with dynamic inputs, which is currently an increadibly hacky proccess
     # please don't change it
     SAMPLE_INPUT_LEN = 137
-    global vicuna_model
+    vicuna_model = get_model_and_tokenizer()[0]
 
     placeholder_input0 = (
         torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
@@ -611,6 +612,7 @@ if __name__ == "__main__":
     prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
     prologue_prompt = "ASSISTANT:\n"
     sharded_model = get_sharded_model()
+    tokenizer = get_model_and_tokenizer()[1]
     past_key_values = None
     while True:
         print("\n\n")
