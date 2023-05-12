@@ -144,7 +144,7 @@ def get_vulkan_triple_flag(device_name="", device_num=0, extra_args=[]):
     return None
 
 
-def get_iree_vulkan_args(device_num=0,extra_args=[]):
+def get_iree_vulkan_args(device_num=0, extra_args=[]):
     # res_vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
 
     res_vulkan_flag = []
@@ -156,7 +156,9 @@ def get_iree_vulkan_args(device_num=0,extra_args=[]):
             break
 
     if vulkan_triple_flag is None:
-        vulkan_triple_flag = get_vulkan_triple_flag(device_num=device_num,extra_args=extra_args)
+        vulkan_triple_flag = get_vulkan_triple_flag(
+            device_num=device_num, extra_args=extra_args
+        )
 
     if vulkan_triple_flag is not None:
         vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)
