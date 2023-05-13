@@ -5,8 +5,7 @@ from apps.language_models.scripts.stablelm import (
     compile_stableLM,
     StopOnTokens,
     generate,
-    sharkModel,
-    tok,
+    get_tokenizer,
     StableLMModel,
 )
 from transformers import (
@@ -15,10 +14,6 @@ from transformers import (
     StoppingCriteriaList,
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
-from apps.language_models.scripts.sharded_vicuna_fp32 import (
-    tokenizer,
-    get_sharded_model,
-)
 
 start_message = """<|SYSTEM|># StableLM Tuned (Alpha version)
 - StableLM is a helpful and harmless open-source AI language model developed by StabilityAI.
@@ -49,6 +44,11 @@ def chat(curr_system_message, history, model):
     global sharded_model
     global past_key_values
     if "vicuna" in model:
+        from apps.language_models.scripts.sharded_vicuna_fp32 import (
+            tokenizer,
+            get_sharded_model,
+        )
+
         SAMPLE_INPUT_LEN = 137
         curr_system_message = start_message_vicuna
         if sharded_model == 0:
@@ -100,6 +100,7 @@ def chat(curr_system_message, history, model):
     global sharkModel
     print("In chat")
     if sharkModel == 0:
+        tok = get_tokenizer()
         # sharkModel = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/disk/phaneesh/stablelm_3b_f32_cuda_2048_newflags.vmfb")
         m = AutoModelForCausalLM.from_pretrained(
             "stabilityai/stablelm-tuned-alpha-3b", torch_dtype=torch.float32
