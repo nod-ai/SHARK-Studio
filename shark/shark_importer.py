@@ -191,6 +191,7 @@ class SharkImporter:
         dir=tempfile.gettempdir(),
         model_name="model",
         golden_values=None,
+        mlir_type="linalg",
     ):
         if self.inputs == None:
             print(
@@ -204,6 +205,7 @@ class SharkImporter:
             tracing_required,
             func_name,
             save_dir=artifact_path,
+            mlir_type=mlir_type,
         )
         # TODO: Make sure that any generic function name is accepted. Currently takes in the default function names.
         # TODO: Check for multiple outputs.
