@@ -37,10 +37,12 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
     from tank.model_utils import (
         get_hf_model,
         get_hf_seq2seq_model,
+        get_hf_causallm_model,
         get_vision_model,
         get_hf_img_cls_model,
         get_fp16_model,
     )
+    from shark.shark_importer import import_with_fx
 
     with open(torch_model_list) as csvfile:
         torch_reader = csv.reader(csvfile, delimiter=",")
@@ -51,6 +53,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
             model_type = row[2]
             is_dynamic = row[3]
             mlir_type = row[4]
+            is_decompose = row[5]
 
             tracing_required = False if tracing_required == "False" else True
             is_dynamic = False if is_dynamic == "False" else True
@@ -92,6 +95,10 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 model, input, _ = get_hf_seq2seq_model(
                     torch_model_name, import_args
                 )
+            elif model_type == "hf_causallm":
+                model, input, _ = get_hf_causallm_model(
+                    torch_model_name, import_args
+                )
             elif model_type == "hf_img_cls":
                 model, input, _ = get_hf_img_cls_model(
                     torch_model_name, import_args
@@ -112,27 +119,45 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 )
             os.makedirs(torch_model_dir, exist_ok=True)
 
-            mlir_importer = SharkImporter(
-                model,
-                (input,),
-                frontend="torch",
-            )
-            mlir_importer.import_debug(
-                is_dynamic=False,
-                tracing_required=tracing_required,
-                dir=torch_model_dir,
-                model_name=torch_model_name,
-                mlir_type=mlir_type,
-            )
-            # Generate torch dynamic models.
-            if is_dynamic:
+            if is_decompose:
+                # Add decomposition to some torch ops
+                # TODO add op whitelist/blacklist
+                import_with_fx(
+                    model,
+                    (input,),
+                    is_f16=False,
+                    f16_input_mask=None,
+                    debug=True,
+                    training=False,
+                    return_str=False,
+                    save_dir=torch_model_dir,
+                    model_name=torch_model_name,
+                    mlir_type=mlir_type,
+                    is_dynamic=False,
+                    tracing_required=tracing_required,
+                )
+            else:
+                mlir_importer = SharkImporter(
+                    model,
+                    (input,),
+                    frontend="torch",
+                )
                 mlir_importer.import_debug(
-                    is_dynamic=True,
+                    is_dynamic=False,
                     tracing_required=tracing_required,
                     dir=torch_model_dir,
-                    model_name=torch_model_name + "_dynamic",
+                    model_name=torch_model_name,
                     mlir_type=mlir_type,
                 )
+                # Generate torch dynamic models.
+                if is_dynamic:
+                    mlir_importer.import_debug(
+                        is_dynamic=True,
+                        tracing_required=tracing_required,
+                        dir=torch_model_dir,
+                        model_name=torch_model_name + "_dynamic",
+                        mlir_type=mlir_type,
+                    )
 
 
 def save_tf_model(tf_model_list, local_tank_cache, import_args):

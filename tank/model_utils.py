@@ -176,6 +176,43 @@ def get_hf_seq2seq_model(name, import_args):
     return m, test_input, actual_out
 
 
+##################### Hugging Face CausalLM Models ###################################
+from transformers import AutoTokenizer, AutoModelForCausalLM
+
+
+def prepare_sentence_tokens(hf_model: str, sentence: str):
+    tokenizer = AutoTokenizer.from_pretrained(hf_model)
+    return torch.tensor([tokenizer.encode(sentence)])
+
+
+class HFCausalLM(torch.nn.Module):
+    def __init__(self, model_name: str):
+        super().__init__()
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,  # The pretrained model name.
+            # The number of output labels--2 for binary classification.
+            num_labels=2,
+            # Whether the model returns attentions weights.
+            output_attentions=False,
+            # Whether the model returns all hidden-states.
+            output_hidden_states=False,
+            torchscript=True,
+        )
+        self.model.eval()
+
+    def forward(self, tokens):
+        return self.model.forward(tokens)[0]
+
+
+def get_hf_causallm_model(name, import_args):
+    m = HFCausalLM(name)
+    test_input = prepare_sentence_tokens(
+        name, "this project is very interesting"
+    )
+    actual_out = m.forward(*test_input)
+    return m, test_input, actual_out
+
+
 ################################################################################
 
 ##################### Torch Vision Models    ###################################

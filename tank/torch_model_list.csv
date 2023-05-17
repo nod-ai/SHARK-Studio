@@ -1,24 +1,25 @@
-model_name, use_tracing, model_type, dynamic, mlir_type, param_count, tags, notes
-efficientnet_b0,True,vision,False,linalg,5.3M,"image-classification;cnn;conv2d;depthwise-conv","Smallest EfficientNet variant with 224x224 input"
-efficientnet_b7,True,vision,False,linalg,66M,"image-classification;cnn;conv2d;depthwise-conv","Largest EfficientNet variant with 600x600 input"
-microsoft/MiniLM-L12-H384-uncased,True,hf,True,linalg,66M,"nlp;bert-variant;transformer-encoder","Large version has 12 layers; 384 hidden size; Smaller than BERTbase (66M params vs 109M params)"
-bert-base-uncased,True,hf,True,linalg,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
-bert-base-cased,True,hf,True,linalg,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
-google/mobilebert-uncased,True,hf,True,linalg,25M,"nlp,bert-variant,transformer-encoder,mobile","24 layers, 512 hidden size, 128 embedding"
-alexnet,False,vision,True,linalg,61M,"cnn,parallel-layers","The CNN that revolutionized computer vision (move away from hand-crafted features to neural networks),10 years old now and probably no longer used in prod."
-resnet18,False,vision,True,linalg,11M,"cnn,image-classification,residuals,resnet-variant","1 7x7 conv2d and the rest are 3x3 conv2d"
-resnet50,False,vision,True,linalg,23M,"cnn,image-classification,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
-resnet101,False,vision,True,linalg,29M,"cnn,image-classification,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
-squeezenet1_0,False,vision,True,linalg,1.25M,"cnn,image-classification,mobile,parallel-layers","Parallel conv2d (1x1 conv to compress -> (3x3 expand | 1x1 expand) -> concat)"
-wide_resnet50_2,False,vision,True,linalg,69M,"cnn,image-classification,residuals,resnet-variant","Resnet variant where model depth is decreased and width is increased."
-mobilenet_v3_small,False,vision,True,linalg,2.5M,"image-classification,cnn,mobile",N/A
-google/vit-base-patch16-224,True,hf_img_cls,False,linalg,86M,"image-classification,vision-transformer,transformer-encoder",N/A
-microsoft/resnet-50,True,hf_img_cls,False,linalg,23M,"image-classification,cnn,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
-facebook/deit-small-distilled-patch16-224,True,hf_img_cls,False,linalg,22M,"image-classification,vision-transformer,cnn",N/A
-microsoft/beit-base-patch16-224-pt22k-ft22k,True,hf_img_cls,False,linalg,86M,"image-classification,transformer-encoder,bert-variant,vision-transformer",N/A
-nvidia/mit-b0,True,hf_img_cls,False,linalg,3.7M,"image-classification,transformer-encoder",SegFormer
-mnasnet1_0,False,vision,True,linalg,-,"cnn, torchvision, mobile, architecture-search","Outperforms other mobile CNNs on Accuracy vs. Latency"
-resnet50_fp16,False,vision,True,linalg,23M,"cnn,image-classification,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
-bert-base-uncased_fp16,True,fp16,False,linalg,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
-bert-large-uncased,True,hf,True,linalg,330M,"nlp;bert-variant;transformer-encoder","24 layers, 1024 hidden units, 16 attention heads"
-bert-base-uncased,True,hf,False,stablehlo,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
+model_name, use_tracing, model_type, dynamic, mlir_type, decompose, param_count, tags, notes
+efficientnet_b0,True,vision,False,linalg,False,5.3M,"image-classification;cnn;conv2d;depthwise-conv","Smallest EfficientNet variant with 224x224 input"
+efficientnet_b7,True,vision,False,linalg,False,66M,"image-classification;cnn;conv2d;depthwise-conv","Largest EfficientNet variant with 600x600 input"
+microsoft/MiniLM-L12-H384-uncased,True,hf,True,linalg,False,66M,"nlp;bert-variant;transformer-encoder","Large version has 12 layers; 384 hidden size; Smaller than BERTbase (66M params vs 109M params)"
+bert-base-uncased,True,hf,True,linalg,False,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
+bert-base-cased,True,hf,True,linalg,False,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
+google/mobilebert-uncased,True,hf,True,linalg,False,25M,"nlp,bert-variant,transformer-encoder,mobile","24 layers, 512 hidden size, 128 embedding"
+alexnet,False,vision,True,linalg,False,61M,"cnn,parallel-layers","The CNN that revolutionized computer vision (move away from hand-crafted features to neural networks),10 years old now and probably no longer used in prod."
+resnet18,False,vision,True,linalg,False,11M,"cnn,image-classification,residuals,resnet-variant","1 7x7 conv2d and the rest are 3x3 conv2d"
+resnet50,False,vision,True,linalg,False,23M,"cnn,image-classification,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
+resnet101,False,vision,True,linalg,False,29M,"cnn,image-classification,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
+squeezenet1_0,False,vision,True,linalg,False,1.25M,"cnn,image-classification,mobile,parallel-layers","Parallel conv2d (1x1 conv to compress -> (3x3 expand | 1x1 expand) -> concat)"
+wide_resnet50_2,False,vision,True,linalg,False,69M,"cnn,image-classification,residuals,resnet-variant","Resnet variant where model depth is decreased and width is increased."
+mobilenet_v3_small,False,vision,True,linalg,False,2.5M,"image-classification,cnn,mobile",N/A
+google/vit-base-patch16-224,True,hf_img_cls,False,linalg,False,86M,"image-classification,vision-transformer,transformer-encoder",N/A
+microsoft/resnet-50,True,hf_img_cls,False,linalg,False,23M,"image-classification,cnn,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
+facebook/deit-small-distilled-patch16-224,True,hf_img_cls,False,linalg,False,22M,"image-classification,vision-transformer,cnn",N/A
+microsoft/beit-base-patch16-224-pt22k-ft22k,True,hf_img_cls,False,linalg,False,86M,"image-classification,transformer-encoder,bert-variant,vision-transformer",N/A
+nvidia/mit-b0,True,hf_img_cls,False,linalg,False,3.7M,"image-classification,transformer-encoder",SegFormer
+mnasnet1_0,False,vision,True,linalg,False,-,"cnn, torchvision, mobile, architecture-search","Outperforms other mobile CNNs on Accuracy vs. Latency"
+resnet50_fp16,False,vision,True,linalg,False,23M,"cnn,image-classification,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
+bert-base-uncased_fp16,True,fp16,False,linalg,False,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
+bert-large-uncased,True,hf,True,linalg,False,330M,"nlp;bert-variant;transformer-encoder","24 layers, 1024 hidden units, 16 attention heads"
+bert-base-uncased,True,hf,False,stablehlo,False,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
+gpt2,True,hf_causallm,False,stablehlo,True,125M,"nlp;transformer-encoder","-"
