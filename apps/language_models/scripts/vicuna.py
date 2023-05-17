@@ -646,6 +646,11 @@ if __name__ == "__main__":
                 break
             new_sentence += [new_token]
             tokens.append(new_token)
+            detok = tokenizer.decode(new_token)
+            if detok == "<0x0A>":
+                print("\n", end="", flush=True)
+            else:
+                print(f"{detok}", end=" ", flush=True)
             original_input_ids.append(new_token)
             input_ids = [new_token]
 
@@ -653,5 +658,8 @@ if __name__ == "__main__":
             if type(tokens[i]) != int:
                 tokens[i] = int(tokens[i][0])
         new_sentence_str = tokenizer.decode(new_sentence)
-        print(new_sentence_str)
+        print(
+            "\n-----\nRobot: Here's the complete formatted reply:\n",
+            new_sentence_str,
+        )
         prompt_history += f"\n{new_sentence_str}\n"

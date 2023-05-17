@@ -106,6 +106,8 @@ def chat(curr_system_message, history, model):
             "stabilityai/stablelm-tuned-alpha-3b", torch_dtype=torch.float32
         )
         stableLMModel = StableLMModel(m)
+        input_ids = torch.randint(3, (1, 256))
+        attention_mask = torch.randint(3, (1, 256))
         sharkModel = compile_stableLM(
             stableLMModel,
             tuple([input_ids, attention_mask]),
