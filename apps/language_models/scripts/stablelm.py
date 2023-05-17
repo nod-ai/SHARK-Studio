@@ -4,10 +4,12 @@ from transformers import (
     AutoTokenizer,
     StoppingCriteria,
 )
-from torch.nn import functional as F
 from io import BytesIO
 from pathlib import Path
-from apps.language_models.utils import get_torch_mlir_module_bytecode
+from apps.language_models.utils import (
+    get_torch_mlir_module_bytecode,
+    get_vmfb_from_path,
+)
 
 
 class StopOnTokens(StoppingCriteria):
@@ -37,28 +39,32 @@ def user(message, history):
     return "", history + [[message, ""]]
 
 
-def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
-    # ADD Device Arg
+def compile_stableLM(
+    model,
+    model_inputs,
+    model_name,
+    model_vmfb_name,
+    device="cuda",
+    precision="fp32",
+):
     from shark.shark_inference import SharkInference
 
-    device = "cuda"  # 'cpu'
+    # device = "cuda"  # "cpu"
+    # TODO: vmfb and mlir name should include precision and device
     vmfb_path = (
         Path(model_name + f"_{device}.vmfb")
         if model_vmfb_name is None
         else Path(model_vmfb_name)
     )
-    if vmfb_path.exists():
-        print("Loading vmfb from: ", vmfb_path)
-        shark_module = SharkInference(
-            None, device=device, mlir_dialect="tm_tensor"
-        )
-        shark_module.load_module(vmfb_path)
-        print("Successfully loaded vmfb")
+    shark_module = get_vmfb_from_path(
+        vmfb_path, device, mlir_dialect="tm_tensor"
+    )
+    if shark_module is not None:
         return shark_module
 
     mlir_path = Path(model_name + ".mlir")
     print(
-        f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
+        f"[DEBUG] mlir path {mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
     )
     if mlir_path.exists():
         with open(mlir_path, "rb") as f:
@@ -85,11 +91,8 @@ def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
     )
     shark_module.compile()
 
-    import os
-
     path = shark_module.save_module(
-        vmfb_path.parent.absolute(),
-        vmfb_path.stem,
+        vmfb_path.parent.absolute(), vmfb_path.stem
     )
     print("Saved vmfb at ", str(path))
 
@@ -123,59 +126,85 @@ def get_tokenizer():
     model_path = "stabilityai/stablelm-tuned-alpha-3b"
     tok = AutoTokenizer.from_pretrained(model_path)
     tok.add_special_tokens({"pad_token": "<PAD>"})
-    print(f"Sucessfully loaded the tokenizer to the memory")
+    print("Sucessfully loaded the tokenizer to the memory")
     return tok
 
 
-# sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
+# sharkStableLM = compile_stableLM
+# (
+#   None,
+#   tuple([input_ids, attention_mask]),
+#   "stableLM_linalg_f32_seqLen256",
+#   "/home/shark/vivek/stableLM_shark_f32_seqLen256"
+# )
 def generate(
     new_text,
     max_new_tokens,
-    do_sample,
-    top_p,
-    top_k,
-    temperature,
-    num_beams,
-    stopping_criteria,
     sharkStableLM,
-    tok=None,
-    input_ids=torch.randint(3, (1, 256)),
-    attention_mask=torch.randint(3, (1, 256)),
+    tokenizer=None,
 ):
-    if tok == None:
-        tok = get_tokenizer()
-    # Construct the input message string for the model by concatenating the current system message and conversation history
+    if tokenizer is None:
+        tokenizer = get_tokenizer()
+    # Construct the input message string for the model by
+    # concatenating the current system message and conversation history
     # Tokenize the messages string
-    # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
+    # sharkStableLM = compile_stableLM
+    # (
+    #   None,
+    #   tuple([input_ids, attention_mask]),
+    #   "stableLM_linalg_f32_seqLen256",
+    #   "/home/shark/vivek/stableLM_shark_f32_seqLen256"
+    # )
     words_list = []
     for i in range(max_new_tokens):
-        numWords = len(new_text.split())
+        # numWords = len(new_text.split())
         # if(numWords>220):
         #  break
-        model_inputs = tok(
-            [new_text],
-            padding="max_length",
-            max_length=MAX_SEQUENCE_LENGTH,
-            truncation=True,
-            return_tensors="pt",
+        params = {
+            "new_text": new_text,
+        }
+        generated_token_op = generate_new_token(
+            sharkStableLM, tokenizer, params
         )
-        sum_attentionmask = torch.sum(model_inputs.attention_mask)
-        # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
-        output = sharkStableLM(
-            "forward", [model_inputs.input_ids, model_inputs.attention_mask]
-        )
-        output = torch.from_numpy(output)
-        next_toks = torch.topk(output, 1)
-        if shouldStop(next_toks.indices):
+        detok = generated_token_op["detok"]
+        stop_generation = generated_token_op["stop_generation"]
+        if stop_generation:
             break
-        #        streamer.put(next_toks.indices[0][int(sum_attentionmask)-1])
-        new_word = tok.decode(
-            next_toks.indices[0][int(sum_attentionmask) - 1],
-            skip_special_tokens=True,
-        )
-        print(new_word, end="", flush=True)
-        words_list.append(new_word)
-        if new_word == "":
+        print(detok, end="", flush=True)
+        words_list.append(detok)
+        if detok == "":
             break
-        new_text = new_text + new_word
+        new_text = new_text + detok
     return words_list
+
+
+def generate_new_token(shark_model, tokenizer, params):
+    new_text = params["new_text"]
+    model_inputs = tokenizer(
+        [new_text],
+        padding="max_length",
+        max_length=MAX_SEQUENCE_LENGTH,
+        truncation=True,
+        return_tensors="pt",
+    )
+    sum_attentionmask = torch.sum(model_inputs.attention_mask)
+    # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
+    output = shark_model(
+        "forward", [model_inputs.input_ids, model_inputs.attention_mask]
+    )
+    output = torch.from_numpy(output)
+    next_toks = torch.topk(output, 1)
+    stop_generation = False
+    if shouldStop(next_toks.indices):
+        stop_generation = True
+    new_token = next_toks.indices[0][int(sum_attentionmask) - 1]
+    detok = tokenizer.decode(
+        new_token,
+        skip_special_tokens=True,
+    )
+    ret_dict = {
+        "new_token": new_token,
+        "detok": detok,
+        "stop_generation": stop_generation,
+    }
+    return ret_dict
