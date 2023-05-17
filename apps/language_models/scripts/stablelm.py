@@ -251,7 +251,7 @@ def get_tokenizer():
 # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
 def generate(
     new_text,
-    streamer,
+    # streamer,
     max_new_tokens,
     do_sample,
     top_p,
@@ -265,7 +265,7 @@ def generate(
     attention_mask=torch.randint(3, (1, 256)),
 ):
     if tok == None:
-        tok = get_tokenizer
+        tok = get_tokenizer()
     # Construct the input message string for the model by concatenating the current system message and conversation history
     # Tokenize the messages string
     # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
