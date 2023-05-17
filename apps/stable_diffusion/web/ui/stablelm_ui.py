@@ -128,12 +128,12 @@ def chat(curr_system_message, history, model):
     )
     # print(messages)
     # Tokenize the messages string
-    streamer = TextIteratorStreamer(
-        tok, timeout=10.0, skip_prompt=True, skip_special_tokens=True
-    )
+    # streamer = TextIteratorStreamer(
+    #     tok, timeout=10.0, skip_prompt=True, skip_special_tokens=True
+    # )
     generate_kwargs = dict(
         new_text=messages,
-        streamer=streamer,
+        # streamer=streamer,
         max_new_tokens=512,
         do_sample=True,
         top_p=0.95,
