@@ -2,8 +2,6 @@ import sys
 import warnings
 
 warnings.filterwarnings("ignore")
-sys.path.insert(0, "D:\S\SB\I\python_packages\iree_compiler")
-sys.path.insert(0, "D:\S\SB\I\python_packages\iree_runtime")
 import torch
 import torch_mlir
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -18,6 +16,9 @@ import re
 from shark.shark_inference import SharkInference
 from tqdm import tqdm
 from torch_mlir import TensorPlaceholder
+
+
+import argparse
 
 
 class FirstVicunaLayer(torch.nn.Module):
@@ -545,7 +546,7 @@ def compile_to_vmfb(inputs, layers, is_first=True):
         else:
             vmfb_path = Path(f"{idx}_1.vmfb")
             if idx < 25:
-                device = "vulkan"
+                device = "cpu"
             else:
                 device = "cpu"
             if vmfb_path.exists():
