@@ -69,3 +69,4 @@ from apps.stable_diffusion.web.ui.model_manager import (
 )
 from apps.stable_diffusion.web.ui.lora_train_ui import lora_train_web
 from apps.stable_diffusion.web.ui.stablelm_ui import stablelm_chat
+from apps.stable_diffusion.web.ui.MiniGPT4.demo import minigpt4_web
