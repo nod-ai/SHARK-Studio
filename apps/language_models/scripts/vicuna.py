@@ -3,7 +3,6 @@ import warnings
 
 warnings.filterwarnings("ignore")
 import torch
-import torch_mlir
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
@@ -15,7 +14,6 @@ from shark.shark_importer import transform_fx as transform_fx_
 import re
 from shark.shark_inference import SharkInference
 from tqdm import tqdm
-from torch_mlir import TensorPlaceholder
 
 
 import argparse
@@ -254,6 +252,8 @@ def compile_vicuna_layer(
     past_key_value0=None,
     past_key_value1=None,
 ):
+
+    from torch_mlir import TensorPlaceholder
     hidden_states_placeholder = TensorPlaceholder.like(
         hidden_states, dynamic_axes=[1]
     )
@@ -419,65 +419,73 @@ def compile_to_vmfb(inputs, layers, is_first=True):
         if vmfb_path.exists():
             continue
         if mlir_path.exists():
-            # print(f"Found layer {idx} mlir")
+            print(f"Found layer {idx} mlir")
             f_ = open(mlir_path, "rb")
             bytecode = f_.read()
             f_.close()
         else:
-            hidden_states_placeholder = TensorPlaceholder.like(
-                inputs[0], dynamic_axes=[1]
-            )
-            attention_mask_placeholder = TensorPlaceholder.like(
-                inputs[1], dynamic_axes=[3]
-            )
-            position_ids_placeholder = TensorPlaceholder.like(
-                inputs[2], dynamic_axes=[1]
-            )
-            if not is_first:
-                pkv0_placeholder = TensorPlaceholder.like(
-                    inputs[3], dynamic_axes=[2]
+            try:
+                import subprocess
+                command = ["gsutil", "-m", "cp", "gs://shark_tank/dan/vicunia_mlir/*.mlir", "."]
+                subprocess.run(command)
+            except:
+                from torch_mlir import TensorPlaceholder
+
+                hidden_states_placeholder = TensorPlaceholder.like(
+                    inputs[0], dynamic_axes=[1]
                 )
-                pkv1_placeholder = TensorPlaceholder.like(
-                    inputs[4], dynamic_axes=[2]
+                attention_mask_placeholder = TensorPlaceholder.like(
+                    inputs[1], dynamic_axes=[3]
                 )
-            print(f"Compiling layer {idx} mlir")
-            if is_first:
-                ts_g = compile_vicuna_layer(
-                    layer, inputs[0], inputs[1], inputs[2]
+                position_ids_placeholder = TensorPlaceholder.like(
+                    inputs[2], dynamic_axes=[1]
                 )
-                module = torch_mlir.compile(
-                    ts_g,
-                    (
-                        hidden_states_placeholder,
+                if not is_first:
+                    pkv0_placeholder = TensorPlaceholder.like(
+                        inputs[3], dynamic_axes=[2]
+                    )
+                    pkv1_placeholder = TensorPlaceholder.like(
+                        inputs[4], dynamic_axes=[2]
+                    )
+                print(f"Compiling layer {idx} mlir")
+                import torch_mlir
+                if is_first:
+                    ts_g = compile_vicuna_layer(
+                        layer, inputs[0], inputs[1], inputs[2]
+                    )
+                    module = torch_mlir.compile(
+                        ts_g,
+                        (
+                            hidden_states_placeholder,
+                            inputs[1],
+                            inputs[2],
+                        ),
+                        torch_mlir.OutputType.LINALG_ON_TENSORS,
+                        use_tracing=False,
+                        verbose=False,
+                    )
+                else:
+                    ts_g = compile_vicuna_layer(
+                        layer,
+                        inputs[0],
                         inputs[1],
                         inputs[2],
-                    ),
-                    torch_mlir.OutputType.LINALG_ON_TENSORS,
-                    use_tracing=False,
-                    verbose=False,
-                )
-            else:
-                ts_g = compile_vicuna_layer(
-                    layer,
-                    inputs[0],
-                    inputs[1],
-                    inputs[2],
-                    inputs[3],
-                    inputs[4],
-                )
-                module = torch_mlir.compile(
-                    ts_g,
-                    (
-                        inputs[0],
-                        attention_mask_placeholder,
-                        inputs[2],
-                        pkv0_placeholder,
-                        pkv1_placeholder,
-                    ),
-                    torch_mlir.OutputType.LINALG_ON_TENSORS,
-                    use_tracing=False,
-                    verbose=False,
-                )
+                        inputs[3],
+                        inputs[4],
+                    )
+                    module = torch_mlir.compile(
+                        ts_g,
+                        (
+                            inputs[0],
+                            attention_mask_placeholder,
+                            inputs[2],
+                            pkv0_placeholder,
+                            pkv1_placeholder,
+                        ),
+                        torch_mlir.OutputType.LINALG_ON_TENSORS,
+                        use_tracing=False,
+                        verbose=False,
+                    )
 
             # bytecode_stream = BytesIO()
             # module.operation.write_bytecode(bytecode_stream)

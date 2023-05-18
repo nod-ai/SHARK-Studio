@@ -37,9 +37,6 @@ setup(
     python_requires=">=3.9",
     data_files=glob.glob("apps/stable_diffusion/resources/**"),
     install_requires=[
-        "numpy",
-        "PyYAML",
-        "torch-mlir>=20221021.633",
     ]
     + backend_deps,
 )
