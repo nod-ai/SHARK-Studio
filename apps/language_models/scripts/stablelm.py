@@ -169,12 +169,12 @@ def get_torch_mlir_module_bytecode(model, model_inputs):
 def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
     # ADD Device Arg
     from shark.shark_inference import SharkInference
-
+    device = 'cpu' # 'cuda'
     vmfb_path = Path(model_vmfb_name + ".vmfb")
     if vmfb_path.exists():
-        print("Loading ", vmfb_path)
+        print("Loading vmfb from: ", vmfb_path)
         shark_module = SharkInference(
-            None, device="cuda", mlir_dialect="tm_tensor"
+            None, device=device, mlir_dialect="tm_tensor"
         )
         shark_module.load_module(vmfb_path)
         print("Successfully loaded vmfb")
@@ -185,8 +185,8 @@ def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
         f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
     )
     if mlir_path.exists():
-        with open(mlir_path) as f:
-            bytecode = f.read("rb")
+        with open(mlir_path, "rb") as f:
+            bytecode = f.read()
     else:
         ts_graph = get_torch_mlir_module_bytecode(model, model_inputs)
         module = torch_mlir.compile(
@@ -205,7 +205,7 @@ def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
     f_.close()
 
     shark_module = SharkInference(
-        mlir_module=bytecode, device="cuda", mlir_dialect="tm_tensor"
+        mlir_module=bytecode, device=device, mlir_dialect="tm_tensor"
     )
     shark_module.compile()
 

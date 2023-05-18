@@ -1,16 +1,8 @@
 import gradio as gr
 import torch
 import os
-from apps.language_models.scripts.stablelm import (
-    compile_stableLM,
-    StopOnTokens,
-    generate,
-    get_tokenizer,
-    StableLMModel,
-)
 from transformers import (
     AutoModelForCausalLM,
-    TextIteratorStreamer,
     StoppingCriteriaList,
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
@@ -41,6 +33,7 @@ past_key_values = None
 
 
 def chat(curr_system_message, history, model):
+    print(f"In chat for {model}")
     global sharded_model
     global past_key_values
     if "vicuna" in model:
@@ -97,8 +90,15 @@ def chat(curr_system_message, history, model):
         print(new_sentence)
         return history
 
+    # else Model is StableLM 
     global sharkModel
-    print("In chat")
+    from apps.language_models.scripts.stablelm import (
+        compile_stableLM,
+        StopOnTokens,
+        generate,
+        get_tokenizer,
+        StableLMModel,
+    )
     if sharkModel == 0:
         tok = get_tokenizer()
         # sharkModel = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/disk/phaneesh/stablelm_3b_f32_cuda_2048_newflags.vmfb")
