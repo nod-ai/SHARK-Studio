@@ -47,6 +47,7 @@ block_cipher = None
 
 hiddenimports = ['shark', 'shark.shark_inference', 'apps']
 hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
+hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
 
 a = Analysis(
     ['web/index.py'],
