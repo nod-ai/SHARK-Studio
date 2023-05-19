@@ -169,8 +169,13 @@ def get_torch_mlir_module_bytecode(model, model_inputs):
 def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
     # ADD Device Arg
     from shark.shark_inference import SharkInference
-    device = 'cpu' # 'cuda'
-    vmfb_path = Path(model_vmfb_name + ".vmfb")
+
+    device = "cuda"  # 'cpu'
+    vmfb_path = (
+        Path(model_name + f"_{device}.vmfb")
+        if model_vmfb_name is None
+        else Path(model_vmfb_name)
+    )
     if vmfb_path.exists():
         print("Loading vmfb from: ", vmfb_path)
         shark_module = SharkInference(

@@ -1,6 +1,7 @@
 import gradio as gr
 import torch
 import os
+from pathlib import Path
 from transformers import (
     AutoModelForCausalLM,
     StoppingCriteriaList,
@@ -18,10 +19,6 @@ start_message = """<|SYSTEM|># StableLM Tuned (Alpha version)
 def user(message, history):
     # Append the user's message to the conversation history
     return "", history + [[message, ""]]
-
-
-input_ids = torch.randint(3, (1, 256))
-attention_mask = torch.randint(3, (1, 256))
 
 
 sharkModel = 0
@@ -90,29 +87,34 @@ def chat(curr_system_message, history, model):
         print(new_sentence)
         return history
 
-    # else Model is StableLM 
+    # else Model is StableLM
     global sharkModel
     from apps.language_models.scripts.stablelm import (
         compile_stableLM,
         StopOnTokens,
         generate,
-        get_tokenizer,
         StableLMModel,
     )
+
     if sharkModel == 0:
-        tok = get_tokenizer()
         # sharkModel = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/disk/phaneesh/stablelm_3b_f32_cuda_2048_newflags.vmfb")
+        max_sequence_len = 256
+        precision = "fp32"
+        model_name_template = (
+            f"stableLM_linalg_{precision}_seqLen{max_sequence_len}"
+        )
+
         m = AutoModelForCausalLM.from_pretrained(
             "stabilityai/stablelm-tuned-alpha-3b", torch_dtype=torch.float32
         )
         stableLMModel = StableLMModel(m)
-        input_ids = torch.randint(3, (1, 256))
-        attention_mask = torch.randint(3, (1, 256))
+        input_ids = torch.randint(3, (1, max_sequence_len))
+        attention_mask = torch.randint(3, (1, max_sequence_len))
         sharkModel = compile_stableLM(
             stableLMModel,
             tuple([input_ids, attention_mask]),
-            "stableLM_linalg_f32_seqLen256",
-            os.getcwd(),
+            model_name_template,
+            None,  # provide a fully qualified path to vmfb file if already exists
         )
     # Initialize a StopOnTokens object
     stop = StopOnTokens()
@@ -126,14 +128,9 @@ def chat(curr_system_message, history, model):
             for item in history
         ]
     )
-    # print(messages)
-    # Tokenize the messages string
-    # streamer = TextIteratorStreamer(
-    #     tok, timeout=10.0, skip_prompt=True, skip_special_tokens=True
-    # )
+
     generate_kwargs = dict(
         new_text=messages,
-        # streamer=streamer,
         max_new_tokens=512,
         do_sample=True,
         top_p=0.95,
