@@ -1,25 +1,16 @@
-import sys
 import warnings
 
 warnings.filterwarnings("ignore")
 import torch
 import torch_mlir
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from torch.fx.experimental.proxy_tensor import make_fx
-from torch._decomp import get_decompositions
-from typing import List
 from io import BytesIO
 from pathlib import Path
-from shark.shark_downloader import download_public_file
-from shark.shark_importer import transform_fx as transform_fx_
 import re
 from shark.shark_inference import SharkInference
 from tqdm import tqdm
 from torch_mlir import TensorPlaceholder
 from apps.language_models.utils import get_torch_mlir_module_bytecode
-
-
-import argparse
 
 
 class FirstVicunaLayer(torch.nn.Module):
