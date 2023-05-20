@@ -1,24 +1,11 @@
 import torch
 import torch_mlir
 from transformers import (
-    AutoModelForCausalLM,
     AutoTokenizer,
-    pipeline,
     StoppingCriteria,
-    StoppingCriteriaList,
-    TextIteratorStreamer,
 )
-import time
-import numpy as np
 from torch.nn import functional as F
-import os
-from threading import Thread
-from typing import List
 from io import BytesIO
-from pathlib import Path
-from shark.shark_downloader import download_public_file
-
-from shark.shark_inference import SharkInference
 from pathlib import Path
 from apps.language_models.utils import get_torch_mlir_module_bytecode
 
@@ -140,7 +127,6 @@ def get_tokenizer():
 # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
 def generate(
     new_text,
-    # streamer,
     max_new_tokens,
     do_sample,
     top_p,
