@@ -1,6 +1,7 @@
 import torch
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
+from typing import List
 
 
 def get_torch_mlir_module_bytecode(model, model_inputs):
