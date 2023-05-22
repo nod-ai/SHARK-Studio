@@ -87,7 +87,10 @@ def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
 
     import os
 
-    path = shark_module.save_module(os.getcwd(), model_vmfb_name, [])
+    path = shark_module.save_module(
+        vmfb_path.parent.absolute(),
+        vmfb_path.stem,
+    )
     print("Saved vmfb at ", str(path))
 
     return shark_module
