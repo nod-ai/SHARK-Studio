@@ -148,14 +148,23 @@ class SharkImporter:
 
     # Saves `function_name.npy`, `inputs.npz`, `golden_out.npz` and `model_name.mlir` in the directory `dir`.
     def save_data(
-        self, dir, model_name, mlir_data, func_name, inputs, outputs
+        self,
+        dir,
+        model_name,
+        mlir_data,
+        func_name,
+        inputs,
+        outputs,
+        mlir_type="linalg",
     ):
         import numpy as np
 
         inputs_name = "inputs.npz"
         outputs_name = "golden_out.npz"
         func_file_name = "function_name"
-        model_name_mlir = model_name + "_" + self.frontend + ".mlir"
+        model_name_mlir = (
+            model_name + "_" + self.frontend + "_" + mlir_type + ".mlir"
+        )
         print(f"saving {model_name_mlir} to {dir}")
         try:
             inputs = [x.cpu().detach() for x in inputs]
@@ -198,7 +207,9 @@ class SharkImporter:
                 f"There is no input provided: {self.inputs}, please provide inputs or simply run import_mlir."
             )
             sys.exit(1)
-        model_name_mlir = model_name + "_" + self.frontend + ".mlir"
+        model_name_mlir = (
+            model_name + "_" + self.frontend + "_" + mlir_type + ".mlir"
+        )
         artifact_path = os.path.join(dir, model_name_mlir)
         imported_mlir = self.import_mlir(
             is_dynamic,
@@ -231,6 +242,7 @@ class SharkImporter:
                 imported_mlir[1],
                 self.inputs,
                 golden_out,
+                mlir_type,
             )
             return (
                 imported_mlir,
@@ -399,6 +411,9 @@ def import_with_fx(
     return_str=False,
     save_dir=tempfile.gettempdir(),
     model_name="model",
+    mlir_type="linalg",
+    is_dynamic=False,
+    tracing_required=False,
 ):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
@@ -465,7 +480,12 @@ def import_with_fx(
 
     if debug:  # and not is_f16:
         (mlir_module, func_name), _, _ = mlir_importer.import_debug(
-            dir=save_dir, model_name=model_name, golden_values=golden_values
+            dir=save_dir,
+            model_name=model_name,
+            golden_values=golden_values,
+            mlir_type=mlir_type,
+            is_dynamic=is_dynamic,
+            tracing_required=tracing_required,
         )
         return mlir_module, func_name
 
