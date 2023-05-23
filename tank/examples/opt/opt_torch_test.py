@@ -6,7 +6,7 @@ from hacked_hf_opt import OPTModel
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from tank.model_utils import compare_tensors
-from transformers import GPT2Tokenizer
+from transformers import AutoTokenizer
 
 OPT_MODEL = "facebook/opt-350m"
 OPT_MODEL_66B = "facebook/opt-66b"
@@ -20,7 +20,7 @@ class OPTModuleTester:
         self.benchmark = benchmark
 
     def create_and_check_module(self, dynamic, device, model_name):
-        tokenizer = GPT2Tokenizer.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
         # config = OPTConfig()
         # opt_model = OPTModel(config)
         opt_model = OPTModel.from_pretrained(model_name)
