@@ -320,6 +320,9 @@ def transform_fx(fx_g):
         "device": torch.device(type="cpu"),
         "pin_memory": False,
     }
+    kwargs_dict1 = {
+        "dtype": torch.float16,
+    }
     for node in fx_g.graph.nodes:
         if node.op == "call_function":
             if node.target in [
@@ -327,7 +330,16 @@ def transform_fx(fx_g):
                 torch.ops.aten.empty,
                 torch.ops.aten.zeros,
             ]:
-                node.kwargs = kwargs_dict
+                if node.kwargs.get("dtype") == torch.float32:
+                    node.kwargs = kwargs_dict
+
+            # Vicuna
+            if node.target in [
+                torch.ops.aten._to_copy,
+            ]:
+                if node.kwargs.get("dtype") == torch.float32:
+                    node.kwargs = kwargs_dict1
+
             # Inputs and outputs of aten.var.mean should be upcasted to fp32.
             if node.target in [torch.ops.aten.var_mean]:
                 with fx_g.graph.inserting_before(node):
@@ -337,6 +349,7 @@ def transform_fx(fx_g):
                         kwargs={},
                     )
                     node.args = (new_node, node.args[1])
+
             if node.name.startswith("getitem"):
                 with fx_g.graph.inserting_before(node):
                     if node.args[0].target in [torch.ops.aten.var_mean]:
@@ -349,6 +362,19 @@ def transform_fx(fx_g):
                         node.replace_all_uses_with(new_node)
                         new_node.args = (node,)
                         new_node.kwargs = {"dtype": torch.float16}
+
+            # Change the default dtype of aten.full op. (Vicuna)
+            if node.target in [torch.ops.aten.full]:
+                new_node = fx_g.graph.call_function(
+                    torch.ops.aten._to_copy,
+                    args=(node,),
+                    kwargs={"dtype": torch.float16},
+                )
+                node.append(new_node)
+                node.replace_all_uses_with(new_node)
+                new_node.args = (node,)
+                new_node.kwargs = {"dtype": torch.float16}
+
             # aten.empty should be filled with zeros.
             if node.target in [torch.ops.aten.empty]:
                 with fx_g.graph.inserting_after(node):
