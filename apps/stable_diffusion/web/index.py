@@ -125,6 +125,7 @@ if __name__ == "__main__":
         modelmanager_sendto_outpaint,
         modelmanager_sendto_upscaler,
         stablelm_chat,
+        minigpt4_web,
     )
 
     # init global sd pipeline and config
@@ -171,6 +172,8 @@ if __name__ == "__main__":
                 stablelm_chat.render()
             with gr.TabItem(label="LoRA Training(Experimental)", id=7):
                 lora_train_web.render()
+            with gr.TabItem(label="MiniGPT4 WIP (Experimental)", id=8):
+                minigpt4_web.render()
 
         register_button_click(
             txt2img_sendto_img2img,
