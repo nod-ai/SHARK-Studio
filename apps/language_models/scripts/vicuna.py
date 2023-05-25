@@ -16,6 +16,7 @@ import re
 from shark.shark_inference import SharkInference
 from tqdm import tqdm
 from torch_mlir import TensorPlaceholder
+from apps.language_models.utils import modeling
 
 
 import argparse
@@ -609,10 +610,37 @@ def get_sharded_model():
     return sharded_model
 
 
+import argparse
+
+parser = argparse.ArgumentParser(
+    prog="vicuna runner",
+    description="runs a vicuna model",
+)
+
+parser.add_argument(
+    "--precision", "-p", default="fp32", help="fp32, fp16, int8, int4"
+)
+parser.add_argument(
+    "--device", "-d", default="vulkan", help="vulkan, cpu, cuda"
+)
+parser.add_argument(
+    "--sharded",
+    "-s",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+    help="use a sharded model",
+)
+
 if __name__ == "__main__":
+    args = parser.parse_args()
     prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
     prologue_prompt = "ASSISTANT:\n"
-    sharded_model = get_sharded_model()
+    if args.sharded:
+        model = get_sharded_model()
+    else:
+        model = modeling.get_vicuna_model(
+            device=args.device, precision=args.precision
+        )
     tokenizer = get_model_and_tokenizer()[1]
     past_key_values = None
     while True:
@@ -634,9 +662,9 @@ if __name__ == "__main__":
             input_ids = input_ids.reshape([1, input_id_len])
 
             if iteration == 0:
-                output = sharded_model.forward(input_ids, is_first=True)
+                output = model.forward(input_ids, is_first=True)
             else:
-                output = sharded_model.forward(
+                output = model.forward(
                     input_ids, past_key_values=past_key_values, is_first=False
                 )
             logits = output["logits"]
