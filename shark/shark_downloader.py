@@ -61,6 +61,8 @@ def download_public_file(
                 continue
 
         destination_filename = os.path.join(destination_folder_name, blob_name)
+        if os.path.isdir(destination_filename):
+            continue
         with open(destination_filename, "wb") as f:
             with tqdm.wrapattr(f, "write", total=blob.size) as file_obj:
                 storage_client.download_blob_to_file(blob, file_obj)
@@ -210,6 +212,9 @@ def download_model(
             + "_BS"
             + str(import_args["batch_size"])
         )
+    elif any(model in model_name for model in ["clip", "unet", "vae"]):
+        # TODO(Ean Garvey): rework extended naming such that device is only included in model_name after .vmfb compilation.
+        model_dir_name = model_name
     else:
         model_dir_name = model_name + "_" + frontend
     model_dir = os.path.join(WORKDIR, model_dir_name)
@@ -270,6 +275,9 @@ def download_model(
     tuned_str = "" if tuned is None else "_" + tuned
     suffix = f"{dyn_str}_{frontend}{tuned_str}.mlir"
     filename = os.path.join(model_dir, model_name + suffix)
+    print(
+        f"Verifying that model artifacts were downloaded successfully to {filename}..."
+    )
     if not os.path.exists(filename):
         from tank.generate_sharktank import gen_shark_files
 
