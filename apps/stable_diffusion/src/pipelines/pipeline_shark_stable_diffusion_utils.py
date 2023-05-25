@@ -86,7 +86,6 @@ class StableDiffusionPipeline:
             self.text_encoder = self.sd_model.clip()
         else:
             try:
-                breakpoint()
                 self.text_encoder = get_clip()
             except Exception as e:
                 print(e)
