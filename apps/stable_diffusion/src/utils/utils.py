@@ -83,7 +83,6 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
     # Set local shark_tank cache directory.
     shark_args.local_tank_cache = args.local_tank_cache
-
     from shark.shark_downloader import download_model
 
     if "cuda" in args.device:
