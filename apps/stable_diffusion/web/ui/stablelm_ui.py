@@ -4,7 +4,6 @@ import os
 from pathlib import Path
 from transformers import (
     AutoModelForCausalLM,
-    StoppingCriteriaList,
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
 
@@ -34,7 +33,7 @@ def chat(curr_system_message, history, model):
     global sharded_model
     global past_key_values
     if "vicuna" in model:
-        from apps.language_models.scripts.sharded_vicuna_fp32 import (
+        from apps.language_models.scripts.vicuna import (
             tokenizer,
             get_sharded_model,
         )
@@ -132,12 +131,6 @@ def chat(curr_system_message, history, model):
     generate_kwargs = dict(
         new_text=messages,
         max_new_tokens=512,
-        do_sample=True,
-        top_p=0.95,
-        top_k=1000,
-        temperature=1.0,
-        num_beams=1,
-        stopping_criteria=StoppingCriteriaList([stop]),
         sharkStableLM=sharkModel,
     )
     words_list = generate(**generate_kwargs)

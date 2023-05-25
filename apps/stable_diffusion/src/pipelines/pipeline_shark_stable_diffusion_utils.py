@@ -87,7 +87,8 @@ class StableDiffusionPipeline:
         else:
             try:
                 self.text_encoder = get_clip()
-            except:
+            except Exception as e:
+                print(e)
                 print("download pipeline failed, falling back to import_mlir")
                 self.text_encoder = self.sd_model.clip()
 
@@ -104,7 +105,8 @@ class StableDiffusionPipeline:
         else:
             try:
                 self.unet = get_unet()
-            except:
+            except Exception as e:
+                print(e)
                 print("download pipeline failed, falling back to import_mlir")
                 self.unet = self.sd_model.unet()
 
@@ -121,7 +123,8 @@ class StableDiffusionPipeline:
         else:
             try:
                 self.vae = get_vae()
-            except:
+            except Exception as e:
+                print(e)
                 print("download pipeline failed, falling back to import_mlir")
                 self.vae = self.sd_model.vae()
 
