@@ -11,6 +11,7 @@ from torch_mlir import TensorPlaceholder
 from apps.language_models.modeling import get_vicuna_model
 from apps.language_models.utils import get_torch_mlir_module_bytecode
 import argparse
+import os
 
 parser = argparse.ArgumentParser(
     prog="vicuna runner",
@@ -30,6 +31,11 @@ parser.add_argument(
     default=True,
     help="use a sharded model",
 )
+
+
+
+MODEL_PATH = "TheBloke/vicuna-7B-1.1-HF"
+
 
 
 class FirstVicunaLayer(torch.nn.Module):
@@ -173,6 +179,534 @@ class CompiledSecondVicunaLayer(torch.nn.Module):
                 output2,
             ),
         )
+
+
+class FirstVicunaModel:
+    def __init__(self, model_name):
+        self.model_name = model_name
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_PATH, use_fast=False
+        )
+        self.shark_module = None
+
+    def compile(self, device="cpu"):
+        compilation_prompt = "".join(["0" for _ in range(17)])
+        compilation_input_ids = self.tokenizer(compilation_prompt).input_ids
+        compilation_input_ids = torch.tensor(compilation_input_ids).reshape(
+            [1, 19]
+        )
+        firstVicunaCompileInput = (compilation_input_ids,)
+        model = FirstVicuna(MODEL_PATH)
+
+        vmfb_path = Path(self.model_name + ".vmfb")
+        if vmfb_path.exists():
+            shark_module = SharkInference(
+                None, device=device, mlir_dialect="tm_tensor"
+            )
+            shark_module.load_module(vmfb_path)
+            self.shark_module = shark_module
+            return shark_module
+        mlir_path = Path(self.model_name + ".mlir")
+        print(
+            f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
+        )
+        if mlir_path.exists():
+            with open(mlir_path, "rb") as f:
+                bytecode = f.read()
+        else:
+            ts_graph = get_torch_mlir_module_bytecode(
+                model, firstVicunaCompileInput
+            )
+            firstVicunaCompileInput = list(firstVicunaCompileInput)
+            firstVicunaCompileInput[0] = torch_mlir.TensorPlaceholder.like(
+                firstVicunaCompileInput[0], dynamic_axes=[1]
+            )
+            firstVicunaCompileInput = tuple(firstVicunaCompileInput)
+            module = torch_mlir.compile(
+                ts_graph,
+                [*firstVicunaCompileInput],
+                torch_mlir.OutputType.LINALG_ON_TENSORS,
+                use_tracing=False,
+                verbose=False,
+            )
+
+            def remove_constant_dim(line):
+                if "19x" in line:
+                    line = re.sub("19x", "?x", line)
+                    line = re.sub(
+                        "tensor.empty\(\)", "tensor.empty(%dim)", line
+                    )
+                if "tensor.empty" in line and "?x?" in line:
+                    line = re.sub(
+                        "tensor.empty\(%dim\)",
+                        "tensor.empty(%dim, %dim)",
+                        line,
+                    )
+                if "arith.cmpi" in line:
+                    line = re.sub("c19", "dim", line)
+                if " 19," in line:
+                    line = re.sub(" 19,", " %dim,", line)
+                return line
+
+            module_str = str(module)
+            new_lines = []
+
+            for line in module_str.splitlines():
+                line = remove_constant_dim(line)
+                if "%0 = tensor.empty(%dim) : tensor<?xi64>" in line:
+                    new_lines.append(
+                        "%dim = tensor.dim %arg0, %c1 : tensor<1x?xi64>"
+                    )
+                if "%dim = tensor.dim %arg0, %c1 : tensor<1x?xi64>" in line:
+                    continue
+
+                new_lines.append(line)
+
+            module_str = "\n".join(new_lines)
+            bytecode = module_str.encode("UTF-8")
+            bytecode_stream = BytesIO(bytecode)
+            bytecode = bytecode_stream.read()
+            f_ = open(f"{self.model_name}.mlir", "wb")
+            f_.write(bytecode)
+            f_.close()
+
+        shark_module = SharkInference(
+            mlir_module=bytecode, device=device, mlir_dialect="tm_tensor"
+        )
+
+        path = shark_module.save_module(
+            os.getcwd(),
+            self.model_name,
+            extra_args=[
+                "--iree-hal-dump-executable-sources-to=ies",
+                "--iree-vm-target-truncate-unsupported-floats",
+                "--iree-codegen-check-ir-before-llvm-conversion=false",
+                "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+            ],
+        )
+        print("Saved vmfb at ", str(path))
+        shark_module.load_module(vmfb_path)
+
+        self.shark_module = shark_module
+
+        return shark_module
+
+    def forward(self, prompt, cache_outputs=False):
+        input_ids = self.tokenizer(prompt).input_ids
+        input_id_len = len(input_ids)
+        input_ids = torch.tensor(input_ids)
+        input_ids = input_ids.reshape([1, input_id_len])
+        firstVicunaInput = (input_ids,)
+        assert self.shark_module is not None
+        output_first_vicuna = self.shark_module("forward", firstVicunaInput)
+        output_first_vicuna_tensor = torch.tensor(output_first_vicuna[1:])
+        logits_first_vicuna = torch.tensor(output_first_vicuna[0])
+        if cache_outputs:
+            torch.save(logits_first_vicuna, "logits_first_vicuna_tensor.pt")
+            torch.save(
+                output_first_vicuna_tensor, "output_first_vicuna_tensor.pt"
+            )
+        token = torch.argmax(
+            torch.tensor(logits_first_vicuna)[:, -1, :], dim=1
+        )
+        return token, logits_first_vicuna, output_first_vicuna_tensor
+
+
+class SecondVicunaModel:
+    def __init__(self, model_name):
+        self.model_name = model_name
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            MODEL_PATH, use_fast=False
+        )
+        self.shark_module = None
+
+    def compile(self, device="cpu"):
+        compilation_input_ids = torch.zeros([1, 1], dtype=torch.int64)
+        pkv = tuple(
+            (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
+            for _ in range(64)
+        )
+        secondVicunaCompileInput = (compilation_input_ids,) + pkv
+        model = SecondVicuna(MODEL_PATH)
+
+        vmfb_path = Path(self.model_name + ".vmfb")
+        if vmfb_path.exists():
+            shark_module = SharkInference(
+                None, device=device, mlir_dialect="tm_tensor"
+            )
+            shark_module.load_module(vmfb_path)
+            self.shark_module = shark_module
+            return shark_module
+        mlir_path = Path(self.model_name + ".mlir")
+        print(
+            f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
+        )
+        if mlir_path.exists():
+            with open(mlir_path, "rb") as f:
+                bytecode = f.read()
+        else:
+            ts_graph = get_torch_mlir_module_bytecode(
+                model, secondVicunaCompileInput
+            )
+            secondVicunaCompileInput = list(secondVicunaCompileInput)
+            for i in range(len(secondVicunaCompileInput)):
+                if i != 0:
+                    secondVicunaCompileInput[
+                        i
+                    ] = torch_mlir.TensorPlaceholder.like(
+                        secondVicunaCompileInput[i], dynamic_axes=[2]
+                    )
+            secondVicunaCompileInput = tuple(secondVicunaCompileInput)
+            module = torch_mlir.compile(
+                ts_graph,
+                [*secondVicunaCompileInput],
+                torch_mlir.OutputType.LINALG_ON_TENSORS,
+                use_tracing=False,
+                verbose=False,
+            )
+
+            def remove_constant_dim(line):
+                if "c19_i64" in line:
+                    line = re.sub("c19_i64", "dim_i64", line)
+                if "19x" in line:
+                    line = re.sub("19x", "?x", line)
+                    line = re.sub(
+                        "tensor.empty\(\)", "tensor.empty(%dim)", line
+                    )
+                if "tensor.empty" in line and "?x?" in line:
+                    line = re.sub(
+                        "tensor.empty\(%dim\)",
+                        "tensor.empty(%dim, %dim)",
+                        line,
+                    )
+                if "arith.cmpi" in line:
+                    line = re.sub("c19", "dim", line)
+                if " 19," in line:
+                    line = re.sub(" 19,", " %dim,", line)
+                if "20x" in line:
+                    line = re.sub("20x", "?x", line)
+                    line = re.sub(
+                        "tensor.empty\(\)", "tensor.empty(%dimp1)", line
+                    )
+                if " 20," in line:
+                    line = re.sub(" 20,", " %dimp1,", line)
+                return line
+
+            module_str = str(module)
+            new_lines = []
+
+            for line in module_str.splitlines():
+                if "%c19_i64 = arith.constant 19 : i64" in line:
+                    new_lines.append("%c2 = arith.constant 2 : index")
+                    new_lines.append(
+                        "%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128xf32>"
+                    )
+                    new_lines.append(
+                        "%dim_i64 = arith.index_cast %dim_4_int : index to i64"
+                    )
+                    continue
+                if "%c2 = arith.constant 2 : index" in line:
+                    continue
+                if "%c20_i64 = arith.constant 20 : i64" in line:
+                    new_lines.append("%c1_i64 = arith.constant 1 : i64")
+                    new_lines.append(
+                        "%c20_i64 = arith.addi %dim_i64, %c1_i64 : i64"
+                    )
+                    new_lines.append(
+                        "%dimp1 = arith.index_cast %c20_i64 : i64 to index"
+                    )
+                    continue
+                line = remove_constant_dim(line)
+                new_lines.append(line)
+
+            module_str = "\n".join(new_lines)
+            bytecode = module_str.encode("UTF-8")
+            bytecode_stream = BytesIO(bytecode)
+            bytecode = bytecode_stream.read()
+            f_ = open(f"{self.model_name}.mlir", "wb")
+            f_.write(bytecode)
+            f_.close()
+
+        shark_module = SharkInference(
+            mlir_module=bytecode, device=device, mlir_dialect="tm_tensor"
+        )
+
+        path = shark_module.save_module(
+            os.getcwd(),
+            self.model_name,
+            extra_args=[
+                "--iree-hal-dump-executable-sources-to=ies",
+                "--iree-vm-target-truncate-unsupported-floats",
+                "--iree-codegen-check-ir-before-llvm-conversion=false",
+                "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+            ],
+        )
+        print("Saved vmfb at ", str(path))
+        shark_module.load_module(vmfb_path)
+
+        self.shark_module = shark_module
+
+        return shark_module
+
+    def forward(self, inputs=None, load_inputs=False):
+        if inputs is not None:
+            logits = inputs[0]
+            token = torch.argmax(torch.tensor(logits)[:, -1, :], dim=1)
+            token = token.to(torch.int64).reshape([1, 1])
+            pkv = inputs[1:]
+            secondVicunaInput = (token,) + tuple(pkv)
+        elif load_inputs:
+            pkv = torch.load("output_first_vicuna_tensor.pt")
+            pkv = tuple(torch.tensor(x) for x in pkv)
+            logits = torch.load("logits_first_vicuna_tensor.pt")
+            token = torch.argmax(torch.tensor(logits)[:, -1, :], dim=1)
+            token = token.to(torch.int64).reshape([1, 1])
+            secondVicunaInput = (token,) + pkv
+        else:
+            print("Either inputs must be given, or load_inputs must be true")
+            return None
+        secondVicunaOutput = self.shark_module("forward", secondVicunaInput)
+        new_pkv = secondVicunaOutput[1:]
+        new_logits = secondVicunaOutput[0]
+        new_token = torch.argmax(torch.tensor(new_logits)[:, -1, :], dim=1)
+        return new_token, new_logits, new_pkv
+
+
+class FirstVicuna(torch.nn.Module):
+    def __init__(self, model_path):
+        super().__init__()
+        kwargs = {"torch_dtype": torch.float32}
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path, low_cpu_mem_usage=True, **kwargs
+        )
+
+    def forward(self, input_ids):
+        op = self.model(input_ids=input_ids, use_cache=True)
+        return_vals = []
+        return_vals.append(op.logits)
+        temp_past_key_values = op.past_key_values
+        for item in temp_past_key_values:
+            return_vals.append(item[0])
+            return_vals.append(item[1])
+        return tuple(return_vals)
+
+
+class SecondVicuna(torch.nn.Module):
+    def __init__(self, model_path):
+        super().__init__()
+        kwargs = {"torch_dtype": torch.float32}
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_path, low_cpu_mem_usage=True, **kwargs
+        )
+
+    def forward(
+        self,
+        i0,
+        i1,
+        i2,
+        i3,
+        i4,
+        i5,
+        i6,
+        i7,
+        i8,
+        i9,
+        i10,
+        i11,
+        i12,
+        i13,
+        i14,
+        i15,
+        i16,
+        i17,
+        i18,
+        i19,
+        i20,
+        i21,
+        i22,
+        i23,
+        i24,
+        i25,
+        i26,
+        i27,
+        i28,
+        i29,
+        i30,
+        i31,
+        i32,
+        i33,
+        i34,
+        i35,
+        i36,
+        i37,
+        i38,
+        i39,
+        i40,
+        i41,
+        i42,
+        i43,
+        i44,
+        i45,
+        i46,
+        i47,
+        i48,
+        i49,
+        i50,
+        i51,
+        i52,
+        i53,
+        i54,
+        i55,
+        i56,
+        i57,
+        i58,
+        i59,
+        i60,
+        i61,
+        i62,
+        i63,
+        i64,
+    ):
+        # input_ids = input_tuple[0]
+        # input_tuple = torch.unbind(pkv, dim=0)
+        token = i0
+        past_key_values = (
+            (i1, i2),
+            (
+                i3,
+                i4,
+            ),
+            (
+                i5,
+                i6,
+            ),
+            (
+                i7,
+                i8,
+            ),
+            (
+                i9,
+                i10,
+            ),
+            (
+                i11,
+                i12,
+            ),
+            (
+                i13,
+                i14,
+            ),
+            (
+                i15,
+                i16,
+            ),
+            (
+                i17,
+                i18,
+            ),
+            (
+                i19,
+                i20,
+            ),
+            (
+                i21,
+                i22,
+            ),
+            (
+                i23,
+                i24,
+            ),
+            (
+                i25,
+                i26,
+            ),
+            (
+                i27,
+                i28,
+            ),
+            (
+                i29,
+                i30,
+            ),
+            (
+                i31,
+                i32,
+            ),
+            (
+                i33,
+                i34,
+            ),
+            (
+                i35,
+                i36,
+            ),
+            (
+                i37,
+                i38,
+            ),
+            (
+                i39,
+                i40,
+            ),
+            (
+                i41,
+                i42,
+            ),
+            (
+                i43,
+                i44,
+            ),
+            (
+                i45,
+                i46,
+            ),
+            (
+                i47,
+                i48,
+            ),
+            (
+                i49,
+                i50,
+            ),
+            (
+                i51,
+                i52,
+            ),
+            (
+                i53,
+                i54,
+            ),
+            (
+                i55,
+                i56,
+            ),
+            (
+                i57,
+                i58,
+            ),
+            (
+                i59,
+                i60,
+            ),
+            (
+                i61,
+                i62,
+            ),
+            (
+                i63,
+                i64,
+            ),
+        )
+        op = self.model(
+            input_ids=token, use_cache=True, past_key_values=past_key_values
+        )
+        return_vals = []
+        return_vals.append(op.logits)
+        temp_past_key_values = op.past_key_values
+        for item in temp_past_key_values:
+            return_vals.append(item[0])
+            return_vals.append(item[1])
+        return tuple(return_vals)
 
 
 class ShardedVicunaModel(torch.nn.Module):
