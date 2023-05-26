@@ -311,11 +311,18 @@ def add_attributes(op: ir.Operation, config: List[Dict]):
             split_k = config["split_k"]
     elif "SPIRV" in config["pipeline"]:
         pipeline = config["pipeline"]
-        tile_sizes = [
-            config["work_group_tile_sizes"],
-            config["parallel_tile_sizes"],
-            config["reduction_tile_sizes"],
-        ]
+        if pipeline == "SPIRVMatmulPromoteVectorize":
+            tile_sizes = [
+                config["work_group_tile_sizes"]
+                + [config["reduction_tile_sizes"][-1]],
+            ]
+        else:
+            tile_sizes = [
+                config["work_group_tile_sizes"],
+                config["parallel_tile_sizes"],
+                config["reduction_tile_sizes"],
+            ]
+
         workgroup_size = config["work_group_sizes"]
         if "vector_tile_sizes" in config.keys():
             tile_sizes += [config["vector_tile_sizes"]]
