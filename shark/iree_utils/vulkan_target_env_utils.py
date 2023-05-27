@@ -117,7 +117,8 @@ def get_extensions(triple):
 
     if get_vendor(triple) == "NVIDIA" or arch == "rdna3":
         ext.append("VK_NV_cooperative_matrix")
-
+    if get_vendor(triple) == ["NVIDIA", "AMD", "Intel"]:
+        ext.append("VK_KHR_shader_integer_dot_product")
     return make_ext_list(ext_list=ext)
 
 
@@ -228,6 +229,7 @@ def get_vulkan_target_capabilities(triple):
         cap["shaderInt8"] = True
         cap["shaderInt16"] = True
         cap["shaderInt64"] = True
+        cap["shaderIntegerDotProduct"] = True
         cap["storageBuffer16BitAccess"] = True
         cap["storagePushConstant16"] = True
         cap["uniformAndStorageBuffer16BitAccess"] = True
@@ -236,12 +238,12 @@ def get_vulkan_target_capabilities(triple):
         cap["uniformAndStorageBuffer8BitAccess"] = True
         cap["variablePointers"] = True
         cap["variablePointersStorageBuffer"] = True
-
         if arch == "rdna3":
             # TODO: Get scope value
             cap["coopmatCases"] = [
                 "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f16, resultType = f16, scope = #vk.scope<Subgroup>"
             ]
+        
         if product == "rx5700xt":
             cap["storagePushConstant16"] = False
             cap["storagePushConstant8"] = False
@@ -274,7 +276,7 @@ def get_vulkan_target_capabilities(triple):
         cap["shaderInt8"] = True
         cap["shaderInt16"] = True
         cap["shaderInt64"] = True
-
+        cap["shaderIntegerDotProduct"] = True
         cap["storagePushConstant16"] = False
         cap["uniformAndStorageBuffer16BitAccess"] = True
         cap["storageBuffer8BitAccess"] = True
