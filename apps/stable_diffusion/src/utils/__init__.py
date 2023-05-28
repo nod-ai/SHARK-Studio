@@ -30,6 +30,8 @@ from apps.stable_diffusion.src.utils.utils import (
     sanitize_seed,
     get_path_stem,
     get_extended_name,
+    get_generated_imgs_path,
+    get_generated_imgs_todays_subdir,
     clear_all,
     save_output_img,
     get_generation_text_info,

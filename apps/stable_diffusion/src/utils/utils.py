@@ -693,11 +693,18 @@ def clear_all():
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
 
 
+def get_generated_imgs_path() -> Path:
+    return Path(args.output_dir if args.output_dir else Path.cwd(), "generated_imgs")
+
+
+def get_generated_imgs_todays_subdir() -> str:
+    return dt.now().strftime("%Y%m%d")
+
+
 # save output images and the inputs corresponding to it.
 def save_output_img(output_img, img_seed, extra_info={}):
-    output_path = args.output_dir if args.output_dir else Path.cwd()
     generated_imgs_path = Path(
-        output_path, "generated_imgs", dt.now().strftime("%Y%m%d")
+        get_generated_imgs_path(), get_generated_imgs_todays_subdir()
     )
     generated_imgs_path.mkdir(parents=True, exist_ok=True)
     csv_path = Path(generated_imgs_path, "imgs_details.csv")
