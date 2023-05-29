@@ -8,7 +8,61 @@ class LanguageModel:
         self.tokenizer = tokenizer
 
 
-    def generate_tokens():
+    def generate_tokens(self, model, tokenizer, ):
+        # For Vic 
+        prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+        prologue_prompt = "ASSISTANT:\n"
+        past_key_values = None
+        while True:
+            print("\n\n")
+            user_prompt = input("User: ")
+            prompt_history = (
+                prompt_history + "USER:\n" + user_prompt + prologue_prompt
+            )
+            prompt = prompt_history.strip()
+            max_response_len = 1000
+            input_ids = tokenizer(prompt).input_ids
+            tokens = input_ids
+            print("Robot:", end=" ")
+            new_sentence = []
+            past_key_values = None  # for iteration 0
+            for iteration in range(max_response_len):
+                original_input_ids = input_ids
+
+                params = {
+                    "past_key_values": past_key_values,
+                    "input_ids": input_ids,
+                    "iteration": iteration,
+                }
+                generated_token_op = generate_new_token(
+                    model, tokenizer, params
+                )
+                # extract result from generate new token
+                new_token = generated_token_op["new_token"]
+                detok = generated_token_op["detok"]
+                past_key_values = generated_token_op["past_key_values"]
+
+                if new_token == 2:
+                    break
+                new_sentence += [new_token]
+                tokens.append(new_token)
+                if detok == "<0x0A>":
+                    print("\n", end="", flush=True)
+                else:
+                    print(f"{detok}", end=" ", flush=True)
+                original_input_ids.append(new_token)
+                input_ids = [new_token]
+
+            for i in range(len(tokens)):
+                if type(tokens[i]) != int:
+                    tokens[i] = int(tokens[i][0])
+            new_sentence_str = tokenizer.decode(new_sentence)
+            print(
+                "\n-----\nRobot: Here's the complete formatted reply:\n",
+                new_sentence_str,
+            )
+            prompt_history += f"\n{new_sentence_str}\n"
+
 
     def from_pretrained(model, model_inputs, model_name, device, precision):
         from shark.shark_inference import SharkInference

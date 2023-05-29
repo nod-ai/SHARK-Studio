@@ -8,7 +8,7 @@ from apps.language_models.utils import (
     get_vmfb_from_path,
 )
 from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
-from apps.language_models.src.model_wrappers.StableLMModel import StableLMModel
+from apps.language_models.src.model_wrappers.stablelm_model import StableLMModel
 
 
 class StopOnTokens(StoppingCriteria):
@@ -24,13 +24,19 @@ class StopOnTokens(StoppingCriteria):
 
 class SharkStableLM(SharkLLMBase):
     def __init__(
-        self, model_name, hf_model_path=None, max_num_tokens=512
+        self,
+        model_name,
+        hf_model_path=None,
+        max_num_tokens=512,
+        device="cuda",
+        precision="fp32",
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
+        self.max_sequence_length = 256
+        self.device = device
+        self.precision = precision
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
-        self.max_sequence_length = 256
-        self.device = "cuda"
 
     def shouldStop(tokens):
         stop_ids = [50278, 50279, 50277, 1, 0]
@@ -50,19 +56,16 @@ class SharkStableLM(SharkLLMBase):
         attention_mask = torch.randint(3, (1, self.max_sequence_len))
         return input_ids, attention_mask
 
-    def compile(
-        self,
-        model_vmfb_name,
-        precision="fp32",
-    ):
-        model_name = (
+    def compile(self):
+        tmp_model_name = (
             f"stableLM_linalg_{self.precision}_seqLen{self.max_sequence_len}"
         )
 
         # device = "cuda"  # "cpu"
         # TODO: vmfb and mlir name should include precision and device
+        model_vmfb_name = None
         vmfb_path = (
-            Path(model_name + f"_{self.device}.vmfb")
+            Path(tmp_model_name + f"_{self.device}.vmfb")
             if model_vmfb_name is None
             else Path(model_vmfb_name)
         )
@@ -72,7 +75,7 @@ class SharkStableLM(SharkLLMBase):
         if shark_module is not None:
             return shark_module
 
-        mlir_path = Path(model_name + ".mlir")
+        mlir_path = Path(tmp_model_name + ".mlir")
         print(
             f"[DEBUG] mlir path {mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
         )
@@ -93,7 +96,7 @@ class SharkStableLM(SharkLLMBase):
             bytecode_stream = BytesIO()
             module.operation.write_bytecode(bytecode_stream)
             bytecode = bytecode_stream.getvalue()
-        f_ = open(model_name + ".mlir", "wb")
+        f_ = open(tmp_model_name + ".mlir", "wb")
         f_.write(bytecode)
         print("Saved mlir")
         f_.close()
@@ -125,7 +128,7 @@ class SharkStableLM(SharkLLMBase):
                 "new_text": prompt,
             }
 
-            generated_token_op = self.generate_n_tokens(params)
+            generated_token_op = self.generate_new_token(params)
 
             detok = generated_token_op["detok"]
             stop_generation = generated_token_op["stop_generation"]
