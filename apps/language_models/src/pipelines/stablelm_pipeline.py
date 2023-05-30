@@ -8,7 +8,9 @@ from apps.language_models.utils import (
     get_vmfb_from_path,
 )
 from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
-from apps.language_models.src.model_wrappers.stablelm_model import StableLMModel
+from apps.language_models.src.model_wrappers.stablelm_model import (
+    StableLMModel,
+)
 
 
 class StopOnTokens(StoppingCriteria):
@@ -26,7 +28,7 @@ class SharkStableLM(SharkLLMBase):
     def __init__(
         self,
         model_name,
-        hf_model_path=None,
+        hf_model_path="stabilityai/stablelm-tuned-alpha-3b",
         max_num_tokens=512,
         device="cuda",
         precision="fp32",
