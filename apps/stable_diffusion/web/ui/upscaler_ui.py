@@ -13,6 +13,7 @@ from apps.stable_diffusion.web.ui.utils import (
     get_custom_model_files,
     scheduler_list_cpu_only,
     predefined_upscaler_models,
+    cancel_sd,
 )
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
