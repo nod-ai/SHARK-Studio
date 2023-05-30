@@ -276,11 +276,12 @@ class Vicuna(SharkLLMBase):
 
     def compile(self):
         # get first vic
-        fvic_shark_model = self.compile_first_vicuna()
+        # fvic_shark_model = self.compile_first_vicuna()
         # get second vic
-        svic_shark_model = self.compile_second_vicuna()
+        # svic_shark_model = self.compile_second_vicuna()
         # return tuple of shark_modules
-        return fvic_shark_model, svic_shark_model
+        # return fvic_shark_model, svic_shark_model
+        return None
 
     def generate(self, prompt):
         # TODO: refactor for cleaner integration
@@ -310,6 +311,10 @@ class Vicuna(SharkLLMBase):
             }
 
             generated_token_op = self.generate_new_token(params=params)
+            import gc
+
+            gc.collect()
+            torch.cuda.empty_cache()
 
             token = generated_token_op["token"]
             logits = generated_token_op["logits"]
@@ -375,20 +380,24 @@ class Vicuna(SharkLLMBase):
 
         if is_first:
             prompt = params["prompt"]
+            fv = self.compile_first_vicuna()
             token, logits, pkv = forward_first(
-                self.shark_model[0],
+                fv,  # self.shark_model[0],
                 prompt=prompt,
                 cache_outputs=False,
             )
+            del fv
         else:
             _logits = params["logits"]
             _pkv = params["pkv"]
             inputs = (_logits,) + tuple(_pkv)
+            sv = self.compile_second_vicuna()
             token, logits, pkv = forward_second(
-                self.shark_model[1],
+                sv,  # self.shark_model[1],
                 inputs=inputs,
                 load_inputs=False,
             )
+            del sv
 
         detok = self.tokenizer.decode(token)
         print(
