@@ -284,6 +284,48 @@ class Vicuna(SharkLLMBase):
 
     def generate(self, prompt):
         # TODO: refactor for cleaner integration
+
+        res = []
+        params = {
+            "prompt": prompt,
+            "is_first": True,
+        }
+
+        generated_token_op = self.generate_new_token(params=params)
+
+        token = generated_token_op["token"]
+        logits = generated_token_op["logits"]
+        pkv = generated_token_op["pkv"]
+        detok = generated_token_op["detok"]
+
+        res.append(detok)
+
+        for _ in range(self.max_num_tokens - 2):
+            # t1 = time.time()
+            params = {
+                "prompt": None,
+                "is_first": False,
+                "logits": logits,
+                "pkv": pkv,
+            }
+
+            generated_token_op = self.generate_new_token(params=params)
+
+            token = generated_token_op["token"]
+            logits = generated_token_op["logits"]
+            pkv = generated_token_op["pkv"]
+            detok = generated_token_op["detok"]
+
+            if token == 2:
+                break
+            if detok == "<0x0A>":
+                res.append("\n")
+            else:
+                res.append(detok)
+
+        return res
+
+    def generate_new_token(self, params):
         def forward_first(first_vic, prompt, cache_outputs=False):
             input_ids = self.tokenizer(prompt).input_ids
             input_id_len = len(input_ids)
@@ -309,65 +351,57 @@ class Vicuna(SharkLLMBase):
         def forward_second(sec_vic, inputs=None, load_inputs=False):
             if inputs is not None:
                 logits = inputs[0]
-                token = torch.argmax(torch.tensor(logits)[:, -1, :], dim=1)
-                token = token.to(torch.int64).reshape([1, 1])
                 pkv = inputs[1:]
-                secondVicunaInput = (token,) + tuple(pkv)
             elif load_inputs:
                 pkv = torch.load("output_first_vicuna_tensor.pt")
                 pkv = tuple(torch.tensor(x) for x in pkv)
                 logits = torch.load("logits_first_vicuna_tensor.pt")
-                token = torch.argmax(torch.tensor(logits)[:, -1, :], dim=1)
-                token = token.to(torch.int64).reshape([1, 1])
-                secondVicunaInput = (token,) + pkv
             else:
                 print(
                     "Either inputs must be given, or load_inputs must be true"
                 )
                 return None
+            token = torch.argmax(torch.tensor(logits)[:, -1, :], dim=1)
+            token = token.to(torch.int64).reshape([1, 1])
+            secondVicunaInput = (token,) + tuple(pkv)
+
             secondVicunaOutput = sec_vic("forward", secondVicunaInput)
             new_pkv = secondVicunaOutput[1:]
             new_logits = secondVicunaOutput[0]
             new_token = torch.argmax(torch.tensor(new_logits)[:, -1, :], dim=1)
             return new_token, new_logits, new_pkv
 
-        res = []
-        token, logits, pkv = forward_first(
-            # self.shark_model[0], "it was a dark and stormy", cache_outputs=True
-            self.shark_model[0],
-            prompt=prompt,
-            cache_outputs=True,
-        )
-        print(f"[DEBUG] token : {token}")
-        detok = self.tokenizer.decode(token)
-        print(f"[DEBUG] detok: {detok}")
-        res.append(detok)
+        is_first = params["is_first"]
 
-        # token, logits, pkv = forward_second(self.shark_model[1], load_inputs=True)
-        token, logits, pkv = forward_second(
-            self.shark_model[1], inputs=(logits, pkv)
-        )
-
-        print(f"[DEBUG] token : {token}")
-        detok = self.tokenizer.decode(token)
-        print(f"[DEBUG] detok: {detok}")
-        res.append(detok)
-        inputs = (logits,) + tuple(pkv)
-        for _ in range(self.max_num_tokens - 2):
-            # t1 = time.time()
-            token, logits, pkv = forward_second(
-                self.shark_model[1], inputs=inputs
+        if is_first:
+            prompt = params["prompt"]
+            token, logits, pkv = forward_first(
+                self.shark_model[0],
+                prompt=prompt,
+                cache_outputs=False,
             )
-            # print(f"[DEBUG] token : {token}")
-            detok = self.tokenizer.decode(token)
-            print(f"[DEBUG] detok: {detok}")
-            res.append(detok)
-            inputs = (logits,) + tuple(pkv)
-            # print(f"generated token on {time.time() - t1} seconds")
+        else:
+            _logits = params["logits"]
+            _pkv = params["pkv"]
+            inputs = (_logits,) + tuple(_pkv)
+            token, logits, pkv = forward_second(
+                self.shark_model[1],
+                inputs=inputs,
+                load_inputs=False,
+            )
 
-            # TODO: Stop if input stops
-
-        return res
+        detok = self.tokenizer.decode(token)
+        print(
+            f"[DEBUG] is_first: {is_first} |"
+            f" token : {token} | detok : {detok}"
+        )
+        ret_dict = {
+            "token": token,
+            "logits": logits,
+            "pkv": pkv,
+            "detok": detok,
+        }
+        return ret_dict
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
