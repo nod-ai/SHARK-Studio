@@ -34,13 +34,13 @@ class SharkStableLM(SharkLLMBase):
         precision="fp32",
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
-        self.max_sequence_length = 256
+        self.max_sequence_len = 256
         self.device = device
         self.precision = precision
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
 
-    def shouldStop(tokens):
+    def shouldStop(self, tokens):
         stop_ids = [50278, 50279, 50277, 1, 0]
         for stop_id in stop_ids:
             if tokens[0][-1] == stop_id:
@@ -125,7 +125,7 @@ class SharkStableLM(SharkLLMBase):
 
     def generate(self, prompt):
         words_list = []
-        for i in range(self.max_new_tokens):
+        for i in range(self.max_num_tokens):
             params = {
                 "new_text": prompt,
             }
@@ -150,7 +150,7 @@ class SharkStableLM(SharkLLMBase):
         model_inputs = self.tokenizer(
             [new_text],
             padding="max_length",
-            max_length=self.max_sequence_length,
+            max_length=self.max_sequence_len,
             truncation=True,
             return_tensors="pt",
         )
