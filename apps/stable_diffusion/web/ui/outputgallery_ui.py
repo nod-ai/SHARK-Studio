@@ -9,7 +9,9 @@ from apps.stable_diffusion.src.utils import (
     get_generated_imgs_todays_subdir,
 )
 from apps.stable_diffusion.web.ui.utils import nodlogo_loc
-from apps.stable_diffusion.web.utils.png_metadata import parse_generation_parameters
+from apps.stable_diffusion.web.utils.png_metadata import (
+    parse_generation_parameters,
+)
 from apps.stable_diffusion.web.utils.exif_metadata import parse_exif
 
 # -- Functions for file, directory and image info querying
@@ -20,11 +22,12 @@ output_dir = get_generated_imgs_path()
 def outputgallery_filenames(subdir) -> list[str]:
     new_dir_path = os.path.join(output_dir, subdir)
     if os.path.exists(new_dir_path):
-        return sorted(
-            sum([glob.glob(new_dir_path + "/" + ext) for ext in ("*.png", "*.jpg", "*.jpeg")], []),
-            key=os.path.getmtime,
-            reverse=True,
-        )
+        filenames = [
+            glob.glob(new_dir_path + "/" + ext)
+            for ext in ("*.png", "*.jpg", "*.jpeg")
+        ]
+
+        return sorted(sum(filenames, []), key=os.path.getmtime, reverse=True)
     else:
         return []
 
@@ -37,12 +40,17 @@ def parameters_for_display(image_filename) -> tuple[str, list[list[str]]]:
         params = parse_generation_parameters(pil_image.info["parameters"])
 
         # make showing the sizes more compact by using only one line each
-        if params.keys() & {'Size-1', 'Size-2'}:
+        if params.keys() & {"Size-1", "Size-2"}:
             params["Size"] = f"{params.pop('Size-1')}x{params.pop('Size-2')}"
 
-        if params.keys() & {'Hires resize-1', 'Hires resize-1'}:
-            hires_x, hires_y = params.pop("Hires resize-1"), params.pop("Hires resize-2")
-            params["Hires resize"] = "None" if hires_x == 0 and hires_y == 0 else f"{hires_x}x{hires_y}"
+        if params.keys() & {"Hires resize-1", "Hires resize-1"}:
+            hires_x = params.pop("Hires resize-1")
+            hires_y = params.pop("Hires resize-2")
+
+            if hires_x == 0 and hires_y == 0:
+                params["Hires resize"] = "None"
+            else:
+                params["Hires resize"] = f"{hires_x}x{hires_y}"
 
         return "params", list(map(list, params.items()))
 
@@ -59,7 +67,9 @@ def output_subdirs() -> list[str]:
     # Gets a list of subdirectories of output_dir and below, as relative paths.
     relative_paths = [
         os.path.relpath(entry[0], output_dir)
-        for entry in os.walk(output_dir, followlinks=args.output_gallery_followlinks)
+        for entry in os.walk(
+            output_dir, followlinks=args.output_gallery_followlinks
+        )
     ]
 
     # It is less confusing to always including the subdir that will take any images generated
@@ -69,8 +79,16 @@ def output_subdirs() -> list[str]:
 
     # sort subdirectories so that that the date named ones we probably created in this or previous sessions
     # come first, sorted with the most recent first. Other subdirs are listed after.
-    generated_paths = sorted([path for path in relative_paths if path.isnumeric()], reverse=True)
-    result_paths = generated_paths + sorted([path for path in relative_paths if (not path.isnumeric()) and path != "."])
+    generated_paths = sorted(
+        [path for path in relative_paths if path.isnumeric()], reverse=True
+    )
+    result_paths = generated_paths + sorted(
+        [
+            path
+            for path in relative_paths
+            if (not path.isnumeric()) and path != "."
+        ]
+    )
 
     return result_paths
 
@@ -95,7 +113,7 @@ with gr.Blocks() as outputgallery_web:
                 visible=True,
                 show_label=True,
                 elem_id="top_logo",
-                elem_classes="logo_centered"
+                elem_classes="logo_centered",
             )
 
             gallery = gr.Gallery(
@@ -116,32 +134,30 @@ with gr.Blocks() as outputgallery_web:
                             value="",
                             interactive=True,
                         ).style(container=False)
-                    with gr.Column(scale=1, min_width=32, elem_id="output_refresh_button"):
+                    with gr.Column(
+                        scale=1, min_width=32, elem_id="output_refresh_button"
+                    ):
                         refresh = gr.Button(
                             variant="secondary",
-                            value=u'\u21BB',    # unicode clockwise arrow circle
+                            value="\u21BB",  # unicode clockwise arrow circle
                         ).style(size="sm")
 
             image_columns = gr.Slider(
-                label="Columns shown",
-                value=4,
-                minimum=1,
-                maximum=16,
-                step=1
+                label="Columns shown", value=4, minimum=1, maximum=16, step=1
             )
             outputgallery_filename = gr.Textbox(
-                label="Filename",
-                value="None",
-                interactive=False
+                label="Filename", value="None", interactive=False
             ).style(show_copy_button=True)
 
-            with gr.Accordion(label="Parameter Information", open=False) as parameters_accordian:
+            with gr.Accordion(
+                label="Parameter Information", open=False
+            ) as parameters_accordian:
                 image_parameters = gr.DataFrame(
                     headers=["Parameter", "Value"],
                     col_count=2,
                     wrap=True,
                     elem_classes="output_parameters_dataframe",
-                    value=[["Status", "No image selected"]]
+                    value=[["Status", "No image selected"]],
                 )
 
             with gr.Accordion(label="Send To", open=True):
@@ -155,25 +171,25 @@ with gr.Blocks() as outputgallery_web:
                     outputgallery_sendto_img2img = gr.Button(
                         value="Img2Img",
                         interactive=False,
-                        elem_classes="outputgallery_sendto"
+                        elem_classes="outputgallery_sendto",
                     ).style(size="sm")
 
                     outputgallery_sendto_inpaint = gr.Button(
                         value="Inpaint",
                         interactive=False,
-                        elem_classes="outputgallery_sendto"
+                        elem_classes="outputgallery_sendto",
                     ).style(size="sm")
 
                     outputgallery_sendto_outpaint = gr.Button(
                         value="Outpaint",
                         interactive=False,
-                        elem_classes="outputgallery_sendto"
+                        elem_classes="outputgallery_sendto",
                     ).style(size="sm")
 
                     outputgallery_sendto_upscaler = gr.Button(
                         value="Upscaler",
                         interactive=False,
-                        elem_classes="outputgallery_sendto"
+                        elem_classes="outputgallery_sendto",
                     ).style(size="sm")
 
     # --- Event handlers
@@ -186,13 +202,15 @@ with gr.Blocks() as outputgallery_web:
             ),
             gr.Image.update(
                 visible=True,
-            )
+            ),
         ]
 
     def on_select_subdir(subdir) -> list:
         # evt.value is the subdirectory name
         new_images = outputgallery_filenames(subdir)
-        new_label = f"{len(new_images)} images in {os.path.join(output_dir, subdir)}"
+        new_label = (
+            f"{len(new_images)} images in {os.path.join(output_dir, subdir)}"
+        )
         return [
             new_images,
             gr.Gallery.update(
@@ -203,14 +221,18 @@ with gr.Blocks() as outputgallery_web:
             gr.Image.update(
                 label=new_label,
                 visible=len(new_images) == 0,
-            )
+            ),
         ]
 
     def on_refresh(current_subdir: str) -> list:
         # get an up to date subdirectory list
         refreshed_subdirs = output_subdirs()
         # get the images using either the current subdirectory or the most recent valid one
-        new_subdir = current_subdir if current_subdir in refreshed_subdirs else refreshed_subdirs[0]
+        new_subdir = (
+            current_subdir
+            if current_subdir in refreshed_subdirs
+            else refreshed_subdirs[0]
+        )
         new_images = outputgallery_filenames(new_subdir)
         new_label = f"{len(new_images)} images in {os.path.join(output_dir, new_subdir)}"
 
@@ -222,19 +244,21 @@ with gr.Blocks() as outputgallery_web:
             refreshed_subdirs,
             new_images,
             gr.Gallery.update(
-                value=new_images,
-                label=new_label,
-                visible=len(new_images) > 0
+                value=new_images, label=new_label, visible=len(new_images) > 0
             ),
             gr.Image.update(
                 label=new_label,
                 visible=len(new_images) == 0,
-            )
+            ),
         ]
 
     def on_new_image(subdir, subdir_paths, status) -> list:
         # prevent error triggered when an image generates before the tab has even been selected
-        subdir_paths = subdir_paths if len(subdir_paths) > 0 else [get_generated_imgs_todays_subdir()]
+        subdir_paths = (
+            subdir_paths
+            if len(subdir_paths) > 0
+            else [get_generated_imgs_todays_subdir()]
+        )
 
         # only update if the current subdir is the most recent one as new images only go there
         if subdir_paths[0] == subdir:
@@ -251,7 +275,7 @@ with gr.Blocks() as outputgallery_web:
                 gr.Image.update(
                     label=new_label,
                     visible=len(new_images) == 0,
-                )
+                ),
             ]
         else:
             # otherwise change nothing, (only untyped gradio gr.update() does this)
@@ -267,14 +291,13 @@ with gr.Blocks() as outputgallery_web:
         if params_type == "params":
             new_parameters = params
         elif params_type == "exif":
-            new_parameters = [["Status", "No PNG parameters found, showing EXIF metadata"]] + params
+            new_parameters = [
+                ["Status", "No PNG parameters found, showing EXIF metadata"]
+            ] + params
         else:
             new_parameters = [["Status", "No parameters found"]]
 
-        return [
-            filename,
-            new_parameters
-        ]
+        return [filename, new_parameters]
 
     def on_outputgallery_filename_change(filename: str) -> list:
         exists = filename != "None" and os.path.exists(filename)
@@ -349,7 +372,9 @@ with gr.Blocks() as outputgallery_web:
     # setting columns after selecting a gallery item needs a real timeout length for the
     # number of columns to actually be applied. Not really sure why, maybe something has
     # to finish animating?
-    set_gallery_columns_delayed = dict(set_gallery_columns_immediate, _js=js_set_columns_in_browser(250))
+    set_gallery_columns_delayed = dict(
+        set_gallery_columns_immediate, _js=js_set_columns_in_browser(250)
+    )
 
     # clearing images when we need to completely change what's in the gallery avoids current
     # images being shown replacing piecemeal and prevents weirdness and errors if the user
@@ -361,22 +386,16 @@ with gr.Blocks() as outputgallery_web:
         queue=False,
     )
 
-    image_columns.change(
-        **set_gallery_columns_immediate
-    )
+    image_columns.change(**set_gallery_columns_immediate)
 
-    subdirectories.select(
-        **clear_gallery
-    ).then(
+    subdirectories.select(**clear_gallery).then(
         on_select_subdir,
         [subdirectories],
         [gallery_files, gallery, logo],
         queue=False,
     ).then(**set_gallery_columns_immediate)
 
-    refresh.click(
-        **clear_gallery
-    ).then(
+    refresh.click(**clear_gallery).then(
         on_refresh,
         [subdirectories],
         [subdirectories, subdirectory_paths, gallery_files, gallery, logo],
@@ -408,8 +427,14 @@ with gr.Blocks() as outputgallery_web:
         select(
             fn=on_select_tab,
             inputs=[subdirectory_paths],
-            outputs=[subdirectories, subdirectory_paths, gallery_files, gallery, logo],
-            queue=False
+            outputs=[
+                subdirectories,
+                subdirectory_paths,
+                gallery_files,
+                gallery,
+                logo,
+            ],
+            queue=False,
         ).then(**set_gallery_columns_immediate)
 
     # We should have been passed a list of components on other tabs that update
@@ -421,5 +446,5 @@ with gr.Blocks() as outputgallery_web:
                 on_new_image,
                 inputs=[subdirectories, subdirectory_paths, component],
                 outputs=[gallery_files, gallery, logo],
-                queue=False
+                queue=False,
             ).then(**set_gallery_columns_immediate)

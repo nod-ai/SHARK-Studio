@@ -37,6 +37,7 @@ init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
 init_use_tuned = args.use_tuned
 init_import_mlir = args.import_mlir
 
+
 def txt2img_inf(
     prompt: str,
     negative_prompt: str,
@@ -204,7 +205,9 @@ def txt2img_inf(
         else:
             save_output_img(out_imgs[0], img_seed)
             generated_imgs.extend(out_imgs)
-            yield generated_imgs, text_output, status_label("Text-to-Image", i+1, batch_count, batch_size)
+            yield generated_imgs, text_output, status_label(
+                "Text-to-Image", i + 1, batch_count, batch_size
+            )
 
     return generated_imgs, text_output, ""
 
@@ -264,6 +267,7 @@ def txt2img_api(
         "parameters": {},
         "info": res[1],
     }
+
 
 with gr.Blocks(title="Text-to-Image") as txt2img_web:
     with gr.Row(elem_id="ui_title"):
@@ -476,9 +480,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         elem_id="std_output",
                         show_label=False,
                     )
-                    txt2img_status = gr.Textbox(
-                        visible=False
-                    )
+                    txt2img_status = gr.Textbox(visible=False)
                 with gr.Row():
                     txt2img_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     txt2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
@@ -488,7 +490,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     txt2img_sendto_upscaler = gr.Button(
                         value="SendTo Upscaler"
                     )
-
 
         kwargs = dict(
             fn=txt2img_inf,
@@ -522,11 +523,13 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Text-to-Image", 0, bc, bs),
             inputs=[batch_count, batch_size],
-            outputs=txt2img_status
+            outputs=txt2img_status,
         )
 
         prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
         generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=cancel_sd,

@@ -28,7 +28,7 @@ from apps.stable_diffusion.src import (
 )
 from apps.stable_diffusion.src.utils import (
     get_generated_imgs_path,
-    get_generation_text_info
+    get_generation_text_info,
 )
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 import numpy as np
@@ -266,7 +266,9 @@ def img2img_inf(
                 extra_info,
             )
             generated_imgs.extend(out_imgs)
-            yield generated_imgs, text_output, status_label("Image-to-Image", current_batch+1, batch_count, batch_size)
+            yield generated_imgs, text_output, status_label(
+                "Image-to-Image", current_batch + 1, batch_count, batch_size
+            )
 
     return generated_imgs, text_output, ""
 
@@ -604,9 +606,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="std_output",
                         show_label=False,
                     )
-                    img2img_status = gr.Textbox(
-                        visible=False
-                    )
+                    img2img_status = gr.Textbox(visible=False)
                 with gr.Row():
                     img2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
                     img2img_sendto_outpaint = gr.Button(
@@ -651,11 +651,13 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Image-to-Image", 0, bc, bs),
             inputs=[batch_count, batch_size],
-            outputs=img2img_status
+            outputs=img2img_status,
         )
 
         prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
         generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=cancel_sd,

@@ -11,12 +11,12 @@ def parse_exif(pil_image: Image) -> dict:
     # dependency
     exif_tags = {
         TAGS.get(key, key): str(val)
-            for (key, val) in img_exif.items()
-            if key in TAGS
-                and key not in (EXIFKeys.ExifOffset, EXIFKeys.GPSInfo)
-                and val
-                and (not isinstance(val, bytes))
-                and (not str(val).isspace())
+        for (key, val) in img_exif.items()
+        if key in TAGS
+        and key not in (EXIFKeys.ExifOffset, EXIFKeys.GPSInfo)
+        and val
+        and (not isinstance(val, bytes))
+        and (not str(val).isspace())
     }
 
     def try_get_ifd(ifd_id):
@@ -27,22 +27,22 @@ def parse_exif(pil_image: Image) -> dict:
 
     ifd_tags = {
         TAGS.get(key, key): str(val)
-            for ifd_id in IFD
-            for (key, val) in try_get_ifd(ifd_id)
-            if ifd_id != IFD.GPSInfo
-                and key in TAGS
-                and val
-                and (not isinstance(val, bytes))
-                and (not str(val).isspace())
+        for ifd_id in IFD
+        for (key, val) in try_get_ifd(ifd_id)
+        if ifd_id != IFD.GPSInfo
+        and key in TAGS
+        and val
+        and (not isinstance(val, bytes))
+        and (not str(val).isspace())
     }
 
     gps_tags = {
         GPSTAGS.get(key, key): str(val)
-            for (key, val) in try_get_ifd(IFD.GPSInfo)
-            if key in GPSTAGS
-                and val
-                and (not isinstance(val, bytes))
-                and (not str(val).isspace())
+        for (key, val) in try_get_ifd(IFD.GPSInfo)
+        if key in GPSTAGS
+        and val
+        and (not isinstance(val, bytes))
+        and (not str(val).isspace())
     }
 
     return {**exif_tags, **ifd_tags, **gps_tags}

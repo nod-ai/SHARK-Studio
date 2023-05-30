@@ -223,7 +223,9 @@ def outpaint_inf(
         else:
             save_output_img(out_imgs[0], img_seed)
             generated_imgs.extend(out_imgs)
-            yield generated_imgs, text_output, status_label("Outpaint", i+1, batch_count, batch_size)
+            yield generated_imgs, text_output, status_label(
+                "Outpaint", i + 1, batch_count, batch_size
+            )
 
     return generated_imgs, text_output, ""
 
@@ -531,9 +533,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="std_output",
                         show_label=False,
                     )
-                    outpaint_status = gr.Textbox(
-                        visible=False
-                    )
+                    outpaint_status = gr.Textbox(visible=False)
                 with gr.Row():
                     outpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     outpaint_sendto_inpaint = gr.Button(value="SendTo Inpaint")
@@ -578,11 +578,13 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Outpaint", 0, bc, bs),
             inputs=[batch_count, batch_size],
-            outputs=outpaint_status
+            outputs=outpaint_status,
         )
 
         prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
         generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=cancel_sd,

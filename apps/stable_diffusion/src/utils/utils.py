@@ -694,7 +694,9 @@ def clear_all():
 
 
 def get_generated_imgs_path() -> Path:
-    return Path(args.output_dir if args.output_dir else Path.cwd(), "generated_imgs")
+    return Path(
+        args.output_dir if args.output_dir else Path.cwd(), "generated_imgs"
+    )
 
 
 def get_generated_imgs_todays_subdir() -> str:

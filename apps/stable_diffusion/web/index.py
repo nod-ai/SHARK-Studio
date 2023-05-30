@@ -201,13 +201,15 @@ if __name__ == "__main__":
 
                 # extra output gallery configuration
                 outputgallery_tab_select(og_tab.select)
-                outputgallery_watch([
-                    txt2img_status,
-                    img2img_status,
-                    inpaint_status,
-                    outpaint_status,
-                    upscaler_status
-                ])
+                outputgallery_watch(
+                    [
+                        txt2img_status,
+                        img2img_status,
+                        inpaint_status,
+                        outpaint_status,
+                        upscaler_status,
+                    ]
+                )
 
         # send to buttons
         register_button_click(

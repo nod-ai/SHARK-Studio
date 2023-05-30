@@ -205,7 +205,9 @@ def upscaler_inf(
         generated_imgs.append(high_res_img)
         seeds.append(img_seed)
         global_obj.get_sd_obj().log += "\n"
-        yield generated_imgs, global_obj.get_sd_obj().log, status_label("Image-to-Image", current_batch+1, batch_count, batch_size)
+        yield generated_imgs, global_obj.get_sd_obj().log, status_label(
+            "Image-to-Image", current_batch + 1, batch_count, batch_size
+        )
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -498,9 +500,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         elem_id="std_output",
                         show_label=False,
                     )
-                    upscaler_status = gr.Textbox(
-                        visible=False
-                    )
+                    upscaler_status = gr.Textbox(visible=False)
 
                 with gr.Row():
                     upscaler_sendto_img2img = gr.Button(value="SendTo Img2Img")
@@ -542,11 +542,13 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Upscaler", 0, bc, bs),
             inputs=[batch_count, batch_size],
-            outputs=upscaler_status
+            outputs=upscaler_status,
         )
 
         prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
         generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
