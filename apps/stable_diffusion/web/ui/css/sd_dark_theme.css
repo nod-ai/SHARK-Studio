@@ -230,3 +230,44 @@ footer {
 #top_logo .download {
     display: none;
 }
+
+/* output gallery tab */
+.output_parameters_dataframe tbody td {
+    font-size: small;
+    line-height: var(--line-xs)
+}
+
+#output_refresh_button {
+    max-width: 30px;
+    align-self: end;
+    padding-bottom: 8px;
+}
+
+.outputgallery_sendto {
+    min-width: 7em !important;
+}
+
+/* output gallery should take up most of the viewport height regardless of image size/number */
+#outputgallery_gallery .fixed-height {
+    min-height: 89vh !important;
+}
+
+/* don't stretch non-square images to be square, breaking their aspect ratio */
+#outputgallery_gallery .thumbnail-item.thumbnail-lg > img {
+    object-fit: contain !important;
+}
+
+/* centered logo for when there are no images */
+#top_logo.logo_centered {
+    height: 100%;
+    width: 100%;
+}
+
+#top_logo.logo_centered img{
+    object-fit: scale-down;
+    position: absolute;
+    width: 80%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}

@@ -1,4 +1,3 @@
-from pathlib import Path
 import os
 import torch
 import time
@@ -18,6 +17,7 @@ from apps.stable_diffusion.web.ui.utils import (
     cancel_sd,
 )
 from apps.stable_diffusion.web.utils.png_metadata import import_png_metadata
+from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
     Text2ImagePipeline,
@@ -27,7 +27,10 @@ from apps.stable_diffusion.src import (
     save_output_img,
     prompt_examples,
 )
-from apps.stable_diffusion.src.utils import get_generation_text_info
+from apps.stable_diffusion.src.utils import (
+    get_generated_imgs_path,
+    get_generation_text_info,
+)
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
@@ -202,9 +205,11 @@ def txt2img_inf(
         else:
             save_output_img(out_imgs[0], img_seed)
             generated_imgs.extend(out_imgs)
-            yield generated_imgs, text_output
+            yield generated_imgs, text_output, status_label(
+                "Text-to-Image", i + 1, batch_count, batch_size
+            )
 
-    return generated_imgs, text_output
+    return generated_imgs, text_output, ""
 
 
 def encode_pil_to_base64(images):
@@ -308,7 +313,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 + get_custom_model_files("vae"),
                             )
                     with gr.Column(scale=1, min_width=170):
-                        png_info_img = gr.Image(
+                        txt2img_png_info_img = gr.Image(
                             label="Import PNG info",
                             elem_id="txt2img_prompt_image",
                             type="pil",
@@ -469,16 +474,13 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
-                    output_dir = (
-                        args.output_dir if args.output_dir else Path.cwd()
-                    )
-                    output_dir = Path(output_dir, "generated_imgs")
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {output_dir}",
+                        value=f"Images will be saved at {get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,
                     )
+                    txt2img_status = gr.Textbox(visible=False)
                 with gr.Row():
                     txt2img_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     txt2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
@@ -514,22 +516,30 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 lora_hf_id,
                 ondemand,
             ],
-            outputs=[txt2img_gallery, std_output],
+            outputs=[txt2img_gallery, std_output, txt2img_status],
             show_progress=args.progress_bar,
         )
 
-        prompt_submit = prompt.submit(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**kwargs)
-        generate_click = stable_diffusion.click(**kwargs)
+        status_kwargs = dict(
+            fn=lambda bc, bs: status_label("Text-to-Image", 0, bc, bs),
+            inputs=[batch_count, batch_size],
+            outputs=txt2img_status,
+        )
+
+        prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
+        generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )
 
-        png_info_img.change(
+        txt2img_png_info_img.change(
             fn=import_png_metadata,
             inputs=[
-                png_info_img,
+                txt2img_png_info_img,
                 prompt,
                 negative_prompt,
                 steps,
@@ -542,7 +552,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 txt2img_hf_model_id,
             ],
             outputs=[
-                png_info_img,
+                txt2img_png_info_img,
                 prompt,
                 negative_prompt,
                 steps,
