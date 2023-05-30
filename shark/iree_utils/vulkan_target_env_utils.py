@@ -307,6 +307,7 @@ def get_vulkan_target_capabilities(triple):
         cap["shaderInt8"] = True
         cap["shaderInt16"] = True
         cap["shaderInt64"] = True
+        cap["shaderIntegerDotProduct"] = False
         cap["storageBuffer16BitAccess"] = True
         cap["storagePushConstant16"] = True
         cap["uniformAndStorageBuffer16BitAccess"] = True
@@ -369,6 +370,7 @@ def get_vulkan_target_capabilities(triple):
         cap["shaderInt8"] = True
         cap["shaderInt16"] = True
         cap["shaderInt64"] = False
+        cap["shaderIntegerDotProduct"] = True
         cap["storageBuffer16BitAccess"] = True
         cap["storagePushConstant16"] = True
         cap["uniformAndStorageBuffer16BitAccess"] = True
@@ -410,11 +412,12 @@ def get_vulkan_target_capabilities(triple):
             "Quad",
         ]
 
-        cap["shaderFloat16"] = True
+        cap["shaderFloat16"] = False
         cap["shaderFloat64"] = True
         cap["shaderInt8"] = True
         cap["shaderInt16"] = True
         cap["shaderInt64"] = True
+        cap["shaderIntegerDotProduct"] = True
         cap["storageBuffer16BitAccess"] = True
         cap["storagePushConstant16"] = True
         cap["uniformAndStorageBuffer16BitAccess"] = True
@@ -448,6 +451,7 @@ def get_vulkan_target_capabilities(triple):
         cap["shaderInt8"] = True
         cap["shaderInt16"] = True
         cap["shaderInt64"] = True
+        cap["shaderIntegerDotProduct"] = True
         cap["storageBuffer16BitAccess"] = True
         cap["storagePushConstant16"] = True
         cap["uniformAndStorageBuffer16BitAccess"] = True
