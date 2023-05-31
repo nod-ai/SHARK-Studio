@@ -205,7 +205,7 @@ def txt2img_inf(
         else:
             save_output_img(out_imgs[0], img_seed)
             generated_imgs.extend(out_imgs)
-            yield generated_imgs, text_output, status_label(
+            #yield generated_imgs, text_output, status_label(
                 "Text-to-Image", i + 1, batch_count, batch_size
             )
 
