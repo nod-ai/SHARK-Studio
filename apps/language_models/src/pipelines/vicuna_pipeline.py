@@ -285,11 +285,14 @@ class Vicuna(SharkLLMBase):
 
     def generate(self, prompt):
         # TODO: refactor for cleaner integration
+        import gc
 
         res = []
+        res_tokens = []
         params = {
             "prompt": prompt,
             "is_first": True,
+            "fv": self.compile_first_vicuna(),
         }
 
         generated_token_op = self.generate_new_token(params=params)
@@ -300,21 +303,24 @@ class Vicuna(SharkLLMBase):
         detok = generated_token_op["detok"]
 
         res.append(detok)
+        res_tokens.append(token)
 
+        # Clear First Vic from Memory (main and cuda)
+        del params
+        torch.cuda.empty_cache()
+        gc.collect()
+
+        sec_vic = self.compile_second_vicuna()
         for _ in range(self.max_num_tokens - 2):
-            # t1 = time.time()
             params = {
                 "prompt": None,
                 "is_first": False,
                 "logits": logits,
                 "pkv": pkv,
+                "sv": sec_vic,
             }
 
             generated_token_op = self.generate_new_token(params=params)
-            import gc
-
-            gc.collect()
-            torch.cuda.empty_cache()
 
             token = generated_token_op["token"]
             logits = generated_token_op["logits"]
@@ -323,12 +329,23 @@ class Vicuna(SharkLLMBase):
 
             if token == 2:
                 break
+            res_tokens.append(token)
             if detok == "<0x0A>":
                 res.append("\n")
             else:
                 res.append(detok)
 
-        return res
+        del params
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        for i in range(len(res_tokens)):
+            if type(res_tokens[i]) != int:
+                res_tokens[i] = int(res_tokens[i][0])
+
+        res_str = self.tokenizer.decode(res_tokens)
+        print(f"[DEBUG] final output : \n{res_str}")
+        return res_str
 
     def generate_new_token(self, params):
         def forward_first(first_vic, prompt, cache_outputs=False):
@@ -380,24 +397,22 @@ class Vicuna(SharkLLMBase):
 
         if is_first:
             prompt = params["prompt"]
-            fv = self.compile_first_vicuna()
+            fv = params["fv"]
             token, logits, pkv = forward_first(
                 fv,  # self.shark_model[0],
                 prompt=prompt,
                 cache_outputs=False,
             )
-            del fv
         else:
             _logits = params["logits"]
             _pkv = params["pkv"]
             inputs = (_logits,) + tuple(_pkv)
-            sv = self.compile_second_vicuna()
+            sv = params["sv"]
             token, logits, pkv = forward_second(
                 sv,  # self.shark_model[1],
                 inputs=inputs,
                 load_inputs=False,
             )
-            del sv
 
         detok = self.tokenizer.decode(token)
         print(
@@ -415,3 +430,15 @@ class Vicuna(SharkLLMBase):
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
         pass
+
+
+if __name__ == "__main__":
+    vic = Vicuna("vicuna")
+    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    prologue_prompt = "ASSISTANT:\n"
+    user_prompt = input("User: ")
+    prompt_history = prompt_history + "USER:\n" + user_prompt + prologue_prompt
+    prompt = prompt_history.strip()
+
+    res = vic.generate(prompt)
+    print(prompt + res)
