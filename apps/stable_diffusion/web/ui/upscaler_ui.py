@@ -564,5 +564,6 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
         )
         generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
-            fn=cancel_sd, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+            fn=cancel_sd,
+            cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )
