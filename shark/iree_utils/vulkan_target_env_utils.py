@@ -243,7 +243,7 @@ def get_vulkan_target_capabilities(triple):
             cap["coopmatCases"] = [
                 "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f16, resultType = f16, scope = #vk.scope<Subgroup>"
             ]
-        
+
         if product == "rx5700xt":
             cap["storagePushConstant16"] = False
             cap["storagePushConstant8"] = False
