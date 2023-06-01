@@ -64,6 +64,9 @@ def upscaler_inf(
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
+    from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+        SD_STATE_CANCEL,
+    )
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -200,15 +203,24 @@ def upscaler_inf(
                     args.use_base_vae,
                     cpu_scheduling,
                 )
-                high_res_img.paste(upscaled_image[0], (j * 4, i * 4))
+                if global_obj.get_sd_status() == SD_STATE_CANCEL:
+                    break
+                else:
+                    high_res_img.paste(upscaled_image[0], (j * 4, i * 4))
 
-        save_output_img(high_res_img, img_seed, extra_info)
-        generated_imgs.append(high_res_img)
-        seeds.append(img_seed)
-        global_obj.get_sd_obj().log += "\n"
-        yield generated_imgs, global_obj.get_sd_obj().log, status_label(
-            "Image-to-Image", current_batch + 1, batch_count, batch_size
-        )
+            if global_obj.get_sd_status() == SD_STATE_CANCEL:
+                break
+
+        if global_obj.get_sd_status() == SD_STATE_CANCEL:
+            break
+        else:
+            save_output_img(high_res_img, img_seed, extra_info)
+            generated_imgs.append(high_res_img)
+            seeds.append(img_seed)
+            global_obj.get_sd_obj().log += "\n"
+            yield generated_imgs, global_obj.get_sd_obj().log, status_label(
+                "Upscaler", current_batch + 1, batch_count, batch_size
+            )
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -552,5 +564,5 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
         )
         generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
-            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+            fn=cancel_sd, cancels=[prompt_submit, neg_prompt_submit, generate_click]
         )
