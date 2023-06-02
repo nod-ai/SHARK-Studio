@@ -96,7 +96,7 @@ if __name__ == "__main__":
         compiler_module,
         target_backends=[backend],
         extra_args=args,
-        input_type="mhlo",
+        input_type="auto",
     )
     # flatbuffer_blob = compile_str(compiler_module, target_backends=["dylib-llvm-aot"])
 

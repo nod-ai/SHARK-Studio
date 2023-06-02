@@ -60,7 +60,7 @@ def get_iree_device_args(device, extra_args=[]):
 def get_iree_frontend_args(frontend):
     if frontend in ["torch", "pytorch", "linalg", "tm_tensor"]:
         return ["--iree-llvmcpu-target-cpu-features=host"]
-    elif frontend in ["tensorflow", "tf", "mhlo"]:
+    elif frontend in ["tensorflow", "tf", "mhlo", "stablehlo"]:
         return [
             "--iree-llvmcpu-target-cpu-features=host",
             "--iree-mhlo-demote-i64-to-i32=false",
@@ -265,8 +265,8 @@ def compile_module_to_flatbuffer(
     args += extra_args
 
     if frontend in ["tensorflow", "tf"]:
-        input_type = "mhlo"
-    elif frontend in ["mhlo", "tosa"]:
+        input_type = "auto"
+    elif frontend in ["stablehlo", "tosa"]:
         input_type = frontend
     elif frontend in ["tflite", "tflite-tosa"]:
         input_type = "tosa"
@@ -367,7 +367,7 @@ def export_iree_module_to_vmfb(
 def export_module_to_mlir_file(module, frontend, directory: str):
     # TODO: write proper documentation.
     mlir_str = module
-    if frontend in ["tensorflow", "tf", "mhlo", "tflite"]:
+    if frontend in ["tensorflow", "tf", "mhlo", "stablehlo", "tflite"]:
         mlir_str = module.decode("utf-8")
     elif frontend in ["pytorch", "torch"]:
         mlir_str = module.operation.get_asm()
