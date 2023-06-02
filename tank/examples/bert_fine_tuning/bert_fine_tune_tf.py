@@ -153,7 +153,7 @@ if __name__ == "__main__":
         compiler_module,
         target_backends=[backend],
         extra_args=args,
-        input_type="mhlo",
+        input_type="auto",
     )
 
     # Save module as MLIR file in a directory

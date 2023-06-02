@@ -21,7 +21,7 @@ endif()
 # Compile mnist.mlir to mnist.vmfb.
 set(_COMPILE_TOOL_EXECUTABLE $<TARGET_FILE:iree-compile>)
 set(_COMPILE_ARGS)
-list(APPEND _COMPILE_ARGS "--iree-input-type=mhlo")
+list(APPEND _COMPILE_ARGS "--iree-input-type=auto")
 list(APPEND _COMPILE_ARGS "--iree-hal-target-backends=llvm-cpu")
 list(APPEND _COMPILE_ARGS "${IREE_SOURCE_DIR}/samples/models/mnist.mlir")
 list(APPEND _COMPILE_ARGS "-o")
