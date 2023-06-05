@@ -50,27 +50,13 @@ jobs:
       shell: powershell
       run: |
         ./setup_venv.ps1
+        $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
+        pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
         python process_skipfiles.py
         pyinstaller .\apps\stable_diffusion\shark_sd.spec
         mv ./dist/shark_sd.exe ./dist/shark_sd_${{ env.package_version_ }}.exe
         signtool sign /f c:\g\shark_02152023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_${{ env.package_version_ }}.exe
-        pyinstaller .\apps\stable_diffusion\shark_sd_cli.spec
-        python process_skipfiles.py
-        mv ./dist/shark_sd_cli.exe ./dist/shark_sd_cli_${{ env.package_version_ }}.exe
-        signtool sign /f c:\g\shark_02152023.cer /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/shark_sd_cli_${{ env.package_version_ }}.exe
-
-        
-    # GHA windows VM OOMs so disable for now
-    #- name: Build and validate the SHARK Runtime package
-    #  shell: powershell
-    #  run: |
-    #    $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
-    #    pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
-
-    #- uses: actions/upload-artifact@v2
-    #  with:
-    #    path: dist/*
-    
+  
     - name: Upload Release Assets
       id: upload-release-assets
       uses: dwenegar/upload-release-assets@v1
