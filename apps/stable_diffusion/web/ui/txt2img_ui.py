@@ -16,7 +16,7 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
-from apps.stable_diffusion.web.utils.png_metadata import import_png_metadata
+from apps.stable_diffusion.web.utils.metadata import import_png_metadata
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
