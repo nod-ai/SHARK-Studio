@@ -6,6 +6,7 @@ from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
 from apps.language_models.utils import get_torch_mlir_module_bytecode
 from io import BytesIO
 from pathlib import Path
+from shark.shark_downloader import download_public_file
 from shark.shark_inference import SharkInference
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -23,11 +24,15 @@ class Vicuna(SharkLLMBase):
         max_num_tokens=512,
         device="cuda",
         precision="fp32",
+        first_vicuna_vmfb_path=Path("first_vicuna.vmfb"),
+        second_vicuna_vmfb_path=Path("second_vicuna.vmfb"),
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
+        self.first_vicuna_vmfb_path = first_vicuna_vmfb_path
+        self.second_vicuna_vmfb_path = second_vicuna_vmfb_path
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
 
@@ -45,14 +50,19 @@ class Vicuna(SharkLLMBase):
         return vicuna_model
 
     def compile_first_vicuna(self):
-        vmfb_path = Path(self.model_name + ".vmfb")
-        if vmfb_path.exists():
+        self.first_vicuna_vmfb_path = Path("first_vicuna.vmfb")
+        if self.first_vicuna_vmfb_path.exists():
             shark_module = SharkInference(
                 None, device=self.device, mlir_dialect="tm_tensor"
             )
-            shark_module.load_module(vmfb_path)
+            shark_module.load_module(self.first_vicuna_vmfb_path)
             # self.shark_module = shark_module
             return shark_module
+
+        raise ValueError(
+            f"VMFB not found at {self.first_vicuna_vmfb_path.absolute()}"
+        )
+        # Compilation path needs some more work before it is functional
         mlir_path = Path(self.model_name + ".mlir")
         print(
             f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
@@ -143,19 +153,23 @@ class Vicuna(SharkLLMBase):
             ],
         )
         print("Saved vmfb at ", str(path))
-        shark_module.load_module(vmfb_path)
+        shark_module.load_module(self.first_vicuna_vmfb_path)
 
         return shark_module
 
     def compile_second_vicuna(self):
-        vmfb_path = Path(self.model_name + ".vmfb")
-        if vmfb_path.exists():
+        if self.second_vicuna_vmfb_path.exists():
             shark_module = SharkInference(
                 None, device=self.device, mlir_dialect="tm_tensor"
             )
-            shark_module.load_module(vmfb_path)
+            shark_module.load_module(self.second_vicuna_vmfb_path)
             # self.shark_module = shark_module
             return shark_module
+
+        raise ValueError(
+            f"VMFB not found at {self.second_vicuna_vmfb_path.absolute()}"
+        )
+        # Compilation path needs some more work before it is functional
         mlir_path = Path(self.model_name + ".mlir")
         print(
             f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
@@ -268,13 +282,31 @@ class Vicuna(SharkLLMBase):
             ],
         )
         print("Saved vmfb at ", str(path))
-        shark_module.load_module(vmfb_path)
+        shark_module.load_module(self.second_vicuna_vmfb_path)
 
         # self.shark_module = shark_module
 
         return shark_module
 
     def compile(self):
+        # Cannot load both the models in the memory at once
+        # due to memory constraints, hence on demand compilation
+        # is being used until the space is enough for both models
+
+        # download vmfbs for A100
+        if not self.first_vicuna_vmfb_path.exists():
+            download_public_file(
+                "gs://shark_tank/vicuna/unsharded/first_vicuna.vmfb",
+                self.first_vicuna_vmfb_path.absolute(),
+                single_file=True,
+            )
+        if not self.second_vicuna_vmfb_path.exists():
+            download_public_file(
+                "gs://shark_tank/vicuna/unsharded/second_vicuna.vmfb",
+                self.second_vicuna_vmfb_path.absolute(),
+                single_file=True,
+            )
+
         # get first vic
         # fvic_shark_model = self.compile_first_vicuna()
         # get second vic
@@ -433,7 +465,15 @@ class Vicuna(SharkLLMBase):
 
 
 if __name__ == "__main__":
-    vic = Vicuna("vicuna")
+    # CHANGE VMFB paths here to use local vmfbs
+    first_vic_vmfb_path = Path("first_vicuna.vmfb")
+    second_vic_vmfb_path = Path("second_vicuna.vmfb")
+    vic = Vicuna(
+        "vicuna",
+        first_vicuna_vmfb_path=first_vic_vmfb_path,
+        second_vicuna_vmfb_path=second_vic_vmfb_path,
+    )
+
     prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
     prologue_prompt = "ASSISTANT:\n"
     user_prompt = input("User: ")
