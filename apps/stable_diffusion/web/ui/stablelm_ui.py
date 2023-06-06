@@ -115,10 +115,13 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 "TheBloke/vicuna-7B-1.1-HF",
             ],
         )
+        cuda_devices = [
+            device for device in available_devices if "cuda" in device
+        ]
         device = gr.Dropdown(
             label="Device",
-            value=available_devices[0],
-            choices=available_devices,
+            value=cuda_devices[0],
+            choices=cuda_devices,
         )
     chatbot = gr.Chatbot().style(height=500)
     with gr.Row():
