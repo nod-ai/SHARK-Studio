@@ -6,6 +6,7 @@ from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
 from apps.language_models.utils import get_torch_mlir_module_bytecode
 from io import BytesIO
 from pathlib import Path
+from shark.shark_downloader import download_public_file
 from shark.shark_inference import SharkInference
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -23,11 +24,15 @@ class Vicuna(SharkLLMBase):
         max_num_tokens=512,
         device="cuda",
         precision="fp32",
+        first_vicuna_vmfb_path=Path("first_vicuna.vmfb"),
+        second_vicuna_vmfb_path=Path("second_vicuna.vmfb"),
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
+        self.first_vicuna_vmfb_path = first_vicuna_vmfb_path
+        self.second_vicuna_vmfb_path = second_vicuna_vmfb_path
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
 
@@ -45,14 +50,19 @@ class Vicuna(SharkLLMBase):
         return vicuna_model
 
     def compile_first_vicuna(self):
-        vmfb_path = Path(self.model_name + ".vmfb")
-        if vmfb_path.exists():
+        self.first_vicuna_vmfb_path = Path("first_vicuna.vmfb")
+        if self.first_vicuna_vmfb_path.exists():
             shark_module = SharkInference(
                 None, device=self.device, mlir_dialect="tm_tensor"
             )
-            shark_module.load_module(vmfb_path)
+            shark_module.load_module(self.first_vicuna_vmfb_path)
             # self.shark_module = shark_module
             return shark_module
+
+        raise ValueError(
+            f"VMFB not found at {self.first_vicuna_vmfb_path.absolute()}"
+        )
+        # Compilation path needs some more work before it is functional
         mlir_path = Path(self.model_name + ".mlir")
         print(
             f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
@@ -143,19 +153,23 @@ class Vicuna(SharkLLMBase):
             ],
         )
         print("Saved vmfb at ", str(path))
-        shark_module.load_module(vmfb_path)
+        shark_module.load_module(self.first_vicuna_vmfb_path)
 
         return shark_module
 
     def compile_second_vicuna(self):
-        vmfb_path = Path(self.model_name + ".vmfb")
-        if vmfb_path.exists():
+        if self.second_vicuna_vmfb_path.exists():
             shark_module = SharkInference(
                 None, device=self.device, mlir_dialect="tm_tensor"
             )
-            shark_module.load_module(vmfb_path)
+            shark_module.load_module(self.second_vicuna_vmfb_path)
             # self.shark_module = shark_module
             return shark_module
+
+        raise ValueError(
+            f"VMFB not found at {self.second_vicuna_vmfb_path.absolute()}"
+        )
+        # Compilation path needs some more work before it is functional
         mlir_path = Path(self.model_name + ".mlir")
         print(
             f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
@@ -268,13 +282,31 @@ class Vicuna(SharkLLMBase):
             ],
         )
         print("Saved vmfb at ", str(path))
-        shark_module.load_module(vmfb_path)
+        shark_module.load_module(self.second_vicuna_vmfb_path)
 
         # self.shark_module = shark_module
 
         return shark_module
 
     def compile(self):
+        # Cannot load both the models in the memory at once
+        # due to memory constraints, hence on demand compilation
+        # is being used until the space is enough for both models
+
+        # download vmfbs for A100
+        if not self.first_vicuna_vmfb_path.exists():
+            download_public_file(
+                "gs://shark_tank/vicuna/unsharded/first_vicuna.vmfb",
+                self.first_vicuna_vmfb_path.absolute(),
+                single_file=True,
+            )
+        if not self.second_vicuna_vmfb_path.exists():
+            download_public_file(
+                "gs://shark_tank/vicuna/unsharded/second_vicuna.vmfb",
+                self.second_vicuna_vmfb_path.absolute(),
+                single_file=True,
+            )
+
         # get first vic
         # fvic_shark_model = self.compile_first_vicuna()
         # get second vic
@@ -285,11 +317,14 @@ class Vicuna(SharkLLMBase):
 
     def generate(self, prompt):
         # TODO: refactor for cleaner integration
+        import gc
 
         res = []
+        res_tokens = []
         params = {
             "prompt": prompt,
             "is_first": True,
+            "fv": self.compile_first_vicuna(),
         }
 
         generated_token_op = self.generate_new_token(params=params)
@@ -300,21 +335,24 @@ class Vicuna(SharkLLMBase):
         detok = generated_token_op["detok"]
 
         res.append(detok)
+        res_tokens.append(token)
 
+        # Clear First Vic from Memory (main and cuda)
+        del params
+        torch.cuda.empty_cache()
+        gc.collect()
+
+        sec_vic = self.compile_second_vicuna()
         for _ in range(self.max_num_tokens - 2):
-            # t1 = time.time()
             params = {
                 "prompt": None,
                 "is_first": False,
                 "logits": logits,
                 "pkv": pkv,
+                "sv": sec_vic,
             }
 
             generated_token_op = self.generate_new_token(params=params)
-            import gc
-
-            gc.collect()
-            torch.cuda.empty_cache()
 
             token = generated_token_op["token"]
             logits = generated_token_op["logits"]
@@ -323,12 +361,23 @@ class Vicuna(SharkLLMBase):
 
             if token == 2:
                 break
+            res_tokens.append(token)
             if detok == "<0x0A>":
                 res.append("\n")
             else:
                 res.append(detok)
 
-        return res
+        del params
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        for i in range(len(res_tokens)):
+            if type(res_tokens[i]) != int:
+                res_tokens[i] = int(res_tokens[i][0])
+
+        res_str = self.tokenizer.decode(res_tokens)
+        print(f"[DEBUG] final output : \n{res_str}")
+        return res_str
 
     def generate_new_token(self, params):
         def forward_first(first_vic, prompt, cache_outputs=False):
@@ -380,24 +429,22 @@ class Vicuna(SharkLLMBase):
 
         if is_first:
             prompt = params["prompt"]
-            fv = self.compile_first_vicuna()
+            fv = params["fv"]
             token, logits, pkv = forward_first(
                 fv,  # self.shark_model[0],
                 prompt=prompt,
                 cache_outputs=False,
             )
-            del fv
         else:
             _logits = params["logits"]
             _pkv = params["pkv"]
             inputs = (_logits,) + tuple(_pkv)
-            sv = self.compile_second_vicuna()
+            sv = params["sv"]
             token, logits, pkv = forward_second(
                 sv,  # self.shark_model[1],
                 inputs=inputs,
                 load_inputs=False,
             )
-            del sv
 
         detok = self.tokenizer.decode(token)
         print(
@@ -415,3 +462,23 @@ class Vicuna(SharkLLMBase):
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
         pass
+
+
+if __name__ == "__main__":
+    # CHANGE VMFB paths here to use local vmfbs
+    first_vic_vmfb_path = Path("first_vicuna.vmfb")
+    second_vic_vmfb_path = Path("second_vicuna.vmfb")
+    vic = Vicuna(
+        "vicuna",
+        first_vicuna_vmfb_path=first_vic_vmfb_path,
+        second_vicuna_vmfb_path=second_vic_vmfb_path,
+    )
+
+    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    prologue_prompt = "ASSISTANT:\n"
+    user_prompt = input("User: ")
+    prompt_history = prompt_history + "USER:\n" + user_prompt + prologue_prompt
+    prompt = prompt_history.strip()
+
+    res = vic.generate(prompt)
+    print(prompt + res)
