@@ -342,6 +342,15 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
+    elif "rdna2" in args.iree_vulkan_target_triple and (
+        base_model_id
+        not in [
+            "stabilityai/stable-diffusion-2-1",
+            "stabilityai/stable-diffusion-2-1-base",
+        ]
+    ):
+        args.use_tuned = False
+
     if args.use_tuned:
         print(
             f"Using tuned models for {base_model_id}(fp16) on device {args.device}."
