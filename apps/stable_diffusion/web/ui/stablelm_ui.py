@@ -115,13 +115,17 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 "TheBloke/vicuna-7B-1.1-HF",
             ],
         )
-        cuda_devices = [
+        supported_devices = [
             device for device in available_devices if "cuda" in device
         ]
+        enabled = len(supported_devices) > 0
         device = gr.Dropdown(
             label="Device",
-            value=cuda_devices[0],
-            choices=cuda_devices,
+            value=supported_devices[0]
+            if enabled
+            else "Only CUDA Supported for now",
+            choices=supported_devices,
+            interactive=enabled,
         )
     chatbot = gr.Chatbot().style(height=500)
     with gr.Row():
@@ -130,12 +134,13 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 label="Chat Message Box",
                 placeholder="Chat Message Box",
                 show_label=False,
+                interactive=enabled,
             ).style(container=False)
         with gr.Column():
             with gr.Row():
-                submit = gr.Button("Submit")
-                stop = gr.Button("Stop")
-                clear = gr.Button("Clear")
+                submit = gr.Button("Submit", interactive=enabled)
+                stop = gr.Button("Stop", interactive=enabled)
+                clear = gr.Button("Clear", interactive=enabled)
     system_msg = gr.Textbox(
         start_message, label="System Message", interactive=False, visible=False
     )
