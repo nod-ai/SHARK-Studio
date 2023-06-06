@@ -2,6 +2,10 @@ from PIL import Image
 from PIL.ExifTags import Base as EXIFKeys, TAGS, IFD, GPSTAGS
 
 
+def has_exif(image_filename: str) -> bool:
+    return True if Image.open(image_filename).getexif() else False
+
+
 def parse_exif(pil_image: Image) -> dict:
     img_exif = pil_image.getexif()
 
