@@ -16,7 +16,7 @@ OPT_MODEL_66B = "facebook/opt-66b"
 MAX_SEQUENCE_LENGTH = 256
 
 
-def create_module(model_name, tokenizer, device): 
+def create_module(model_name, tokenizer, device):
     opt_model = OPTForCausalLM.from_pretrained(
         "facebook/" + model_name, return_dict=False
     )
@@ -64,7 +64,9 @@ def create_module(model_name, tokenizer, device):
         is_benchmark=False,
     )
     shark_module.compile()
-    shark_module.save_module(module_name=f"{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}")
+    shark_module.save_module(
+        module_name=f"{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}"
+    )
     results = shark_module("forward", inputs)
     print(
         "SHARK logits have shape: ",
@@ -80,8 +82,11 @@ def create_module(model_name, tokenizer, device):
     # shark_out = tokenizer.decode(results[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
     return shark_module
 
+
 def append_output_logits(logits, inputs):
-    top_logits = top_k_top_p_filtering(torch.tensor(logits), top_k=256, top_p=1.0)
+    top_logits = top_k_top_p_filtering(
+        torch.tensor(logits), top_k=256, top_p=1.0
+    )
     probs = torch.nn.functional.softmax(top_logits, dim=-1)
     generated_next_token = torch.multinomial(probs, num_samples=1)
     for idx, x in enumerate(inputs[0]):
@@ -92,14 +97,17 @@ def append_output_logits(logits, inputs):
             continue
     return response[0]
 
+
 if __name__ == "__main__":
-    tokenizer = AutoTokenizer.from_pretrained("facebook/" + OPT_MODEL, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(
+        "facebook/" + OPT_MODEL, use_fast=False
+    )
     vmfb_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu.vmfb"
     if os.path.isfile(vmfb_path):
         opt_shark_module = SharkInference(mlir_module=None, device="cpu")
         opt_shark_module.load_module(vmfb_path)
     else:
-    	opt_shark_module = create_module(OPT_MODEL, tokenizer, "cpu")
+        opt_shark_module = create_module(OPT_MODEL, tokenizer, "cpu")
     while True:
         try:
             new_text = input("Give me a sentence to complete:")
@@ -117,10 +125,18 @@ if __name__ == "__main__":
             response = inputs
             for i in range(10):
                 token_logits = opt_shark_module("forward", response)[0]
-                response[0][0] = append_output_logits(token_logits, response[0])
-                
+                response[0][0] = append_output_logits(
+                    token_logits, response[0]
+                )
+
             print(torch.tensor(response[0]))
-            print(tokenizer.decode(response[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False))
+            print(
+                tokenizer.decode(
+                    response[0][0],
+                    skip_special_tokens=True,
+                    clean_up_tokenization_spaces=False,
+                )
+            )
         except KeyboardInterrupt:
             print("Exiting program.")
             break
