@@ -279,7 +279,6 @@ class OPTAttention(nn.Module):
         )
 
         attn_output = torch.bmm(attn_probs, value_states)
-
         if attn_output.size() != (
             bsz * self.num_heads,
             tgt_len,
@@ -832,7 +831,10 @@ class OPTForCausalLM(OPTPreTrainedModel):
             )
 
         if not return_dict:
-            output = (logits,) + outputs[1:]
+            if isinstance(outputs[1:], tuple):
+                output = (logits,) + outputs[1:]
+            else:
+                output = (logits, outputs[1:])
             return (loss,) + output if loss is not None else output
 
         return CausalLMOutputWithPast(

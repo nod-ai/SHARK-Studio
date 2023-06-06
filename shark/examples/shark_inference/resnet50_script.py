@@ -70,11 +70,11 @@ mlir_model, func_name, inputs, golden_out = download_model(
     "resnet50", frontend="torch"
 )
 
-shark_module = SharkInference(mlir_model, func_name, mlir_dialect="linalg")
+shark_module = SharkInference(mlir_model, mlir_dialect="linalg")
 shark_module.compile()
 path = shark_module.save_module()
 shark_module.load_module(path)
-result = shark_module.forward((img.detach().numpy(),))
+result = shark_module("forward", (img.detach().numpy(),))
 
 print("The top 3 results obtained via shark_runner is:")
 print(top3_possibilities(torch.from_numpy(result)))
