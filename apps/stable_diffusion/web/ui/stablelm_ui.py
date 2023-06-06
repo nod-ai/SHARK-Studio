@@ -22,6 +22,7 @@ def user(message, history):
 
 sharkModel = 0
 sharded_model = 0
+vicuna_model = 0
 
 
 start_message_vicuna = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
@@ -32,16 +33,21 @@ def chat(curr_system_message, history, model):
     print(f"In chat for {model}")
     global sharded_model
     global past_key_values
+    global vicuna_model
     if "vicuna" in model:
-        from apps.language_models.scripts.vicuna import (
-            tokenizer,
-            get_sharded_model,
+        from apps.language_models.src.pipelines.vicuna_pipeline import (
+            Vicuna,
         )
 
-        SAMPLE_INPUT_LEN = 137
         curr_system_message = start_message_vicuna
-        if sharded_model == 0:
-            sharded_model = get_sharded_model()
+        if vicuna_model == 0:
+            first_vic_vmfb_path = Path("first_vicuna.vmfb")
+            second_vic_vmfb_path = Path("second_vicuna.vmfb")
+            vicuna_model = Vicuna(
+                "vicuna",
+                first_vicuna_vmfb_path=first_vic_vmfb_path,
+                second_vicuna_vmfb_path=second_vic_vmfb_path,
+            )
         messages = curr_system_message + "".join(
             [
                 "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
@@ -50,39 +56,8 @@ def chat(curr_system_message, history, model):
         )
         prompt = messages.strip()
         print("prompt = ", prompt)
-        input_ids = tokenizer(prompt).input_ids
-        new_sentence = ""
-        for _ in range(200):
-            original_input_ids = input_ids
-            input_id_len = len(input_ids)
-            pad_len = SAMPLE_INPUT_LEN - input_id_len
-            attention_mask = torch.ones([1, input_id_len], dtype=torch.int64)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            attention_mask = torch.nn.functional.pad(
-                torch.tensor(attention_mask),
-                (0, pad_len),
-                mode="constant",
-                value=0,
-            )
-
-            if _ == 0:
-                output = sharded_model.forward(input_ids, is_first=True)
-            else:
-                output = sharded_model.forward(
-                    input_ids, past_key_values=past_key_values, is_first=False
-                )
-            logits = output["logits"]
-            past_key_values = output["past_key_values"]
-            new_word = tokenizer.decode(torch.argmax(logits[:, -1, :], dim=1))
-            if new_word == "</s>":
-                break
-            new_sentence += " " + new_word
-            history[-1][1] = new_sentence
-            yield history
-            next_token = torch.argmax(logits[:, input_id_len - 1, :], dim=1)
-            original_input_ids.append(next_token)
-            input_ids = [next_token]
+        new_sentence = vicuna_model.generate(prompt)
+        history[-1][1] = new_sentence
         print(new_sentence)
         return history
 
@@ -133,16 +108,9 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 "TheBloke/vicuna-7B-1.1-HF",
             ],
         )
-        device_value = None
-        for d in available_devices:
-            if "vulkan" in d:
-                device_value = d
-                break
-
         device = gr.Dropdown(
             label="Device",
-            value=device_value if device_value else available_devices[0],
-            interactive=False,
+            value=available_devices[0],
             choices=available_devices,
         )
     chatbot = gr.Chatbot().style(height=500)
