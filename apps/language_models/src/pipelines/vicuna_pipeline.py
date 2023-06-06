@@ -84,6 +84,7 @@ class Vicuna(SharkLLMBase):
             ts_graph = get_torch_mlir_module_bytecode(
                 model, firstVicunaCompileInput
             )
+            del model
 
             firstVicunaCompileInput = list(firstVicunaCompileInput)
             firstVicunaCompileInput[0] = torch_mlir.TensorPlaceholder.like(
@@ -97,6 +98,7 @@ class Vicuna(SharkLLMBase):
                 use_tracing=False,
                 verbose=False,
             )
+            del ts_graph
 
             def remove_constant_dim(line):
                 if "19x" in line:
@@ -116,10 +118,10 @@ class Vicuna(SharkLLMBase):
                     line = re.sub(" 19,", " %dim,", line)
                 return line
 
-            module_str = str(module)
+            module = str(module)
             new_lines = []
 
-            for line in module_str.splitlines():
+            for line in module.splitlines():
                 line = remove_constant_dim(line)
                 if "%0 = tensor.empty(%dim) : tensor<?xi64>" in line:
                     new_lines.append(
@@ -130,13 +132,14 @@ class Vicuna(SharkLLMBase):
 
                 new_lines.append(line)
 
-            module_str = "\n".join(new_lines)
-            bytecode = module_str.encode("UTF-8")
-            bytecode_stream = BytesIO(bytecode)
-            bytecode = bytecode_stream.read()
+            module = "\n".join(new_lines)
+            module = module.encode("UTF-8")
+            module = BytesIO(module)
+            module = module.read()
             f_ = open(f"{self.model_name}.mlir", "wb")
-            f_.write(bytecode)
+            f_.write(module)
             f_.close()
+            del module
 
         shark_module = SharkInference(
             mlir_module=bytecode, device=self.device, mlir_dialect="tm_tensor"
