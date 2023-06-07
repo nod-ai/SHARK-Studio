@@ -50,18 +50,13 @@ class Vicuna(SharkLLMBase):
         return vicuna_model
 
     def compile_first_vicuna(self):
-        self.first_vicuna_vmfb_path = Path("first_vicuna.vmfb")
         if self.first_vicuna_vmfb_path.exists():
             shark_module = SharkInference(
                 None, device=self.device, mlir_dialect="tm_tensor"
             )
             shark_module.load_module(self.first_vicuna_vmfb_path)
-            # self.shark_module = shark_module
             return shark_module
 
-        raise ValueError(
-            f"VMFB not found at {self.first_vicuna_vmfb_path.absolute()}"
-        )
         # Compilation path needs some more work before it is functional
         mlir_path = Path(self.model_name + ".mlir")
         print(
@@ -81,10 +76,12 @@ class Vicuna(SharkLLMBase):
             firstVicunaCompileInput = (compilation_input_ids,)
             model = FirstVicuna(self.hf_model_path)
 
+            print(f"[DEBUG] generating torchscript graph")
             ts_graph = get_torch_mlir_module_bytecode(
                 model, firstVicunaCompileInput
             )
             del model
+            print(f"[DEBUG] generating torch mlir")
 
             firstVicunaCompileInput = list(firstVicunaCompileInput)
             firstVicunaCompileInput[0] = torch_mlir.TensorPlaceholder.like(
@@ -121,6 +118,7 @@ class Vicuna(SharkLLMBase):
             module = str(module)
             new_lines = []
 
+            print(f"[DEBUG] rewriting torch_mlir file")
             for line in module.splitlines():
                 line = remove_constant_dim(line)
                 if "%0 = tensor.empty(%dim) : tensor<?xi64>" in line:
@@ -133,21 +131,26 @@ class Vicuna(SharkLLMBase):
                 new_lines.append(line)
 
             module = "\n".join(new_lines)
+
+            print(f"[DEBUG] converting to bytecode")
+            del new_lines
             module = module.encode("UTF-8")
             module = BytesIO(module)
-            module = module.read()
-            f_ = open(f"{self.model_name}.mlir", "wb")
-            f_.write(module)
-            f_.close()
+            bytecode = module.read()
             del module
+
+            print(f"[DEBUG] writing mlir to file")
+            f_ = open(f"{self.model_name}.mlir", "wb")
+            f_.write(bytecode)
+            f_.close()
 
         shark_module = SharkInference(
             mlir_module=bytecode, device=self.device, mlir_dialect="tm_tensor"
         )
-
+        vmfb_name = "first_" + self.model_name
         path = shark_module.save_module(
             os.getcwd(),
-            self.model_name,
+            vmfb_name,
             extra_args=[
                 "--iree-hal-dump-executable-sources-to=ies",
                 "--iree-vm-target-truncate-unsupported-floats",
@@ -155,8 +158,8 @@ class Vicuna(SharkLLMBase):
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
             ],
         )
-        print("Saved vmfb at ", str(path))
-        shark_module.load_module(self.first_vicuna_vmfb_path)
+        print("Saved first vic vmfb at vmfb at ", str(path))
+        shark_module.load_module(path)
 
         return shark_module
 
@@ -297,26 +300,27 @@ class Vicuna(SharkLLMBase):
         # is being used until the space is enough for both models
 
         # download vmfbs for A100
-        if not self.first_vicuna_vmfb_path.exists():
+        if not self.first_vicuna_vmfb_path.exists() and self.device == "cuda":
             download_public_file(
                 "gs://shark_tank/vicuna/unsharded/first_vicuna.vmfb",
                 self.first_vicuna_vmfb_path.absolute(),
                 single_file=True,
             )
-        if not self.second_vicuna_vmfb_path.exists():
+        else:
+            # get first vic
+            fvic_shark_model = self.compile_first_vicuna()
+        if not self.second_vicuna_vmfb_path.exists() and self.device == "cuda":
             download_public_file(
                 "gs://shark_tank/vicuna/unsharded/second_vicuna.vmfb",
                 self.second_vicuna_vmfb_path.absolute(),
                 single_file=True,
             )
-
-        # get first vic
-        # fvic_shark_model = self.compile_first_vicuna()
-        # get second vic
-        # svic_shark_model = self.compile_second_vicuna()
-        # return tuple of shark_modules
-        # return fvic_shark_model, svic_shark_model
+        else:
+            # get second vic
+            svic_shark_model = self.compile_second_vicuna()
         return None
+        # return tuple of shark_modules once mem is supported
+        # return fvic_shark_model, svic_shark_model
 
     def generate(self, prompt):
         # TODO: refactor for cleaner integration
@@ -467,12 +471,37 @@ class Vicuna(SharkLLMBase):
         pass
 
 
+import argparse
+
+parser = argparse.ArgumentParser(
+    prog="vicuna runner",
+    description="runs a vicuna model",
+)
+
+parser.add_argument(
+    "--precision", "-p", default="fp32", help="fp32, fp16, int8, int4"
+)
+parser.add_argument(
+    "--device", "-d", default="vulkan", help="vulkan, cpu, cuda"
+)
+parser.add_argument(
+    "--second_vicuna_vmfb_path",
+    default=None,
+    help="path to second vicuna vmfb",
+)
+parser.add_argument(
+    "--first_vicuna_vmfb_path", default=None, help="path to first vicuna vmfb"
+)
+
 if __name__ == "__main__":
-    # CHANGE VMFB paths here to use local vmfbs
-    first_vic_vmfb_path = Path("first_vicuna.vmfb")
-    second_vic_vmfb_path = Path("second_vicuna.vmfb")
+    args = parser.parse_args()
+
+    first_vic_vmfb_path = args.first_vicuna_vmfb_path
+    second_vic_vmfb_path = args.second_vicuna_vmfb_path
     vic = Vicuna(
         "vicuna",
+        device=args.device,
+        precision=args.precision,
         first_vicuna_vmfb_path=first_vic_vmfb_path,
         second_vicuna_vmfb_path=second_vic_vmfb_path,
     )
