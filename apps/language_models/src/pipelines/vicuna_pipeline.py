@@ -508,9 +508,77 @@ if __name__ == "__main__":
 
     prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
     prologue_prompt = "ASSISTANT:\n"
-    user_prompt = input("User: ")
-    prompt_history = prompt_history + "USER:\n" + user_prompt + prologue_prompt
-    prompt = prompt_history.strip()
 
-    res = vic.generate(prompt)
-    print(prompt + res)
+    import gc
+
+    while True:
+        # TODO: Add break condition from user input
+        user_prompt = input("User: ")
+        prompt_history = (
+            prompt_history + "USER:\n" + user_prompt + prologue_prompt
+        )
+        prompt = prompt_history.strip()
+
+        res = []
+        res_tokens = []
+        params = {
+            "prompt": prompt,
+            "is_first": True,
+            "fv": vic.compile_first_vicuna(),
+        }
+
+        generated_token_op = vic.generate_new_token(params=params)
+
+        token = generated_token_op["token"]
+        logits = generated_token_op["logits"]
+        pkv = generated_token_op["pkv"]
+        detok = generated_token_op["detok"]
+
+        res.append(detok)
+        res_tokens.append(token)
+        print(f"Assistant: {detok}", end=" ", flush=True)
+
+        # Clear First Vic from Memory (main and cuda)
+        del params
+        torch.cuda.empty_cache()
+        gc.collect()
+
+        sec_vic = vic.compile_second_vicuna()
+        for _ in range(vic.max_num_tokens - 2):
+            params = {
+                "prompt": None,
+                "is_first": False,
+                "logits": logits,
+                "pkv": pkv,
+                "sv": sec_vic,
+            }
+
+            generated_token_op = vic.generate_new_token(params=params)
+
+            token = generated_token_op["token"]
+            logits = generated_token_op["logits"]
+            pkv = generated_token_op["pkv"]
+            detok = generated_token_op["detok"]
+
+            if token == 2:
+                break
+            res_tokens.append(token)
+            if detok == "<0x0A>":
+                print("\n", end="", flush=True)
+            else:
+                print(f"{detok}", end=" ", flush=True)
+
+        del params
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        for i in range(len(res_tokens)):
+            if type(res_tokens[i]) != int:
+                res_tokens[i] = int(res_tokens[i][0])
+
+        res_str = vic.tokenizer.decode(res_tokens)
+        print(
+            "\n-----\nAssistant: Here's the complete formatted reply:\n",
+            res_str,
+        )
+        prompt_history += f"\n{res_str}\n"
