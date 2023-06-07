@@ -53,6 +53,12 @@ parser.add_argument(
     action=argparse.BooleanOptionalAction,
     help="download precompile mlir from shark tank",
 )
+parser.add_argument(
+    "--cli",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Run model in cli mode",
+)
 
 
 class Vicuna(SharkLLMBase):
@@ -402,7 +408,8 @@ class Vicuna(SharkLLMBase):
         else:
             # get first vic
             # TODO: Remove after testing to avoid memory overload
-            fvic_shark_model = self.compile_first_vicuna()
+            # fvic_shark_model = self.compile_first_vicuna()
+            pass
         if (
             not self.second_vicuna_vmfb_path.exists()
             and self.device == "cuda"
@@ -416,7 +423,8 @@ class Vicuna(SharkLLMBase):
         else:
             # get second vic
             # TODO: Remove after testing to avoid memory overload
-            svic_shark_model = self.compile_second_vicuna()
+            # svic_shark_model = self.compile_second_vicuna()
+            pass
 
         # get first vic
         # fvic_shark_model = self.compile_first_vicuna()
@@ -449,6 +457,8 @@ class Vicuna(SharkLLMBase):
 
         res.append(detok)
         res_tokens.append(token)
+        if args.cli:
+            print(f"Assistant: {detok}", end=" ", flush=True)
 
         # Clear First Vic from Memory (main and cuda)
         del params
@@ -477,19 +487,22 @@ class Vicuna(SharkLLMBase):
             res_tokens.append(token)
             if detok == "<0x0A>":
                 res.append("\n")
+                if args.cli:
+                    print("\n", end="", flush=True)
             else:
                 res.append(detok)
-
-        del params
-        gc.collect()
+                if args.cli:
+                    print(f"{detok}", end=" ", flush=True)
+        del sec_vic, pkv, logits
         torch.cuda.empty_cache()
+        gc.collect()
 
         for i in range(len(res_tokens)):
             if type(res_tokens[i]) != int:
                 res_tokens[i] = int(res_tokens[i][0])
 
         res_str = self.tokenizer.decode(res_tokens)
-        print(f"[DEBUG] final output : \n{res_str}")
+        # print(f"[DEBUG] final output : \n{res_str}")
         return res_str
 
     def generate_new_token(self, params):
@@ -560,10 +573,11 @@ class Vicuna(SharkLLMBase):
             )
 
         detok = self.tokenizer.decode(token)
-        print(
-            f"[DEBUG] is_first: {is_first} |"
-            f" token : {token} | detok : {detok}"
-        )
+        if not args.cli:
+            print(
+                f"[DEBUG] is_first: {is_first} |"
+                f" token : {token} | detok : {detok}"
+            )
         ret_dict = {
             "token": token,
             "logits": logits,
@@ -623,65 +637,9 @@ if __name__ == "__main__":
             prompt_history + "USER:\n" + user_prompt + prologue_prompt
         )
         prompt = prompt_history.strip()
-
-        res = []
-        res_tokens = []
-        params = {
-            "prompt": prompt,
-            "is_first": True,
-            "fv": vic.compile_first_vicuna(),
-        }
-
-        generated_token_op = vic.generate_new_token(params=params)
-
-        token = generated_token_op["token"]
-        logits = generated_token_op["logits"]
-        pkv = generated_token_op["pkv"]
-        detok = generated_token_op["detok"]
-
-        res.append(detok)
-        res_tokens.append(token)
-        print(f"Assistant: {detok}", end=" ", flush=True)
-
-        # Clear First Vic from Memory (main and cuda)
-        del params
+        res_str = vic.generate(prompt)
         torch.cuda.empty_cache()
         gc.collect()
-
-        sec_vic = vic.compile_second_vicuna()
-        for _ in range(vic.max_num_tokens - 2):
-            params = {
-                "prompt": None,
-                "is_first": False,
-                "logits": logits,
-                "pkv": pkv,
-                "sv": sec_vic,
-            }
-
-            generated_token_op = vic.generate_new_token(params=params)
-
-            token = generated_token_op["token"]
-            logits = generated_token_op["logits"]
-            pkv = generated_token_op["pkv"]
-            detok = generated_token_op["detok"]
-
-            if token == 2:
-                break
-            res_tokens.append(token)
-            if detok == "<0x0A>":
-                print("\n", end="", flush=True)
-            else:
-                print(f"{detok}", end=" ", flush=True)
-
-        del params
-        gc.collect()
-        torch.cuda.empty_cache()
-
-        for i in range(len(res_tokens)):
-            if type(res_tokens[i]) != int:
-                res_tokens[i] = int(res_tokens[i][0])
-
-        res_str = vic.tokenizer.decode(res_tokens)
         print(
             "\n-----\nAssistant: Here's the complete formatted reply:\n",
             res_str,
