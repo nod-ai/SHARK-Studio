@@ -7,7 +7,8 @@ import apps.stable_diffusion.web.utils.global_obj as global_obj
 
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
-    import torch_mlir # import before IREE to avoid MLIR library issues
+    # import before IREE to avoid MLIR library issues
+    import torch_mlir
 
 if args.clear_all:
     clear_all()
