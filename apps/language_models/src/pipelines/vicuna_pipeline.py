@@ -223,10 +223,9 @@ class Vicuna(SharkLLMBase):
         shark_module = SharkInference(
             mlir_module=bytecode, device=self.device, mlir_dialect="tm_tensor"
         )
-        vmfb_name = "first_" + self.model_name
         path = shark_module.save_module(
-            os.getcwd(),
-            vmfb_name,
+            self.first_vicuna_vmfb_path.parent.absolute(),
+            self.first_vicuna_vmfb_path.stem,
             extra_args=[
                 "--iree-hal-dump-executable-sources-to=ies",
                 "--iree-vm-target-truncate-unsupported-floats",
@@ -363,7 +362,7 @@ class Vicuna(SharkLLMBase):
                 bytecode = module_str.encode("UTF-8")
                 bytecode_stream = BytesIO(bytecode)
                 bytecode = bytecode_stream.read()
-                f_ = open(f"{self.model_name}.mlir", "wb")
+                f_ = open(self.second_vicuna_mlir_path, "wb")
                 f_.write(bytecode)
                 f_.close()
 
@@ -372,8 +371,8 @@ class Vicuna(SharkLLMBase):
         )
 
         path = shark_module.save_module(
-            os.getcwd(),
-            self.model_name,
+            self.second_vicuna_vmfb_path.parent.absolute(),
+            self.second_vicuna_vmfb_path.stem,
             extra_args=[
                 "--iree-hal-dump-executable-sources-to=ies",
                 "--iree-vm-target-truncate-unsupported-floats",
