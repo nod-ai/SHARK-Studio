@@ -62,6 +62,8 @@ def get_supported_device_list():
 
 _IREE_DEVICE_MAP = {
     "cpu": "local-task",
+    "cpu-task": "local-task",
+    "cpu-sync": "local-sync",
     "cuda": "cuda",
     "vulkan": "vulkan",
     "metal": "vulkan",
@@ -78,6 +80,8 @@ def iree_target_map(device):
 
 _IREE_TARGET_MAP = {
     "cpu": "llvm-cpu",
+    "cpu-task": "llvm-cpu",
+    "cpu-sync": "llvm-cpu",
     "cuda": "cuda",
     "vulkan": "vulkan",
     "metal": "vulkan",
