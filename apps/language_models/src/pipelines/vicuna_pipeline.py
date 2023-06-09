@@ -235,9 +235,25 @@ class Vicuna(SharkLLMBase):
             ],
         )
         print("Saved first vic vmfb at vmfb at ", str(path))
-        shark_module.load_module(path)
+        #shark_module.load_module(path)
 
-        return shark_module
+        with open(self.first_vicuna_vmfb_path, "rb") as mlir_file:
+            flatbuffer_blob = mlir_file.read()
+
+
+        backend = "llvm-cpu"
+        args = ["--iree-llvmcpu-target-cpu-features=host"]
+
+        config = ireert.Config("local-sync")
+        vm_module = ireert.VmModule.from_flatbuffer(config.vm_instance, flatbuffer_blob)
+        ctx = ireert.SystemContext(config=config)
+        ctx.add_vm_module(vm_module)
+        complex_compiled = ctx.modules.module
+
+        # self.shark_module = shark_module
+
+        return complex_compiled
+        #return shark_module
 
     def compile_second_vicuna(self):
         vmfb = get_vmfb_from_path(
@@ -382,11 +398,23 @@ class Vicuna(SharkLLMBase):
             ],
         )
         print("Saved vmfb at ", str(path))
-        shark_module.load_module(self.second_vicuna_vmfb_path)
+        #shark_module.load_module(self.second_vicuna_vmfb_path)
+        with open(self.second_vicuna_vmfb_path, "rb") as mlir_file:
+            flatbuffer_blob = mlir_file.read()
+
+
+        backend = "llvm-cpu"
+        args = ["--iree-llvmcpu-target-cpu-features=host"]
+
+        config = ireert.Config("local-sync")
+        vm_module = ireert.VmModule.from_flatbuffer(config.vm_instance, flatbuffer_blob)
+        ctx = ireert.SystemContext(config=config)
+        ctx.add_vm_module(vm_module)
+        complex_compiled = ctx.modules.module
 
         # self.shark_module = shark_module
 
-        return shark_module
+        return complex_compiled
 
     def compile(self):
         # Cannot load both the models in the memory at once
