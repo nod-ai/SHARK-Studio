@@ -6,15 +6,19 @@ import torch_mlir
 import torch
 import numpy as np
 from shark_hf_opt import OPTForCausalLM
-from shark.iree_utils._common import check_device_drivers, device_driver_info
+from shark.iree_utils._common import (
+    check_device_drivers,
+    device_driver_info,
+    run_cmd,
+)
 from shark.shark_inference import SharkInference
 from tank.model_utils import compare_tensors
 from transformers import AutoTokenizer
 
-OPT_MODEL = "opt-350m"
+OPT_MODEL = "opt-1.3b"
 OPT_MODEL_66B = "facebook/opt-66b"
-MAX_SEQUENCE_LENGTH = 256
-MAX_NEW_TOKENS = 200
+MAX_SEQUENCE_LENGTH = 30
+MAX_NEW_TOKENS = 23
 
 
 def create_module(model_name, tokenizer, device):
@@ -24,7 +28,7 @@ def create_module(model_name, tokenizer, device):
     opt_model.eval()
 
     encoded_inputs = tokenizer(
-        "This is a sample input for generating the model.",
+        "What is the meaning of life?",
         padding="max_length",
         truncation=True,
         max_length=MAX_SEQUENCE_LENGTH,
@@ -34,6 +38,9 @@ def create_module(model_name, tokenizer, device):
         encoded_inputs["input_ids"],
         encoded_inputs["attention_mask"],
     )
+    np.save("model_inputs_0.npy", inputs[0])
+    np.save("model_inputs_1.npy", inputs[1])
+
     mlir_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch.mlir"
     if os.path.isfile(mlir_path):
         with open(mlir_path, "r") as f:
@@ -66,22 +73,8 @@ def create_module(model_name, tokenizer, device):
     )
     vmfb_name = f"{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}"
     shark_module.save_module(module_name=vmfb_name)
-    shark_module.load_module(vmfb_name + ".vmfb")
 
-    results = shark_module("forward", inputs)
-    print(
-        "SHARK logits have shape: ",
-        str(results[0].shape) + " : " + str(results[0]),
-    )
-    print(
-        "PyTorch logits have shape: "
-        + str(act_out[0].shape)
-        + " : "
-        + str(act_out[0])
-    )
-    # exp_out = tokenizer.decode(act_out[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-    # shark_out = tokenizer.decode(results[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-    return shark_module
+    return vmfb_name
 
 
 def shouldStop(tokens):
@@ -105,7 +98,52 @@ def generate_new_token(shark_model, tokenizer, new_text):
         model_inputs["attention_mask"],
     )
     sum_attentionmask = torch.sum(model_inputs.attention_mask)
-    output = shark_model("forward", inputs)
+    np.save("model_inputs_0.npy", inputs[0])
+    np.save("model_inputs_1.npy", inputs[1])
+    # output = shark_model("forward", inputs)
+    cmd = [
+        "iree-run-module",
+        f"--module={vmfb_path}",
+        f"--input=@model_inputs_0.npy",
+        f"--input=@model_inputs_1.npy",
+        f"--device=local-task",
+        f"--output=@model_outputs_0.npy",
+        f"--output=@model_outputs_1.npy",
+    ]
+    run_cmd(cmd)
+    output = torch.FloatTensor(np.load("model_outputs_0.npy"))
+    next_toks = torch.topk(output, 1)
+    stop_generation = False
+    if shouldStop(next_toks.indices):
+        stop_generation = True
+    new_token = next_toks.indices[int(sum_attentionmask) - 1]
+    detok = tokenizer.decode(
+        new_token,
+        skip_special_tokens=False,
+        clean_up_tokenization_spaces=False,
+    )
+    ret_dict = {
+        "new_token": new_token,
+        "detok": detok,
+        "stop_generation": stop_generation,
+    }
+    return ret_dict
+
+
+def generate_new_token_hf(opt_model, tokenizer, new_text):
+    model_inputs = tokenizer(
+        new_text,
+        padding="max_length",
+        max_length=MAX_SEQUENCE_LENGTH,
+        truncation=True,
+        return_tensors="pt",
+    )
+    inputs = (
+        model_inputs["input_ids"],
+        model_inputs["attention_mask"],
+    )
+    sum_attentionmask = torch.sum(model_inputs.attention_mask)
+    output = opt_model(inputs[0], attention_mask=inputs[1], return_dict=False)
     output = torch.FloatTensor(output[0])
     next_toks = torch.topk(output, 1)
     stop_generation = False
@@ -131,13 +169,14 @@ if __name__ == "__main__":
     )
     vmfb_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu.vmfb"
     if os.path.isfile(vmfb_path):
-        opt_shark_module = SharkInference(mlir_module=None, device="cpu")
+        opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
         opt_shark_module.load_module(vmfb_path)
     else:
         opt_shark_module = create_module(OPT_MODEL, tokenizer, "cpu")
     while True:
         try:
             new_text = input("Give me a sentence to complete:")
+            new_text_init = new_text
             words_list = []
 
             for i in range(MAX_NEW_TOKENS):
@@ -153,6 +192,25 @@ if __name__ == "__main__":
                 if detok == "":
                     break
                 new_text = new_text + detok
+
+            opt_model = OPTForCausalLM.from_pretrained(
+                "facebook/" + OPT_MODEL, return_dict=False
+            )
+            opt_model.eval()
+            words_list = []
+            for i in range(MAX_NEW_TOKENS):
+                generated_token_op = generate_new_token_hf(
+                    opt_model, tokenizer, new_text_init
+                )
+                detok = generated_token_op["detok"]
+                stop_generation = generated_token_op["stop_generation"]
+                if stop_generation:
+                    break
+                print(detok, end="", flush=True)
+                words_list.append(detok)
+                if detok == "":
+                    break
+                new_text_init = new_text_init + detok
 
         except KeyboardInterrupt:
             print("Exiting program.")
