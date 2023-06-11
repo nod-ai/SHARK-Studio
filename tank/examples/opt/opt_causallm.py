@@ -104,6 +104,7 @@ def generate_new_token(shark_model, tokenizer, new_text):
     cmd = [
         "iree-run-module",
         f"--module={vmfb_path}",
+        "--function=forward",
         f"--input=@model_inputs_0.npy",
         f"--input=@model_inputs_1.npy",
         f"--device=local-task",
