@@ -313,6 +313,7 @@ class OPTDecoderLayer(nn.Module):
             num_heads=config.num_attention_heads,
             dropout=config.attention_dropout,
             is_decoder=True,
+            bias=config.enable_bias
         )
         self.do_layer_norm_before = config.do_layer_norm_before
         self.dropout = config.dropout
@@ -320,10 +321,14 @@ class OPTDecoderLayer(nn.Module):
 
         self.activation_dropout = config.activation_dropout
 
-        self.self_attn_layer_norm = nn.LayerNorm(self.embed_dim)
+        self.self_attn_layer_norm = nn.LayerNorm(
+            self.embed_dim, elementwise_affine=config.layer_norm_elementwise_affine
+        )
         self.fc1 = nn.Linear(self.embed_dim, config.ffn_dim)
         self.fc2 = nn.Linear(config.ffn_dim, self.embed_dim)
-        self.final_layer_norm = nn.LayerNorm(self.embed_dim)
+        self.final_layer_norm = nn.LayerNorm(
+            self.embed_dim, elementwise_affine=config.layer_norm_elementwise_affine
+        )
 
     def forward(
         self,
@@ -449,7 +454,13 @@ class OPTDecoder(OPTPreTrainedModel):
         else:
             self.project_in = None
 
-        self.layer_norm = None
+        if config.do_layer_norm_before and not config._remove_final_layer_norm:
+            self.final_layer_norm = nn.LayerNorm(
+                config.hidden_size, elementwise_affine=config.layer_norm_elementwise_affine
+            )
+        else:
+            self.final_layer_norm = None
+
         self.layers = nn.ModuleList(
             [OPTDecoderLayer(config) for _ in range(config.num_hidden_layers)]
         )
@@ -645,6 +656,9 @@ class OPTDecoder(OPTPreTrainedModel):
 
             if output_attentions:
                 all_self_attns += (layer_outputs[1],)
+
+        if self.final_layer_norm is not None:
+            hidden_states = self.final_layer_norm(hidden_states)
 
         if self.project_out is not None:
             hidden_states = self.project_out(hidden_states)

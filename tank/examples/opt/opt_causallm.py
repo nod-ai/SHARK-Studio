@@ -13,12 +13,12 @@ from shark.iree_utils._common import (
 )
 from shark.shark_inference import SharkInference
 from tank.model_utils import compare_tensors
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 OPT_MODEL = "opt-1.3b"
 OPT_MODEL_66B = "facebook/opt-66b"
 MAX_SEQUENCE_LENGTH = 30
-MAX_NEW_TOKENS = 23
+MAX_NEW_TOKENS = 20
 
 
 def create_module(model_name, tokenizer, device):
@@ -98,21 +98,8 @@ def generate_new_token(shark_model, tokenizer, new_text):
         model_inputs["attention_mask"],
     )
     sum_attentionmask = torch.sum(model_inputs.attention_mask)
-    np.save("model_inputs_0.npy", inputs[0])
-    np.save("model_inputs_1.npy", inputs[1])
-    # output = shark_model("forward", inputs)
-    cmd = [
-        "iree-run-module",
-        f"--module={vmfb_path}",
-        "--function=forward",
-        f"--input=@model_inputs_0.npy",
-        f"--input=@model_inputs_1.npy",
-        f"--device=local-task",
-        f"--output=@model_outputs_0.npy",
-        f"--output=@model_outputs_1.npy",
-    ]
-    run_cmd(cmd)
-    output = torch.FloatTensor(np.load("model_outputs_0.npy"))
+    output = shark_model("forward", inputs)
+    output = torch.FloatTensor(output[0])
     next_toks = torch.topk(output, 1)
     stop_generation = False
     if shouldStop(next_toks.indices):
@@ -145,12 +132,11 @@ def generate_new_token_hf(opt_model, tokenizer, new_text):
     )
     sum_attentionmask = torch.sum(model_inputs.attention_mask)
     output = opt_model(inputs[0], attention_mask=inputs[1], return_dict=False)
-    output = torch.FloatTensor(output[0])
-    next_toks = torch.topk(output, 1)
+    next_toks = torch.topk(output[0], 1)
     stop_generation = False
     if shouldStop(next_toks.indices):
         stop_generation = True
-    new_token = next_toks.indices[int(sum_attentionmask) - 1]
+    new_token = next_toks
     detok = tokenizer.decode(
         new_token,
         skip_special_tokens=False,
@@ -168,12 +154,12 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(
         "facebook/" + OPT_MODEL, use_fast=False
     )
-    vmfb_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu.vmfb"
+    vmfb_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
     if os.path.isfile(vmfb_path):
         opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
         opt_shark_module.load_module(vmfb_path)
     else:
-        opt_shark_module = create_module(OPT_MODEL, tokenizer, "cpu")
+        opt_shark_module = create_module(OPT_MODEL, tokenizer, "cpu-sync")
     while True:
         try:
             new_text = input("Give me a sentence to complete:")
@@ -207,6 +193,7 @@ if __name__ == "__main__":
                 stop_generation = generated_token_op["stop_generation"]
                 if stop_generation:
                     break
+                print(generated_token_op["new_token"])
                 print(detok, end="", flush=True)
                 words_list.append(detok)
                 if detok == "":
