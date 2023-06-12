@@ -155,11 +155,12 @@ if __name__ == "__main__":
         "facebook/" + OPT_MODEL, use_fast=False
     )
     vmfb_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
+    opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
     if os.path.isfile(vmfb_path):
-        opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
         opt_shark_module.load_module(vmfb_path)
     else:
-        opt_shark_module = create_module(OPT_MODEL, tokenizer, "cpu-sync")
+        vmfb_path = create_module(OPT_MODEL, tokenizer, "cpu-sync")
+        opt_shark_module.load_module(vmfb_path)
     while True:
         try:
             new_text = input("Give me a sentence to complete:")
@@ -179,26 +180,6 @@ if __name__ == "__main__":
                 if detok == "":
                     break
                 new_text = new_text + detok
-
-            opt_model = OPTForCausalLM.from_pretrained(
-                "facebook/" + OPT_MODEL, return_dict=False
-            )
-            opt_model.eval()
-            words_list = []
-            for i in range(MAX_NEW_TOKENS):
-                generated_token_op = generate_new_token_hf(
-                    opt_model, tokenizer, new_text_init
-                )
-                detok = generated_token_op["detok"]
-                stop_generation = generated_token_op["stop_generation"]
-                if stop_generation:
-                    break
-                print(generated_token_op["new_token"])
-                print(detok, end="", flush=True)
-                words_list.append(detok)
-                if detok == "":
-                    break
-                new_text_init = new_text_init + detok
 
         except KeyboardInterrupt:
             print("Exiting program.")
