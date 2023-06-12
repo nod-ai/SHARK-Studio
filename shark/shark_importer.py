@@ -312,6 +312,43 @@ def get_f16_inputs(inputs, is_f16, f16_input_mask):
     return tuple(f16_masked_inputs)
 
 
+# Upcasts the block/list of ops.
+def add_upcast(fx_g):
+    import torch
+
+    for node in fx_g.graph.nodes:
+        if node.target in [torch.ops.aten.rsqrt]:
+            # This is a very strict check.
+            if (
+                node.args[0].target in [torch.ops.aten.add]
+                and node.args[0].args[0].target in [torch.ops.aten.mean]
+                and node.args[0].args[0].args[0].target in [torch.ops.aten.pow]
+            ):
+                print("found an upcasting block let's upcast it.")
+                pow_node = node.args[0].args[0].args[0]
+                rsqrt_node = node
+            with fx_g.graph.inserting_before(pow_node):
+                lhs = pow_node.args[0]
+                upcast_lhs = fx_g.graph.call_function(
+                    torch.ops.aten._to_copy,
+                    args=(lhs,),
+                    kwargs={"dtype": torch.float32},
+                )
+                pow_node.args = (upcast_lhs, pow_node.args[1])
+            with fx_g.graph.inserting_before(rsqrt_node):
+                new_node = fx_g.graph.call_function(
+                    torch.ops.aten._to_copy,
+                    args=(rsqrt_node,),
+                    kwargs={"dtype": torch.float16},
+                )
+                rsqrt_node.append(new_node)
+                rsqrt_node.replace_all_uses_with(new_node)
+                new_node.args = (rsqrt_node,)
+                new_node.kwargs = {"dtype": torch.float16}
+
+    fx_g.graph.lint()
+
+
 def transform_fx(fx_g):
     import torch
 
@@ -340,6 +377,28 @@ def transform_fx(fx_g):
                 if node.kwargs.get("dtype") == torch.float32:
                     node.kwargs = kwargs_dict1
 
+            if node.target in [
+                torch.ops.aten.masked_fill,
+            ]:
+                if node.args[2] > torch.finfo(torch.half).max:
+                    max_val = torch.finfo(torch.half).max
+                    node.args = (node.args[0], node.args[1], max_val)
+                elif node.args[2] < torch.finfo(torch.half).min:
+                    min_val = torch.finfo(torch.half).min
+                    node.args = (node.args[0], node.args[1], min_val)
+
+            if node.target in [
+                torch.ops.aten.full,
+            ]:
+                if node.args[1] > torch.finfo(torch.half).max:
+                    max_val = torch.finfo(torch.half).max
+                    node.args = (node.args[0], max_val)
+                    node.kwargs = kwargs_dict
+                elif node.args[1] < torch.finfo(torch.half).min:
+                    min_val = torch.finfo(torch.half).min
+                    node.args = (node.args[0], min_val)
+                    node.kwargs = kwargs_dict
+
             # Inputs and outputs of aten.var.mean should be upcasted to fp32.
             if node.target in [torch.ops.aten.var_mean]:
                 with fx_g.graph.inserting_before(node):
@@ -362,18 +421,6 @@ def transform_fx(fx_g):
                         node.replace_all_uses_with(new_node)
                         new_node.args = (node,)
                         new_node.kwargs = {"dtype": torch.float16}
-
-            # Change the default dtype of aten.full op. (Vicuna)
-            if node.target in [torch.ops.aten.full]:
-                new_node = fx_g.graph.call_function(
-                    torch.ops.aten._to_copy,
-                    args=(node,),
-                    kwargs={"dtype": torch.float16},
-                )
-                node.append(new_node)
-                node.replace_all_uses_with(new_node)
-                new_node.args = (node,)
-                new_node.kwargs = {"dtype": torch.float16}
 
             # aten.empty should be filled with zeros.
             if node.target in [torch.ops.aten.empty]:
@@ -489,6 +536,8 @@ def import_with_fx(
     if is_f16:
         fx_g = fx_g.half()
         transform_fx(fx_g)
+        # TODO: Have to make it more generic.
+        add_upcast(fx_g)
         fx_g.recompile()
 
     if training:
