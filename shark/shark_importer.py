@@ -327,24 +327,24 @@ def add_upcast(fx_g):
                 print("found an upcasting block let's upcast it.")
                 pow_node = node.args[0].args[0].args[0]
                 rsqrt_node = node
-            with fx_g.graph.inserting_before(pow_node):
-                lhs = pow_node.args[0]
-                upcast_lhs = fx_g.graph.call_function(
-                    torch.ops.aten._to_copy,
-                    args=(lhs,),
-                    kwargs={"dtype": torch.float32},
-                )
-                pow_node.args = (upcast_lhs, pow_node.args[1])
-            with fx_g.graph.inserting_before(rsqrt_node):
-                new_node = fx_g.graph.call_function(
-                    torch.ops.aten._to_copy,
-                    args=(rsqrt_node,),
-                    kwargs={"dtype": torch.float16},
-                )
-                rsqrt_node.append(new_node)
-                rsqrt_node.replace_all_uses_with(new_node)
-                new_node.args = (rsqrt_node,)
-                new_node.kwargs = {"dtype": torch.float16}
+                with fx_g.graph.inserting_before(pow_node):
+                    lhs = pow_node.args[0]
+                    upcast_lhs = fx_g.graph.call_function(
+                        torch.ops.aten._to_copy,
+                        args=(lhs,),
+                        kwargs={"dtype": torch.float32},
+                    )
+                    pow_node.args = (upcast_lhs, pow_node.args[1])
+                with fx_g.graph.inserting_before(rsqrt_node):
+                    new_node = fx_g.graph.call_function(
+                        torch.ops.aten._to_copy,
+                        args=(rsqrt_node,),
+                        kwargs={"dtype": torch.float16},
+                    )
+                    rsqrt_node.append(new_node)
+                    rsqrt_node.replace_all_uses_with(new_node)
+                    new_node.args = (rsqrt_node,)
+                    new_node.kwargs = {"dtype": torch.float16}
 
     fx_g.graph.lint()
 
