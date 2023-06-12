@@ -154,7 +154,9 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(
         "facebook/" + OPT_MODEL, use_fast=False
     )
-    vmfb_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
+    vmfb_path = (
+        f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
+    )
     opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
     if os.path.isfile(vmfb_path):
         opt_shark_module.load_module(vmfb_path)

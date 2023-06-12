@@ -313,7 +313,7 @@ class OPTDecoderLayer(nn.Module):
             num_heads=config.num_attention_heads,
             dropout=config.attention_dropout,
             is_decoder=True,
-            bias=config.enable_bias
+            bias=config.enable_bias,
         )
         self.do_layer_norm_before = config.do_layer_norm_before
         self.dropout = config.dropout
@@ -322,12 +322,14 @@ class OPTDecoderLayer(nn.Module):
         self.activation_dropout = config.activation_dropout
 
         self.self_attn_layer_norm = nn.LayerNorm(
-            self.embed_dim, elementwise_affine=config.layer_norm_elementwise_affine
+            self.embed_dim,
+            elementwise_affine=config.layer_norm_elementwise_affine,
         )
         self.fc1 = nn.Linear(self.embed_dim, config.ffn_dim)
         self.fc2 = nn.Linear(config.ffn_dim, self.embed_dim)
         self.final_layer_norm = nn.LayerNorm(
-            self.embed_dim, elementwise_affine=config.layer_norm_elementwise_affine
+            self.embed_dim,
+            elementwise_affine=config.layer_norm_elementwise_affine,
         )
 
     def forward(
@@ -456,7 +458,8 @@ class OPTDecoder(OPTPreTrainedModel):
 
         if config.do_layer_norm_before and not config._remove_final_layer_norm:
             self.final_layer_norm = nn.LayerNorm(
-                config.hidden_size, elementwise_affine=config.layer_norm_elementwise_affine
+                config.hidden_size,
+                elementwise_affine=config.layer_norm_elementwise_affine,
             )
         else:
             self.final_layer_norm = None

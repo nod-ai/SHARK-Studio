@@ -7,5 +7,7 @@ tokenizer = AutoTokenizer.from_pretrained(model_name)
 prompt = "What is the meaning of life?"
 inputs = tokenizer(prompt, return_tensors="pt")
 # Generated logits.
-generate_ids = model.forward(inputs.input_ids, inputs.attention_mask, return_dict=False)
-print(generate_ids[0])
+logits = model.forward(
+    inputs.input_ids, inputs.attention_mask, return_dict=False
+)
+print(logits[0])
