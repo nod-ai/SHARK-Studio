@@ -29,7 +29,7 @@ start_message_vicuna = "A chat between a curious user and an artificial intellig
 past_key_values = None
 
 
-def chat(curr_system_message, history, model):
+def chat(curr_system_message, history, model, device, precision):
     print(f"In chat for {model}")
     global sharded_model
     global past_key_values
@@ -43,8 +43,13 @@ def chat(curr_system_message, history, model):
         if vicuna_model == 0:
             first_vic_vmfb_path = Path("first_vicuna.vmfb")
             second_vic_vmfb_path = Path("second_vicuna.vmfb")
+            if "cuda" in device:
+                device = "cuda"
             vicuna_model = Vicuna(
                 "vicuna",
+                hf_model_path=model,
+                device=device,
+                precision=precision,
                 first_vicuna_vmfb_path=first_vic_vmfb_path,
                 second_vicuna_vmfb_path=second_vic_vmfb_path,
             )
@@ -127,6 +132,15 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             choices=supported_devices,
             interactive=enabled,
         )
+        precision = gr.Radio(
+            label="Precision",
+            value="fp32",
+            choices=[
+                "fp16",
+                "fp32",
+            ],
+            visible=True,
+        )
     chatbot = gr.Chatbot().style(height=500)
     with gr.Row():
         with gr.Column():
@@ -149,7 +163,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model],
+        inputs=[system_msg, chatbot, model, device, precision],
         outputs=[chatbot],
         queue=True,
     )
@@ -157,7 +171,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model],
+        inputs=[system_msg, chatbot, model, device, precision],
         outputs=[chatbot],
         queue=True,
     )
