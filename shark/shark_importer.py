@@ -545,6 +545,9 @@ def import_with_fx(
         inputs = flatten_training_input(inputs)
 
     ts_graph = torch.jit.script(fx_g)
+    if mlir_type == "torchscript":
+        return ts_graph
+
     inputs = get_f16_inputs(inputs, is_f16, f16_input_mask)
     mlir_importer = SharkImporter(
         ts_graph,

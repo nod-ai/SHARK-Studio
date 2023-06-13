@@ -4,12 +4,13 @@ from apps.language_models.src.model_wrappers.vicuna_model import (
 )
 from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
 from apps.language_models.utils import (
-    get_torch_mlir_module_bytecode,
     get_vmfb_from_path,
 )
+
 from io import BytesIO
 from pathlib import Path
 from shark.shark_downloader import download_public_file
+from shark.shark_importer import import_with_fx
 from shark.shark_inference import SharkInference
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -17,48 +18,6 @@ import re
 import torch
 import torch_mlir
 import os
-import argparse
-
-parser = argparse.ArgumentParser(
-    prog="vicuna runner",
-    description="runs a vicuna model",
-)
-
-parser.add_argument(
-    "--precision", "-p", default="fp32", help="fp32, fp16, int8, int4"
-)
-parser.add_argument("--device", "-d", default="cuda", help="vulkan, cpu, cuda")
-parser.add_argument(
-    "--first_vicuna_vmfb_path", default=None, help="path to first vicuna vmfb"
-)
-parser.add_argument(
-    "--second_vicuna_vmfb_path",
-    default=None,
-    help="path to second vicuna vmfb",
-)
-parser.add_argument(
-    "--first_vicuna_mlir_path",
-    default=None,
-    help="path to first vicuna mlir file",
-)
-parser.add_argument(
-    "--second_vicuna_mlir_path",
-    default=None,
-    help="path to second vicuna mlir",
-)
-
-parser.add_argument(
-    "--load_mlir_from_shark_tank",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="download precompile mlir from shark tank",
-)
-parser.add_argument(
-    "--cli",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Run model in cli mode",
-)
 
 
 class Vicuna(SharkLLMBase):
@@ -73,6 +32,7 @@ class Vicuna(SharkLLMBase):
         second_vicuna_mlir_path=Path("second_vicuna.mlir"),
         first_vicuna_vmfb_path=Path("first_vicuna.vmfb"),
         second_vicuna_vmfb_path=Path("second_vicuna.vmfb"),
+        load_mlir_from_shark_tank=True,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
@@ -84,6 +44,7 @@ class Vicuna(SharkLLMBase):
         self.second_vicuna_mlir_path = second_vicuna_mlir_path
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
+        self.load_mlir_from_shark_tank = load_mlir_from_shark_tank
 
     def get_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(
@@ -116,7 +77,7 @@ class Vicuna(SharkLLMBase):
                 bytecode = f.read()
         else:
             mlir_generated = False
-            if args.load_mlir_from_shark_tank:
+            if self.load_mlir_from_shark_tank:
                 if self.precision == "fp32":
                     # download MLIR from shark_tank for fp32
                     download_public_file(
@@ -150,8 +111,12 @@ class Vicuna(SharkLLMBase):
                 model = FirstVicuna(self.hf_model_path)
 
                 print(f"[DEBUG] generating torchscript graph")
-                ts_graph = get_torch_mlir_module_bytecode(
-                    model, firstVicunaCompileInput
+                ts_graph = import_with_fx(
+                    model,
+                    firstVicunaCompileInput,
+                    is_f16=self.precision == "fp16",
+                    f16_input_mask=[False, False],
+                    mlir_type="torchscript",
                 )
                 del model
                 print(f"[DEBUG] generating torch mlir")
@@ -254,7 +219,7 @@ class Vicuna(SharkLLMBase):
                 bytecode = f.read()
         else:
             mlir_generated = False
-            if args.load_mlir_from_shark_tank:
+            if self.load_mlir_from_shark_tank:
                 if self.precision == "fp32":
                     # download MLIR from shark_tank for fp32
                     download_public_file(
@@ -284,8 +249,12 @@ class Vicuna(SharkLLMBase):
                 )
                 secondVicunaCompileInput = (compilation_input_ids,) + pkv
                 model = SecondVicuna(self.hf_model_path)
-                ts_graph = get_torch_mlir_module_bytecode(
-                    model, secondVicunaCompileInput
+                ts_graph = import_with_fx(
+                    model,
+                    secondVicunaCompileInput,
+                    is_f16=self.precision == "fp16",
+                    f16_input_mask=[False, False],
+                    mlir_type="torchscript",
                 )
                 secondVicunaCompileInput = list(secondVicunaCompileInput)
                 for i in range(len(secondVicunaCompileInput)):
@@ -435,7 +404,7 @@ class Vicuna(SharkLLMBase):
         # return tuple of shark_modules once mem is supported
         # return fvic_shark_model, svic_shark_model
 
-    def generate(self, prompt):
+    def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
         import gc
 
@@ -456,7 +425,7 @@ class Vicuna(SharkLLMBase):
 
         res.append(detok)
         res_tokens.append(token)
-        if args.cli:
+        if cli:
             print(f"Assistant: {detok}", end=" ", flush=True)
 
         # Clear First Vic from Memory (main and cuda)
@@ -486,11 +455,11 @@ class Vicuna(SharkLLMBase):
             res_tokens.append(token)
             if detok == "<0x0A>":
                 res.append("\n")
-                if args.cli:
+                if cli:
                     print("\n", end="", flush=True)
             else:
                 res.append(detok)
-                if args.cli:
+                if cli:
                     print(f"{detok}", end=" ", flush=True)
         del sec_vic, pkv, logits
         torch.cuda.empty_cache()
@@ -504,7 +473,7 @@ class Vicuna(SharkLLMBase):
         # print(f"[DEBUG] final output : \n{res_str}")
         return res_str
 
-    def generate_new_token(self, params):
+    def generate_new_token(self, params, debug=False):
         def forward_first(first_vic, prompt, cache_outputs=False):
             input_ids = self.tokenizer(prompt).input_ids
             input_id_len = len(input_ids)
@@ -572,7 +541,7 @@ class Vicuna(SharkLLMBase):
             )
 
         detok = self.tokenizer.decode(token)
-        if not args.cli:
+        if debug:
             print(
                 f"[DEBUG] is_first: {is_first} |"
                 f" token : {token} | detok : {detok}"
@@ -588,59 +557,3 @@ class Vicuna(SharkLLMBase):
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
         pass
-
-
-if __name__ == "__main__":
-    args = parser.parse_args()
-
-    first_vic_mlir_path = (
-        Path("first_vicuna.mlir")
-        if args.first_vicuna_mlir_path is None
-        else Path(args.first_vicuna_mlir_path)
-    )
-    second_vic_mlir_path = (
-        Path("second_vicuna.mlir")
-        if args.second_vicuna_mlir_path is None
-        else Path(args.second_vicuna_mlir_path)
-    )
-    first_vic_vmfb_path = (
-        Path("first_vicuna.vmfb")
-        if args.first_vicuna_vmfb_path is None
-        else Path(args.first_vicuna_vmfb_path)
-    )
-    second_vic_vmfb_path = (
-        Path("second_vicuna.vmfb")
-        if args.second_vicuna_vmfb_path is None
-        else Path(args.second_vicuna_vmfb_path)
-    )
-
-    vic = Vicuna(
-        "vicuna",
-        device=args.device,
-        precision=args.precision,
-        first_vicuna_mlir_path=first_vic_mlir_path,
-        second_vicuna_mlir_path=second_vic_mlir_path,
-        first_vicuna_vmfb_path=first_vic_vmfb_path,
-        second_vicuna_vmfb_path=second_vic_vmfb_path,
-    )
-
-    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
-    prologue_prompt = "ASSISTANT:\n"
-
-    import gc
-
-    while True:
-        # TODO: Add break condition from user input
-        user_prompt = input("User: ")
-        prompt_history = (
-            prompt_history + "USER:\n" + user_prompt + prologue_prompt
-        )
-        prompt = prompt_history.strip()
-        res_str = vic.generate(prompt)
-        torch.cuda.empty_cache()
-        gc.collect()
-        print(
-            "\n-----\nAssistant: Here's the complete formatted reply:\n",
-            res_str,
-        )
-        prompt_history += f"\n{res_str}\n"

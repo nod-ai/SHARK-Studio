@@ -6,7 +6,7 @@ from apps.language_models.src.model_wrappers.vicuna_sharded_model import (
     ShardedVicunaModel,
 )
 from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
-from apps.language_models.utils import get_torch_mlir_module_bytecode
+from shark.shark_importer import import_with_fx
 from io import BytesIO
 from pathlib import Path
 from shark.shark_inference import SharkInference
@@ -117,8 +117,12 @@ class Vicuna(SharkLLMBase):
                 past_key_value0,
                 past_key_value1,
             )
-        mlir_bytecode = get_torch_mlir_module_bytecode(
-            vicuna_layer, model_inputs
+        mlir_bytecode = import_with_fx(
+            vicuna_layer,
+            model_inputs,
+            is_f16=self.precision == "fp16",
+            f16_input_mask=[False, False],
+            mlir_type="torchscript",
         )
         return mlir_bytecode
 
@@ -332,7 +336,7 @@ class Vicuna(SharkLLMBase):
     def compile(self):
         return self.get_sharded_model()
 
-    def generate(self, prompt):
+    def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
 
         tokens_generated = []
@@ -402,15 +406,3 @@ class Vicuna(SharkLLMBase):
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
         pass
-
-
-if __name__ == "__main__":
-    vic = Vicuna("vicuna")
-    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
-    prologue_prompt = "ASSISTANT:\n"
-    user_prompt = input("User: ")
-    prompt_history = prompt_history + "USER:\n" + user_prompt + prologue_prompt
-    prompt = prompt_history.strip()
-
-    res = vic.generate(prompt)
-    print(prompt + res)
