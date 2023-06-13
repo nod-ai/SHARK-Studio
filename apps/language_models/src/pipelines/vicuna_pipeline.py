@@ -59,6 +59,7 @@ parser.add_argument(
     action=argparse.BooleanOptionalAction,
     help="Run model in cli mode",
 )
+args, unknown = parser.parse_known_args()
 
 
 class Vicuna(SharkLLMBase):
@@ -591,8 +592,6 @@ class Vicuna(SharkLLMBase):
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()
-
     first_vic_mlir_path = (
         Path("first_vicuna.mlir")
         if args.first_vicuna_mlir_path is None
