@@ -348,7 +348,11 @@ class SharkModuleTest(unittest.TestCase):
             self.pytestconfig.getoption("dispatch_benchmarks_dir")
         )
 
-        if config["xfail_cpu"] == "True" and device == "cpu":
+        if config["xfail_cpu"] == "True" and device in [
+            "cpu",
+            "cpu-sync",
+            "cpu-task",
+        ]:
             pytest.xfail(reason=config["xfail_reason"])
 
         if config["xfail_cuda"] == "True" and device == "cuda":
