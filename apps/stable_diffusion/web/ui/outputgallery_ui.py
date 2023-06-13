@@ -63,6 +63,19 @@ def output_subdirs() -> list[str]:
     return result_paths
 
 
+# clear zero length temporary files that gradio 3.22.0 buggily creates
+# TODO: remove once gradio is upgraded to or past 3.32.0
+def clear_zero_length_temps():
+    zero_length_temps = [
+        os.path.join(root, file)
+        for root, dirs, files in os.walk(gradio_tmp_galleries_folder)
+        for file in files
+        if os.path.getsize(os.path.join(root, file)) == 0
+    ]
+    for file in zero_length_temps:
+        os.remove(file)
+
+
 # --- Define UI layout for Gradio
 
 with gr.Blocks() as outputgallery_web:
@@ -166,6 +179,7 @@ with gr.Blocks() as outputgallery_web:
     # --- Event handlers
 
     def on_clear_gallery():
+        clear_zero_length_temps()
         return [
             gr.Gallery.update(
                 value=[],
@@ -233,6 +247,7 @@ with gr.Blocks() as outputgallery_web:
 
         # only update if the current subdir is the most recent one as new images only go there
         if subdir_paths[0] == subdir:
+            clear_zero_length_temps()
             new_images = outputgallery_filenames(subdir)
             new_label = f"{len(new_images)} images in {os.path.join(output_dir, subdir)} - {status}"
 
