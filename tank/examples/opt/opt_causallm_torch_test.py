@@ -79,7 +79,7 @@ class OPTModuleTester:
         )
         # exp_out = tokenizer.decode(act_out[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
         # shark_out = tokenizer.decode(results[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-        assert compare_tensors(act_out[0].detach(), results[0])
+        np.testing.assert_allclose(act_out[0].detach(), results[0])
 
         if self.benchmark:
             shark_module.shark_runner.benchmark_all_csv(
