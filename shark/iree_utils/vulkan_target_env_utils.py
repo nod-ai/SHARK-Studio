@@ -136,7 +136,7 @@ def get_vendor(triple):
         return "Intel"
     if arch in ["turing", "ampere", "pascal"]:
         return "NVIDIA"
-    if arch == "ardeno":
+    if arch == "adreno":
         return "Qualcomm"
     if arch == "cpu":
         if product == "swiftshader":
