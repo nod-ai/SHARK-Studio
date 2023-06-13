@@ -319,7 +319,7 @@ def add_upcast(fx_g):
     for node in fx_g.graph.nodes:
         if node.target in [torch.ops.aten.mul]:
             # This is a very strict check.
-            if hasattr(node.args[1], 'target'):
+            if hasattr(node.args[1], "target"):
                 if (
                     node.args[1].target in [torch.ops.aten.rsqrt]
                     and node.args[1].args[0].target in [torch.ops.aten.add]
