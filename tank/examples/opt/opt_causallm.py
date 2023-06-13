@@ -1,32 +1,25 @@
-import unittest
-
 import os
-import pytest
-import torch_mlir
 import torch
 import numpy as np
-from shark_hf_opt import OPTForCausalLM
+from shark_opt_wrapper import OPTForCausalLMModel
 from shark.iree_utils._common import (
     check_device_drivers,
     device_driver_info,
-    run_cmd,
 )
 from shark.shark_inference import SharkInference
-from tank.model_utils import compare_tensors
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from shark.shark_importer import import_with_fx
+from transformers import AutoTokenizer, OPTForCausalLM
 
 OPT_MODEL = "opt-1.3b"
-OPT_MODEL_66B = "facebook/opt-66b"
+OPT_FS_NAME = "opt-1_3b"
 MAX_SEQUENCE_LENGTH = 30
 MAX_NEW_TOKENS = 20
 
 
 def create_module(model_name, tokenizer, device):
-    opt_model = OPTForCausalLM.from_pretrained(
-        "facebook/" + model_name, return_dict=False
-    )
-    opt_model.eval()
-
+    opt_base_model = OPTForCausalLM.from_pretrained("facebook/" + model_name)
+    opt_base_model.eval()
+    opt_model = OPTForCausalLMModel(opt_base_model)
     encoded_inputs = tokenizer(
         "What is the meaning of life?",
         padding="max_length",
@@ -38,32 +31,25 @@ def create_module(model_name, tokenizer, device):
         encoded_inputs["input_ids"],
         encoded_inputs["attention_mask"],
     )
-    np.save("model_inputs_0.npy", inputs[0])
-    np.save("model_inputs_1.npy", inputs[1])
+    # np.save("model_inputs_0.npy", inputs[0])
+    # np.save("model_inputs_1.npy", inputs[1])
 
-    mlir_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch.mlir"
+    mlir_path = f"./{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch.mlir"
     if os.path.isfile(mlir_path):
         with open(mlir_path, "r") as f:
             model_mlir = f.read()
         print(f"Loaded .mlir from {mlir_path}")
     else:
-        module = torch_mlir.compile(
-            opt_model,
-            inputs,
-            output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
-            use_tracing=True,
+        (model_mlir, func_name) = import_with_fx(
+            model=opt_model,
+            inputs=inputs,
+            is_f16=False,
+            model_name=OPT_FS_NAME,
+            return_str=True,
         )
-
-        model_mlir = module.operation.get_asm(
-            large_elements_limit=None, enable_debug_info=True
-        )
-
         with open(mlir_path, "w") as f:
             f.write(model_mlir)
         print(f"Saved mlir at {mlir_path}")
-
-    func_name = "forward"
-    act_out = opt_model(inputs[0], attention_mask=inputs[1], return_dict=False)
 
     shark_module = SharkInference(
         model_mlir,
@@ -71,10 +57,11 @@ def create_module(model_name, tokenizer, device):
         mlir_dialect="tm_tensor",
         is_benchmark=False,
     )
-    vmfb_name = f"{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}"
-    shark_module.save_module(module_name=vmfb_name)
 
-    return vmfb_name
+    vmfb_name = f"{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}"
+    shark_module.save_module(module_name=vmfb_name)
+    vmfb_path = vmfb_name + ".vmfb"
+    return vmfb_path
 
 
 def shouldStop(tokens):
@@ -118,44 +105,12 @@ def generate_new_token(shark_model, tokenizer, new_text):
     return ret_dict
 
 
-def generate_new_token_hf(opt_model, tokenizer, new_text):
-    model_inputs = tokenizer(
-        new_text,
-        padding="max_length",
-        max_length=MAX_SEQUENCE_LENGTH,
-        truncation=True,
-        return_tensors="pt",
-    )
-    inputs = (
-        model_inputs["input_ids"],
-        model_inputs["attention_mask"],
-    )
-    sum_attentionmask = torch.sum(model_inputs.attention_mask)
-    output = opt_model(inputs[0], attention_mask=inputs[1], return_dict=False)
-    next_toks = torch.topk(output[0], 1)
-    stop_generation = False
-    if shouldStop(next_toks.indices):
-        stop_generation = True
-    new_token = next_toks
-    detok = tokenizer.decode(
-        new_token,
-        skip_special_tokens=False,
-        clean_up_tokenization_spaces=False,
-    )
-    ret_dict = {
-        "new_token": new_token,
-        "detok": detok,
-        "stop_generation": stop_generation,
-    }
-    return ret_dict
-
-
 if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(
         "facebook/" + OPT_MODEL, use_fast=False
     )
     vmfb_path = (
-        f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
+        f"./{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
     )
     opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
     if os.path.isfile(vmfb_path):
