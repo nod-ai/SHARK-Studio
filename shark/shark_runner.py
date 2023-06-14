@@ -27,7 +27,7 @@ import sys
 # supported dialects by the shark-runtime.
 supported_dialects = {
     "linalg",
-    "mhlo-legacy",
+    "auto",
     "stablehlo",
     "tosa",
     "tf-lite",
