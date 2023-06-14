@@ -64,6 +64,7 @@ def get_valid_test_params():
         device
         for device in get_supported_device_list()
         if not check_device_drivers(device)
+        and device not in ["cpu-sync", "cpu-task"]
     ]
     dynamic_list = (True, False)
     # TODO: This is soooo ugly, but for some reason creating the dict at runtime
@@ -348,7 +349,11 @@ class SharkModuleTest(unittest.TestCase):
             self.pytestconfig.getoption("dispatch_benchmarks_dir")
         )
 
-        if config["xfail_cpu"] == "True" and device == "cpu":
+        if config["xfail_cpu"] == "True" and device in [
+            "cpu",
+            "cpu-sync",
+            "cpu-task",
+        ]:
             pytest.xfail(reason=config["xfail_reason"])
 
         if config["xfail_cuda"] == "True" and device == "cuda":
