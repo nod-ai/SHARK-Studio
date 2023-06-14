@@ -81,7 +81,7 @@ class Vicuna(SharkLLMBase):
                 if self.precision == "fp32":
                     # download MLIR from shark_tank for fp32
                     download_public_file(
-                        "gs://shark_tank/vicuna/unsharded/mlir/second_vicuna.mlir",
+                        "gs://shark_tank/vicuna/unsharded/mlir/first_vicuna.mlir",
                         self.first_vicuna_mlir_path.absolute(),
                         single_file=True,
                     )
@@ -181,7 +181,7 @@ class Vicuna(SharkLLMBase):
                 del module
 
                 print(f"[DEBUG] writing mlir to file")
-                f_ = open(f"{self.model_name}.mlir", "wb")
+                f_ = open(self.first_vicuna_mlir_path, "wb")
                 f_.write(bytecode)
                 f_.close()
 
