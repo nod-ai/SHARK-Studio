@@ -93,6 +93,8 @@ def get_valid_test_params():
 def is_valid_case(test_params):
     if test_params[0] == True and test_params[2]["framework"] == "tf":
         return False
+    if test_params[2]["framework"] == "tf":
+        return False
     elif "fp16" in test_params[2]["model_name"] and test_params[1] != "cuda":
         return False
     else:
