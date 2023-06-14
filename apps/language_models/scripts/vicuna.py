@@ -61,22 +61,26 @@ if __name__ == "__main__":
     vic = None
     if not args.sharded:
         first_vic_mlir_path = (
-            Path("first_vicuna.mlir")
+            Path(f"first_vicuna_{args.precision}.mlir")
             if args.first_vicuna_mlir_path is None
             else Path(args.first_vicuna_mlir_path)
         )
         second_vic_mlir_path = (
-            Path("second_vicuna.mlir")
+            Path(f"second_vicuna_{args.precision}.mlir")
             if args.second_vicuna_mlir_path is None
             else Path(args.second_vicuna_mlir_path)
         )
         first_vic_vmfb_path = (
-            Path("first_vicuna.vmfb")
+            Path(
+                f"first_vicuna_{args.precision}_{args.device.replace('://', '_')}.vmfb"
+            )
             if args.first_vicuna_vmfb_path is None
             else Path(args.first_vicuna_vmfb_path)
         )
         second_vic_vmfb_path = (
-            Path("second_vicuna.vmfb")
+            Path(
+                f"second_vicuna_{args.precision}_{args.device.replace('://', '_')}.vmfb"
+            )
             if args.second_vicuna_vmfb_path is None
             else Path(args.second_vicuna_vmfb_path)
         )
