@@ -1,30 +1,27 @@
-import unittest
-
 import os
-import pytest
-import torch_mlir
 import torch
 import numpy as np
-from shark_hf_opt import OPTForCausalLM
-from shark.iree_utils._common import check_device_drivers, device_driver_info
+from shark_opt_wrapper import OPTForCausalLMModel
+from shark.iree_utils._common import (
+    check_device_drivers,
+    device_driver_info,
+)
 from shark.shark_inference import SharkInference
-from tank.model_utils import compare_tensors
-from transformers import AutoTokenizer
+from shark.shark_importer import import_with_fx
+from transformers import AutoTokenizer, OPTForCausalLM
 
-OPT_MODEL = "opt-350m"
-OPT_MODEL_66B = "facebook/opt-66b"
-MAX_SEQUENCE_LENGTH = 256
-MAX_NEW_TOKENS = 200
+OPT_MODEL = "opt-1.3b"
+OPT_FS_NAME = "opt-1_3b"
+MAX_SEQUENCE_LENGTH = 30
+MAX_NEW_TOKENS = 20
 
 
 def create_module(model_name, tokenizer, device):
-    opt_model = OPTForCausalLM.from_pretrained(
-        "facebook/" + model_name, return_dict=False
-    )
-    opt_model.eval()
-
+    opt_base_model = OPTForCausalLM.from_pretrained("facebook/" + model_name)
+    opt_base_model.eval()
+    opt_model = OPTForCausalLMModel(opt_base_model)
     encoded_inputs = tokenizer(
-        "This is a sample input for generating the model.",
+        "What is the meaning of life?",
         padding="max_length",
         truncation=True,
         max_length=MAX_SEQUENCE_LENGTH,
@@ -34,29 +31,25 @@ def create_module(model_name, tokenizer, device):
         encoded_inputs["input_ids"],
         encoded_inputs["attention_mask"],
     )
-    mlir_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch.mlir"
+    # np.save("model_inputs_0.npy", inputs[0])
+    # np.save("model_inputs_1.npy", inputs[1])
+
+    mlir_path = f"./{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch.mlir"
     if os.path.isfile(mlir_path):
         with open(mlir_path, "r") as f:
             model_mlir = f.read()
         print(f"Loaded .mlir from {mlir_path}")
     else:
-        module = torch_mlir.compile(
-            opt_model,
-            inputs,
-            output_type=torch_mlir.OutputType.LINALG_ON_TENSORS,
-            use_tracing=True,
+        (model_mlir, func_name) = import_with_fx(
+            model=opt_model,
+            inputs=inputs,
+            is_f16=False,
+            model_name=OPT_FS_NAME,
+            return_str=True,
         )
-
-        model_mlir = module.operation.get_asm(
-            large_elements_limit=None, enable_debug_info=True
-        )
-
         with open(mlir_path, "w") as f:
             f.write(model_mlir)
         print(f"Saved mlir at {mlir_path}")
-
-    func_name = "forward"
-    act_out = opt_model(inputs[0], attention_mask=inputs[1], return_dict=False)
 
     shark_module = SharkInference(
         model_mlir,
@@ -64,24 +57,11 @@ def create_module(model_name, tokenizer, device):
         mlir_dialect="tm_tensor",
         is_benchmark=False,
     )
-    vmfb_name = f"{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}"
-    shark_module.save_module(module_name=vmfb_name)
-    shark_module.load_module(vmfb_name + ".vmfb")
 
-    results = shark_module("forward", inputs)
-    print(
-        "SHARK logits have shape: ",
-        str(results[0].shape) + " : " + str(results[0]),
-    )
-    print(
-        "PyTorch logits have shape: "
-        + str(act_out[0].shape)
-        + " : "
-        + str(act_out[0])
-    )
-    # exp_out = tokenizer.decode(act_out[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-    # shark_out = tokenizer.decode(results[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-    return shark_module
+    vmfb_name = f"{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}"
+    shark_module.save_module(module_name=vmfb_name)
+    vmfb_path = vmfb_name + ".vmfb"
+    return vmfb_path
 
 
 def shouldStop(tokens):
@@ -129,15 +109,19 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(
         "facebook/" + OPT_MODEL, use_fast=False
     )
-    vmfb_path = f"./{OPT_MODEL}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu.vmfb"
+    vmfb_path = (
+        f"./{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
+    )
+    opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
     if os.path.isfile(vmfb_path):
-        opt_shark_module = SharkInference(mlir_module=None, device="cpu")
         opt_shark_module.load_module(vmfb_path)
     else:
-        opt_shark_module = create_module(OPT_MODEL, tokenizer, "cpu")
+        vmfb_path = create_module(OPT_MODEL, tokenizer, "cpu-sync")
+        opt_shark_module.load_module(vmfb_path)
     while True:
         try:
             new_text = input("Give me a sentence to complete:")
+            new_text_init = new_text
             words_list = []
 
             for i in range(MAX_NEW_TOKENS):
