@@ -12,10 +12,7 @@ from apps.stable_diffusion.web.ui.utils import nodlogo_loc
 from apps.stable_diffusion.web.utils.gradio_configs import (
     gradio_tmp_galleries_folder,
 )
-from apps.stable_diffusion.web.utils.png_metadata import (
-    parse_generation_parameters,
-)
-from apps.stable_diffusion.web.utils.exif_metadata import parse_exif
+from apps.stable_diffusion.web.utils.metadata import displayable_metadata
 
 # -- Functions for file, directory and image info querying
 
@@ -35,37 +32,6 @@ def outputgallery_filenames(subdir) -> list[str]:
         return []
 
 
-def parameters_for_display(image_filename) -> tuple[str, list[list[str]]]:
-    pil_image = Image.open(image_filename)
-
-    # we have PNG generation parameters
-    if "parameters" in pil_image.info:
-        params = parse_generation_parameters(pil_image.info["parameters"])
-
-        # make showing the sizes more compact by using only one line each
-        if params.keys() & {"Size-1", "Size-2"}:
-            params["Size"] = f"{params.pop('Size-1')}x{params.pop('Size-2')}"
-
-        if params.keys() & {"Hires resize-1", "Hires resize-1"}:
-            hires_x = params.pop("Hires resize-1")
-            hires_y = params.pop("Hires resize-2")
-
-            if hires_x == 0 and hires_y == 0:
-                params["Hires resize"] = "None"
-            else:
-                params["Hires resize"] = f"{hires_x}x{hires_y}"
-
-        return "params", list(map(list, params.items()))
-
-    # we have EXIF data, but no generation parameters we know how to read
-    elif pil_image.getexif():
-        return "exif", list(map(list, parse_exif(pil_image).items()))
-
-    # couldn't find anything
-    else:
-        return None, None
-
-
 def output_subdirs() -> list[str]:
     # Gets a list of subdirectories of output_dir and below, as relative paths.
     relative_paths = [
@@ -80,8 +46,9 @@ def output_subdirs() -> list[str]:
     if get_generated_imgs_todays_subdir() not in relative_paths:
         relative_paths.append(get_generated_imgs_todays_subdir())
 
-    # sort subdirectories so that that the date named ones we probably created in this or previous sessions
-    # come first, sorted with the most recent first. Other subdirs are listed after.
+    # sort subdirectories so that that the date named ones we probably created in this or
+    # previous sessions come first, sorted with the most recent first. Other subdirs are listed
+    # after.
     generated_paths = sorted(
         [path for path in relative_paths if path.isnumeric()], reverse=True
     )
@@ -94,6 +61,19 @@ def output_subdirs() -> list[str]:
     )
 
     return result_paths
+
+
+# clear zero length temporary files that gradio 3.22.0 buggily creates
+# TODO: remove once gradio is upgraded to or past 3.32.0
+def clear_zero_length_temps():
+    zero_length_temps = [
+        os.path.join(root, file)
+        for root, dirs, files in os.walk(gradio_tmp_galleries_folder)
+        for file in files
+        if os.path.getsize(os.path.join(root, file)) == 0
+    ]
+    for file in zero_length_temps:
+        os.remove(file)
 
 
 # --- Define UI layout for Gradio
@@ -124,7 +104,7 @@ with gr.Blocks() as outputgallery_web:
                 value=gallery_files.value,
                 visible=False,
                 show_label=True,
-            ).style(grid=4)
+            ).style(columns=4)
             gallery.DEFAULT_TEMP_DIR = gradio_tmp_galleries_folder
 
         with gr.Column(scale=4):
@@ -199,6 +179,7 @@ with gr.Blocks() as outputgallery_web:
     # --- Event handlers
 
     def on_clear_gallery():
+        clear_zero_length_temps()
         return [
             gr.Gallery.update(
                 value=[],
@@ -266,6 +247,7 @@ with gr.Blocks() as outputgallery_web:
 
         # only update if the current subdir is the most recent one as new images only go there
         if subdir_paths[0] == subdir:
+            clear_zero_length_temps()
             new_images = outputgallery_filenames(subdir)
             new_label = f"{len(new_images)} images in {os.path.join(output_dir, subdir)} - {status}"
 
@@ -288,20 +270,18 @@ with gr.Blocks() as outputgallery_web:
     def on_select_image(images: list[str], evt: gr.SelectData) -> list:
         # evt.index is an index into the full list of filenames for the current subdirectory
         filename = images[evt.index]
+        params = displayable_metadata(filename)
 
-        # this gets the parameters in the form our dataframe is expecting (list of lists)
-        params_type, params = parameters_for_display(filename)
+        if params:
+            return [
+                filename,
+                list(map(list, params["parameters"].items())),
+            ]
 
-        if params_type == "params":
-            new_parameters = params
-        elif params_type == "exif":
-            new_parameters = [
-                ["Status", "No PNG parameters found, showing EXIF metadata"]
-            ] + params
-        else:
-            new_parameters = [["Status", "No parameters found"]]
-
-        return [filename, new_parameters]
+        return [
+            filename,
+            [["Status", "No parameters found"]],
+        ]
 
     def on_outputgallery_filename_change(filename: str) -> list:
         exists = filename != "None" and os.path.exists(filename)

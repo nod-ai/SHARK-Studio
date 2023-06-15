@@ -16,7 +16,7 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
-from apps.stable_diffusion.web.utils.png_metadata import import_png_metadata
+from apps.stable_diffusion.web.utils.metadata import import_png_metadata
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
@@ -451,10 +451,10 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     with gr.Column(scale=2):
                         random_seed = gr.Button("Randomize Seed")
                         random_seed.click(
-                            None,
+                            lambda: -1,
                             inputs=[],
                             outputs=[seed],
-                            _js="() => -1",
+                            queue=False,
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")
