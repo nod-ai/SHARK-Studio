@@ -85,16 +85,17 @@ class SharkRunner:
 
         if compile_vmfb == True:
             # Compile the module to get the .vmfb.
-            (
-                self.iree_compilation_module,
-                self.iree_config,
-            ) = get_iree_compiled_module(
+            params = get_iree_compiled_module(
                 self.mlir_module,
                 self.device,
                 self.mlir_dialect,
                 extra_args=self.extra_args,
                 device_idx=self.device_idx,
             )
+            self.iree_compilation_module = params["vmfb"]
+            self.iree_config = params["config"]
+            self.temp_file_to_unlink = params["temp_file_to_unlink"]
+            del params
 
     def run(self, function_name, inputs: tuple, send_to_host=False):
         return get_results(
