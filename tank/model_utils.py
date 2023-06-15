@@ -34,6 +34,11 @@ hf_seq2seq_models = [
 ]
 
 
+def get_training_model(modelname, import_args):
+    if "bert" in modelname:
+        return get_bert_pretrain_model(modelname, import_args)
+
+
 def get_torch_model(modelname, import_args):
     if modelname in vision_models:
         return get_vision_model(modelname, import_args)
@@ -47,14 +52,31 @@ def get_torch_model(modelname, import_args):
         return get_hf_model(modelname, import_args)
 
 
+##################### Hugging Face BERT PreTraining Models #######################################
+
+
+def get_bert_pretrain_model(model_name, import_args):
+    from transformers import BertForPreTraining
+    import copy
+
+    torch.manual_seed(0)
+    base_model = BertForPreTraining.from_pretrained(model_name)
+    base_model = base_model.train()
+    my_config = copy.deepcopy(base_model.config)
+    my_config.num_hidden_layers = import_args["num_hidden_layers"]
+    my_config.num_attention_heads = import_args["num_attention_heads"]
+    my_config.hidden_size = import_args["hidden_size"]
+    my_config.vocab_size = import_args["vocab_size"]
+
+    return BertForPreTraining(my_config)
+
+
 ##################### Hugging Face Image Classification Models ###################################
-from transformers import AutoModelForImageClassification
-from transformers import AutoFeatureExtractor
-from PIL import Image
-import requests
 
 
 def preprocess_input_image(model_name):
+    from PIL import Image
+
     # from datasets import load_dataset
     # dataset = load_dataset("huggingface/cats-image")
     # image1 = dataset["test"]["image"][0]
@@ -88,6 +110,10 @@ class HuggingFaceImageClassification(torch.nn.Module):
 
 
 def get_hf_img_cls_model(name, import_args):
+    from transformers import AutoModelForImageClassification
+    from transformers import AutoFeatureExtractor
+    import requests
+
     model = HuggingFaceImageClassification(name)
     # you can use preprocess_input_image to get the test_input or just random value.
     test_input = preprocess_input_image(name)

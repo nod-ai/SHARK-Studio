@@ -90,3 +90,8 @@ def pytest_addoption(parser):
         type=int,
         help="Batch size for the tested model.",
     )
+    parser.addoption(
+        "--custom_device",
+        default=None,
+        help="Custom device string to run tests with.",
+    )
