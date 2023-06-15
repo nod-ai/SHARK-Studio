@@ -451,10 +451,10 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     with gr.Column(scale=2):
                         random_seed = gr.Button("Randomize Seed")
                         random_seed.click(
-                            None,
+                            lambda: -1,
                             inputs=[],
                             outputs=[seed],
-                            _js="() => -1",
+                            queue=False,
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")

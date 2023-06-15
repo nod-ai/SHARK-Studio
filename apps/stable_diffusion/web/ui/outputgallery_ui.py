@@ -104,7 +104,7 @@ with gr.Blocks() as outputgallery_web:
                 value=gallery_files.value,
                 visible=False,
                 show_label=True,
-            ).style(grid=4)
+            ).style(columns=4)
             gallery.DEFAULT_TEMP_DIR = gradio_tmp_galleries_folder
 
         with gr.Column(scale=4):
