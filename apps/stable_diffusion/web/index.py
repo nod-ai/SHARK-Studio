@@ -161,6 +161,7 @@ if __name__ == "__main__":
         modelmanager_sendto_outpaint,
         modelmanager_sendto_upscaler,
         stablelm_chat,
+        minigpt4_web,
         outputgallery_web,
         outputgallery_tab_select,
         outputgallery_watch,
@@ -226,8 +227,10 @@ if __name__ == "__main__":
                 stablelm_chat.render()
             with gr.TabItem(label="LoRA Training(Experimental)", id=7):
                 lora_train_web.render()
+            with gr.TabItem(label="MultiModal (Experimental)", id=8):
+                minigpt4_web.render()
             if args.output_gallery:
-                with gr.TabItem(label="Output Gallery", id=8) as og_tab:
+                with gr.TabItem(label="Output Gallery", id=9) as og_tab:
                     outputgallery_web.render()
 
                 # extra output gallery configuration

@@ -56,3 +56,14 @@ for line in fileinput.input(path_to_lazy_loader, inplace=True):
         )
     else:
         print(line, end="")
+
+# For getting around timm's packaging.
+# Refer: https://github.com/pyinstaller/pyinstaller/issues/5673#issuecomment-808731505
+path_to_timm_activations = Path(
+    get_python_lib() + "/timm/layers/activations_jit.py"
+)
+for line in fileinput.input(path_to_timm_activations, inplace=True):
+    if "@torch.jit.script" in line:
+        print("@torch.jit._script_if_tracing", end="\n")
+    else:
+        print(line, end="")
