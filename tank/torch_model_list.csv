@@ -25,3 +25,4 @@ bert-base-uncased,True,hf,False,stablehlo,False,109M,"nlp;bert-variant;transform
 gpt2,True,hf_causallm,False,stablehlo,True,125M,"nlp;transformer-encoder","-"
 facebook/opt-125m,True,hf,False,stablehlo,True,125M,"nlp;transformer-encoder","-"
 distilgpt2,True,hf,False,stablehlo,True,88M,"nlp;transformer-encoder","-"
+microsoft/deberta-v3-base,True,hf,False,stablehlo,True,88M,"nlp;transformer-encoder","-"

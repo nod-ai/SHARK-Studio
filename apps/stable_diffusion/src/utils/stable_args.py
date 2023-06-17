@@ -109,6 +109,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--max_embeddings_multiples",
+    type=int,
+    default=5,
+    help="The max multiple length of prompt embeddings compared to the max output length of text encoder.",
+)
+
+p.add_argument(
     "--strength",
     type=float,
     default=0.8,
