@@ -163,7 +163,7 @@ class SharkifyStableDiffusionModel:
 
     def get_extended_name_for_all_model(self):
         model_name = {}
-        sub_model_list = ["clip", "unet", "stencil_unet", "vae", "vae_encode", "stencil_adaptor"]
+        sub_model_list = ["clip", "unet", "unet512", "stencil_unet", "vae", "vae_encode", "stencil_adaptor"]
         index = 0
         for model in sub_model_list:
             sub_model = model
@@ -415,7 +415,7 @@ class SharkifyStableDiffusionModel:
         )
         return shark_cnet, cnet_mlir
 
-    def get_unet(self):
+    def get_unet(self, use_large=False):
         class UnetModel(torch.nn.Module):
             def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False, use_lora=self.use_lora):
                 super().__init__()
@@ -452,17 +452,27 @@ class SharkifyStableDiffusionModel:
         unet = UnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
         inputs = tuple(self.inputs["unet"])
+        if(use_large):
+            pad = (0, 0) * (len(inputs[2].shape) - 2)
+            pad = pad + (0, 512 - inputs[2].shape[1])
+            inputs = (inputs[0],
+                inputs[1],
+                torch.nn.functional.pad(inputs[2], pad),
+                inputs[3])
+            save_dir = os.path.join(self.sharktank_dir, self.model_name["unet512"])
+        else:
+            save_dir = os.path.join(self.sharktank_dir, self.model_name["unet"])
         input_mask = [True, True, True, False]
-        save_dir = os.path.join(self.sharktank_dir, self.model_name["unet"])
         if self.debug:
             os.makedirs(
                 save_dir,
                 exist_ok=True,
             )
+        model_name = "unet512" if use_large else "unet"
         shark_unet, unet_mlir = compile_through_fx(
             unet,
             inputs,
-            extended_model_name=self.model_name["unet"],
+            extended_model_name=self.model_name[model_name],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
@@ -471,13 +481,13 @@ class SharkifyStableDiffusionModel:
             save_dir=save_dir,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
-            model_name="unet",
+            model_name=model_name,
             precision=self.precision,
             return_mlir=self.return_mlir,
         )
         return shark_unet, unet_mlir
 
-    def get_unet_upscaler(self):
+    def get_unet_upscaler(self, use_large=False):
         class UnetModel(torch.nn.Module):
             def __init__(self, model_id=self.model_id, low_cpu_mem_usage=False):
                 super().__init__()
@@ -502,6 +512,13 @@ class SharkifyStableDiffusionModel:
         unet = UnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
         is_f16 = True if self.precision == "fp16" else False
         inputs = tuple(self.inputs["unet"])
+        if(use_large):
+            pad = (0, 0) * (len(inputs[2].shape) - 2)
+            pad = pad + (0, 512 - inputs[2].shape[1])
+            inputs = (inputs[0],
+                inputs[1],
+                torch.nn.functional.pad(inputs[2], pad),
+                inputs[3])
         input_mask = [True, True, True, False]
         shark_unet, unet_mlir = compile_through_fx(
             unet,
@@ -579,16 +596,16 @@ class SharkifyStableDiffusionModel:
                 vae_dict = {k: v for k, v in vae_checkpoint.items() if k[0:4] != "loss" and k not in vae_ignore_keys}
                 return vae_dict
 
-    def compile_unet_variants(self, model):
+    def compile_unet_variants(self, model, use_large=False):
         if model == "unet":
             if self.is_upscaler:
-                return self.get_unet_upscaler()
+                return self.get_unet_upscaler(use_large=use_large)
             # TODO: Plug the experimental "int8" support at right place.
             elif self.use_quantize == "int8":
                 from apps.stable_diffusion.src.models.opt_params import get_unet
                 return get_unet()
             else:
-                return self.get_unet()
+                return self.get_unet(use_large=use_large)
         else:
             return self.get_controlled_unet()
 
@@ -616,7 +633,7 @@ class SharkifyStableDiffusionModel:
         except Exception as e:
             sys.exit(e)
 
-    def unet(self):
+    def unet(self, use_large=False):
         try:
             model = "stencil_unet" if self.use_stencil is not None else "unet"
             compiled_unet = None
@@ -624,14 +641,14 @@ class SharkifyStableDiffusionModel:
 
             if self.base_model_id != "":
                 self.inputs["unet"] = self.get_input_info_for(unet_inputs[self.base_model_id])
-                compiled_unet, unet_mlir = self.compile_unet_variants(model)
+                compiled_unet, unet_mlir = self.compile_unet_variants(model, use_large=use_large)
             else:
                 for model_id in unet_inputs:
                     self.base_model_id = model_id
                     self.inputs["unet"] = self.get_input_info_for(unet_inputs[model_id])
 
                     try:
-                        compiled_unet, unet_mlir = self.compile_unet_variants(model)
+                        compiled_unet, unet_mlir = self.compile_unet_variants(model, use_large=use_large)
                     except Exception as e:
                         print(e)
                         print("Retrying with a different base model configuration")
