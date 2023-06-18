@@ -222,7 +222,7 @@ class StableDiffusionPipeline:
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
-        if text_embeddings.shape[1] <= 64:
+        if text_embeddings.shape[1] <= self.model_max_length:
             self.load_unet()
         else:
             self.load_unet_512()
@@ -244,7 +244,7 @@ class StableDiffusionPipeline:
 
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
-            if text_embeddings.shape[1] <= 64:
+            if text_embeddings.shape[1] <= self.model_max_length:
                 noise_pred = self.unet(
                     "forward",
                     (
@@ -447,7 +447,7 @@ class StableDiffusionPipeline:
             # uncond_embeddings = uncond_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
             text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
-        if text_embeddings.shape[1] > 64:
+        if text_embeddings.shape[1] > model_max_length:
             pad = (0, 0) * (len(text_embeddings.shape) - 2)
             pad = pad + (0, 512 - text_embeddings.shape[1])
             text_embeddings = torch.nn.functional.pad(text_embeddings, pad)
