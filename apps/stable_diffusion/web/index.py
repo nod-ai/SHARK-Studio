@@ -2,7 +2,7 @@ from multiprocessing import Process, freeze_support
 import os
 import sys
 import shutil
-import PIL,transformers  # ensures inclusion in pysintaller exe generation
+import PIL, transformers  # ensures inclusion in pysintaller exe generation
 from apps.stable_diffusion.src import args, clear_all
 import apps.stable_diffusion.web.utils.global_obj as global_obj
 
