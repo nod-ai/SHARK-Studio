@@ -47,6 +47,7 @@ def get_vmfb_path_name(model_name):
 def _load_vmfb(shark_module, vmfb_path, model, precision):
     model = "vae" if "base_vae" in model or "vae_encode" in model else model
     model = "unet" if "stencil" in model else model
+    model = "unet" if "unet512" in model else model
     precision = "fp32" if "clip" in model else precision
     extra_args = get_opt_flags(model, precision)
     shark_module.load_module(vmfb_path, extra_args=extra_args)
