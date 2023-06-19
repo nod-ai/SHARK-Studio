@@ -125,7 +125,12 @@ def load_lower_configs(base_model_id=None):
                 config_name = f"{args.annotation_model}_v2_1_768_{args.precision}_{device}.json"
             else:
                 config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}.json"
-        elif spec in ["rdna3"] and version in ["v2_1", "v2_1base", "v1_4", "v1_5"]:
+        elif spec in ["rdna3"] and version in [
+            "v2_1",
+            "v2_1base",
+            "v1_4",
+            "v1_5",
+        ]:
             config_name = f"{args.annotation_model}_{version}_{args.max_length}_{args.precision}_{device}_{spec}_{args.width}x{args.height}.json"
         elif spec in ["rdna2"] and version in ["v2_1", "v2_1base", "v1_4"]:
             config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}_{spec}_{args.width}x{args.height}.json"
