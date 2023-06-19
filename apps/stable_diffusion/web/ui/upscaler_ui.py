@@ -301,7 +301,7 @@ def upscaler_api(
     )
     # Converts generator type to subscriptable
     res = list(res)[0]
-    
+
     return {
         "images": encode_pil_to_base64(res[0]),
         "parameters": {},
