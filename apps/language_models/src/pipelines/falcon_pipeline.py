@@ -99,7 +99,7 @@ class Falcon(SharkLLMBase):
         return falcon_model
 
     def compile_falcon(self):
-        if args.use_precompiled_vmfb:
+        if args.use_precompiled_model:
             if not self.falcon_vmfb_path.exists():
                 # Downloading VMFB from shark_tank
                 download_public_file(
