@@ -37,4 +37,5 @@ from apps.stable_diffusion.src.utils.utils import (
     get_generation_text_info,
     update_lora_weight,
     resize_stencil,
+    _compile_module,
 )
