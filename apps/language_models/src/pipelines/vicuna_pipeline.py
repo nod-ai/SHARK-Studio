@@ -10,7 +10,7 @@ from apps.language_models.utils import (
 from io import BytesIO
 from pathlib import Path
 from shark.shark_downloader import download_public_file
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, get_f16_inputs
 from shark.shark_inference import SharkInference
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
@@ -253,8 +253,13 @@ class Vicuna(SharkLLMBase):
                     model,
                     secondVicunaCompileInput,
                     is_f16=self.precision == "fp16",
-                    f16_input_mask=[False, False],
+                    f16_input_mask=[False] + [True] * 64,
                     mlir_type="torchscript",
+                )
+                secondVicunaCompileInput = get_f16_inputs(
+                    secondVicunaCompileInput,
+                    True,
+                    f16_input_mask=[False] + [True] * 64,
                 )
                 secondVicunaCompileInput = list(secondVicunaCompileInput)
                 for i in range(len(secondVicunaCompileInput)):
@@ -307,7 +312,7 @@ class Vicuna(SharkLLMBase):
                     if "%c19_i64 = arith.constant 19 : i64" in line:
                         new_lines.append("%c2 = arith.constant 2 : index")
                         new_lines.append(
-                            "%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128xf32>"
+                            f"%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128x{'f16' if self.precision == 'fp16' else 'fp32'}>"
                         )
                         new_lines.append(
                             "%dim_i64 = arith.index_cast %dim_4_int : index to i64"
