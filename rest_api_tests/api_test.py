@@ -14,7 +14,7 @@ def upscaler_test():
     steps = 50
     noise_level = 10
     cfg_scale = 7
-    image_path = r"./dog.png"
+    image_path = r"./rest_api_tests/dog.png"
 
     # Converting Image to base64
     img_file = open(image_path, "rb")
@@ -57,7 +57,7 @@ def img2img_test():
     steps = 50
     denoising_strength = 0.75
     cfg_scale = 7
-    image_path = r"./dog.png"
+    image_path = r"./rest_api_tests/dog.png"
 
     # Converting Image to Base64
     img_file = open(image_path, "rb")
