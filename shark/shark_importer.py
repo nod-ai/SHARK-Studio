@@ -370,6 +370,7 @@ def transform_fx(fx_g):
                 torch.ops.aten.arange,
                 torch.ops.aten.empty,
                 torch.ops.aten.zeros,
+                torch.ops.aten.zeros_like,
             ]:
                 if node.kwargs.get("dtype") == torch.float32:
                     node.kwargs = kwargs_dict
@@ -525,6 +526,8 @@ def import_with_fx(
                 torch.ops.aten.split.Tensor,
                 torch.ops.aten.split_with_sizes,
                 torch.ops.aten.native_layer_norm,
+                torch.ops.aten.masked_fill.Tensor,
+                torch.ops.aten.masked_fill.Scalar,
             ]
         ),
     )(*inputs)
