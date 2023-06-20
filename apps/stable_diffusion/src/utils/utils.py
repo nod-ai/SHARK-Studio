@@ -18,6 +18,7 @@ from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
 )
+from shark.iree_utils.metal_utils import get_metal_target_triple
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
@@ -274,6 +275,16 @@ def set_init_device_flags():
         )
     elif "cuda" in args.device:
         args.device = "cuda"
+    elif "metal" in args.device:
+        print("\n\n yaha \n\n")
+        device_name, args.device = map_device_to_name_path(args.device)
+        if not args.iree_metal_target_platfrom:
+            triple = get_metal_target_triple(device_name)
+            if triple is not None:
+                args.iree_metal_target_platfrom = triple
+        print(
+            f"Found device {device_name}. Using target triple {args.iree_metal_target_platfrom}."
+        )
     elif "cpu" in args.device:
         args.device = "cpu"
 
@@ -426,6 +437,8 @@ def get_available_devices():
     available_devices = []
     vulkan_devices = get_devices_by_name("vulkan")
     available_devices.extend(vulkan_devices)
+    metal_devices = get_devices_by_name("metal")
+    available_devices.extend(metal_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
     available_devices.append("device => cpu")
