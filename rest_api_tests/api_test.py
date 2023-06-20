@@ -94,13 +94,14 @@ def img2img_test():
     # Uncomment below to save the picture
 
     response_obj = res.json()
-    img_b64 = response_obj.get("images", [False])[0] or response_obj.get("image")
+    img_b64 = response_obj.get("images", [False])[0] or response_obj.get(
+        "image"
+    )
     img_b2 = base64.b64decode(img_b64.replace("data:image/png;base64,", ""))
     im_file = BytesIO(img_b2)
     response_img = Image.open(im_file)
     print("Saving Response Image to: response_img")
-    response_img.save(r'rest_api_tests/response_img.png')
-
+    response_img.save(r"rest_api_tests/response_img.png")
 
 
 if __name__ == "__main__":
