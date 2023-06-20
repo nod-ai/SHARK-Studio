@@ -30,7 +30,7 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument("--falcon_variant_to_use", default="7b", help="7b, 40b")
 parser.add_argument(
-    "--precision", "-p", default="fp32", help="fp32, fp16, int8, int4"
+    "--precision", "-p", default="fp16", help="fp32, fp16, int8, int4"
 )
 parser.add_argument("--device", "-d", default="cuda", help="vulkan, cpu, cuda")
 parser.add_argument(
@@ -482,11 +482,16 @@ if __name__ == "__main__":
     default_prompt_text = "Girafatron is obsessed with giraffes, the most glorious animal on the face of this Earth. Giraftron believes all other animals are irrelevant when compared to the glorious majesty of the giraffe.\nDaniel: Hello, Girafatron!\nGirafatron:"
     continue_execution = True
 
+    print("\n-----\nScript executing for the following config: \n")
+    print("Falcon Model: ", falcon.model_name)
+    print("Precision:    ", args.precision)
+    print("Device:       ", args.device)
+
     while continue_execution:
         use_default_prompt = input(
-            "\nDo you wish to use the default prompt text? True or False?: "
+            "\nDo you wish to use the default prompt text? Y/N ?: "
         )
-        if use_default_prompt:
+        if use_default_prompt in ["Y", "y"]:
             prompt = default_prompt_text
         else:
             prompt = input("Please enter the prompt text: ")
@@ -500,5 +505,8 @@ if __name__ == "__main__":
             res_str,
         )
         continue_execution = input(
-            "\nDo you wish to run script one more time? True or False?: "
+            "\nDo you wish to run script one more time? Y/N ?: "
+        )
+        continue_execution = (
+            True if continue_execution in ["Y", "y"] else False
         )
