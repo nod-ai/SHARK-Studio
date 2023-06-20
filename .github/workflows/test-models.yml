@@ -61,7 +61,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-      if: matrix.os != '7950x'
     
     - name: Set Environment Variables
       if: matrix.os != '7950x'
@@ -84,9 +83,6 @@ jobs:
         #cache-dependency-path: |
         #  **/requirements-importer.txt
         #  **/requirements.txt
-    
-    - uses: actions/checkout@v2
-      if: matrix.os == '7950x'
           
     - name: Install dependencies
       if: matrix.suite == 'lint'
