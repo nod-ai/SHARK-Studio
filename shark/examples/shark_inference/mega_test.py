@@ -52,14 +52,22 @@ shark_module, _ = compile_through_fx(
     base_model_id=None,
     model_name="mega_shark",
     precision=None,
-    return_mlir=False,
+    return_mlir=True,
     device="cuda",
 )
 # logits = model(x)
 
+
+def print_output_info(output, msg):
+    print("\n", msg)
+    print("\n\t", output.shape)
+
+
 ans = shark_module("forward", input)
-print(type(ans))
-print("Logits : ", ans.shape)
+print_output_info(torch.from_numpy(ans), "SHARK's output")
+
+ans = megaModel.forward(*input)
+print_output_info(ans, "ORIGINAL Model's output")
 
 # and sample from the logits accordingly
 # or you can use the generate function
