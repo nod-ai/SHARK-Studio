@@ -19,6 +19,7 @@ datas += copy_metadata('importlib_metadata')
 datas += copy_metadata('torch-mlir')
 datas += copy_metadata('omegaconf')
 datas += copy_metadata('safetensors')
+datas += copy_metadata('Pillow')
 datas += collect_data_files('diffusers')
 datas += collect_data_files('transformers')
 datas += collect_data_files('pytorch_lightning')
@@ -48,7 +49,6 @@ block_cipher = None
 hiddenimports = ['shark', 'shark.shark_inference', 'apps']
 hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
 hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
-hiddenimports += [x for x in collect_submodules("PIL") if "tests" not in x]
 
 a = Analysis(
     ['web/index.py'],
