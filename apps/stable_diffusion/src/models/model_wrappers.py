@@ -426,7 +426,7 @@ class SharkifyStableDiffusionModel:
                 )
                 if use_lora != "":
                     update_lora_weight(self.unet, use_lora, "unet")
-                self.in_channels = self.unet.in_channels
+                self.in_channels = self.unet.config.in_channels
                 self.train(False)
                 if(args.attention_slicing is not None and args.attention_slicing != "none"):
                     if(args.attention_slicing.isdigit()):
