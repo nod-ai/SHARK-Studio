@@ -9,9 +9,6 @@ from apps.stable_diffusion.src.utils import (
     get_generated_imgs_todays_subdir,
 )
 from apps.stable_diffusion.web.ui.utils import nodlogo_loc
-from apps.stable_diffusion.web.utils.gradio_configs import (
-    gradio_tmp_galleries_folder,
-)
 from apps.stable_diffusion.web.utils.metadata import displayable_metadata
 
 # -- Functions for file, directory and image info querying
@@ -91,8 +88,7 @@ with gr.Blocks() as outputgallery_web:
                 value=gallery_files.value,
                 visible=False,
                 show_label=True,
-            ).style(grid=4)
-            gallery.DEFAULT_TEMP_DIR = gradio_tmp_galleries_folder
+            ).style(columns=4)
 
         with gr.Column(scale=4):
             with gr.Box():

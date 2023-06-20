@@ -159,10 +159,10 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     with gr.Column(scale=2):
                         random_seed = gr.Button("Randomize Seed")
                         random_seed.click(
-                            None,
+                            lambda: -1,
                             inputs=[],
                             outputs=[seed],
-                            _js="() => -1",
+                            queue=False,
                         )
                     with gr.Column(scale=6):
                         train_lora = gr.Button("Train LoRA")

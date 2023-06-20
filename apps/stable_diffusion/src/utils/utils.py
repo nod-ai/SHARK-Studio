@@ -47,6 +47,7 @@ def get_vmfb_path_name(model_name):
 def _load_vmfb(shark_module, vmfb_path, model, precision):
     model = "vae" if "base_vae" in model or "vae_encode" in model else model
     model = "unet" if "stencil" in model else model
+    model = "unet" if "unet512" in model else model
     precision = "fp32" if "clip" in model else precision
     extra_args = get_opt_flags(model, precision)
     shark_module.load_module(vmfb_path, extra_args=extra_args)
@@ -115,6 +116,7 @@ def compile_through_fx(
     model_name=None,
     precision=None,
     return_mlir=False,
+    device=None,
 ):
     if not return_mlir and model_name is not None:
         vmfb_path = get_vmfb_path_name(extended_model_name)
@@ -145,7 +147,10 @@ def compile_through_fx(
     if use_tuned:
         if "vae" in extended_model_name.split("_")[0]:
             args.annotation_model = "vae"
-        if "unet" in model_name.split("_")[0]:
+        if (
+            "unet" in model_name.split("_")[0]
+            or "unet_512" in model_name.split("_")[0]
+        ):
             args.annotation_model = "unet"
         mlir_module = sd_model_annotation(
             mlir_module, extended_model_name, base_model_id
@@ -153,7 +158,7 @@ def compile_through_fx(
 
     shark_module = SharkInference(
         mlir_module,
-        device=args.device,
+        device=args.device if device is None else device,
         mlir_dialect="tm_tensor",
     )
     if generate_vmfb:
@@ -293,8 +298,8 @@ def set_init_device_flags():
     if (
         args.precision != "fp16"
         or args.height not in [512, 768]
-        or (args.height == 512 and args.width != 512)
-        or (args.height == 768 and args.width != 768)
+        or (args.height == 512 and args.width not in [512, 768])
+        or (args.height == 768 and args.width not in [512, 768])
         or args.batch_size != 1
         or ("vulkan" not in args.device and "cuda" not in args.device)
     ):

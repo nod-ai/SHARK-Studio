@@ -319,35 +319,36 @@ def add_upcast(fx_g):
     for node in fx_g.graph.nodes:
         if node.target in [torch.ops.aten.mul]:
             # This is a very strict check.
-            if (
-                node.args[1].target in [torch.ops.aten.rsqrt]
-                and node.args[1].args[0].target in [torch.ops.aten.add]
-                and node.args[1].args[0].args[0].target
-                in [torch.ops.aten.mean]
-                and node.args[1].args[0].args[0].args[0].target
-                in [torch.ops.aten.pow]
-            ):
-                print("found an upcasting block let's upcast it.")
-                pow_node = node.args[1].args[0].args[0].args[0]
-                mul_node = node
-                with fx_g.graph.inserting_before(pow_node):
-                    lhs = pow_node.args[0]
-                    upcast_lhs = fx_g.graph.call_function(
-                        torch.ops.aten._to_copy,
-                        args=(lhs,),
-                        kwargs={"dtype": torch.float32},
-                    )
-                    pow_node.args = (upcast_lhs, pow_node.args[1])
-                with fx_g.graph.inserting_before(mul_node):
-                    new_node = fx_g.graph.call_function(
-                        torch.ops.aten._to_copy,
-                        args=(mul_node,),
-                        kwargs={"dtype": torch.float16},
-                    )
-                    mul_node.append(new_node)
-                    mul_node.replace_all_uses_with(new_node)
-                    new_node.args = (mul_node,)
-                    new_node.kwargs = {"dtype": torch.float16}
+            if hasattr(node.args[1], "target"):
+                if (
+                    node.args[1].target in [torch.ops.aten.rsqrt]
+                    and node.args[1].args[0].target in [torch.ops.aten.add]
+                    and node.args[1].args[0].args[0].target
+                    in [torch.ops.aten.mean]
+                    and node.args[1].args[0].args[0].args[0].target
+                    in [torch.ops.aten.pow]
+                ):
+                    print("found an upcasting block let's upcast it.")
+                    pow_node = node.args[1].args[0].args[0].args[0]
+                    mul_node = node
+                    with fx_g.graph.inserting_before(pow_node):
+                        lhs = pow_node.args[0]
+                        upcast_lhs = fx_g.graph.call_function(
+                            torch.ops.aten._to_copy,
+                            args=(lhs,),
+                            kwargs={"dtype": torch.float32},
+                        )
+                        pow_node.args = (upcast_lhs, pow_node.args[1])
+                    with fx_g.graph.inserting_before(mul_node):
+                        new_node = fx_g.graph.call_function(
+                            torch.ops.aten._to_copy,
+                            args=(mul_node,),
+                            kwargs={"dtype": torch.float16},
+                        )
+                        mul_node.append(new_node)
+                        mul_node.replace_all_uses_with(new_node)
+                        new_node.args = (mul_node,)
+                        new_node.kwargs = {"dtype": torch.float16}
 
     fx_g.graph.lint()
 
@@ -369,6 +370,7 @@ def transform_fx(fx_g):
                 torch.ops.aten.arange,
                 torch.ops.aten.empty,
                 torch.ops.aten.zeros,
+                torch.ops.aten.zeros_like,
             ]:
                 if node.kwargs.get("dtype") == torch.float32:
                     node.kwargs = kwargs_dict
@@ -524,6 +526,8 @@ def import_with_fx(
                 torch.ops.aten.split.Tensor,
                 torch.ops.aten.split_with_sizes,
                 torch.ops.aten.native_layer_norm,
+                torch.ops.aten.masked_fill.Tensor,
+                torch.ops.aten.masked_fill.Scalar,
             ]
         ),
     )(*inputs)
@@ -556,6 +560,9 @@ def import_with_fx(
         inputs = flatten_training_input(inputs)
 
     ts_graph = torch.jit.script(fx_g)
+    if mlir_type == "torchscript":
+        return ts_graph
+
     inputs = get_f16_inputs(inputs, is_f16, f16_input_mask)
     mlir_importer = SharkImporter(
         ts_graph,

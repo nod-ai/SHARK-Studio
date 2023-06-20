@@ -1,7 +1,8 @@
 from multiprocessing import Process, freeze_support
 import os
 import sys
-import transformers  # ensures inclusion in pysintaller exe generation
+import shutil
+import PIL, transformers  # ensures inclusion in pysintaller exe generation
 from apps.stable_diffusion.src import args, clear_all
 import apps.stable_diffusion.web.utils.global_obj as global_obj
 
@@ -57,15 +58,19 @@ if __name__ == "__main__":
         uvicorn.run(app, host="127.0.0.1", port=args.server_port)
         sys.exit(0)
 
-    import gradio as gr
+    # Setup to use shark_tmp for gradio's temporary image files and clear any
+    # existing temporary images there if they exist. Then we can import gradio.
+    # It has to be in this order or gradio ignores what we've set up.
     from apps.stable_diffusion.web.utils.gradio_configs import (
-        clear_gradio_tmp_imgs_folder,
+        config_gradio_tmp_imgs_folder,
     )
+
+    config_gradio_tmp_imgs_folder()
+    import gradio as gr
+
+    # Create custom models folders if they don't exist
     from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
 
-    # Clear all gradio tmp images from the last session
-    clear_gradio_tmp_imgs_folder()
-    # Create custom models folders if they don't exist
     create_custom_models_folders()
 
     def resource_path(relative_path):
