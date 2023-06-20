@@ -66,7 +66,7 @@ _IREE_DEVICE_MAP = {
     "cpu-sync": "local-sync",
     "cuda": "cuda",
     "vulkan": "vulkan",
-    "metal": "vulkan",
+    "metal": "metal",
     "rocm": "rocm",
     "intel-gpu": "level_zero",
 }
@@ -84,7 +84,7 @@ _IREE_TARGET_MAP = {
     "cpu-sync": "llvm-cpu",
     "cuda": "cuda",
     "vulkan": "vulkan",
-    "metal": "vulkan",
+    "metal": "metal",
     "rocm": "rocm",
     "intel-gpu": "opencl-spirv",
 }

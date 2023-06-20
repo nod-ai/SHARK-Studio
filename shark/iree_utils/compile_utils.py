@@ -43,10 +43,16 @@ def get_iree_device_args(device, extra_args=[]):
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
-    if device_uri[0] in ["metal", "vulkan"]:
+    if device_uri[0] == "vulkan":
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
         return get_iree_vulkan_args(
+            device_num=device_num, extra_args=extra_args
+        )
+    if device_uri[0] == "metal":
+        from shark.iree_utils.metal_utils import get_iree_metal_args
+        
+        return get_iree_metal_args(
             device_num=device_num, extra_args=extra_args
         )
     if device_uri[0] == "rocm":
