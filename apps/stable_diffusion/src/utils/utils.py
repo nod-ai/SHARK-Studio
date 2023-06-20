@@ -116,6 +116,7 @@ def compile_through_fx(
     model_name=None,
     precision=None,
     return_mlir=False,
+    device=None,
 ):
     if not return_mlir and model_name is not None:
         vmfb_path = get_vmfb_path_name(extended_model_name)
@@ -157,7 +158,7 @@ def compile_through_fx(
 
     shark_module = SharkInference(
         mlir_module,
-        device=args.device,
+        device=args.device if device is None else device,
         mlir_dialect="tm_tensor",
     )
     if generate_vmfb:
