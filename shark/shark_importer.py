@@ -516,7 +516,6 @@ def import_with_fx(
         model,
         decomposition_table=get_decompositions(
             [
-                torch.ops.aten.embedding_dense_backward,
                 torch.ops.aten.native_layer_norm_backward,
                 torch.ops.aten.slice_backward,
                 torch.ops.aten.select_backward,
