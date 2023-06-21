@@ -91,6 +91,7 @@ def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
     print(f"Target : {metal_device}")
     return None
 
+
 def get_iree_metal_args(device_num=0, extra_args=[]):
     # res_metal_flag = ["--iree-flow-demote-i64-to-i32"]
 
@@ -101,7 +102,7 @@ def get_iree_metal_args(device_num=0, extra_args=[]):
             print(f"Using target triple {arg} from command line args")
             meatal_triple_flag = arg
             break
-    
+
     if metal_triple_flag is None:
         meatal_triple_flag = get_metal_triple_flag(
             device_num=device_num, extra_args=extra_args
