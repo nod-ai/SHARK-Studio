@@ -27,6 +27,11 @@ PYTHON_VERSION_X_Y=`${PYTHON} -c 'import sys; version=sys.version_info[:2]; prin
 echo "Python: $PYTHON"
 echo "Python version: $PYTHON_VERSION_X_Y"
 
+if [[ "$(python3 --version 2>&1)" != "Python 3.11"* ]]; then
+    echo "Error: Python version 3.11 is required."
+    exit 1
+fi
+
 if [[ "$SKIP_VENV" != "1" ]]; then
   if [[ -z "${CONDA_PREFIX}" ]]; then
     # Not a conda env. So create a new VENV dir
