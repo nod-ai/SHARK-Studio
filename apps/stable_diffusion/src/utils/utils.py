@@ -276,7 +276,6 @@ def set_init_device_flags():
     elif "cuda" in args.device:
         args.device = "cuda"
     elif "metal" in args.device:
-        print("\n\n yaha \n\n")
         device_name, args.device = map_device_to_name_path(args.device)
         if not args.iree_metal_target_platfrom:
             triple = get_metal_target_triple(device_name)
