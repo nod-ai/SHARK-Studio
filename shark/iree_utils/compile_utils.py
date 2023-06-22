@@ -1,4 +1,4 @@
-# Copyright 2020 The Nod Team. All rights reserved.
+# Copyright 2023 The Nod Team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,10 +43,16 @@ def get_iree_device_args(device, extra_args=[]):
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
-    if device_uri[0] in ["metal", "vulkan"]:
+    if device_uri[0] == "vulkan":
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
         return get_iree_vulkan_args(
+            device_num=device_num, extra_args=extra_args
+        )
+    if device_uri[0] == "metal":
+        from shark.iree_utils.metal_utils import get_iree_metal_args
+
+        return get_iree_metal_args(
             device_num=device_num, extra_args=extra_args
         )
     if device_uri[0] == "rocm":

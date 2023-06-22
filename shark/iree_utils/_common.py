@@ -1,4 +1,4 @@
-# Copyright 2020 The Nod Team. All rights reserved.
+# Copyright 2023 The Nod Team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ _IREE_DEVICE_MAP = {
     "cpu-sync": "local-sync",
     "cuda": "cuda",
     "vulkan": "vulkan",
-    "metal": "vulkan",
+    "metal": "metal",
     "rocm": "rocm",
     "intel-gpu": "level_zero",
 }
@@ -84,7 +84,7 @@ _IREE_TARGET_MAP = {
     "cpu-sync": "llvm-cpu",
     "cuda": "cuda",
     "vulkan": "vulkan",
-    "metal": "vulkan",
+    "metal": "metal",
     "rocm": "rocm",
     "intel-gpu": "opencl-spirv",
 }
