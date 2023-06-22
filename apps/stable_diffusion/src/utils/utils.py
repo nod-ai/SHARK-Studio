@@ -277,12 +277,12 @@ def set_init_device_flags():
         args.device = "cuda"
     elif "metal" in args.device:
         device_name, args.device = map_device_to_name_path(args.device)
-        if not args.iree_metal_target_platfrom:
+        if not args.iree_metal_target_platform:
             triple = get_metal_target_triple(device_name)
             if triple is not None:
-                args.iree_metal_target_platfrom = triple
+                args.iree_metal_target_platform = triple
         print(
-            f"Found device {device_name}. Using target triple {args.iree_metal_target_platfrom}."
+            f"Found device {device_name}. Using target triple {args.iree_metal_target_platform}."
         )
     elif "cpu" in args.device:
         args.device = "cpu"
@@ -445,7 +445,10 @@ def get_available_devices():
     available_devices.extend(metal_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
-    available_devices.append("device => cpu")
+    cpu_device = get_devices_by_name("cpu-sync")
+    available_devices.extend(cpu_device)
+    cpu_device = get_devices_by_name("cpu-task")
+    available_devices.extend(cpu_device)
     return available_devices
 
 
