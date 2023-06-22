@@ -83,7 +83,7 @@ def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
         print(
             f"Found metal device {metal_device}. Using metal target triple {triple}"
         )
-        return f"-iree-metal-target-platfrom={triple}"
+        return f"-iree-metal-target-platform={triple}"
     print(
         """Optimized kernel for your target device is not added yet.
         Contact SHARK Admin on discord[https://discord.com/invite/RUqY2h2s9u]
@@ -101,16 +101,16 @@ def get_iree_metal_args(device_num=0, extra_args=[]):
     for arg in extra_args:
         if "-iree-metal-target-platform=" in arg:
             print(f"Using target triple {arg} from command line args")
-            meatal_triple_flag = arg
+            metal_triple_flag = arg
             break
 
     if metal_triple_flag is None:
-        meatal_triple_flag = get_metal_triple_flag(
+        metal_triple_flag = get_metal_triple_flag(
             device_num=device_num, extra_args=extra_args
         )
 
-    if meatal_triple_flag is not None:
-        vulkan_target_env = get_vulkan_target_env_flag(meatal_triple_flag)
+    if metal_triple_flag is not None:
+        vulkan_target_env = get_vulkan_target_env_flag(metal_triple_flag)
         res_metal_flag.append(vulkan_target_env)
     return res_metal_flag
 
