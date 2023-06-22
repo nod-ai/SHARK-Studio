@@ -555,6 +555,9 @@ def import_with_fx(
         add_upcast(fx_g)
         fx_g.recompile()
 
+    if mlir_type == "fx":
+        return fx_g
+
     if training:
         change_fx_graph_return_to_tuple(fx_g)
         inputs = flatten_training_input(inputs)
