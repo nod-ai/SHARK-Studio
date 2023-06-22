@@ -278,7 +278,7 @@ def inpaint_api(
         custom_model="None",
         hf_model_id=InputData["hf_model_id"]
         if "hf_model_id" in InputData.keys()
-        else "stabilityai/stable-diffusion-2-1-base",
+        else "stabilityai/stable-diffusion-2-inpainting",
         custom_vae="None",
         precision="fp16",
         device=available_devices[0],
@@ -289,6 +289,10 @@ def inpaint_api(
         lora_hf_id="",
         ondemand=False,
     )
+
+    # Converts generator type to subscriptable
+    res = next(res)
+
     return {
         "images": encode_pil_to_base64(res[0]),
         "parameters": {},
