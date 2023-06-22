@@ -445,7 +445,10 @@ def get_available_devices():
     available_devices.extend(metal_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
-    available_devices.append("device => cpu")
+    cpu_device = get_devices_by_name("cpu-sync")
+    available_devices.extend(cpu_device)
+    cpu_device = get_devices_by_name("cpu-task")
+    available_devices.extend(cpu_device)
     return available_devices
 
 

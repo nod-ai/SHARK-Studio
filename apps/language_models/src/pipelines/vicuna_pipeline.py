@@ -28,10 +28,10 @@ class Vicuna(SharkLLMBase):
         max_num_tokens=512,
         device="cuda",
         precision="fp32",
-        first_vicuna_mlir_path=Path("first_vicuna.mlir"),
-        second_vicuna_mlir_path=Path("second_vicuna.mlir"),
-        first_vicuna_vmfb_path=Path("first_vicuna.vmfb"),
-        second_vicuna_vmfb_path=Path("second_vicuna.vmfb"),
+        first_vicuna_mlir_path=None,
+        second_vicuna_mlir_path=None,
+        first_vicuna_vmfb_path=None,
+        second_vicuna_vmfb_path=None,
         load_mlir_from_shark_tank=True,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
@@ -42,9 +42,27 @@ class Vicuna(SharkLLMBase):
         self.second_vicuna_vmfb_path = second_vicuna_vmfb_path
         self.first_vicuna_mlir_path = first_vicuna_mlir_path
         self.second_vicuna_mlir_path = second_vicuna_mlir_path
+        self.load_mlir_from_shark_tank = load_mlir_from_shark_tank
+        if self.first_vicuna_mlir_path == None:
+            self.first_vicuna_mlir_path = self.get_model_path()
+        if self.second_vicuna_mlir_path == None:
+            self.second_vicuna_mlir_path = self.get_model_path("second")
+        if self.first_vicuna_vmfb_path == None:
+            self.first_vicuna_vmfb_path = self.get_model_path(suffix="vmfb")
+        if self.second_vicuna_vmfb_path == None:
+            self.second_vicuna_vmfb_path = self.get_model_path(
+                "second", "vmfb"
+            )
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
-        self.load_mlir_from_shark_tank = load_mlir_from_shark_tank
+
+    def get_model_path(self, model_number="first", suffix="mlir"):
+        safe_device = "_".join(self.device.split("-"))
+        if suffix == "mlir":
+            return Path(f"{model_number}_vicuna_{self.precision}.{suffix}")
+        return Path(
+            f"{model_number}_vicuna_{safe_device}_{self.precision}.{suffix}"
+        )
 
     def get_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(
