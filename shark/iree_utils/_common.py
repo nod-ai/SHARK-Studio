@@ -101,11 +101,13 @@ def check_device_drivers(device):
             subprocess.check_output("nvidia-smi")
         except Exception:
             return True
-    elif device in ["metal", "vulkan"]:
+    elif device in ["vulkan"]:
         try:
             subprocess.check_output("vulkaninfo")
         except Exception:
             return True
+    elif device  == "metal":
+        return False
     elif device in ["intel-gpu"]:
         try:
             subprocess.check_output(["dpkg", "-L", "intel-level-zero-gpu"])
