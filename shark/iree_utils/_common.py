@@ -106,7 +106,7 @@ def check_device_drivers(device):
             subprocess.check_output("vulkaninfo")
         except Exception:
             return True
-    elif device  == "metal":
+    elif device == "metal":
         return False
     elif device in ["intel-gpu"]:
         try:
