@@ -280,9 +280,9 @@ def set_init_device_flags():
         if not args.iree_metal_target_platform:
             triple = get_metal_target_triple(device_name)
             if triple is not None:
-                args.iree_metal_target_platform = triple
+                args.iree_metal_target_platform = triple.split("-")[-1]
         print(
-            f"Found device {device_name}. Using target triple {args.iree_metal_target_platform}."
+            f"Found device {device_name}. Using target platform {args.iree_metal_target_platform}."
         )
     elif "cpu" in args.device:
         args.device = "cpu"
