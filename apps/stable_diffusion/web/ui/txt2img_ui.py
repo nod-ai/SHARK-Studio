@@ -555,7 +555,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 txt2img_hf_model_id,
                 lora_weights,
                 lora_hf_id,
-                custom_vae
+                custom_vae,
             ],
             outputs=[
                 txt2img_png_info_img,
@@ -571,6 +571,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 txt2img_hf_model_id,
                 lora_weights,
                 lora_hf_id,
-                custom_vae
+                custom_vae,
             ],
         )

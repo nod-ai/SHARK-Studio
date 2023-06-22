@@ -777,7 +777,7 @@ def save_output_img(output_img, img_seed, extra_info={}):
                 "parameters",
                 f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps: {args.steps},"
                 f"Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed},"
-                f"Size: {args.width}x{args.height}, Model: {img_model}, VAE: {img_vae}, LoRA: {img_lora}"
+                f"Size: {args.width}x{args.height}, Model: {img_model}, VAE: {img_vae}, LoRA: {img_lora}",
             )
 
         output_img.save(out_img_path, "PNG", pnginfo=pngInfo)

@@ -61,9 +61,9 @@ def parse_generation_parameters(x: str):
 
     return res
 
+
 def try_find_model_base_from_png_metadata(
-        file: str,
-        folder: str = "models"
+    file: str, folder: str = "models"
 ) -> str:
     custom = ""
 
@@ -73,14 +73,16 @@ def try_find_model_base_from_png_metadata(
     # Check for the file name match with one of the local ckpt or safetensors files
     if Path(get_custom_model_pathfile(file + ".ckpt", folder)).is_file():
         custom = file + ".ckpt"
-    if Path(get_custom_model_pathfile(file + ".safetensors", folder)).is_file():
+    if Path(
+        get_custom_model_pathfile(file + ".safetensors", folder)
+    ).is_file():
         custom = file + ".safetensors"
 
     return custom
 
+
 def find_model_from_png_metadata(
-        key: str,
-        metadata: dict[str, str | int]
+    key: str, metadata: dict[str, str | int]
 ) -> tuple[str, str]:
     png_hf_id = ""
     png_custom = ""
@@ -105,8 +107,7 @@ def find_model_from_png_metadata(
 
 
 def find_vae_from_png_metadata(
-        key: str,
-        metadata: dict[str, str | int]
+    key: str, metadata: dict[str, str | int]
 ) -> str:
     vae_custom = ""
 
@@ -118,9 +119,9 @@ def find_vae_from_png_metadata(
 
     return vae_custom
 
+
 def find_lora_from_png_metadata(
-        key: str,
-        metadata: dict[str, str | int]
+    key: str, metadata: dict[str, str | int]
 ) -> tuple[str, str]:
     lora_hf_id = ""
     lora_custom = ""
@@ -136,6 +137,7 @@ def find_lora_from_png_metadata(
 
     return lora_custom, lora_hf_id
 
+
 def import_png_metadata(
     pil_data,
     prompt,
@@ -150,14 +152,18 @@ def import_png_metadata(
     hf_model_id,
     custom_lora,
     hf_lora_id,
-    custom_vae
+    custom_vae,
 ):
     try:
         png_info = pil_data.info["parameters"]
         metadata = parse_generation_parameters(png_info)
 
-        (png_custom_model, png_hf_model_id) = find_model_from_png_metadata("Model", metadata)
-        (lora_custom_model, lora_hf_model_id) = find_lora_from_png_metadata("LoRA", metadata)
+        (png_custom_model, png_hf_model_id) = find_model_from_png_metadata(
+            "Model", metadata
+        )
+        (lora_custom_model, lora_hf_model_id) = find_lora_from_png_metadata(
+            "LoRA", metadata
+        )
         vae_custom_model = find_vae_from_png_metadata("VAE", metadata)
 
         negative_prompt = metadata["Negative prompt"]
@@ -214,5 +220,5 @@ def import_png_metadata(
         hf_model_id,
         custom_lora,
         hf_lora_id,
-        custom_vae
+        custom_vae,
     )
