@@ -315,6 +315,11 @@ def set_init_device_flags():
     ):
         args.use_tuned = False
 
+    elif (
+        args.height != args.width and "rdna2" in args.iree_vulkan_target_triple
+    ):
+        args.use_tuned = False
+
     elif base_model_id not in [
         "Linaqruf/anything-v3.0",
         "dreamlike-art/dreamlike-diffusion-1.0",
