@@ -103,6 +103,7 @@ def img2img_test():
     # print("Saving Response Image to: response_img")
     # response_img.save(r"rest_api_tests/response_img.png")
 
+
 def inpainting_test():
     prompt = "Paint a rabbit riding on the dog"
     negative_prompt = "ugly, bad art, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, blurry, bad anatomy, blurred, watermark, grainy, tiling, signature, cut off, draft"
@@ -117,9 +118,13 @@ def inpainting_test():
     image_path = r"./rest_api_tests/dog.png"
 
     img_file = open(image_path, "rb")
-    image = "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
+    image = (
+        "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
+    )
     img_file = open(image_path, "rb")
-    mask = "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
+    mask = (
+        "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
+    )
 
     url = "http://127.0.0.1:8080/sdapi/v1/inpaint"
 
@@ -133,21 +138,20 @@ def inpainting_test():
         "prompt": prompt,
         "negative_prompt": negative_prompt,
         "image": image,
-        "mask" : mask,
+        "mask": mask,
         "height": height,
         "width": width,
         "steps": steps,
         "noise_level": noise_level,
         "cfg_scale": cfg_scale,
         "seed": seed,
-        "is_full_res" : is_full_res,
-        "full_res_padding" : full_res_padding
+        "is_full_res": is_full_res,
+        "full_res_padding": full_res_padding,
     }
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
     print(f"[Inpainting] response from server was : {res.status_code}")
-
 
 
 if __name__ == "__main__":
