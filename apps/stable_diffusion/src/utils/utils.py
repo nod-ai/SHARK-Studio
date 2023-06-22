@@ -277,12 +277,12 @@ def set_init_device_flags():
         args.device = "cuda"
     elif "metal" in args.device:
         device_name, args.device = map_device_to_name_path(args.device)
-        if not args.iree_metal_target_platfrom:
+        if not args.iree_metal_target_platform:
             triple = get_metal_target_triple(device_name)
             if triple is not None:
-                args.iree_metal_target_platfrom = triple
+                args.iree_metal_target_platform = triple
         print(
-            f"Found device {device_name}. Using target triple {args.iree_metal_target_platfrom}."
+            f"Found device {device_name}. Using target triple {args.iree_metal_target_platform}."
         )
     elif "cpu" in args.device:
         args.device = "cpu"

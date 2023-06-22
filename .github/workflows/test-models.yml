@@ -35,6 +35,8 @@ jobs:
         include:
           - os: ubuntu-latest
             suite: lint
+          - os: MacStudio
+            suite: metal
         exclude:
           - os: ubuntu-latest
             suite: vulkan
@@ -46,6 +48,8 @@ jobs:
             suite: cuda
           - os: MacStudio
             suite: cpu
+          - os: MacStudio
+            suite: vulkan
           - os: icelake
             suite: vulkan
           - os: icelake
@@ -125,15 +129,14 @@ jobs:
         # python build_tools/stable_diffusion_testing.py --device=cuda 
 
     - name: Validate Vulkan Models (MacOS)
-      if: matrix.suite == 'vulkan' && matrix.os == 'MacStudio'
+      if: matrix.suite == 'metal' && matrix.os == 'MacStudio'
       run: |
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
-        export DYLD_LIBRARY_PATH=/usr/local/lib/
         echo $PATH
         pip list | grep -E "torch|iree"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k vulkan
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k metal
 
     - name: Validate Vulkan Models (a100)
       if: matrix.suite == 'vulkan' && matrix.os == 'a100'
