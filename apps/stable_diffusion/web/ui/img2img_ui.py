@@ -1,8 +1,6 @@
-from pathlib import Path
 import os
 import torch
 import time
-import sys
 import gradio as gr
 import PIL
 from PIL import Image
@@ -26,10 +24,13 @@ from apps.stable_diffusion.src import (
     get_schedulers,
     set_init_device_flags,
     utils,
-    clear_all,
     save_output_img,
 )
-from apps.stable_diffusion.src.utils import get_generation_text_info
+from apps.stable_diffusion.src.utils import (
+    get_generated_imgs_path,
+    get_generation_text_info,
+)
+from apps.stable_diffusion.web.utils.common_label_calc import status_label
 import numpy as np
 
 
@@ -259,11 +260,17 @@ def img2img_inf(
         if global_obj.get_sd_status() == SD_STATE_CANCEL:
             break
         else:
-            save_output_img(out_imgs[0], img_seed, extra_info)
+            save_output_img(
+                out_imgs[0],
+                img_seed,
+                extra_info,
+            )
             generated_imgs.extend(out_imgs)
-            #  yield generated_imgs, text_output
+            yield generated_imgs, text_output, status_label(
+                "Image-to-Image", current_batch + 1, batch_count, batch_size
+            )
 
-    return generated_imgs, text_output
+    return generated_imgs, text_output, ""
 
 
 def decode_base64_to_image(encoding):
@@ -333,6 +340,10 @@ def img2img_api(
         lora_hf_id="",
         ondemand=False,
     )
+
+    # Converts generator type to subscriptable
+    res = list(res)[0]
+
     return {
         "images": encode_pil_to_base64(res[0]),
         "parameters": {},
@@ -578,10 +589,10 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     with gr.Column(scale=2):
                         random_seed = gr.Button("Randomize Seed")
                         random_seed.click(
-                            None,
+                            lambda: -1,
                             inputs=[],
                             outputs=[seed],
-                            _js="() => -1",
+                            queue=False,
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")
@@ -593,16 +604,13 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
-                    output_dir = (
-                        args.output_dir if args.output_dir else Path.cwd()
-                    )
-                    output_dir = Path(output_dir, "generated_imgs")
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {output_dir}",
+                        value=f"Images will be saved at {get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,
                     )
+                    img2img_status = gr.Textbox(visible=False)
                 with gr.Row():
                     img2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
                     img2img_sendto_outpaint = gr.Button(
@@ -640,13 +648,21 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 lora_hf_id,
                 ondemand,
             ],
-            outputs=[img2img_gallery, std_output],
+            outputs=[img2img_gallery, std_output, img2img_status],
             show_progress=args.progress_bar,
         )
 
-        prompt_submit = prompt.submit(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**kwargs)
-        generate_click = stable_diffusion.click(**kwargs)
+        status_kwargs = dict(
+            fn=lambda bc, bs: status_label("Image-to-Image", 0, bc, bs),
+            inputs=[batch_count, batch_size],
+            outputs=img2img_status,
+        )
+
+        prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
+        generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],

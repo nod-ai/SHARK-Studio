@@ -109,6 +109,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--max_embeddings_multiples",
+    type=int,
+    default=5,
+    help="The max multiple length of prompt embeddings compared to the max output length of text encoder.",
+)
+
+p.add_argument(
     "--strength",
     type=float,
     default=0.8,
@@ -373,6 +380,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--iree_metal_target_platfrom",
+    type=str,
+    default="",
+    help="Specify target triple for metal",
+)
+
+p.add_argument(
     "--vulkan_debug_utils",
     default=False,
     action=argparse.BooleanOptionalAction,
@@ -521,6 +535,22 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="flag for enabling rest API",
 )
+
+p.add_argument(
+    "--output_gallery",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="flag for removing the output gallery tab, and avoid exposing images under --output_dir in the UI",
+)
+
+p.add_argument(
+    "--output_gallery_followlinks",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="flag for whether the output gallery tab in the UI should follow symlinks when listing subdirectorys under --output_dir",
+)
+
+
 ##############################################################################
 ### SD model auto-annotation flags
 ##############################################################################

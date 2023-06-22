@@ -18,6 +18,7 @@ from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
 )
+from shark.iree_utils.metal_utils import get_metal_target_triple
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
@@ -47,6 +48,7 @@ def get_vmfb_path_name(model_name):
 def _load_vmfb(shark_module, vmfb_path, model, precision):
     model = "vae" if "base_vae" in model or "vae_encode" in model else model
     model = "unet" if "stencil" in model else model
+    model = "unet" if "unet512" in model else model
     precision = "fp32" if "clip" in model else precision
     extra_args = get_opt_flags(model, precision)
     shark_module.load_module(vmfb_path, extra_args=extra_args)
@@ -83,7 +85,6 @@ def get_shark_model(tank_url, model_name, extra_args=[]):
 
     # Set local shark_tank cache directory.
     shark_args.local_tank_cache = args.local_tank_cache
-
     from shark.shark_downloader import download_model
 
     if "cuda" in args.device:
@@ -116,6 +117,7 @@ def compile_through_fx(
     model_name=None,
     precision=None,
     return_mlir=False,
+    device=None,
 ):
     if not return_mlir and model_name is not None:
         vmfb_path = get_vmfb_path_name(extended_model_name)
@@ -146,7 +148,10 @@ def compile_through_fx(
     if use_tuned:
         if "vae" in extended_model_name.split("_")[0]:
             args.annotation_model = "vae"
-        if "unet" in model_name.split("_")[0]:
+        if (
+            "unet" in model_name.split("_")[0]
+            or "unet_512" in model_name.split("_")[0]
+        ):
             args.annotation_model = "unet"
         mlir_module = sd_model_annotation(
             mlir_module, extended_model_name, base_model_id
@@ -154,7 +159,7 @@ def compile_through_fx(
 
     shark_module = SharkInference(
         mlir_module,
-        device=args.device,
+        device=args.device if device is None else device,
         mlir_dialect="tm_tensor",
     )
     if generate_vmfb:
@@ -270,6 +275,15 @@ def set_init_device_flags():
         )
     elif "cuda" in args.device:
         args.device = "cuda"
+    elif "metal" in args.device:
+        device_name, args.device = map_device_to_name_path(args.device)
+        if not args.iree_metal_target_platfrom:
+            triple = get_metal_target_triple(device_name)
+            if triple is not None:
+                args.iree_metal_target_platfrom = triple
+        print(
+            f"Found device {device_name}. Using target triple {args.iree_metal_target_platfrom}."
+        )
     elif "cpu" in args.device:
         args.device = "cpu"
 
@@ -294,10 +308,15 @@ def set_init_device_flags():
     if (
         args.precision != "fp16"
         or args.height not in [512, 768]
-        or (args.height == 512 and args.width != 512)
-        or (args.height == 768 and args.width != 768)
+        or (args.height == 512 and args.width not in [512, 768])
+        or (args.height == 768 and args.width not in [512, 768])
         or args.batch_size != 1
         or ("vulkan" not in args.device and "cuda" not in args.device)
+    ):
+        args.use_tuned = False
+
+    elif (
+        args.height != args.width and "rdna2" in args.iree_vulkan_target_triple
     ):
         args.use_tuned = False
 
@@ -338,13 +357,25 @@ def set_init_device_flags():
                 "stabilityai/stable-diffusion-2-1",
                 "stabilityai/stable-diffusion-2-1-base",
             ]
-            or "rdna3" not in args.iree_vulkan_target_triple
+            or "rdna" not in args.iree_vulkan_target_triple
         )
     ):
         args.use_tuned = False
 
+    elif "rdna2" in args.iree_vulkan_target_triple and (
+        base_model_id
+        not in [
+            "stabilityai/stable-diffusion-2-1",
+            "stabilityai/stable-diffusion-2-1-base",
+            "CompVis/stable-diffusion-v1-4",
+        ]
+    ):
+        args.use_tuned = False
+
     if args.use_tuned:
-        print(f"Using tuned models for {base_model_id}/fp16/{args.device}.")
+        print(
+            f"Using tuned models for {base_model_id}(fp16) on device {args.device}."
+        )
     else:
         print("Tuned models are currently not supported for this setting.")
 
@@ -410,9 +441,14 @@ def get_available_devices():
     available_devices = []
     vulkan_devices = get_devices_by_name("vulkan")
     available_devices.extend(vulkan_devices)
+    metal_devices = get_devices_by_name("metal")
+    available_devices.extend(metal_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
-    available_devices.append("device => cpu")
+    cpu_device = get_devices_by_name("cpu-sync")
+    available_devices.extend(cpu_device)
+    cpu_device = get_devices_by_name("cpu-task")
+    available_devices.extend(cpu_device)
     return available_devices
 
 
@@ -694,11 +730,20 @@ def clear_all():
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
 
 
+def get_generated_imgs_path() -> Path:
+    return Path(
+        args.output_dir if args.output_dir else Path.cwd(), "generated_imgs"
+    )
+
+
+def get_generated_imgs_todays_subdir() -> str:
+    return dt.now().strftime("%Y%m%d")
+
+
 # save output images and the inputs corresponding to it.
 def save_output_img(output_img, img_seed, extra_info={}):
-    output_path = args.output_dir if args.output_dir else Path.cwd()
     generated_imgs_path = Path(
-        output_path, "generated_imgs", dt.now().strftime("%Y%m%d")
+        get_generated_imgs_path(), get_generated_imgs_todays_subdir()
     )
     generated_imgs_path.mkdir(parents=True, exist_ok=True)
     csv_path = Path(generated_imgs_path, "imgs_details.csv")

@@ -1,12 +1,15 @@
 from multiprocessing import Process, freeze_support
 import os
 import sys
-import transformers
+import shutil
+import PIL, transformers  # ensures inclusion in pysintaller exe generation
 from apps.stable_diffusion.src import args, clear_all
 import apps.stable_diffusion.web.utils.global_obj as global_obj
 
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
+    # import before IREE to avoid MLIR library issues
+    import torch_mlir
 
 if args.clear_all:
     clear_all()
@@ -55,15 +58,19 @@ if __name__ == "__main__":
         uvicorn.run(app, host="127.0.0.1", port=args.server_port)
         sys.exit(0)
 
-    import gradio as gr
+    # Setup to use shark_tmp for gradio's temporary image files and clear any
+    # existing temporary images there if they exist. Then we can import gradio.
+    # It has to be in this order or gradio ignores what we've set up.
     from apps.stable_diffusion.web.utils.gradio_configs import (
-        clear_gradio_tmp_imgs_folder,
+        config_gradio_tmp_imgs_folder,
     )
+
+    config_gradio_tmp_imgs_folder()
+    import gradio as gr
+
+    # Create custom models folders if they don't exist
     from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
 
-    # Clear all gradio tmp images from the last session
-    clear_gradio_tmp_imgs_folder()
-    # Create custom models folders if they don't exist
     create_custom_models_folders()
 
     def resource_path(relative_path):
@@ -80,6 +87,8 @@ if __name__ == "__main__":
         txt2img_custom_model,
         txt2img_hf_model_id,
         txt2img_gallery,
+        txt2img_png_info_img,
+        txt2img_status,
         txt2img_sendto_img2img,
         txt2img_sendto_inpaint,
         txt2img_sendto_outpaint,
@@ -89,6 +98,7 @@ if __name__ == "__main__":
         img2img_hf_model_id,
         img2img_gallery,
         img2img_init_image,
+        img2img_status,
         img2img_sendto_inpaint,
         img2img_sendto_outpaint,
         img2img_sendto_upscaler,
@@ -97,6 +107,7 @@ if __name__ == "__main__":
         inpaint_hf_model_id,
         inpaint_gallery,
         inpaint_init_image,
+        inpaint_status,
         inpaint_sendto_img2img,
         inpaint_sendto_outpaint,
         inpaint_sendto_upscaler,
@@ -105,6 +116,7 @@ if __name__ == "__main__":
         outpaint_hf_model_id,
         outpaint_gallery,
         outpaint_init_image,
+        outpaint_status,
         outpaint_sendto_img2img,
         outpaint_sendto_inpaint,
         outpaint_sendto_upscaler,
@@ -113,6 +125,7 @@ if __name__ == "__main__":
         upscaler_hf_model_id,
         upscaler_gallery,
         upscaler_init_image,
+        upscaler_status,
         upscaler_sendto_img2img,
         upscaler_sendto_inpaint,
         upscaler_sendto_outpaint,
@@ -125,6 +138,15 @@ if __name__ == "__main__":
         modelmanager_sendto_outpaint,
         modelmanager_sendto_upscaler,
         stablelm_chat,
+        outputgallery_web,
+        outputgallery_tab_select,
+        outputgallery_watch,
+        outputgallery_filename,
+        outputgallery_sendto_txt2img,
+        outputgallery_sendto_img2img,
+        outputgallery_sendto_inpaint,
+        outputgallery_sendto_outpaint,
+        outputgallery_sendto_upscaler,
     )
 
     # init global sd pipeline and config
@@ -144,6 +166,16 @@ if __name__ == "__main__":
         button.click(
             lambda x: (
                 "None",
+                x,
+                gr.Tabs.update(selected=selectedid),
+            ),
+            inputs,
+            outputs,
+        )
+
+    def register_outputgallery_button(button, selectedid, inputs, outputs):
+        button.click(
+            lambda x: (
                 x,
                 gr.Tabs.update(selected=selectedid),
             ),
@@ -171,7 +203,23 @@ if __name__ == "__main__":
                 stablelm_chat.render()
             with gr.TabItem(label="LoRA Training(Experimental)", id=7):
                 lora_train_web.render()
+            if args.output_gallery:
+                with gr.TabItem(label="Output Gallery", id=8) as og_tab:
+                    outputgallery_web.render()
 
+                # extra output gallery configuration
+                outputgallery_tab_select(og_tab.select)
+                outputgallery_watch(
+                    [
+                        txt2img_status,
+                        img2img_status,
+                        inpaint_status,
+                        outpaint_status,
+                        upscaler_status,
+                    ]
+                )
+
+        # send to buttons
         register_button_click(
             txt2img_sendto_img2img,
             1,
@@ -268,6 +316,37 @@ if __name__ == "__main__":
             [upscaler_gallery],
             [outpaint_init_image, tabs],
         )
+        if args.output_gallery:
+            register_outputgallery_button(
+                outputgallery_sendto_txt2img,
+                0,
+                [outputgallery_filename],
+                [txt2img_png_info_img, tabs],
+            )
+            register_outputgallery_button(
+                outputgallery_sendto_img2img,
+                1,
+                [outputgallery_filename],
+                [img2img_init_image, tabs],
+            )
+            register_outputgallery_button(
+                outputgallery_sendto_inpaint,
+                2,
+                [outputgallery_filename],
+                [inpaint_init_image, tabs],
+            )
+            register_outputgallery_button(
+                outputgallery_sendto_outpaint,
+                3,
+                [outputgallery_filename],
+                [outpaint_init_image, tabs],
+            )
+            register_outputgallery_button(
+                outputgallery_sendto_upscaler,
+                4,
+                [outputgallery_filename],
+                [upscaler_init_image, tabs],
+            )
         register_modelmanager_button(
             modelmanager_sendto_txt2img,
             0,

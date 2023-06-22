@@ -10,7 +10,7 @@ Vulkan AMD:
 iree-compile --iree-input-type=none --iree-hal-target-backends=vulkan --iree-vulkan-target-triple=rdna2-unknown-linux --iree-stream-resource-index-bits=64 --iree-vm-target-index-bits=64 /path/to/input/mlir -o /path/to/output/vmfb
 
 #  add --mlir-print-debuginfo --mlir-print-op-on-diagnostic=true for debug
-#  use –iree-input-type=mhlo for tf models
+#  use –iree-input-type=auto or "mhlo_legacy" or "stablehlo" for TF models
 
 CUDA NVIDIA:
 iree-compile --iree-input-type=none --iree-hal-target-backends=cuda --iree-stream-resource-index-bits=64 --iree-vm-target-index-bits=64 /path/to/input/mlir -o /path/to/output/vmfb

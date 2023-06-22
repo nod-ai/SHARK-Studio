@@ -20,6 +20,8 @@ from diffusers import (
 )
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+    SD_STATE_IDLE,
+    SD_STATE_CANCEL,
     StableDiffusionPipeline,
 )
 from apps.stable_diffusion.src.utils import (
@@ -84,6 +86,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
     ):
         super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
         self.low_res_scheduler = low_res_scheduler
+        self.status = SD_STATE_IDLE
 
     def prepare_extra_step_kwargs(self, generator, eta):
         accepts_eta = "eta" in set(
@@ -164,6 +167,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
+        self.status = SD_STATE_IDLE
         self.load_unet()
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
@@ -209,6 +213,9 @@ class UpscalerPipeline(StableDiffusionPipeline):
             #      f"\nstep = {i} | timestep = {t} | time = {step_time:.2f}ms"
             #  )
             step_time_sum += step_time
+
+            if self.status == SD_STATE_CANCEL:
+                break
 
         if self.ondemand:
             self.unload_unet()

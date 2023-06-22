@@ -2,7 +2,7 @@ import unittest
 
 import pytest
 import torch_mlir
-from hacked_hf_opt import OPTModel
+from shark_hf_opt import OPTModel
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from tank.model_utils import compare_tensors
@@ -56,13 +56,12 @@ class OPTModuleTester:
 
         shark_module = SharkInference(
             model_mlir,
-            func_name,
             device=device,
             mlir_dialect="tm_tensor",
             is_benchmark=self.benchmark,
         )
         shark_module.compile()
-        results = shark_module.forward((input_ids, attention_mask))
+        results = shark_module("forward", (input_ids, attention_mask))
         assert compare_tensors(act_out, results)
 
         if self.benchmark:

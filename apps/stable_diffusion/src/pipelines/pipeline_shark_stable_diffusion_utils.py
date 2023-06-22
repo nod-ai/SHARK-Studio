@@ -57,6 +57,7 @@ class StableDiffusionPipeline:
         self.vae = None
         self.text_encoder = None
         self.unet = None
+        self.unet_512 = None
         self.model_max_length = 77
         self.scheduler = scheduler
         # TODO: Implement using logging python utility.
@@ -87,7 +88,8 @@ class StableDiffusionPipeline:
         else:
             try:
                 self.text_encoder = get_clip()
-            except:
+            except Exception as e:
+                print(e)
                 print("download pipeline failed, falling back to import_mlir")
                 self.text_encoder = self.sd_model.clip()
 
@@ -104,13 +106,32 @@ class StableDiffusionPipeline:
         else:
             try:
                 self.unet = get_unet()
-            except:
+            except Exception as e:
+                print(e)
                 print("download pipeline failed, falling back to import_mlir")
                 self.unet = self.sd_model.unet()
 
     def unload_unet(self):
         del self.unet
         self.unet = None
+
+    def load_unet_512(self):
+        if self.unet_512 is not None:
+            return
+
+        if self.import_mlir or self.use_lora:
+            self.unet_512 = self.sd_model.unet(use_large=True)
+        else:
+            try:
+                self.unet_512 = get_unet(use_large=True)
+            except Exception as e:
+                print(e)
+                print("download pipeline failed, falling back to import_mlir")
+                self.unet_512 = self.sd_model.unet(use_large=True)
+
+    def unload_unet_512(self):
+        del self.unet_512
+        self.unet_512 = None
 
     def load_vae(self):
         if self.vae is not None:
@@ -121,7 +142,8 @@ class StableDiffusionPipeline:
         else:
             try:
                 self.vae = get_vae()
-            except:
+            except Exception as e:
+                print(e)
                 print("download pipeline failed, falling back to import_mlir")
                 self.vae = self.sd_model.vae()
 
@@ -200,7 +222,10 @@ class StableDiffusionPipeline:
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
-        self.load_unet()
+        if text_embeddings.shape[1] <= self.model_max_length:
+            self.load_unet()
+        else:
+            self.load_unet_512()
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(dtype).detach().numpy()
@@ -219,16 +244,28 @@ class StableDiffusionPipeline:
 
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
-            noise_pred = self.unet(
-                "forward",
-                (
-                    latent_model_input,
-                    timestep,
-                    text_embeddings_numpy,
-                    guidance_scale,
-                ),
-                send_to_host=False,
-            )
+            if text_embeddings.shape[1] <= self.model_max_length:
+                noise_pred = self.unet(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                    ),
+                    send_to_host=False,
+                )
+            else:
+                noise_pred = self.unet_512(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                    ),
+                    send_to_host=False,
+                )
             end_profiling(profile_device)
 
             if cpu_scheduling:
@@ -251,6 +288,7 @@ class StableDiffusionPipeline:
 
         if self.ondemand:
             self.unload_unet()
+            self.unload_unet_512()
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -408,6 +446,11 @@ class StableDiffusionPipeline:
             # uncond_embeddings = uncond_embeddings.repeat(1, num_images_per_prompt, 1)
             # uncond_embeddings = uncond_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
             text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+        if text_embeddings.shape[1] > model_max_length:
+            pad = (0, 0) * (len(text_embeddings.shape) - 2)
+            pad = pad + (0, 512 - text_embeddings.shape[1])
+            text_embeddings = torch.nn.functional.pad(text_embeddings, pad)
 
         # SHARK: Report clip inference time
         clip_inf_time = (time.time() - clip_inf_start) * 1000

@@ -1,4 +1,3 @@
-from pathlib import Path
 import os
 import torch
 import time
@@ -17,7 +16,8 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
-from apps.stable_diffusion.web.utils.png_metadata import import_png_metadata
+from apps.stable_diffusion.web.utils.metadata import import_png_metadata
+from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
     Text2ImagePipeline,
@@ -27,10 +27,14 @@ from apps.stable_diffusion.src import (
     save_output_img,
     prompt_examples,
 )
-from apps.stable_diffusion.src.utils import get_generation_text_info
+from apps.stable_diffusion.src.utils import (
+    get_generated_imgs_path,
+    get_generation_text_info,
+)
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_iree_metal_target_platfrom = args.iree_metal_target_platfrom
 init_use_tuned = args.use_tuned
 init_import_mlir = args.import_mlir
 
@@ -134,6 +138,7 @@ def txt2img_inf(
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
         args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.iree_metal_target_platfrom = init_iree_metal_target_platfrom
         args.use_tuned = init_use_tuned
         args.import_mlir = init_import_mlir
         args.img_path = None
@@ -190,6 +195,7 @@ def txt2img_inf(
             dtype,
             args.use_base_vae,
             cpu_scheduling,
+            args.max_embeddings_multiples,
         )
         seeds.append(img_seed)
         total_time = time.time() - start_time
@@ -202,9 +208,11 @@ def txt2img_inf(
         else:
             save_output_img(out_imgs[0], img_seed)
             generated_imgs.extend(out_imgs)
-            yield generated_imgs, text_output
+            yield generated_imgs, text_output, status_label(
+                "Text-to-Image", i + 1, batch_count, batch_size
+            )
 
-    return generated_imgs, text_output
+    return generated_imgs, text_output, ""
 
 
 def encode_pil_to_base64(images):
@@ -308,7 +316,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 + get_custom_model_files("vae"),
                             )
                     with gr.Column(scale=1, min_width=170):
-                        png_info_img = gr.Image(
+                        txt2img_png_info_img = gr.Image(
                             label="Import PNG info",
                             elem_id="txt2img_prompt_image",
                             type="pil",
@@ -446,10 +454,10 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     with gr.Column(scale=2):
                         random_seed = gr.Button("Randomize Seed")
                         random_seed.click(
-                            None,
+                            lambda: -1,
                             inputs=[],
                             outputs=[seed],
-                            _js="() => -1",
+                            queue=False,
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")
@@ -469,16 +477,13 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
-                    output_dir = (
-                        args.output_dir if args.output_dir else Path.cwd()
-                    )
-                    output_dir = Path(output_dir, "generated_imgs")
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {output_dir}",
+                        value=f"Images will be saved at {get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,
                     )
+                    txt2img_status = gr.Textbox(visible=False)
                 with gr.Row():
                     txt2img_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     txt2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
@@ -514,22 +519,30 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 lora_hf_id,
                 ondemand,
             ],
-            outputs=[txt2img_gallery, std_output],
+            outputs=[txt2img_gallery, std_output, txt2img_status],
             show_progress=args.progress_bar,
         )
 
-        prompt_submit = prompt.submit(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**kwargs)
-        generate_click = stable_diffusion.click(**kwargs)
+        status_kwargs = dict(
+            fn=lambda bc, bs: status_label("Text-to-Image", 0, bc, bs),
+            inputs=[batch_count, batch_size],
+            outputs=txt2img_status,
+        )
+
+        prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
+        generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )
 
-        png_info_img.change(
+        txt2img_png_info_img.change(
             fn=import_png_metadata,
             inputs=[
-                png_info_img,
+                txt2img_png_info_img,
                 prompt,
                 negative_prompt,
                 steps,
@@ -545,7 +558,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 custom_vae
             ],
             outputs=[
-                png_info_img,
+                txt2img_png_info_img,
                 prompt,
                 negative_prompt,
                 steps,

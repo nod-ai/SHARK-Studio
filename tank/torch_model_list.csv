@@ -23,3 +23,6 @@ bert-base-uncased_fp16,True,fp16,False,linalg,False,109M,"nlp;bert-variant;trans
 bert-large-uncased,True,hf,True,linalg,False,330M,"nlp;bert-variant;transformer-encoder","24 layers, 1024 hidden units, 16 attention heads"
 bert-base-uncased,True,hf,False,stablehlo,False,109M,"nlp;bert-variant;transformer-encoder","12 layers; 768 hidden; 12 attention heads"
 gpt2,True,hf_causallm,False,stablehlo,True,125M,"nlp;transformer-encoder","-"
+facebook/opt-125m,True,hf,False,stablehlo,True,125M,"nlp;transformer-encoder","-"
+distilgpt2,True,hf,False,stablehlo,True,88M,"nlp;transformer-encoder","-"
+microsoft/deberta-v3-base,True,hf,False,stablehlo,True,88M,"nlp;transformer-encoder","-"

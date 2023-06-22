@@ -312,6 +312,47 @@ def get_f16_inputs(inputs, is_f16, f16_input_mask):
     return tuple(f16_masked_inputs)
 
 
+# Upcasts the block/list of ops.
+def add_upcast(fx_g):
+    import torch
+
+    for node in fx_g.graph.nodes:
+        if node.target in [torch.ops.aten.mul]:
+            # This is a very strict check.
+            if hasattr(node.args[1], "target"):
+                if (
+                    node.args[1].target in [torch.ops.aten.rsqrt]
+                    and node.args[1].args[0].target in [torch.ops.aten.add]
+                    and node.args[1].args[0].args[0].target
+                    in [torch.ops.aten.mean]
+                    and node.args[1].args[0].args[0].args[0].target
+                    in [torch.ops.aten.pow]
+                ):
+                    print("found an upcasting block let's upcast it.")
+                    pow_node = node.args[1].args[0].args[0].args[0]
+                    mul_node = node
+                    with fx_g.graph.inserting_before(pow_node):
+                        lhs = pow_node.args[0]
+                        upcast_lhs = fx_g.graph.call_function(
+                            torch.ops.aten._to_copy,
+                            args=(lhs,),
+                            kwargs={"dtype": torch.float32},
+                        )
+                        pow_node.args = (upcast_lhs, pow_node.args[1])
+                    with fx_g.graph.inserting_before(mul_node):
+                        new_node = fx_g.graph.call_function(
+                            torch.ops.aten._to_copy,
+                            args=(mul_node,),
+                            kwargs={"dtype": torch.float16},
+                        )
+                        mul_node.append(new_node)
+                        mul_node.replace_all_uses_with(new_node)
+                        new_node.args = (mul_node,)
+                        new_node.kwargs = {"dtype": torch.float16}
+
+    fx_g.graph.lint()
+
+
 def transform_fx(fx_g):
     import torch
 
@@ -329,6 +370,7 @@ def transform_fx(fx_g):
                 torch.ops.aten.arange,
                 torch.ops.aten.empty,
                 torch.ops.aten.zeros,
+                torch.ops.aten.zeros_like,
             ]:
                 if node.kwargs.get("dtype") == torch.float32:
                     node.kwargs = kwargs_dict
@@ -339,6 +381,28 @@ def transform_fx(fx_g):
             ]:
                 if node.kwargs.get("dtype") == torch.float32:
                     node.kwargs = kwargs_dict1
+
+            if node.target in [
+                torch.ops.aten.masked_fill,
+            ]:
+                if node.args[2] > torch.finfo(torch.half).max:
+                    max_val = torch.finfo(torch.half).max
+                    node.args = (node.args[0], node.args[1], max_val)
+                elif node.args[2] < torch.finfo(torch.half).min:
+                    min_val = torch.finfo(torch.half).min
+                    node.args = (node.args[0], node.args[1], min_val)
+
+            if node.target in [
+                torch.ops.aten.full,
+            ]:
+                if node.args[1] > torch.finfo(torch.half).max:
+                    max_val = torch.finfo(torch.half).max
+                    node.args = (node.args[0], max_val)
+                    node.kwargs = kwargs_dict
+                elif node.args[1] < torch.finfo(torch.half).min:
+                    min_val = torch.finfo(torch.half).min
+                    node.args = (node.args[0], min_val)
+                    node.kwargs = kwargs_dict
 
             # Inputs and outputs of aten.var.mean should be upcasted to fp32.
             if node.target in [torch.ops.aten.var_mean]:
@@ -363,18 +427,6 @@ def transform_fx(fx_g):
                         new_node.args = (node,)
                         new_node.kwargs = {"dtype": torch.float16}
 
-            # Change the default dtype of aten.full op. (Vicuna)
-            if node.target in [torch.ops.aten.full]:
-                new_node = fx_g.graph.call_function(
-                    torch.ops.aten._to_copy,
-                    args=(node,),
-                    kwargs={"dtype": torch.float16},
-                )
-                node.append(new_node)
-                node.replace_all_uses_with(new_node)
-                new_node.args = (node,)
-                new_node.kwargs = {"dtype": torch.float16}
-
             # aten.empty should be filled with zeros.
             if node.target in [torch.ops.aten.empty]:
                 with fx_g.graph.inserting_after(node):
@@ -385,6 +437,14 @@ def transform_fx(fx_g):
                     node.append(new_node)
                     node.replace_all_uses_with(new_node)
                     new_node.args = (node,)
+
+    # Required for cuda debugging.
+    # for node in fx_g.graph.nodes:
+    # if node.op == "call_function":
+    # if node.kwargs.get("device") == torch.device(type="cpu"):
+    # new_kwargs = node.kwargs.copy()
+    # new_kwargs["device"] = torch.device(type="cuda")
+    # node.kwargs = new_kwargs
 
     fx_g.graph.lint()
 
@@ -466,6 +526,8 @@ def import_with_fx(
                 torch.ops.aten.split.Tensor,
                 torch.ops.aten.split_with_sizes,
                 torch.ops.aten.native_layer_norm,
+                torch.ops.aten.masked_fill.Tensor,
+                torch.ops.aten.masked_fill.Scalar,
             ]
         ),
     )(*inputs)
@@ -489,6 +551,8 @@ def import_with_fx(
     if is_f16:
         fx_g = fx_g.half()
         transform_fx(fx_g)
+        # TODO: Have to make it more generic.
+        add_upcast(fx_g)
         fx_g.recompile()
 
     if training:
@@ -496,6 +560,9 @@ def import_with_fx(
         inputs = flatten_training_input(inputs)
 
     ts_graph = torch.jit.script(fx_g)
+    if mlir_type == "torchscript":
+        return ts_graph
+
     inputs = get_f16_inputs(inputs, is_f16, f16_input_mask)
     mlir_importer = SharkImporter(
         ts_graph,

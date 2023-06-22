@@ -1,4 +1,4 @@
-# Copyright 2020 The Nod Team. All rights reserved.
+# Copyright 2023 The Nod Team. All rights reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,10 +43,16 @@ def get_iree_device_args(device, extra_args=[]):
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
-    if device_uri[0] in ["metal", "vulkan"]:
+    if device_uri[0] == "vulkan":
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
         return get_iree_vulkan_args(
+            device_num=device_num, extra_args=extra_args
+        )
+    if device_uri[0] == "metal":
+        from shark.iree_utils.metal_utils import get_iree_metal_args
+
+        return get_iree_metal_args(
             device_num=device_num, extra_args=extra_args
         )
     if device_uri[0] == "rocm":
@@ -60,10 +66,9 @@ def get_iree_device_args(device, extra_args=[]):
 def get_iree_frontend_args(frontend):
     if frontend in ["torch", "pytorch", "linalg", "tm_tensor"]:
         return ["--iree-llvmcpu-target-cpu-features=host"]
-    elif frontend in ["tensorflow", "tf", "mhlo"]:
+    elif frontend in ["tensorflow", "tf", "mhlo", "stablehlo"]:
         return [
             "--iree-llvmcpu-target-cpu-features=host",
-            "--iree-mhlo-demote-i64-to-i32=false",
             "--iree-flow-demote-i64-to-i32",
         ]
     else:
@@ -265,8 +270,8 @@ def compile_module_to_flatbuffer(
     args += extra_args
 
     if frontend in ["tensorflow", "tf"]:
-        input_type = "mhlo"
-    elif frontend in ["mhlo", "tosa"]:
+        input_type = "auto"
+    elif frontend in ["stablehlo", "tosa"]:
         input_type = frontend
     elif frontend in ["tflite", "tflite-tosa"]:
         input_type = "tosa"
@@ -367,7 +372,7 @@ def export_iree_module_to_vmfb(
 def export_module_to_mlir_file(module, frontend, directory: str):
     # TODO: write proper documentation.
     mlir_str = module
-    if frontend in ["tensorflow", "tf", "mhlo", "tflite"]:
+    if frontend in ["tensorflow", "tf", "mhlo", "stablehlo", "tflite"]:
         mlir_str = module.decode("utf-8")
     elif frontend in ["pytorch", "torch"]:
         mlir_str = module.operation.get_asm()

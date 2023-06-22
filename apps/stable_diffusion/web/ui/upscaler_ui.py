@@ -1,8 +1,6 @@
-from pathlib import Path
 import os
 import torch
 import time
-import sys
 import gradio as gr
 from PIL import Image
 import base64
@@ -17,16 +15,16 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_upscaler_models,
     cancel_sd,
 )
+from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
     UpscalerPipeline,
     get_schedulers,
     set_init_device_flags,
     utils,
-    clear_all,
     save_output_img,
 )
-
+from apps.stable_diffusion.src.utils import get_generated_imgs_path
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
@@ -66,6 +64,9 @@ def upscaler_inf(
         Config,
     )
     import apps.stable_diffusion.web.utils.global_obj as global_obj
+    from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
+        SD_STATE_CANCEL,
+    )
 
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
@@ -202,13 +203,24 @@ def upscaler_inf(
                     args.use_base_vae,
                     cpu_scheduling,
                 )
-                high_res_img.paste(upscaled_image[0], (j * 4, i * 4))
+                if global_obj.get_sd_status() == SD_STATE_CANCEL:
+                    break
+                else:
+                    high_res_img.paste(upscaled_image[0], (j * 4, i * 4))
 
-        save_output_img(high_res_img, img_seed, extra_info)
-        generated_imgs.append(high_res_img)
-        seeds.append(img_seed)
-        global_obj.get_sd_obj().log += "\n"
-        yield generated_imgs, global_obj.get_sd_obj().log
+            if global_obj.get_sd_status() == SD_STATE_CANCEL:
+                break
+
+        if global_obj.get_sd_status() == SD_STATE_CANCEL:
+            break
+        else:
+            save_output_img(high_res_img, img_seed, extra_info)
+            generated_imgs.append(high_res_img)
+            seeds.append(img_seed)
+            global_obj.get_sd_obj().log += "\n"
+            yield generated_imgs, global_obj.get_sd_obj().log, status_label(
+                "Upscaler", current_batch + 1, batch_count, batch_size
+            )
 
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
@@ -220,7 +232,7 @@ def upscaler_inf(
     text_output += global_obj.get_sd_obj().log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
-    yield generated_imgs, text_output
+    yield generated_imgs, text_output, ""
 
 
 def decode_base64_to_image(encoding):
@@ -287,6 +299,9 @@ def upscaler_api(
         lora_hf_id="",
         ondemand=False,
     )
+    # Converts generator type to subscriptable
+    res = list(res)[0]
+
     return {
         "images": encode_pil_to_base64(res[0]),
         "parameters": {},
@@ -480,10 +495,10 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                     with gr.Column(scale=2):
                         random_seed = gr.Button("Randomize Seed")
                         random_seed.click(
-                            None,
+                            lambda: -1,
                             inputs=[],
                             outputs=[seed],
-                            _js="() => -1",
+                            queue=False,
                         )
                     with gr.Column(scale=6):
                         stable_diffusion = gr.Button("Generate Image(s)")
@@ -495,16 +510,14 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         show_label=False,
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
-                    output_dir = (
-                        args.output_dir if args.output_dir else Path.cwd()
-                    )
-                    output_dir = Path(output_dir, "generated_imgs")
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {output_dir}",
+                        value=f"Images will be saved at {get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,
                     )
+                    upscaler_status = gr.Textbox(visible=False)
+
                 with gr.Row():
                     upscaler_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     upscaler_sendto_inpaint = gr.Button(value="SendTo Inpaint")
@@ -539,13 +552,21 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                 lora_hf_id,
                 ondemand,
             ],
-            outputs=[upscaler_gallery, std_output],
+            outputs=[upscaler_gallery, std_output, upscaler_status],
             show_progress=args.progress_bar,
         )
+        status_kwargs = dict(
+            fn=lambda bc, bs: status_label("Upscaler", 0, bc, bs),
+            inputs=[batch_count, batch_size],
+            outputs=upscaler_status,
+        )
 
-        prompt_submit = prompt.submit(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**kwargs)
-        generate_click = stable_diffusion.click(**kwargs)
+        prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **kwargs
+        )
+        generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
-            fn=None, cancels=[prompt_submit, neg_prompt_submit, generate_click]
+            fn=cancel_sd,
+            cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )

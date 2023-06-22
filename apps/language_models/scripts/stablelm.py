@@ -1,27 +1,15 @@
 import torch
 import torch_mlir
 from transformers import (
-    AutoModelForCausalLM,
     AutoTokenizer,
-    pipeline,
     StoppingCriteria,
-    StoppingCriteriaList,
-    TextIteratorStreamer,
 )
-import time
-import numpy as np
-from torch.nn import functional as F
-import os
-from threading import Thread
-from torch.fx.experimental.proxy_tensor import make_fx
-from torch._decomp import get_decompositions
-from typing import List
 from io import BytesIO
 from pathlib import Path
-from shark.shark_downloader import download_public_file
-
-from shark.shark_inference import SharkInference
-from pathlib import Path
+from apps.language_models.utils import (
+    get_torch_mlir_module_bytecode,
+    get_vmfb_from_path,
+)
 
 
 class StopOnTokens(StoppingCriteria):
@@ -51,143 +39,32 @@ def user(message, history):
     return "", history + [[message, ""]]
 
 
-def get_torch_mlir_module_bytecode(model, model_inputs):
-    fx_g = make_fx(
-        model,
-        decomposition_table=get_decompositions(
-            [
-                torch.ops.aten.embedding_dense_backward,
-                torch.ops.aten.native_layer_norm_backward,
-                torch.ops.aten.slice_backward,
-                torch.ops.aten.select_backward,
-                torch.ops.aten.norm.ScalarOpt_dim,
-                torch.ops.aten.native_group_norm,
-                torch.ops.aten.upsample_bilinear2d.vec,
-                torch.ops.aten.split.Tensor,
-                torch.ops.aten.split_with_sizes,
-            ]
-        ),
-        # tracing_mode='symbolic',
-    )(*model_inputs)
-    print("Got FX_G")
-
-    def _remove_nones(fx_g: torch.fx.GraphModule) -> List[int]:
-        removed_indexes = []
-        for node in fx_g.graph.nodes:
-            if node.op == "output":
-                assert (
-                    len(node.args) == 1
-                ), "Output node must have a single argument"
-                node_arg = node.args[0]
-                if isinstance(node_arg, (list, tuple)):
-                    node_arg = list(node_arg)
-                    node_args_len = len(node_arg)
-                    for i in range(node_args_len):
-                        curr_index = node_args_len - (i + 1)
-                        if node_arg[curr_index] is None:
-                            removed_indexes.append(curr_index)
-                            node_arg.pop(curr_index)
-                    node.args = (tuple(node_arg),)
-                    break
-
-        if len(removed_indexes) > 0:
-            fx_g.graph.lint()
-            fx_g.graph.eliminate_dead_code()
-            fx_g.recompile()
-        removed_indexes.sort()
-        return removed_indexes
-
-    def _unwrap_single_tuple_return(fx_g: torch.fx.GraphModule) -> bool:
-        """
-        Replace tuple with tuple element in functions that return one-element tuples.
-        Returns true if an unwrapping took place, and false otherwise.
-        """
-        unwrapped_tuple = False
-        for node in fx_g.graph.nodes:
-            if node.op == "output":
-                assert (
-                    len(node.args) == 1
-                ), "Output node must have a single argument"
-                node_arg = node.args[0]
-                if isinstance(node_arg, tuple):
-                    if len(node_arg) == 1:
-                        node.args = (node_arg[0],)
-                        unwrapped_tuple = True
-                        break
-
-        if unwrapped_tuple:
-            fx_g.graph.lint()
-            fx_g.recompile()
-        return unwrapped_tuple
-
-    def transform_fx(fx_g):
-        for node in fx_g.graph.nodes:
-            if node.op == "call_function":
-                if node.target in [
-                    torch.ops.aten.empty,
-                ]:
-                    # aten.empty should be filled with zeros.
-                    if node.target in [torch.ops.aten.empty]:
-                        with fx_g.graph.inserting_after(node):
-                            new_node = fx_g.graph.call_function(
-                                torch.ops.aten.zero_,
-                                args=(node,),
-                            )
-                            node.append(new_node)
-                            node.replace_all_uses_with(new_node)
-                            new_node.args = (node,)
-
-        fx_g.graph.lint()
-
-    transform_fx(fx_g)
-    fx_g.recompile()
-    removed_none_indexes = _remove_nones(fx_g)
-    was_unwrapped = _unwrap_single_tuple_return(fx_g)
-
-    fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
-    fx_g.recompile()
-
-    print("FX_G recompile")
-
-    def strip_overloads(gm):
-        """
-        Modifies the target of graph nodes in :attr:`gm` to strip overloads.
-        Args:
-            gm(fx.GraphModule): The input Fx graph module to be modified
-        """
-        for node in gm.graph.nodes:
-            if isinstance(node.target, torch._ops.OpOverload):
-                node.target = node.target.overloadpacket
-        gm.recompile()
-
-    strip_overloads(fx_g)
-    ts_g = torch.jit.script(fx_g)
-    print("Got TS_G")
-    return ts_g
-
-
-def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
-    # ADD Device Arg
+def compile_stableLM(
+    model,
+    model_inputs,
+    model_name,
+    model_vmfb_name,
+    device="cuda",
+    precision="fp32",
+):
     from shark.shark_inference import SharkInference
 
-    device = "cuda"  # 'cpu'
+    # device = "cuda"  # "cpu"
+    # TODO: vmfb and mlir name should include precision and device
     vmfb_path = (
         Path(model_name + f"_{device}.vmfb")
         if model_vmfb_name is None
         else Path(model_vmfb_name)
     )
-    if vmfb_path.exists():
-        print("Loading vmfb from: ", vmfb_path)
-        shark_module = SharkInference(
-            None, device=device, mlir_dialect="tm_tensor"
-        )
-        shark_module.load_module(vmfb_path)
-        print("Successfully loaded vmfb")
+    shark_module = get_vmfb_from_path(
+        vmfb_path, device, mlir_dialect="tm_tensor"
+    )
+    if shark_module is not None:
         return shark_module
 
     mlir_path = Path(model_name + ".mlir")
     print(
-        f"[DEBUG] mlir path { mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
+        f"[DEBUG] mlir path {mlir_path} {'exists' if mlir_path.exists() else 'does not exist'}"
     )
     if mlir_path.exists():
         with open(mlir_path, "rb") as f:
@@ -214,9 +91,9 @@ def compile_stableLM(model, model_inputs, model_name, model_vmfb_name):
     )
     shark_module.compile()
 
-    import os
-
-    path = shark_module.save_module(os.getcwd(), model_vmfb_name, [])
+    path = shark_module.save_module(
+        vmfb_path.parent.absolute(), vmfb_path.stem
+    )
     print("Saved vmfb at ", str(path))
 
     return shark_module
@@ -249,60 +126,85 @@ def get_tokenizer():
     model_path = "stabilityai/stablelm-tuned-alpha-3b"
     tok = AutoTokenizer.from_pretrained(model_path)
     tok.add_special_tokens({"pad_token": "<PAD>"})
-    print(f"Sucessfully loaded the tokenizer to the memory")
+    print("Sucessfully loaded the tokenizer to the memory")
     return tok
 
 
-# sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
+# sharkStableLM = compile_stableLM
+# (
+#   None,
+#   tuple([input_ids, attention_mask]),
+#   "stableLM_linalg_f32_seqLen256",
+#   "/home/shark/vivek/stableLM_shark_f32_seqLen256"
+# )
 def generate(
     new_text,
-    # streamer,
     max_new_tokens,
-    do_sample,
-    top_p,
-    top_k,
-    temperature,
-    num_beams,
-    stopping_criteria,
     sharkStableLM,
-    tok=None,
-    input_ids=torch.randint(3, (1, 256)),
-    attention_mask=torch.randint(3, (1, 256)),
+    tokenizer=None,
 ):
-    if tok == None:
-        tok = get_tokenizer()
-    # Construct the input message string for the model by concatenating the current system message and conversation history
+    if tokenizer is None:
+        tokenizer = get_tokenizer()
+    # Construct the input message string for the model by
+    # concatenating the current system message and conversation history
     # Tokenize the messages string
-    # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
+    # sharkStableLM = compile_stableLM
+    # (
+    #   None,
+    #   tuple([input_ids, attention_mask]),
+    #   "stableLM_linalg_f32_seqLen256",
+    #   "/home/shark/vivek/stableLM_shark_f32_seqLen256"
+    # )
     words_list = []
     for i in range(max_new_tokens):
-        numWords = len(new_text.split())
+        # numWords = len(new_text.split())
         # if(numWords>220):
         #  break
-        model_inputs = tok(
-            [new_text],
-            padding="max_length",
-            max_length=MAX_SEQUENCE_LENGTH,
-            truncation=True,
-            return_tensors="pt",
+        params = {
+            "new_text": new_text,
+        }
+        generated_token_op = generate_new_token(
+            sharkStableLM, tokenizer, params
         )
-        sum_attentionmask = torch.sum(model_inputs.attention_mask)
-        # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
-        output = sharkStableLM(
-            "forward", [model_inputs.input_ids, model_inputs.attention_mask]
-        )
-        output = torch.from_numpy(output)
-        next_toks = torch.topk(output, 1)
-        if shouldStop(next_toks.indices):
+        detok = generated_token_op["detok"]
+        stop_generation = generated_token_op["stop_generation"]
+        if stop_generation:
             break
-        #        streamer.put(next_toks.indices[0][int(sum_attentionmask)-1])
-        new_word = tok.decode(
-            next_toks.indices[0][int(sum_attentionmask) - 1],
-            skip_special_tokens=True,
-        )
-        print(new_word, end="", flush=True)
-        words_list.append(new_word)
-        if new_word == "":
+        print(detok, end="", flush=True)
+        words_list.append(detok)
+        if detok == "":
             break
-        new_text = new_text + new_word
+        new_text = new_text + detok
     return words_list
+
+
+def generate_new_token(shark_model, tokenizer, params):
+    new_text = params["new_text"]
+    model_inputs = tokenizer(
+        [new_text],
+        padding="max_length",
+        max_length=MAX_SEQUENCE_LENGTH,
+        truncation=True,
+        return_tensors="pt",
+    )
+    sum_attentionmask = torch.sum(model_inputs.attention_mask)
+    # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
+    output = shark_model(
+        "forward", [model_inputs.input_ids, model_inputs.attention_mask]
+    )
+    output = torch.from_numpy(output)
+    next_toks = torch.topk(output, 1)
+    stop_generation = False
+    if shouldStop(next_toks.indices):
+        stop_generation = True
+    new_token = next_toks.indices[0][int(sum_attentionmask) - 1]
+    detok = tokenizer.decode(
+        new_token,
+        skip_special_tokens=True,
+    )
+    ret_dict = {
+        "new_token": new_token,
+        "detok": detok,
+        "stop_generation": stop_generation,
+    }
+    return ret_dict

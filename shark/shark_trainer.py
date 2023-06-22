@@ -59,6 +59,7 @@ class SharkTrainer:
             "torch",
             "tensorflow",
             "tf",
+            "stablehlo",
             "mhlo",
             "linalg",
             "tosa",
@@ -84,7 +85,7 @@ class SharkTrainer:
                 "tm_tensor",
                 extra_args=extra_args,
             )
-        elif self.frontend in ["tensorflow", "tf", "mhlo"]:
+        elif self.frontend in ["tensorflow", "tf", "mhlo", "stablehlo"]:
             self.shark_runner = SharkRunner(
                 self.model,
                 self.input,
