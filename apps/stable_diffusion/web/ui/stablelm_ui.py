@@ -140,6 +140,8 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             choices=[
                 "fp16",
                 "fp32",
+                "int4",
+                "int8",
             ],
             visible=True,
         )
