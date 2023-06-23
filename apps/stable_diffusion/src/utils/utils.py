@@ -810,8 +810,11 @@ def save_output_img(output_img, img_seed, extra_info={}):
 
     new_entry.update(extra_info)
 
-    with open(csv_path, "a", encoding="utf-8") as csv_obj:
+    csv_mode = "a" if os.path.isfile(csv_path) else "w"
+    with open(csv_path, csv_mode, encoding="utf-8") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
+        if csv_mode == "w":
+            dictwriter_obj.writeheader()
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()
 
