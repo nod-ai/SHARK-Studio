@@ -380,6 +380,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--iree_metal_target_platform",
+    type=str,
+    default="",
+    help="Specify target triple for metal",
+)
+
+p.add_argument(
     "--vulkan_debug_utils",
     default=False,
     action=argparse.BooleanOptionalAction,

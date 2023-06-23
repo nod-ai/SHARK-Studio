@@ -34,6 +34,7 @@ from apps.stable_diffusion.src.utils import (
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_iree_metal_target_platform = args.iree_metal_target_platform
 init_use_tuned = args.use_tuned
 init_import_mlir = args.import_mlir
 
@@ -138,6 +139,7 @@ def txt2img_inf(
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
         args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.iree_metal_target_platform = init_iree_metal_target_platform
         args.use_tuned = init_use_tuned
         args.import_mlir = init_import_mlir
         args.img_path = None
@@ -556,6 +558,9 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 height,
                 txt2img_custom_model,
                 txt2img_hf_model_id,
+                lora_weights,
+                lora_hf_id,
+                custom_vae,
             ],
             outputs=[
                 txt2img_png_info_img,
@@ -569,5 +574,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 height,
                 txt2img_custom_model,
                 txt2img_hf_model_id,
+                lora_weights,
+                lora_hf_id,
+                custom_vae,
             ],
         )

@@ -48,6 +48,8 @@ class SharkInference:
         Refer to {https://mlir.llvm.org/docs/Dialects/}
     is_benchmark: bool
         Whether this SharkInference module should be benchmark-enabled.
+    mmap: bool
+        Whether to load/run vmfb using mmap. It's `True` by default.
 
     Methods
     -------
@@ -70,6 +72,7 @@ class SharkInference:
         dispatch_benchmark: str = None,
         dispatch_benchmark_dir: str = "temp_dispatch_benchmarks",
         device_idx: int = None,
+        mmap: bool = True,
     ):
         self.mlir_module = mlir_module
         self.device = shark_args.device if device == "none" else device
@@ -88,6 +91,7 @@ class SharkInference:
         )
 
         self.shark_runner = None
+        self.mmap = mmap
 
     def compile(self, extra_args=[]):
         if self.dispatch_benchmarks is not None:
@@ -201,12 +205,14 @@ class SharkInference:
             compile_vmfb=False,
             extra_args=extra_args,
         )
-        (
-            self.shark_runner.iree_compilation_module,
-            self.shark_runner.iree_config,
-        ) = load_flatbuffer(
+        params = load_flatbuffer(
             path,
             self.device,
             self.device_idx,
+            mmap=self.mmap,
         )
+        self.shark_runner.iree_compilation_module = params["vmfb"]
+        self.shark_runner.iree_config = params["config"]
+        self.shark_runner.temp_file_to_unlink = params["temp_file_to_unlink"]
+        del params
         return

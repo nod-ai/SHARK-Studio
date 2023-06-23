@@ -41,17 +41,21 @@ def chat(curr_system_message, history, model, device, precision):
 
         curr_system_message = start_message_vicuna
         if vicuna_model == 0:
-            first_vic_vmfb_path = Path("first_vicuna.vmfb")
-            second_vic_vmfb_path = Path("second_vicuna.vmfb")
             if "cuda" in device:
                 device = "cuda"
+            elif "sync" in device:
+                device = "cpu-sync"
+            elif "task" in device:
+                device = "cpu-task"
+            elif "vulkan" in device:
+                device = "vulkan"
+            else:
+                print("unrecognized device")
             vicuna_model = Vicuna(
                 "vicuna",
                 hf_model_path=model,
                 device=device,
                 precision=precision,
-                first_vicuna_vmfb_path=first_vic_vmfb_path,
-                second_vicuna_vmfb_path=second_vic_vmfb_path,
             )
         messages = curr_system_message + "".join(
             [
@@ -120,9 +124,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 "TheBloke/vicuna-7B-1.1-HF",
             ],
         )
-        supported_devices = [
-            device for device in available_devices if "cuda" in device
-        ]
+        supported_devices = available_devices
         enabled = len(supported_devices) > 0
         device = gr.Dropdown(
             label="Device",

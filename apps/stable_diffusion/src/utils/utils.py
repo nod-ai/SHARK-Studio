@@ -18,6 +18,7 @@ from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
 )
+from shark.iree_utils.metal_utils import get_metal_target_triple
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
@@ -274,6 +275,15 @@ def set_init_device_flags():
         )
     elif "cuda" in args.device:
         args.device = "cuda"
+    elif "metal" in args.device:
+        device_name, args.device = map_device_to_name_path(args.device)
+        if not args.iree_metal_target_platform:
+            triple = get_metal_target_triple(device_name)
+            if triple is not None:
+                args.iree_metal_target_platform = triple
+        print(
+            f"Found device {device_name}. Using target triple {args.iree_metal_target_platform}."
+        )
     elif "cpu" in args.device:
         args.device = "cpu"
 
@@ -431,9 +441,14 @@ def get_available_devices():
     available_devices = []
     vulkan_devices = get_devices_by_name("vulkan")
     available_devices.extend(vulkan_devices)
+    metal_devices = get_devices_by_name("metal")
+    available_devices.extend(metal_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
-    available_devices.append("device => cpu")
+    cpu_device = get_devices_by_name("cpu-sync")
+    available_devices.extend(cpu_device)
+    cpu_device = get_devices_by_name("cpu-task")
+    available_devices.extend(cpu_device)
     return available_devices
 
 
@@ -742,6 +757,14 @@ def save_output_img(output_img, img_seed, extra_info={}):
     if args.ckpt_loc:
         img_model = Path(os.path.basename(args.ckpt_loc)).stem
 
+    img_vae = None
+    if args.custom_vae:
+        img_vae = Path(os.path.basename(args.custom_vae)).stem
+
+    img_lora = None
+    if args.use_lora:
+        img_lora = Path(os.path.basename(args.use_lora)).stem
+
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
         output_img.save(out_img_path, quality=95, subsampling=0)
@@ -752,7 +775,9 @@ def save_output_img(output_img, img_seed, extra_info={}):
         if args.write_metadata_to_png:
             pngInfo.add_text(
                 "parameters",
-                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed}, Size: {args.width}x{args.height}, Model: {img_model}",
+                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps: {args.steps},"
+                f"Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed},"
+                f"Size: {args.width}x{args.height}, Model: {img_model}, VAE: {img_vae}, LoRA: {img_lora}",
             )
 
         output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
@@ -763,6 +788,9 @@ def save_output_img(output_img, img_seed, extra_info={}):
                 "Image saved as png instead. Supported formats: png / jpg"
             )
 
+    # To be as low-impact as possible to the existing CSV format, we append
+    # "VAE" and "LORA" to the end. However, it does not fit the hierarchy of
+    # importance for each data point. Something to consider.
     new_entry = {
         "VARIANT": img_model,
         "SCHEDULER": args.scheduler,
@@ -776,6 +804,8 @@ def save_output_img(output_img, img_seed, extra_info={}):
         "WIDTH": args.width,
         "MAX_LENGTH": args.max_length,
         "OUTPUT": out_img_path,
+        "VAE": img_vae,
+        "LORA": img_lora,
     }
 
     new_entry.update(extra_info)
