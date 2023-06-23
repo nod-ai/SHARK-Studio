@@ -464,7 +464,6 @@ class Vicuna(SharkLLMBase):
         logits = generated_token_op["logits"]
         pkv = generated_token_op["pkv"]
         detok = generated_token_op["detok"]
-        yield detok
 
         res.append(detok)
         res_tokens.append(token)
@@ -506,8 +505,6 @@ class Vicuna(SharkLLMBase):
                 res.append(detok)
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
-            yield detok
-
         if self.device == "cuda":
             del sec_vic, pkv, logits
             torch.cuda.empty_cache()
