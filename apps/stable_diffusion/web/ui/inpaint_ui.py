@@ -507,7 +507,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         label="Image Save Location",
                         show_label=False,
                         interactive=True,
-                        placeholder=f"Images will be saved at {get_generated_imgs_path()} by default.\nTo save the imagtes in a custom director, type the path to an already created directory to save the images in.",
+                        placeholder=f"Images will be saved at {get_generated_imgs_path()} by default.\nTo save the images in a custom directory, type the path to an already created directory to save the images in.",
                     )
                     inpaint_status = gr.Textbox(visible=False)
 
