@@ -301,7 +301,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             )
                             txt2img_hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
-                                placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3, https://civitai.com/api/download/models/15236",
+                                placeholder="Select 'None' in the dropdown on the left and enter model ID here",
                                 value="",
                                 label="HuggingFace Model ID or Civitai model download URL",
                                 lines=3,
