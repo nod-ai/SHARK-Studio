@@ -60,12 +60,15 @@ def download_public_file(
             else:
                 continue
 
-        destination_filename = os.path.join(destination_folder_name, blob_name)
-        if os.path.isdir(destination_filename):
-            continue
-        with open(destination_filename, "wb") as f:
-            with tqdm.wrapattr(f, "write", total=blob.size) as file_obj:
-                storage_client.download_blob_to_file(blob, file_obj)
+        else:
+            destination_filename = os.path.join(
+                destination_folder_name, blob_name
+            )
+            if os.path.isdir(destination_filename):
+                continue
+            with open(destination_filename, "wb") as f:
+                with tqdm.wrapattr(f, "write", total=blob.size) as file_obj:
+                    storage_client.download_blob_to_file(blob, file_obj)
 
 
 input_type_to_np_dtype = {
