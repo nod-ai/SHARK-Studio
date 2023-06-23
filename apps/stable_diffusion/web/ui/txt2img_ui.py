@@ -268,7 +268,7 @@ def txt2img_api(
 
     # Convert Generator to Subscriptable
     res = next(res)
-    
+
     return {
         "images": encode_pil_to_base64(res[0]),
         "parameters": {},
