@@ -65,16 +65,14 @@ def chat(curr_system_message, history, model, device, precision):
         )
         prompt = messages.strip()
         print("prompt = ", prompt)
-        sentence = vicuna_model.generate(prompt)
 
         partial_text = ""
-        for new_text in sentence.split(" "):
+        for new_text in vicuna_model.generate(prompt):
             # print(new_text)
             partial_text += new_text + " "
             history[-1][1] = partial_text
             # Yield an empty string to cleanup the message textbox and the updated conversation history
             yield history
-        history[-1][1] = sentence
         return history
 
     # else Model is StableLM
@@ -124,13 +122,13 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 "TheBloke/vicuna-7B-1.1-HF",
             ],
         )
-        supported_devices = available_devices
+        supported_devices = available_devices + ["AMD-AIE"]
         enabled = len(supported_devices) > 0
         device = gr.Dropdown(
             label="Device",
             value=supported_devices[0]
             if enabled
-            else "Only CUDA Supported for now",
+            else "No devices supported for now",
             choices=supported_devices,
             interactive=enabled,
         )
