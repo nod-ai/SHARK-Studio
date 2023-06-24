@@ -30,7 +30,11 @@ def launch_app(address):
     width = window.winfo_screenwidth()
     height = window.winfo_screenheight()
     webview.create_window(
-        "SHARK AI Studio", url=address, width=width, height=height
+        "SHARK AI Studio",
+        url=address,
+        width=width,
+        height=height,
+        text_select=True,
     )
     webview.start(private_mode=False)
 
