@@ -136,8 +136,10 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         )
         precision = gr.Radio(
             label="Precision",
-            value="fp32",
+            value="fp16",
             choices=[
+                "int4",
+                "int8",
                 "fp16",
                 "fp32",
             ],
