@@ -12,8 +12,8 @@ from transformers import AutoTokenizer, OPTForCausalLM
 
 OPT_MODEL = "opt-1.3b"
 OPT_FS_NAME = "opt-1_3b"
-MAX_SEQUENCE_LENGTH = 30
-MAX_NEW_TOKENS = 20
+MAX_SEQUENCE_LENGTH = 128
+MAX_NEW_TOKENS = 60
 
 
 def create_module(model_name, tokenizer, device):
@@ -110,13 +110,13 @@ if __name__ == "__main__":
         "facebook/" + OPT_MODEL, use_fast=False
     )
     vmfb_path = (
-        f"./{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-sync.vmfb"
+        f"./{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_cpu-task.vmfb"
     )
-    opt_shark_module = SharkInference(mlir_module=None, device="cpu-sync")
+    opt_shark_module = SharkInference(mlir_module=None, device="cpu-task")
     if os.path.isfile(vmfb_path):
         opt_shark_module.load_module(vmfb_path)
     else:
-        vmfb_path = create_module(OPT_MODEL, tokenizer, "cpu-sync")
+        vmfb_path = create_module(OPT_MODEL, tokenizer, "cpu-task")
         opt_shark_module.load_module(vmfb_path)
     while True:
         try:
