@@ -145,7 +145,7 @@ class CompiledSecondVicunaLayer(torch.nn.Module):
 
 
 class ShardedVicunaModel(torch.nn.Module):
-    def __init__(self, model, layers0, layers1):
+    def __init__(self, model, layers0, layers1, lmhead, embedding, norm):
         super().__init__()
         self.model = model
         assert len(layers0) == len(model.model.layers)
@@ -154,6 +154,12 @@ class ShardedVicunaModel(torch.nn.Module):
         self.model.model.config.output_attentions = False
         self.layers0 = layers0
         self.layers1 = layers1
+        self.norm = norm
+        self.embedding = embedding
+        self.lmhead = lmhead
+        self.model.model.norm = self.norm
+        self.model.model.embed_tokens = self.embedding
+        self.model.lm_head = self.lmhead
 
     def forward(
         self,
@@ -176,3 +182,69 @@ class ShardedVicunaModel(torch.nn.Module):
                 attention_mask=attention_mask,
                 past_key_values=past_key_values,
             )
+
+
+class LMHead(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, hidden_states):
+        output = self.model(hidden_states)
+        return output
+
+
+class LMHeadCompiled(torch.nn.Module):
+    def __init__(self, shark_module):
+        super().__init__()
+        self.model = shark_module
+
+    def forward(self, hidden_states):
+        hidden_states = hidden_states.detach()
+        output = self.model("forward", (hidden_states,))
+        output = torch.tensor(output)
+        return output
+
+
+class VicunaNorm(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, hidden_states):
+        output = self.model(hidden_states)
+        return output
+
+
+class VicunaNormCompiled(torch.nn.Module):
+    def __init__(self, shark_module):
+        super().__init__()
+        self.model = shark_module
+
+    def forward(self, hidden_states):
+        hidden_states.detach()
+        output = self.model("forward", (hidden_states,))
+        output = torch.tensor(output)
+        return output
+
+
+class VicunaEmbedding(torch.nn.Module):
+    def __init__(self, model):
+        super().__init__()
+        self.model = model
+
+    def forward(self, input_ids):
+        output = self.model(input_ids)
+        return output
+
+
+class VicunaEmbeddingCompiled(torch.nn.Module):
+    def __init__(self, shark_module):
+        super().__init__()
+        self.model = shark_module
+
+    def forward(self, input_ids):
+        input_ids.detach()
+        output = self.model("forward", (input_ids,))
+        output = torch.tensor(output)
+        return output

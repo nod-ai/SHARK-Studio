@@ -33,16 +33,23 @@ class Vicuna(SharkLLMBase):
         first_vicuna_vmfb_path=None,
         second_vicuna_vmfb_path=None,
         load_mlir_from_shark_tank=True,
+        low_device_memory=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
         self.device = device
+        if precision in ["int4", "int8"]:
+            print("int4 and int8 are not supported yet, using fp32")
+            precision = "fp32"
         self.precision = precision
         self.first_vicuna_vmfb_path = first_vicuna_vmfb_path
         self.second_vicuna_vmfb_path = second_vicuna_vmfb_path
         self.first_vicuna_mlir_path = first_vicuna_mlir_path
         self.second_vicuna_mlir_path = second_vicuna_mlir_path
         self.load_mlir_from_shark_tank = load_mlir_from_shark_tank
+        self.low_device_memory = low_device_memory
+        self.first_vic = None
+        self.second_vic = None
         if self.first_vicuna_mlir_path == None:
             self.first_vicuna_mlir_path = self.get_model_path()
         if self.second_vicuna_mlir_path == None:
@@ -61,7 +68,7 @@ class Vicuna(SharkLLMBase):
         if suffix == "mlir":
             return Path(f"{model_number}_vicuna_{self.precision}.{suffix}")
         return Path(
-            f"{model_number}_vicuna_{safe_device}_{self.precision}.{suffix}"
+            f"{model_number}_vicuna_{self.precision}_{safe_device}.{suffix}"
         )
 
     def get_tokenizer(self):
@@ -87,7 +94,7 @@ class Vicuna(SharkLLMBase):
         # Compilation path needs some more work before it is functional
 
         print(
-            f"[DEBUG] vmfb not found at {self.first_vicuna_vmfb_path.absolute()}. Trying to work with"
+            f"[DEBUG] vmfb not found at {self.first_vicuna_vmfb_path.absolute()}. Trying to work with\n"
             f"[DEBUG] mlir path { self.first_vicuna_mlir_path} {'exists' if self.first_vicuna_mlir_path.exists() else 'does not exist'}"
         )
         if self.first_vicuna_mlir_path.exists():
@@ -436,12 +443,19 @@ class Vicuna(SharkLLMBase):
         # TODO: refactor for cleaner integration
         import gc
 
+        if not self.low_device_memory:
+            if self.first_vic == None:
+                self.first_vic = self.compile_first_vicuna()
+            if self.second_vic == None:
+                self.second_vic = self.compile_second_vicuna()
         res = []
         res_tokens = []
         params = {
             "prompt": prompt,
             "is_first": True,
-            "fv": self.compile_first_vicuna(),
+            "fv": self.compile_first_vicuna()
+            if self.first_vic == None
+            else self.first_vic,
         }
 
         generated_token_op = self.generate_new_token(params=params)
@@ -457,18 +471,20 @@ class Vicuna(SharkLLMBase):
             print(f"Assistant: {detok}", end=" ", flush=True)
 
         # Clear First Vic from Memory (main and cuda)
-        del params
-        torch.cuda.empty_cache()
-        gc.collect()
+        if self.low_device_memory:
+            del params
+            torch.cuda.empty_cache()
+            gc.collect()
 
-        sec_vic = self.compile_second_vicuna()
         for _ in range(self.max_num_tokens - 2):
             params = {
                 "prompt": None,
                 "is_first": False,
                 "logits": logits,
                 "pkv": pkv,
-                "sv": sec_vic,
+                "sv": self.compile_second_vicuna()
+                if self.second_vic == None
+                else self.second_vic,
             }
 
             generated_token_op = self.generate_new_token(params=params)
@@ -489,9 +505,10 @@ class Vicuna(SharkLLMBase):
                 res.append(detok)
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
-        del sec_vic, pkv, logits
-        torch.cuda.empty_cache()
-        gc.collect()
+        if self.device == "cuda":
+            del sec_vic, pkv, logits
+            torch.cuda.empty_cache()
+            gc.collect()
 
         for i in range(len(res_tokens)):
             if type(res_tokens[i]) != int:
