@@ -91,6 +91,18 @@ def compact(metadata: dict) -> dict:
         else:
             result["Hires resize"] = f"{hires_y}x{hires_x}"
 
+    # remove VAE if it exists and is empty
+    if (result.keys() & {"VAE"}) and (
+        not result["VAE"] or result["VAE"] == "None"
+    ):
+        result.pop("VAE")
+
+    # remove LoRA if it exists and is empty
+    if (result.keys() & {"LoRA"}) and (
+        not result["LoRA"] or result["LoRA"] == "None"
+    ):
+        result.pop("LoRA")
+
     return result
 
 

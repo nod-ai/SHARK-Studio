@@ -247,7 +247,7 @@ footer {
     line-height: var(--line-xs)
 }
 
-#output_refresh_button {
+.output_icon_button {
     max-width: 30px;
     align-self: end;
     padding-bottom: 8px;
