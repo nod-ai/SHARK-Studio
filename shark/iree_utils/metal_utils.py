@@ -100,7 +100,9 @@ def get_iree_metal_args(device_num=0, extra_args=[]):
         metal_triple_flag = get_metal_triple_flag(extra_args=extra_args)
 
     if metal_triple_flag is not None:
-        vulkan_target_env = get_vulkan_target_env_flag("-iree-vulkan-target-triple=m1-moltenvk-macos")
+        vulkan_target_env = get_vulkan_target_env_flag(
+            "-iree-vulkan-target-triple=m1-moltenvk-macos"
+        )
         res_metal_flag.append(vulkan_target_env)
     return res_metal_flag
 
