@@ -39,7 +39,7 @@ setup(
     install_requires=[
         "numpy",
         "PyYAML",
-        "torch-mlir>=20221021.633",
+        "torch-mlir==20230620.875",
     ]
     + backend_deps,
 )

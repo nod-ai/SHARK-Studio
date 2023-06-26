@@ -342,7 +342,7 @@ def img2img_api(
     )
 
     # Converts generator type to subscriptable
-    res = list(res)[0]
+    res = next(res)
 
     return {
         "images": encode_pil_to_base64(res[0]),

@@ -757,6 +757,14 @@ def save_output_img(output_img, img_seed, extra_info={}):
     if args.ckpt_loc:
         img_model = Path(os.path.basename(args.ckpt_loc)).stem
 
+    img_vae = None
+    if args.custom_vae:
+        img_vae = Path(os.path.basename(args.custom_vae)).stem
+
+    img_lora = None
+    if args.use_lora:
+        img_lora = Path(os.path.basename(args.use_lora)).stem
+
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")
         output_img.save(out_img_path, quality=95, subsampling=0)
@@ -767,7 +775,9 @@ def save_output_img(output_img, img_seed, extra_info={}):
         if args.write_metadata_to_png:
             pngInfo.add_text(
                 "parameters",
-                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps:{args.steps}, Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed}, Size: {args.width}x{args.height}, Model: {img_model}",
+                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps: {args.steps},"
+                f"Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed},"
+                f"Size: {args.width}x{args.height}, Model: {img_model}, VAE: {img_vae}, LoRA: {img_lora}",
             )
 
         output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
@@ -778,6 +788,9 @@ def save_output_img(output_img, img_seed, extra_info={}):
                 "Image saved as png instead. Supported formats: png / jpg"
             )
 
+    # To be as low-impact as possible to the existing CSV format, we append
+    # "VAE" and "LORA" to the end. However, it does not fit the hierarchy of
+    # importance for each data point. Something to consider.
     new_entry = {
         "VARIANT": img_model,
         "SCHEDULER": args.scheduler,
@@ -791,12 +804,17 @@ def save_output_img(output_img, img_seed, extra_info={}):
         "WIDTH": args.width,
         "MAX_LENGTH": args.max_length,
         "OUTPUT": out_img_path,
+        "VAE": img_vae,
+        "LORA": img_lora,
     }
 
     new_entry.update(extra_info)
 
-    with open(csv_path, "a", encoding="utf-8") as csv_obj:
+    csv_mode = "a" if os.path.isfile(csv_path) else "w"
+    with open(csv_path, csv_mode, encoding="utf-8") as csv_obj:
         dictwriter_obj = DictWriter(csv_obj, fieldnames=list(new_entry.keys()))
+        if csv_mode == "w":
+            dictwriter_obj.writeheader()
         dictwriter_obj.writerow(new_entry)
         csv_obj.close()
 
