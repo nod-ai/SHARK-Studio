@@ -136,7 +136,7 @@ class SharkBackend:
         self.shark_module = shark_module
 
     def __call__(self, *inputs):
-        np_inputs = [x.detach().cpu().numpy() for x in inputs]
+        np_inputs = [x.contiguous().detach().cpu().numpy() for x in inputs]
         np_outs = self.shark_module("forward", np_inputs)
         if self.was_unwrapped:
             np_outs = [
