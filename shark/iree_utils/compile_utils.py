@@ -41,10 +41,7 @@ def get_iree_device_args(device, extra_args=[]):
     if device_uri[0] == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
-        data_tiling_flag = ["--iree-flow-enable-data-tiling"]
-        u_kernel_flag = ["--iree-llvmcpu-enable-microkernels"]
-
-        return get_iree_cpu_args() + data_tiling_flag + u_kernel_flag
+        return get_iree_cpu_args()
     if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
