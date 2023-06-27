@@ -378,6 +378,7 @@ class InpaintPipeline(StableDiffusionPipeline):
         dtype,
         use_base_vae,
         cpu_scheduling,
+        max_embeddings_multiples,
     ):
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
@@ -408,7 +409,10 @@ class InpaintPipeline(StableDiffusionPipeline):
 
         # Get text embeddings with weight emphasis from prompts
         text_embeddings = self.encode_prompts_weight(
-            prompts, neg_prompts, max_length
+            prompts,
+            neg_prompts,
+            max_length,
+            max_embeddings_multiples=max_embeddings_multiples,
         )
 
         # guidance scale as a float32 tensor.
