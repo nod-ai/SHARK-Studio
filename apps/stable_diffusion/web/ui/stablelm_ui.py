@@ -65,16 +65,11 @@ def chat(curr_system_message, history, model, device, precision):
         )
         prompt = messages.strip()
         print("prompt = ", prompt)
-        sentence = vicuna_model.generate(prompt)
 
-        partial_text = ""
-        for new_text in sentence.split(" "):
-            # print(new_text)
-            partial_text += new_text + " "
+        for partial_text in vicuna_model.generate(prompt):
             history[-1][1] = partial_text
-            # Yield an empty string to cleanup the message textbox and the updated conversation history
             yield history
-        history[-1][1] = sentence
+
         return history
 
     # else Model is StableLM
