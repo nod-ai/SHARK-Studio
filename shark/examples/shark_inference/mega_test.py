@@ -1,10 +1,7 @@
 import torch
 import torch_mlir
 from shark.shark_inference import SharkInference
-from apps.stable_diffusion.src.utils import (
-    compile_through_fx,
-    args,
-)
+from shark.shark_compile import shark_compile_through_fx
 from MEGABYTE_pytorch import MEGABYTE
 
 import os
@@ -37,23 +34,22 @@ class MegaModel(torch.nn.Module):
 
 
 megaModel = MegaModel()
-input = [torch.randint(0, 16000, (1, 1024, 4))]
+inputs = [torch.randint(0, 16000, (1, 1024, 4))]
 
 # CURRENTLY IT BAILS OUT HERE BECAUSE OF MISSING OP LOWERINGS :-
 # 1. aten.alias
-shark_module, _ = compile_through_fx(
-    megaModel,
-    inputs=input,
+shark_module, _ = shark_compile_through_fx(
+    model=megaModel,
+    inputs=inputs,
     extended_model_name="mega_shark",
-    debug=False,
-    generate_vmfb=True,
+    is_f16=False,
+    f16_input_mask=None,
     save_dir=os.getcwd(),
+    debug=False,
+    generate_or_load_vmfb=True,
     extra_args=[],
-    base_model_id=None,
-    model_name="mega_shark",
-    precision=None,
-    return_mlir=True,
     device="cuda",
+    mlir_dialect="tm_tensor",
 )
 # logits = model(x)
 
@@ -63,10 +59,10 @@ def print_output_info(output, msg):
     print("\n\t", output.shape)
 
 
-ans = shark_module("forward", input)
+ans = shark_module("forward", inputs)
 print_output_info(torch.from_numpy(ans), "SHARK's output")
 
-ans = megaModel.forward(*input)
+ans = megaModel.forward(*inputs)
 print_output_info(ans, "ORIGINAL Model's output")
 
 # and sample from the logits accordingly

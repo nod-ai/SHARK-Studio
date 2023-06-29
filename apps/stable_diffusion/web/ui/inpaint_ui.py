@@ -204,6 +204,7 @@ def inpaint_inf(
             dtype,
             args.use_base_vae,
             cpu_scheduling,
+            args.max_embeddings_multiples,
         )
         seeds.append(img_seed)
         total_time = time.time() - start_time

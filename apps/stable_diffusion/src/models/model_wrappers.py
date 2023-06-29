@@ -520,16 +520,17 @@ class SharkifyStableDiffusionModel:
                 torch.nn.functional.pad(inputs[2], pad),
                 inputs[3])
         input_mask = [True, True, True, False]
+        model_name = "unet512" if use_large else "unet"
         shark_unet, unet_mlir = compile_through_fx(
             unet,
             inputs,
-            extended_model_name=self.model_name["unet"],
+            extended_model_name=self.model_name[model_name],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
-            model_name="unet",
+            model_name=model_name,
             precision=self.precision,
             return_mlir=self.return_mlir,
         )

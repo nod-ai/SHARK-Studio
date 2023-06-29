@@ -436,6 +436,14 @@ class Vicuna(SharkLLMBase):
         # return tuple of shark_modules once mem is supported
         # return fvic_shark_model, svic_shark_model
 
+    def decode_tokens(self, res_tokens):
+        for i in range(len(res_tokens)):
+            if type(res_tokens[i]) != int:
+                res_tokens[i] = int(res_tokens[i][0])
+
+        res_str = self.tokenizer.decode(res_tokens)
+        return res_str
+
     def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
         import gc
@@ -445,7 +453,6 @@ class Vicuna(SharkLLMBase):
                 self.first_vic = self.compile_first_vicuna()
             if self.second_vic == None:
                 self.second_vic = self.compile_second_vicuna()
-        res = []
         res_tokens = []
         params = {
             "prompt": prompt,
@@ -461,8 +468,8 @@ class Vicuna(SharkLLMBase):
         logits = generated_token_op["logits"]
         pkv = generated_token_op["pkv"]
         detok = generated_token_op["detok"]
+        yield detok
 
-        res.append(detok)
         res_tokens.append(token)
         if cli:
             print(f"Assistant: {detok}", end=" ", flush=True)
@@ -495,25 +502,24 @@ class Vicuna(SharkLLMBase):
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
-                res.append("\n")
                 if cli:
                     print("\n", end="", flush=True)
             else:
-                res.append(detok)
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
+
+            if len(res_tokens) % 3 == 0:
+                part_str = self.decode_tokens(res_tokens)
+                yield part_str
+
         if self.device == "cuda":
             del sec_vic, pkv, logits
             torch.cuda.empty_cache()
             gc.collect()
 
-        for i in range(len(res_tokens)):
-            if type(res_tokens[i]) != int:
-                res_tokens[i] = int(res_tokens[i][0])
-
-        res_str = self.tokenizer.decode(res_tokens)
+        res_str = self.decode_tokens(res_tokens)
         # print(f"[DEBUG] final output : \n{res_str}")
-        return res_str
+        yield res_str
 
     def generate_new_token(self, params, debug=False):
         def forward_first(first_vic, prompt, cache_outputs=False):
