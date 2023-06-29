@@ -316,7 +316,13 @@ def set_init_device_flags():
         args.use_tuned = False
 
     elif (
-        args.height != args.width and "rdna2" in args.iree_vulkan_target_triple
+        args.height != args.width
+        and "rdna2" in args.iree_vulkan_target_triple
+        and base_model_id
+        not in [
+            "CompVis/stable-diffusion-v1-4",
+            "runwayml/stable-diffusion-v1-5",
+        ]
     ):
         args.use_tuned = False
 
