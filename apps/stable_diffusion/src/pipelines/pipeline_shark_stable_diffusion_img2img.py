@@ -135,6 +135,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         dtype,
         use_base_vae,
         cpu_scheduling,
+        max_embeddings_multiples,
         use_stencil,
     ):
         # prompts and negative prompts must be a list.
@@ -156,7 +157,10 @@ class Image2ImagePipeline(StableDiffusionPipeline):
 
         # Get text embeddings with weight emphasis from prompts
         text_embeddings = self.encode_prompts_weight(
-            prompts, neg_prompts, max_length
+            prompts,
+            neg_prompts,
+            max_length,
+            max_embeddings_multiples=max_embeddings_multiples,
         )
 
         # guidance scale as a float32 tensor.

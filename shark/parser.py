@@ -119,5 +119,11 @@ parser.add_argument(
     "to augment the base device allocator",
     choices=["debug", "caching"],
 )
+parser.add_argument(
+    "--task_topology_max_group_count",
+    type=str,
+    default=None,
+    help="passthrough flag for the iree flag of the same name. If None, defaults to cpu-count",
+)
 
 shark_args, unknown = parser.parse_known_args()

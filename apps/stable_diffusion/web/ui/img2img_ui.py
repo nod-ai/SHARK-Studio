@@ -249,6 +249,7 @@ def img2img_inf(
             dtype,
             args.use_base_vae,
             cpu_scheduling,
+            args.max_embeddings_multiples,
             use_stencil=use_stencil,
         )
         seeds.append(img_seed)
@@ -342,7 +343,7 @@ def img2img_api(
     )
 
     # Converts generator type to subscriptable
-    res = list(res)[0]
+    res = next(res)
 
     return {
         "images": encode_pil_to_base64(res[0]),

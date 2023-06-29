@@ -50,7 +50,22 @@ PARAMS_FORMATS = {
     },
 }
 
-PARAMS_FORMAT_LONGEST = PARAMS_FORMATS[max(PARAMS_FORMATS.keys())]
+PARAMS_FORMAT_CURRENT = {
+    "VARIANT": "Model",
+    "VAE": "VAE",
+    "LORA": "LoRA",
+    "SCHEDULER": "Sampler",
+    "PROMPT": "Prompt",
+    "NEG_PROMPT": "Negative prompt",
+    "SEED": "Seed",
+    "CFG_SCALE": "CFG scale",
+    "PRECISION": "Precision",
+    "STEPS": "Steps",
+    "HEIGHT": "Height",
+    "WIDTH": "Width",
+    "MAX_LENGTH": "Max Length",
+    "OUTPUT": "Filename",
+}
 
 
 def compact(metadata: dict) -> dict:
@@ -97,19 +112,20 @@ def humanize(metadata: dict | list[str], includes_filename=True) -> dict:
             )
 
     # For dictionaries we try to use the matching length parameter format if
-    # available, otherwise we use the longest. Then we swap keys in the
-    # metadata that match keys in the format for the friendlier name that we
-    # have set in the format value
+    # available, otherwise we just use the current format which is assumed to
+    # have everything currently known about. Then we swap keys in the metadata
+    # that match keys in the format for the friendlier name that we have set
+    # in the format value
     if isinstance(metadata, dict):
         if humanizable(metadata, includes_filename):
             format = PARAMS_FORMATS[lookup_key]
         else:
-            format = PARAMS_FORMAT_LONGEST
+            format = PARAMS_FORMAT_CURRENT
 
         return {
-            format[key]: value
-            for (key, value) in metadata.items()
-            if key in format.keys()
+            format[key]: metadata[key]
+            for key in format.keys()
+            if key in metadata.keys() and metadata[key]
         }
 
     raise TypeError("Can only humanize parameter lists or dictionaries")

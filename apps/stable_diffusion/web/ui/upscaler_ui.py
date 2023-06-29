@@ -202,6 +202,7 @@ def upscaler_inf(
                     dtype,
                     args.use_base_vae,
                     cpu_scheduling,
+                    args.max_embeddings_multiples,
                 )
                 if global_obj.get_sd_status() == SD_STATE_CANCEL:
                     break
@@ -300,7 +301,7 @@ def upscaler_api(
         ondemand=False,
     )
     # Converts generator type to subscriptable
-    res = list(res)[0]
+    res = next(res)
 
     return {
         "images": encode_pil_to_base64(res[0]),

@@ -7,7 +7,7 @@ if sys.platform == "darwin":
     import torch_mlir
 
 import shutil
-import PIL, transformers  # ensures inclusion in pysintaller exe generation
+import PIL, sentencepiece, transformers  # ensures inclusion in pysintaller exe generation
 from apps.stable_diffusion.src import args, clear_all
 import apps.stable_diffusion.web.utils.global_obj as global_obj
 
@@ -30,7 +30,11 @@ def launch_app(address):
     width = window.winfo_screenwidth()
     height = window.winfo_screenheight()
     webview.create_window(
-        "SHARK AI Studio", url=address, width=width, height=height
+        "SHARK AI Studio",
+        url=address,
+        width=width,
+        height=height,
+        text_select=True,
     )
     webview.start(private_mode=False)
 
@@ -44,6 +48,7 @@ if __name__ == "__main__":
             img2img_api,
             upscaler_api,
             inpaint_api,
+            outpaint_api,
         )
         from fastapi import FastAPI, APIRouter
         import uvicorn
@@ -55,9 +60,7 @@ if __name__ == "__main__":
         app.add_api_route("/sdapi/v1/txt2img", txt2img_api, methods=["post"])
         app.add_api_route("/sdapi/v1/img2img", img2img_api, methods=["post"])
         app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
-        #  app.add_api_route(
-        #      "/sdapi/v1/outpaint", outpaint_api, methods=["post"]
-        #  )
+        app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
         app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
         app.include_router(APIRouter())
         uvicorn.run(app, host="127.0.0.1", port=args.server_port)

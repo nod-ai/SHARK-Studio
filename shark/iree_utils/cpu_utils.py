@@ -16,6 +16,7 @@
 
 import subprocess
 import platform
+from shark.parser import shark_args
 
 
 def get_cpu_count():
@@ -44,4 +45,18 @@ def get_iree_cpu_args():
         error_message = f"OS Type f{os_name} not supported and triple can't be determined, open issue to dSHARK team please :)"
         raise Exception(error_message)
     print(f"Target triple found:{target_triple}")
-    return [f"--iree-llvmcpu-target-triple={target_triple}"]
+    return [
+        f"--iree-llvmcpu-target-triple={target_triple}",
+    ]
+
+
+# Get iree runtime flags for cpu
+def get_iree_cpu_rt_args():
+    default = get_cpu_count()
+    default = default if default <= 8 else default - 2
+    cpu_count = (
+        default
+        if shark_args.task_topology_max_group_count is None
+        else shark_args.task_topology_max_group_count
+    )
+    return [f"--task_topology_max_group_count={cpu_count}"]
