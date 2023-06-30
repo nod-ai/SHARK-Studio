@@ -524,7 +524,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 ondemand,
             ],
             outputs=[txt2img_gallery, std_output, txt2img_status],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
 
         status_kwargs = dict(

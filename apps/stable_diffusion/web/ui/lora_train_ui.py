@@ -215,7 +215,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                 ),
             ],
             outputs=[std_output],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
 
         prompt_submit = prompt.submit(**kwargs)
