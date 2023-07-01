@@ -251,6 +251,7 @@ def img2img_inf(
             dtype,
             args.use_base_vae,
             cpu_scheduling,
+            args.max_embeddings_multiples,
             use_stencil=use_stencil,
         )
         seeds.append(img_seed)

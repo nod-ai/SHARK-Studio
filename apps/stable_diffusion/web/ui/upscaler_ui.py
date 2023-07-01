@@ -204,6 +204,7 @@ def upscaler_inf(
                     dtype,
                     args.use_base_vae,
                     cpu_scheduling,
+                    args.max_embeddings_multiples,
                 )
                 if global_obj.get_sd_status() == SD_STATE_CANCEL:
                     break

@@ -14,6 +14,7 @@
 import iree.runtime as ireert
 import iree.compiler as ireec
 from shark.iree_utils._common import iree_device_map, iree_target_map
+from shark.iree_utils.cpu_utils import get_iree_cpu_rt_args
 from shark.iree_utils.benchmark_utils import *
 from shark.parser import shark_args
 import numpy as np
@@ -352,6 +353,12 @@ def load_vmfb_using_mmap(
         config = ireert.Config(device=haldevice)
     else:
         config = get_iree_runtime_config(device)
+    if "task" in device:
+        print(
+            f"[DEBUG] setting iree runtime flags for cpu:\n{' '.join(get_iree_cpu_rt_args())}"
+        )
+        for flag in get_iree_cpu_rt_args():
+            ireert.flags.parse_flags(flag)
     # Now load vmfb.
     # Two scenarios we have here :-
     #      1. We either have the vmfb already saved and therefore pass the path of it.
@@ -359,7 +366,6 @@ def load_vmfb_using_mmap(
     #   OR 2. We are compiling on the fly, therefore we have the flatbuffer blob to play with.
     #         (This would arise if we're invoking `compile` from a SharkInference obj)
     temp_file_to_unlink = None
-
     if isinstance(flatbuffer_blob_or_path, Path):
         flatbuffer_blob_or_path = flatbuffer_blob_or_path.__str__()
     if (

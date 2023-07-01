@@ -38,8 +38,10 @@ class Vicuna(SharkLLMBase):
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
         self.device = device
-        if precision in ["int4", "int8"]:
-            print("int4 and int8 are not supported yet, using fp32")
+        if not load_mlir_from_shark_tank and precision in ["int4", "int8"]:
+            print(
+                "int4 and int8 are only available from SHARK tank, please set --load_mlir_from_shark_tank, using fp32 now"
+            )
             precision = "fp32"
         self.precision = precision
         self.first_vicuna_vmfb_path = first_vicuna_vmfb_path
@@ -103,8 +105,8 @@ class Vicuna(SharkLLMBase):
         else:
             mlir_generated = False
             if self.load_mlir_from_shark_tank:
-                if self.precision in ["fp32", "fp16"]:
-                    # download MLIR from shark_tank for fp32/fp16
+                if self.precision in ["fp32", "fp16", "int8", "int4"]:
+                    # download MLIR from shark_tank
                     download_public_file(
                         f"gs://shark_tank/vicuna/unsharded/mlir/{self.first_vicuna_mlir_path.name}",
                         self.first_vicuna_mlir_path.absolute(),
@@ -121,7 +123,7 @@ class Vicuna(SharkLLMBase):
                         )
                 else:
                     print(
-                        f"Only fp32 and fp16 mlir added to tank, generating {self.precision} mlir on device."
+                        f"Only fp32/fp16/int8/int4 mlir added to tank, generating {self.precision} mlir on device."
                     )
 
             if not mlir_generated:
@@ -245,8 +247,8 @@ class Vicuna(SharkLLMBase):
         else:
             mlir_generated = False
             if self.load_mlir_from_shark_tank:
-                if self.precision in ["fp32", "fp16"]:
-                    # download MLIR from shark_tank for fp32/fp16
+                if self.precision in ["fp32", "fp16", "int8", "int4"]:
+                    # download MLIR from shark_tank
                     download_public_file(
                         f"gs://shark_tank/vicuna/unsharded/mlir/{self.second_vicuna_mlir_path.name}",
                         self.second_vicuna_mlir_path.absolute(),
@@ -263,7 +265,7 @@ class Vicuna(SharkLLMBase):
                         )
                 else:
                     print(
-                        "Only fp32 mlir added to tank, generating mlir on device."
+                        "Only fp32/fp16/int8/int4 mlir added to tank, generating mlir on device."
                     )
 
             if not mlir_generated:
@@ -439,6 +441,14 @@ class Vicuna(SharkLLMBase):
         # return tuple of shark_modules once mem is supported
         # return fvic_shark_model, svic_shark_model
 
+    def decode_tokens(self, res_tokens):
+        for i in range(len(res_tokens)):
+            if type(res_tokens[i]) != int:
+                res_tokens[i] = int(res_tokens[i][0])
+
+        res_str = self.tokenizer.decode(res_tokens)
+        return res_str
+
     def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
         import gc
@@ -448,7 +458,6 @@ class Vicuna(SharkLLMBase):
                 self.first_vic = self.compile_first_vicuna()
             if self.second_vic == None:
                 self.second_vic = self.compile_second_vicuna()
-        res = []
         res_tokens = []
         params = {
             "prompt": prompt,
@@ -464,8 +473,8 @@ class Vicuna(SharkLLMBase):
         logits = generated_token_op["logits"]
         pkv = generated_token_op["pkv"]
         detok = generated_token_op["detok"]
+        yield detok
 
-        res.append(detok)
         res_tokens.append(token)
         if cli:
             print(f"Assistant: {detok}", end=" ", flush=True)
@@ -498,25 +507,24 @@ class Vicuna(SharkLLMBase):
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
-                res.append("\n")
                 if cli:
                     print("\n", end="", flush=True)
             else:
-                res.append(detok)
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
+
+            if len(res_tokens) % 3 == 0:
+                part_str = self.decode_tokens(res_tokens)
+                yield part_str
+
         if self.device == "cuda":
             del sec_vic, pkv, logits
             torch.cuda.empty_cache()
             gc.collect()
 
-        for i in range(len(res_tokens)):
-            if type(res_tokens[i]) != int:
-                res_tokens[i] = int(res_tokens[i][0])
-
-        res_str = self.tokenizer.decode(res_tokens)
+        res_str = self.decode_tokens(res_tokens)
         # print(f"[DEBUG] final output : \n{res_str}")
-        return res_str
+        yield res_str
 
     def generate_new_token(self, params, debug=False):
         def forward_first(first_vic, prompt, cache_outputs=False):

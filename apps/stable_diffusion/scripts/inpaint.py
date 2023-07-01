@@ -81,6 +81,7 @@ def main():
             dtype,
             args.use_base_vae,
             cpu_scheduling,
+            args.max_embeddings_multiples,
         )
         total_time = time.time() - start_time
         text_output = f"prompt={args.prompts}"
