@@ -554,7 +554,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                 ondemand,
             ],
             outputs=[upscaler_gallery, std_output, upscaler_status],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Upscaler", 0, bc, bs),

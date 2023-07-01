@@ -650,7 +650,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 ondemand,
             ],
             outputs=[img2img_gallery, std_output, img2img_status],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
 
         status_kwargs = dict(
