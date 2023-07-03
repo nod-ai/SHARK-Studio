@@ -41,10 +41,10 @@ scheduler_list_cpu_only = [
     "DPMSolverMultistep",
     "EulerDiscrete",
     "EulerAncestralDiscrete",
+    "DEISMultistep",
 ]
 scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
-    "DEISMultistep",
 ]
 
 predefined_models = [
