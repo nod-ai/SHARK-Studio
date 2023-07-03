@@ -92,7 +92,7 @@ def outpaint_inf(
             return (
                 None,
                 "Please provide either custom model or huggingface model ID, "
-                "both must not be empty",
+                "both must not be empty.",
             )
         if "civitai" in hf_model_id:
             args.ckpt_loc = hf_model_id
