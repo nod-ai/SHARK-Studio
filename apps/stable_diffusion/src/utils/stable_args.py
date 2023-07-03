@@ -32,10 +32,9 @@ p.add_argument(
     "-p",
     "--prompts",
     nargs="+",
-    default=["(a large body of water with snowy mountains in the background), (fog, foggy, "
-             "rolling fog), (clouds, cloudy, rolling clouds), dramatic sky and landscape, "
-             "extraordinary landscape, (beautiful snow capped mountain background), "
-             "(forest, dirt path)"],
+    default=["a photo taken of the front of a super-car drifting on a road near mountains at "
+             "high speeds with smokes coming off the tires, front angle, front point of view, "
+             "trees in the mountains of the background, ((sharp focus))"],
     help="Text of which images to be generated.",
 )
 
@@ -43,7 +42,7 @@ p.add_argument(
     "--negative_prompts",
     nargs="+",
     default=["watermark, signature, logo, text, lowres, ((monochrome, grayscale)), blurry, "
-             "ugly, blurry, blur, disfigured, oversaturated, mutilated, cropped"],
+             "ugly, blur, oversaturated, cropped,"],
     help="Text you don't want to see in the generated image.",
 )
 
