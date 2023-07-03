@@ -578,7 +578,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 ondemand,
             ],
             outputs=[outpaint_gallery, std_output, outpaint_status],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Outpaint", 0, bc, bs),

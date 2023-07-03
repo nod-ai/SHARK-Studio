@@ -550,7 +550,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 ondemand,
             ],
             outputs=[inpaint_gallery, std_output, inpaint_status],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Inpaint", 0, bc, bs),

@@ -1,70 +1,25 @@
 import torch
-import torch_mlir
-import torch._dynamo as torchdynamo
-from shark.sharkdynamo.utils import make_shark_compiler
+import shark
 
 
-import warnings, logging
-
-warnings.simplefilter("ignore")
-torchdynamo.config.log_level = logging.ERROR
-
-
-torchdynamo.reset()
+def foo(x, a):
+    if x.shape[0] > 3:
+        return x + a
+    else:
+        return x + 3
 
 
-@torchdynamo.optimize(
-    make_shark_compiler(use_tracing=False, device="cuda", verbose=False)
-)
-def foo(t):
-    return 2 * t
+shark_options = {"device": "cpu"}
+compiled = torch.compile(foo, backend="shark", options=shark_options)
 
+input = torch.ones(4)
 
-example_input = torch.rand((2, 3))
-x = foo(example_input)
+x = compiled(input, input)
+
 print(x)
 
+input = torch.ones(3)
 
-torchdynamo.reset()
+x = compiled(input, input)
 
-
-@torchdynamo.optimize(
-    make_shark_compiler(use_tracing=False, device="cuda", verbose=False)
-)
-def foo(a, b):
-    x = a / (a + 1)
-    if b.sum() < 0:
-        b = b * -1
-    return x * b
-
-
-print(foo(torch.rand((2, 3)), -torch.rand((2, 3))))
-
-
-torchdynamo.reset()
-
-
-@torchdynamo.optimize(
-    make_shark_compiler(use_tracing=False, device="cuda", verbose=True)
-)
-def foo(a):
-    for i in range(10):
-        a += 1.0
-    return a
-
-
-print(foo(torch.rand((1, 2))))
-
-torchdynamo.reset()
-
-
-@torchdynamo.optimize(
-    make_shark_compiler(use_tracing=False, device="cuda", verbose=True)
-)
-def test_unsupported_types(t, y):
-    return t, 2 * y
-
-
-str_input = "hello"
-tensor_input = torch.randn(2)
-print(test_unsupported_types(str_input, tensor_input))
+print(x)

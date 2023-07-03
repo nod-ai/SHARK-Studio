@@ -316,7 +316,13 @@ def set_init_device_flags():
         args.use_tuned = False
 
     elif (
-        args.height != args.width and "rdna2" in args.iree_vulkan_target_triple
+        args.height != args.width
+        and "rdna2" in args.iree_vulkan_target_triple
+        and base_model_id
+        not in [
+            "CompVis/stable-diffusion-v1-4",
+            "runwayml/stable-diffusion-v1-5",
+        ]
     ):
         args.use_tuned = False
 
@@ -749,9 +755,7 @@ def save_output_img(output_img, img_seed, extra_info={}):
     csv_path = Path(generated_imgs_path, "imgs_details.csv")
 
     prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[0][:15])
-    out_img_name = (
-        f"{prompt_slice}_{img_seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
-    )
+    out_img_name = f"{dt.now().strftime('%H%M%S')}_{prompt_slice}_{img_seed}"
 
     img_model = args.hf_model_id
     if args.ckpt_loc:

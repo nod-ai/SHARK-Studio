@@ -231,6 +231,16 @@ footer {
     display: none;
 }
 
+/* reduced animation load when generating */
+.generating {
+    animation-play-state: paused !important;
+}
+
+/* better clarity when progress bars are minimal */
+.meta-text {
+    background-color: var(--block-label-background-fill);
+}
+
 /* output gallery tab */
 .output_parameters_dataframe tbody td {
     font-size: small;
