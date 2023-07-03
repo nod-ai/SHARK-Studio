@@ -44,12 +44,14 @@ scheduler_list_cpu_only = [
 ]
 scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
+    "DEISMultistep",
 ]
 
 predefined_models = [
     "Linaqruf/anything-v3.0",
     "prompthero/openjourney",
     "wavymulder/Analog-Diffusion",
+    "xzuyn/PhotoMerge",
     "stabilityai/stable-diffusion-2-1",
     "stabilityai/stable-diffusion-2-1-base",
     "CompVis/stable-diffusion-v1-4",
