@@ -297,8 +297,12 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     with gr.Column(scale=10):
                         with gr.Row():
                             # janky fix for overflowing text
-                            t2i_model_info = (str(get_custom_model_path())).replace("\\", "\n\\")
-                            t2i_model_info = f"Custom Model Path: {t2i_model_info}"
+                            t2i_model_info = (
+                                str(get_custom_model_path())
+                            ).replace("\\", "\n\\")
+                            t2i_model_info = (
+                                f"Custom Model Path: {t2i_model_info}"
+                            )
                             txt2img_custom_model = gr.Dropdown(
                                 label=f"Models",
                                 info=t2i_model_info,
@@ -313,13 +317,15 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             txt2img_hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
                                 placeholder="Select 'None' in the dropdown on the left and "
-                                            "enter model ID here.",
+                                "enter model ID here.",
                                 value="",
                                 label="HuggingFace Model ID or Civitai model download URL.",
                                 lines=3,
                             )
                             # janky fix for overflowing text
-                            t2i_vae_info = (str(get_custom_model_path('vae'))).replace("\\", "\n\\")
+                            t2i_vae_info = (
+                                str(get_custom_model_path("vae"))
+                            ).replace("\\", "\n\\")
                             t2i_vae_info = f"VAE Path: {t2i_vae_info}"
                             custom_vae = gr.Dropdown(
                                 label=f"VAE Models",
@@ -356,7 +362,9 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         # janky fix for overflowing text
-                        t2i_lora_info = (str(get_custom_model_path('lora'))).replace("\\", "\n\\")
+                        t2i_lora_info = (
+                            str(get_custom_model_path("lora"))
+                        ).replace("\\", "\n\\")
                         t2i_lora_info = f"LoRA Path: {t2i_lora_info}"
                         lora_weights = gr.Dropdown(
                             label=f"Standalone LoRA Weights",
@@ -368,9 +376,9 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
                             placeholder="Select 'None' in the Standalone LoRA weights dropdown "
-                                        "on the left if you want to use a standalone "
-                                        "HuggingFace model ID for LoRA here e.g: "
-                                        "sayakpaul/sd-model-finetuned-lora-t4",
+                            "on the left if you want to use a standalone "
+                            "HuggingFace model ID for LoRA here e.g: "
+                            "sayakpaul/sd-model-finetuned-lora-t4",
                             value="",
                             label="HuggingFace Model ID",
                             lines=3,

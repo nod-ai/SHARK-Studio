@@ -32,9 +32,12 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     with gr.Column(scale=10):
                         with gr.Row():
                             # janky fix for overflowing text
-                            train_lora_model_info = (str(get_custom_model_path())).replace("\\",
-                                                                                           "\n\\")
-                            train_lora_model_info = f"Custom Model Path: {train_lora_model_info}"
+                            train_lora_model_info = (
+                                str(get_custom_model_path())
+                            ).replace("\\", "\n\\")
+                            train_lora_model_info = (
+                                f"Custom Model Path: {train_lora_model_info}"
+                            )
                             custom_model = gr.Dropdown(
                                 label=f"Models",
                                 info=train_lora_model_info,
@@ -49,8 +52,8 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                             hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
                                 placeholder="Select 'None' in the Models dropdown "
-                                            "on the left and enter model ID here "
-                                            "e.g: SG161222/Realistic_Vision_V1.3",
+                                "on the left and enter model ID here "
+                                "e.g: SG161222/Realistic_Vision_V1.3",
                                 value="",
                                 label="HuggingFace Model ID",
                                 lines=3,
@@ -58,7 +61,9 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
 
                 with gr.Row():
                     # janky fix for overflowing text
-                    train_lora_info = (str(get_custom_model_path('lora'))).replace("\\", "\n\\")
+                    train_lora_info = (
+                        str(get_custom_model_path("lora"))
+                    ).replace("\\", "\n\\")
                     train_lora_info = f"LoRA Path: {train_lora_info}"
                     lora_weights = gr.Dropdown(
                         label=f"Standalone LoRA weights to initialize weights",
@@ -70,9 +75,9 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     lora_hf_id = gr.Textbox(
                         elem_id="lora_hf_id",
                         placeholder="Select 'None' in the Standalone LoRA weights "
-                                    "dropdown on the left if you want to use a "
-                                    "standalone HuggingFace model ID for LoRA here "
-                                    "e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                        "dropdown on the left if you want to use a "
+                        "standalone HuggingFace model ID for LoRA here "
+                        "e.g: sayakpaul/sd-model-finetuned-lora-t4",
                         value="",
                         label="HuggingFace Model ID to initialize weights",
                         lines=3,
@@ -88,7 +93,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     prompt = gr.Textbox(
                         label="Prompt",
                         value=args.prompts[0],
-                        lines=1,
+                        lines=2,
                         elem_id="prompt_box",
                     )
                 with gr.Accordion(label="Advanced Options", open=False):

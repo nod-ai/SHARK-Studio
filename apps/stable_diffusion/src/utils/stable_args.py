@@ -32,17 +32,21 @@ p.add_argument(
     "-p",
     "--prompts",
     nargs="+",
-    default=["a photo taken of the front of a super-car drifting on a road near mountains at "
-             "high speeds with smokes coming off the tires, front angle, front point of view, "
-             "trees in the mountains of the background, ((sharp focus))"],
+    default=[
+        "a photo taken of the front of a super-car drifting on a road near mountains at "
+        "high speeds with smokes coming off the tires, front angle, front point of view, "
+        "trees in the mountains of the background, ((sharp focus))"
+    ],
     help="Text of which images to be generated.",
 )
 
 p.add_argument(
     "--negative_prompts",
     nargs="+",
-    default=["watermark, signature, logo, text, lowres, ((monochrome, grayscale)), blurry, "
-             "ugly, blur, oversaturated, cropped,"],
+    default=[
+        "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), blurry, "
+        "ugly, blur, oversaturated, cropped,"
+    ],
     help="Text you don't want to see in the generated image.",
 )
 
@@ -116,7 +120,7 @@ p.add_argument(
     type=int,
     default=5,
     help="The max multiple length of prompt embeddings compared to the max output "
-         "length of text encoder.",
+    "length of text encoder.",
 )
 
 p.add_argument(
@@ -251,7 +255,7 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Imports the model from torch module to shark_module otherwise downloads "
-         "the model from shark_tank.",
+    "the model from shark_tank.",
 )
 
 p.add_argument(
@@ -259,7 +263,7 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="Attempts to load the model from a precompiled flat-buffer and compiles "
-         "+ saves it if not found.",
+    "+ saves it if not found.",
 )
 
 p.add_argument(
@@ -288,7 +292,7 @@ p.add_argument(
     type=str,
     default="DEISMultistep",
     help="Other supported schedulers are [SharkEulerDiscrete, PNDM, DDIM, LMSDiscrete, "
-         "EulerDiscrete, DPMSolverMultistep].",
+    "EulerDiscrete, DPMSolverMultistep].",
 )
 
 p.add_argument(
@@ -365,8 +369,8 @@ p.add_argument(
     type=str,
     default="none",
     help="Runs the quantized version of stable diffusion model. This is currently "
-         "in experimental phase. Currently, only runs the stable-diffusion-2-1-base "
-         "model in int8 quantization.",
+    "in experimental phase. Currently, only runs the stable-diffusion-2-1-base "
+    "model in int8 quantization.",
 )
 
 p.add_argument(
@@ -429,7 +433,7 @@ p.add_argument(
     "--local_tank_cache",
     default="",
     help="Specify where to save downloaded shark_tank artifacts. If this is not set, the "
-         "default is ~/.local/shark_tank/.",
+    "default is ~/.local/shark_tank/.",
 )
 
 p.add_argument(
@@ -477,7 +481,7 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag to clear all mlir and vmfb from common locations. Recompiling will take "
-         "several minutes.",
+    "several minutes.",
 )
 
 p.add_argument(
@@ -492,7 +496,7 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="Flag for whether or not to save generation information in PNG chunk text to "
-         "generated images.",
+    "generated images.",
 )
 
 p.add_argument(
@@ -500,7 +504,7 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="If import_mlir is True, saves mlir via the debug option in shark importer. Does "
-         "nothing if import_mlir is false (the default).",
+    "nothing if import_mlir is false (the default).",
 )
 ##############################################################################
 # Web UI flags
@@ -553,7 +557,7 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="Flag for removing the output gallery tab, and avoid exposing images under "
-         "--output_dir in the UI.",
+    "--output_dir in the UI.",
 )
 
 p.add_argument(
@@ -561,7 +565,7 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for whether the output gallery tab in the UI should follow symlinks when "
-         "listing subdirectories under --output_dir.",
+    "listing subdirectories under --output_dir.",
 )
 
 
