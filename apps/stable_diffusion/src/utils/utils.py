@@ -80,7 +80,9 @@ def _compile_module(shark_module, model_name, extra_args=[]):
 
 
 # Downloads the model from shark_tank and returns the shark_module.
-def get_shark_model(tank_url, model_name, extra_args=[]):
+def get_shark_model(tank_url, model_name, extra_args=None):
+    if extra_args is None:
+        extra_args = []
     from shark.parser import shark_args
 
     # Set local shark_tank cache directory.
@@ -112,13 +114,15 @@ def compile_through_fx(
     save_dir=tempfile.gettempdir(),
     debug=False,
     generate_vmfb=True,
-    extra_args=[],
+    extra_args=None,
     base_model_id=None,
     model_name=None,
     precision=None,
     return_mlir=False,
     device=None,
 ):
+    if extra_args is None:
+        extra_args = []
     if not return_mlir and model_name is not None:
         vmfb_path = get_vmfb_path_name(extended_model_name)
         if os.path.isfile(vmfb_path):
@@ -210,7 +214,8 @@ def get_device_mapping(driver, key_combination=3):
         3 : (name, path)
         Defaults to 3.
     Returns:
-        dict: map to possible device names user can input mapped to desired combination of name/path.
+        dict: map to possible device names user can input mapped to desired combination
+        of name/path.
     """
     from shark.iree_utils._common import iree_device_map
 
@@ -224,7 +229,7 @@ def get_device_mapping(driver, key_combination=3):
         if key_combination == 2:
             return dev_dict["name"]
         if key_combination == 3:
-            return (dev_dict["name"], f"{driver}://{dev_dict['path']}")
+            return dev_dict["name"], f"{driver}://{dev_dict['path']}"
 
     # mapping driver name to default device (driver://0)
     device_map[f"{driver}"] = get_output_value(device_list[0])
@@ -248,7 +253,8 @@ def map_device_to_name_path(device, key_combination=3):
     Raises:
         ValueError:
     Returns:
-        str / tuple: returns the mapping str or tuple of mapping str for the device depending on key_combination value
+        str / tuple: returns the mapping str or tuple of mapping str for the device
+        depending on key_combination value
     """
     driver = device.split("://")[0]
     device_map = get_device_mapping(driver, key_combination)
@@ -555,7 +561,10 @@ def convert_original_vae(vae_checkpoint):
     for key in list(vae_checkpoint.keys()):
         vae_state_dict["first_stage_model." + key] = vae_checkpoint.get(key)
 
-    config_url = "https://raw.githubusercontent.com/CompVis/stable-diffusion/main/configs/stable-diffusion/v1-inference.yaml"
+    config_url = (
+        "https://raw.githubusercontent.com/CompVis/stable-diffusion/main/configs/"
+        "stable-diffusion/v1-inference.yaml"
+    )
     original_config_file = BytesIO(requests.get(config_url).content)
     original_config = OmegaConf.load(original_config_file)
     vae_config = create_vae_diffusers_config(original_config, image_size=512)
@@ -676,7 +685,7 @@ def update_lora_weight(model, use_lora, model_name):
 
 
 # `fetch_and_update_base_model_id` is a resource utility function which
-# helps maintaining mapping of the model to run with its base model.
+# helps to maintain mapping of the model to run with its base model.
 # If `base_model` is "", then this function tries to fetch the base model
 # info for the `model_to_run`.
 def fetch_and_update_base_model_id(model_to_run, base_model=""):
@@ -747,7 +756,9 @@ def get_generated_imgs_todays_subdir() -> str:
 
 
 # save output images and the inputs corresponding to it.
-def save_output_img(output_img, img_seed, extra_info={}):
+def save_output_img(output_img, img_seed, extra_info=None):
+    if extra_info is None:
+        extra_info = {}
     generated_imgs_path = Path(
         get_generated_imgs_path(), get_generated_imgs_todays_subdir()
     )
@@ -779,9 +790,16 @@ def save_output_img(output_img, img_seed, extra_info={}):
         if args.write_metadata_to_png:
             pngInfo.add_text(
                 "parameters",
-                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps: {args.steps},"
-                f"Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed},"
-                f"Size: {args.width}x{args.height}, Model: {img_model}, VAE: {img_vae}, LoRA: {img_lora}",
+                f"{args.prompts[0]}"
+                f"\nNegative prompt: {args.negative_prompts[0]}"
+                f"\nSteps: {args.steps},"
+                f"Sampler: {args.scheduler}, "
+                f"CFG scale: {args.guidance_scale}, "
+                f"Seed: {img_seed},"
+                f"Size: {args.width}x{args.height}, "
+                f"Model: {img_model}, "
+                f"VAE: {img_vae}, "
+                f"LoRA: {img_lora}",
             )
 
         output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
@@ -832,16 +850,27 @@ def save_output_img(output_img, img_seed, extra_info={}):
 def get_generation_text_info(seeds, device):
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
-    text_output += f"\nsize={args.height}x{args.width}, batch_count={args.batch_count}, batch_size={args.batch_size}, max_length={args.max_length}"
+    text_output += (
+        f"\nmodel_id={args.hf_model_id}, " f"ckpt_loc={args.ckpt_loc}"
+    )
+    text_output += f"\nscheduler={args.scheduler}, " f"device={device}"
+    text_output += (
+        f"\nsteps={args.steps}, "
+        f"guidance_scale={args.guidance_scale}, "
+        f"seed={seeds}"
+    )
+    text_output += (
+        f"\nsize={args.height}x{args.width}, "
+        f"batch_count={args.batch_count}, "
+        f"batch_size={args.batch_size}, "
+        f"max_length={args.max_length}"
+    )
 
     return text_output
 
 
-# For stencil, the input image can be of any size but we need to ensure that
-# it conforms with our model contraints :-
+# For stencil, the input image can be of any size, but we need to ensure that
+# it conforms with our model constraints :-
 #   Both width and height should be in the range of [128, 768] and multiple of 8.
 # This utility function performs the transformation on the input image while
 # also maintaining the aspect ratio before sending it to the stencil pipeline.

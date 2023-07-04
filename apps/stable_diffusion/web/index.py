@@ -29,7 +29,7 @@ def launch_app(address):
     # get screen width and height of display and make it more reasonably
     # sized as we aren't making it full-screen or maximized
     width = int(window.winfo_screenwidth() * 0.81)
-    height = int(window.winfo_screenheight() * 0.85)
+    height = int(window.winfo_screenheight() * 0.91)
     webview.create_window(
         "SHARK AI Studio",
         url=address,
