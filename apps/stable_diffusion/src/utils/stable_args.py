@@ -55,7 +55,7 @@ p.add_argument(
 p.add_argument(
     "--steps",
     type=int,
-    default=16,
+    default=32,
     help="The number of steps to do the sampling.",
 )
 
