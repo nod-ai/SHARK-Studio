@@ -286,7 +286,7 @@ def upscaler_api(
         InputData["seed"],
         batch_count=1,
         batch_size=1,
-        scheduler="DEISMultistep",
+        scheduler="EulerDiscrete",
         custom_model="None",
         hf_model_id=InputData["hf_model_id"]
         if "hf_model_id" in InputData.keys()
@@ -418,7 +418,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value="DEISMultistep",
+                            value="EulerDiscrete",
                             choices=scheduler_list_cpu_only,
                         )
                         with gr.Group():

@@ -253,7 +253,7 @@ def txt2img_api(
         InputData["seed"],
         batch_count=1,
         batch_size=1,
-        scheduler="DEISMultistep",
+        scheduler="EulerDiscrete",
         custom_model="None",
         hf_model_id=InputData["hf_model_id"]
         if "hf_model_id" in InputData.keys()

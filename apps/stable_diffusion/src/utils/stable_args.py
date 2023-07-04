@@ -290,8 +290,8 @@ p.add_argument(
 p.add_argument(
     "--scheduler",
     type=str,
-    default="DEISMultistep",
-    help="Other supported schedulers are [SharkEulerDiscrete, PNDM, DDIM, LMSDiscrete, "
+    default="SharkEulerDiscrete",
+    help="Other supported schedulers are [DEISMultistep, PNDM, DDIM, LMSDiscrete, "
     "EulerDiscrete, DPMSolverMultistep].",
 )
 
