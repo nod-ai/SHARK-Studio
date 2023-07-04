@@ -77,9 +77,7 @@ def get_schedulers(model_id):
         model_id,
         subfolder="scheduler",
     )
-    schedulers[
-        "HeunDiscrete"
-    ] = HeunDiscreteScheduler.from_pretrained(
+    schedulers["HeunDiscrete"] = HeunDiscreteScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
     )
