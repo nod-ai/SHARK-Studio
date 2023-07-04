@@ -42,6 +42,10 @@ scheduler_list_cpu_only = [
     "EulerDiscrete",
     "EulerAncestralDiscrete",
     "DEISMultistep",
+    "KDPM2AncestralDiscrete",
+    "DPMSolverSinglestep",
+    "DDPM",
+    "HeunDiscrete",
 ]
 scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
@@ -60,6 +64,7 @@ predefined_models = [
 predefined_paint_models = [
     "runwayml/stable-diffusion-inpainting",
     "stabilityai/stable-diffusion-2-inpainting",
+    "xzuyn/PhotoMerge-inpainting"
 ]
 predefined_upscaler_models = [
     "stabilityai/stable-diffusion-x4-upscaler",

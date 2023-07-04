@@ -45,7 +45,7 @@ p.add_argument(
     nargs="+",
     default=[
         "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), blurry, "
-        "ugly, blur, oversaturated, cropped,"
+        "ugly, blur, oversaturated, cropped"
     ],
     help="Text you don't want to see in the generated image.",
 )

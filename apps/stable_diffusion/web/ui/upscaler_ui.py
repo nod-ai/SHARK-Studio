@@ -418,7 +418,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value="EulerDiscrete",
+                            value="DDIM",
                             choices=scheduler_list_cpu_only,
                         )
                         with gr.Group():

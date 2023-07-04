@@ -8,6 +8,9 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DEISMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    HeunDiscreteScheduler,
 )
 from apps.stable_diffusion.src.schedulers.shark_eulerdiscrete import (
     SharkEulerDiscreteScheduler,
@@ -59,6 +62,24 @@ def get_schedulers(model_id):
     schedulers[
         "SharkEulerDiscrete"
     ] = SharkEulerDiscreteScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+    )
+    schedulers[
+        "DPMSolverSinglestep"
+    ] = DPMSolverSinglestepScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+    )
+    schedulers[
+        "KDPM2AncestralDiscrete"
+    ] = KDPM2AncestralDiscreteScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+    )
+    schedulers[
+        "HeunDiscrete"
+    ] = HeunDiscreteScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
     )
