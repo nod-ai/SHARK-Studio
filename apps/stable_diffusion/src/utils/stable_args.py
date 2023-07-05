@@ -33,9 +33,10 @@ p.add_argument(
     "--prompts",
     nargs="+",
     default=[
-        "a photo taken of the front of a super-car drifting on a road near mountains at "
-        "high speeds with smokes coming off the tires, front angle, front point of view, "
-        "trees in the mountains of the background, ((sharp focus))"
+        "a photo taken of the front of a super-car drifting on a road near "
+        "mountains at high speeds with smokes coming off the tires, front "
+        "angle, front point of view, trees in the mountains of the "
+        "background, ((sharp focus))"
     ],
     help="Text of which images to be generated.",
 )
@@ -44,8 +45,8 @@ p.add_argument(
     "--negative_prompts",
     nargs="+",
     default=[
-        "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), blurry, "
-        "ugly, blur, oversaturated, cropped"
+        "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), "
+        "blurry, ugly, blur, oversaturated, cropped"
     ],
     help="Text you don't want to see in the generated image.",
 )
@@ -119,15 +120,16 @@ p.add_argument(
     "--max_embeddings_multiples",
     type=int,
     default=5,
-    help="The max multiple length of prompt embeddings compared to the max output "
-    "length of text encoder.",
+    help="The max multiple length of prompt embeddings compared to the max "
+    "output length of text encoder.",
 )
 
 p.add_argument(
     "--strength",
     type=float,
     default=0.8,
-    help="The strength of change applied on the given input image for img2img.",
+    help="The strength of change applied on the given input image for "
+    "img2img.",
 )
 
 ##############################################################################
@@ -228,7 +230,8 @@ p.add_argument(
     "--noise_q",
     type=float,
     default=1.0,
-    help="Fall-off exponent for outpainting (lower=higher detail) (min=0.0, max=4.0).",
+    help="Fall-off exponent for outpainting (lower=higher detail) "
+    "(min=0.0, max=4.0).",
 )
 
 p.add_argument(
@@ -254,16 +257,16 @@ p.add_argument(
     "--import_mlir",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Imports the model from torch module to shark_module otherwise downloads "
-    "the model from shark_tank.",
+    help="Imports the model from torch module to shark_module otherwise "
+    "downloads the model from shark_tank.",
 )
 
 p.add_argument(
     "--load_vmfb",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="Attempts to load the model from a precompiled flat-buffer and compiles "
-    "+ saves it if not found.",
+    help="Attempts to load the model from a precompiled flat-buffer "
+    "and compiles + saves it if not found.",
 )
 
 p.add_argument(
@@ -291,16 +294,19 @@ p.add_argument(
     "--scheduler",
     type=str,
     default="SharkEulerDiscrete",
-    help="Other supported schedulers are [DDIM, PNDM, LMSDiscrete, DPMSolverMultistep, "
-    "EulerDiscrete, EulerAncestralDiscrete, DEISMultistep, KDPM2AncestralDiscrete, "
-    "DPMSolverSinglestep, DDPM, HeunDiscrete]",
+    help="Other supported schedulers are [DDIM, PNDM, LMSDiscrete, "
+    "DPMSolverMultistep, DPMSolverMultistep++, DPMSolverMultistepKarras, "
+    "DPMSolverMultistepKarras++, EulerDiscrete, EulerAncestralDiscrete, "
+    "DEISMultistep, KDPM2AncestralDiscrete, DPMSolverSinglestep, DDPM, "
+    "HeunDiscrete].",
 )
 
 p.add_argument(
     "--output_img_format",
     type=str,
     default="png",
-    help="Specify the format in which output image is save. Supported options: jpg / png.",
+    help="Specify the format in which output image is save. "
+    "Supported options: jpg / png.",
 )
 
 p.add_argument(
@@ -314,7 +320,8 @@ p.add_argument(
     "--batch_count",
     type=int,
     default=1,
-    help="Number of batch to be generated with random seeds in single execution.",
+    help="Number of batch to be generated with random seeds in "
+    "single execution.",
 )
 
 p.add_argument(
@@ -328,7 +335,8 @@ p.add_argument(
     "--custom_vae",
     type=str,
     default="",
-    help="HuggingFace repo-id or path to SD model's checkpoint whose Vae needs to be plugged in.",
+    help="HuggingFace repo-id or path to SD model's checkpoint whose VAE "
+    "needs to be plugged in.",
 )
 
 p.add_argument(
@@ -349,7 +357,8 @@ p.add_argument(
     "--attention_slicing",
     type=str,
     default="none",
-    help="Amount of attention slicing to use (one of 'max', 'auto', 'none', or an integer).",
+    help="Amount of attention slicing to use (one of 'max', 'auto', 'none', "
+    "or an integer).",
 )
 
 p.add_argument(
@@ -362,16 +371,18 @@ p.add_argument(
     "--use_lora",
     type=str,
     default="",
-    help="Use standalone LoRA weight using a HF ID or a checkpoint file (~3 MB).",
+    help="Use standalone LoRA weight using a HF ID or a checkpoint "
+    "file (~3 MB).",
 )
 
 p.add_argument(
     "--use_quantize",
     type=str,
     default="none",
-    help="Runs the quantized version of stable diffusion model. This is currently "
-    "in experimental phase. Currently, only runs the stable-diffusion-2-1-base "
-    "model in int8 quantization.",
+    help="Runs the quantized version of stable diffusion model. "
+    "This is currently in experimental phase. "
+    "Currently, only runs the stable-diffusion-2-1-base model in "
+    "int8 quantization.",
 )
 
 p.add_argument(
@@ -409,7 +420,8 @@ p.add_argument(
 p.add_argument(
     "--vulkan_large_heap_block_size",
     default="2073741824",
-    help="Flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G.",
+    help="Flag for setting VMA preferredLargeHeapBlockSize for "
+    "vulkan device, default is 4G.",
 )
 
 p.add_argument(
@@ -433,34 +445,38 @@ p.add_argument(
 p.add_argument(
     "--local_tank_cache",
     default="",
-    help="Specify where to save downloaded shark_tank artifacts. If this is not set, the "
-    "default is ~/.local/shark_tank/.",
+    help="Specify where to save downloaded shark_tank artifacts. "
+    "If this is not set, the default is ~/.local/shark_tank/.",
 )
 
 p.add_argument(
     "--dump_isa",
     default=False,
     action="store_true",
-    help="When enabled call amdllpc to get ISA dumps. use with dispatch benchmarks.",
+    help="When enabled call amdllpc to get ISA dumps. "
+    "Use with dispatch benchmarks.",
 )
 
 p.add_argument(
     "--dispatch_benchmarks",
     default=None,
-    help='Dispatches to return benchmark data on.  Use "All" for all, and None for none.',
+    help="Dispatches to return benchmark data on. "
+    'Use "All" for all, and None for none.',
 )
 
 p.add_argument(
     "--dispatch_benchmarks_dir",
     default="temp_dispatch_benchmarks",
-    help='Directory where you want to store dispatch data generated with "--dispatch_benchmarks".',
+    help="Directory where you want to store dispatch data "
+    'generated with "--dispatch_benchmarks".',
 )
 
 p.add_argument(
     "--enable_rgp",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Flag for inserting debug frames between iterations for use with rgp.",
+    help="Flag for inserting debug frames between iterations "
+    "for use with rgp.",
 )
 
 p.add_argument(
@@ -474,38 +490,39 @@ p.add_argument(
     "--warmup_count",
     type=int,
     default=0,
-    help="Flag setting warmup count for clip and vae [>= 0].",
+    help="Flag setting warmup count for CLIP and VAE [>= 0].",
 )
 
 p.add_argument(
     "--clear_all",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Flag to clear all mlir and vmfb from common locations. Recompiling will take "
-    "several minutes.",
+    help="Flag to clear all mlir and vmfb from common locations. "
+    "Recompiling will take several minutes.",
 )
 
 p.add_argument(
     "--save_metadata_to_json",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Flag for whether or not to save a generation information json file with the image.",
+    help="Flag for whether or not to save a generation information "
+    "json file with the image.",
 )
 
 p.add_argument(
     "--write_metadata_to_png",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="Flag for whether or not to save generation information in PNG chunk text to "
-    "generated images.",
+    help="Flag for whether or not to save generation information in "
+    "PNG chunk text to generated images.",
 )
 
 p.add_argument(
     "--import_debug",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If import_mlir is True, saves mlir via the debug option in shark importer. Does "
-    "nothing if import_mlir is false (the default).",
+    help="If import_mlir is True, saves mlir via the debug option "
+    "in shark importer. Does nothing if import_mlir is false (the default).",
 )
 ##############################################################################
 # Web UI flags
@@ -515,14 +532,16 @@ p.add_argument(
     "--progress_bar",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="Flag for removing the progress bar animation during image generation.",
+    help="Flag for removing the progress bar animation during "
+    "image generation.",
 )
 
 p.add_argument(
     "--ckpt_dir",
     type=str,
     default="",
-    help="Path to directory where all .ckpts are stored in order to populate them in the web UI.",
+    help="Path to directory where all .ckpts are stored in order to populate "
+    "them in the web UI.",
 )
 # TODO: replace API flag when these can be run together
 p.add_argument(
@@ -557,16 +576,16 @@ p.add_argument(
     "--output_gallery",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="Flag for removing the output gallery tab, and avoid exposing images under "
-    "--output_dir in the UI.",
+    help="Flag for removing the output gallery tab, and avoid exposing "
+    "images under --output_dir in the UI.",
 )
 
 p.add_argument(
     "--output_gallery_followlinks",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Flag for whether the output gallery tab in the UI should follow symlinks when "
-    "listing subdirectories under --output_dir.",
+    help="Flag for whether the output gallery tab in the UI should "
+    "follow symlinks when listing subdirectories under --output_dir.",
 )
 
 

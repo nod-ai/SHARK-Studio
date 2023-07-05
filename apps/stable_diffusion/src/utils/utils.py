@@ -208,14 +208,15 @@ def get_device_mapping(driver, key_combination=3):
     specific devices for execution
     Args:
         driver (str): execution driver (vulkan, cuda, rocm, etc)
-        key_combination (int, optional): choice for mapping value for device name.
+        key_combination (int, optional): choice for mapping value for
+            device name.
         1 : path
         2 : name
         3 : (name, path)
         Defaults to 3.
     Returns:
-        dict: map to possible device names user can input mapped to desired combination
-        of name/path.
+        dict: map to possible device names user can input mapped to desired
+            combination of name/path.
     """
     from shark.iree_utils._common import iree_device_map
 
@@ -242,10 +243,12 @@ def get_device_mapping(driver, key_combination=3):
 
 
 def map_device_to_name_path(device, key_combination=3):
-    """Gives the appropriate device data (supported name/path) for user selected execution device
+    """Gives the appropriate device data (supported name/path) for user
+        selected execution device
     Args:
         device (str): user
-        key_combination (int, optional): choice for mapping value for device name.
+        key_combination (int, optional): choice for mapping value for
+            device name.
         1 : path
         2 : name
         3 : (name, path)
@@ -253,8 +256,8 @@ def map_device_to_name_path(device, key_combination=3):
     Raises:
         ValueError:
     Returns:
-        str / tuple: returns the mapping str or tuple of mapping str for the device
-        depending on key_combination value
+        str / tuple: returns the mapping str or tuple of mapping str for
+        the device depending on key_combination value
     """
     driver = device.split("://")[0]
     device_map = get_device_mapping(driver, key_combination)
@@ -277,7 +280,8 @@ def set_init_device_flags():
             if triple is not None:
                 args.iree_vulkan_target_triple = triple
         print(
-            f"Found device {device_name}. Using target triple {args.iree_vulkan_target_triple}."
+            f"Found device {device_name}. Using target triple "
+            f"{args.iree_vulkan_target_triple}."
         )
     elif "cuda" in args.device:
         args.device = "cuda"
@@ -288,7 +292,8 @@ def set_init_device_flags():
             if triple is not None:
                 args.iree_metal_target_platform = triple
         print(
-            f"Found device {device_name}. Using target triple {args.iree_metal_target_platform}."
+            f"Found device {device_name}. Using target triple "
+            f"{args.iree_metal_target_platform}."
         )
     elif "cpu" in args.device:
         args.device = "cpu"
@@ -386,7 +391,8 @@ def set_init_device_flags():
 
     if args.use_tuned:
         print(
-            f"Using tuned models for {base_model_id}(fp16) on device {args.device}."
+            f"Using tuned models for {base_model_id}(fp16) on "
+            f"device {args.device}."
         )
     else:
         print("Tuned models are currently not supported for this setting.")
@@ -537,10 +543,10 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     from_safetensors = (
         True if custom_weights.lower().endswith(".safetensors") else False
     )
-    # EMA weights usually yield higher quality images for inference but non-EMA weights have
-    # been yielding better results in our case.
-    # TODO: Add an option `--ema` (`--no-ema`) for users to specify if they want to go for EMA
-    #       weight extraction or not.
+    # EMA weights usually yield higher quality images for inference but
+    # non-EMA weights have been yielding better results in our case.
+    # TODO: Add an option `--ema` (`--no-ema`) for users to specify if
+    #  they want to go for EMA weight extraction or not.
     extract_ema = False
     print(
         "Loading diffusers' pipeline from original stable diffusion checkpoint"
@@ -562,8 +568,8 @@ def convert_original_vae(vae_checkpoint):
         vae_state_dict["first_stage_model." + key] = vae_checkpoint.get(key)
 
     config_url = (
-        "https://raw.githubusercontent.com/CompVis/stable-diffusion/main/configs/"
-        "stable-diffusion/v1-inference.yaml"
+        "https://raw.githubusercontent.com/CompVis/stable-diffusion/"
+        "main/configs/stable-diffusion/v1-inference.yaml"
     )
     original_config_file = BytesIO(requests.get(config_url).content)
     original_config = OmegaConf.load(original_config_file)
@@ -702,13 +708,15 @@ def fetch_and_update_base_model_id(model_to_run, base_model=""):
                 return base_model
     elif base_model == "":
         return base_model
-    # Update JSON data to contain an entry mapping model_to_run with base_model.
+    # Update JSON data to contain an entry mapping model_to_run with
+    # base_model.
     json_data.update(data)
     with open(variants_path, "w", encoding="utf-8") as jsonFile:
         json.dump(json_data, jsonFile)
 
 
-# Generate and return a new seed if the provided one is not in the supported range (including -1)
+# Generate and return a new seed if the provided one is not in the
+# supported range (including -1)
 def sanitize_seed(seed):
     uint32_info = np.iinfo(np.uint32)
     uint32_min, uint32_max = uint32_info.min, uint32_info.max
@@ -727,7 +735,8 @@ def clear_all():
     for vmfb in vmfbs:
         if os.path.exists(vmfb):
             os.remove(vmfb)
-    # Temporary workaround of deleting yaml files to incorporate diffusers' pipeline.
+    # Temporary workaround of deleting yaml files to incorporate
+    # diffusers' pipeline.
     # TODO: Remove this once we have better weight updation logic.
     inference_yaml = ["v2-inference-v.yaml", "v1-inference.yaml"]
     for yaml in inference_yaml:
@@ -806,8 +815,9 @@ def save_output_img(output_img, img_seed, extra_info=None):
 
         if args.output_img_format not in ["png", "jpg"]:
             print(
-                f"[ERROR] Format {args.output_img_format} is not supported yet."
-                "Image saved as png instead. Supported formats: png / jpg"
+                f"[ERROR] Format {args.output_img_format} is not "
+                f"supported yet. Image saved as png instead."
+                f"Supported formats: png / jpg"
             )
 
     # To be as low-impact as possible to the existing CSV format, we append

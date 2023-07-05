@@ -17,6 +17,9 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
     DEISMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    HeunDiscreteScheduler,
 )
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
@@ -67,6 +70,11 @@ class UpscalerPipeline(StableDiffusionPipeline):
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DDPMScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2DiscreteScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         low_res_scheduler: Union[
             DDIMScheduler,
@@ -78,6 +86,10 @@ class UpscalerPipeline(StableDiffusionPipeline):
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2DiscreteScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
