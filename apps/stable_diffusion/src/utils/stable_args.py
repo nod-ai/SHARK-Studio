@@ -44,10 +44,7 @@ p.add_argument(
 p.add_argument(
     "--negative_prompts",
     nargs="+",
-    default=[
-        "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), "
-        "blurry, ugly, blur, oversaturated, cropped"
-    ],
+    default=["trees", "green"],
     help="Text you don't want to see in the generated image.",
 )
 
@@ -60,7 +57,7 @@ p.add_argument(
 p.add_argument(
     "--steps",
     type=int,
-    default=32,
+    default=50,
     help="The number of steps to do the sampling.",
 )
 
@@ -98,7 +95,7 @@ p.add_argument(
 p.add_argument(
     "--guidance_scale",
     type=float,
-    default=3.5,
+    default=7.5,
     help="The value to be used for guidance scaling.",
 )
 
