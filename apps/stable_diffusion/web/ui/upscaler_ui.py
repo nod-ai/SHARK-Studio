@@ -225,20 +225,12 @@ def upscaler_inf(
             )
 
     total_time = time.time() - start_time
-    text_output = (
-        f"prompt={args.prompts}"
-    )
+    text_output = f"prompt={args.prompts}"
+    text_output += f"\nnegative prompt={args.negative_prompts}"
     text_output += (
-        f"\nnegative prompt={args.negative_prompts}"
+        f"\nmodel_id={args.hf_model_id}, " f"ckpt_loc={args.ckpt_loc}"
     )
-    text_output += (
-        f"\nmodel_id={args.hf_model_id}, "
-        f"ckpt_loc={args.ckpt_loc}"
-    )
-    text_output += (
-        f"\nscheduler={args.scheduler}, "
-        f"device={device}"
-    )
+    text_output += f"\nscheduler={args.scheduler}, " f"device={device}"
     text_output += (
         f"\nsteps={steps}, "
         f"noise_level={noise_level}, "
@@ -251,12 +243,8 @@ def upscaler_inf(
         f"batch_size={batch_size}, "
         f"max_length={args.max_length}"
     )
-    text_output += (
-        global_obj.get_sd_obj().log
-    )
-    text_output += (
-        f"\nTotal image generation time: {total_time:.4f}sec"
-    )
+    text_output += global_obj.get_sd_obj().log
+    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     yield generated_imgs, text_output, ""
 
