@@ -42,16 +42,12 @@ def get_schedulers(model_id):
     schedulers[
         "DPMSolverMultistep"
     ] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-        algorithm_type="dpmsolver"
+        model_id, subfolder="scheduler", algorithm_type="dpmsolver"
     )
     schedulers[
         "DPMSolverMultistep++"
     ] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-        algorithm_type="dpmsolver++"
+        model_id, subfolder="scheduler", algorithm_type="dpmsolver++"
     )
     schedulers[
         "DPMSolverMultistepKarras"
