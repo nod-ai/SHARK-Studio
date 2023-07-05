@@ -295,7 +295,8 @@ p.add_argument(
     type=str,
     default="SharkEulerDiscrete",
     help="Other supported schedulers are [DDIM, PNDM, LMSDiscrete, "
-    "DPMSolverMultistep, EulerDiscrete, EulerAncestralDiscrete, "
+    "DPMSolverMultistep, DPMSolverMultistep++, DPMSolverMultistepKarras, "
+    "DPMSolverMultistepKarras++, EulerDiscrete, EulerAncestralDiscrete, "
     "DEISMultistep, KDPM2AncestralDiscrete, DPMSolverSinglestep, DDPM, "
     "HeunDiscrete].",
 )

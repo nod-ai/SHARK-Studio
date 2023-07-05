@@ -15,6 +15,9 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
     DEISMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    HeunDiscreteScheduler,
 )
 from shark.shark_inference import SharkInference
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
@@ -48,6 +51,10 @@ class StableDiffusionPipeline:
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DDPMScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
@@ -312,6 +319,10 @@ class StableDiffusionPipeline:
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DDPMScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         import_mlir: bool,
         model_id: str,
