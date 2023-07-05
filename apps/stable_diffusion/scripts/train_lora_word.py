@@ -223,7 +223,8 @@ def lora_train(
         if not hf_model_id:
             return (
                 None,
-                "Please provide either custom model or huggingface model ID, both must not be empty",
+                "Please provide either custom model or huggingface model ID, both must not be "
+                "empty.",
             )
         args.hf_model_id = hf_model_id
     elif ".ckpt" in custom_model or ".safetensors" in custom_model:

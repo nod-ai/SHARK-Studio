@@ -192,7 +192,7 @@ with gr.Blocks() as outputgallery_web:
         ]
 
     def on_refresh(current_subdir: str) -> list:
-        # get an up to date subdirectory list
+        # get an up-to-date subdirectory list
         refreshed_subdirs = output_subdirs()
         # get the images using either the current subdirectory or the most recent valid one
         new_subdir = (

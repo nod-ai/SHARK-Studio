@@ -21,7 +21,7 @@ if __name__ == "__main__":
         print("Flag --img_path is required.")
         exit()
 
-    # When the models get uploaded, it should be default to False.
+    # When the models get uploaded, it should be defaulted to False.
     args.import_mlir = True
 
     cpu_scheduling = not args.scheduler.startswith("Shark")

@@ -41,6 +41,11 @@ scheduler_list_cpu_only = [
     "DPMSolverMultistep",
     "EulerDiscrete",
     "EulerAncestralDiscrete",
+    "DEISMultistep",
+    "KDPM2AncestralDiscrete",
+    "DPMSolverSinglestep",
+    "DDPM",
+    "HeunDiscrete",
 ]
 scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
@@ -50,6 +55,7 @@ predefined_models = [
     "Linaqruf/anything-v3.0",
     "prompthero/openjourney",
     "wavymulder/Analog-Diffusion",
+    "xzuyn/PhotoMerge",
     "stabilityai/stable-diffusion-2-1",
     "stabilityai/stable-diffusion-2-1-base",
     "CompVis/stable-diffusion-v1-4",
@@ -58,6 +64,7 @@ predefined_models = [
 predefined_paint_models = [
     "runwayml/stable-diffusion-inpainting",
     "stabilityai/stable-diffusion-2-inpainting",
+    "xzuyn/PhotoMerge-inpainting",
 ]
 predefined_upscaler_models = [
     "stabilityai/stable-diffusion-x4-upscaler",
