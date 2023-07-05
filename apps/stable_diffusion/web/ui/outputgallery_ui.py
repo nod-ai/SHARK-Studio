@@ -333,10 +333,11 @@ with gr.Blocks() as outputgallery_web:
 
     # --- Wire handlers up to the actions
 
-    # - Many actions reset the number of columns shown in the gallery on the
+    # Many actions reset the number of columns shown in the gallery on the
     # browser end, so we have to set them back to what we think they should
     # be after the initial action.
-    # - None of the actions on this tab trigger inference, and we want the
+    #
+    # None of the actions on this tab trigger inference, and we want the
     # user to be able to do them whilst other tabs have ongoing inference
     # running. Waiting in the queue behind inference jobs would mean the UI
     # can't fully respond until the inference tasks complete,

@@ -82,7 +82,7 @@ with gr.Blocks() as model_web:
             type="value",
             label="Model Source",
         )
-        model_numebr = gr.Slider(
+        model_number = gr.Slider(
             1,
             100,
             value=10,
@@ -114,9 +114,9 @@ with gr.Blocks() as model_web:
         modelmanager_sendto_outpaint = gr.Button(value="SendTo Outpaint")
         modelmanager_sendto_upscaler = gr.Button(value="SendTo Upscaler")
 
-    def get_model_list(model_source, model_numebr):
+    def get_model_list(model_source, model_number):
         if model_source == "Hugging Face":
-            hf_model_list = get_hf_list(model_numebr)
+            hf_model_list = get_hf_list(model_number)
             models = []
             for model in hf_model_list:
                 # TODO: add model info
@@ -127,7 +127,7 @@ with gr.Blocks() as model_web:
                 gr.Row.update(visible=True),
             )
         elif model_source == "Civitai":
-            civit_model_list = get_civit_list(model_numebr)
+            civit_model_list = get_civit_list(model_number)
             models = []
             for model in civit_model_list:
                 image = get_image_from_model(model)
@@ -151,7 +151,7 @@ with gr.Blocks() as model_web:
 
     get_model_btn.click(
         fn=get_model_list,
-        inputs=[model_source, model_numebr],
+        inputs=[model_source, model_number],
         outputs=[
             hf_models,
             civit_models,
