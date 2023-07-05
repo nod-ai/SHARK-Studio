@@ -103,7 +103,14 @@ parser.add_argument(
 )
 
 
-def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
+def brevitas〇matmul_rhs_group_quant〡shape(
+    lhs: List[int],
+    rhs: List[int],
+    rhs_scale: List[int],
+    rhs_zero_point: List[int],
+    rhs_bit_width: int,
+    rhs_group_size: int,
+) -> List[int]:
     if len(lhs) == 3 and len(rhs) == 2:
         return [lhs[0], lhs[1], rhs[0]]
     elif len(lhs) == 2 and len(rhs) == 2:
@@ -112,20 +119,30 @@ def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rh
         raise ValueError("Input shapes not supported.")
 
 
-def brevitas〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
+def brevitas〇matmul_rhs_group_quant〡dtype(
+    lhs_rank_dtype: Tuple[int, int],
+    rhs_rank_dtype: Tuple[int, int],
+    rhs_scale_rank_dtype: Tuple[int, int],
+    rhs_zero_point_rank_dtype: Tuple[int, int],
+    rhs_bit_width: int,
+    rhs_group_size: int,
+) -> int:
     # output dtype is the dtype of the lhs float input
     lhs_rank, lhs_dtype = lhs_rank_dtype
     return lhs_dtype
 
 
-def brevitas〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
+def brevitas〇matmul_rhs_group_quant〡has_value_semantics(
+    lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size
+) -> None:
     return
 
 
 brevitas_matmul_rhs_group_quant_library = [
     brevitas〇matmul_rhs_group_quant〡shape,
     brevitas〇matmul_rhs_group_quant〡dtype,
-    brevitas〇matmul_rhs_group_quant〡has_value_semantics]
+    brevitas〇matmul_rhs_group_quant〡has_value_semantics,
+]
 
 
 class ShardedVicuna(SharkLLMBase):
@@ -901,7 +918,7 @@ class UnshardedVicuna(SharkLLMBase):
         self.shark_model = self.compile()
 
     def get_model_path(self, model_number="first", suffix="mlir"):
-        safe_device = "_".join(self.device.split("-"))
+        safe_device = self.device.split("-")[0]
         if suffix == "mlir":
             return Path(f"{model_number}_vicuna_{self.precision}.{suffix}")
         return Path(
@@ -1277,21 +1294,24 @@ class UnshardedVicuna(SharkLLMBase):
 
         # Testing : DO NOT Download Vmfbs if not found. Modify later
         # download vmfbs for A100
+        supported_devices = ["cuda", "cpu-sync", "cpu-task", "cpu"]
         if (
             not self.first_vicuna_vmfb_path.exists()
-            and self.device in ["cuda", "cpu"]
-            and self.precision in ["fp32", "fp16"]
+            and self.device in supported_devices
+            and self.precision in ["fp32", "fp16", "int8"]
         ):
-            # combinations that are still in the works
-            if not (self.device == "cuda" and self.precision == "fp16"):
-                # Will generate vmfb on device
-                pass
-            else:
+            if (self.device == "cuda" and self.precision == "fp16") or (
+                self.device in ["cpu-sync", "cpu-task"]
+                and self.precision == "int8"
+            ):
                 download_public_file(
                     f"gs://shark_tank/vicuna/unsharded/vmfb/{self.first_vicuna_vmfb_path.name}",
                     self.first_vicuna_vmfb_path.absolute(),
                     single_file=True,
                 )
+            else:
+                pass
+
         else:
             # get first vic
             # TODO: Remove after testing to avoid memory overload
@@ -1299,19 +1319,20 @@ class UnshardedVicuna(SharkLLMBase):
             pass
         if (
             not self.second_vicuna_vmfb_path.exists()
-            and self.device in ["cuda", "cpu"]
-            and self.precision in ["fp32", "fp16"]
+            and self.device in supported_devices
+            and self.precision in ["fp32", "fp16", "int8"]
         ):
-            # combinations that are still in the works
-            if not (self.device == "cuda" and self.precision == "fp16"):
-                # Will generate vmfb on device
-                pass
-            else:
+            if (self.device == "cuda" and self.precision == "fp16") or (
+                self.device in ["cpu-sync", "cpu-task"]
+                and self.precision == "int8"
+            ):
                 download_public_file(
                     f"gs://shark_tank/vicuna/unsharded/vmfb/{self.second_vicuna_vmfb_path.name}",
                     self.second_vicuna_vmfb_path.absolute(),
                     single_file=True,
                 )
+            else:
+                pass
         else:
             # get second vic
             # TODO: Remove after testing to avoid memory overload
