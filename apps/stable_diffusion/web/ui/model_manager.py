@@ -19,7 +19,10 @@ def get_hf_list(num_of_models=20):
 
 
 def get_civit_list(num_of_models=50):
-    path = f"https://civitai.com/api/v1/models?limit={num_of_models}&types=Checkpoint"
+    path = (
+        f"https://civitai.com/api/v1/models?limit="
+        f"{num_of_models}&types=Checkpoint"
+    )
     headers = {"Content-Type": "application/json"}
     raw_json = requests.get(path, headers=headers).json()
     models = list(raw_json.items())[0][1]

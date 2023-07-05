@@ -51,8 +51,8 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                             )
                             hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
-                                placeholder="Select 'None' in the Models dropdown "
-                                "on the left and enter model ID here "
+                                placeholder="Select 'None' in the Models "
+                                "dropdown on the left and enter model ID here "
                                 "e.g: SG161222/Realistic_Vision_V1.3",
                                 value="",
                                 label="HuggingFace Model ID",
@@ -74,8 +74,8 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     )
                     lora_hf_id = gr.Textbox(
                         elem_id="lora_hf_id",
-                        placeholder="Select 'None' in the Standalone LoRA weights "
-                        "dropdown on the left if you want to use a "
+                        placeholder="Select 'None' in the Standalone LoRA "
+                        "weights dropdown on the left if you want to use a "
                         "standalone HuggingFace model ID for LoRA here "
                         "e.g: sayakpaul/sd-model-finetuned-lora-t4",
                         value="",

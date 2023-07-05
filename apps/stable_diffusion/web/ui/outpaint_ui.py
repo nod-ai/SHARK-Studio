@@ -265,7 +265,9 @@ def outpaint_api(
     InputData: dict,
 ):
     print(
-        f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
+        f'Prompt: {InputData["prompt"]}, '
+        f'Negative Prompt: {InputData["negative_prompt"]}, '
+        f'Seed: {InputData["seed"]}'
     )
     init_image = decode_base64_to_image(InputData["init_images"][0])
     res = outpaint_inf(
@@ -352,7 +354,8 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         "e.g: ghunkins/stable-diffusion-liberty-inpainting, "
                         "https://civitai.com/api/download/models/3433",
                         value="",
-                        label="HuggingFace Model ID or Civitai model download URL",
+                        label="HuggingFace Model ID or Civitai model "
+                        "download URL",
                         lines=3,
                     )
                     # janky fix for overflowing text
@@ -404,9 +407,9 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standalone LoRA weights dropdown "
-                            "on the left if you want to use a "
-                            "standalone HuggingFace model ID for LoRA here "
+                            placeholder="Select 'None' in the Standalone LoRA "
+                            "weights dropdown on the left if you want to use "
+                            "a standalone HuggingFace model ID for LoRA here "
                             "e.g: sayakpaul/sd-model-finetuned-lora-t4",
                             value="",
                             label="HuggingFace Model ID",
@@ -559,7 +562,8 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {get_generated_imgs_path()}",
+                        value=f"Images will be saved at "
+                        f"{get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,

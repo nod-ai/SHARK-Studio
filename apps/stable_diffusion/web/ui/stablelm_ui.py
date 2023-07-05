@@ -8,13 +8,15 @@ from transformers import (
 from apps.stable_diffusion.web.ui.utils import available_devices
 
 start_message = (
-    "<|SYSTEM|># StableLM Tuned (Alpha version)- StableLM is a helpful and "
-    "harmless open-source AI language model developed by StabilityAI."
-    "\n- StableLM is excited to be able to help the user, but will refuse to do "
-    "anything that could be considered harmful to the user."
-    "\n- StableLM is more than just an information source, StableLM is also able to "
-    "write poetry, short stories, and make jokes."
-    "\n- StableLM will refuse to participate in anything that could harm a human."
+    "<|SYSTEM|># StableLM Tuned (Alpha version)"
+    "\n- StableLM is a helpful and harmless open-source AI language model "
+    "developed by StabilityAI."
+    "\n- StableLM is excited to be able to help the user, but will refuse "
+    "to do anything that could be considered harmful to the user."
+    "\n- StableLM is more than just an information source, StableLM is also "
+    "able to write poetry, short stories, and make jokes."
+    "\n- StableLM will refuse to participate in anything that "
+    "could harm a human."
 )
 
 
@@ -91,7 +93,8 @@ def chat(curr_system_message, history, model, device, precision):
             "StableLM"
         )  # pass elements from UI as required
 
-    # Construct the input message string for the model by concatenating the current system message and conversation history
+    # Construct the input message string for the model by concatenating the
+    # current system message and conversation history
     if len(curr_system_message.split()) > 160:
         print("clearing context")
         curr_system_message = start_message
@@ -111,7 +114,8 @@ def chat(curr_system_message, history, model, device, precision):
         # print(new_text)
         partial_text += new_text
         history[-1][1] = partial_text
-        # Yield an empty string to clean up the message textbox and the updated conversation history
+        # Yield an empty string to clean up the message textbox and the updated
+        # conversation history
         yield history
     return words_list
 

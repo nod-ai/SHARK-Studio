@@ -86,7 +86,8 @@ def create_custom_models_folders():
     else:
         if not os.path.isdir(args.ckpt_dir):
             sys.exit(
-                f"Invalid --ckpt_dir argument, {args.ckpt_dir} folder does not exists."
+                f"Invalid --ckpt_dir argument, "
+                f"{args.ckpt_dir} folder does not exists."
             )
     for root in dir:
         get_custom_model_path(root).mkdir(parents=True, exist_ok=True)

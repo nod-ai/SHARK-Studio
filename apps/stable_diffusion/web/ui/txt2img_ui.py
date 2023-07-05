@@ -87,8 +87,8 @@ def txt2img_inf(
         if not hf_model_id:
             return (
                 None,
-                "Please provide either custom model or huggingface model ID, both "
-                "must not be empty",
+                "Please provide either custom model or huggingface model ID, "
+                "both must not be empty",
             )
         if "civitai" in hf_model_id:
             args.ckpt_loc = hf_model_id
@@ -316,10 +316,11 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             )
                             txt2img_hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
-                                placeholder="Select 'None' in the dropdown on the left and "
-                                "enter model ID here.",
+                                placeholder="Select 'None' in the dropdown "
+                                "on the left and enter model ID here.",
                                 value="",
-                                label="HuggingFace Model ID or Civitai model download URL.",
+                                label="HuggingFace Model ID or Civitai model "
+                                "download URL.",
                                 lines=3,
                             )
                             # janky fix for overflowing text
@@ -375,10 +376,10 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standalone LoRA weights dropdown "
-                            "on the left if you want to use a standalone "
-                            "HuggingFace model ID for LoRA here e.g: "
-                            "sayakpaul/sd-model-finetuned-lora-t4",
+                            placeholder="Select 'None' in the Standalone LoRA "
+                            "weights dropdown on the left if you want to use "
+                            "a standalone HuggingFace model ID for LoRA here "
+                            "e.g: sayakpaul/sd-model-finetuned-lora-t4",
                             value="",
                             label="HuggingFace Model ID",
                             lines=3,
@@ -509,7 +510,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         elem_id="gallery",
                     ).style(columns=[2], object_fit="contain")
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {get_generated_imgs_path()}",
+                        value=f"Images will be saved at "
+                        f"{get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,
