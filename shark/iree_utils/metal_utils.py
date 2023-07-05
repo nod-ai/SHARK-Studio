@@ -17,7 +17,7 @@
 from shark.iree_utils._common import run_cmd
 import iree.runtime as ireert
 from sys import platform
-from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env_flag
+from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env
 
 
 def get_metal_device_name(device_num=0):
@@ -58,14 +58,7 @@ def get_metal_target_triple(device_name):
         str or None: target triple or None if no match found for given name
     """
     # Apple Targets
-    if all(x in device_name for x in ("Apple", "M1")):
-        triple = "m1-moltenvk-macos"
-    elif all(x in device_name for x in ("Apple", "M2")):
-        triple = "m1-moltenvk-macos"
-
-    else:
-        triple = None
-    return triple
+    return "macos"
 
 
 def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
@@ -110,10 +103,14 @@ def get_iree_metal_args(device_num=0, extra_args=[]):
         )
 
     if metal_triple_flag is not None:
-        vulkan_target_env = get_vulkan_target_env_flag(metal_triple_flag)
+        vulkan_target_env = get_metal_target_env_flag("=m1-moltenvk-macos")
         res_metal_flag.append(vulkan_target_env)
     return res_metal_flag
 
+def get_metal_target_env_flag(metal_target_triple):
+    target_env = get_vulkan_target_env(metal_target_triple)
+    target_env_flag = f"--iree-metal-target-env={target_env}"
+    return target_env_flag
 
 def set_iree_metal_runtime_flags(flags):
     for flag in flags:
