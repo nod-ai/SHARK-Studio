@@ -44,8 +44,8 @@ def chat(curr_system_message, history, model, device, precision):
     global past_key_values
     global vicuna_model
     if "vicuna" in model:
-        from apps.language_models.src.pipelines.vicuna_pipeline import (
-            Vicuna,
+        from apps.language_models.scripts.vicuna import (
+            UnshardedVicuna,
         )
 
         curr_system_message = start_message_vicuna
@@ -60,7 +60,7 @@ def chat(curr_system_message, history, model, device, precision):
                 device = "vulkan"
             else:
                 print("unrecognized device")
-            vicuna_model = Vicuna(
+            vicuna_model = UnshardedVicuna(
                 "vicuna",
                 hf_model_path=model,
                 device=device,

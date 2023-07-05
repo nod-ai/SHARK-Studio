@@ -353,7 +353,7 @@ def add_upcast(fx_g):
     fx_g.graph.lint()
 
 
-def transform_fx(fx_g):
+def transform_fx(fx_g, quantized=False):
     import torch
 
     kwargs_dict = {
@@ -366,6 +366,19 @@ def transform_fx(fx_g):
     }
     for node in fx_g.graph.nodes:
         if node.op == "call_function":
+            # aten.empty should be filled with zeros.
+            if node.target in [torch.ops.aten.empty]:
+                with fx_g.graph.inserting_after(node):
+                    new_node = fx_g.graph.call_function(
+                        torch.ops.aten.zero_,
+                        args=(node,),
+                    )
+                    node.append(new_node)
+                    node.replace_all_uses_with(new_node)
+                    new_node.args = (node,)
+            if quantized:
+                continue
+
             if node.target in [
                 torch.ops.aten.arange,
                 torch.ops.aten.empty,
@@ -427,17 +440,6 @@ def transform_fx(fx_g):
                         new_node.args = (node,)
                         new_node.kwargs = {"dtype": torch.float16}
 
-            # aten.empty should be filled with zeros.
-            if node.target in [torch.ops.aten.empty]:
-                with fx_g.graph.inserting_after(node):
-                    new_node = fx_g.graph.call_function(
-                        torch.ops.aten.zero_,
-                        args=(node,),
-                    )
-                    node.append(new_node)
-                    node.replace_all_uses_with(new_node)
-                    new_node.args = (node,)
-
     # Required for cuda debugging.
     # for node in fx_g.graph.nodes:
     # if node.op == "call_function":
@@ -486,6 +488,7 @@ def flatten_training_input(inputs):
     return tuple(flattened_input)
 
 
+# TODO: get rid of is_f16 by using precision
 # Applies fx conversion to the model and imports the mlir.
 def import_with_fx(
     model,
@@ -500,10 +503,28 @@ def import_with_fx(
     mlir_type="linalg",
     is_dynamic=False,
     tracing_required=False,
+    precision="fp32",
 ):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
     from torch._decomp import get_decompositions
+    from typing import List
+    from brevitas_examples.llm.llm_quant.export import (
+        block_quant_layer_level_manager,
+    )
+    from brevitas_examples.llm.llm_quant.export import (
+        brevitas_layer_export_mode,
+    )
+    from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
+        LinearWeightBlockQuantHandlerFwd,
+    )
+    from brevitas_examples.llm.llm_quant.export import replace_call_fn_target
+    from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
+        matmul_rhs_group_quant_placeholder,
+    )
+    from brevitas.backport.fx.experimental.proxy_tensor import (
+        make_fx as brevitas_make_fx,
+    )
 
     golden_values = None
     if debug:
@@ -511,26 +532,97 @@ def import_with_fx(
             golden_values = model(*inputs)
         except:
             golden_values = None
+
+    def _remove_nones(fx_g: torch.fx.GraphModule) -> List[int]:
+        removed_indexes = []
+        for node in fx_g.graph.nodes:
+            if node.op == "output":
+                assert (
+                    len(node.args) == 1
+                ), "Output node must have a single argument"
+                node_arg = node.args[0]
+                if isinstance(node_arg, (list, tuple)):
+                    node_arg = list(node_arg)
+                    node_args_len = len(node_arg)
+                    for i in range(node_args_len):
+                        curr_index = node_args_len - (i + 1)
+                        if node_arg[curr_index] is None:
+                            removed_indexes.append(curr_index)
+                            node_arg.pop(curr_index)
+                    node.args = (tuple(node_arg),)
+                    break
+
+        if len(removed_indexes) > 0:
+            fx_g.graph.lint()
+            fx_g.graph.eliminate_dead_code()
+            fx_g.recompile()
+        removed_indexes.sort()
+        return removed_indexes
+
+    def _unwrap_single_tuple_return(fx_g: torch.fx.GraphModule) -> bool:
+        """
+        Replace tuple with tuple element in functions that return one-element tuples.
+        Returns true if an unwrapping took place, and false otherwise.
+        """
+        unwrapped_tuple = False
+        for node in fx_g.graph.nodes:
+            if node.op == "output":
+                assert (
+                    len(node.args) == 1
+                ), "Output node must have a single argument"
+                node_arg = node.args[0]
+                if isinstance(node_arg, tuple):
+                    if len(node_arg) == 1:
+                        node.args = (node_arg[0],)
+                        unwrapped_tuple = True
+                        break
+
+        if unwrapped_tuple:
+            fx_g.graph.lint()
+            fx_g.recompile()
+        return unwrapped_tuple
+
     # TODO: Control the decompositions.
-    fx_g = make_fx(
-        model,
-        decomposition_table=get_decompositions(
-            [
-                torch.ops.aten.embedding_dense_backward,
-                torch.ops.aten.native_layer_norm_backward,
-                torch.ops.aten.slice_backward,
-                torch.ops.aten.select_backward,
-                torch.ops.aten.norm.ScalarOpt_dim,
-                torch.ops.aten.native_group_norm,
-                torch.ops.aten.upsample_bilinear2d.vec,
-                torch.ops.aten.split.Tensor,
-                torch.ops.aten.split_with_sizes,
-                torch.ops.aten.native_layer_norm,
-                torch.ops.aten.masked_fill.Tensor,
-                torch.ops.aten.masked_fill.Scalar,
-            ]
-        ),
-    )(*inputs)
+    decomps_list = [
+        torch.ops.aten.embedding_dense_backward,
+        torch.ops.aten.native_layer_norm_backward,
+        torch.ops.aten.slice_backward,
+        torch.ops.aten.select_backward,
+        torch.ops.aten.norm.ScalarOpt_dim,
+        torch.ops.aten.native_group_norm,
+        torch.ops.aten.upsample_bilinear2d.vec,
+        torch.ops.aten.split.Tensor,
+        torch.ops.aten.split_with_sizes,
+        torch.ops.aten.native_layer_norm,
+        torch.ops.aten.masked_fill.Tensor,
+        torch.ops.aten.masked_fill.Scalar,
+    ]
+    if precision in ["int4", "int8"]:
+        export_context_manager = brevitas_layer_export_mode
+        export_class = block_quant_layer_level_manager(
+            export_handlers=[LinearWeightBlockQuantHandlerFwd]
+        )
+        with export_context_manager(model, export_class):
+            fx_g = brevitas_make_fx(
+                model,
+                decomposition_table=get_decompositions(decomps_list),
+            )(*inputs)
+
+        transform_fx(fx_g, quantized=True)
+        replace_call_fn_target(
+            fx_g,
+            src=matmul_rhs_group_quant_placeholder,
+            target=torch.ops.brevitas.matmul_rhs_group_quant,
+        )
+
+        fx_g.recompile()
+        removed_none_indexes = _remove_nones(fx_g)
+        was_unwrapped = _unwrap_single_tuple_return(fx_g)
+    else:
+        fx_g = make_fx(
+            model,
+            decomposition_table=get_decompositions(decomps_list),
+        )(*inputs)
 
     fx_g.graph.set_codegen(torch.fx.graph.CodeGen())
     fx_g.recompile()
