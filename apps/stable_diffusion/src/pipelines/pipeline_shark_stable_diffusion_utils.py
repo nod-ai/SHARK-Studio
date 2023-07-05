@@ -431,8 +431,7 @@ class StableDiffusionPipeline:
             raise ValueError(
                 f"`negative_prompt`: "
                 f"{negative_prompt} has batch size {len(negative_prompt)}, "
-                f"but `prompt`: "
-                f"{prompt} has batch size {batch_size}. "
+                f"but `prompt`: {prompt} has batch size {batch_size}. "
                 f"Please make sure that passed `negative_prompt` matches "
                 "the batch size of `prompt`."
             )
