@@ -134,6 +134,8 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         enabled = len(supported_devices) > 0
         # show cpu-task device first in list for chatbot
         supported_devices = supported_devices[-1:] + supported_devices[:-1]
+        supported_devices = [x for x in supported_devices if "sync" not in x]
+        print(supported_devices)
         device = gr.Dropdown(
             label="Device",
             value=supported_devices[0]
