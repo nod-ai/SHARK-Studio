@@ -189,6 +189,3 @@ apps/stable_diffusion/web/models/
 
 # Stencil annotators.
 stencil_annotator/
-
-# brevitas custom op lib
-apps/language_models/scripts/vicuna.py
