@@ -43,7 +43,7 @@ def get_iree_device_args(device, extra_args=[]):
 
         data_tiling_flag = ["--iree-flow-enable-data-tiling"]
         u_kernel_flag = ["--iree-llvmcpu-enable-microkernels"]
-        stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=196608"]
+        stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=144000"]
 
         return (
             get_iree_cpu_args()
