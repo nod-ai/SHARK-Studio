@@ -44,12 +44,16 @@ def get_iree_device_args(device, extra_args=[]):
         data_tiling_flag = ["--iree-flow-enable-data-tiling"]
         u_kernel_flag = ["--iree-llvmcpu-enable-microkernels"]
         stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=144000"]
+        fail_oob_flag = [
+            "--iree-llvmcpu-fail-on-out-of-bounds-stack-allocation=false"
+        ]
 
         return (
             get_iree_cpu_args()
             + data_tiling_flag
             + u_kernel_flag
             + stack_size_flag
+            + fail_oob_flag
         )
     if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
