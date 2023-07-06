@@ -44,10 +44,7 @@ p.add_argument(
 p.add_argument(
     "--negative_prompts",
     nargs="+",
-    default=[
-        "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), "
-        "blurry, ugly, blur, oversaturated, cropped"
-    ],
+    default=["trees", "green"],
     help="Text you don't want to see in the generated image.",
 )
 
