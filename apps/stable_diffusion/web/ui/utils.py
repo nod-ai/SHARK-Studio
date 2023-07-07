@@ -39,8 +39,16 @@ scheduler_list_cpu_only = [
     "LMSDiscrete",
     "KDPM2Discrete",
     "DPMSolverMultistep",
+    "DPMSolverMultistep++",
+    "DPMSolverMultistepKarras",
+    "DPMSolverMultistepKarras++",
     "EulerDiscrete",
     "EulerAncestralDiscrete",
+    "DEISMultistep",
+    "KDPM2AncestralDiscrete",
+    "DPMSolverSinglestep",
+    "DDPM",
+    "HeunDiscrete",
 ]
 scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
@@ -50,6 +58,7 @@ predefined_models = [
     "Linaqruf/anything-v3.0",
     "prompthero/openjourney",
     "wavymulder/Analog-Diffusion",
+    "xzuyn/PhotoMerge",
     "stabilityai/stable-diffusion-2-1",
     "stabilityai/stable-diffusion-2-1-base",
     "CompVis/stable-diffusion-v1-4",
@@ -58,6 +67,7 @@ predefined_models = [
 predefined_paint_models = [
     "runwayml/stable-diffusion-inpainting",
     "stabilityai/stable-diffusion-2-inpainting",
+    "xzuyn/PhotoMerge-inpainting",
 ]
 predefined_upscaler_models = [
     "stabilityai/stable-diffusion-x4-upscaler",
@@ -79,7 +89,8 @@ def create_custom_models_folders():
     else:
         if not os.path.isdir(args.ckpt_dir):
             sys.exit(
-                f"Invalid --ckpt_dir argument, {args.ckpt_dir} folder does not exists."
+                f"Invalid --ckpt_dir argument, "
+                f"{args.ckpt_dir} folder does not exists."
             )
     for root in dir:
         get_custom_model_path(root).mkdir(parents=True, exist_ok=True)

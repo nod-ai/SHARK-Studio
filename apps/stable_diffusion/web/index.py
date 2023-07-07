@@ -7,7 +7,7 @@ if sys.platform == "darwin":
     import torch_mlir
 
 import shutil
-import PIL, sentencepiece, transformers  # ensures inclusion in pysintaller exe generation
+import PIL, transformers, sentencepiece  # ensures inclusion in pysintaller exe generation
 from apps.stable_diffusion.src import args, clear_all
 import apps.stable_diffusion.web.utils.global_obj as global_obj
 
@@ -26,9 +26,10 @@ def launch_app(address):
 
     window = Tk()
 
-    # getting screen width and height of display
-    width = window.winfo_screenwidth()
-    height = window.winfo_screenheight()
+    # get screen width and height of display and make it more reasonably
+    # sized as we aren't making it full-screen or maximized
+    width = int(window.winfo_screenwidth() * 0.81)
+    height = int(window.winfo_screenheight() * 0.91)
     webview.create_window(
         "SHARK AI Studio",
         url=address,

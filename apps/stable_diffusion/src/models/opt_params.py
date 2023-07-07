@@ -17,8 +17,12 @@ hf_model_variant_map = {
     "stabilityai/stable-diffusion-2-1-base": ["stablediffusion", "v2_1base"],
     "CompVis/stable-diffusion-v1-4": ["stablediffusion", "v1_4"],
     "runwayml/stable-diffusion-inpainting": ["stablediffusion", "inpaint_v1"],
-    "stabilityai/stable-diffusion-2-inpainting": ["stablediffusion", "inpaint_v2"],
+    "stabilityai/stable-diffusion-2-inpainting": [
+        "stablediffusion",
+        "inpaint_v2",
+    ],
 }
+
 
 # TODO: Add the quantized model as a part model_db.json.
 # This is currently in experimental phase.
@@ -27,8 +31,11 @@ def get_quantize_model():
     model_key = "unet_int8"
     iree_flags = get_opt_flags("unet", precision="fp16")
     if args.height != 512 and args.width != 512 and args.max_length != 77:
-        sys.exit("The int8 quantized model currently requires the height and width to be 512, and max_length to be 77")
+        sys.exit(
+            "The int8 quantized model currently requires the height and width to be 512, and max_length to be 77"
+        )
     return bucket_key, model_key, iree_flags
+
 
 def get_variant_version(hf_model_id):
     return hf_model_variant_map[hf_model_id]

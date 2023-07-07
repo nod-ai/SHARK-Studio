@@ -31,8 +31,16 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                 with gr.Row():
                     with gr.Column(scale=10):
                         with gr.Row():
+                            # janky fix for overflowing text
+                            train_lora_model_info = (
+                                str(get_custom_model_path())
+                            ).replace("\\", "\n\\")
+                            train_lora_model_info = (
+                                f"Custom Model Path: {train_lora_model_info}"
+                            )
                             custom_model = gr.Dropdown(
-                                label=f"Models (Custom Model path: {get_custom_model_path()})",
+                                label=f"Models",
+                                info=train_lora_model_info,
                                 elem_id="custom_model",
                                 value=os.path.basename(args.ckpt_loc)
                                 if args.ckpt_loc
@@ -43,22 +51,33 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                             )
                             hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
-                                placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3",
+                                placeholder="Select 'None' in the Models "
+                                "dropdown on the left and enter model ID here "
+                                "e.g: SG161222/Realistic_Vision_V1.3",
                                 value="",
                                 label="HuggingFace Model ID",
                                 lines=3,
                             )
 
                 with gr.Row():
+                    # janky fix for overflowing text
+                    train_lora_info = (
+                        str(get_custom_model_path("lora"))
+                    ).replace("\\", "\n\\")
+                    train_lora_info = f"LoRA Path: {train_lora_info}"
                     lora_weights = gr.Dropdown(
-                        label=f"Standlone LoRA weights to initialize weights (Path: {get_custom_model_path('lora')})",
+                        label=f"Standalone LoRA weights to initialize weights",
+                        info=train_lora_info,
                         elem_id="lora_weights",
                         value="None",
                         choices=["None"] + get_custom_model_files("lora"),
                     )
                     lora_hf_id = gr.Textbox(
                         elem_id="lora_hf_id",
-                        placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                        placeholder="Select 'None' in the Standalone LoRA "
+                        "weights dropdown on the left if you want to use a "
+                        "standalone HuggingFace model ID for LoRA here "
+                        "e.g: sayakpaul/sd-model-finetuned-lora-t4",
                         value="",
                         label="HuggingFace Model ID to initialize weights",
                         lines=3,
@@ -74,7 +93,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     prompt = gr.Textbox(
                         label="Prompt",
                         value=args.prompts[0],
-                        lines=1,
+                        lines=2,
                         elem_id="prompt_box",
                     )
                 with gr.Accordion(label="Advanced Options", open=False):
@@ -215,7 +234,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                 ),
             ],
             outputs=[std_output],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
 
         prompt_submit = prompt.submit(**kwargs)

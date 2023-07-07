@@ -15,6 +15,9 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
     DEISMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    HeunDiscreteScheduler,
 )
 from shark.shark_inference import SharkInference
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
@@ -48,6 +51,10 @@ class StableDiffusionPipeline:
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DDPMScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
@@ -67,7 +74,8 @@ class StableDiffusionPipeline:
         self.import_mlir = import_mlir
         self.use_lora = use_lora
         self.ondemand = ondemand
-        # TODO: Find a better workaround for fetching base_model_id early enough for CLIPTokenizer.
+        # TODO: Find a better workaround for fetching base_model_id early
+        #  enough for CLIPTokenizer.
         try:
             self.tokenizer = get_tokenizer()
         except:
@@ -82,7 +90,8 @@ class StableDiffusionPipeline:
         if self.import_mlir or self.use_lora:
             if not self.import_mlir:
                 print(
-                    "Warning: LoRA provided but import_mlir not specified. Importing MLIR anyways."
+                    "Warning: LoRA provided but import_mlir not specified. "
+                    "Importing MLIR anyways."
                 )
             self.text_encoder = self.sd_model.clip()
         else:
@@ -310,6 +319,10 @@ class StableDiffusionPipeline:
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DDPMScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         import_mlir: bool,
         model_id: str,
@@ -394,16 +407,21 @@ class StableDiffusionPipeline:
             prompt (`str` or `list(int)`):
                 prompt to be encoded
             negative_prompt (`str` or `List[str]`):
-                The prompt or prompts not to guide the image generation. Ignored when not using guidance (i.e., ignored
-                if `guidance_scale` is less than `1`).
+                The prompt or prompts not to guide the image generation.
+                Ignored when not using guidance
+                (i.e., ignored if `guidance_scale` is less than `1`).
             model_max_length (int):
-                SHARK: pass the max length instead of relying on pipe.tokenizer.model_max_length
+                SHARK: pass the max length instead of relying on
+                pipe.tokenizer.model_max_length
             do_classifier_free_guidance (`bool`):
                 whether to use classifier free guidance or not,
-                SHARK: must be set to True as we always expect neg embeddings (defaulted to True)
+                SHARK: must be set to True as we always expect neg embeddings
+                (defaulted to True)
             max_embeddings_multiples (`int`, *optional*, defaults to `3`):
-                The max multiple length of prompt embeddings compared to the max output length of text encoder.
-                SHARK: max_embeddings_multiples>1 produce a tensor shape error (defaulted to 1)
+                The max multiple length of prompt embeddings compared to the
+                max output length of text encoder.
+                SHARK: max_embeddings_multiples>1 produce a tensor shape error
+                (defaulted to 1)
             num_images_per_prompt (`int`):
                 number of images that should be generated per prompt
                 SHARK: num_images_per_prompt is not used (defaulted to 1)
@@ -422,9 +440,11 @@ class StableDiffusionPipeline:
             negative_prompt = [negative_prompt] * batch_size
         if batch_size != len(negative_prompt):
             raise ValueError(
-                f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
-                f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
-                " the batch size of `prompt`."
+                f"`negative_prompt`: "
+                f"{negative_prompt} has batch size {len(negative_prompt)}, "
+                f"but `prompt`: {prompt} has batch size {batch_size}. "
+                f"Please make sure that passed `negative_prompt` matches "
+                "the batch size of `prompt`."
             )
 
         text_embeddings, uncond_embeddings = get_weighted_text_embeddings(
@@ -437,14 +457,36 @@ class StableDiffusionPipeline:
         )
         # SHARK: we are not using num_images_per_prompt
         # bs_embed, seq_len, _ = text_embeddings.shape
-        # text_embeddings = text_embeddings.repeat(1, num_images_per_prompt, 1)
-        # text_embeddings = text_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
+        # text_embeddings = text_embeddings.repeat(
+        #     1,
+        #     num_images_per_prompt,
+        #     1
+        # )
+        # text_embeddings = (
+        #     text_embeddings.view(
+        #         bs_embed * num_images_per_prompt,
+        #         seq_len,
+        #         -1
+        #     )
+        # )
 
         if do_classifier_free_guidance:
             # SHARK: we are not using num_images_per_prompt
             # bs_embed, seq_len, _ = uncond_embeddings.shape
-            # uncond_embeddings = uncond_embeddings.repeat(1, num_images_per_prompt, 1)
-            # uncond_embeddings = uncond_embeddings.view(bs_embed * num_images_per_prompt, seq_len, -1)
+            # uncond_embeddings = (
+            #     uncond_embeddings.repeat(
+            #         1,
+            #         num_images_per_prompt,
+            #         1
+            #     )
+            # )
+            # uncond_embeddings = (
+            #     uncond_embeddings.view(
+            #         bs_embed * num_images_per_prompt,
+            #         seq_len,
+            #         -1
+            #     )
+            # )
             text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
         if text_embeddings.shape[1] > model_max_length:
@@ -486,7 +528,8 @@ re_attention = re.compile(
 
 def parse_prompt_attention(text):
     """
-    Parses a string with attention tokens and returns a list of pairs: text and its associated weight.
+    Parses a string with attention tokens and returns a list of pairs:
+        text and its associated weight.
     Accepted tokens are:
       (abc) - increases attention to abc by a multiplier of 1.1
       (abc:3.12) - increases attention to abc by a multiplier of 3.12

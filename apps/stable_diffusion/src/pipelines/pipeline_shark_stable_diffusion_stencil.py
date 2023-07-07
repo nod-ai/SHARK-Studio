@@ -14,6 +14,12 @@ from diffusers import (
     EulerDiscreteScheduler,
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
+    DEISMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    HeunDiscreteScheduler,
+    DDPMScheduler,
+    KDPM2DiscreteScheduler,
 )
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
@@ -38,6 +44,12 @@ class StencilPipeline(StableDiffusionPipeline):
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            DEISMultistepScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
+            DDPMScheduler,
+            KDPM2DiscreteScheduler,
         ],
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,

@@ -1,14 +1,39 @@
 import torch
 from transformers import AutoModelForCausalLM
 
+from brevitas_examples.llm.llm_quant.quantize import quantize_model
+from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
+
 
 class FirstVicuna(torch.nn.Module):
-    def __init__(self, model_path):
+    def __init__(self, model_path, precision="fp32", weight_group_size=128):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
+        if precision in ["int4", "int8"]:
+            print("First Vicuna applying weight quantization..")
+            weight_bit_width = 4 if precision == "int4" else 8
+            quantize_model(
+                get_model_impl(self.model).layers,
+                dtype=torch.float32,
+                weight_quant_type="asym",
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+                input_bit_width=None,
+                input_scale_type="float",
+                input_param_method="stats",
+                input_quant_type="asym",
+                input_quant_granularity="per_tensor",
+                quantize_input_zero_point=False,
+                seqlen=2048,
+            )
+            print("Weight quantization applied.")
 
     def forward(self, input_ids):
         op = self.model(input_ids=input_ids, use_cache=True)
@@ -22,12 +47,34 @@ class FirstVicuna(torch.nn.Module):
 
 
 class SecondVicuna(torch.nn.Module):
-    def __init__(self, model_path):
+    def __init__(self, model_path, precision="fp32", weight_group_size=128):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
+        if precision in ["int4", "int8"]:
+            print("Second Vicuna applying weight quantization..")
+            weight_bit_width = 4 if precision == "int4" else 8
+            quantize_model(
+                get_model_impl(self.model).layers,
+                dtype=torch.float32,
+                weight_quant_type="asym",
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+                input_bit_width=None,
+                input_scale_type="float",
+                input_param_method="stats",
+                input_quant_type="asym",
+                input_quant_granularity="per_tensor",
+                quantize_input_zero_point=False,
+                seqlen=2048,
+            )
+            print("Weight quantization applied.")
 
     def forward(
         self,

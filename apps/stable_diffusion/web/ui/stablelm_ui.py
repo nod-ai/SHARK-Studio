@@ -7,12 +7,17 @@ from transformers import (
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
 
-start_message = """<|SYSTEM|># StableLM Tuned (Alpha version)
-- StableLM is a helpful and harmless open-source AI language model developed by StabilityAI.
-- StableLM is excited to be able to help the user, but will refuse to do anything that could be considered harmful to the user.
-- StableLM is more than just an information source, StableLM is also able to write poetry, short stories, and make jokes.
-- StableLM will refuse to participate in anything that could harm a human.
-"""
+start_message = (
+    "<|SYSTEM|># StableLM Tuned (Alpha version)"
+    "\n- StableLM is a helpful and harmless open-source AI language model "
+    "developed by StabilityAI."
+    "\n- StableLM is excited to be able to help the user, but will refuse "
+    "to do anything that could be considered harmful to the user."
+    "\n- StableLM is more than just an information source, StableLM is also "
+    "able to write poetry, short stories, and make jokes."
+    "\n- StableLM will refuse to participate in anything that "
+    "could harm a human."
+)
 
 
 def user(message, history):
@@ -25,7 +30,11 @@ sharded_model = 0
 vicuna_model = 0
 
 
-start_message_vicuna = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+start_message_vicuna = (
+    "A chat between a curious user and an artificial intelligence assistant. "
+    "The assistant gives helpful, detailed, and polite answers to the user's "
+    "questions.\n"
+)
 past_key_values = None
 
 
@@ -35,8 +44,8 @@ def chat(curr_system_message, history, model, device, precision):
     global past_key_values
     global vicuna_model
     if "vicuna" in model:
-        from apps.language_models.src.pipelines.vicuna_pipeline import (
-            Vicuna,
+        from apps.language_models.scripts.vicuna import (
+            UnshardedVicuna,
         )
 
         curr_system_message = start_message_vicuna
@@ -51,7 +60,7 @@ def chat(curr_system_message, history, model, device, precision):
                 device = "vulkan"
             else:
                 print("unrecognized device")
-            vicuna_model = Vicuna(
+            vicuna_model = UnshardedVicuna(
                 "vicuna",
                 hf_model_path=model,
                 device=device,
@@ -84,7 +93,8 @@ def chat(curr_system_message, history, model, device, precision):
             "StableLM"
         )  # pass elements from UI as required
 
-    # Construct the input message string for the model by concatenating the current system message and conversation history
+    # Construct the input message string for the model by concatenating the
+    # current system message and conversation history
     if len(curr_system_message.split()) > 160:
         print("clearing context")
         curr_system_message = start_message
@@ -104,7 +114,8 @@ def chat(curr_system_message, history, model, device, precision):
         # print(new_text)
         partial_text += new_text
         history[-1][1] = partial_text
-        # Yield an empty string to cleanup the message textbox and the updated conversation history
+        # Yield an empty string to clean up the message textbox and the updated
+        # conversation history
         yield history
     return words_list
 
@@ -121,6 +132,10 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         )
         supported_devices = available_devices
         enabled = len(supported_devices) > 0
+        # show cpu-task device first in list for chatbot
+        supported_devices = supported_devices[-1:] + supported_devices[:-1]
+        supported_devices = [x for x in supported_devices if "sync" not in x]
+        print(supported_devices)
         device = gr.Dropdown(
             label="Device",
             value=supported_devices[0]
