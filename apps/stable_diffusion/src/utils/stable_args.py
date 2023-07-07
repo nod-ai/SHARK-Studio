@@ -65,6 +65,15 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--use_hiresfix",
+    type=bool,
+    default=True,
+    help="Use Hires Fix to do higher resolution images, while trying to "
+         "avoid the issues that come with it. This is accomplished by first "
+         "generating an image using txt2img, then running it through img2img."
+)
+
+p.add_argument(
     "--seed",
     type=int,
     default=-1,
