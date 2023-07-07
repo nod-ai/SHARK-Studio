@@ -695,7 +695,7 @@ class ShardedVicuna(SharkLLMBase):
                 weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_type="float",
+                weight_scale_precision="float",
                 weight_quant_granularity="per_group",
                 weight_group_size=self.weight_group_size,
                 quantize_weight_zero_point=False,
