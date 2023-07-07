@@ -312,8 +312,8 @@ p.add_argument(
 p.add_argument(
     "--output_dir",
     type=str,
-    default=None,
-    help="Directory path to save the output images and json.",
+    default=str(os.path.join(os.getcwd(), "generated_imgs")), 
+    help="Directory path to save the output images and json",
 )
 
 p.add_argument(
