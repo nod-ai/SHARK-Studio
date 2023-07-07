@@ -74,6 +74,29 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--hiresfix_height",
+    type=int,
+    default=512,
+    choices=range(128, 769, 8),
+    help="The height of the Hires Fix image.",
+)
+
+p.add_argument(
+    "--hiresfix_width",
+    type=int,
+    default=512,
+    choices=range(128, 769, 8),
+    help="The width of the Hires Fix image.",
+)
+
+p.add_argument(
+    "--hiresfix_strength",
+    type=float,
+    default=0.6,
+    help="The denoising strength to apply for the Hires Fix.",
+)
+
+p.add_argument(
     "--seed",
     type=int,
     default=-1,

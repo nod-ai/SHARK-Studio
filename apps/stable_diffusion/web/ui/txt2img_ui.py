@@ -62,6 +62,9 @@ def txt2img_inf(
     lora_hf_id: str,
     ondemand: bool,
     use_hiresfix: bool,
+    hiresfix_height: int,
+    hiresfix_width: int,
+    hiresfix_strength: float,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -221,10 +224,10 @@ def txt2img_inf(
             prompt=prompt,
             negative_prompt=negative_prompt,
             image_dict=out_imgs[0],
-            height=128,
-            width=128,
+            height=hiresfix_height,
+            width=hiresfix_width,
             steps=steps,
-            strength=0.6,
+            strength=hiresfix_strength,
             guidance_scale=guidance_scale,
             seed=seed,
             batch_size=1,
@@ -244,7 +247,6 @@ def txt2img_inf(
             ondemand=ondemand,
         )
         hri = next(hri)
-        hri[0][0].save("test.png", quality=95, subsampling=0)
     return generated_imgs, text_output, ""
 
 
@@ -373,7 +375,7 @@ def hiresfix_inf(
         or global_obj.get_cfg_obj() != new_config_obj
     ):
         print("3")
-        # global_obj.clear_cache()
+        global_obj.clear_cache()
         print("4")
         global_obj.set_cfg_obj(new_config_obj)
         print("5")
@@ -543,7 +545,10 @@ def txt2img_api(
         lora_weights="None",
         lora_hf_id="",
         ondemand=False,
-        use_hiresfix=True,
+        use_hiresfix=use_hiresfix,
+        hiresfix_height=hiresfix_height,
+        hiresfix_width=hiresfix_width,
+        hiresfix_strength=hiresfix_strength,
     )
 
     # Convert Generator to Subscriptable
@@ -724,16 +729,37 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             step=0.1,
                             label="CFG Scale",
                         )
+                        ondemand = gr.Checkbox(
+                            value=args.ondemand,
+                            label="Low VRAM",
+                            interactive=True,
+                        )
                         with gr.Group():
-                            ondemand = gr.Checkbox(
-                                value=args.ondemand,
-                                label="Low VRAM",
-                                interactive=True,
-                            )
                             use_hiresfix = gr.Checkbox(
                                 value=args.use_hiresfix,
                                 label="Use Hires Fix",
                                 interactive=True,
+                            )
+                            hiresfix_height = gr.Slider(
+                                384,
+                                768,
+                                value=args.hiresfix_height,
+                                step=8,
+                                label="Hires Fix Height",
+                            )
+                            hiresfix_width = gr.Slider(
+                                384,
+                                768,
+                                value=args.hiresfix_width,
+                                step=8,
+                                label="Hires Fix Width",
+                            )
+                            hiresfix_strength = gr.Slider(
+                                0,
+                                1,
+                                value=args.hiresfix_strength,
+                                step=0.01,
+                                label="Hires Fix Denoising Strength",
                             )
                     with gr.Row():
                         with gr.Column(scale=3):
@@ -835,6 +861,9 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 lora_hf_id,
                 ondemand,
                 use_hiresfix,
+                hiresfix_height,
+                hiresfix_width,
+                hiresfix_strength,
             ],
             outputs=[txt2img_gallery, std_output, txt2img_status],
             show_progress="minimal" if args.progress_bar else "none",
