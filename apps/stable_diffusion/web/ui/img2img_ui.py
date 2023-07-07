@@ -3,6 +3,7 @@ import torch
 import time
 import gradio as gr
 import PIL
+from math import ceil
 from PIL import Image
 import base64
 from io import BytesIO
@@ -243,7 +244,7 @@ def img2img_inf(
             batch_size,
             height,
             width,
-            steps,
+            ceil(steps / strength),
             strength,
             guidance_scale,
             img_seed,

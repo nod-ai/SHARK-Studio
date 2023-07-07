@@ -4,6 +4,7 @@ import time
 import sys
 import gradio as gr
 from PIL import Image
+from math import ceil
 import base64
 from io import BytesIO
 from fastapi.exceptions import HTTPException
@@ -219,16 +220,14 @@ def txt2img_inf(
             )
 
     if use_hiresfix is True:
-        from math import ceil
         print(hiresfix_strength)
-        steps = ceil(steps / hiresfix_strength)
         hri = hiresfix_inf(
             prompt=prompt,
             negative_prompt=negative_prompt,
             image_dict=out_imgs[0],
             height=hiresfix_height,
             width=hiresfix_width,
-            steps=steps,
+            steps=ceil(steps / hiresfix_strength),
             strength=hiresfix_strength,
             guidance_scale=guidance_scale,
             seed=seed,
