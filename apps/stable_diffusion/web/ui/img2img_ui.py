@@ -253,6 +253,7 @@ def img2img_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
             use_stencil=use_stencil,
+            resample_type=args.resample_type,
         )
         seeds.append(img_seed)
         total_time = time.time() - start_time

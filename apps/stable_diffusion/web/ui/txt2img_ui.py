@@ -65,6 +65,7 @@ def txt2img_inf(
     hiresfix_height: int,
     hiresfix_width: int,
     hiresfix_strength: float,
+    resample_type: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -219,7 +220,8 @@ def txt2img_inf(
 
     if use_hiresfix is True:
         from math import ceil
-        steps = ceil(steps / 0.6)
+        print(hiresfix_strength)
+        steps = ceil(steps / hiresfix_strength)
         hri = hiresfix_inf(
             prompt=prompt,
             negative_prompt=negative_prompt,
@@ -245,6 +247,7 @@ def txt2img_inf(
             lora_weights=lora_weights,
             lora_hf_id=lora_hf_id,
             ondemand=ondemand,
+            resample_type=resample_type,
         )
         hri = next(hri)
     return generated_imgs, text_output, ""
@@ -275,8 +278,8 @@ def hiresfix_inf(
     lora_weights: str,
     lora_hf_id: str,
     ondemand: bool,
+    resample_type: str,
 ):
-    print("we're in hiresfix_inf")
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
         get_custom_vae_or_lora_weights,
@@ -353,7 +356,6 @@ def hiresfix_inf(
     cpu_scheduling = not args.scheduler.startswith("Shark")
     args.precision = precision
     dtype = torch.float32 if precision == "fp32" else torch.half
-    print("1")
     new_config_obj = Config(
         "img2img",
         args.hf_model_id,
@@ -369,16 +371,12 @@ def hiresfix_inf(
         use_stencil=use_stencil,
         ondemand=ondemand,
     )
-    print("2")
     if (
         not global_obj.get_sd_obj()
         or global_obj.get_cfg_obj() != new_config_obj
     ):
-        print("3")
         global_obj.clear_cache()
-        print("4")
         global_obj.set_cfg_obj(new_config_obj)
-        print("5")
         args.batch_count = batch_count
         args.batch_size = batch_size
         args.max_length = max_length
@@ -471,6 +469,7 @@ def hiresfix_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
             use_stencil=use_stencil,
+            resample_type=resample_type,
         )
         seeds.append(img_seed)
         total_time = time.time() - start_time
@@ -545,10 +544,11 @@ def txt2img_api(
         lora_weights="None",
         lora_hf_id="",
         ondemand=False,
-        use_hiresfix=use_hiresfix,
-        hiresfix_height=hiresfix_height,
-        hiresfix_width=hiresfix_width,
-        hiresfix_strength=hiresfix_strength,
+        use_hiresfix=False,
+        hiresfix_height=512,
+        hiresfix_width=512,
+        hiresfix_strength=0.6,
+        resample_type="Nearest Neighbor"
     )
 
     # Convert Generator to Subscriptable
@@ -734,33 +734,42 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="Low VRAM",
                             interactive=True,
                         )
-                        with gr.Group():
+                    with gr.Group():
+                        with gr.Row():
                             use_hiresfix = gr.Checkbox(
                                 value=args.use_hiresfix,
                                 label="Use Hires Fix",
                                 interactive=True,
                             )
-                            hiresfix_height = gr.Slider(
-                                384,
-                                768,
-                                value=args.hiresfix_height,
-                                step=8,
-                                label="Hires Fix Height",
+                            resample_type = gr.Radio(
+                                value=args.resample_type,
+                                choices=[
+                                    "Lanczos",
+                                    "Nearest Neighbor"
+                                ],
+                                label="Resample Type",
                             )
-                            hiresfix_width = gr.Slider(
-                                384,
-                                768,
-                                value=args.hiresfix_width,
-                                step=8,
-                                label="Hires Fix Width",
-                            )
-                            hiresfix_strength = gr.Slider(
-                                0,
-                                1,
-                                value=args.hiresfix_strength,
-                                step=0.01,
-                                label="Hires Fix Denoising Strength",
-                            )
+                        hiresfix_height = gr.Slider(
+                            384,
+                            768,
+                            value=args.hiresfix_height,
+                            step=8,
+                            label="Hires Fix Height",
+                        )
+                        hiresfix_width = gr.Slider(
+                            384,
+                            768,
+                            value=args.hiresfix_width,
+                            step=8,
+                            label="Hires Fix Width",
+                        )
+                        hiresfix_strength = gr.Slider(
+                            0,
+                            1,
+                            value=args.hiresfix_strength,
+                            step=0.01,
+                            label="Hires Fix Denoising Strength",
+                        )
                     with gr.Row():
                         with gr.Column(scale=3):
                             batch_count = gr.Slider(
@@ -864,6 +873,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 hiresfix_height,
                 hiresfix_width,
                 hiresfix_strength,
+                resample_type,
             ],
             outputs=[txt2img_gallery, std_output, txt2img_status],
             show_progress="minimal" if args.progress_bar else "none",

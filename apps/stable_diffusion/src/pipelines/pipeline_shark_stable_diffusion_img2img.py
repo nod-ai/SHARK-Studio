@@ -84,13 +84,21 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         num_inference_steps,
         strength,
         dtype,
+        resample_type,
     ):
         # Pre process image -> get image encoded -> process latents
 
         # TODO: process with variable HxW combos
 
         # Pre process image
-        image = image.resize((width, height))
+        if resample_type == "Lanczos":
+            resample_type = Image.LANCZOS
+        elif resample_type == "Nearest Neighbor":
+            resample_type = Image.NEAREST
+        else:
+            resample_type = Image.LANCZOS
+
+        image = image.resize((width, height), resample=resample_type)
         image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
         image_arr = image_arr / 255.0
         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
@@ -147,6 +155,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         cpu_scheduling,
         max_embeddings_multiples,
         use_stencil,
+        resample_type,
     ):
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
@@ -186,6 +195,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
             num_inference_steps=num_inference_steps,
             strength=strength,
             dtype=dtype,
+            resample_type=resample_type,
         )
 
         # Get Image latents
