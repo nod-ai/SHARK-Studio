@@ -157,7 +157,7 @@ def get_git_revision_short_hash() -> str:
     else:
         import json
 
-        dir_path = os.path.dirname(os.path.realpath(__file__))
+        dir_path = os.path.dirname(os.path.abspath(__file__))
         print(f"\n\nIn get_git_revision_short_hash: {dir_path}\n\n")
         src = os.path.join(dir_path, "..", "tank_version.json")
         with open(src, "r") as f:
