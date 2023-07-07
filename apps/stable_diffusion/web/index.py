@@ -7,7 +7,7 @@ if sys.platform == "darwin":
     import torch_mlir
 
 import shutil
-import PIL, sentencepiece, transformers  # ensures inclusion in pysintaller exe generation
+import PIL, transformers, sentencepiece  # ensures inclusion in pysintaller exe generation
 from apps.stable_diffusion.src import args, clear_all
 import apps.stable_diffusion.web.utils.global_obj as global_obj
 
