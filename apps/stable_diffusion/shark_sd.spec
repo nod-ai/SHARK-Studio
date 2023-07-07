@@ -14,26 +14,29 @@ datas += copy_metadata('requests')
 datas += copy_metadata('packaging')
 datas += copy_metadata('filelock')
 datas += copy_metadata('numpy')
-datas += copy_metadata('tokenizers')
 datas += copy_metadata('importlib_metadata')
 datas += copy_metadata('torch-mlir')
 datas += copy_metadata('omegaconf')
 datas += copy_metadata('safetensors')
 datas += copy_metadata('Pillow')
+datas += copy_metadata('sentencepiece')
+datas += collect_data_files('tokenizers')
 datas += collect_data_files('diffusers')
 datas += collect_data_files('transformers')
 datas += collect_data_files('pytorch_lightning')
-datas += collect_data_files('opencv-python')
+datas += collect_data_files('opencv_python')
 datas += collect_data_files('skimage')
 datas += collect_data_files('gradio')
 datas += collect_data_files('gradio_client')
 datas += collect_data_files('iree')
-datas += collect_data_files('google-cloud-storage')
+datas += collect_data_files('google_cloud_storage')
 datas += collect_data_files('shark')
 datas += collect_data_files('tkinter')
 datas += collect_data_files('webview')
 datas += collect_data_files('sentencepiece')
-datas += collect_data_files('py-cpuinfo')
+datas += collect_data_files('jsonschema')
+datas += collect_data_files('jsonschema_specifications')
+datas += collect_data_files('cpuinfo')
 datas += [
          ( 'src/utils/resources/prompts.json', 'resources' ),
          ( 'src/utils/resources/model_db.json', 'resources' ),
@@ -49,6 +52,7 @@ block_cipher = None
 
 hiddenimports = ['shark', 'shark.shark_inference', 'apps']
 hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
+hiddenimports += [x for x in collect_submodules("transformers") if "tests" not in x]
 hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
 
 a = Analysis(
@@ -75,7 +79,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='shark_sd',
+    name='nodai_shark_studio',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
