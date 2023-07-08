@@ -119,7 +119,8 @@ with gr.Blocks() as outputgallery_web:
                             variant="secondary",
                             value="\U0001F5C1",  # unicode open folder
                             interactive=False,
-                        ).style(size="sm")
+                            size="sm",
+                        )
                     with gr.Column(
                         scale=1,
                         min_width=32,
