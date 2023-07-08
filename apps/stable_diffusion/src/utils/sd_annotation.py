@@ -131,11 +131,32 @@ def load_lower_configs(base_model_id=None):
             "v1_4",
             "v1_5",
         ]:
-            config_name = f"{args.annotation_model}_{version}_{args.max_length}_{args.precision}_{device}_{spec}_{args.width}x{args.height}.json"
+            config_name = (
+                f"{args.annotation_model}_"
+                f"{version}_"
+                f"{args.max_length}_"
+                f"{args.precision}_"
+                f"{device}_"
+                f"{spec}_"
+                f"{args.width}x{args.height}.json"
+            )
         elif spec in ["rdna2"] and version in ["v2_1", "v2_1base", "v1_4"]:
-            config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}_{spec}_{args.width}x{args.height}.json"
+            config_name = (
+                f"{args.annotation_model}_"
+                f"{version}_"
+                f"{args.precision}_"
+                f"{device}_"
+                f"{spec}_"
+                f"{args.width}x{args.height}.json"
+            )
         else:
-            config_name = f"{args.annotation_model}_{version}_{args.precision}_{device}_{spec}.json"
+            config_name = (
+                f"{args.annotation_model}_"
+                f"{version}_"
+                f"{args.precision}_"
+                f"{device}_"
+                f"{spec}.json"
+            )
 
     full_gs_url = config_bucket + config_name
     lowering_config_dir = os.path.join(WORKDIR, "configs", config_name)
@@ -180,9 +201,22 @@ def dump_after_mlir(input_mlir, use_winograd):
 
     device, device_spec_args = get_device_args()
     if use_winograd:
-        preprocess_flag = "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-flow-detach-elementwise-from-named-ops,iree-flow-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))"
+        preprocess_flag = (
+            "--iree-preprocessing-pass-pipeline=builtin.module"
+            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
+            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "iree-preprocessing-convert-conv2d-to-img2col,"
+            "iree-preprocessing-pad-linalg-ops{pad-size=32},"
+            "iree-linalg-ext-convert-conv2d-to-winograd))"
+        )
     else:
-        preprocess_flag = "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-flow-detach-elementwise-from-named-ops,iree-flow-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32}))"
+        preprocess_flag = (
+            "--iree-preprocessing-pass-pipeline=builtin.module"
+            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
+            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "iree-preprocessing-convert-conv2d-to-img2col,"
+            "iree-preprocessing-pad-linalg-ops{pad-size=32}))"
+        )
 
     dump_module = ireec.compile_str(
         input_mlir,

@@ -88,7 +88,8 @@ def upscaler_inf(
         if not hf_model_id:
             return (
                 None,
-                "Please provide either custom model or huggingface model ID, both must not be empty",
+                "Please provide either custom model or huggingface model ID, "
+                "both must not be empty.",
             )
         if "civitai" in hf_model_id:
             args.ckpt_loc = hf_model_id
@@ -202,6 +203,7 @@ def upscaler_inf(
                     dtype,
                     args.use_base_vae,
                     cpu_scheduling,
+                    args.max_embeddings_multiples,
                 )
                 if global_obj.get_sd_status() == SD_STATE_CANCEL:
                     break
@@ -225,10 +227,22 @@ def upscaler_inf(
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={steps}, noise_level={noise_level}, guidance_scale={guidance_scale}, seed={seeds}"
-    text_output += f"\nsize={height}x{width}, batch_count={batch_count}, batch_size={batch_size}, max_length={args.max_length}"
+    text_output += (
+        f"\nmodel_id={args.hf_model_id}, " f"ckpt_loc={args.ckpt_loc}"
+    )
+    text_output += f"\nscheduler={args.scheduler}, " f"device={device}"
+    text_output += (
+        f"\nsteps={steps}, "
+        f"noise_level={noise_level}, "
+        f"guidance_scale={guidance_scale}, "
+        f"seed={seeds}"
+    )
+    text_output += (
+        f"\nsize={height}x{width}, "
+        f"batch_count={batch_count}, "
+        f"batch_size={batch_size}, "
+        f"max_length={args.max_length}"
+    )
     text_output += global_obj.get_sd_obj().log
     text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
@@ -269,7 +283,9 @@ def upscaler_api(
     InputData: dict,
 ):
     print(
-        f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
+        f'Prompt: {InputData["prompt"]}, '
+        f'Negative Prompt: {InputData["negative_prompt"]}, '
+        f'Seed: {InputData["seed"]}'
     )
     init_image = decode_base64_to_image(InputData["init_images"][0])
     res = upscaler_inf(
@@ -319,13 +335,23 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                     show_label=False,
                     interactive=False,
                     elem_id="top_logo",
-                ).style(width=150, height=50)
+                    width=150,
+                    height=50,
+                )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
+                    # janky fix for overflowing text
+                    upscaler_model_info = (
+                        str(get_custom_model_path())
+                    ).replace("\\", "\n\\")
+                    upscaler_model_info = (
+                        f"Custom Model Path: {upscaler_model_info}"
+                    )
                     upscaler_custom_model = gr.Dropdown(
-                        label=f"Models (Custom Model path: {get_custom_model_path()})",
+                        label=f"Models",
+                        info=upscaler_model_info,
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
@@ -338,13 +364,23 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                     )
                     upscaler_hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown on the left and enter model ID here e.g: SG161222/Realistic_Vision_V1.3, https://civitai.com/api/download/models/15236",
+                        placeholder="Select 'None' in the Models dropdown "
+                        "on the left and enter model ID here "
+                        "e.g: SG161222/Realistic_Vision_V1.3, "
+                        "https://civitai.com/api/download/models/15236",
                         value="",
-                        label="HuggingFace Model ID or Civitai model download URL",
+                        label="HuggingFace Model ID or Civitai model "
+                        "download URL",
                         lines=3,
                     )
+                    # janky fix for overflowing text
+                    upscaler_vae_info = (
+                        str(get_custom_model_path("vae"))
+                    ).replace("\\", "\n\\")
+                    upscaler_vae_info = f"VAE Path: {upscaler_vae_info}"
                     custom_vae = gr.Dropdown(
-                        label=f"Custom Vae Models (Path: {get_custom_model_path('vae')})",
+                        label=f"Custom VAE Models",
+                        info=upscaler_vae_info,
                         elem_id="custom_model",
                         value=os.path.basename(args.custom_vae)
                         if args.custom_vae
@@ -356,31 +392,42 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                     prompt = gr.Textbox(
                         label="Prompt",
                         value=args.prompts[0],
-                        lines=1,
+                        lines=2,
                         elem_id="prompt_box",
                     )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
                         value=args.negative_prompts[0],
-                        lines=1,
+                        lines=2,
                         elem_id="negative_prompt_box",
                     )
 
                 upscaler_init_image = gr.Image(
-                    label="Input Image", type="pil"
-                ).style(height=300)
+                    label="Input Image",
+                    type="pil",
+                    height=300,
+                )
 
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
+                        # janky fix for overflowing text
+                        upscaler_lora_info = (
+                            str(get_custom_model_path("lora"))
+                        ).replace("\\", "\n\\")
+                        upscaler_lora_info = f"LoRA Path: {upscaler_lora_info}"
                         lora_weights = gr.Dropdown(
-                            label=f"Standlone LoRA weights (Path: {get_custom_model_path('lora')})",
+                            label=f"Standalone LoRA Weights",
+                            info=upscaler_lora_info,
                             elem_id="lora_weights",
                             value="None",
                             choices=["None"] + get_custom_model_files("lora"),
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                            placeholder="Select 'None' in the Standalone LoRA "
+                            "weights dropdown on the left if you want to use "
+                            "a standalone HuggingFace model ID for LoRA here "
+                            "e.g: sayakpaul/sd-model-finetuned-lora-t4",
                             value="",
                             label="HuggingFace Model ID",
                             lines=3,
@@ -509,9 +556,12 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
-                    ).style(columns=[2], object_fit="contain")
+                        columns=[2],
+                        object_fit="contain",
+                    )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {get_generated_imgs_path()}",
+                        value=f"Images will be saved at "
+                        f"{get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,
@@ -553,7 +603,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                 ondemand,
             ],
             outputs=[upscaler_gallery, std_output, upscaler_status],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Upscaler", 0, bc, bs),

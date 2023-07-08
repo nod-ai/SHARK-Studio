@@ -14,4 +14,4 @@ build-backend = "setuptools.build_meta"
 [tool.black]
 line-length = 79
 include = '\.pyi?$'
-
+exclude = "apps/language_models/scripts/vicuna.py"

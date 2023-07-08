@@ -1,6 +1,8 @@
 import glob
 import gradio as gr
 import os
+import subprocess
+import sys
 from PIL import Image
 
 from apps.stable_diffusion.src import args
@@ -38,14 +40,14 @@ def output_subdirs() -> list[str]:
         )
     ]
 
-    # It is less confusing to always including the subdir that will take any images generated
-    # today even if it doesn't exist yet
+    # It is less confusing to always including the subdir that will take any
+    # images generated today even if it doesn't exist yet
     if get_generated_imgs_todays_subdir() not in relative_paths:
         relative_paths.append(get_generated_imgs_todays_subdir())
 
-    # sort subdirectories so that that the date named ones we probably created in this or
-    # previous sessions come first, sorted with the most recent first. Other subdirs are listed
-    # after.
+    # sort subdirectories so that the date named ones we probably
+    # created in this or previous sessions come first, sorted with the most
+    # recent first. Other subdirs are listed after.
     generated_paths = sorted(
         [path for path in relative_paths if path.isnumeric()], reverse=True
     )
@@ -66,7 +68,8 @@ with gr.Blocks() as outputgallery_web:
     nod_logo = Image.open(nodlogo_loc)
 
     with gr.Row(elem_id="outputgallery_gallery"):
-        # needed to workaround gradio issue: https://github.com/gradio-app/gradio/issues/2907
+        # needed to workaround gradio issue:
+        # https://github.com/gradio-app/gradio/issues/2907
         dev_null = gr.Textbox("", visible=False)
 
         gallery_files = gr.State(value=[])
@@ -88,33 +91,56 @@ with gr.Blocks() as outputgallery_web:
                 value=gallery_files.value,
                 visible=False,
                 show_label=True,
-            ).style(columns=4)
+                columns=2,
+            )
 
         with gr.Column(scale=4):
             with gr.Box():
                 with gr.Row():
-                    with gr.Column(scale=16, min_width=160):
+                    with gr.Column(
+                        scale=15,
+                        min_width=160,
+                        elem_id="output_subdir_container",
+                    ):
                         subdirectories = gr.Dropdown(
                             label=f"Subdirectories of {output_dir}",
                             type="value",
                             choices=subdirectory_paths.value,
                             value="",
                             interactive=True,
-                        ).style(container=False)
+                            elem_classes="dropdown_no_container",
+                        )
                     with gr.Column(
-                        scale=1, min_width=32, elem_id="output_refresh_button"
+                        scale=1,
+                        min_width=32,
+                        elem_classes="output_icon_button",
+                    ):
+                        open_subdir = gr.Button(
+                            variant="secondary",
+                            value="\U0001F5C1",  # unicode open folder
+                            interactive=False,
+                            size="sm",
+                        )
+                    with gr.Column(
+                        scale=1,
+                        min_width=32,
+                        elem_classes="output_icon_button",
                     ):
                         refresh = gr.Button(
                             variant="secondary",
                             value="\u21BB",  # unicode clockwise arrow circle
-                        ).style(size="sm")
+                            size="sm",
+                        )
 
             image_columns = gr.Slider(
                 label="Columns shown", value=4, minimum=1, maximum=16, step=1
             )
             outputgallery_filename = gr.Textbox(
-                label="Filename", value="None", interactive=False
-            ).style(show_copy_button=True)
+                label="Filename",
+                value="None",
+                interactive=False,
+                show_copy_button=True,
+            )
 
             with gr.Accordion(
                 label="Parameter Information", open=False
@@ -133,31 +159,36 @@ with gr.Blocks() as outputgallery_web:
                         value="Txt2Img",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_img2img = gr.Button(
                         value="Img2Img",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_inpaint = gr.Button(
                         value="Inpaint",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_outpaint = gr.Button(
                         value="Outpaint",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_upscaler = gr.Button(
                         value="Upscaler",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
     # --- Event handlers
 
@@ -191,17 +222,32 @@ with gr.Blocks() as outputgallery_web:
             ),
         ]
 
+    def on_open_subdir(subdir):
+        subdir_path = os.path.normpath(os.path.join(output_dir, subdir))
+
+        if os.path.isdir(subdir_path):
+            if sys.platform == "linux":
+                subprocess.run(["xdg-open", subdir_path])
+            elif sys.platform == "darwin":
+                subprocess.run(["open", subdir_path])
+            elif sys.platform == "win32":
+                os.startfile(subdir_path)
+
     def on_refresh(current_subdir: str) -> list:
-        # get an up to date subdirectory list
+        # get an up-to-date subdirectory list
         refreshed_subdirs = output_subdirs()
-        # get the images using either the current subdirectory or the most recent valid one
+        # get the images using either the current subdirectory or the most
+        # recent valid one
         new_subdir = (
             current_subdir
             if current_subdir in refreshed_subdirs
             else refreshed_subdirs[0]
         )
         new_images = outputgallery_filenames(new_subdir)
-        new_label = f"{len(new_images)} images in {os.path.join(output_dir, new_subdir)}"
+        new_label = (
+            f"{len(new_images)} images in "
+            f"{os.path.join(output_dir, new_subdir)}"
+        )
 
         return [
             gr.Dropdown.update(
@@ -220,17 +266,22 @@ with gr.Blocks() as outputgallery_web:
         ]
 
     def on_new_image(subdir, subdir_paths, status) -> list:
-        # prevent error triggered when an image generates before the tab has even been selected
+        # prevent error triggered when an image generates before the tab
+        # has even been selected
         subdir_paths = (
             subdir_paths
             if len(subdir_paths) > 0
             else [get_generated_imgs_todays_subdir()]
         )
 
-        # only update if the current subdir is the most recent one as new images only go there
+        # only update if the current subdir is the most recent one as
+        # new images only go there
         if subdir_paths[0] == subdir:
             new_images = outputgallery_filenames(subdir)
-            new_label = f"{len(new_images)} images in {os.path.join(output_dir, subdir)} - {status}"
+            new_label = (
+                f"{len(new_images)} images in "
+                f"{os.path.join(output_dir, subdir)} - {status}"
+            )
 
             return [
                 new_images,
@@ -245,19 +296,27 @@ with gr.Blocks() as outputgallery_web:
                 ),
             ]
         else:
-            # otherwise change nothing, (only untyped gradio gr.update() does this)
+            # otherwise change nothing,
+            # (only untyped gradio gr.update() does this)
             return [gr.update(), gr.update(), gr.update()]
 
     def on_select_image(images: list[str], evt: gr.SelectData) -> list:
-        # evt.index is an index into the full list of filenames for the current subdirectory
+        # evt.index is an index into the full list of filenames for
+        # the current subdirectory
         filename = images[evt.index]
         params = displayable_metadata(filename)
 
         if params:
-            return [
-                filename,
-                list(map(list, params["parameters"].items())),
-            ]
+            if params["source"] == "missing":
+                return [
+                    "Could not find this image file, refresh the gallery and update the images",
+                    [["Status", "File missing"]],
+                ]
+            else:
+                return [
+                    filename,
+                    list(map(list, params["parameters"].items())),
+                ]
 
         return [
             filename,
@@ -267,7 +326,8 @@ with gr.Blocks() as outputgallery_web:
     def on_outputgallery_filename_change(filename: str) -> list:
         exists = filename != "None" and os.path.exists(filename)
         return [
-            # disable or enable each of the sendto button based on whether an image is selected
+            # disable or enable each of the sendto button based on whether
+            # an image is selected
             gr.Button.update(interactive=exists),
             gr.Button.update(interactive=exists),
             gr.Button.update(interactive=exists),
@@ -276,17 +336,23 @@ with gr.Blocks() as outputgallery_web:
             gr.Button.update(interactive=exists),
         ]
 
-    # The time first our tab is selected we need to do an initial refresh to populate
-    # the subdirectory select box and the images from the most recent subdirectory.
+    # The time first our tab is selected we need to do an initial refresh
+    # to populate the subdirectory select box and the images from the most
+    # recent subdirectory.
     #
-    # We do it at this point rather than setting this up in the controls' definitions
-    # as when you refresh the browser you always get what was *initially* set, which
-    # won't include any new subdirectories or images that might have created since
-    # the application was started. Doing it this way means a browser refresh/reload
-    # always gets the most up to date data.
-    def on_select_tab(subdir_paths):
+    # We do it at this point rather than setting this up in the controls'
+    # definitions as when you refresh the browser you always get what was
+    # *initially* set, which won't include any new subdirectories or images
+    # that might have created since the application was started. Doing it
+    # this way means a browser refresh/reload always gets the most
+    # up-to-date data.
+    def on_select_tab(subdir_paths, request: gr.Request):
+        local_client = request.headers["host"].startswith(
+            "127.0.0.1:"
+        ) or request.headers["host"].startswith("localhost:")
+
         if len(subdir_paths) == 0:
-            return on_refresh("")
+            return on_refresh("") + [gr.update(interactive=local_client)]
         else:
             return (
                 # Change nothing, (only untyped gr.update() does this)
@@ -295,13 +361,14 @@ with gr.Blocks() as outputgallery_web:
                 gr.update(),
                 gr.update(),
                 gr.update(),
+                gr.update(),
             )
 
-    # Unfortunately as of gradio 3.22.0 gr.update against Galleries doesn't support
-    # things set with .style, nor the elem_classes kwarg so we have to directly set
-    # things up via JavaScript if we want the client to take notice of any of our
-    # changes to the number of columns after it decides to put them back to the
-    # original number when we change something
+    # Unfortunately as of gradio 3.34.0 gr.update against Galleries doesn't
+    # support things set with .style, nor the elem_classes kwarg, so we have
+    # to directly set things up via JavaScript if we want the client to take
+    # notice of our changes to the number of columns after it decides to put
+    # them back to the original number when we change something
     def js_set_columns_in_browser(timeout_length):
         return f"""
             (new_cols) => {{
@@ -318,32 +385,36 @@ with gr.Blocks() as outputgallery_web:
 
     # --- Wire handlers up to the actions
 
-    # - Many actions reset the number of columns shown in the gallery on the browser end,
-    #   so we have to set them back to what we think they should be after the initial
-    #   action.
-    # - None of the actions on this tab trigger inference, and we want the user to be able
-    #   to do them whilst other tabs have ongoing inference running. Waiting in the queue
-    #   behind inference jobs would mean the UI can't fully respond until the inference tasks
-    #   complete, hence queue=False on all of these.
+    # Many actions reset the number of columns shown in the gallery on the
+    # browser end, so we have to set them back to what we think they should
+    # be after the initial action.
+    #
+    # None of the actions on this tab trigger inference, and we want the
+    # user to be able to do them whilst other tabs have ongoing inference
+    # running. Waiting in the queue behind inference jobs would mean the UI
+    # can't fully respond until the inference tasks complete,
+    # hence queue=False on all of these.
     set_gallery_columns_immediate = dict(
         fn=None,
         inputs=[image_columns],
-        # gradio blanks the UI on Chrome on Linux on gallery select if I don't put an output here
+        # gradio blanks the UI on Chrome on Linux on gallery select if
+        # I don't put an output here
         outputs=[dev_null],
         _js=js_set_columns_in_browser(0),
         queue=False,
     )
 
-    # setting columns after selecting a gallery item needs a real timeout length for the
-    # number of columns to actually be applied. Not really sure why, maybe something has
-    # to finish animating?
+    # setting columns after selecting a gallery item needs a real
+    # timeout length for the number of columns to actually be applied.
+    # Not really sure why, maybe something has to finish animating?
     set_gallery_columns_delayed = dict(
         set_gallery_columns_immediate, _js=js_set_columns_in_browser(250)
     )
 
-    # clearing images when we need to completely change what's in the gallery avoids current
-    # images being shown replacing piecemeal and prevents weirdness and errors if the user
-    # selects an image during the replacement phase.
+    # clearing images when we need to completely change what's in the
+    # gallery avoids current images being shown replacing piecemeal and
+    # prevents weirdness and errors if the user selects an image during the
+    # replacement phase.
     clear_gallery = dict(
         fn=on_clear_gallery,
         inputs=None,
@@ -358,6 +429,10 @@ with gr.Blocks() as outputgallery_web:
         [subdirectories],
         [gallery_files, gallery, logo],
         queue=False,
+    ).then(**set_gallery_columns_immediate)
+
+    open_subdir.click(
+        on_open_subdir, inputs=[subdirectories], queue=False
     ).then(**set_gallery_columns_immediate)
 
     refresh.click(**clear_gallery).then(
@@ -398,6 +473,7 @@ with gr.Blocks() as outputgallery_web:
                 gallery_files,
                 gallery,
                 logo,
+                open_subdir,
             ],
             queue=False,
         ).then(**set_gallery_columns_immediate)

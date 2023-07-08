@@ -87,7 +87,8 @@ def txt2img_inf(
         if not hf_model_id:
             return (
                 None,
-                "Please provide either custom model or huggingface model ID, both must not be empty",
+                "Please provide either custom model or huggingface model ID, "
+                "both must not be empty",
             )
         if "civitai" in hf_model_id:
             args.ckpt_loc = hf_model_id
@@ -238,7 +239,9 @@ def txt2img_api(
     InputData: dict,
 ):
     print(
-        f'Prompt: {InputData["prompt"]}, Negative Prompt: {InputData["negative_prompt"]}, Seed: {InputData["seed"]}'
+        f'Prompt: {InputData["prompt"]}, '
+        f'Negative Prompt: {InputData["negative_prompt"]}, '
+        f'Seed: {InputData["seed"]}.'
     )
     res = txt2img_inf(
         InputData["prompt"],
@@ -286,15 +289,25 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     show_label=False,
                     interactive=False,
                     elem_id="top_logo",
-                ).style(width=150, height=50)
+                    width=150,
+                    height=50,
+                )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
                     with gr.Column(scale=10):
                         with gr.Row():
+                            # janky fix for overflowing text
+                            t2i_model_info = (
+                                str(get_custom_model_path())
+                            ).replace("\\", "\n\\")
+                            t2i_model_info = (
+                                f"Custom Model Path: {t2i_model_info}"
+                            )
                             txt2img_custom_model = gr.Dropdown(
-                                label=f"Models (Custom Model path: {get_custom_model_path()})",
+                                label=f"Models",
+                                info=t2i_model_info,
                                 elem_id="custom_model",
                                 value=os.path.basename(args.ckpt_loc)
                                 if args.ckpt_loc
@@ -305,13 +318,21 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             )
                             txt2img_hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
-                                placeholder="Select 'None' in the dropdown on the left and enter model ID here",
+                                placeholder="Select 'None' in the dropdown "
+                                "on the left and enter model ID here.",
                                 value="",
-                                label="HuggingFace Model ID or Civitai model download URL",
+                                label="HuggingFace Model ID or Civitai model "
+                                "download URL.",
                                 lines=3,
                             )
+                            # janky fix for overflowing text
+                            t2i_vae_info = (
+                                str(get_custom_model_path("vae"))
+                            ).replace("\\", "\n\\")
+                            t2i_vae_info = f"VAE Path: {t2i_vae_info}"
                             custom_vae = gr.Dropdown(
-                                label=f"Custom Vae Models (Path: {get_custom_model_path('vae')})",
+                                label=f"VAE Models",
+                                info=t2i_vae_info,
                                 elem_id="custom_model",
                                 value=os.path.basename(args.custom_vae)
                                 if args.custom_vae
@@ -332,26 +353,35 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                     prompt = gr.Textbox(
                         label="Prompt",
                         value=args.prompts[0],
-                        lines=1,
+                        lines=2,
                         elem_id="prompt_box",
                     )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
                         value=args.negative_prompts[0],
-                        lines=1,
+                        lines=2,
                         elem_id="negative_prompt_box",
                     )
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
+                        # janky fix for overflowing text
+                        t2i_lora_info = (
+                            str(get_custom_model_path("lora"))
+                        ).replace("\\", "\n\\")
+                        t2i_lora_info = f"LoRA Path: {t2i_lora_info}"
                         lora_weights = gr.Dropdown(
-                            label=f"Standlone LoRA weights (Path: {get_custom_model_path('lora')})",
+                            label=f"Standalone LoRA Weights",
+                            info=t2i_lora_info,
                             elem_id="lora_weights",
                             value="None",
                             choices=["None"] + get_custom_model_files("lora"),
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standlone LoRA weights dropdown on the left if you want to use a standalone HuggingFace model ID for LoRA here e.g: sayakpaul/sd-model-finetuned-lora-t4",
+                            placeholder="Select 'None' in the Standalone LoRA "
+                            "weights dropdown on the left if you want to use "
+                            "a standalone HuggingFace model ID for LoRA here "
+                            "e.g: sayakpaul/sd-model-finetuned-lora-t4",
                             value="",
                             label="HuggingFace Model ID",
                             lines=3,
@@ -480,9 +510,12 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
-                    ).style(columns=[2], object_fit="contain")
+                        columns=[2],
+                        object_fit="contain",
+                    )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at {get_generated_imgs_path()}",
+                        value=f"Images will be saved at "
+                        f"{get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
                         show_label=False,
@@ -524,7 +557,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 ondemand,
             ],
             outputs=[txt2img_gallery, std_output, txt2img_status],
-            show_progress=args.progress_bar,
+            show_progress="minimal" if args.progress_bar else "none",
         )
 
         status_kwargs = dict(

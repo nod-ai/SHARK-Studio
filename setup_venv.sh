@@ -159,3 +159,5 @@ if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
   echo "${Green}Before running examples activate venv with:"
   echo "  ${Green}source $VENV_DIR/bin/activate"
 fi
+
+$PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@llm

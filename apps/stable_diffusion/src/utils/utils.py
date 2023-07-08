@@ -32,6 +32,7 @@ from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
 import requests
 from io import BytesIO
 from omegaconf import OmegaConf
+from cpuinfo import get_cpu_info
 
 
 def get_extended_name(model_name):
@@ -80,7 +81,9 @@ def _compile_module(shark_module, model_name, extra_args=[]):
 
 
 # Downloads the model from shark_tank and returns the shark_module.
-def get_shark_model(tank_url, model_name, extra_args=[]):
+def get_shark_model(tank_url, model_name, extra_args=None):
+    if extra_args is None:
+        extra_args = []
     from shark.parser import shark_args
 
     # Set local shark_tank cache directory.
@@ -112,13 +115,15 @@ def compile_through_fx(
     save_dir=tempfile.gettempdir(),
     debug=False,
     generate_vmfb=True,
-    extra_args=[],
+    extra_args=None,
     base_model_id=None,
     model_name=None,
     precision=None,
     return_mlir=False,
     device=None,
 ):
+    if extra_args is None:
+        extra_args = []
     if not return_mlir and model_name is not None:
         vmfb_path = get_vmfb_path_name(extended_model_name)
         if os.path.isfile(vmfb_path):
@@ -204,13 +209,15 @@ def get_device_mapping(driver, key_combination=3):
     specific devices for execution
     Args:
         driver (str): execution driver (vulkan, cuda, rocm, etc)
-        key_combination (int, optional): choice for mapping value for device name.
+        key_combination (int, optional): choice for mapping value for
+            device name.
         1 : path
         2 : name
         3 : (name, path)
         Defaults to 3.
     Returns:
-        dict: map to possible device names user can input mapped to desired combination of name/path.
+        dict: map to possible device names user can input mapped to desired
+            combination of name/path.
     """
     from shark.iree_utils._common import iree_device_map
 
@@ -224,7 +231,7 @@ def get_device_mapping(driver, key_combination=3):
         if key_combination == 2:
             return dev_dict["name"]
         if key_combination == 3:
-            return (dev_dict["name"], f"{driver}://{dev_dict['path']}")
+            return dev_dict["name"], f"{driver}://{dev_dict['path']}"
 
     # mapping driver name to default device (driver://0)
     device_map[f"{driver}"] = get_output_value(device_list[0])
@@ -237,10 +244,12 @@ def get_device_mapping(driver, key_combination=3):
 
 
 def map_device_to_name_path(device, key_combination=3):
-    """Gives the appropriate device data (supported name/path) for user selected execution device
+    """Gives the appropriate device data (supported name/path) for user
+        selected execution device
     Args:
         device (str): user
-        key_combination (int, optional): choice for mapping value for device name.
+        key_combination (int, optional): choice for mapping value for
+            device name.
         1 : path
         2 : name
         3 : (name, path)
@@ -248,7 +257,8 @@ def map_device_to_name_path(device, key_combination=3):
     Raises:
         ValueError:
     Returns:
-        str / tuple: returns the mapping str or tuple of mapping str for the device depending on key_combination value
+        str / tuple: returns the mapping str or tuple of mapping str for
+        the device depending on key_combination value
     """
     driver = device.split("://")[0]
     device_map = get_device_mapping(driver, key_combination)
@@ -271,7 +281,8 @@ def set_init_device_flags():
             if triple is not None:
                 args.iree_vulkan_target_triple = triple
         print(
-            f"Found device {device_name}. Using target triple {args.iree_vulkan_target_triple}."
+            f"Found device {device_name}. Using target triple "
+            f"{args.iree_vulkan_target_triple}."
         )
     elif "cuda" in args.device:
         args.device = "cuda"
@@ -282,7 +293,8 @@ def set_init_device_flags():
             if triple is not None:
                 args.iree_metal_target_platform = triple.split("-")[-1]
         print(
-            f"Found device {device_name}. Using target platform {args.iree_metal_target_platform}."
+            f"Found device {device_name}. Using target triple "
+            f"{args.iree_metal_target_platform}."
         )
     elif "cpu" in args.device:
         args.device = "cpu"
@@ -316,7 +328,13 @@ def set_init_device_flags():
         args.use_tuned = False
 
     elif (
-        args.height != args.width and "rdna2" in args.iree_vulkan_target_triple
+        args.height != args.width
+        and "rdna2" in args.iree_vulkan_target_triple
+        and base_model_id
+        not in [
+            "CompVis/stable-diffusion-v1-4",
+            "runwayml/stable-diffusion-v1-5",
+        ]
     ):
         args.use_tuned = False
 
@@ -374,7 +392,8 @@ def set_init_device_flags():
 
     if args.use_tuned:
         print(
-            f"Using tuned models for {base_model_id}(fp16) on device {args.device}."
+            f"Using tuned models for {base_model_id}(fp16) on "
+            f"device {args.device}."
         )
     else:
         print("Tuned models are currently not supported for this setting.")
@@ -432,8 +451,12 @@ def get_available_devices():
         except:
             print(f"{driver_name} devices are not available.")
         else:
+            cpu_name = get_cpu_info()["brand_raw"]
             for i, device in enumerate(device_list_dict):
-                device_list.append(f"{device['name']} => {driver_name}://{i}")
+                device_name = (
+                    cpu_name if device["name"] == "default" else device["name"]
+                )
+                device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
@@ -525,10 +548,10 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     from_safetensors = (
         True if custom_weights.lower().endswith(".safetensors") else False
     )
-    # EMA weights usually yield higher quality images for inference but non-EMA weights have
-    # been yielding better results in our case.
-    # TODO: Add an option `--ema` (`--no-ema`) for users to specify if they want to go for EMA
-    #       weight extraction or not.
+    # EMA weights usually yield higher quality images for inference but
+    # non-EMA weights have been yielding better results in our case.
+    # TODO: Add an option `--ema` (`--no-ema`) for users to specify if
+    #  they want to go for EMA weight extraction or not.
     extract_ema = False
     print(
         "Loading diffusers' pipeline from original stable diffusion checkpoint"
@@ -549,7 +572,10 @@ def convert_original_vae(vae_checkpoint):
     for key in list(vae_checkpoint.keys()):
         vae_state_dict["first_stage_model." + key] = vae_checkpoint.get(key)
 
-    config_url = "https://raw.githubusercontent.com/CompVis/stable-diffusion/main/configs/stable-diffusion/v1-inference.yaml"
+    config_url = (
+        "https://raw.githubusercontent.com/CompVis/stable-diffusion/"
+        "main/configs/stable-diffusion/v1-inference.yaml"
+    )
     original_config_file = BytesIO(requests.get(config_url).content)
     original_config = OmegaConf.load(original_config_file)
     vae_config = create_vae_diffusers_config(original_config, image_size=512)
@@ -670,7 +696,7 @@ def update_lora_weight(model, use_lora, model_name):
 
 
 # `fetch_and_update_base_model_id` is a resource utility function which
-# helps maintaining mapping of the model to run with its base model.
+# helps to maintain mapping of the model to run with its base model.
 # If `base_model` is "", then this function tries to fetch the base model
 # info for the `model_to_run`.
 def fetch_and_update_base_model_id(model_to_run, base_model=""):
@@ -687,13 +713,15 @@ def fetch_and_update_base_model_id(model_to_run, base_model=""):
                 return base_model
     elif base_model == "":
         return base_model
-    # Update JSON data to contain an entry mapping model_to_run with base_model.
+    # Update JSON data to contain an entry mapping model_to_run with
+    # base_model.
     json_data.update(data)
     with open(variants_path, "w", encoding="utf-8") as jsonFile:
         json.dump(json_data, jsonFile)
 
 
-# Generate and return a new seed if the provided one is not in the supported range (including -1)
+# Generate and return a new seed if the provided one is not in the
+# supported range (including -1)
 def sanitize_seed(seed):
     uint32_info = np.iinfo(np.uint32)
     uint32_min, uint32_max = uint32_info.min, uint32_info.max
@@ -712,7 +740,8 @@ def clear_all():
     for vmfb in vmfbs:
         if os.path.exists(vmfb):
             os.remove(vmfb)
-    # Temporary workaround of deleting yaml files to incorporate diffusers' pipeline.
+    # Temporary workaround of deleting yaml files to incorporate
+    # diffusers' pipeline.
     # TODO: Remove this once we have better weight updation logic.
     inference_yaml = ["v2-inference-v.yaml", "v1-inference.yaml"]
     for yaml in inference_yaml:
@@ -741,7 +770,9 @@ def get_generated_imgs_todays_subdir() -> str:
 
 
 # save output images and the inputs corresponding to it.
-def save_output_img(output_img, img_seed, extra_info={}):
+def save_output_img(output_img, img_seed, extra_info=None):
+    if extra_info is None:
+        extra_info = {}
     generated_imgs_path = Path(
         get_generated_imgs_path(), get_generated_imgs_todays_subdir()
     )
@@ -749,9 +780,7 @@ def save_output_img(output_img, img_seed, extra_info={}):
     csv_path = Path(generated_imgs_path, "imgs_details.csv")
 
     prompt_slice = re.sub("[^a-zA-Z0-9]", "_", args.prompts[0][:15])
-    out_img_name = (
-        f"{prompt_slice}_{img_seed}_{dt.now().strftime('%y%m%d_%H%M%S')}"
-    )
+    out_img_name = f"{dt.now().strftime('%H%M%S')}_{prompt_slice}_{img_seed}"
 
     img_model = args.hf_model_id
     if args.ckpt_loc:
@@ -775,17 +804,25 @@ def save_output_img(output_img, img_seed, extra_info={}):
         if args.write_metadata_to_png:
             pngInfo.add_text(
                 "parameters",
-                f"{args.prompts[0]}\nNegative prompt: {args.negative_prompts[0]}\nSteps: {args.steps},"
-                f"Sampler: {args.scheduler}, CFG scale: {args.guidance_scale}, Seed: {img_seed},"
-                f"Size: {args.width}x{args.height}, Model: {img_model}, VAE: {img_vae}, LoRA: {img_lora}",
+                f"{args.prompts[0]}"
+                f"\nNegative prompt: {args.negative_prompts[0]}"
+                f"\nSteps: {args.steps},"
+                f"Sampler: {args.scheduler}, "
+                f"CFG scale: {args.guidance_scale}, "
+                f"Seed: {img_seed},"
+                f"Size: {args.width}x{args.height}, "
+                f"Model: {img_model}, "
+                f"VAE: {img_vae}, "
+                f"LoRA: {img_lora}",
             )
 
         output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
 
         if args.output_img_format not in ["png", "jpg"]:
             print(
-                f"[ERROR] Format {args.output_img_format} is not supported yet."
-                "Image saved as png instead. Supported formats: png / jpg"
+                f"[ERROR] Format {args.output_img_format} is not "
+                f"supported yet. Image saved as png instead."
+                f"Supported formats: png / jpg"
             )
 
     # To be as low-impact as possible to the existing CSV format, we append
@@ -828,16 +865,27 @@ def save_output_img(output_img, img_seed, extra_info={}):
 def get_generation_text_info(seeds, device):
     text_output = f"prompt={args.prompts}"
     text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
-    text_output += f"\nscheduler={args.scheduler}, device={device}"
-    text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seeds}"
-    text_output += f"\nsize={args.height}x{args.width}, batch_count={args.batch_count}, batch_size={args.batch_size}, max_length={args.max_length}"
+    text_output += (
+        f"\nmodel_id={args.hf_model_id}, " f"ckpt_loc={args.ckpt_loc}"
+    )
+    text_output += f"\nscheduler={args.scheduler}, " f"device={device}"
+    text_output += (
+        f"\nsteps={args.steps}, "
+        f"guidance_scale={args.guidance_scale}, "
+        f"seed={seeds}"
+    )
+    text_output += (
+        f"\nsize={args.height}x{args.width}, "
+        f"batch_count={args.batch_count}, "
+        f"batch_size={args.batch_size}, "
+        f"max_length={args.max_length}"
+    )
 
     return text_output
 
 
-# For stencil, the input image can be of any size but we need to ensure that
-# it conforms with our model contraints :-
+# For stencil, the input image can be of any size, but we need to ensure that
+# it conforms with our model constraints :-
 #   Both width and height should be in the range of [128, 768] and multiple of 8.
 # This utility function performs the transformation on the input image while
 # also maintaining the aspect ratio before sending it to the stencil pipeline.

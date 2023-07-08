@@ -17,6 +17,9 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
     DEISMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    HeunDiscreteScheduler,
 )
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
@@ -67,6 +70,11 @@ class UpscalerPipeline(StableDiffusionPipeline):
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DDPMScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2DiscreteScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         low_res_scheduler: Union[
             DDIMScheduler,
@@ -78,6 +86,10 @@ class UpscalerPipeline(StableDiffusionPipeline):
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2DiscreteScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
         ],
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
@@ -168,7 +180,10 @@ class UpscalerPipeline(StableDiffusionPipeline):
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
         self.status = SD_STATE_IDLE
-        self.load_unet()
+        if text_embeddings.shape[1] <= self.model_max_length:
+            self.load_unet()
+        else:
+            self.load_unet_512()
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
             latent_model_input = torch.cat([latents] * 2)
@@ -182,15 +197,26 @@ class UpscalerPipeline(StableDiffusionPipeline):
 
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
-            noise_pred = self.unet(
-                "forward",
-                (
-                    latent_model_input,
-                    timestep,
-                    text_embeddings_numpy,
-                    noise_level,
-                ),
-            )
+            if text_embeddings.shape[1] <= self.model_max_length:
+                noise_pred = self.unet(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        noise_level,
+                    ),
+                )
+            else:
+                noise_pred = self.unet_512(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        noise_level,
+                    ),
+                )
             end_profiling(profile_device)
             noise_pred = torch.from_numpy(noise_pred)
             noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
@@ -219,6 +245,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
 
         if self.ondemand:
             self.unload_unet()
+            self.unload_unet_512()
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -243,6 +270,7 @@ class UpscalerPipeline(StableDiffusionPipeline):
         dtype,
         use_base_vae,
         cpu_scheduling,
+        max_embeddings_multiples,
     ):
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
@@ -264,7 +292,10 @@ class UpscalerPipeline(StableDiffusionPipeline):
 
         # Get text embeddings with weight emphasis from prompts
         text_embeddings = self.encode_prompts_weight(
-            prompts, neg_prompts, max_length
+            prompts,
+            neg_prompts,
+            max_length,
+            max_embeddings_multiples=max_embeddings_multiples,
         )
 
         # 4. Preprocess image

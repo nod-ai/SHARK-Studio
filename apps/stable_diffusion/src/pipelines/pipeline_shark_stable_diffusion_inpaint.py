@@ -14,6 +14,11 @@ from diffusers import (
     EulerAncestralDiscreteScheduler,
     DPMSolverMultistepScheduler,
     DEISMultistepScheduler,
+    DPMSolverSinglestepScheduler,
+    KDPM2AncestralDiscreteScheduler,
+    HeunDiscreteScheduler,
+    DDPMScheduler,
+    KDPM2DiscreteScheduler,
 )
 from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
@@ -37,6 +42,11 @@ class InpaintPipeline(StableDiffusionPipeline):
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
             DEISMultistepScheduler,
+            DPMSolverSinglestepScheduler,
+            KDPM2AncestralDiscreteScheduler,
+            HeunDiscreteScheduler,
+            DDPMScheduler,
+            KDPM2DiscreteScheduler,
         ],
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
@@ -378,6 +388,7 @@ class InpaintPipeline(StableDiffusionPipeline):
         dtype,
         use_base_vae,
         cpu_scheduling,
+        max_embeddings_multiples,
     ):
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
@@ -408,7 +419,10 @@ class InpaintPipeline(StableDiffusionPipeline):
 
         # Get text embeddings with weight emphasis from prompts
         text_embeddings = self.encode_prompts_weight(
-            prompts, neg_prompts, max_length
+            prompts,
+            neg_prompts,
+            max_length,
+            max_embeddings_multiples=max_embeddings_multiples,
         )
 
         # guidance scale as a float32 tensor.

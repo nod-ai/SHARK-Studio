@@ -62,104 +62,23 @@ class SecondVicunaLayer(torch.nn.Module):
         )
 
 
-class CompiledFirstVicunaLayer(torch.nn.Module):
-    def __init__(self, shark_module):
-        super().__init__()
-        self.model = shark_module
-
-    def forward(
-        self,
-        hidden_states,
-        attention_mask,
-        position_ids,
-        past_key_value=None,
-        output_attentions=False,
-        use_cache=True,
-    ):
-        hidden_states = hidden_states.detach()
-        attention_mask = attention_mask.detach()
-        position_ids = position_ids.detach()
-        output = self.model(
-            "forward",
-            (
-                hidden_states,
-                attention_mask,
-                position_ids,
-            ),
-        )
-
-        output0 = torch.tensor(output[0])
-        output1 = torch.tensor(output[1])
-        output2 = torch.tensor(output[2])
-
-        return (
-            output0,
-            (
-                output1,
-                output2,
-            ),
-        )
-
-
-class CompiledSecondVicunaLayer(torch.nn.Module):
-    def __init__(self, shark_module):
-        super().__init__()
-        self.model = shark_module
-
-    def forward(
-        self,
-        hidden_states,
-        attention_mask,
-        position_ids,
-        past_key_value,
-        output_attentions=False,
-        use_cache=True,
-    ):
-        hidden_states = hidden_states.detach()
-        attention_mask = attention_mask.detach()
-        position_ids = position_ids.detach()
-        pkv0 = past_key_value[0].detach()
-        pkv1 = past_key_value[1].detach()
-        output = self.model(
-            "forward",
-            (
-                hidden_states,
-                attention_mask,
-                position_ids,
-                pkv0,
-                pkv1,
-            ),
-        )
-
-        output0 = torch.tensor(output[0])
-        output1 = torch.tensor(output[1])
-        output2 = torch.tensor(output[2])
-
-        return (
-            output0,
-            (
-                output1,
-                output2,
-            ),
-        )
-
-
 class ShardedVicunaModel(torch.nn.Module):
-    def __init__(self, model, layers0, layers1, lmhead, embedding, norm):
+    def __init__(self, model, layers, lmhead, embedding, norm):
         super().__init__()
         self.model = model
-        assert len(layers0) == len(model.model.layers)
-        # self.model.model.layers = torch.nn.modules.container.ModuleList(layers0)
+        assert len(layers) == len(model.model.layers)
         self.model.model.config.use_cache = True
         self.model.model.config.output_attentions = False
-        self.layers0 = layers0
-        self.layers1 = layers1
+        self.layers = layers
         self.norm = norm
         self.embedding = embedding
         self.lmhead = lmhead
         self.model.model.norm = self.norm
         self.model.model.embed_tokens = self.embedding
         self.model.lm_head = self.lmhead
+        self.model.model.layers = torch.nn.modules.container.ModuleList(
+            self.layers
+        )
 
     def forward(
         self,
@@ -168,20 +87,11 @@ class ShardedVicunaModel(torch.nn.Module):
         past_key_values=None,
         attention_mask=None,
     ):
-        if is_first:
-            self.model.model.layers = torch.nn.modules.container.ModuleList(
-                self.layers0
-            )
-            return self.model.forward(input_ids, attention_mask=attention_mask)
-        else:
-            self.model.model.layers = torch.nn.modules.container.ModuleList(
-                self.layers1
-            )
-            return self.model.forward(
-                input_ids,
-                attention_mask=attention_mask,
-                past_key_values=past_key_values,
-            )
+        return self.model.forward(
+            input_ids,
+            attention_mask=attention_mask,
+            past_key_values=past_key_values,
+        )
 
 
 class LMHead(torch.nn.Module):
@@ -248,3 +158,71 @@ class VicunaEmbeddingCompiled(torch.nn.Module):
         output = self.model("forward", (input_ids,))
         output = torch.tensor(output)
         return output
+
+
+class CompiledVicunaLayer(torch.nn.Module):
+    def __init__(self, shark_module):
+        super().__init__()
+        self.model = shark_module
+
+    def forward(
+        self,
+        hidden_states,
+        attention_mask,
+        position_ids,
+        past_key_value=None,
+        output_attentions=False,
+        use_cache=True,
+    ):
+        if past_key_value is None:
+            hidden_states = hidden_states.detach()
+            attention_mask = attention_mask.detach()
+            position_ids = position_ids.detach()
+            output = self.model(
+                "first_vicuna_forward",
+                (
+                    hidden_states,
+                    attention_mask,
+                    position_ids,
+                ),
+            )
+
+            output0 = torch.tensor(output[0])
+            output1 = torch.tensor(output[1])
+            output2 = torch.tensor(output[2])
+
+            return (
+                output0,
+                (
+                    output1,
+                    output2,
+                ),
+            )
+        else:
+            hidden_states = hidden_states.detach()
+            attention_mask = attention_mask.detach()
+            position_ids = position_ids.detach()
+            pkv0 = past_key_value[0].detach()
+            pkv1 = past_key_value[1].detach()
+            output = self.model(
+                "second_vicuna_forward",
+                (
+                    hidden_states,
+                    attention_mask,
+                    position_ids,
+                    pkv0,
+                    pkv1,
+                ),
+            )
+
+            output0 = torch.tensor(output[0])
+            output1 = torch.tensor(output[1])
+            output2 = torch.tensor(output[2])
+
+            return (
+                output0,
+                (
+                    output1,
+                    output2,
+                ),
+            )

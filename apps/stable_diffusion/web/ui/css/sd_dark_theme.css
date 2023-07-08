@@ -227,8 +227,27 @@ footer {
 }
 
 /* Hide the download icon from the nod logo */
-#top_logo .download {
+#top_logo button {
     display: none;
+}
+
+/* workarounds for container=false not currently working for dropdowns */
+.dropdown_no_container {
+    padding: 0 !important;
+}
+
+#output_subdir_container :first-child {
+    border: none;
+}
+
+/* reduced animation load when generating */
+.generating {
+    animation-play-state: paused !important;
+}
+
+/* better clarity when progress bars are minimal */
+.meta-text {
+    background-color: var(--block-label-background-fill);
 }
 
 /* output gallery tab */
@@ -237,7 +256,7 @@ footer {
     line-height: var(--line-xs)
 }
 
-#output_refresh_button {
+.output_icon_button {
     max-width: 30px;
     align-self: end;
     padding-bottom: 8px;
