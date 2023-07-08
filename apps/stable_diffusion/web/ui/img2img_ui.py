@@ -67,6 +67,7 @@ def img2img_inf(
     lora_weights: str,
     lora_hf_id: str,
     ondemand: bool,
+    resample_type: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -254,7 +255,7 @@ def img2img_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
             use_stencil=use_stencil,
-            resample_type=args.resample_type,
+            resample_type=resample_type,
         )
         seeds.append(img_seed)
         total_time = time.time() - start_time
@@ -346,6 +347,7 @@ def img2img_api(
         lora_weights="None",
         lora_hf_id="",
         ondemand=False,
+        resample_type="Lanczos"
     )
 
     # Converts generator type to subscriptable
@@ -545,15 +547,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         width = gr.Slider(
                             384, 768, value=args.width, step=8, label="Width"
                         )
-                        precision = gr.Radio(
-                            label="Precision",
-                            value=args.precision,
-                            choices=[
-                                "fp16",
-                                "fp32",
-                            ],
-                            visible=True,
-                        )
                         max_length = gr.Radio(
                             label="Max Length",
                             value=args.max_length,
@@ -574,10 +567,28 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             step=0.01,
                             label="Denoising Strength",
                         )
+                        resample_type = gr.Radio(
+                            value=args.resample_type,
+                            choices=[
+                                "Lanczos",
+                                "Nearest Neighbor"
+                            ],
+                            label="Resample Type",
+                        )
+                    with gr.Row():
                         ondemand = gr.Checkbox(
                             value=args.ondemand,
                             label="Low VRAM",
                             interactive=True,
+                        )
+                        precision = gr.Radio(
+                            label="Precision",
+                            value=args.precision,
+                            choices=[
+                                "fp16",
+                                "fp32",
+                            ],
+                            visible=True,
                         )
                     with gr.Row():
                         with gr.Column(scale=3):
@@ -680,6 +691,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 lora_weights,
                 lora_hf_id,
                 ondemand,
+                resample_type,
             ],
             outputs=[img2img_gallery, std_output, img2img_status],
             show_progress="minimal" if args.progress_bar else "none",
