@@ -24,7 +24,9 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     show_label=False,
                     interactive=False,
                     elem_id="top_logo",
-                ).style(width=150, height=50)
+                    width=150,
+                    height=50,
+                )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
