@@ -1,6 +1,8 @@
 import glob
 import gradio as gr
 import os
+import subprocess
+import sys
 from PIL import Image
 
 from apps.stable_diffusion.src import args
@@ -96,7 +98,7 @@ with gr.Blocks() as outputgallery_web:
             with gr.Box():
                 with gr.Row():
                     with gr.Column(
-                        scale=16,
+                        scale=15,
                         min_width=160,
                         elem_id="output_subdir_container",
                     ):
@@ -109,7 +111,19 @@ with gr.Blocks() as outputgallery_web:
                             elem_classes="dropdown_no_container",
                         )
                     with gr.Column(
-                        scale=1, min_width=32, elem_id="output_refresh_button"
+                        scale=1,
+                        min_width=32,
+                        elem_classes="output_icon_button",
+                    ):
+                        open_subdir = gr.Button(
+                            variant="secondary",
+                            value="\U0001F5C1",  # unicode open folder
+                            interactive=False,
+                        ).style(size="sm")
+                    with gr.Column(
+                        scale=1,
+                        min_width=32,
+                        elem_classes="output_icon_button",
                     ):
                         refresh = gr.Button(
                             variant="secondary",
@@ -207,6 +221,17 @@ with gr.Blocks() as outputgallery_web:
             ),
         ]
 
+    def on_open_subdir(subdir):
+        subdir_path = os.path.normpath(os.path.join(output_dir, subdir))
+
+        if os.path.isdir(subdir_path):
+            if sys.platform == "linux":
+                subprocess.run(["xdg-open", subdir_path])
+            elif sys.platform == "darwin":
+                subprocess.run(["open", subdir_path])
+            elif sys.platform == "win32":
+                os.startfile(subdir_path)
+
     def on_refresh(current_subdir: str) -> list:
         # get an up-to-date subdirectory list
         refreshed_subdirs = output_subdirs()
@@ -281,10 +306,16 @@ with gr.Blocks() as outputgallery_web:
         params = displayable_metadata(filename)
 
         if params:
-            return [
-                filename,
-                list(map(list, params["parameters"].items())),
-            ]
+            if params["source"] == "missing":
+                return [
+                    "Could not find this image file, refresh the gallery and update the images",
+                    [["Status", "File missing"]],
+                ]
+            else:
+                return [
+                    filename,
+                    list(map(list, params["parameters"].items())),
+                ]
 
         return [
             filename,
@@ -314,9 +345,13 @@ with gr.Blocks() as outputgallery_web:
     # that might have created since the application was started. Doing it
     # this way means a browser refresh/reload always gets the most
     # up-to-date data.
-    def on_select_tab(subdir_paths):
+    def on_select_tab(subdir_paths, request: gr.Request):
+        local_client = request.headers["host"].startswith(
+            "127.0.0.1:"
+        ) or request.headers["host"].startswith("localhost:")
+
         if len(subdir_paths) == 0:
-            return on_refresh("")
+            return on_refresh("") + [gr.update(interactive=local_client)]
         else:
             return (
                 # Change nothing, (only untyped gr.update() does this)
@@ -325,13 +360,14 @@ with gr.Blocks() as outputgallery_web:
                 gr.update(),
                 gr.update(),
                 gr.update(),
+                gr.update(),
             )
 
-    # Unfortunately as of gradio 3.22.0 gr.update against Galleries
-    # doesn't support things set with .style, nor the elem_classes kwarg, so
-    # we have to directly set things up via JavaScript if we want the client
-    # to take notice of our changes to the number of columns after it
-    # decides to put them back to the original number when we change something
+    # Unfortunately as of gradio 3.34.0 gr.update against Galleries doesn't
+    # support things set with .style, nor the elem_classes kwarg, so we have
+    # to directly set things up via JavaScript if we want the client to take
+    # notice of our changes to the number of columns after it decides to put
+    # them back to the original number when we change something
     def js_set_columns_in_browser(timeout_length):
         return f"""
             (new_cols) => {{
@@ -394,6 +430,10 @@ with gr.Blocks() as outputgallery_web:
         queue=False,
     ).then(**set_gallery_columns_immediate)
 
+    open_subdir.click(
+        on_open_subdir, inputs=[subdirectories], queue=False
+    ).then(**set_gallery_columns_immediate)
+
     refresh.click(**clear_gallery).then(
         on_refresh,
         [subdirectories],
@@ -432,6 +472,7 @@ with gr.Blocks() as outputgallery_web:
                 gallery_files,
                 gallery,
                 logo,
+                open_subdir,
             ],
             queue=False,
         ).then(**set_gallery_columns_immediate)
