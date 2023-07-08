@@ -8,6 +8,9 @@ from .format import compact, humanize
 
 
 def displayable_metadata(image_filename: str) -> dict:
+    if not os.path.isfile(image_filename):
+        return {"source": "missing", "parameters": {}}
+
     pil_image = Image.open(image_filename)
 
     # we have PNG generation parameters (preferred, as it's what the txt2img dropzone reads,
