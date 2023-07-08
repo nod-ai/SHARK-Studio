@@ -314,7 +314,9 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     show_label=False,
                     interactive=False,
                     elem_id="top_logo",
-                ).style(width=150, height=50)
+                    width=150,
+                    height=50,
+                )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
@@ -384,7 +386,8 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     source="upload",
                     tool="sketch",
                     type="pil",
-                ).style(height=350)
+                    height=350,
+                )
 
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
@@ -533,7 +536,9 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
-                    ).style(columns=[2], object_fit="contain")
+                        columns=[2],
+                        object_fit="contain",
+                    )
                     std_output = gr.Textbox(
                         value=f"Images will be saved at "
                         f"{get_generated_imgs_path()}",

@@ -24,7 +24,9 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
                 show_label=False,
                 interactive=False,
                 elem_id="top_logo",
-            ).style(width=150, height=100)
+                width=150,
+                height=100,
+            )
 
     datasets, images, ds_w_prompts = get_datasets(args.gs_url)
     prompt_data = dict()
@@ -37,7 +39,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
     with gr.Row(elem_id="ui_body"):
         # TODO: add ability to search image by typing
         with gr.Column(scale=1, min_width=600):
-            image = gr.Image(type="filepath").style(height=512)
+            image = gr.Image(type="filepath", height=512)
 
         with gr.Column(scale=1, min_width=600):
             prompts = gr.Dropdown(
