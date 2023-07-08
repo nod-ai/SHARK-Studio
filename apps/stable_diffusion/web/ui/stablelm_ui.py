@@ -155,7 +155,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             ],
             visible=True,
         )
-    chatbot = gr.Chatbot().style(height=500)
+    chatbot = gr.Chatbot(height=500)
     with gr.Row():
         with gr.Column():
             msg = gr.Textbox(
@@ -163,7 +163,8 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 placeholder="Chat Message Box",
                 show_label=False,
                 interactive=enabled,
-            ).style(container=False)
+                container=False,
+            )
         with gr.Column():
             with gr.Row():
                 submit = gr.Button("Submit", interactive=enabled)

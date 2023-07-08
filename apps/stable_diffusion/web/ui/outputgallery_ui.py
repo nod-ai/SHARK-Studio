@@ -91,19 +91,25 @@ with gr.Blocks() as outputgallery_web:
                 value=gallery_files.value,
                 visible=False,
                 show_label=True,
-            ).style(columns=4)
+                columns=2,
+            )
 
         with gr.Column(scale=4):
             with gr.Box():
                 with gr.Row():
-                    with gr.Column(scale=15, min_width=160):
+                    with gr.Column(
+                        scale=15,
+                        min_width=160,
+                        elem_id="output_subdir_container",
+                    ):
                         subdirectories = gr.Dropdown(
                             label=f"Subdirectories of {output_dir}",
                             type="value",
                             choices=subdirectory_paths.value,
                             value="",
                             interactive=True,
-                        ).style(container=False)
+                            elem_classes="dropdown_no_container",
+                        )
                     with gr.Column(
                         scale=1,
                         min_width=32,
@@ -122,14 +128,18 @@ with gr.Blocks() as outputgallery_web:
                         refresh = gr.Button(
                             variant="secondary",
                             value="\u21BB",  # unicode clockwise arrow circle
-                        ).style(size="sm")
+                            size="sm",
+                        )
 
             image_columns = gr.Slider(
                 label="Columns shown", value=4, minimum=1, maximum=16, step=1
             )
             outputgallery_filename = gr.Textbox(
-                label="Filename", value="None", interactive=False
-            ).style(show_copy_button=True)
+                label="Filename",
+                value="None",
+                interactive=False,
+                show_copy_button=True,
+            )
 
             with gr.Accordion(
                 label="Parameter Information", open=False
@@ -148,31 +158,36 @@ with gr.Blocks() as outputgallery_web:
                         value="Txt2Img",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_img2img = gr.Button(
                         value="Img2Img",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_inpaint = gr.Button(
                         value="Inpaint",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_outpaint = gr.Button(
                         value="Outpaint",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
                     outputgallery_sendto_upscaler = gr.Button(
                         value="Upscaler",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
-                    ).style(size="sm")
+                        size="sm",
+                    )
 
     # --- Event handlers
 

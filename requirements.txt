@@ -19,7 +19,7 @@ transformers
 diffusers
 scipy
 ftfy
-gradio==3.34.0
+gradio
 altair
 omegaconf
 safetensors

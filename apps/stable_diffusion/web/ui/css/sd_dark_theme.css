@@ -227,8 +227,17 @@ footer {
 }
 
 /* Hide the download icon from the nod logo */
-#top_logo .download {
+#top_logo button {
     display: none;
+}
+
+/* workarounds for container=false not currently working for dropdowns */
+.dropdown_no_container {
+    padding: 0 !important;
+}
+
+#output_subdir_container :first-child {
+    border: none;
 }
 
 /* reduced animation load when generating */
