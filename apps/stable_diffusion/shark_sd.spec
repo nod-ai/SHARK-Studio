@@ -46,7 +46,12 @@ datas += [
          ( 'web/ui/logos/*', 'logos' )
          ]
 
+torch_path = sys.prefix + '/lib/python3.11/site-packages/torch/lib/libtorch_python.dylib'
+
 binaries = []
+binaries += [
+    (torch_path, 'resources')
+    ]
 
 block_cipher = None
 
