@@ -57,15 +57,7 @@ def get_metal_target_triple(device_name):
     Returns:
         str or None: target triple or None if no match found for given name
     """
-    # Apple Targets
-    if all(x in device_name for x in ("Apple", "M1")):
-        triple = "m1-moltenvk-macos"
-    elif all(x in device_name for x in ("Apple", "M2")):
-        triple = "m1-moltenvk-macos"
-
-    else:
-        triple = None
-    return triple
+    return "macos"
 
 
 def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
@@ -81,7 +73,7 @@ def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
     triple = get_metal_target_triple(metal_device)
     if triple is not None:
         print(
-            f"Found metal device {metal_device}. Using metal target triple {triple}"
+            f"Found metal device {metal_device}. Using metal target platform {triple}"
         )
         return f"-iree-metal-target-platform={triple}"
     print(
@@ -105,12 +97,12 @@ def get_iree_metal_args(device_num=0, extra_args=[]):
             break
 
     if metal_triple_flag is None:
-        metal_triple_flag = get_metal_triple_flag(
-            device_num=device_num, extra_args=extra_args
-        )
+        metal_triple_flag = get_metal_triple_flag(extra_args=extra_args)
 
     if metal_triple_flag is not None:
-        vulkan_target_env = get_vulkan_target_env_flag(metal_triple_flag)
+        vulkan_target_env = get_vulkan_target_env_flag(
+            "-iree-vulkan-target-triple=m1-moltenvk-macos"
+        )
         res_metal_flag.append(vulkan_target_env)
     return res_metal_flag
 
