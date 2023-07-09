@@ -220,6 +220,9 @@ def txt2img_inf(
             )
 
     # TODO: make this show the hiresfix image in the UI with the original
+    # TODO: make this add info about hiresfix to image_details.csv
+    # TODO: add more resample types
+    # TODO: make this work with batch
     # currently does not show the final result in the UI, only the original
     if use_hiresfix is True:
         from apps.stable_diffusion.web.ui.img2img_ui import img2img_inf
@@ -251,6 +254,7 @@ def txt2img_inf(
             resample_type=resample_type,
         )
         hri = next(hri)
+        hri = None
     return generated_imgs, text_output, ""
 
 

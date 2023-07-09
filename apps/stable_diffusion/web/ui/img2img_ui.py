@@ -432,7 +432,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
-
+                # TODO: make this import image prompt info if it exists
                 img2img_init_image = gr.Image(
                     label="Input Image",
                     source="upload",
