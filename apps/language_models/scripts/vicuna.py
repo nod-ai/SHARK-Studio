@@ -977,6 +977,8 @@ class UnshardedVicuna(SharkLLMBase):
                 ts_graph = import_with_fx(
                     model,
                     firstVicunaCompileInput,
+                    is_f16=self.precision
+                    == "fp16",  # TODO: Remove from import_with_fx args and fix all calls
                     precision=self.precision,
                     f16_input_mask=[False, False],
                     mlir_type="torchscript",
@@ -1137,6 +1139,7 @@ class UnshardedVicuna(SharkLLMBase):
                 ts_graph = import_with_fx(
                     model,
                     secondVicunaCompileInput,
+                    is_f16=self.precision == "fp16",
                     precision=self.precision,
                     f16_input_mask=[False] + [True] * 64,
                     mlir_type="torchscript",
