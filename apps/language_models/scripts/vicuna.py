@@ -980,7 +980,7 @@ class UnshardedVicuna(SharkLLMBase):
                     compilation_prompt = "".join(["0" for _ in range(17)])
                 compilation_input_ids = self.tokenizer(
                     compilation_prompt,
-                    return_tensor="pt",
+                    return_tensors="pt",
                 ).input_ids
                 compilation_input_ids = torch.tensor(
                     compilation_input_ids
