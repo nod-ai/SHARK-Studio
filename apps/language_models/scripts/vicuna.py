@@ -578,7 +578,7 @@ class ShardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module0,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -623,7 +623,7 @@ class ShardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module1,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -1022,7 +1022,7 @@ class UnshardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -1191,7 +1191,7 @@ class UnshardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
