@@ -64,6 +64,7 @@ def inpaint_inf(
     lora_weights: str,
     lora_hf_id: str,
     ondemand: bool,
+    std_output: str = args.output_dir,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -146,6 +147,7 @@ def inpaint_inf(
         args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
         args.use_tuned = init_use_tuned
         args.import_mlir = init_import_mlir
+        args.output_dir = str(std_output)
         set_init_device_flags()
         model_id = (
             args.hf_model_id
@@ -540,11 +542,12 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         object_fit="contain",
                     )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at "
-                        f"{get_generated_imgs_path()}",
-                        lines=1,
+                        lines=2,
                         elem_id="std_output",
+                        label="Image Save Location",
                         show_label=False,
+                        interactive=True,
+                        placeholder=f"Images will be saved at {get_generated_imgs_path()} by default.\nTo save the images in a custom directory, type the path to an already created directory to save the images in.",
                     )
                     inpaint_status = gr.Textbox(visible=False)
 
@@ -584,6 +587,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 lora_weights,
                 lora_hf_id,
                 ondemand,
+                std_output,
             ],
             outputs=[inpaint_gallery, std_output, inpaint_status],
             show_progress="minimal" if args.progress_bar else "none",

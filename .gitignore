@@ -189,3 +189,6 @@ apps/stable_diffusion/web/models/
 
 # Stencil annotators.
 stencil_annotator/
+
+# macOS related
+.DS_Store
