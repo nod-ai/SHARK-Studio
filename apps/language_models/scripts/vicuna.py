@@ -574,7 +574,6 @@ class ShardedVicuna(SharkLLMBase):
                         use_tracing=False,
                         verbose=False,
                     )
-                    # TODO: apply --canonicalize to unpack tensor for int4
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module0,
@@ -619,7 +618,6 @@ class ShardedVicuna(SharkLLMBase):
                         use_tracing=False,
                         verbose=False,
                     )
-                    # TODO: apply --canonicalize to unpack tensor for int4
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module1,
@@ -1018,7 +1016,6 @@ class UnshardedVicuna(SharkLLMBase):
                         use_tracing=False,
                         verbose=False,
                     )
-                    # TODO: apply --canonicalize to unpack tensor for int4
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module,
@@ -1187,7 +1184,6 @@ class UnshardedVicuna(SharkLLMBase):
                         use_tracing=False,
                         verbose=False,
                     )
-                    # TODO: apply --canonicalize to unpack tensor for int4
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module,
