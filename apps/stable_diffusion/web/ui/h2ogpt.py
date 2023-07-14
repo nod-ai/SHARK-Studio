@@ -7,6 +7,12 @@ from transformers import (
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
 
+from apps.language_models.langchain.enums import (
+    DocumentChoices,
+    LangChainAction,
+)
+import apps.language_models.langchain.gen as gen
+
 
 def user(message, history):
     # Append the user's message to the conversation history
@@ -15,7 +21,7 @@ def user(message, history):
 
 sharkModel = 0
 sharded_model = 0
-vicuna_model = 0
+h2ogpt_model = 0
 
 past_key_values = None
 
@@ -76,75 +82,82 @@ def create_prompt(model_name, history):
 def chat(curr_system_message, history, model, device, precision):
     global sharded_model
     global past_key_values
-    global vicuna_model
+    global h2ogpt_model
 
     model_name, model_path = list(map(str.strip, model.split("=>")))
     print(f"In chat for {model_name}")
 
-    if model_name in ["vicuna", "vicuna1p3", "codegen"]:
-        from apps.language_models.scripts.vicuna import (
-            UnshardedVicuna,
-        )
+    # if h2ogpt_model == 0:
+    #     if "cuda" in device:
+    #         device = "cuda"
+    #     elif "sync" in device:
+    #         device = "cpu-sync"
+    #     elif "task" in device:
+    #         device = "cpu-task"
+    #     elif "vulkan" in device:
+    #         device = "vulkan"
+    #     else:
+    #         print("unrecognized device")
 
-        if vicuna_model == 0:
-            if "cuda" in device:
-                device = "cuda"
-            elif "sync" in device:
-                device = "cpu-sync"
-            elif "task" in device:
-                device = "cpu-task"
-            elif "vulkan" in device:
-                device = "vulkan"
-            else:
-                print("unrecognized device")
+    #     max_toks = 128 if model_name == "codegen" else 512
+    #     h2ogpt_model = UnshardedVicuna(
+    #         model_name,
+    #         hf_model_path=model_path,
+    #         device=device,
+    #         precision=precision,
+    #         max_num_tokens=max_toks,
+    #     )
+    # prompt = create_prompt(model_name, history)
+    # print("prompt = ", prompt)
 
-            max_toks = 128 if model_name == "codegen" else 512
-            vicuna_model = UnshardedVicuna(
-                model_name,
-                hf_model_path=model_path,
-                device=device,
-                precision=precision,
-                max_num_tokens=max_toks,
-            )
-        prompt = create_prompt(model_name, history)
-        print("prompt = ", prompt)
-
-        for partial_text in vicuna_model.generate(prompt):
-            history[-1][1] = partial_text
-            yield history
-
-        return history
-
-    # else Model is StableLM
-    global sharkModel
-    from apps.language_models.src.pipelines.stablelm_pipeline import (
-        SharkStableLM,
+    # for partial_text in h2ogpt_model.generate(prompt):
+    #     history[-1][1] = partial_text
+    #     yield history
+    output = gen.evaluate(
+        None,  # model_state
+        None,  # my_db_state
+        None,  # instruction
+        None,  # iinput
+        history,  # context
+        False,  # stream_output
+        None,  # prompt_type
+        None,  # prompt_dict
+        None,  # temperature
+        None,  # top_p
+        None,  # top_k
+        None,  # num_beams
+        None,  # max_new_tokens
+        None,  # min_new_tokens
+        None,  # early_stopping
+        None,  # max_time
+        None,  # repetition_penalty
+        None,  # num_return_sequences
+        False,  # do_sample
+        False,  # chat
+        None,  # instruction_nochat
+        curr_system_message,  # iinput_nochat
+        "Disabled",  # langchain_mode
+        LangChainAction.QUERY.value,  # langchain_action
+        3,  # top_k_docs
+        True,  # chunk
+        512,  # chunk_size
+        [DocumentChoices.All_Relevant.name],  # document_choice
+        concurrency_count=1,
+        memory_restriction_level=2,
+        raise_generate_gpu_exceptions=False,
+        chat_context="",
+        use_openai_embedding=False,
+        use_openai_model=False,
+        hf_embedding_model="sentence-transformers/all-MiniLM-L6-v2",
+        db_type="chroma",
+        n_jobs=-1,
+        first_para=False,
     )
-
-    if sharkModel == 0:
-        # max_new_tokens=512
-        shark_slm = SharkStableLM(
-            model_name
-        )  # pass elements from UI as required
-
-    # Construct the input message string for the model by concatenating the
-    # current system message and conversation history
-    if len(curr_system_message.split()) > 160:
-        print("clearing context")
-    prompt = create_prompt(model_name, history)
-    generate_kwargs = dict(prompt=prompt)
-
-    words_list = shark_slm.generate(**generate_kwargs)
-
-    partial_text = ""
-    for new_text in words_list:
-        # print(new_text)
-        partial_text += new_text
+    for partial_text in output:
         history[-1][1] = partial_text
-        # Yield an empty string to clean up the message textbox and the updated
-        # conversation history
         yield history
-    return words_list
+
+    return history
 
 
 with gr.Blocks(title="H2OGPT") as h2ogpt_web:
@@ -181,10 +194,6 @@ with gr.Blocks(title="H2OGPT") as h2ogpt_web:
                 "fp32",
             ],
             visible=True,
-        )
-        document = gr.File(
-            file_count="multiple",
-            label="Documents",
         )
     chatbot = gr.Chatbot(height=500)
     with gr.Row():

@@ -24,7 +24,7 @@ def unescape(x):
         x = ast.literal_eval(x)
     except:
         try:
-            x = x.encode('ascii', 'ignore').decode('unicode_escape')
+            x = x.encode("ascii", "ignore").decode("unicode_escape")
         except:
             pass
     return x
@@ -32,20 +32,26 @@ def unescape(x):
 
 def get_views():
     # views = pd.read_csv('wiki_page_views_more_1000month.csv')
-    views = pd.read_csv('wiki_page_views_more_5000month.csv')
-    views.index = views['title']
-    views = views['views']
+    views = pd.read_csv("wiki_page_views_more_5000month.csv")
+    views.index = views["title"]
+    views = views["views"]
     views = views.to_dict()
     views = {str(unescape(str(k))): v for k, v in views.items()}
-    views2 = {k.replace('_', ' '): v for k, v in views.items()}
+    views2 = {k.replace("_", " "): v for k, v in views.items()}
     # views has _ but pages has " "
     views.update(views2)
     return views
 
 
 class MWDumpDirectLoader(MWDumpLoader):
-    def __init__(self, data: str, encoding: Optional[str] = "utf8",
-                 title_words_limit=None, use_views=True, verbose=True):
+    def __init__(
+        self,
+        data: str,
+        encoding: Optional[str] = "utf8",
+        title_words_limit=None,
+        use_views=True,
+        verbose=True,
+    ):
         """Initialize with file path."""
         self.data = data
         self.encoding = encoding
@@ -74,14 +80,18 @@ class MWDumpDirectLoader(MWDumpLoader):
                 continue
             for revision in page:
                 if self.title_words_limit is not None:
-                    num_words = len(' '.join(page.title.split('_')).split(' '))
+                    num_words = len(" ".join(page.title.split("_")).split(" "))
                     if num_words > self.title_words_limit:
                         if self.verbose:
                             print("Skipped %s" % page.title, flush=True)
                         continue
                 if self.verbose:
                     if self.views is not None:
-                        print("Kept %s views: %s" % (page.title, self.views[page.title]), flush=True)
+                        print(
+                            "Kept %s views: %s"
+                            % (page.title, self.views[page.title]),
+                            flush=True,
+                        )
                     else:
                         print("Kept %s" % page.title, flush=True)
 
@@ -89,13 +99,16 @@ class MWDumpDirectLoader(MWDumpLoader):
                 text = code.strip_code(
                     normalize=True, collapse=True, keep_template_params=False
                 )
-                title_url = str(page.title).replace(' ', '_')
-                metadata = dict(title=page.title,
-                                source="https://en.wikipedia.org/wiki/" + title_url,
-                                id=page.id,
-                                redirect=page.redirect,
-                                views=self.views[page.title] if self.views is not None else -1,
-                                )
+                title_url = str(page.title).replace(" ", "_")
+                metadata = dict(
+                    title=page.title,
+                    source="https://en.wikipedia.org/wiki/" + title_url,
+                    id=page.id,
+                    redirect=page.redirect,
+                    views=self.views[page.title]
+                    if self.views is not None
+                    else -1,
+                )
                 metadata = {k: v for k, v in metadata.items() if v is not None}
                 docs.append(Document(page_content=text, metadata=metadata))
 
@@ -105,8 +118,8 @@ class MWDumpDirectLoader(MWDumpLoader):
 def search_index(search_term, index_filename):
     byte_flag = False
     data_length = start_byte = 0
-    index_file = open(index_filename, 'r')
-    csv_reader = csv.reader(index_file, delimiter=':')
+    index_file = open(index_filename, "r")
+    csv_reader = csv.reader(index_file, delimiter=":")
     for line in csv_reader:
         if not byte_flag and search_term == line[2]:
             start_byte = int(line[0])
@@ -119,8 +132,8 @@ def search_index(search_term, index_filename):
 
 
 def get_start_bytes(index_filename):
-    index_file = open(index_filename, 'r')
-    csv_reader = csv.reader(index_file, delimiter=':')
+    index_file = open(index_filename, "r")
+    csv_reader = csv.reader(index_file, delimiter=":")
     start_bytes = set()
     for line in csv_reader:
         start_bytes.add(int(line[0]))
@@ -131,17 +144,21 @@ def get_start_bytes(index_filename):
 def get_wiki_filenames():
     # requires
     # wget http://ftp.acc.umu.se/mirror/wikimedia.org/dumps/enwiki/20230401/enwiki-20230401-pages-articles-multistream-index.txt.bz2
-    base_path = os.path.join(root_path, 'enwiki-20230401-pages-articles-multistream')
-    index_file = 'enwiki-20230401-pages-articles-multistream-index.txt'
+    base_path = os.path.join(
+        root_path, "enwiki-20230401-pages-articles-multistream"
+    )
+    index_file = "enwiki-20230401-pages-articles-multistream-index.txt"
     index_filename = os.path.join(base_path, index_file)
-    wiki_filename = os.path.join(base_path, 'enwiki-20230401-pages-articles-multistream.xml.bz2')
+    wiki_filename = os.path.join(
+        base_path, "enwiki-20230401-pages-articles-multistream.xml.bz2"
+    )
     return index_filename, wiki_filename
 
 
 def get_documents_by_search_term(search_term):
     index_filename, wiki_filename = get_wiki_filenames()
     start_byte, data_length = search_index(search_term, index_filename)
-    with open(wiki_filename, 'rb') as wiki_file:
+    with open(wiki_filename, "rb") as wiki_file:
         wiki_file.seek(start_byte)
         data = bz2.BZ2Decompressor().decompress(wiki_file.read(data_length))
 
@@ -150,23 +167,29 @@ def get_documents_by_search_term(search_term):
     return documents
 
 
-def get_one_chunk(wiki_filename, start_byte, end_byte, return_file=True,
-                  title_words_limit=None,
-                  use_views=True):
+def get_one_chunk(
+    wiki_filename,
+    start_byte,
+    end_byte,
+    return_file=True,
+    title_words_limit=None,
+    use_views=True,
+):
     data_length = end_byte - start_byte
-    with open(wiki_filename, 'rb') as wiki_file:
+    with open(wiki_filename, "rb") as wiki_file:
         wiki_file.seek(start_byte)
         data = bz2.BZ2Decompressor().decompress(wiki_file.read(data_length))
 
-    loader = MWDumpDirectLoader(data.decode(), title_words_limit=title_words_limit,
-                                use_views=use_views)
+    loader = MWDumpDirectLoader(
+        data.decode(), title_words_limit=title_words_limit, use_views=use_views
+    )
     documents1 = loader.load()
     if return_file:
         base_tmp = "temp_wiki"
         if not os.path.isdir(base_tmp):
             os.makedirs(base_tmp, exist_ok=True)
         filename = os.path.join(base_tmp, str(uuid.uuid4()) + ".tmp.pickle")
-        with open(filename, 'wb') as f:
+        with open(filename, "wb") as f:
             pickle.dump(documents1, f)
         return filename
     return documents1
@@ -195,21 +218,28 @@ def get_all_documents(small_test=2, n_jobs=None, use_views=True):
 
     # default loky backend leads to name space conflict problems
     return_file = True  # large return from joblib hangs
-    documents = Parallel(n_jobs=n_jobs, verbose=10, backend='multiprocessing')(
-        delayed(get_one_chunk)(wiki_filename, start_byte, end_byte,
-                               return_file=return_file, use_views=use_views) for start_byte, end_byte in
-        zip(start_bytes, end_bytes))
+    documents = Parallel(n_jobs=n_jobs, verbose=10, backend="multiprocessing")(
+        delayed(get_one_chunk)(
+            wiki_filename,
+            start_byte,
+            end_byte,
+            return_file=return_file,
+            use_views=use_views,
+        )
+        for start_byte, end_byte in zip(start_bytes, end_bytes)
+    )
     if return_file:
         # then documents really are files
         files = documents.copy()
         documents = []
         for fil in files:
-            with open(fil, 'rb') as f:
+            with open(fil, "rb") as f:
                 documents.extend(pickle.load(f))
             os.remove(fil)
     else:
         from functools import reduce
         from operator import concat
+
         documents = reduce(concat, documents)
     assert isinstance(documents, list)
 
@@ -218,13 +248,13 @@ def get_all_documents(small_test=2, n_jobs=None, use_views=True):
 
 
 def test_by_search_term():
-    search_term = 'Apollo'
+    search_term = "Apollo"
     assert len(get_documents_by_search_term(search_term)) == 100
 
-    search_term = 'Abstract (law)'
+    search_term = "Abstract (law)"
     assert len(get_documents_by_search_term(search_term)) == 100
 
-    search_term = 'Artificial languages'
+    search_term = "Artificial languages"
     assert len(get_documents_by_search_term(search_term)) == 100
 
 
@@ -237,18 +267,38 @@ def test_get_all_documents():
     small_test = 20  # 227850
     n_jobs = os.cpu_count() // 4
 
-    assert len(get_all_documents(small_test=small_test, n_jobs=n_jobs, use_views=False)) == small_test * 100
+    assert (
+        len(
+            get_all_documents(
+                small_test=small_test, n_jobs=n_jobs, use_views=False
+            )
+        )
+        == small_test * 100
+    )
 
-    assert len(get_all_documents(small_test=small_test, n_jobs=n_jobs, use_views=True)) == 429
+    assert (
+        len(
+            get_all_documents(
+                small_test=small_test, n_jobs=n_jobs, use_views=True
+            )
+        )
+        == 429
+    )
 
 
 def get_one_pageviews(fil):
-    df1 = pd.read_csv(fil, sep=' ', header=None, names=['region', 'title', 'views', 'foo'], quoting=csv.QUOTE_NONE)
-    df1.index = df1['title']
-    df1 = df1[df1['region'] == 'en']
-    df1 = df1.drop('region', axis=1)
-    df1 = df1.drop('foo', axis=1)
-    df1 = df1.drop('title', axis=1)  # already index
+    df1 = pd.read_csv(
+        fil,
+        sep=" ",
+        header=None,
+        names=["region", "title", "views", "foo"],
+        quoting=csv.QUOTE_NONE,
+    )
+    df1.index = df1["title"]
+    df1 = df1[df1["region"] == "en"]
+    df1 = df1.drop("region", axis=1)
+    df1 = df1.drop("foo", axis=1)
+    df1 = df1.drop("title", axis=1)  # already index
 
     base_tmp = "temp_wiki_pageviews"
     if not os.path.isdir(base_tmp):
@@ -260,15 +310,21 @@ def get_one_pageviews(fil):
 
 def test_agg_pageviews(gen_files=False):
     if gen_files:
-        path = os.path.join(root_path, 'wiki_pageviews/dumps.wikimedia.org/other/pageviews/2023/2023-04')
-        files = glob.glob(os.path.join(path, 'pageviews*.gz'))
+        path = os.path.join(
+            root_path,
+            "wiki_pageviews/dumps.wikimedia.org/other/pageviews/2023/2023-04",
+        )
+        files = glob.glob(os.path.join(path, "pageviews*.gz"))
         # files = files[:2]  # test
         n_jobs = os.cpu_count() // 2
-        csv_files = Parallel(n_jobs=n_jobs, verbose=10, backend='multiprocessing')(
-            delayed(get_one_pageviews)(fil) for fil in files)
+        csv_files = Parallel(
+            n_jobs=n_jobs, verbose=10, backend="multiprocessing"
+        )(delayed(get_one_pageviews)(fil) for fil in files)
     else:
         # to continue without redoing above
-        csv_files = glob.glob(os.path.join(root_path, 'temp_wiki_pageviews/*.csv'))
+        csv_files = glob.glob(
+            os.path.join(root_path, "temp_wiki_pageviews/*.csv")
+        )
 
     df_list = []
     for csv_file in csv_files:
@@ -276,32 +332,32 @@ def test_agg_pageviews(gen_files=False):
         df1 = pd.read_csv(csv_file)
         df_list.append(df1)
     df = pd.concat(df_list, axis=0)
-    df = df.groupby('title')['views'].sum().reset_index()
+    df = df.groupby("title")["views"].sum().reset_index()
     df.to_csv("wiki_page_views.csv", index=True)
 
 
 def test_reduce_pageview():
     filename = "wiki_page_views.csv"
     df = pd.read_csv(filename)
-    df = df[df['views'] < 1e7]
+    df = df[df["views"] < 1e7]
     #
-    plt.hist(df['views'], bins=100, log=True)
-    views_avg = np.mean(df['views'])
-    views_median = np.median(df['views'])
+    plt.hist(df["views"], bins=100, log=True)
+    views_avg = np.mean(df["views"])
+    views_median = np.median(df["views"])
     plt.title("Views avg: %s median: %s" % (views_avg, views_median))
-    plt.savefig(filename.replace('.csv', '.png'))
+    plt.savefig(filename.replace(".csv", ".png"))
     plt.close()
     #
     views_limit = 5000
-    df = df[df['views'] > views_limit]
+    df = df[df["views"] > views_limit]
     filename = "wiki_page_views_more_5000month.csv"
     df.to_csv(filename, index=True)
     #
-    plt.hist(df['views'], bins=100, log=True)
-    views_avg = np.mean(df['views'])
-    views_median = np.median(df['views'])
+    plt.hist(df["views"], bins=100, log=True)
+    views_avg = np.mean(df["views"])
+    views_median = np.median(df["views"])
     plt.title("Views avg: %s median: %s" % (views_avg, views_median))
-    plt.savefig(filename.replace('.csv', '.png'))
+    plt.savefig(filename.replace(".csv", ".png"))
     plt.close()
 
 
@@ -315,7 +371,9 @@ def test_do_wiki_full_all():
     # E.g. magnet:?xt=urn:btih:b2c74af2b1531d0b63f1166d2011116f44a8fed0&dn=enwiki-20230401-pages-articles-multistream.xml.bz2&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337
 
     # Get index
-    os.system("wget http://ftp.acc.umu.se/mirror/wikimedia.org/dumps/enwiki/20230401/enwiki-20230401-pages-articles-multistream-index.txt.bz2")
+    os.system(
+        "wget http://ftp.acc.umu.se/mirror/wikimedia.org/dumps/enwiki/20230401/enwiki-20230401-pages-articles-multistream-index.txt.bz2"
+    )
 
     # Test that can use LangChain to get docs from subset of wiki as sampled out of full wiki directly using bzip multistream
     test_get_all_documents()
@@ -327,7 +385,9 @@ def test_do_wiki_full_all():
     test_start_bytes()
 
     # Get page views, e.g. for entire month of April 2023
-    os.system("wget -b -m -k -o wget.log -e robots=off https://dumps.wikimedia.org/other/pageviews/2023/2023-04/")
+    os.system(
+        "wget -b -m -k -o wget.log -e robots=off https://dumps.wikimedia.org/other/pageviews/2023/2023-04/"
+    )
 
     # Aggregate page views from many files into single file
     test_agg_pageviews(gen_files=True)

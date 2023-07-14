@@ -10,6 +10,7 @@ class StreamingGradioCallbackHandler(BaseCallbackHandler):
     """
     Similar to H2OTextIteratorStreamer that is for HF backend, but here LangChain backend
     """
+
     def __init__(self, timeout: Optional[float] = None, block=True):
         super().__init__()
         self.text_queue = queue.SimpleQueue()
@@ -48,13 +49,17 @@ class StreamingGradioCallbackHandler(BaseCallbackHandler):
     def __next__(self):
         while True:
             try:
-                value = self.stop_signal  # value looks unused in pycharm, not true
+                value = (
+                    self.stop_signal
+                )  # value looks unused in pycharm, not true
                 if self.do_stop:
                     print("hit stop", flush=True)
                     # could raise or break, maybe best to raise and make parent see if any exception in thread
                     raise StopIteration()
                     # break
-                value = self.text_queue.get(block=self.block, timeout=self.timeout)
+                value = self.text_queue.get(
+                    block=self.block, timeout=self.timeout
+                )
                 break
             except queue.Empty:
                 time.sleep(0.01)
