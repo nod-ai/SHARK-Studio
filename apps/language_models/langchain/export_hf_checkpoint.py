@@ -9,27 +9,26 @@ from transformers import PreTrainedModel
 
 
 def do_export():
-
-    BASE_MODEL = 'h2oai/h2ogpt-oasst1-512-12b'
-    LORA_WEIGHTS = 'h2ogpt-oasst1-512-12b.h2oaih2ogpt-oig-oasst1-instruct-cleaned-v3.1_epochs.805b8e8eff369207340a5a6f90f3c833f9731254.2'
+    BASE_MODEL = "h2oai/h2ogpt-oasst1-512-12b"
+    LORA_WEIGHTS = "h2ogpt-oasst1-512-12b.h2oaih2ogpt-oig-oasst1-instruct-cleaned-v3.1_epochs.805b8e8eff369207340a5a6f90f3c833f9731254.2"
     OUTPUT_NAME = "h2ogpt-oig-oasst1-512-12b"
 
-    BASE_MODEL = 'EleutherAI/pythia-12b-deduped'
-    LORA_WEIGHTS = 'pythia-12b-deduped.h2oaiopenassistant_oasst1_h2ogpt_graded.3_epochs.2ccf687ea3f3f3775a501838e81c1a0066430455.4'
+    BASE_MODEL = "EleutherAI/pythia-12b-deduped"
+    LORA_WEIGHTS = "pythia-12b-deduped.h2oaiopenassistant_oasst1_h2ogpt_graded.3_epochs.2ccf687ea3f3f3775a501838e81c1a0066430455.4"
     OUTPUT_NAME = "h2ogpt-oasst1-512-12b"
 
-    BASE_MODEL = 'tiiuae/falcon-40b'
-    LORA_WEIGHTS = 'falcon-40b.h2oaiopenassistant_oasst1_h2ogpt.1_epochs.894d8450d35c180cd03222a45658d04c15b78d4b.9'
+    BASE_MODEL = "tiiuae/falcon-40b"
+    LORA_WEIGHTS = "falcon-40b.h2oaiopenassistant_oasst1_h2ogpt.1_epochs.894d8450d35c180cd03222a45658d04c15b78d4b.9"
     OUTPUT_NAME = "h2ogpt-oasst1-2048-falcon-40b"
 
     # BASE_MODEL = 'decapoda-research/llama-65b-hf'
     # LORA_WEIGHTS = 'llama-65b-hf.h2oaiopenassistant_oasst1_h2ogpt_graded.1_epochs.113510499324f0f007cbec9d9f1f8091441f2469.3'
     # OUTPUT_NAME = "h2ogpt-research-oasst1-llama-65b"
 
-    model = os.getenv('MODEL')
+    model = os.getenv("MODEL")
     # for testing
     if model:
-        BASE_MODEL = 'tiiuae/falcon-7b'
+        BASE_MODEL = "tiiuae/falcon-7b"
         LORA_WEIGHTS = model + ".lora"
         OUTPUT_NAME = model
 
@@ -37,7 +36,10 @@ def do_export():
     as_pytorch = False  # False -> HF
 
     from loaders import get_loaders
-    model_loader, tokenizer_loader = get_loaders(model_name=BASE_MODEL, reward_type=False, llama_type=llama_type)
+
+    model_loader, tokenizer_loader = get_loaders(
+        model_name=BASE_MODEL, reward_type=False, llama_type=llama_type
+    )
 
     tokenizer = tokenizer_loader.from_pretrained(
         BASE_MODEL,
@@ -59,11 +61,15 @@ def do_export():
         layers = base_model.model.layers
         first_weight = layers[0].self_attn.q_proj.weight
     else:
-        if any([x in BASE_MODEL.lower() for x in ["pythia", "h2ogpt", "gpt-neox"]]):
+        if any(
+            [x in BASE_MODEL.lower() for x in ["pythia", "h2ogpt", "gpt-neox"]]
+        ):
             layers = base_model.gpt_neox.base_model.layers
             first_weight = layers[0].attention.query_key_value.weight
         elif any([x in BASE_MODEL.lower() for x in ["falcon"]]):
-            first_weight = base_model.transformer.h._modules['0'].self_attention.query_key_value.weight
+            first_weight = base_model.transformer.h._modules[
+                "0"
+            ].self_attention.query_key_value.weight
         else:
             layers = base_model.transformer.base_model.h
             first_weight = layers[0].attn.q_proj.weight
@@ -87,7 +93,9 @@ def do_export():
         #     layer.self_attn.v_proj.merge_weights = True
         #     layer.self_attn.o_proj.merge_weights = True
     else:
-        if any([x in BASE_MODEL.lower() for x in ["pythia", "h2ogpt", "gpt-neox"]]):
+        if any(
+            [x in BASE_MODEL.lower() for x in ["pythia", "h2ogpt", "gpt-neox"]]
+        ):
             for layer in lora_model.base_model.gpt_neox.base_model.layers:
                 layer.attention.query_key_value.merge_weights = True
         else:
@@ -117,19 +125,23 @@ def do_export():
         dim = params["dim"]
         dims_per_head = dim // n_heads
         base = 10000.0
-        inv_freq = 1.0 / (base ** (torch.arange(0, dims_per_head, 2).float() / dims_per_head))
+        inv_freq = 1.0 / (
+            base ** (torch.arange(0, dims_per_head, 2).float() / dims_per_head)
+        )
 
         def permute(w):
             return (
-                w.view(n_heads, dim // n_heads // 2, 2, dim).transpose(1, 2).reshape(dim, dim)
+                w.view(n_heads, dim // n_heads // 2, 2, dim)
+                .transpose(1, 2)
+                .reshape(dim, dim)
             )
-
 
         def unpermute(w):
             return (
-                w.view(n_heads, 2, dim // n_heads // 2, dim).transpose(1, 2).reshape(dim, dim)
+                w.view(n_heads, 2, dim // n_heads // 2, dim)
+                .transpose(1, 2)
+                .reshape(dim, dim)
             )
-
 
         def translate_state_dict_key(k):
             if "gpt-neoxt" in BASE_MODEL.lower():
@@ -171,7 +183,6 @@ def do_export():
                 print(k)
                 raise NotImplementedError
 
-
         new_state_dict = {}
         for k, v in lora_model_sd.items():
             new_k = translate_state_dict_key(k)
@@ -195,8 +206,8 @@ def do_export():
         }
         base_model.config.custom_pipelines = {
             "text-generation": {
-              "impl": "h2oai_pipeline.H2OTextGenerationPipeline",
-              "pt": "AutoModelForCausalLM"
+                "impl": "h2oai_pipeline.H2OTextGenerationPipeline",
+                "pt": "AutoModelForCausalLM",
             }
         }
         PreTrainedModel.save_pretrained(
@@ -216,9 +227,18 @@ def do_copy(OUTPUT_NAME):
     os.system("""sed -i 's/from enums.*//g' %s""" % dest_file)
     os.system("""sed -i 's/from stopping.*//g' %s""" % dest_file)
     os.system("""sed -i 's/from prompter.*//g' %s""" % dest_file)
-    os.system("""cat %s|grep -v "from enums import PromptType" >> %s""" % ('src/enums.py', dest_file))
-    os.system("""cat %s|grep -v "from enums import PromptType" >> %s""" % ('src/prompter.py', dest_file))
-    os.system("""cat %s|grep -v "from enums import PromptType" >> %s""" % ('src/stopping.py', dest_file))
+    os.system(
+        """cat %s|grep -v "from enums import PromptType" >> %s"""
+        % ("src/enums.py", dest_file)
+    )
+    os.system(
+        """cat %s|grep -v "from enums import PromptType" >> %s"""
+        % ("src/prompter.py", dest_file)
+    )
+    os.system(
+        """cat %s|grep -v "from enums import PromptType" >> %s"""
+        % ("src/stopping.py", dest_file)
+    )
 
 
 TEST_OUTPUT_NAME = "test_output"
@@ -229,10 +249,10 @@ def test_copy():
         shutil.rmtree(TEST_OUTPUT_NAME)
     os.makedirs(TEST_OUTPUT_NAME, exist_ok=False)
     do_copy(TEST_OUTPUT_NAME)
-    shutil.copy('src/export_hf_checkpoint.py', TEST_OUTPUT_NAME)
-    os.environ['DO_COPY_TEST'] = '1'
+    shutil.copy("src/export_hf_checkpoint.py", TEST_OUTPUT_NAME)
+    os.environ["DO_COPY_TEST"] = "1"
     os.chdir(TEST_OUTPUT_NAME)
-    output = subprocess.check_output(['python', 'export_hf_checkpoint.py'])
+    output = subprocess.check_output(["python", "export_hf_checkpoint.py"])
     print(output)
 
 
@@ -243,14 +263,19 @@ def inner_test_copy():
     """
     # test imports
     # below supposed to look bad in pycharm, don't fix!
-    from h2oai_pipeline import get_stopping, get_prompt, H2OTextGenerationPipeline
+    from h2oai_pipeline import (
+        get_stopping,
+        get_prompt,
+        H2OTextGenerationPipeline,
+    )
+
     assert get_stopping
     assert get_prompt
     assert H2OTextGenerationPipeline
 
 
-if __name__ == '__main__':
-    if os.getenv('DO_COPY_TEST'):
+if __name__ == "__main__":
+    if os.getenv("DO_COPY_TEST"):
         inner_test_copy()
     else:
         do_export()

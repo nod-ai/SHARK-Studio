@@ -42,7 +42,7 @@ class DocumentChoices(Enum):
 
 non_query_commands = [
     DocumentChoices.All_Relevant_Only_Sources.name,
-    DocumentChoices.Only_All_Sources.name
+    DocumentChoices.Only_All_Sources.name,
 ]
 
 
@@ -72,7 +72,7 @@ class LangChainAction(Enum):
     SUMMARIZE_REFINE = "Summarize_refine"
 
 
-no_server_str = no_lora_str = no_model_str = '[None/Remove]'
+no_server_str = no_lora_str = no_model_str = "[None/Remove]"
 
 # from site-packages/langchain/llms/openai.py
 # but needed since ChatOpenAI doesn't have this information

@@ -19,7 +19,9 @@ def forward(
     past_key_value: Optional[Tuple[torch.Tensor]] = None,
     output_attentions: bool = False,
     use_cache: bool = False,
-) -> Tuple[torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]]:
+) -> Tuple[
+    torch.Tensor, Optional[torch.Tensor], Optional[Tuple[torch.Tensor]]
+]:
     """Input shape: Batch x Time x Channel
     attention_mask: [bsz, q_len]
     """
@@ -70,7 +72,11 @@ def forward(
         qkv = rearrange(qkv, "b s ... -> (b s) ...")
         max_s = q_len
         cu_q_lens = torch.arange(
-            0, (bsz + 1) * q_len, step=q_len, dtype=torch.int32, device=qkv.device
+            0,
+            (bsz + 1) * q_len,
+            step=q_len,
+            dtype=torch.int32,
+            device=qkv.device,
         )
         output = flash_attn_unpadded_qkvpacked_func(
             qkv, cu_q_lens, max_s, 0.0, softmax_scale=None, causal=True
@@ -88,7 +94,10 @@ def forward(
         )
         output = rearrange(
             pad_input(
-                rearrange(output_unpad, "nnz h d -> nnz (h d)"), indices, bsz, q_len
+                rearrange(output_unpad, "nnz h d -> nnz (h d)"),
+                indices,
+                bsz,
+                q_len,
             ),
             "b s (h d) -> b s h d",
             h=nheads,
@@ -106,7 +115,9 @@ def _prepare_decoder_attention_mask(
 
 
 def replace_llama_attn_with_flash_attn():
-    print("Replacing original LLaMa attention with flash attention", flush=True)
+    print(
+        "Replacing original LLaMa attention with flash attention", flush=True
+    )
     transformers.models.llama.modeling_llama.LlamaModel._prepare_decoder_attention_mask = (
         _prepare_decoder_attention_mask
     )
