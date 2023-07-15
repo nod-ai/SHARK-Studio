@@ -57,6 +57,7 @@ def upscaler_inf(
     lora_weights: str,
     lora_hf_id: str,
     ondemand: bool,
+    repeatable_seeds: bool,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -176,12 +177,10 @@ def upscaler_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    seeds = []
-    img_seed = utils.sanitize_seed(seed)
+    seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
     extra_info = {"NOISE LEVEL": noise_level}
+
     for current_batch in range(batch_count):
-        if current_batch > 0:
-            img_seed = utils.sanitize_seed(-1)
         low_res_img = image
         high_res_img = Image.new("RGB", (height * 4, width * 4))
 
@@ -198,7 +197,7 @@ def upscaler_inf(
                     steps,
                     noise_level,
                     guidance_scale,
-                    img_seed,
+                    seeds[current_batch],
                     args.max_length,
                     dtype,
                     args.use_base_vae,
@@ -213,38 +212,39 @@ def upscaler_inf(
             if global_obj.get_sd_status() == SD_STATE_CANCEL:
                 break
 
+        total_time = time.time() - start_time
+        text_output = f"prompt={args.prompts}"
+        text_output += f"\nnegative prompt={args.negative_prompts}"
+        text_output += (
+            f"\nmodel_id={args.hf_model_id}, " f"ckpt_loc={args.ckpt_loc}"
+        )
+        text_output += f"\nscheduler={args.scheduler}, " f"device={device}"
+        text_output += (
+            f"\nsteps={steps}, "
+            f"noise_level={noise_level}, "
+            f"guidance_scale={guidance_scale}, "
+            f"seed={seeds[:current_batch + 1]}"
+        )
+        text_output += (
+            f"\ninput size={height}x{width}, "
+            f"output size={height*4}x{width*4}, "
+            f"batch_count={batch_count}, "
+            f"batch_size={batch_size}, "
+            f"max_length={args.max_length}\n"
+        )
+
+        text_output += global_obj.get_sd_obj().log
+        text_output += f"\nTotal image generation time: {total_time:.4f}sec"
+
         if global_obj.get_sd_status() == SD_STATE_CANCEL:
             break
         else:
-            save_output_img(high_res_img, img_seed, extra_info)
+            save_output_img(high_res_img, seeds[current_batch], extra_info)
             generated_imgs.append(high_res_img)
-            seeds.append(img_seed)
             global_obj.get_sd_obj().log += "\n"
-            yield generated_imgs, global_obj.get_sd_obj().log, status_label(
+            yield generated_imgs, text_output, status_label(
                 "Upscaler", current_batch + 1, batch_count, batch_size
             )
-
-    total_time = time.time() - start_time
-    text_output = f"prompt={args.prompts}"
-    text_output += f"\nnegative prompt={args.negative_prompts}"
-    text_output += (
-        f"\nmodel_id={args.hf_model_id}, " f"ckpt_loc={args.ckpt_loc}"
-    )
-    text_output += f"\nscheduler={args.scheduler}, " f"device={device}"
-    text_output += (
-        f"\nsteps={steps}, "
-        f"noise_level={noise_level}, "
-        f"guidance_scale={guidance_scale}, "
-        f"seed={seeds}"
-    )
-    text_output += (
-        f"\nsize={height}x{width}, "
-        f"batch_count={batch_count}, "
-        f"batch_size={batch_size}, "
-        f"max_length={args.max_length}"
-    )
-    text_output += global_obj.get_sd_obj().log
-    text_output += f"\nTotal image generation time: {total_time:.4f}sec"
 
     yield generated_imgs, text_output, ""
 
@@ -314,6 +314,7 @@ def upscaler_api(
         lora_weights="None",
         lora_hf_id="",
         ondemand=False,
+        repeatable_seeds=False,
     )
     # Converts generator type to subscriptable
     res = next(res)
@@ -518,6 +519,11 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                                 label="Batch Count",
                                 interactive=True,
                             )
+                        repeatable_seeds = gr.Checkbox(
+                            args.repeatable_seeds,
+                            label="Repeatable Seeds",
+                        )
+                    with gr.Row():
                         batch_size = gr.Slider(
                             1,
                             4,
@@ -527,7 +533,6 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                             interactive=False,
                             visible=False,
                         )
-                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
@@ -539,16 +544,15 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    with gr.Column(scale=2):
-                        random_seed = gr.Button("Randomize Seed")
-                        random_seed.click(
-                            lambda: -1,
-                            inputs=[],
-                            outputs=[seed],
-                            queue=False,
-                        )
-                    with gr.Column(scale=6):
-                        stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                    stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -601,6 +605,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                 lora_weights,
                 lora_hf_id,
                 ondemand,
+                repeatable_seeds,
             ],
             outputs=[upscaler_gallery, std_output, upscaler_status],
             show_progress="minimal" if args.progress_bar else "none",

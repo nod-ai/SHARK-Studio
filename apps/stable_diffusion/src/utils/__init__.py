@@ -28,6 +28,7 @@ from apps.stable_diffusion.src.utils.utils import (
     fetch_and_update_base_model_id,
     get_path_to_diffusers_checkpoint,
     sanitize_seed,
+    batch_seeds,
     get_path_stem,
     get_extended_name,
     get_generated_imgs_path,
