@@ -7,6 +7,94 @@ from stopping import get_stopping
 from prompter import Prompter, PromptType
 
 
+from transformers.generation import (
+    GenerationConfig,
+    LogitsProcessorList,
+    StoppingCriteriaList,
+)
+import copy
+import torch
+from transformers import AutoConfig, AutoModelForCausalLM
+import gc
+from pathlib import Path
+from shark.shark_inference import SharkInference
+from shark.shark_downloader import download_public_file
+
+global_device = "cuda"
+global_precision = "fp16"
+
+
+class H2OGPTSHARKModel(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        model_name = "h2ogpt_falcon_7b"
+        path_str = (
+            model_name + "_" + global_precision + "_" + global_device + ".vmfb"
+        )
+        vmfb_path = Path(path_str)
+
+        if not vmfb_path.exists():
+            # Downloading VMFB from shark_tank
+            print("Downloading vmfb from shark tank.")
+            download_public_file(
+                "gs://shark_tank/langchain/" + path_str,
+                vmfb_path.absolute(),
+                single_file=True,
+            )
+        print("Compiled vmfb found. Loading it from: ", vmfb_path)
+        shark_module = SharkInference(
+            None, device=global_device, mlir_dialect="linalg"
+        )
+        shark_module.load_module(vmfb_path)
+        print("Compiled vmfb loaded successfully.")
+
+        self.model = shark_module
+
+    def forward(self, input_ids, attention_mask):
+        result = torch.from_numpy(
+            self.model(
+                "forward",
+                (input_ids.to(device="cpu"), attention_mask.to(device="cpu")),
+            )
+        ).to(device=global_device)
+        return result
+
+
+h2ogpt_model = H2OGPTSHARKModel()
+
+
+def pad_or_truncate_inputs(
+    input_ids, attention_mask, max_padding_length=400, do_truncation=False
+):
+    inp_shape = input_ids.shape
+    if inp_shape[1] < max_padding_length:
+        # do padding
+        num_add_token = max_padding_length - inp_shape[1]
+        padded_input_ids = torch.cat(
+            [
+                torch.tensor([[11] * num_add_token]).to(device=global_device),
+                input_ids,
+            ],
+            dim=1,
+        )
+        padded_attention_mask = torch.cat(
+            [
+                torch.tensor([[0] * num_add_token]).to(device=global_device),
+                attention_mask,
+            ],
+            dim=1,
+        )
+        return padded_input_ids, padded_attention_mask
+    elif inp_shape[1] > max_padding_length or do_truncation:
+        # do truncation
+        num_remove_token = inp_shape[1] - max_padding_length
+        truncated_input_ids = input_ids[:, num_remove_token:]
+        truncated_attention_mask = attention_mask[:, num_remove_token:]
+        return truncated_input_ids, truncated_attention_mask
+    else:
+        return input_ids, attention_mask
+
+
 class H2OTextGenerationPipeline(TextGenerationPipeline):
     def __init__(
         self,
@@ -20,7 +108,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
         prompt_type=None,
         prompt_dict=None,
         max_input_tokens=2048 - 256,
-        **kwargs
+        **kwargs,
     ):
         """
         HF-like pipeline, but handle instruction prompting and stopping (for some models)
@@ -123,36 +211,6 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
                         )
                     break
 
-            # Why Below False: don't limit max_new_tokens more, just rely upon stopping to reach limit of model
-            if False:
-                # if input prompt is some number of tokens, despite user request, can't have max_new_tokens more
-                #
-                assert num_prompt_tokens is not None
-                if self.prompt_type not in [
-                    PromptType.plain.name,
-                    PromptType.plain.value,
-                ]:
-                    # then give room for prompt
-                    fudge = 20
-                else:
-                    fudge = 0
-                max_new_tokens = max(
-                    0,
-                    min(
-                        generate_kwargs["max_new_tokens"],
-                        model_max_length - (num_prompt_tokens + fudge),
-                    ),
-                )
-                if max_new_tokens < generate_kwargs["max_new_tokens"]:
-                    if verbose:
-                        print(
-                            "Reduced max_new_tokens from %s -> %s"
-                            % (
-                                generate_kwargs["max_new_tokens"],
-                                max_new_tokens,
-                            )
-                        )
-                    generate_kwargs["max_new_tokens"] = max_new_tokens
         return prompt_text, num_prompt_tokens
 
     def preprocess(
@@ -160,7 +218,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
         prompt_text,
         prefix="",
         handle_long_generation=None,
-        **generate_kwargs
+        **generate_kwargs,
     ):
         (
             prompt_text,
@@ -178,7 +236,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
             prompt_text,
             prefix=prefix,
             handle_long_generation=handle_long_generation,
-            **generate_kwargs
+            **generate_kwargs,
         )
 
     def postprocess(
@@ -214,6 +272,232 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
                 flush=True,
             )
         return records
+
+    def generate_new_token(self):
+        model_inputs = self.model.prepare_inputs_for_generation(
+            self.input_ids, **self.model_kwargs
+        )
+
+        outputs = h2ogpt_model.forward(
+            model_inputs["input_ids"], model_inputs["attention_mask"]
+        )
+
+        if global_precision == "fp16":
+            outputs = outputs.to(dtype=torch.float32)
+        next_token_logits = outputs
+
+        # pre-process distribution
+        next_token_scores = self.logits_processor(
+            self.input_ids, next_token_logits
+        )
+        next_token_scores = self.logits_warper(
+            self.input_ids, next_token_scores
+        )
+
+        # sample
+        probs = torch.nn.functional.softmax(next_token_scores, dim=-1)
+
+        next_token = torch.multinomial(probs, num_samples=1).squeeze(1)
+
+        # finished sentences should have their next token be a padding token
+        if self.eos_token_id is not None:
+            if self.pad_token_id is None:
+                raise ValueError(
+                    "If `eos_token_id` is defined, make sure that `pad_token_id` is defined."
+                )
+            next_token = (
+                next_token * self.unfinished_sequences
+                + self.pad_token_id * (1 - self.unfinished_sequences)
+            )
+
+        self.input_ids = torch.cat(
+            [self.input_ids, next_token[:, None]], dim=-1
+        )
+
+        self.model_kwargs["past_key_values"] = None
+        if "attention_mask" in self.model_kwargs:
+            attention_mask = self.model_kwargs["attention_mask"]
+            self.model_kwargs["attention_mask"] = torch.cat(
+                [
+                    attention_mask,
+                    attention_mask.new_ones((attention_mask.shape[0], 1)),
+                ],
+                dim=-1,
+            )
+
+        self.truncated_input_ids.append(self.input_ids[:, 0])
+        self.input_ids = self.input_ids[:, 1:]
+        self.model_kwargs["attention_mask"] = self.model_kwargs[
+            "attention_mask"
+        ][:, 1:]
+
+        return next_token
+
+    def generate_token(self, **generate_kwargs):
+        self.truncated_input_ids = []
+
+        generation_config_ = GenerationConfig.from_model_config(
+            self.model.config
+        )
+        generation_config = copy.deepcopy(generation_config_)
+        self.model_kwargs = generation_config.update(**generate_kwargs)
+
+        logits_processor = LogitsProcessorList()
+        self.stopping_criteria = (
+            self.stopping_criteria
+            if self.stopping_criteria is not None
+            else StoppingCriteriaList()
+        )
+
+        eos_token_id = generation_config.eos_token_id
+        generation_config.pad_token_id = eos_token_id
+
+        (
+            inputs_tensor,
+            model_input_name,
+            self.model_kwargs,
+        ) = self.model._prepare_model_inputs(
+            None, generation_config.bos_token_id, self.model_kwargs
+        )
+        batch_size = inputs_tensor.shape[0]
+
+        self.model_kwargs[
+            "output_attentions"
+        ] = generation_config.output_attentions
+        self.model_kwargs[
+            "output_hidden_states"
+        ] = generation_config.output_hidden_states
+        self.model_kwargs["use_cache"] = generation_config.use_cache
+
+        self.input_ids = (
+            inputs_tensor
+            if model_input_name == "input_ids"
+            else self.model_kwargs.pop("input_ids")
+        )
+
+        input_ids_seq_length = self.input_ids.shape[-1]
+
+        generation_config.max_length = (
+            generation_config.max_new_tokens + input_ids_seq_length
+        )
+
+        self.logits_processor = self.model._get_logits_processor(
+            generation_config=generation_config,
+            input_ids_seq_length=input_ids_seq_length,
+            encoder_input_ids=inputs_tensor,
+            prefix_allowed_tokens_fn=None,
+            logits_processor=logits_processor,
+        )
+
+        self.stopping_criteria = self.model._get_stopping_criteria(
+            generation_config=generation_config,
+            stopping_criteria=self.stopping_criteria,
+        )
+
+        self.logits_warper = self.model._get_logits_warper(generation_config)
+
+        (
+            self.input_ids,
+            self.model_kwargs,
+        ) = self.model._expand_inputs_for_generation(
+            input_ids=self.input_ids,
+            expand_size=generation_config.num_return_sequences,  # 1
+            is_encoder_decoder=self.model.config.is_encoder_decoder,  # False
+            **self.model_kwargs,
+        )
+
+        if isinstance(eos_token_id, int):
+            eos_token_id = [eos_token_id]
+        self.eos_token_id_tensor = (
+            torch.tensor(eos_token_id).to(device=global_device)
+            if eos_token_id is not None
+            else None
+        )
+
+        self.pad_token_id = generation_config.pad_token_id
+        self.eos_token_id = eos_token_id
+
+        output_scores = generation_config.output_scores  # False
+        output_attentions = generation_config.output_attentions  # False
+        output_hidden_states = generation_config.output_hidden_states  # False
+        return_dict_in_generate = (
+            generation_config.return_dict_in_generate  # False
+        )
+
+        # init attention / hidden states / scores tuples
+        self.scores = (
+            () if (return_dict_in_generate and output_scores) else None
+        )
+        decoder_attentions = (
+            () if (return_dict_in_generate and output_attentions) else None
+        )
+        cross_attentions = (
+            () if (return_dict_in_generate and output_attentions) else None
+        )
+        decoder_hidden_states = (
+            () if (return_dict_in_generate and output_hidden_states) else None
+        )
+
+        # keep track of which sequences are already finished
+        self.unfinished_sequences = torch.ones(
+            self.input_ids.shape[0],
+            dtype=torch.long,
+            device=self.input_ids.device,
+        )
+
+        timesRan = 0
+        import time
+
+        start = time.time()
+        print("\n")
+
+        while True:
+            next_token = self.generate_new_token()
+            new_word = self.tokenizer.decode(
+                next_token.cpu().numpy(),
+                add_special_tokens=False,
+                skip_special_tokens=True,
+                clean_up_tokenization_spaces=True,
+            )
+
+            print(f"{new_word}", end="", flush=True)
+
+            # if eos_token was found in one sentence, set sentence to finished
+            if self.eos_token_id_tensor is not None:
+                self.unfinished_sequences = self.unfinished_sequences.mul(
+                    next_token.tile(self.eos_token_id_tensor.shape[0], 1)
+                    .ne(self.eos_token_id_tensor.unsqueeze(1))
+                    .prod(dim=0)
+                )
+                # stop when each sentence is finished
+                if (
+                    self.unfinished_sequences.max() == 0
+                    or self.stopping_criteria(self.input_ids, self.scores)
+                ):
+                    break
+            timesRan = timesRan + 1
+
+        end = time.time()
+        print(
+            "\n\nTime taken is {:.2f} seconds/token\n".format(
+                (end - start) / timesRan
+            )
+        )
+
+        self.input_ids = torch.cat(
+            [
+                torch.tensor(self.truncated_input_ids)
+                .to(device=global_device)
+                .unsqueeze(dim=0),
+                self.input_ids,
+            ],
+            dim=-1,
+        )
+
+        torch.cuda.empty_cache()
+        gc.collect()
+
+        return self.input_ids
 
     def _forward(self, model_inputs, **generate_kwargs):
         if self.can_stop:
@@ -269,10 +553,17 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
                 generate_kwargs["min_length"] += prefix_length
 
         # BS x SL
-        generated_sequence = self.model.generate(
+        # pad or truncate the input_ids and attention_mask
+        max_padding_length = 400
+        input_ids, attention_mask = pad_or_truncate_inputs(
+            input_ids, attention_mask, max_padding_length=max_padding_length
+        )
+        self.stopping_criteria = generate_kwargs["stopping_criteria"]
+
+        generated_sequence = self.generate_token(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            **generate_kwargs
+            **generate_kwargs,
         )
         out_b = generated_sequence.shape[0]
         if self.framework == "pt":

@@ -2,6 +2,3 @@
 	path = inference/thirdparty/shark-runtime
 	url =https://github.com/nod-ai/SHARK-Runtime.git
 	branch = shark-06032022
-[submodule "thirdparty/langchain"]
-	path = thirdparty/langchain
-	url = https://github.com/h2oai/h2ogpt.git

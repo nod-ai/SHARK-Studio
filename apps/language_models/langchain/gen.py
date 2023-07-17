@@ -94,12 +94,12 @@ scratch_base_dir = "/tmp/"
 
 def main(
     load_8bit: bool = False,
-    load_4bit: bool = False,
-    load_half: bool = True,
+    load_4bit: bool = True,
+    load_half: bool = False,
     load_gptq: str = "",
     use_safetensors: bool = False,
     infer_devices: bool = True,
-    base_model: str = "",
+    base_model: str = "h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
     tokenizer_base_model: str = "",
     lora_weights: str = "",
     gpu_id: int = 0,
@@ -161,12 +161,12 @@ def main(
     extra_model_options: typing.List[str] = [],
     extra_lora_options: typing.List[str] = [],
     extra_server_options: typing.List[str] = [],
-    score_model: str = "OpenAssistant/reward-model-deberta-v3-large-v2",
+    score_model: str = None,
     eval_filename: str = None,
     eval_prompts_only_num: int = 0,
     eval_prompts_only_seed: int = 1234,
     eval_as_output: bool = False,
-    langchain_mode: str = "Disabled",
+    langchain_mode: str = "UserData",
     langchain_action: str = LangChainAction.QUERY.value,
     force_langchain_evaluate: bool = False,
     visible_langchain_modes: list = ["UserData", "MyData"],
@@ -184,7 +184,7 @@ def main(
     db_type: str = "chroma",
     use_openai_embedding: bool = False,
     use_openai_model: bool = False,
-    hf_embedding_model: str = None,
+    hf_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
     allow_upload_to_user_data: bool = True,
     allow_upload_to_my_data: bool = True,
     enable_url_upload: bool = True,
@@ -3256,38 +3256,40 @@ def history_to_context(
     return context1
 
 
-# def entrypoint_main():
-#     """
-#     Examples:
+def entrypoint_main():
+    """
+    Examples:
 
-#     WORLD_SIZE=4 CUDA_VISIBLE_DEVICES="0,1,2,3" torchrun --nproc_per_node=4 --master_port=1234 generate.py --base_model='EleutherAI/gpt-j-6B' --lora_weights=lora-alpaca_6B
-#     python generate.py --base_model='EleutherAI/gpt-j-6B' --lora_weights='lora-alpaca_6B'
-#     python generate.py --base_model='EleutherAI/gpt-neox-20b' --lora_weights='lora-alpaca_20B'
+    WORLD_SIZE=4 CUDA_VISIBLE_DEVICES="0,1,2,3" torchrun --nproc_per_node=4 --master_port=1234 generate.py --base_model='EleutherAI/gpt-j-6B' --lora_weights=lora-alpaca_6B
+    python generate.py --base_model='EleutherAI/gpt-j-6B' --lora_weights='lora-alpaca_6B'
+    python generate.py --base_model='EleutherAI/gpt-neox-20b' --lora_weights='lora-alpaca_20B'
 
-#     # generate without lora weights, no prompt
-#     python generate.py --base_model='EleutherAI/gpt-neox-20b' --prompt_type='plain'
-#     python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='dai_faq'
+    # generate without lora weights, no prompt
+    python generate.py --base_model='EleutherAI/gpt-neox-20b' --prompt_type='plain'
+    python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='dai_faq'
 
-#     python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='dai_faq' --lora_weights='lora_20B_daifaq'
-#     # OpenChatKit settings:
-#     python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='human_bot --debug=True --num_beams=1 --temperature=0.6 --top_k=40 --top_p=1.0
+    python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='dai_faq' --lora_weights='lora_20B_daifaq'
+    # OpenChatKit settings:
+    python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='human_bot --debug=True --num_beams=1 --temperature=0.6 --top_k=40 --top_p=1.0
 
-#     python generate.py --base_model='distilgpt2' --prompt_type='plain' --debug=True --num_beams=1 --temperature=0.6 --top_k=40 --top_p=1.0 --share=False
-#     python generate.py --base_model='t5-large' --prompt_type='simple_instruct'
-#     python generate.py --base_model='philschmid/bart-large-cnn-samsum'
-#     python generate.py --base_model='philschmid/flan-t5-base-samsum'
-#     python generate.py --base_model='facebook/mbart-large-50-many-to-many-mmt'
+    python generate.py --base_model='distilgpt2' --prompt_type='plain' --debug=True --num_beams=1 --temperature=0.6 --top_k=40 --top_p=1.0 --share=False
+    python generate.py --base_model='t5-large' --prompt_type='simple_instruct'
+    python generate.py --base_model='philschmid/bart-large-cnn-samsum'
+    python generate.py --base_model='philschmid/flan-t5-base-samsum'
+    python generate.py --base_model='facebook/mbart-large-50-many-to-many-mmt'
 
-#     python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='human_bot' --lora_weights='GPT-NeoXT-Chat-Base-20B.merged.json.8_epochs.57b2892c53df5b8cefac45f84d019cace803ef26.28'
+    python generate.py --base_model='togethercomputer/GPT-NeoXT-Chat-Base-20B' --prompt_type='human_bot' --lora_weights='GPT-NeoXT-Chat-Base-20B.merged.json.8_epochs.57b2892c53df5b8cefac45f84d019cace803ef26.28'
 
-#     must have 4*48GB GPU and run without 8bit in order for sharding to work with infer_devices=False
-#     can also pass --prompt_type='human_bot' and model can somewhat handle instructions without being instruct tuned
-#     python generate.py --base_model=decapoda-research/llama-65b-hf --load_8bit=False --infer_devices=False --prompt_type='human_bot'
+    must have 4*48GB GPU and run without 8bit in order for sharding to work with infer_devices=False
+    can also pass --prompt_type='human_bot' and model can somewhat handle instructions without being instruct tuned
+    python generate.py --base_model=decapoda-research/llama-65b-hf --load_8bit=False --infer_devices=False --prompt_type='human_bot'
 
-#     python generate.py --base_model=h2oai/h2ogpt-oig-oasst1-512-6_9b
-#     """
-#     fire.Fire(main)
+    python generate.py --base_model=h2oai/h2ogpt-oig-oasst1-512-6_9b
+    """
+    import fire
+
+    fire.Fire(main)
 
 
-# if __name__ == "__main__":
-#     entrypoint_main()
+if __name__ == "__main__":
+    entrypoint_main()
