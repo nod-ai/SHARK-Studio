@@ -50,7 +50,9 @@ if __name__ == "__main__":
             upscaler_api,
             inpaint_api,
             outpaint_api,
+            llm_chat_api,
         )
+
         from fastapi import FastAPI, APIRouter
         import uvicorn
 
@@ -63,8 +65,19 @@ if __name__ == "__main__":
         app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
         app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
         app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
+
+        # chat APIs needed for compatibility with multiple extensions using OpenAI API
+        app.add_api_route(
+            "/v1/chat/completions", llm_chat_api, methods=["post"]
+        )
+        app.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
+        app.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
+        app.add_api_route("/completions", llm_chat_api, methods=["post"])
+        app.add_api_route(
+            "/v1/engines/codegen/completions", llm_chat_api, methods=["post"]
+        )
         app.include_router(APIRouter())
-        uvicorn.run(app, host="127.0.0.1", port=args.server_port)
+        uvicorn.run(app, host="0.0.0.0", port=args.server_port)
         sys.exit(0)
 
     # Setup to use shark_tmp for gradio's temporary image files and clear any

@@ -1373,7 +1373,7 @@ class UnshardedVicuna(SharkLLMBase):
         logits = generated_token_op["logits"]
         pkv = generated_token_op["pkv"]
         detok = generated_token_op["detok"]
-        yield detok
+        # yield detok
 
         res_tokens.append(token)
         if cli:
