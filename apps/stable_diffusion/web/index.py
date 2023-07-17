@@ -115,6 +115,7 @@ if __name__ == "__main__":
         txt2img_sendto_inpaint,
         txt2img_sendto_outpaint,
         txt2img_sendto_upscaler,
+        h2ogpt_web,
         img2img_web,
         img2img_custom_model,
         img2img_hf_model_id,
@@ -240,6 +241,8 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
+            with gr.TabItem(label="H2OGPT", id=9):
+                h2ogpt_web.render()
 
         # send to buttons
         register_button_click(
