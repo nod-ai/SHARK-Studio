@@ -241,7 +241,7 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
-            with gr.TabItem(label="H2OGPT", id=9):
+            with gr.TabItem(label="DocuChat(Experimental)", id=9):
                 h2ogpt_web.render()
 
         # send to buttons
