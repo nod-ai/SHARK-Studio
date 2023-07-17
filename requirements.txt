@@ -33,6 +33,7 @@ pywebview
 sentencepiece
 py-cpuinfo
 tiktoken # for codegen
+joblib # for langchain
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
