@@ -63,7 +63,14 @@ def get_inpaint_inputs():
     open("./test_images/inputs/mask.png", "wb").write(mask.content)
 
 
-def test_loop(device="vulkan", beta=False, extra_flags=[]):
+def test_loop(
+    device="vulkan",
+    beta=False,
+    extra_flags=[],
+    upload_bool=True,
+    exit_on_fail=True,
+    do_gen=False,
+):
     # Get golden values from tank
     shutil.rmtree("./test_images", ignore_errors=True)
     model_metrics = []
@@ -81,6 +88,8 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
     if beta:
         extra_flags.append("--beta_models=True")
     extra_flags.append("--no-progress_bar")
+    if do_gen:
+        extra_flags.append("--import_debug")
     to_skip = [
         "Linaqruf/anything-v3.0",
         "prompthero/openjourney",
@@ -181,7 +190,14 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                         "./test_images/golden/" + model_name + "/*.png"
                     )
                     golden_file = glob(golden_path)[0]
-                    compare_images(test_file, golden_file)
+                    try:
+                        compare_images(
+                            test_file, golden_file, upload=upload_bool
+                        )
+                    except AssertionError as e:
+                        print(e)
+                        if exit_on_fail == True:
+                            raise
                 else:
                     print(command)
                     print("failed to generate image for this configuration")
@@ -200,6 +216,9 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
                             extra_flags.remove(
                                 "--iree_vulkan_target_triple=rdna2-unknown-windows"
                             )
+            if do_gen:
+                prepare_artifacts()
+
     with open(os.path.join(os.getcwd(), "sd_testing_metrics.csv"), "w+") as f:
         header = "model_name;device;use_tune;import_opt;Clip Inference time(ms);Average Step (ms/it);VAE Inference time(ms);total image generation(s);command\n"
         f.write(header)
@@ -218,15 +237,49 @@ def test_loop(device="vulkan", beta=False, extra_flags=[]):
             f.write(";".join(output) + "\n")
 
 
+def prepare_artifacts():
+    gen_path = os.path.join(os.getcwd(), "gen_shark_tank")
+    if not os.path.isdir(gen_path):
+        os.mkdir(gen_path)
+    for dirname in os.listdir(os.getcwd()):
+        for modelname in ["clip", "unet", "vae"]:
+            if modelname in dirname and "vmfb" not in dirname:
+                if not os.path.isdir(os.path.join(gen_path, dirname)):
+                    shutil.move(os.path.join(os.getcwd(), dirname), gen_path)
+                    print(f"Moved dir: {dirname} to {gen_path}.")
+
+
 parser = argparse.ArgumentParser()
 
 parser.add_argument("-d", "--device", default="vulkan")
 parser.add_argument(
     "-b", "--beta", action=argparse.BooleanOptionalAction, default=False
 )
-
+parser.add_argument("-e", "--extra_args", type=str, default=None)
+parser.add_argument(
+    "-u", "--upload", action=argparse.BooleanOptionalAction, default=True
+)
+parser.add_argument(
+    "-x", "--exit_on_fail", action=argparse.BooleanOptionalAction, default=True
+)
+parser.add_argument(
+    "-g", "--gen", action=argparse.BooleanOptionalAction, default=False
+)
 
 if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
-    test_loop(args.device, args.beta, [])
+    extra_args = []
+    if args.extra_args:
+        for arg in args.extra_args.split(","):
+            extra_args.append(arg)
+    test_loop(
+        args.device,
+        args.beta,
+        extra_args,
+        args.upload,
+        args.exit_on_fail,
+        args.gen,
+    )
+    if args.gen:
+        prepare_artifacts()
