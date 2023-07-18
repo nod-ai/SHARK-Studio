@@ -1411,7 +1411,7 @@ class UnshardedVicuna(SharkLLMBase):
         logits = generated_token_op["logits"]
         pkv = generated_token_op["pkv"]
         detok = generated_token_op["detok"]
-        # yield detok
+        yield detok
 
         res_tokens.append(token)
         if cli:
@@ -1441,7 +1441,7 @@ class UnshardedVicuna(SharkLLMBase):
             pkv = generated_token_op["pkv"]
             detok = generated_token_op["detok"]
 
-            if token == 2:
+            if token == 2 and self.model_name != "codegen":
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
@@ -1455,8 +1455,8 @@ class UnshardedVicuna(SharkLLMBase):
                 part_str = self.decode_tokens(res_tokens)
                 yield part_str
 
-        if self.device == "cuda":
-            del params["sv"], pkv, logits
+        if self.low_device_memory:
+            del params
             torch.cuda.empty_cache()
             gc.collect()
 
