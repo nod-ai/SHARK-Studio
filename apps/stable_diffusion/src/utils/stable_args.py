@@ -648,6 +648,16 @@ p.add_argument(
     help="Op to be optimized, options are matmul, bmm, conv and all.",
 )
 
+##############################################################################
+# DocuChat Flags
+##############################################################################
+
+p.add_argument(
+    "--run_docuchat_web",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Specifies whether the docuchat's web version is running or not.",
+)
 
 args, unknown = p.parse_known_args()
 if args.import_debug:

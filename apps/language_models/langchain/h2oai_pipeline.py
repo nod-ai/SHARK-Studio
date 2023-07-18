@@ -1,4 +1,5 @@
 import os
+from apps.stable_diffusion.src.utils.utils import _compile_module
 
 from transformers import TextGenerationPipeline
 from transformers.pipelines.text_generation import ReturnType
@@ -19,9 +20,14 @@ import gc
 from pathlib import Path
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_public_file
+from apps.stable_diffusion.src import args
 
 global_device = "cuda"
 global_precision = "fp16"
+
+if not args.run_docuchat_web:
+    args.device = global_device
+    args.precision = global_precision
 
 
 class H2OGPTSHARKModel(torch.nn.Module):
@@ -29,24 +35,64 @@ class H2OGPTSHARKModel(torch.nn.Module):
         super().__init__()
         model_name = "h2ogpt_falcon_7b"
         path_str = (
-            model_name + "_" + global_precision + "_" + global_device + ".vmfb"
+            model_name + "_" + args.precision + "_" + args.device + ".vmfb"
         )
         vmfb_path = Path(path_str)
+        path_str = model_name + "_" + args.precision + ".mlir"
+        mlir_path = Path(path_str)
+        shark_module = None
 
         if not vmfb_path.exists():
-            # Downloading VMFB from shark_tank
-            print("Downloading vmfb from shark tank.")
-            download_public_file(
-                "gs://shark_tank/langchain/" + path_str,
-                vmfb_path.absolute(),
-                single_file=True,
-            )
-        print("Compiled vmfb found. Loading it from: ", vmfb_path)
-        shark_module = SharkInference(
-            None, device=global_device, mlir_dialect="linalg"
-        )
-        shark_module.load_module(vmfb_path)
-        print("Compiled vmfb loaded successfully.")
+            if args.device == "cuda" and args.precision in ["fp16", "fp32"]:
+                # Downloading VMFB from shark_tank
+                print("Downloading vmfb from shark tank.")
+                download_public_file(
+                    "gs://shark_tank/langchain/" + path_str,
+                    vmfb_path.absolute(),
+                    single_file=True,
+                )
+            else:
+                if mlir_path.exists():
+                    with open(mlir_path, "rb") as f:
+                        bytecode = f.read()
+                else:
+                    # Downloading MLIR from shark_tank
+                    download_public_file(
+                        "gs://shark_tank/langchain/"
+                        + model_name
+                        + "_"
+                        + args.precision
+                        + ".mlir",
+                        mlir_path.absolute(),
+                        single_file=True,
+                    )
+                    if mlir_path.exists():
+                        with open(mlir_path, "rb") as f:
+                            bytecode = f.read()
+                    else:
+                        raise ValueError(
+                            f"MLIR not found at {mlir_path.absolute()}"
+                            " after downloading! Please check path and try again"
+                        )
+                shark_module = SharkInference(
+                    mlir_module=bytecode,
+                    device=args.device,
+                    mlir_dialect="linalg",
+                )
+                print(f"[DEBUG] generating vmfb.")
+                shark_module = _compile_module(shark_module, vmfb_path, [])
+                print("Saved newly generated vmfb.")
+
+        if shark_module is None:
+            if vmfb_path.exists():
+                print("Compiled vmfb found. Loading it from: ", vmfb_path)
+                shark_module = SharkInference(
+                    None, device=global_device, mlir_dialect="linalg"
+                )
+                shark_module.load_module(vmfb_path)
+                print("Compiled vmfb loaded successfully.")
+            else:
+                raise ValueError("Unable to download/generate a vmfb.")
 
         self.model = shark_module
 
