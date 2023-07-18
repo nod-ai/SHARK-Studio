@@ -177,7 +177,7 @@ def main(
         LangChainAction.SUMMARIZE_MAP.value,
     ],
     document_choice: list = [DocumentChoices.All_Relevant.name],
-    user_path: str = None,
+    user_path: str = "apps/language_models/langchain/user_path/",
     detect_user_path_changes_every_query: bool = False,
     load_db_if_exists: bool = True,
     keep_sources_in_context: bool = False,

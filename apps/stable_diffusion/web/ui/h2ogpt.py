@@ -12,6 +12,7 @@ from apps.language_models.langchain.enums import (
     LangChainAction,
 )
 import apps.language_models.langchain.gen as gen
+from apps.stable_diffusion.src import args
 
 
 def user(message, history):
@@ -80,6 +81,7 @@ def create_prompt(model_name, history):
 
 
 def chat(curr_system_message, history, model, device, precision):
+    args.run_docuchat_web = True
     global sharded_model
     global past_key_values
     global h2ogpt_model
