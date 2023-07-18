@@ -15,7 +15,7 @@
 import torch
 from torch._decomp import get_decompositions
 from torch.fx.experimental.proxy_tensor import make_fx
-from torch.nn.utils import _stateless
+from torch.nn.utils import stateless
 
 from torch import fx
 import tempfile
