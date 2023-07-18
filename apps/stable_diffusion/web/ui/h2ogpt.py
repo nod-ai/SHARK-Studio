@@ -115,8 +115,38 @@ def chat(curr_system_message, history, model, device, precision):
     # for partial_text in h2ogpt_model.generate(prompt):
     #     history[-1][1] = partial_text
     #     yield history
+    model, tokenizer, device = gen.get_model(
+        load_half=True,
+        load_gptq="",
+        use_safetensors=False,
+        infer_devices=True,
+        base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        inference_server="",
+        tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        lora_weights="",
+        gpu_id=0,
+        reward_type=None,
+        local_files_only=False,
+        resume_download=True,
+        use_auth_token=False,
+        trust_remote_code=True,
+        offload_folder=None,
+        compile_model=False,
+        verbose=False,
+    )
+    model_state = dict(
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+        base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        lora_weights="",
+        inference_server="",
+        prompt_type=None,
+        prompt_dict=None,
+    )
     output = gen.evaluate(
-        None,  # model_state
+        model_state,  # model_state
         None,  # my_db_state
         None,  # instruction
         None,  # iinput
@@ -124,16 +154,16 @@ def chat(curr_system_message, history, model, device, precision):
         False,  # stream_output
         None,  # prompt_type
         None,  # prompt_dict
-        None,  # temperature
-        None,  # top_p
-        None,  # top_k
-        None,  # num_beams
-        None,  # max_new_tokens
-        None,  # min_new_tokens
-        None,  # early_stopping
-        None,  # max_time
-        None,  # repetition_penalty
-        None,  # num_return_sequences
+        0.6,  # temperature
+        1.0,  # top_p
+        40,  # top_k
+        1,  # num_beams
+        1,  # max_new_tokens
+        1,  # min_new_tokens
+        False,  # early_stopping
+        60 * 2,  # max_time
+        1.0,  # repetition_penalty
+        1,  # num_return_sequences
         False,  # do_sample
         False,  # chat
         None,  # instruction_nochat
@@ -154,6 +184,9 @@ def chat(curr_system_message, history, model, device, precision):
         db_type="chroma",
         n_jobs=-1,
         first_para=False,
+        max_max_time=60 * 2,
+        model_state0=model_state,
+        model_lock=True,
     )
     for partial_text in output:
         history[-1][1] = partial_text
