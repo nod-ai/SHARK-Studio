@@ -1564,21 +1564,15 @@ if __name__ == "__main__":
             config_json=config_json,
             weight_group_size=args.weight_group_size,
         )
-    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
     prologue_prompt = "ASSISTANT:\n"
 
+    from apps.stable_diffusion.web.ui.stablelm_ui import chat, set_vicuna_model
+    history = []
+    set_vicuna_model(vic)
     while True:
         # TODO: Add break condition from user input
         user_prompt = input("User: ")
-        prompt_history = (
-            prompt_history + "USER:\n" + user_prompt + prologue_prompt
-        )
-        prompt = prompt_history.strip()
-        res_str = vic.generate(prompt, cli=True)
-        torch.cuda.empty_cache()
-        gc.collect()
-        print(
-            "\n-----\nAssistant: Here's the complete formatted reply:\n",
-            res_str,
-        )
-        prompt_history += f"\n{res_str}\n"
+        history.append([user_prompt,""])
+        history = list(chat(system_message, history, model="vicuna=>TheBloke/vicuna-7B-1.1-HF", device=args.device, precision=args.precision, cli=args.cli))[0]
+
