@@ -320,8 +320,16 @@ p.add_argument(
     "--batch_count",
     type=int,
     default=1,
-    help="Number of batch to be generated with random seeds in "
+    help="Number of batches to be generated with random seeds in "
     "single execution.",
+)
+
+p.add_argument(
+    "--repeatable_seeds",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="The seed of the first batch will be used as the rng seed to "
+    "generate the subsequent seeds for subsequent batches in that run.",
 )
 
 p.add_argument(
@@ -524,6 +532,8 @@ p.add_argument(
     help="If import_mlir is True, saves mlir via the debug option "
     "in shark importer. Does nothing if import_mlir is false (the default).",
 )
+
+
 ##############################################################################
 # Web UI flags
 ##############################################################################
@@ -638,6 +648,16 @@ p.add_argument(
     help="Op to be optimized, options are matmul, bmm, conv and all.",
 )
 
+##############################################################################
+# DocuChat Flags
+##############################################################################
+
+p.add_argument(
+    "--run_docuchat_web",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Specifies whether the docuchat's web version is running or not.",
+)
 
 args, unknown = p.parse_known_args()
 if args.import_debug:

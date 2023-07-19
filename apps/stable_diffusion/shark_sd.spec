@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-from apps.stable_diffusion.shark_studio_imports import datas, hiddenimports
+from apps.stable_diffusion.shark_studio_imports import pathex, datas, hiddenimports
 
 binaries = []
 
@@ -7,7 +7,7 @@ block_cipher = None
 
 a = Analysis(
     ['web/index.py'],
-    pathex=['.'],
+    pathex=pathex,
     binaries=binaries,
     datas=datas,
     hiddenimports=hiddenimports,

@@ -8,7 +8,12 @@ from datetime import datetime as dt
 from csv import DictWriter
 from pathlib import Path
 import numpy as np
-from random import randint
+from random import (
+    randint,
+    seed as seed_random,
+    getstate as random_getstate,
+    setstate as random_setstate,
+)
 import tempfile
 import torch
 from safetensors.torch import load_file
@@ -728,6 +733,28 @@ def sanitize_seed(seed):
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
     return seed
+
+
+# Generate a set of seeds, using as the first seed of the set,
+# optionally using it as the rng seed for subsequent seeds in the set
+def batch_seeds(seed, batch_count, repeatable=False):
+    # use the passed seed as the initial seed of the batch
+    seeds = [sanitize_seed(seed)]
+
+    if repeatable:
+        # use the initial seed as the rng generator seed
+        saved_random_state = random_getstate()
+        seed_random(seed)
+
+    # generate the additional seeds
+    for i in range(1, batch_count):
+        seeds.append(sanitize_seed(-1))
+
+    if repeatable:
+        # reset the rng back to normal
+        random_setstate(saved_random_state)
+
+    return seeds
 
 
 # clear all the cached objects to recompile cleanly.

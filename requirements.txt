@@ -16,7 +16,9 @@ parameterized
 
 # Add transformers, diffusers and scipy since it most commonly used
 transformers
-diffusers==0.18.1
+diffusers
+#accelerate is now required for diffusers import from ckpt.
+accelerate
 scipy
 ftfy
 gradio
@@ -31,6 +33,7 @@ pywebview
 sentencepiece
 py-cpuinfo
 tiktoken # for codegen
+joblib # for langchain
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile

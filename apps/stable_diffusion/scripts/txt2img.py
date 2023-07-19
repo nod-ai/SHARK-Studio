@@ -42,11 +42,8 @@ def main():
         ondemand=args.ondemand,
     )
 
+    seeds = utils.batch_seeds(seed, args.batch_count, args.repeatable_seeds)
     for current_batch in range(args.batch_count):
-        if current_batch > 0:
-            seed = -1
-        seed = utils.sanitize_seed(seed)
-
         start_time = time.time()
         generated_imgs = txt2img_obj.generate_images(
             args.prompts,
@@ -56,7 +53,7 @@ def main():
             args.width,
             args.steps,
             args.guidance_scale,
-            seed,
+            seeds[current_batch],
             args.max_length,
             dtype,
             args.use_base_vae,
@@ -70,7 +67,12 @@ def main():
             f"\nmodel_id={args.hf_model_id}, ckpt_loc={args.ckpt_loc}"
         )
         text_output += f"\nscheduler={args.scheduler}, device={args.device}"
-        text_output += f"\nsteps={args.steps}, guidance_scale={args.guidance_scale}, seed={seed}, size={args.height}x{args.width}"
+        text_output += (
+            f"\nsteps={args.steps}, guidance_scale={args.guidance_scale},"
+        )
+        text_output += (
+            f"seed={seeds[current_batch]}, size={args.height}x{args.width}"
+        )
         text_output += (
             f", batch size={args.batch_size}, max_length={args.max_length}"
         )

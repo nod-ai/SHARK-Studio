@@ -6,6 +6,7 @@ from transformers import (
     AutoModelForCausalLM,
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
+from datetime import datetime as dt
 
 
 def user(message, history):
@@ -73,13 +74,17 @@ def create_prompt(model_name, history):
     return msg
 
 
-def chat(curr_system_message, history, model, device, precision):
-    global sharded_model
-    global past_key_values
+def set_vicuna_model(model):
     global vicuna_model
+    vicuna_model = model
 
+
+# TODO: Make chat reusable for UI and API
+def chat(curr_system_message, history, model, device, precision, cli=True):
+    global past_key_values
+
+    global vicuna_model
     model_name, model_path = list(map(str.strip, model.split("=>")))
-    print(f"In chat for {model_name}")
 
     if model_name in ["vicuna", "vicuna1p3", "codegen"]:
         from apps.language_models.scripts.vicuna import (
@@ -107,9 +112,8 @@ def chat(curr_system_message, history, model, device, precision):
                 max_num_tokens=max_toks,
             )
         prompt = create_prompt(model_name, history)
-        print("prompt = ", prompt)
 
-        for partial_text in vicuna_model.generate(prompt):
+        for partial_text in vicuna_model.generate(prompt, cli=cli):
             history[-1][1] = partial_text
             yield history
 
@@ -138,13 +142,112 @@ def chat(curr_system_message, history, model, device, precision):
 
     partial_text = ""
     for new_text in words_list:
-        # print(new_text)
+        print(new_text)
         partial_text += new_text
         history[-1][1] = partial_text
         # Yield an empty string to clean up the message textbox and the updated
         # conversation history
         yield history
     return words_list
+
+
+def llm_chat_api(InputData: dict):
+    print(f"Input keys : {InputData.keys()}")
+    # print(f"model : {InputData['model']}")
+    is_chat_completion_api = (
+        "messages" in InputData.keys()
+    )  # else it is the legacy `completion` api
+    # For Debugging input data from API
+    # if is_chat_completion_api:
+    #     print(f"message -> role : {InputData['messages'][0]['role']}")
+    #     print(f"message -> content : {InputData['messages'][0]['content']}")
+    # else:
+    #     print(f"prompt : {InputData['prompt']}")
+    # print(f"max_tokens : {InputData['max_tokens']}") # Default to 128 for now
+    global vicuna_model
+    model_name = (
+        InputData["model"] if "model" in InputData.keys() else "codegen"
+    )
+    model_path = model_map[model_name]
+    device = "cpu-task"
+    precision = "fp16"
+    max_toks = (
+        None
+        if "max_tokens" not in InputData.keys()
+        else InputData["max_tokens"]
+    )
+    if max_toks is None:
+        max_toks = 128 if model_name == "codegen" else 512
+
+    # make it working for codegen first
+    from apps.language_models.scripts.vicuna import (
+        UnshardedVicuna,
+    )
+
+    if vicuna_model == 0:
+        if "cuda" in device:
+            device = "cuda"
+        elif "sync" in device:
+            device = "cpu-sync"
+        elif "task" in device:
+            device = "cpu-task"
+        elif "vulkan" in device:
+            device = "vulkan"
+        else:
+            print("unrecognized device")
+
+        vicuna_model = UnshardedVicuna(
+            model_name,
+            hf_model_path=model_path,
+            device=device,
+            precision=precision,
+            max_num_tokens=max_toks,
+        )
+
+    # TODO: add role dict for different models
+    if is_chat_completion_api:
+        # TODO: add funtionality for multiple messages
+        prompt = create_prompt(
+            model_name, [(InputData["messages"][0]["content"], "")]
+        )
+    else:
+        prompt = InputData["prompt"]
+    print("prompt = ", prompt)
+
+    res = vicuna_model.generate(prompt)
+    res_op = None
+    for op in res:
+        res_op = op
+
+    if is_chat_completion_api:
+        choices = [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": res_op,  # since we are yeilding the result
+                },
+                "finish_reason": "stop",  # or length
+            }
+        ]
+    else:
+        choices = [
+            {
+                "text": res_op,
+                "index": 0,
+                "logprobs": None,
+                "finish_reason": "stop",  # or length
+            }
+        ]
+    end_time = dt.now().strftime("%Y%m%d%H%M%S%f")
+    return {
+        "id": end_time,
+        "object": "chat.completion"
+        if is_chat_completion_api
+        else "text_completion",
+        "created": int(end_time),
+        "choices": choices,
+    }
 
 
 with gr.Blocks(title="Chatbot") as stablelm_chat:

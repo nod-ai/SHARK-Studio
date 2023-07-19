@@ -6,6 +6,9 @@ import sys
 
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
+# python path for pyinstaller
+pathex = [".", "./apps/language_models/langchain"]
+
 # datafiles for pyinstaller
 datas = []
 datas += collect_data_files("torch")
@@ -24,6 +27,7 @@ datas += copy_metadata("Pillow")
 datas += copy_metadata("sentencepiece")
 datas += collect_data_files("tokenizers")
 datas += collect_data_files("tiktoken")
+datas += collect_data_files("accelerate")
 datas += collect_data_files("diffusers")
 datas += collect_data_files("transformers")
 datas += collect_data_files("pytorch_lightning")

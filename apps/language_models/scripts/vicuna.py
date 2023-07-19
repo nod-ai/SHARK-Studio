@@ -101,6 +101,7 @@ parser.add_argument(
     default=128,
     help="Group size for per_group weight quantization. Default: 128.",
 )
+parser.add_argument("--download_vmfb", default=False, action=argparse.BooleanOptionalAction, help="download vmfb from sharktank, system dependent, YMMV")
 
 
 def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
@@ -577,7 +578,7 @@ class ShardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module0,
-                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -621,7 +622,7 @@ class ShardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module1,
-                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -875,12 +876,14 @@ class UnshardedVicuna(SharkLLMBase):
         load_mlir_from_shark_tank=True,
         low_device_memory=False,
         weight_group_size=128,
+        download_vmfb=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
+        self.download_vmfb = download_vmfb
         self.first_vicuna_vmfb_path = first_vicuna_vmfb_path
         self.second_vicuna_vmfb_path = second_vicuna_vmfb_path
         self.first_vicuna_mlir_path = first_vicuna_mlir_path
@@ -969,7 +972,6 @@ class UnshardedVicuna(SharkLLMBase):
                     )
 
             if not mlir_generated:
-
                 # Select a compilation prompt such that the resulting input_ids
                 # from the model's tokenizer has shape [1, 19]
                 if self.model_name == "codegen":
@@ -1019,7 +1021,7 @@ class UnshardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module,
-                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -1187,7 +1189,7 @@ class UnshardedVicuna(SharkLLMBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module,
-                        "builtin.module(func.func(canonicalize),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -1300,7 +1302,7 @@ class UnshardedVicuna(SharkLLMBase):
         ):
             if (self.device == "cuda" and self.precision == "fp16") or (
                 self.device in ["cpu-sync", "cpu-task"]
-                and self.precision == "int8"
+                and self.precision == "int8" and self.download_vmfb
             ):
                 download_public_file(
                     f"gs://shark_tank/vicuna/unsharded/vmfb/{self.first_vicuna_vmfb_path.name}",
@@ -1322,7 +1324,7 @@ class UnshardedVicuna(SharkLLMBase):
         ):
             if (self.device == "cuda" and self.precision == "fp16") or (
                 self.device in ["cpu-sync", "cpu-task"]
-                and self.precision == "int8"
+                and self.precision == "int8" and self.download_vmfb
             ):
                 download_public_file(
                     f"gs://shark_tank/vicuna/unsharded/vmfb/{self.second_vicuna_vmfb_path.name}",
@@ -1374,7 +1376,7 @@ class UnshardedVicuna(SharkLLMBase):
         logits = generated_token_op["logits"]
         pkv = generated_token_op["pkv"]
         detok = generated_token_op["detok"]
-        yield detok
+        # yield detok
 
         res_tokens.append(token)
         if cli:
@@ -1550,6 +1552,7 @@ if __name__ == "__main__":
             second_vicuna_vmfb_path=second_vic_vmfb_path,
             load_mlir_from_shark_tank=args.load_mlir_from_shark_tank,
             weight_group_size=args.weight_group_size,
+            download_vmfb=args.download_vmfb,
         )
     else:
         if args.config is not None:
@@ -1565,21 +1568,15 @@ if __name__ == "__main__":
             config_json=config_json,
             weight_group_size=args.weight_group_size,
         )
-    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
     prologue_prompt = "ASSISTANT:\n"
 
+    from apps.stable_diffusion.web.ui.stablelm_ui import chat, set_vicuna_model
+    history = []
+    set_vicuna_model(vic)
     while True:
         # TODO: Add break condition from user input
         user_prompt = input("User: ")
-        prompt_history = (
-            prompt_history + "USER:\n" + user_prompt + prologue_prompt
-        )
-        prompt = prompt_history.strip()
-        res_str = vic.generate(prompt, cli=True)
-        torch.cuda.empty_cache()
-        gc.collect()
-        print(
-            "\n-----\nAssistant: Here's the complete formatted reply:\n",
-            res_str,
-        )
-        prompt_history += f"\n{res_str}\n"
+        history.append([user_prompt,""])
+        history = list(chat(system_message, history, model="vicuna=>TheBloke/vicuna-7B-1.1-HF", device=args.device, precision=args.precision, cli=args.cli))[0]
+
