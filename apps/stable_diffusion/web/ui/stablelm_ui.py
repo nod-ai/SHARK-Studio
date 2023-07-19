@@ -21,7 +21,8 @@ vicuna_model = 0
 past_key_values = None
 
 model_map = {
-    "llama2": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
     "codegen": "Salesforce/codegen25-7b-multi",
     "vicuna1p3": "lmsys/vicuna-7b-v1.3",
     "vicuna": "TheBloke/vicuna-7B-1.1-HF",
