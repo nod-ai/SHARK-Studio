@@ -78,6 +78,7 @@ def chat(curr_system_message, history, model, device, precision):
     global sharded_model
     global past_key_values
     global h2ogpt_model
+    global userpath_selector
 
     model_name, model_path = list(map(str.strip, model.split("=>")))
     print(f"In chat for {model_name}")
@@ -180,6 +181,7 @@ def chat(curr_system_message, history, model, device, precision):
         max_max_time=60 * 2,
         model_state0=model_state,
         model_lock=True,
+        user_path=userpath_selector.value,
     )
     for partial_text in output:
         history[-1][1] = partial_text
@@ -214,6 +216,14 @@ with gr.Blocks(title="H2OGPT") as h2ogpt_web:
                 "fp32",
             ],
             visible=True,
+        )
+        userpath_selector = gr.Textbox(
+            label="Document Directory",
+            value=str(
+                os.path.abspath("apps/language_models/langchain/user_path/")
+            ),
+            interactive=True,
+            container=True,
         )
     chatbot = gr.Chatbot(height=500)
     with gr.Row():
