@@ -94,12 +94,12 @@ scratch_base_dir = "/tmp/"
 
 def main(
     load_8bit: bool = False,
-    load_4bit: bool = False,
-    load_half: bool = True,
+    load_4bit: bool = True,
+    load_half: bool = False,
     load_gptq: str = "",
     use_safetensors: bool = False,
     infer_devices: bool = True,
-    base_model: str = "",
+    base_model: str = "h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
     tokenizer_base_model: str = "",
     lora_weights: str = "",
     gpu_id: int = 0,
@@ -166,7 +166,7 @@ def main(
     eval_prompts_only_num: int = 0,
     eval_prompts_only_seed: int = 1234,
     eval_as_output: bool = False,
-    langchain_mode: str = "Disabled",
+    langchain_mode: str = "UserData",
     langchain_action: str = LangChainAction.QUERY.value,
     force_langchain_evaluate: bool = False,
     visible_langchain_modes: list = ["UserData", "MyData"],
@@ -184,7 +184,7 @@ def main(
     db_type: str = "chroma",
     use_openai_embedding: bool = False,
     use_openai_model: bool = False,
-    hf_embedding_model: str = None,
+    hf_embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2",
     allow_upload_to_user_data: bool = True,
     allow_upload_to_my_data: bool = True,
     enable_url_upload: bool = True,
@@ -1685,11 +1685,7 @@ def evaluate(
     else:
         raise AssertionError(no_model_msg)
     # get variables
-    print("CHOSEN")
-    print(chosen_model_state)
     model = chosen_model_state["model"]
-    print("===")
-    print(model)
     tokenizer = chosen_model_state["tokenizer"]
     device = chosen_model_state["device"]
     base_model = chosen_model_state["base_model"]
@@ -3290,6 +3286,8 @@ def entrypoint_main():
 
     python generate.py --base_model=h2oai/h2ogpt-oig-oasst1-512-6_9b
     """
+    import fire
+
     fire.Fire(main)
 
 

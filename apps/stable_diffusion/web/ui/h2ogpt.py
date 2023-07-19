@@ -26,13 +26,6 @@ h2ogpt_model = 0
 
 past_key_values = None
 
-model_map = {
-    "codegen": "Salesforce/codegen25-7b-multi",
-    "vicuna1p3": "lmsys/vicuna-7b-v1.3",
-    "vicuna": "TheBloke/vicuna-7B-1.1-HF",
-    "StableLM": "stabilityai/stablelm-tuned-alpha-3b",
-}
-
 # NOTE: Each `model_name` should have its own start message
 start_message = {
     "StableLM": (
@@ -197,14 +190,6 @@ def chat(curr_system_message, history, model, device, precision):
 
 with gr.Blocks(title="H2OGPT") as h2ogpt_web:
     with gr.Row():
-        model_choices = list(
-            map(lambda x: f"{x[0]: <10} => {x[1]}", model_map.items())
-        )
-        model = gr.Dropdown(
-            label="Select Model",
-            value=model_choices[0],
-            choices=model_choices,
-        )
         supported_devices = available_devices
         enabled = len(supported_devices) > 0
         # show cpu-task device first in list for chatbot
@@ -253,7 +238,7 @@ with gr.Blocks(title="H2OGPT") as h2ogpt_web:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, device, precision],
         outputs=[chatbot],
         queue=True,
     )
@@ -261,7 +246,7 @@ with gr.Blocks(title="H2OGPT") as h2ogpt_web:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, device, precision],
         outputs=[chatbot],
         queue=True,
     )
