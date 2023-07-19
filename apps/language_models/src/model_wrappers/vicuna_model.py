@@ -6,9 +6,17 @@ from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
 class FirstVicuna(torch.nn.Module):
-    def __init__(self, model_path, precision="fp32", weight_group_size=128):
+    def __init__(
+        self,
+        model_path,
+        precision="fp32",
+        weight_group_size=128,
+        model_name="vicuna",
+    ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
+        if model_name == "llama2":
+            kwargs["use_auth_token"] = "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"
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
@@ -47,9 +55,17 @@ class FirstVicuna(torch.nn.Module):
 
 
 class SecondVicuna(torch.nn.Module):
-    def __init__(self, model_path, precision="fp32", weight_group_size=128):
+    def __init__(
+        self,
+        model_path,
+        precision="fp32",
+        weight_group_size=128,
+        model_name="vicuna",
+    ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
+        if model_name == "llama2":
+            kwargs["use_auth_token"] = "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"
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
