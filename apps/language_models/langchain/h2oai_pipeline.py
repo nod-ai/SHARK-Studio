@@ -43,7 +43,10 @@ class H2OGPTSHARKModel(torch.nn.Module):
         shark_module = None
 
         if not vmfb_path.exists():
-            if args.device == "cuda" and args.precision in ["fp16", "fp32"]:
+            if args.device in ["cuda", "cpu"] and args.precision in [
+                "fp16",
+                "fp32",
+            ]:
                 # Downloading VMFB from shark_tank
                 print("Downloading vmfb from shark tank.")
                 download_public_file(
