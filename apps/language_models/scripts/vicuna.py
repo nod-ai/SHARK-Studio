@@ -101,11 +101,6 @@ parser.add_argument(
     default=128,
     help="Group size for per_group weight quantization. Default: 128.",
 )
-parser.add_argument(
-    "--model_to_run",
-    default="vicuna",
-    help="Vicuna/Llama version to run",
-)
 parser.add_argument("--download_vmfb", default=False, action=argparse.BooleanOptionalAction, help="download vmfb from sharktank, system dependent, YMMV")
 
 
@@ -1558,15 +1553,6 @@ class UnshardedVicuna(SharkLLMBase):
 
 if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
-    model_map = {
-        "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
-        "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
-        "codegen": "Salesforce/codegen25-7b-multi",
-        "vicuna1p3": "lmsys/vicuna-7b-v1.3",
-        "vicuna": "TheBloke/vicuna-7B-1.1-HF",
-    }
-
-    hf_model_id = model_map[args.model_to_run]
 
     vic = None
     if not args.sharded:
@@ -1593,7 +1579,6 @@ if __name__ == "__main__":
 
         vic = UnshardedVicuna(
             "vicuna",
-            hf_model_id,
             device=args.device,
             precision=args.precision,
             first_vicuna_mlir_path=first_vic_mlir_path,
@@ -1613,7 +1598,6 @@ if __name__ == "__main__":
             config_json = None
         vic = ShardedVicuna(
             "vicuna",
-            hf_model_id,
             device=args.device,
             precision=args.precision,
             config_json=config_json,
