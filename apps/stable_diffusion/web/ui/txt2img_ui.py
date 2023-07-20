@@ -395,7 +395,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             value=args.scheduler,
                             choices=scheduler_list,
                         )
-                        with gr.Group():
+                        with gr.Column():
                             save_metadata_to_png = gr.Checkbox(
                                 label="Save prompt information to PNG",
                                 value=args.write_metadata_to_png,
