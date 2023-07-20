@@ -115,7 +115,7 @@ def chat(curr_system_message, history, model, device, precision):
         model_state,  # model_state
         None,  # my_db_state
         prompt,  # instruction
-        None,  # iinput
+        prompt,  # iinput
         history,  # context
         False,  # stream_output
         None,  # prompt_type
@@ -131,8 +131,8 @@ def chat(curr_system_message, history, model, device, precision):
         1.0,  # repetition_penalty
         1,  # num_return_sequences
         False,  # do_sample
-        False,  # chat
-        None,  # instruction_nochat
+        True,  # chat
+        prompt,  # instruction_nochat
         prompt,  # iinput_nochat
         "Disabled",  # langchain_mode
         LangChainAction.QUERY.value,  # langchain_action

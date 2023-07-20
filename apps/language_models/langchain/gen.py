@@ -1704,9 +1704,11 @@ def evaluate(
     assert tokenizer, "Tokenizer is missing"
 
     # choose chat or non-chat mode
+    print(instruction)
     if not chat:
         instruction = instruction_nochat
         iinput = iinput_nochat
+    print(instruction)
 
     # in some cases, like lean nochat API, don't want to force sending prompt_type, allow default choice
     model_lower = base_model.lower()
@@ -1761,6 +1763,7 @@ def evaluate(
     # restrict instruction, typically what has large input
     from h2oai_pipeline import H2OTextGenerationPipeline
 
+    print(instruction)
     instruction, num_prompt_tokens1 = H2OTextGenerationPipeline.limit_prompt(
         instruction, tokenizer
     )
