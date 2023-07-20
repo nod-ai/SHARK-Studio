@@ -39,5 +39,5 @@ joblib # for langchain
 pefile
 pyinstaller
 
-# low precision vicuna
-brevitas @ git+https://github.com/Xilinx/brevitas.git@llm
+# vicuna quantization
+brevitas @ git+https://github.com/Xilinx/brevitas.git@dev

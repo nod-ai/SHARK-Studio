@@ -706,20 +706,13 @@ class ShardedVicuna(SharkLLMBase):
             quantize_model(
                 get_model_impl(vicuna_model).layers,
                 dtype=torch.float32,
-                weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
                 weight_scale_precision="float",
+                weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=self.weight_group_size,
                 quantize_weight_zero_point=False,
-                input_bit_width=None,
-                input_scale_type="float",
-                input_param_method="stats",
-                input_quant_type="asym",
-                input_quant_granularity="per_tensor",
-                quantize_input_zero_point=False,
-                seqlen=2048,
             )
             print("Weight quantization applied.")
 
