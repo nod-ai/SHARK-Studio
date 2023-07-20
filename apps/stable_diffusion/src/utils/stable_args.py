@@ -400,6 +400,13 @@ p.add_argument(
     help="Load and unload models for low VRAM.",
 )
 
+p.add_argument(
+    "--hf_auth_token",
+    type=str,
+    default=None,
+    help="Specify your own huggingface authentication tokens for models like Llama2.",
+)
+
 ##############################################################################
 # IREE - Vulkan supported flags
 ##############################################################################
