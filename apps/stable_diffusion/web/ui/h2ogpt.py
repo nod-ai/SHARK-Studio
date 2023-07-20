@@ -27,46 +27,16 @@ h2ogpt_model = 0
 past_key_values = None
 
 # NOTE: Each `model_name` should have its own start message
-start_message = {
-    "StableLM": (
-        "<|SYSTEM|># StableLM Tuned (Alpha version)"
-        "\n- StableLM is a helpful and harmless open-source AI language model "
-        "developed by StabilityAI."
-        "\n- StableLM is excited to be able to help the user, but will refuse "
-        "to do anything that could be considered harmful to the user."
-        "\n- StableLM is more than just an information source, StableLM is also "
-        "able to write poetry, short stories, and make jokes."
-        "\n- StableLM will refuse to participate in anything that "
-        "could harm a human."
-    ),
-    "vicuna": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "vicuna1p3": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "codegen": "",
-}
+start_message = """
+    SHARK DocuChat
+    Chat with an AI, contextualized with provided files.
+"""
 
 
-def create_prompt(model_name, history):
-    system_message = start_message[model_name]
+def create_prompt(history):
+    system_message = start_message
 
-    if model_name in ["StableLM", "vicuna", "vicuna1p3"]:
-        conversation = "".join(
-            [
-                "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
-                for item in history
-            ]
-        )
-    else:
-        conversation = "".join(
-            ["".join([item[0], item[1]]) for item in history]
-        )
+    conversation = "".join(["".join([item[0], item[1]]) for item in history])
 
     msg = system_message + conversation
     msg = msg.strip()
@@ -103,7 +73,8 @@ def chat(curr_system_message, history, model, device, precision):
     #         precision=precision,
     #         max_num_tokens=max_toks,
     #     )
-    # prompt = create_prompt(model_name, history)
+    prompt = create_prompt(history)
+    print(prompt)
     # print("prompt = ", prompt)
 
     # for partial_text in h2ogpt_model.generate(prompt):
@@ -128,6 +99,7 @@ def chat(curr_system_message, history, model, device, precision):
         compile_model=False,
         verbose=False,
     )
+    print(tokenizer.model_max_length)
     model_state = dict(
         model=model,
         tokenizer=tokenizer,
@@ -142,7 +114,7 @@ def chat(curr_system_message, history, model, device, precision):
     output = gen.evaluate(
         model_state,  # model_state
         None,  # my_db_state
-        None,  # instruction
+        prompt,  # instruction
         None,  # iinput
         history,  # context
         False,  # stream_output
@@ -161,7 +133,7 @@ def chat(curr_system_message, history, model, device, precision):
         False,  # do_sample
         False,  # chat
         None,  # instruction_nochat
-        curr_system_message,  # iinput_nochat
+        prompt,  # iinput_nochat
         "Disabled",  # langchain_mode
         LangChainAction.QUERY.value,  # langchain_action
         3,  # top_k_docs
