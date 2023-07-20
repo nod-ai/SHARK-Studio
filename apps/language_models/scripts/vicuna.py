@@ -101,6 +101,25 @@ parser.add_argument(
     default=128,
     help="Group size for per_group weight quantization. Default: 128.",
 )
+parser.add_argument(
+    "--download_vmfb",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="download vmfb from sharktank, system dependent, YMMV",
+)
+parser.add_argument(
+    "--model_name",
+    type=str,
+    default="vicuna",
+    choices=["vicuna", "llama2_7b", "llama2_70b"],
+    help="Specify which model to run.",
+)
+parser.add_argument(
+    "--hf_auth_token",
+    type=str,
+    default=None,
+    help="Specify your own huggingface authentication tokens for models like Llama2.",
+)
 
 
 def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
@@ -150,21 +169,32 @@ class ShardedVicuna(SharkLLMBase):
         self.shark_model = self.compile(device=device)
 
     def get_tokenizer(self):
+        kwargs = {}
+        if self.model_name == "llama2":
+            kwargs = {
+                "use_auth_token": "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"
+            }
         if self.model_name == "codegen":
             tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path, trust_remote_code=True,
+                self.hf_model_path,
+                trust_remote_code=True,
             )
         else:
             tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path, use_fast=False
+                self.hf_model_path,
+                use_fast=False,
+                **kwargs,
             )
         return tokenizer
 
     def get_src_model(self):
         # Retrieve the torch model from Huggingface
         kwargs = {"torch_dtype": torch.float}
+        if self.model_name == "llama2":
+            kwargs["use_auth_token"] = "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"
         vicuna_model = AutoModelForCausalLM.from_pretrained(
-            self.hf_model_path, **kwargs
+            self.hf_model_path,
+            **kwargs,
         )
         return vicuna_model
 
@@ -694,20 +724,13 @@ class ShardedVicuna(SharkLLMBase):
             quantize_model(
                 get_model_impl(vicuna_model).layers,
                 dtype=torch.float32,
-                weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
                 weight_scale_precision="float",
+                weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=self.weight_group_size,
                 quantize_weight_zero_point=False,
-                input_bit_width=None,
-                input_scale_type="float",
-                input_param_method="stats",
-                input_quant_type="asym",
-                input_quant_granularity="per_tensor",
-                quantize_input_zero_point=False,
-                seqlen=2048,
             )
             print("Weight quantization applied.")
 
@@ -865,6 +888,7 @@ class UnshardedVicuna(SharkLLMBase):
         self,
         model_name,
         hf_model_path="TheBloke/vicuna-7B-1.1-HF",
+        hf_auth_token: str = None,
         max_num_tokens=512,
         device="cuda",
         precision="fp32",
@@ -875,12 +899,23 @@ class UnshardedVicuna(SharkLLMBase):
         load_mlir_from_shark_tank=True,
         low_device_memory=False,
         weight_group_size=128,
+        download_vmfb=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
+        if "llama2" in self.model_name and hf_auth_token == None:
+            raise ValueError(
+                "HF auth token required. Pass it using --hf_auth_token flag."
+            )
+        self.hf_auth_token = hf_auth_token
+        if self.model_name == "llama2_7b":
+            self.hf_model_path = "meta-llama/Llama-2-7b-chat-hf"
+        elif self.model_name == "llama2_70b":
+            self.hf_model_path = "meta-llama/Llama-2-70b-chat-hf"
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
+        self.download_vmfb = download_vmfb
         self.first_vicuna_vmfb_path = first_vicuna_vmfb_path
         self.second_vicuna_vmfb_path = second_vicuna_vmfb_path
         self.first_vicuna_mlir_path = first_vicuna_mlir_path
@@ -906,26 +941,36 @@ class UnshardedVicuna(SharkLLMBase):
     def get_model_path(self, model_number="first", suffix="mlir"):
         safe_device = self.device.split("-")[0]
         if suffix == "mlir":
-            return Path(f"{model_number}_{self.model_name}_{self.precision}.{suffix}")
+            return Path(
+                f"{model_number}_{self.model_name}_{self.precision}.{suffix}"
+            )
         return Path(
             f"{model_number}_{self.model_name}_{self.precision}_{safe_device}.{suffix}"
         )
 
     def get_tokenizer(self):
+        kwargs = {"use_auth_token": self.hf_auth_token}
         if self.model_name == "codegen":
             tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path, trust_remote_code=True,
+                self.hf_model_path,
+                trust_remote_code=True,
             )
         else:
             tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path, use_fast=False
+                self.hf_model_path,
+                use_fast=False,
+                **kwargs,
             )
         return tokenizer
 
     def get_src_model(self):
-        kwargs = {"torch_dtype": torch.float}
+        kwargs = {
+            "torch_dtype": torch.float,
+            "use_auth_token": self.hf_auth_token,
+        }
         vicuna_model = AutoModelForCausalLM.from_pretrained(
-            self.hf_model_path, **kwargs
+            self.hf_model_path,
+            **kwargs,
         )
         return vicuna_model
 
@@ -959,9 +1004,9 @@ class UnshardedVicuna(SharkLLMBase):
                             bytecode = f.read()
                         mlir_generated = True
                     else:
-                        raise ValueError(
+                        print(
                             f"MLIR not found at {self.first_vicuna_mlir_path.absolute()}"
-                            " after downloading! Please check path and try again"
+                            " after downloading! Generating mlir on device."
                         )
                 else:
                     print(
@@ -984,14 +1029,19 @@ class UnshardedVicuna(SharkLLMBase):
                 ).reshape([1, 19])
                 firstVicunaCompileInput = (compilation_input_ids,)
                 model = FirstVicuna(
-                    self.hf_model_path, self.precision, self.weight_group_size
+                    self.hf_model_path,
+                    self.precision,
+                    self.weight_group_size,
+                    self.model_name,
+                    self.hf_auth_token,
                 )
 
                 print(f"[DEBUG] generating torchscript graph")
                 ts_graph = import_with_fx(
                     model,
                     firstVicunaCompileInput,
-                    is_f16=self.precision == "fp16",  # TODO: Remove from import_with_fx args and fix all calls
+                    is_f16=self.precision
+                    == "fp16",  # TODO: Remove from import_with_fx args and fix all calls
                     precision=self.precision,
                     f16_input_mask=[False, False],
                     mlir_type="torchscript",
@@ -1127,9 +1177,9 @@ class UnshardedVicuna(SharkLLMBase):
                             bytecode = f.read()
                         mlir_generated = True
                     else:
-                        raise ValueError(
-                            f"MLIR not found at {self.second_vicuna_mlir_path.absolute()}"
-                            " after downloading! Please check path and try again"
+                        print(
+                            f"MLIR not found at {self.first_vicuna_mlir_path.absolute()}"
+                            " after downloading! Generating mlir on device."
                         )
                 else:
                     print(
@@ -1144,7 +1194,11 @@ class UnshardedVicuna(SharkLLMBase):
                 )
                 secondVicunaCompileInput = (compilation_input_ids,) + pkv
                 model = SecondVicuna(
-                    self.hf_model_path, self.precision, self.weight_group_size
+                    self.hf_model_path,
+                    self.precision,
+                    self.weight_group_size,
+                    self.model_name,
+                    self.hf_auth_token,
                 )
 
                 print(f"[DEBUG] generating torchscript graph")
@@ -1300,9 +1354,10 @@ class UnshardedVicuna(SharkLLMBase):
             if (self.device == "cuda" and self.precision == "fp16") or (
                 self.device in ["cpu-sync", "cpu-task"]
                 and self.precision == "int8"
+                and self.download_vmfb
             ):
                 download_public_file(
-                    f"gs://shark_tank/vicuna/unsharded/vmfb/{self.first_vicuna_vmfb_path.name}",
+                    f"gs://shark_tank/{self.model_name}/unsharded/vmfb/{self.first_vicuna_vmfb_path.name}",
                     self.first_vicuna_vmfb_path.absolute(),
                     single_file=True,
                 )
@@ -1322,9 +1377,10 @@ class UnshardedVicuna(SharkLLMBase):
             if (self.device == "cuda" and self.precision == "fp16") or (
                 self.device in ["cpu-sync", "cpu-task"]
                 and self.precision == "int8"
+                and self.download_vmfb
             ):
                 download_public_file(
-                    f"gs://shark_tank/vicuna/unsharded/vmfb/{self.second_vicuna_vmfb_path.name}",
+                    f"gs://shark_tank/{self.model_name}/unsharded/vmfb/{self.second_vicuna_vmfb_path.name}",
                     self.second_vicuna_vmfb_path.absolute(),
                     single_file=True,
                 )
@@ -1346,7 +1402,9 @@ class UnshardedVicuna(SharkLLMBase):
                 res_tokens[i] = int(res_tokens[i][0])
 
         skip_sp_tok = True if self.model_name == "codegen" else False
-        res_str = self.tokenizer.decode(res_tokens, skip_special_tokens=skip_sp_tok)
+        res_str = self.tokenizer.decode(
+            res_tokens, skip_special_tokens=skip_sp_tok
+        )
         return res_str
 
     def generate(self, prompt, cli=True):
@@ -1373,7 +1431,7 @@ class UnshardedVicuna(SharkLLMBase):
         logits = generated_token_op["logits"]
         pkv = generated_token_op["pkv"]
         detok = generated_token_op["detok"]
-        # yield detok
+        yield detok
 
         res_tokens.append(token)
         if cli:
@@ -1403,7 +1461,7 @@ class UnshardedVicuna(SharkLLMBase):
             pkv = generated_token_op["pkv"]
             detok = generated_token_op["detok"]
 
-            if token == 2:
+            if token == 2 and self.model_name != "codegen":
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
@@ -1417,8 +1475,8 @@ class UnshardedVicuna(SharkLLMBase):
                 part_str = self.decode_tokens(res_tokens)
                 yield part_str
 
-        if self.device == "cuda":
-            del sec_vic, pkv, logits
+        if self.low_device_memory:
+            del params
             torch.cuda.empty_cache()
             gc.collect()
 
@@ -1540,7 +1598,8 @@ if __name__ == "__main__":
         )
 
         vic = UnshardedVicuna(
-            "vicuna",
+            model_name=args.model_name,
+            hf_auth_token=args.hf_auth_token,
             device=args.device,
             precision=args.precision,
             first_vicuna_mlir_path=first_vic_mlir_path,
@@ -1549,6 +1608,7 @@ if __name__ == "__main__":
             second_vicuna_vmfb_path=second_vic_vmfb_path,
             load_mlir_from_shark_tank=args.load_mlir_from_shark_tank,
             weight_group_size=args.weight_group_size,
+            download_vmfb=args.download_vmfb,
         )
     else:
         if args.config is not None:
@@ -1558,21 +1618,45 @@ if __name__ == "__main__":
         else:
             config_json = None
         vic = ShardedVicuna(
-            "vicuna",
+            model_name=args.model_name,
             device=args.device,
             precision=args.precision,
             config_json=config_json,
             weight_group_size=args.weight_group_size,
         )
-    system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    if args.model_name == "vicuna":
+        system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    else:
+        system_message = """System: You are a helpful, respectful and honest assistant. Always answer "
+        as helpfully as possible, while being safe.  Your answers should not
+        include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal
+        content. Please ensure that your responses are socially unbiased and positive
+        in nature. If a question does not make any sense, or is not factually coherent,
+        explain why instead of answering something not correct. If you don't know the
+        answer to a question, please don't share false information."""
     prologue_prompt = "ASSISTANT:\n"
 
     from apps.stable_diffusion.web.ui.stablelm_ui import chat, set_vicuna_model
+
     history = []
     set_vicuna_model(vic)
+
+    model_list = {
+        "vicuna": "vicuna=>TheBloke/vicuna-7B-1.1-HF",
+        "llama2_7b": "llama2_7b=>meta-llama/Llama-2-7b-chat-hf",
+        "llama2_70b": "llama2_70b=>meta-llama/Llama-2-70b-chat-hf",
+    }
     while True:
         # TODO: Add break condition from user input
         user_prompt = input("User: ")
-        history.append([user_prompt,""])
-        history = list(chat(system_message, history, model="vicuna=>TheBloke/vicuna-7B-1.1-HF", device=args.device, precision=args.precision, cli=args.cli))[0]
-
+        history.append([user_prompt, ""])
+        history = list(
+            chat(
+                system_message,
+                history,
+                model=model_list[args.model_name],
+                device=args.device,
+                precision=args.precision,
+                cli=args.cli,
+            )
+        )[0]

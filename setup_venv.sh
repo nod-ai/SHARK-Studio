@@ -88,7 +88,7 @@ if [ "$torch_mlir_bin" = true ]; then
     echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
     $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
   else
-    $PYTHON -m pip install --pre torch-mlir==20230620.875 -f https://llvm.github.io/torch-mlir/package-index/
+    $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
     if [ $? -eq 0 ];then
       echo "Successfully Installed torch-mlir"
     else
@@ -153,4 +153,3 @@ if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
   echo "${Green}Before running examples activate venv with:"
   echo "  ${Green}source $VENV_DIR/bin/activate"
 fi
-

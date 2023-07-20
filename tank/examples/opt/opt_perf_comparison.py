@@ -11,7 +11,7 @@ from shark_opt_wrapper import OPTForCausalLMModel
 MODEL_NAME = "facebook/opt-1.3b"
 OPT_MODELNAME = "opt-1.3b"
 OPT_FS_NAME = "opt_1-3b"
-MAX_SEQUENCE_LENGTH = 8
+MAX_SEQUENCE_LENGTH = 512
 DEVICE = "cpu"
 
 PROMPTS = [
@@ -72,16 +72,14 @@ def create_vmfb_module(model_name, tokenizer, device):
         is_benchmark=False,
     )
 
-    vmfb_name = f"{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{DEVICE}"
+    vmfb_name = f"{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{DEVICE}_tiled_ukernels"
     shark_module.save_module(module_name=vmfb_name)
     vmfb_path = vmfb_name + ".vmfb"
     return vmfb_path
 
 
 def load_shark_model() -> ModelWrapper:
-    vmfb_name = (
-        f"{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{DEVICE}.vmfb"
-    )
+    vmfb_name = f"{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{DEVICE}_tiled_ukernels.vmfb"
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
     if not os.path.isfile(vmfb_name):
         print(f"vmfb not found. compiling and saving to {vmfb_name}")
@@ -91,20 +89,9 @@ def load_shark_model() -> ModelWrapper:
     return ModelWrapper(model=shark_module, tokenizer=tokenizer)
 
 
-def run_shark_model(model_wrapper: ModelWrapper, prompt: str):
-    model_inputs = model_wrapper.tokenizer(
-        prompt,
-        padding="max_length",
-        max_length=MAX_SEQUENCE_LENGTH,
-        truncation=True,
-        return_tensors="pt",
-    )
-    inputs = (
-        model_inputs["input_ids"],
-        model_inputs["attention_mask"],
-    )
+def run_shark_model(model_wrapper: ModelWrapper, tokens):
     # Generate logits output of OPT model.
-    return model_wrapper.model("forward", inputs)
+    return model_wrapper.model("forward", tokens)
 
 
 def run_shark():
@@ -124,16 +111,14 @@ def load_huggingface_model() -> ModelWrapper:
     )
 
 
-def run_huggingface_model(model_wrapper: ModelWrapper, prompt: str):
-    inputs = model_wrapper.tokenizer(prompt, return_tensors="pt")
+def run_huggingface_model(model_wrapper: ModelWrapper, tokens):
     return model_wrapper.model.forward(
-        inputs.input_ids, inputs.attention_mask, return_dict=False
+        tokens.input_ids, tokens.attention_mask, return_dict=False
     )
 
 
 def run_huggingface():
     model_wrapper = load_huggingface_model()
-
     prompt = "What is the meaning of life?"
     logits = run_huggingface_model(model_wrapper, prompt)
 
@@ -150,11 +135,21 @@ def collect_huggingface_logits():
     model_wrapper = load_huggingface_model()
     print("--- Took {} seconds to load Huggingface.".format(time.time() - t0))
     results = []
-    t0 = time.time()
+    tokenized_prompts = []
     for prompt in PROMPTS:
-        print("prompt: {}".format(prompt))
-        logits = run_huggingface_model(model_wrapper, prompt)
-        results.append([prompt, logits[0].tolist()])
+        tokens = model_wrapper.tokenizer(
+            prompt,
+            padding="max_length",
+            max_length=MAX_SEQUENCE_LENGTH,
+            truncation=True,
+            return_tensors="pt",
+        )
+        tokenized_prompts.append(tokens)
+    t0 = time.time()
+    for idx, tokens in enumerate(tokenized_prompts):
+        print("prompt: {}".format(PROMPTS[idx]))
+        logits = run_huggingface_model(model_wrapper, tokens)
+        results.append([PROMPTS[idx], logits[0].tolist()])
     print("--- Took {} seconds to run Huggingface.".format(time.time() - t0))
     save_json(results, "/tmp/huggingface.json")
 
@@ -164,12 +159,26 @@ def collect_shark_logits():
     model_wrapper = load_shark_model()
     print("--- Took {} seconds to load Shark.".format(time.time() - t0))
     results = []
-    t0 = time.time()
+    tokenized_prompts = []
     for prompt in PROMPTS:
-        print("prompt: {}".format(prompt))
-        logits = run_shark_model(model_wrapper, prompt)
+        tokens = model_wrapper.tokenizer(
+            prompt,
+            padding="max_length",
+            truncation=True,
+            max_length=MAX_SEQUENCE_LENGTH,
+            return_tensors="pt",
+        )
+        inputs = (
+            tokens["input_ids"],
+            tokens["attention_mask"],
+        )
+        tokenized_prompts.append(inputs)
+    t0 = time.time()
+    for idx, tokens in enumerate(tokenized_prompts):
+        print("prompt: {}".format(PROMPTS[idx]))
+        logits = run_shark_model(model_wrapper, tokens)
         lst = [e.tolist() for e in logits]
-        results.append([prompt, lst])
+        results.append([PROMPTS[idx], lst])
     print("--- Took {} seconds to run Shark.".format(time.time() - t0))
     save_json(results, "/tmp/shark.json")
 

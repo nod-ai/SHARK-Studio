@@ -6,7 +6,6 @@ huggingface_hub==0.15.1
 appdirs==1.4.4
 fire==0.5.0
 docutils==0.20.1
-torch==2.0.1
 evaluate==0.4.0
 rouge_score==0.1.2
 sacrebleu==2.3.1
@@ -20,7 +19,6 @@ loralib==0.1.1
 bitsandbytes==0.39.0
 accelerate==0.20.3
 git+https://github.com/huggingface/peft.git@0b62b4378b4ce9367932c73540349da9a41bdea8
-transformers==4.30.2
 tokenizers==0.13.3
 APScheduler==3.10.1
 
@@ -63,3 +61,46 @@ text-generation==0.6.0
 tiktoken==0.4.0
 # optional: for OpenAI endpoint or embeddings (requires key)
 openai==0.27.8
+
+# optional for chat with PDF
+langchain==0.0.235
+pypdf==3.12.2
+# avoid textract, requires old six
+#textract==1.6.5
+
+# for HF embeddings
+sentence_transformers==2.2.2
+
+# local vector db
+chromadb==0.3.25
+# server vector db
+#pymilvus==2.2.8
+
+# weak url support, if can't install opencv etc. If comment-in this one, then comment-out unstructured[local-inference]==0.6.6
+# unstructured==0.8.1
+
+# strong support for images
+# Requires on Ubuntu: sudo apt-get install libmagic-dev poppler-utils tesseract-ocr libtesseract-dev libreoffice
+unstructured[local-inference]==0.7.4
+#pdf2image==1.16.3
+#pytesseract==0.3.10
+pillow
+
+pdfminer.six==20221105
+urllib3
+requests_file
+
+#pdf2image==1.16.3
+#pytesseract==0.3.10
+tabulate==0.9.0
+# FYI pandoc already part of requirements.txt
+
+# JSONLoader, but makes some trouble for some users
+# jq==1.4.1
+
+# to check licenses
+# Run: pip-licenses|grep -v 'BSD\|Apache\|MIT'
+pip-licenses==4.3.0
+
+# weaviate vector db
+weaviate-client==3.22.1

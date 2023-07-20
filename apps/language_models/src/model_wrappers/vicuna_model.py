@@ -6,9 +6,18 @@ from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
 class FirstVicuna(torch.nn.Module):
-    def __init__(self, model_path, precision="fp32", weight_group_size=128):
+    def __init__(
+        self,
+        model_path,
+        precision="fp32",
+        weight_group_size=128,
+        model_name="vicuna",
+        hf_auth_token: str = None,
+    ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
+        if "llama2" in model_name:
+            kwargs["use_auth_token"] = hf_auth_token
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
@@ -18,20 +27,13 @@ class FirstVicuna(torch.nn.Module):
             quantize_model(
                 get_model_impl(self.model).layers,
                 dtype=torch.float32,
-                weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
                 weight_scale_precision="float",
+                weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
                 quantize_weight_zero_point=False,
-                input_bit_width=None,
-                input_scale_type="float",
-                input_param_method="stats",
-                input_quant_type="asym",
-                input_quant_granularity="per_tensor",
-                quantize_input_zero_point=False,
-                seqlen=2048,
             )
             print("Weight quantization applied.")
 
@@ -47,9 +49,18 @@ class FirstVicuna(torch.nn.Module):
 
 
 class SecondVicuna(torch.nn.Module):
-    def __init__(self, model_path, precision="fp32", weight_group_size=128):
+    def __init__(
+        self,
+        model_path,
+        precision="fp32",
+        weight_group_size=128,
+        model_name="vicuna",
+        hf_auth_token: str = None,
+    ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
+        if "llama2" in model_name:
+            kwargs["use_auth_token"] = hf_auth_token
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
@@ -59,20 +70,13 @@ class SecondVicuna(torch.nn.Module):
             quantize_model(
                 get_model_impl(self.model).layers,
                 dtype=torch.float32,
-                weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
                 weight_scale_precision="float",
+                weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
                 quantize_weight_zero_point=False,
-                input_bit_width=None,
-                input_scale_type="float",
-                input_param_method="stats",
-                input_quant_type="asym",
-                input_quant_granularity="per_tensor",
-                quantize_input_zero_point=False,
-                seqlen=2048,
             )
             print("Weight quantization applied.")
 
