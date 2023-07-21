@@ -115,26 +115,42 @@ def chat(curr_system_message, history, model, device, precision):
         model_state,  # model_state
         None,  # my_db_state
         prompt,  # instruction
-        prompt,  # iinput
-        history,  # context
-        False,  # stream_output
-        None,  # prompt_type
-        None,  # prompt_dict
-        0.6,  # temperature
-        1.0,  # top_p
+        "",  # iinput
+        "",  # context
+        True,  # stream_output
+        "prompt_answer",  # prompt_type
+        {
+            "promptA": "",
+            "promptB": "",
+            "PreInstruct": "<|prompt|>",
+            "PreInput": None,
+            "PreResponse": "<|answer|>",
+            "terminate_response": [
+                "<|prompt|>",
+                "<|answer|>",
+                "<|endoftext|>",
+            ],
+            "chat_sep": "<|endoftext|>",
+            "chat_turn_sep": "<|endoftext|>",
+            "humanstr": "<|prompt|>",
+            "botstr": "<|answer|>",
+            "generates_leading_space": False,
+        },  # prompt_dict
+        0.1,  # temperature
+        0.75,  # top_p
         40,  # top_k
         1,  # num_beams
-        1,  # max_new_tokens
-        1,  # min_new_tokens
+        256,  # max_new_tokens
+        0,  # min_new_tokens
         False,  # early_stopping
-        60 * 2,  # max_time
-        1.0,  # repetition_penalty
+        180,  # max_time
+        1.07,  # repetition_penalty
         1,  # num_return_sequences
         False,  # do_sample
         True,  # chat
         prompt,  # instruction_nochat
-        prompt,  # iinput_nochat
-        "Disabled",  # langchain_mode
+        "",  # iinput_nochat
+        "UserData",  # langchain_mode
         LangChainAction.QUERY.value,  # langchain_action
         3,  # top_k_docs
         True,  # chunk

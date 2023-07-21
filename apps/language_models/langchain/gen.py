@@ -2321,6 +2321,8 @@ def evaluate(
         model_max_length=tokenizer.model_max_length,
     )
 
+    print(prompt)
+    # exit(0)
     inputs = tokenizer(prompt, return_tensors="pt")
     if debug and len(inputs["input_ids"]) > 0:
         print("input_ids length", len(inputs["input_ids"][0]), flush=True)
