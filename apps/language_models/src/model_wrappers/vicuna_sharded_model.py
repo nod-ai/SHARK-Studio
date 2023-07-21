@@ -66,7 +66,7 @@ class ShardedVicunaModel(torch.nn.Module):
     def __init__(self, model, layers, lmhead, embedding, norm):
         super().__init__()
         self.model = model
-        assert len(layers) == len(model.model.layers)
+        #assert len(layers) == len(model.model.layers)
         self.model.model.config.use_cache = True
         self.model.model.config.output_attentions = False
         self.layers = layers
@@ -132,7 +132,10 @@ class VicunaNormCompiled(torch.nn.Module):
         self.model = shark_module
 
     def forward(self, hidden_states):
-        hidden_states.detach()
+        try:
+            hidden_states.detach()
+        except:
+            x = 10
         output = self.model("forward", (hidden_states,))
         output = torch.tensor(output)
         return output
