@@ -64,6 +64,7 @@ def inpaint_inf(
     lora_weights: str,
     lora_hf_id: str,
     ondemand: bool,
+    repeatable_seeds: int,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -180,14 +181,12 @@ def inpaint_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    seeds = []
-    img_seed = utils.sanitize_seed(seed)
+    seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
     image = image_dict["image"]
     mask_image = image_dict["mask"]
     text_output = ""
-    for i in range(batch_count):
-        if i > 0:
-            img_seed = utils.sanitize_seed(-1)
+
+    for current_batch in range(batch_count):
         out_imgs = global_obj.get_sd_obj().generate_images(
             prompt,
             negative_prompt,
@@ -200,26 +199,27 @@ def inpaint_inf(
             inpaint_full_res_padding,
             steps,
             guidance_scale,
-            img_seed,
+            seeds[current_batch],
             args.max_length,
             dtype,
             args.use_base_vae,
             cpu_scheduling,
             args.max_embeddings_multiples,
         )
-        seeds.append(img_seed)
         total_time = time.time() - start_time
-        text_output = get_generation_text_info(seeds, device)
+        text_output = get_generation_text_info(
+            seeds[: current_batch + 1], device
+        )
         text_output += "\n" + global_obj.get_sd_obj().log
         text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
 
         if global_obj.get_sd_status() == SD_STATE_CANCEL:
             break
         else:
-            save_output_img(out_imgs[0], img_seed)
+            save_output_img(out_imgs[0], seeds[current_batch])
             generated_imgs.extend(out_imgs)
             yield generated_imgs, text_output, status_label(
-                "Inpaint", i + 1, batch_count, batch_size
+                "Inpaint", current_batch + 1, batch_count, batch_size
             )
 
     return generated_imgs, text_output
@@ -292,6 +292,7 @@ def inpaint_api(
         lora_weights="None",
         lora_hf_id="",
         ondemand=False,
+        repeatable_seeds=False,
     )
 
     # Converts generator type to subscriptable
@@ -498,6 +499,11 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                                 label="Batch Count",
                                 interactive=True,
                             )
+                        repeatable_seeds = gr.Checkbox(
+                            args.repeatable_seeds,
+                            label="Repeatable Seeds",
+                        )
+                    with gr.Row():
                         batch_size = gr.Slider(
                             1,
                             4,
@@ -507,7 +513,6 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                             interactive=False,
                             visible=False,
                         )
-                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
                         value=args.seed, precision=0, label="Seed"
@@ -519,16 +524,15 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    with gr.Column(scale=2):
-                        random_seed = gr.Button("Randomize Seed")
-                        random_seed.click(
-                            lambda: -1,
-                            inputs=[],
-                            outputs=[seed],
-                            queue=False,
-                        )
-                    with gr.Column(scale=6):
-                        stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                    stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -584,6 +588,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 lora_weights,
                 lora_hf_id,
                 ondemand,
+                repeatable_seeds,
             ],
             outputs=[inpaint_gallery, std_output, inpaint_status],
             show_progress="minimal" if args.progress_bar else "none",

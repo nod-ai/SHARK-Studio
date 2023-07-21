@@ -1,5 +1,5 @@
 import torch
-from torch.nn.utils import _stateless
+from torch.nn.utils import stateless
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from shark.shark_trainer import SharkTrainer
 
@@ -33,7 +33,7 @@ inp = (torch.randint(2, (1, 128)),)
 
 def forward(params, buffers, args):
     params_and_buffers = {**params, **buffers}
-    _stateless.functional_call(
+    stateless.functional_call(
         mod, params_and_buffers, args, {}
     ).sum().backward()
     optim = torch.optim.SGD(get_sorted_params(params), lr=0.01)
@@ -44,5 +44,5 @@ def forward(params, buffers, args):
 
 shark_module = SharkTrainer(mod, inp)
 shark_module.compile(forward)
-
-print(shark_module.train())
+shark_module.train(num_iters=2)
+print("training done")
