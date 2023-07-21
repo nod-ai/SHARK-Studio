@@ -6,6 +6,7 @@ from apps.language_models.src.pipelines.minigpt4_pipeline import (
     MiniGPT4,
     CONV_VISION,
 )
+from pathlib import Path
 
 chat = None
 
@@ -27,19 +28,23 @@ def gradio_reset(chat_state, img_list):
     )
 
 
-def upload_img(gr_img, text_input, chat_state, device):
+def upload_img(gr_img, text_input, chat_state, device, precision, _compile):
     global chat
     if chat is None:
-        from apps.language_models.src.pipelines.minigpt4_pipeline import (
-            MiniGPT4,
-        )
-
+        vision_model_precision = precision
+        if precision in ["int4", "int8"]:
+            vision_model_precision = "fp16"
+        vision_model_vmfb_path = Path(f"vision_model_{vision_model_precision}_{device}.vmfb")
+        qformer_vmfb_path = Path(f"qformer_fp32_{device}.vmfb")
         chat = MiniGPT4(
             model_name="MiniGPT4",
             hf_model_path=None,
             max_new_tokens=30,
             device=device,
-            precision="fp16",
+            precision=precision,
+            _compile=_compile,
+            vision_model_vmfb_path=vision_model_vmfb_path,
+            qformer_vmfb_path=qformer_vmfb_path,
         )
     if gr_img is None:
         return None, None, gr.update(interactive=True), chat_state, None
@@ -141,10 +146,25 @@ with gr.Blocks() as minigpt4_web:
                 placeholder="Please upload your image first",
                 interactive=False,
             )
+            precision = gr.Radio(
+                label="Precision",
+                value="int8",
+                choices=[
+                    "int8",
+                    "fp16",
+                    "fp32",
+                ],
+                visible=True,
+            )
+            _compile = gr.Checkbox(
+                value=False,
+                label="Compile",
+                interactive=True,
+            )
 
     upload_button.click(
         upload_img,
-        [image, text_input, chat_state, device],
+        [image, text_input, chat_state, device, precision, _compile],
         [image, text_input, upload_button, chat_state, img_list],
     )
 

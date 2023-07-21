@@ -2,8 +2,11 @@ import torch
 import dataclasses
 from enum import auto, Enum
 from typing import List, Any
-from transformers import StoppingCriteria, StoppingCriteriaList
+from transformers import StoppingCriteria
 
+
+from brevitas_examples.llm.llm_quant.quantize import quantize_model
+from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 class LayerNorm(torch.nn.LayerNorm):
     """Subclass torch's LayerNorm to handle fp16."""
@@ -15,10 +18,38 @@ class LayerNorm(torch.nn.LayerNorm):
 
 
 class VisionModel(torch.nn.Module):
-    def __init__(self, ln_vision, visual_encoder):
+    def __init__(self, ln_vision, visual_encoder, precision="fp32", weight_group_size=128):
         super().__init__()
         self.ln_vision = ln_vision
         self.visual_encoder = visual_encoder
+        if precision in ["int4", "int8"]:
+            print("Vision Model applying weight quantization to ln_vision")
+            weight_bit_width = 4 if precision == "int4" else 8
+            quantize_model(
+                self.ln_vision,
+                dtype=torch.float32,
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_type="asym",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+            )
+            print("Weight quantization applied.")
+            print("Vision Model applying weight quantization to visual_encoder")
+            quantize_model(
+                self.visual_encoder,
+                dtype=torch.float32,
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_type="asym",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+            )
+            print("Weight quantization applied.")
 
     def forward(self, image):
         image_embeds = self.ln_vision(self.visual_encoder(image))
@@ -41,10 +72,25 @@ class QformerBertModel(torch.nn.Module):
 
 
 class FirstLlamaModel(torch.nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, precision="fp32", weight_group_size=128):
         super().__init__()
         self.model = model
         print("SHARK: Loading LLAMA Done")
+        if precision in ["int4", "int8"]:
+            print("First Llama applying weight quantization")
+            weight_bit_width = 4 if precision == "int4" else 8
+            quantize_model(
+                self.model,
+                dtype=torch.float32,
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_type="asym",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+            )
+            print("Weight quantization applied.")
 
     def forward(self, inputs_embeds, position_ids, attention_mask):
         print("************************************")
@@ -90,10 +136,25 @@ class FirstLlamaModel(torch.nn.Module):
 
 
 class SecondLlamaModel(torch.nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, precision="fp32", weight_group_size=128):
         super().__init__()
         self.model = model
         print("SHARK: Loading LLAMA Done")
+        if precision in ["int4", "int8"]:
+            print("Second Llama applying weight quantization")
+            weight_bit_width = 4 if precision == "int4" else 8
+            quantize_model(
+                self.model,
+                dtype=torch.float32,
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_type="asym",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+            )
+            print("Weight quantization applied.")
 
     def forward(
         self,
