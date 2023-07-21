@@ -34,7 +34,7 @@ from enums import (
     LangChainMode,
 )
 from evaluate_params import gen_hyper
-from gen import get_model, SEED
+from gen import Langchain, SEED
 from prompter import non_hf_types, PromptType, Prompter
 from utils import (
     wrapped_partial,
@@ -907,7 +907,7 @@ def get_llm(
                 # model_name = 'h2oai/h2ogpt-oig-oasst1-512-6_9b'
                 # model_name = 'h2oai/h2ogpt-oasst1-512-20b'
             inference_server = ""
-            model, tokenizer, device = get_model(
+            model, tokenizer, device = Langchain.get_model(
                 load_8bit=True,
                 base_model=model_name,
                 inference_server=inference_server,
