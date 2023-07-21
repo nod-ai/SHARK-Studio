@@ -386,6 +386,7 @@ class ShardedVicuna(VicunaBase):
         )
         return vicuna_model
 
+
     def write_in_dynamic_inputs0(self, module, dynamic_input_size):
         # Current solution for ensuring mlir files support dynamic inputs
         # TODO find a more elegant way to implement this
@@ -1136,6 +1137,7 @@ class UnshardedVicuna(VicunaBase):
                         f"Only fp32/fp16/int8/int4 mlir added to tank, generating {self.precision} mlir on device."
                     )
 
+
             if not mlir_generated:
                 # Select a compilation prompt such that the resulting input_ids
                 # from the model's tokenizer has shape [1, 19]
@@ -1143,6 +1145,7 @@ class UnshardedVicuna(VicunaBase):
                     compilation_prompt = "def hello_world():\n    print('Hello World')\n    print('Hello World')"
                 else:
                     compilation_prompt = "".join(["0" for _ in range(17)])
+
             combined_module = None
             if Path("first.mlir").exists():
                 print("loading first.mlir")
@@ -1198,6 +1201,7 @@ class UnshardedVicuna(VicunaBase):
                     run_pipeline_with_repro_report(
                         first_module,
                         "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -1274,6 +1278,7 @@ class UnshardedVicuna(VicunaBase):
                     run_pipeline_with_repro_report(
                         second_module,
                         "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
