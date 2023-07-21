@@ -161,7 +161,7 @@ def main(
     extra_model_options: typing.List[str] = [],
     extra_lora_options: typing.List[str] = [],
     extra_server_options: typing.List[str] = [],
-    score_model: str = None,
+    score_model: str = "OpenAssistant/reward-model-deberta-v3-large-v2",
     eval_filename: str = None,
     eval_prompts_only_num: int = 0,
     eval_prompts_only_seed: int = 1234,
@@ -1704,9 +1704,11 @@ def evaluate(
     assert tokenizer, "Tokenizer is missing"
 
     # choose chat or non-chat mode
+    print(instruction)
     if not chat:
         instruction = instruction_nochat
         iinput = iinput_nochat
+    print(instruction)
 
     # in some cases, like lean nochat API, don't want to force sending prompt_type, allow default choice
     model_lower = base_model.lower()
@@ -1741,7 +1743,7 @@ def evaluate(
         max_new_tokens=max_new_tokens,
         max_max_new_tokens=max_max_new_tokens,
     )
-    model_max_length = get_model_max_length(chosen_model_state)
+    model_max_length = 2048  # get_model_max_length(chosen_model_state)
     max_new_tokens = min(max(1, int(max_new_tokens)), max_max_new_tokens)
     min_new_tokens = min(max(0, int(min_new_tokens)), max_new_tokens)
     max_time = min(max(0, max_time), max_max_time)
@@ -1761,6 +1763,7 @@ def evaluate(
     # restrict instruction, typically what has large input
     from h2oai_pipeline import H2OTextGenerationPipeline
 
+    print(instruction)
     instruction, num_prompt_tokens1 = H2OTextGenerationPipeline.limit_prompt(
         instruction, tokenizer
     )
@@ -2318,6 +2321,8 @@ def evaluate(
         model_max_length=tokenizer.model_max_length,
     )
 
+    print(prompt)
+    # exit(0)
     inputs = tokenizer(prompt, return_tensors="pt")
     if debug and len(inputs["input_ids"]) > 0:
         print("input_ids length", len(inputs["input_ids"][0]), flush=True)

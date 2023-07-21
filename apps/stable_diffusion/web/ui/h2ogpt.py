@@ -26,54 +26,17 @@ h2ogpt_model = 0
 
 past_key_values = None
 
-model_map = {
-    "codegen": "Salesforce/codegen25-7b-multi",
-    "vicuna1p3": "lmsys/vicuna-7b-v1.3",
-    "vicuna": "TheBloke/vicuna-7B-1.1-HF",
-    "StableLM": "stabilityai/stablelm-tuned-alpha-3b",
-}
-
 # NOTE: Each `model_name` should have its own start message
-start_message = {
-    "StableLM": (
-        "<|SYSTEM|># StableLM Tuned (Alpha version)"
-        "\n- StableLM is a helpful and harmless open-source AI language model "
-        "developed by StabilityAI."
-        "\n- StableLM is excited to be able to help the user, but will refuse "
-        "to do anything that could be considered harmful to the user."
-        "\n- StableLM is more than just an information source, StableLM is also "
-        "able to write poetry, short stories, and make jokes."
-        "\n- StableLM will refuse to participate in anything that "
-        "could harm a human."
-    ),
-    "vicuna": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "vicuna1p3": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "codegen": "",
-}
+start_message = """
+    SHARK DocuChat
+    Chat with an AI, contextualized with provided files.
+"""
 
 
-def create_prompt(model_name, history):
-    system_message = start_message[model_name]
+def create_prompt(history):
+    system_message = start_message
 
-    if model_name in ["StableLM", "vicuna", "vicuna1p3"]:
-        conversation = "".join(
-            [
-                "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
-                for item in history
-            ]
-        )
-    else:
-        conversation = "".join(
-            ["".join([item[0], item[1]]) for item in history]
-        )
+    conversation = "".join(["".join([item[0], item[1]]) for item in history])
 
     msg = system_message + conversation
     msg = msg.strip()
@@ -85,6 +48,7 @@ def chat(curr_system_message, history, model, device, precision):
     global sharded_model
     global past_key_values
     global h2ogpt_model
+    global userpath_selector
 
     model_name, model_path = list(map(str.strip, model.split("=>")))
     print(f"In chat for {model_name}")
@@ -109,36 +73,84 @@ def chat(curr_system_message, history, model, device, precision):
     #         precision=precision,
     #         max_num_tokens=max_toks,
     #     )
-    # prompt = create_prompt(model_name, history)
+    prompt = create_prompt(history)
+    print(prompt)
     # print("prompt = ", prompt)
 
     # for partial_text in h2ogpt_model.generate(prompt):
     #     history[-1][1] = partial_text
     #     yield history
+    model, tokenizer, device = gen.get_model(
+        load_half=True,
+        load_gptq="",
+        use_safetensors=False,
+        infer_devices=True,
+        base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        inference_server="",
+        tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        lora_weights="",
+        gpu_id=0,
+        reward_type=None,
+        local_files_only=False,
+        resume_download=True,
+        use_auth_token=False,
+        trust_remote_code=True,
+        offload_folder=None,
+        compile_model=False,
+        verbose=False,
+    )
+    print(tokenizer.model_max_length)
+    model_state = dict(
+        model=model,
+        tokenizer=tokenizer,
+        device=device,
+        base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+        lora_weights="",
+        inference_server="",
+        prompt_type=None,
+        prompt_dict=None,
+    )
     output = gen.evaluate(
-        None,  # model_state
+        model_state,  # model_state
         None,  # my_db_state
-        None,  # instruction
-        None,  # iinput
-        history,  # context
-        False,  # stream_output
-        None,  # prompt_type
-        None,  # prompt_dict
-        None,  # temperature
-        None,  # top_p
-        None,  # top_k
-        None,  # num_beams
-        None,  # max_new_tokens
-        None,  # min_new_tokens
-        None,  # early_stopping
-        None,  # max_time
-        None,  # repetition_penalty
-        None,  # num_return_sequences
+        prompt,  # instruction
+        "",  # iinput
+        "",  # context
+        True,  # stream_output
+        "prompt_answer",  # prompt_type
+        {
+            "promptA": "",
+            "promptB": "",
+            "PreInstruct": "<|prompt|>",
+            "PreInput": None,
+            "PreResponse": "<|answer|>",
+            "terminate_response": [
+                "<|prompt|>",
+                "<|answer|>",
+                "<|endoftext|>",
+            ],
+            "chat_sep": "<|endoftext|>",
+            "chat_turn_sep": "<|endoftext|>",
+            "humanstr": "<|prompt|>",
+            "botstr": "<|answer|>",
+            "generates_leading_space": False,
+        },  # prompt_dict
+        0.1,  # temperature
+        0.75,  # top_p
+        40,  # top_k
+        1,  # num_beams
+        256,  # max_new_tokens
+        0,  # min_new_tokens
+        False,  # early_stopping
+        180,  # max_time
+        1.07,  # repetition_penalty
+        1,  # num_return_sequences
         False,  # do_sample
-        False,  # chat
-        None,  # instruction_nochat
-        curr_system_message,  # iinput_nochat
-        "Disabled",  # langchain_mode
+        True,  # chat
+        prompt,  # instruction_nochat
+        "",  # iinput_nochat
+        "UserData",  # langchain_mode
         LangChainAction.QUERY.value,  # langchain_action
         3,  # top_k_docs
         True,  # chunk
@@ -154,6 +166,10 @@ def chat(curr_system_message, history, model, device, precision):
         db_type="chroma",
         n_jobs=-1,
         first_para=False,
+        max_max_time=60 * 2,
+        model_state0=model_state,
+        model_lock=True,
+        user_path=userpath_selector.value,
     )
     for partial_text in output:
         history[-1][1] = partial_text
@@ -164,14 +180,6 @@ def chat(curr_system_message, history, model, device, precision):
 
 with gr.Blocks(title="H2OGPT") as h2ogpt_web:
     with gr.Row():
-        model_choices = list(
-            map(lambda x: f"{x[0]: <10} => {x[1]}", model_map.items())
-        )
-        model = gr.Dropdown(
-            label="Select Model",
-            value=model_choices[0],
-            choices=model_choices,
-        )
         supported_devices = available_devices
         enabled = len(supported_devices) > 0
         # show cpu-task device first in list for chatbot
@@ -197,6 +205,14 @@ with gr.Blocks(title="H2OGPT") as h2ogpt_web:
             ],
             visible=True,
         )
+        userpath_selector = gr.Textbox(
+            label="Document Directory",
+            value=str(
+                os.path.abspath("apps/language_models/langchain/user_path/")
+            ),
+            interactive=True,
+            container=True,
+        )
     chatbot = gr.Chatbot(height=500)
     with gr.Row():
         with gr.Column():
@@ -220,7 +236,7 @@ with gr.Blocks(title="H2OGPT") as h2ogpt_web:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, device, precision],
         outputs=[chatbot],
         queue=True,
     )
@@ -228,7 +244,7 @@ with gr.Blocks(title="H2OGPT") as h2ogpt_web:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, device, precision],
         outputs=[chatbot],
         queue=True,
     )

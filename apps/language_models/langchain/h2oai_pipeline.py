@@ -43,7 +43,10 @@ class H2OGPTSHARKModel(torch.nn.Module):
         shark_module = None
 
         if not vmfb_path.exists():
-            if args.device == "cuda" and args.precision in ["fp16", "fp32"]:
+            if args.device in ["cuda", "cpu"] and args.precision in [
+                "fp16",
+                "fp32",
+            ]:
                 # Downloading VMFB from shark_tank
                 print("Downloading vmfb from shark tank.")
                 download_public_file(
@@ -80,7 +83,9 @@ class H2OGPTSHARKModel(torch.nn.Module):
                     mlir_dialect="linalg",
                 )
                 print(f"[DEBUG] generating vmfb.")
-                shark_module = _compile_module(shark_module, vmfb_path, [])
+                shark_module = _compile_module(
+                    shark_module, str(vmfb_path), []
+                )
                 print("Saved newly generated vmfb.")
 
         if shark_module is None:
@@ -89,7 +94,7 @@ class H2OGPTSHARKModel(torch.nn.Module):
                 shark_module = SharkInference(
                     None, device=global_device, mlir_dialect="linalg"
                 )
-                shark_module.load_module(vmfb_path)
+                shark_module.load_module(str(vmfb_path))
                 print("Compiled vmfb loaded successfully.")
             else:
                 raise ValueError("Unable to download/generate a vmfb.")

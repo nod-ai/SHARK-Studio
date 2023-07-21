@@ -9,6 +9,6 @@ def test_loop():
     devices = ["cpu"]
     for precision in precisions:
         for device in devices:
-            model = UnshardedVicuna(device=device, precision=precision)
+            model = vicuna.UnshardedVicuna(device=device, precision=precision)
             model.compile()
             del model
