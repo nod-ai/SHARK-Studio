@@ -284,6 +284,13 @@ def llm_chat_api(InputData: dict):
     }
 
 
+def view_json_file(file_obj):
+    content = ""
+    with open(file_obj.name, "r") as fopen:
+        content = fopen.read()
+    return content
+
+
 with gr.Blocks(title="Chatbot") as stablelm_chat:
     with gr.Row():
         model_choices = list(
@@ -318,6 +325,14 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 "fp32",
             ],
             visible=True,
+        )
+    with gr.Row():
+        with gr.Group():
+            config_file = gr.File(label="Upload sharding configuration")
+            json_view_button = gr.Button("View as JSON")
+        json_view = gr.JSON()
+        json_view_button.click(
+            fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
     chatbot = gr.Chatbot(height=500)
     with gr.Row():
