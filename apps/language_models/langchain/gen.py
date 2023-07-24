@@ -687,6 +687,7 @@ class Langchain:
                         langchain_mode1,
                         user_path,
                         hf_embedding_model,
+                        device=self.device,
                         kwargs_make_db=locals(),
                     )
                 finally:
@@ -811,7 +812,7 @@ class Langchain:
                     )
                 )
                 if base_model1 and not login_mode_if_model0:
-                    model0, tokenizer0, device = self.get_model(
+                    model0, tokenizer0, _ = self.get_model(
                         reward_type=False,
                         **get_kwargs(
                             self.get_model,
@@ -821,7 +822,7 @@ class Langchain:
                     )
                 else:
                     # if empty model, then don't load anything, just get gradio up
-                    model0, tokenizer0, device = None, None, None
+                    model0, tokenizer0, _ = None, None, None
                 if model0 is None:
                     if fail_if_cannot_connect:
                         raise RuntimeError("Could not connect, see logs")
@@ -830,7 +831,7 @@ class Langchain:
                         model_lock.remove(model_dict)
                     continue
                 model_state_trial = dict(
-                    model=model0, tokenizer=tokenizer0, device=device
+                    model=model0, tokenizer=tokenizer0, device=self.device
                 )
                 model_state_trial.update(model_dict)
                 assert len(model_state_none) == len(model_state_trial)
@@ -846,7 +847,7 @@ class Langchain:
 
             # get score model
             all_kwargs = locals().copy()
-            smodel, stokenizer, sdevice = self.get_score_model(
+            smodel, stokenizer, _ = self.get_score_model(
                 reward_type=True,
                 **get_kwargs(
                     self.get_score_model,
@@ -857,7 +858,7 @@ class Langchain:
             score_model_state0 = dict(
                 model=smodel,
                 tokenizer=stokenizer,
-                device=sdevice,
+                device=self.device,
                 base_model=score_model,
                 tokenizer_base_model="",
                 lora_weights="",
@@ -959,6 +960,7 @@ class Langchain:
         Ensure model gets on correct device
         """
 
+        device_map = None
         if model is not None:
             # NOTE: Can specify max_memory={0: max_mem, 1: max_mem}, to shard model
             # NOTE: Some models require avoiding sharding some layers,
@@ -975,25 +977,25 @@ class Langchain:
                     dtype=torch.float16 if load_half else torch.float32,
                 )
                 device_map.update(device_map_model)
-        else:
-            device_map = "auto"
 
         n_gpus = torch.cuda.device_count() if torch.cuda.is_available else 0
 
-        if n_gpus > 0:
-            if gpu_id >= 0:
-                # FIXME: If really distributes model, tend to get things like: ValueError: gpt_neox.embed_in.weight doesn't have any device set.
-                # So avoid for now, just put on first GPU, unless score_model, put on last
-                if reward_type:
-                    device_map = {"": n_gpus - 1}
-                else:
-                    device_map = {"": min(n_gpus - 1, gpu_id)}
-            if gpu_id == -1:
-                device_map = {"": "cuda"}
-        else:
-            device_map = {"": "cpu"}
-            model_kwargs["load_in_8bit"] = False
-            model_kwargs["load_in_4bit"] = False
+        if device_map is None:
+            if self.device == "cuda":
+                if n_gpus > 0:
+                    if gpu_id >= 0:
+                        # FIXME: If really distributes model, tend to get things like: ValueError: gpt_neox.embed_in.weight doesn't have any device set.
+                        # So avoid for now, just put on first GPU, unless score_model, put on last
+                        if reward_type:
+                            device_map = {"": n_gpus - 1}
+                        else:
+                            device_map = {"": min(n_gpus - 1, gpu_id)}
+                    if gpu_id == -1:
+                        device_map = {"": "cuda"}
+            else:
+                device_map = {"": "cpu"}
+                model_kwargs["load_in_8bit"] = False
+                model_kwargs["load_in_4bit"] = False
         print("device_map: %s" % device_map, flush=True)
 
         load_in_8bit = model_kwargs.get("load_in_8bit", False)
@@ -1265,8 +1267,8 @@ class Langchain:
         if base_model in non_hf_types:
             from gpt4all_llm import get_model_tokenizer_gpt4all
 
-            model, tokenizer, device = get_model_tokenizer_gpt4all(base_model)
-            return model, tokenizer, device
+            model, tokenizer, _ = get_model_tokenizer_gpt4all(base_model)
+            return model, tokenizer, self.device
 
         # get local torch-HF model
         return self.get_hf_model(
@@ -1276,7 +1278,7 @@ class Langchain:
             load_gptq=load_gptq,
             use_safetensors=use_safetensors,
             infer_devices=infer_devices,
-            device=device,
+            device=self.device,
             base_model=base_model,
             tokenizer_base_model=tokenizer_base_model,
             lora_weights=lora_weights,
@@ -1325,8 +1327,6 @@ class Langchain:
         if lora_weights is not None and lora_weights.strip():
             if verbose:
                 print("Get %s lora weights" % lora_weights, flush=True)
-        if device is None:
-            device = get_device()
 
         if "gpt2" in base_model.lower():
             # RuntimeError: where expected condition to be a boolean tensor, but got a tensor with dtype Half
@@ -1365,19 +1365,19 @@ class Langchain:
             model = model_loader(
                 tokenizer,
                 model=base_model,
-                device=0 if device == "cuda" else -1,
+                device=0 if self.device == "cuda" else -1,
                 torch_dtype=torch.float16
-                if device == "cuda"
+                if self.device == "cuda"
                 else torch.float32,
             )
         else:
-            assert device in ["cuda", "cpu", "mps"], (
-                "Unsupported device %s" % device
+            assert self.device in ["cuda", "cpu", "mps"], (
+                "Unsupported device %s" % self.device
             )
             model_kwargs = dict(
                 local_files_only=local_files_only,
                 torch_dtype=torch.float16
-                if device == "cuda"
+                if self.device == "cuda"
                 else torch.float32,
                 resume_download=resume_download,
                 use_auth_token=use_auth_token,
@@ -1392,7 +1392,7 @@ class Langchain:
                     infer_devices
                     and gpu_id is not None
                     and gpu_id >= 0
-                    and device == "cuda"
+                    and self.device == "cuda"
                 ):
                     device_map = {"": gpu_id}
                 else:
@@ -1412,14 +1412,16 @@ class Langchain:
                 # MPT doesn't support spreading over GPUs
                 model_kwargs.update(
                     dict(
-                        device_map={"": gpu_id} if device == "cuda" else "cpu"
+                        device_map={"": gpu_id}
+                        if self.device == "cuda"
+                        else "cpu"
                     )
                 )
 
             if "OpenAssistant/reward-model".lower() in base_model.lower():
                 # FIXME: could put on other GPUs
                 model_kwargs["device_map"] = (
-                    {"": 0} if device == "cuda" else {"": "cpu"}
+                    {"": 0} if self.device == "cuda" else {"": "cpu"}
                 )
                 model_kwargs.pop("torch_dtype", None)
             self.pop_unused_model_kwargs(model_kwargs)
@@ -1427,7 +1429,7 @@ class Langchain:
             if not lora_weights:
                 # torch.device context uses twice memory for AutoGPTQ
                 context = NullContext if load_gptq else torch.device
-                with context(device):
+                with context(self.device):
                     if infer_devices:
                         config, model = self.get_config(
                             base_model,
@@ -1472,7 +1474,7 @@ class Langchain:
                     model,
                     lora_weights,
                     torch_dtype=torch.float16
-                    if device == "cuda"
+                    if self.device == "cuda"
                     else torch.float32,
                     local_files_only=local_files_only,
                     resume_download=resume_download,
@@ -1480,11 +1482,11 @@ class Langchain:
                     trust_remote_code=trust_remote_code,
                     offload_folder=offload_folder,
                     device_map={"": 0}
-                    if device == "cuda"
+                    if self.device == "cuda"
                     else {"": "cpu"},  # seems to be required
                 )
             else:
-                with torch.device(device):
+                with torch.device(self.device):
                     config, _ = self.get_config(
                         base_model, raise_exception=True, **config_kwargs
                     )
@@ -1499,7 +1501,7 @@ class Langchain:
                         model,
                         lora_weights,
                         torch_dtype=torch.float16
-                        if device == "cuda"
+                        if self.device == "cuda"
                         else torch.float32,
                         local_files_only=local_files_only,
                         resume_download=resume_download,
@@ -1535,7 +1537,7 @@ class Langchain:
             config, tokenizer, verbose=False, reward_type=reward_type
         )
 
-        return model, tokenizer, device
+        return model, tokenizer, self.device
 
     def set_model_max_len(
         self, config, tokenizer, verbose=False, reward_type=False
@@ -1609,15 +1611,15 @@ class Langchain:
             inference_server = ""
             llama_type = False
             compile_model = False
-            smodel, stokenizer, sdevice = self.get_model(
+            smodel, stokenizer, _ = self.get_model(
                 reward_type=True,
                 **get_kwargs(
                     self.get_model, exclude_names=["reward_type"], **locals()
                 ),
             )
         else:
-            smodel, stokenizer, sdevice = None, None, None
-        return smodel, stokenizer, sdevice
+            smodel, stokenizer, _ = None, None, None
+        return smodel, stokenizer, self.device
 
     def evaluate(
         self,
@@ -1763,7 +1765,6 @@ class Langchain:
         # get variables
         model = chosen_model_state["model"]
         tokenizer = chosen_model_state["tokenizer"]
-        device = chosen_model_state["device"]
         base_model = chosen_model_state["base_model"]
         tokenizer_base_model = chosen_model_state["tokenizer_base_model"]
         lora_weights = chosen_model_state["lora_weights"]
@@ -1952,6 +1953,7 @@ class Langchain:
                 lora_weights=lora_weights,
                 auto_reduce_chunks=auto_reduce_chunks,
                 max_chunks=max_chunks,
+                device=self.device,
             ):
                 (
                     outr,
@@ -2403,7 +2405,7 @@ class Langchain:
             prompt_type,
             prompt_dict,
             tokenizer,
-            device,
+            self.device,
             model_max_length=tokenizer.model_max_length,
         )
 
@@ -2412,7 +2414,7 @@ class Langchain:
         inputs = tokenizer(prompt, return_tensors="pt")
         if debug and len(inputs["input_ids"]) > 0:
             print("input_ids length", len(inputs["input_ids"][0]), flush=True)
-        input_ids = inputs["input_ids"].to(device)
+        input_ids = inputs["input_ids"].to(self.device)
         # CRITICAL LIMIT else will fail
         max_max_tokens = tokenizer.model_max_length
         max_input_tokens = max_max_tokens - min_new_tokens
@@ -2498,10 +2500,12 @@ class Langchain:
             have_lora_weights = lora_weights not in [no_lora_str, "", None]
             context_class_cast = (
                 NullContext
-                if device == "cpu" or have_lora_weights or device == "mps"
+                if self.device == "cpu"
+                or have_lora_weights
+                or self.device == "mps"
                 else torch.autocast
             )
-            with context_class_cast(device):
+            with context_class_cast(self.device):
                 # protection for gradio not keeping track of closed users,
                 # else hit bitsandbytes lack of thread safety:
                 # https://github.com/h2oai/h2ogpt/issues/104

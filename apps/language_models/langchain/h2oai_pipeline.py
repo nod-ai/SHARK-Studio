@@ -28,6 +28,7 @@ global_precision = "fp16"
 if not args.run_docuchat_web:
     args.device = global_device
     args.precision = global_precision
+tensor_device = "cpu" if args.device == "cpu" else "cuda"
 
 
 class H2OGPTSHARKModel(torch.nn.Module):
@@ -102,7 +103,7 @@ class H2OGPTSHARKModel(torch.nn.Module):
                 "forward",
                 (input_ids.to(device="cpu"), attention_mask.to(device="cpu")),
             )
-        ).to(device=args.device)
+        ).to(device=tensor_device)
         return result
 
 
@@ -118,14 +119,14 @@ def pad_or_truncate_inputs(
         num_add_token = max_padding_length - inp_shape[1]
         padded_input_ids = torch.cat(
             [
-                torch.tensor([[11] * num_add_token]).to(device=args.device),
+                torch.tensor([[11] * num_add_token]).to(device=tensor_device),
                 input_ids,
             ],
             dim=1,
         )
         padded_attention_mask = torch.cat(
             [
-                torch.tensor([[0] * num_add_token]).to(device=args.device),
+                torch.tensor([[0] * num_add_token]).to(device=tensor_device),
                 attention_mask,
             ],
             dim=1,
@@ -455,7 +456,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
         if isinstance(eos_token_id, int):
             eos_token_id = [eos_token_id]
         self.eos_token_id_tensor = (
-            torch.tensor(eos_token_id).to(device=args.device)
+            torch.tensor(eos_token_id).to(device=tensor_device)
             if eos_token_id is not None
             else None
         )
@@ -533,7 +534,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
         self.input_ids = torch.cat(
             [
                 torch.tensor(self.truncated_input_ids)
-                .to(device=args.device)
+                .to(device=tensor_device)
                 .unsqueeze(dim=0),
                 self.input_ids,
             ],
