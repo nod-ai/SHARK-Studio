@@ -49,7 +49,7 @@ def outpaint_inf(
     width: int,
     steps: int,
     guidance_scale: float,
-    seed: int,
+    seed: str,
     batch_count: int,
     batch_size: int,
     scheduler: str,
@@ -178,7 +178,10 @@ def outpaint_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
+    try:
+        seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
+    except TypeError as error:
+        raise gr.Error(str(error)) from None
 
     left = True if "left" in directions else False
     right = True if "right" in directions else False
@@ -542,8 +545,10 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                             visible=False,
                         )
                 with gr.Row():
-                    seed = gr.Number(
-                        value=args.seed, precision=0, label="Seed"
+                    seed = gr.Textbox(
+                        value=args.seed,
+                        label="Seed",
+                        info="An integer or a JSON list of integers, -1 for random",
                     )
                     device = gr.Dropdown(
                         elem_id="device",

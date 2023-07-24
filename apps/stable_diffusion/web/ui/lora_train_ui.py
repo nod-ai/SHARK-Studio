@@ -3,7 +3,7 @@ import os
 import gradio as gr
 from PIL import Image
 from apps.stable_diffusion.scripts import lora_train
-from apps.stable_diffusion.src import prompt_examples, args
+from apps.stable_diffusion.src import prompt_examples, args, utils
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -168,7 +168,9 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                         stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     seed = gr.Number(
-                        value=args.seed, precision=0, label="Seed"
+                        value=utils.parse_seed_input(args.seed)[0],
+                        precision=0,
+                        label="Seed",
                     )
                     device = gr.Dropdown(
                         elem_id="device",

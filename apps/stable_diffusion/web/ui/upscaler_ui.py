@@ -42,7 +42,7 @@ def upscaler_inf(
     steps: int,
     noise_level: int,
     guidance_scale: float,
-    seed: int,
+    seed: str,
     batch_count: int,
     batch_size: int,
     scheduler: str,
@@ -177,8 +177,11 @@ def upscaler_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
     extra_info = {"NOISE LEVEL": noise_level}
+    try:
+        seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
+    except TypeError as error:
+        raise gr.Error(str(error)) from None
 
     for current_batch in range(batch_count):
         low_res_img = image
@@ -534,8 +537,10 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                             visible=False,
                         )
                 with gr.Row():
-                    seed = gr.Number(
-                        value=args.seed, precision=0, label="Seed"
+                    seed = gr.Textbox(
+                        value=args.seed,
+                        label="Seed",
+                        info="An integer or a JSON list of integers, -1 for random",
                     )
                     device = gr.Dropdown(
                         elem_id="device",
