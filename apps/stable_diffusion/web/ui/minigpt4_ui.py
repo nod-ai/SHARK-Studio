@@ -2,10 +2,10 @@
 #             Gradio Setting
 # ========================================
 import gradio as gr
-from apps.language_models.src.pipelines.minigpt4_pipeline import (
-    MiniGPT4,
-    CONV_VISION,
-)
+# from apps.language_models.src.pipelines.minigpt4_pipeline import (
+#     # MiniGPT4,
+#     CONV_VISION,
+# )
 from pathlib import Path
 
 chat = None
@@ -31,6 +31,10 @@ def gradio_reset(chat_state, img_list):
 def upload_img(gr_img, text_input, chat_state, device, precision, _compile):
     global chat
     if chat is None:
+        from apps.language_models.src.pipelines.minigpt4_pipeline import (
+            MiniGPT4,
+            CONV_VISION,
+        )
         vision_model_precision = precision
         if precision in ["int4", "int8"]:
             vision_model_precision = "fp16"

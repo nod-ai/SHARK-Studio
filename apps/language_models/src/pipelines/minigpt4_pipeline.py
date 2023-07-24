@@ -16,6 +16,7 @@ from omegaconf import OmegaConf
 from pathlib import Path
 from shark.shark_downloader import download_public_file
 from transformers import LlamaTokenizer, LlamaForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import StoppingCriteriaList
 from transformers.generation import GenerationConfig, LogitsProcessorList
 
@@ -24,7 +25,7 @@ import torch
 import os
 from PIL import Image
 import sys
-
+import requests
 # SHARK dependencies
 from shark.shark_compile import (
     shark_compile_through_fx,
@@ -32,18 +33,14 @@ from shark.shark_compile import (
 import random
 import contextlib
 from transformers import BertTokenizer
-from transformers import LlamaTokenizer, LlamaForCausalLM
 from transformers.generation import GenerationConfig, LogitsProcessorList
 import copy
 import tempfile
 
-# QFormer, eva_vit, blip_processor, dist_utils
+# QFormer, eva_vit, blip_processor
 from apps.language_models.src.pipelines.minigpt4_utils.Qformer import (
     BertConfig,
     BertLMHeadModel,
-)
-from apps.language_models.src.pipelines.minigpt4_utils.dist_utils import (
-    download_cached_file,
 )
 from apps.language_models.src.pipelines.minigpt4_utils.eva_vit import (
     create_eva_vit_g,
@@ -349,7 +346,7 @@ class MiniGPT4BaseModel(torch.nn.Module):
         return model
 
     PRETRAINED_MODEL_CONFIG_DICT = {
-        "pretrain_vicuna": "configs/minigpt4.yaml",
+        "pretrain_vicuna": "minigpt4_utils/configs/minigpt4.yaml",
     }
 
     def maybe_autocast(self, dtype=torch.float32):
@@ -406,10 +403,13 @@ class MiniGPT4BaseModel(torch.nn.Module):
 
     def load_from_pretrained(self, url_or_filename):
         if is_url(url_or_filename):
-            cached_file = download_cached_file(
-                url_or_filename, check_hash=False, progress=True
-            )
-            checkpoint = torch.load(cached_file, map_location="cpu")
+            local_filename = "blip2_pretrained_flant5xxl.pth"
+            response = requests.get(url_or_filename)
+            if response.status_code == 200:
+                with open(local_filename, "wb") as f:
+                    f.write(response.content)
+                print("File downloaded successfully.")
+            checkpoint = torch.load(local_filename, map_location="cpu")
         elif os.path.isfile(url_or_filename):
             checkpoint = torch.load(url_or_filename, map_location="cpu")
         else:
@@ -484,20 +484,20 @@ class MiniGPT4BaseModel(torch.nn.Module):
         print("Loading Q-Former Done")
 
         print(f"Loading Llama model from {llama_model}")
-        self.llama_tokenizer = LlamaTokenizer.from_pretrained(
-            llama_model, use_fast=False
+        self.llama_tokenizer = AutoTokenizer.from_pretrained(
+            llama_model, use_fast=False, legacy=False
         )
         # self.llama_tokenizer.pad_token = self.llama_tokenizer.eos_token
 
         if self.low_resource:
-            self.llama_model = LlamaForCausalLM.from_pretrained(
+            self.llama_model = AutoModelForCausalLM.from_pretrained(
                 llama_model,
                 torch_dtype=torch.float16,
                 load_in_8bit=True,
                 device_map={"": device_8bit},
             )
         else:
-            self.llama_model = LlamaForCausalLM.from_pretrained(
+            self.llama_model = AutoModelForCausalLM.from_pretrained(
                 llama_model,
                 torch_dtype=torch.float32,
             )
@@ -539,6 +539,12 @@ class MiniGPT4BaseModel(torch.nn.Module):
         else:
             self.prompt_list = []
 
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
+    return os.path.join(base_path, relative_path)
 
 class MiniGPT4(SharkLLMBase):
     def __init__(
@@ -566,15 +572,11 @@ class MiniGPT4(SharkLLMBase):
         self.second_llama_vmfb_path = None
 
         print("Initializing Chat")
-        config = OmegaConf.load(
-            "apps/language_models/src/pipelines/minigpt4_utils/configs/minigpt4_eval.yaml"
-        )
+        config = OmegaConf.load(resource_path("minigpt4_utils/configs/minigpt4_eval.yaml"))
         model_config = OmegaConf.create()
         model_config = OmegaConf.merge(
             model_config,
-            OmegaConf.load(
-                "apps/language_models/src/pipelines/minigpt4_utils/configs/minigpt4.yaml"
-            ),
+            OmegaConf.load(resource_path("minigpt4_utils/configs/minigpt4.yaml")),
             {"model": config["model"]},
         )
         model_config = model_config["model"]
@@ -583,7 +585,7 @@ class MiniGPT4(SharkLLMBase):
         datasets = config.get("datasets", None)
         dataset_config = OmegaConf.create()
         for dataset_name in datasets:
-            dataset_config_path = "apps/language_models/src/pipelines/minigpt4_utils/configs/cc_sbu_align.yaml"
+            dataset_config_path = resource_path("minigpt4_utils/configs/cc_sbu_align.yaml")
             dataset_config = OmegaConf.merge(
                 dataset_config,
                 OmegaConf.load(dataset_config_path),

@@ -7,7 +7,7 @@ import sys
 sys.setrecursionlimit(sys.getrecursionlimit() * 5)
 
 # python path for pyinstaller
-pathex = [".", "./apps/language_models/langchain"]
+pathex = [".", "./apps/language_models/langchain", "./apps/language_models/src/pipelines/minigpt4_utils"]
 
 # datafiles for pyinstaller
 datas = []
@@ -53,6 +53,8 @@ datas += [
     ("src/utils/resources/base_model.json", "resources"),
     ("web/ui/css/*", "ui/css"),
     ("web/ui/logos/*", "logos"),
+    ("../language_models/src/pipelines/minigpt4_utils/configs/*", "minigpt4_utils/configs"),
+    ("../language_models/src/pipelines/minigpt4_utils/prompts/*", "minigpt4_utils/prompts"),
 ]
 
 

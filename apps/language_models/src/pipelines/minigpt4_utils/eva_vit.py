@@ -6,6 +6,7 @@
 # https://github.com/facebookresearch/dino
 # --------------------------------------------------------'
 import math
+import requests
 from functools import partial
 
 import torch
@@ -13,10 +14,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils.checkpoint as checkpoint
 from timm.models.layers import drop_path, to_2tuple, trunc_normal_
-
-from apps.language_models.src.pipelines.minigpt4_utils.dist_utils import (
-    download_cached_file,
-)
 
 
 def _cfg(url="", **kwargs):
@@ -596,7 +593,7 @@ def convert_weights_to_fp16(model: nn.Module):
 
     model.apply(_convert_weights_to_fp16)
 
-
+    
 def create_eva_vit_g(
     img_size=224, drop_path_rate=0.4, use_checkpoint=False, precision="fp16"
 ):
@@ -614,12 +611,17 @@ def create_eva_vit_g(
         use_checkpoint=use_checkpoint,
     )
     url = "https://storage.googleapis.com/sfr-vision-language-research/LAVIS/models/BLIP2/eva_vit_g.pth"
-    cached_file = download_cached_file(url, check_hash=False, progress=True)
-    state_dict = torch.load(cached_file, map_location="cpu")
+    
+    local_filename = "eva_vit_g.pth"
+    response = requests.get(url)
+    if response.status_code == 200:
+        with open(local_filename, "wb") as f:
+            f.write(response.content)
+        print("File downloaded successfully.")
+    state_dict = torch.load(local_filename, map_location="cpu")
     interpolate_pos_embed(model, state_dict)
 
     incompatible_keys = model.load_state_dict(state_dict, strict=False)
-    #     print(incompatible_keys)
 
     if precision == "fp16":
         #         model.to("cuda")
