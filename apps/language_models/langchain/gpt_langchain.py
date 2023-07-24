@@ -44,7 +44,6 @@ from utils import (
     makedirs,
     get_url,
     flatten_list,
-    get_device,
     ProgressParallel,
     remove,
     hash_file,
@@ -92,6 +91,7 @@ from langchain.chains.question_answering import load_qa_chain
 from langchain.docstore.document import Document
 from langchain import PromptTemplate, HuggingFaceTextGenInference
 from langchain.vectorstores import Chroma
+from apps.stable_diffusion.src import args
 
 
 def get_db(
@@ -371,8 +371,8 @@ def get_embedding(
         # to ensure can fork without deadlock
         from langchain.embeddings import HuggingFaceEmbeddings
 
-        device, torch_dtype, context_class = get_device_dtype()
-        model_kwargs = dict(device=device)
+        torch_dtype, context_class = get_dtype()
+        model_kwargs = dict(device=args.device)
         if "instructor" in hf_embedding_model:
             encode_kwargs = {"normalize_embeddings": True}
             embedding = HuggingFaceInstructEmbeddings(
@@ -907,7 +907,7 @@ def get_llm(
                 # model_name = 'h2oai/h2ogpt-oig-oasst1-512-6_9b'
                 # model_name = 'h2oai/h2ogpt-oasst1-512-20b'
             inference_server = ""
-            model, tokenizer, device = Langchain.get_model(
+            model, tokenizer, _ = Langchain.get_model(
                 load_8bit=True,
                 base_model=model_name,
                 inference_server=inference_server,
@@ -974,17 +974,15 @@ def get_llm(
     return llm, model_name, streamer, prompt_type
 
 
-def get_device_dtype():
+def get_dtype():
     # torch.device("cuda") leads to cuda:x cuda:y mismatches for multi-GPU consistently
     import torch
 
-    n_gpus = torch.cuda.device_count() if torch.cuda.is_available else 0
-    device = "cpu" if n_gpus == 0 else "cuda"
     # from utils import NullContext
     # context_class = NullContext if n_gpus > 1 or n_gpus == 0 else context_class
     context_class = torch.device
-    torch_dtype = torch.float16 if device == "cuda" else torch.float32
-    return device, torch_dtype, context_class
+    torch_dtype = torch.float16 if args.device == "cuda" else torch.float32
+    return torch_dtype, context_class
 
 
 def get_wiki_data(
@@ -1715,7 +1713,7 @@ def path_to_docs(
         caption_loader
         and not isinstance(caption_loader, (bool, str))
         and caption_loader.device != "cpu"
-        or get_device() == "cuda"
+        or args.device == "cuda"
     ):
         # to avoid deadlocks, presume was preloaded and so can't fork due to cuda context
         n_jobs_image = 1
@@ -2549,15 +2547,15 @@ def _run_qa_db(
     # context stuff similar to used in evaluate()
     import torch
 
-    device, torch_dtype, context_class = get_device_dtype()
+    torch_dtype, context_class = get_dtype()
     with torch.no_grad():
         have_lora_weights = lora_weights not in [no_lora_str, "", None]
         context_class_cast = (
             NullContext
-            if device == "cpu" or have_lora_weights
+            if args.device == "cpu" or have_lora_weights
             else torch.autocast
         )
-        with context_class_cast(device):
+        with context_class_cast(args.device):
             answer = chain()
 
     if not use_context:

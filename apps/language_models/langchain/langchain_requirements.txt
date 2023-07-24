@@ -1,11 +1,12 @@
 # for generate (gradio server) and finetune
 datasets==2.13.0
 sentencepiece==0.1.99
-gradio==3.35.2
-huggingface_hub==0.15.1
+# gradio==3.37.0
+huggingface_hub==0.16.4
 appdirs==1.4.4
 fire==0.5.0
 docutils==0.20.1
+# torch==2.0.1; sys_platform != "darwin" and platform_machine != "arm64"
 evaluate==0.4.0
 rouge_score==0.1.2
 sacrebleu==2.3.1
@@ -18,7 +19,9 @@ matplotlib==3.7.1
 loralib==0.1.1
 bitsandbytes==0.39.0
 accelerate==0.20.3
-git+https://github.com/huggingface/peft.git@0b62b4378b4ce9367932c73540349da9a41bdea8
+peft==0.4.0
+# 4.31.0+ breaks load_in_8bit=True (https://github.com/huggingface/transformers/issues/25026)
+# transformers==4.30.2
 tokenizers==0.13.3
 APScheduler==3.10.1
 
@@ -33,7 +36,7 @@ tensorboard==2.13.0
 neptune==1.2.0
 
 # for gradio client
-gradio_client==0.2.7
+gradio_client==0.2.10
 beautifulsoup4==4.12.2
 markdown==3.4.3
 
@@ -43,8 +46,9 @@ pytest-xdist==3.2.1
 nltk==3.8.1
 textstat==0.7.3
 # pandoc==2.3
-#pypandoc==1.11
-pypandoc_binary==1.11
+pypandoc==1.11; sys_platform == "darwin" and platform_machine == "arm64"
+pypandoc_binary==1.11; platform_machine == "x86_64"
+pypandoc_binary==1.11; sys_platform == "win32"
 openpyxl==3.1.2
 lm_dataformat==0.0.20
 bioc==2.0
@@ -104,3 +108,15 @@ pip-licenses==4.3.0
 
 # weaviate vector db
 weaviate-client==3.22.1
+
+gpt4all==1.0.5
+llama-cpp-python==0.1.73
+
+arxiv==1.4.8
+pymupdf==1.22.5 # AGPL license
+# extract-msg==0.41.1  # GPL3
+
+# sometimes unstructured fails, these work in those cases.  See https://github.com/h2oai/h2ogpt/issues/320
+playwright==1.36.0
+# requires Chrome binary to be in path
+selenium==4.10.0

@@ -51,24 +51,26 @@ def chat(curr_system_message, history, device, precision):
 
     if h2ogpt_model == 0:
         if "cuda" in device:
-            device = "cuda"
+            shark_device = "cuda"
         elif "sync" in device:
-            device = "cpu"
+            shark_device = "cpu"
         elif "task" in device:
-            device = "cpu"
+            shark_device = "cpu"
         elif "vulkan" in device:
-            device = "vulkan"
+            shark_device = "vulkan"
         else:
             print("unrecognized device")
 
-        args.device = device
+        device = "cpu" if shark_device == "cpu" else "cuda"
+
+        args.device = shark_device
         args.precision = precision
 
         from apps.language_models.langchain.gen import Langchain
 
         langchain = Langchain(device, precision)
         h2ogpt_model, h2ogpt_tokenizer, _ = langchain.get_model(
-            load_8bit=True
+            load_4bit=True
             if device == "cuda"
             else False,  # load model in 4bit if device is cuda to save memory
             load_gptq="",
