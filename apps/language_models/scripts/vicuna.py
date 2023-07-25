@@ -785,7 +785,7 @@ class ShardedVicuna(VicunaBase):
                 module = SharkInference(
                     None,
                     device=device,
-                    device_idx=idx % 4,
+                    device_idx=device_idx,
                     mlir_dialect="tm_tensor",
                     mmap=False,
                 )
@@ -798,7 +798,7 @@ class ShardedVicuna(VicunaBase):
                 module = SharkInference(
                     mlirs[idx],
                     device=device,
-                    device_idx=idx % 4,
+                    device_idx=device_idx,
                     mlir_dialect="tm_tensor",
                     mmap=False,
                 )
