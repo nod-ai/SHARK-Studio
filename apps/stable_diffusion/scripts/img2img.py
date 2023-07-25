@@ -87,7 +87,7 @@ def main():
             ondemand=args.ondemand,
         )
 
-    if (args.height == 768 and args.width == 768):
+    if args.height == 768 and args.width == 768:
         args.use_tuned = False
 
     start_time = time.time()
