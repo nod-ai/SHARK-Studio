@@ -46,7 +46,7 @@ def txt2img_inf(
     width: int,
     steps: int,
     guidance_scale: float,
-    seed: int,
+    seed: str | int,
     batch_count: int,
     batch_size: int,
     scheduler: str,
@@ -178,8 +178,11 @@ def txt2img_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
     text_output = ""
+    try:
+        seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
+    except TypeError as error:
+        raise gr.Error(str(error)) from None
 
     for current_batch in range(batch_count):
         out_imgs = global_obj.get_sd_obj().generate_images(
@@ -481,8 +484,10 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="Repeatable Seeds",
                         )
                 with gr.Row():
-                    seed = gr.Number(
-                        value=args.seed, precision=0, label="Seed"
+                    seed = gr.Textbox(
+                        value=args.seed,
+                        label="Seed",
+                        info="An integer or a JSON list of integers, -1 for random",
                     )
                     device = gr.Dropdown(
                         elem_id="device",

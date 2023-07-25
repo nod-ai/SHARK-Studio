@@ -28,18 +28,18 @@ global_precision = "fp16"
 if not args.run_docuchat_web:
     args.device = global_device
     args.precision = global_precision
+tensor_device = "cpu" if args.device == "cpu" else "cuda"
 
 
 class H2OGPTSHARKModel(torch.nn.Module):
     def __init__(self):
         super().__init__()
         model_name = "h2ogpt_falcon_7b"
-        path_str = (
-            model_name + "_" + args.precision + "_" + args.device + ".vmfb"
+        extended_model_name = (
+            model_name + "_" + args.precision + "_" + args.device
         )
-        vmfb_path = Path(path_str)
-        path_str = model_name + "_" + args.precision + ".mlir"
-        mlir_path = Path(path_str)
+        vmfb_path = Path(extended_model_name + ".vmfb")
+        mlir_path = Path(model_name + "_" + args.precision + ".mlir")
         shark_module = None
 
         if not vmfb_path.exists():
@@ -50,7 +50,7 @@ class H2OGPTSHARKModel(torch.nn.Module):
                 # Downloading VMFB from shark_tank
                 print("Downloading vmfb from shark tank.")
                 download_public_file(
-                    "gs://shark_tank/langchain/" + path_str,
+                    "gs://shark_tank/langchain/" + str(vmfb_path),
                     vmfb_path.absolute(),
                     single_file=True,
                 )
@@ -61,11 +61,7 @@ class H2OGPTSHARKModel(torch.nn.Module):
                 else:
                     # Downloading MLIR from shark_tank
                     download_public_file(
-                        "gs://shark_tank/langchain/"
-                        + model_name
-                        + "_"
-                        + args.precision
-                        + ".mlir",
+                        "gs://shark_tank/langchain/" + str(mlir_path),
                         mlir_path.absolute(),
                         single_file=True,
                     )
@@ -83,16 +79,18 @@ class H2OGPTSHARKModel(torch.nn.Module):
                     mlir_dialect="linalg",
                 )
                 print(f"[DEBUG] generating vmfb.")
-                shark_module = _compile_module(shark_module, vmfb_path, [])
+                shark_module = _compile_module(
+                    shark_module, extended_model_name, []
+                )
                 print("Saved newly generated vmfb.")
 
         if shark_module is None:
             if vmfb_path.exists():
                 print("Compiled vmfb found. Loading it from: ", vmfb_path)
                 shark_module = SharkInference(
-                    None, device=global_device, mlir_dialect="linalg"
+                    None, device=args.device, mlir_dialect="linalg"
                 )
-                shark_module.load_module(vmfb_path)
+                shark_module.load_module(str(vmfb_path))
                 print("Compiled vmfb loaded successfully.")
             else:
                 raise ValueError("Unable to download/generate a vmfb.")
@@ -105,7 +103,7 @@ class H2OGPTSHARKModel(torch.nn.Module):
                 "forward",
                 (input_ids.to(device="cpu"), attention_mask.to(device="cpu")),
             )
-        ).to(device=global_device)
+        ).to(device=tensor_device)
         return result
 
 
@@ -121,14 +119,14 @@ def pad_or_truncate_inputs(
         num_add_token = max_padding_length - inp_shape[1]
         padded_input_ids = torch.cat(
             [
-                torch.tensor([[11] * num_add_token]).to(device=global_device),
+                torch.tensor([[11] * num_add_token]).to(device=tensor_device),
                 input_ids,
             ],
             dim=1,
         )
         padded_attention_mask = torch.cat(
             [
-                torch.tensor([[0] * num_add_token]).to(device=global_device),
+                torch.tensor([[0] * num_add_token]).to(device=tensor_device),
                 attention_mask,
             ],
             dim=1,
@@ -331,7 +329,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
             model_inputs["input_ids"], model_inputs["attention_mask"]
         )
 
-        if global_precision == "fp16":
+        if args.precision == "fp16":
             outputs = outputs.to(dtype=torch.float32)
         next_token_logits = outputs
 
@@ -458,7 +456,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
         if isinstance(eos_token_id, int):
             eos_token_id = [eos_token_id]
         self.eos_token_id_tensor = (
-            torch.tensor(eos_token_id).to(device=global_device)
+            torch.tensor(eos_token_id).to(device=tensor_device)
             if eos_token_id is not None
             else None
         )
@@ -536,7 +534,7 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
         self.input_ids = torch.cat(
             [
                 torch.tensor(self.truncated_input_ids)
-                .to(device=global_device)
+                .to(device=tensor_device)
                 .unsqueeze(dim=0),
                 self.input_ids,
             ],
@@ -615,22 +613,9 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
             **generate_kwargs,
         )
         out_b = generated_sequence.shape[0]
-        if self.framework == "pt":
-            generated_sequence = generated_sequence.reshape(
-                in_b, out_b // in_b, *generated_sequence.shape[1:]
-            )
-        elif self.framework == "tf":
-            from transformers import is_tf_available
-
-            if is_tf_available():
-                import tensorflow as tf
-
-                generated_sequence = tf.reshape(
-                    generated_sequence,
-                    (in_b, out_b // in_b, *generated_sequence.shape[1:]),
-                )
-            else:
-                raise ValueError("TF not avaialble.")
+        generated_sequence = generated_sequence.reshape(
+            in_b, out_b // in_b, *generated_sequence.shape[1:]
+        )
         return {
             "generated_sequence": generated_sequence,
             "input_ids": input_ids,

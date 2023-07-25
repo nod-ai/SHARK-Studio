@@ -66,9 +66,9 @@ p.add_argument(
 
 p.add_argument(
     "--seed",
-    type=int,
+    type=str,
     default=-1,
-    help="The seed to use. -1 for a random one.",
+    help="The seed or list of seeds to use. -1 for a random one.",
 )
 
 p.add_argument(
