@@ -2,6 +2,7 @@
 #             Gradio Setting
 # ========================================
 import gradio as gr
+
 # from apps.language_models.src.pipelines.minigpt4_pipeline import (
 #     # MiniGPT4,
 #     CONV_VISION,
@@ -35,10 +36,13 @@ def upload_img(gr_img, text_input, chat_state, device, precision, _compile):
             MiniGPT4,
             CONV_VISION,
         )
+
         vision_model_precision = precision
         if precision in ["int4", "int8"]:
             vision_model_precision = "fp16"
-        vision_model_vmfb_path = Path(f"vision_model_{vision_model_precision}_{device}.vmfb")
+        vision_model_vmfb_path = Path(
+            f"vision_model_{vision_model_precision}_{device}.vmfb"
+        )
         qformer_vmfb_path = Path(f"qformer_fp32_{device}.vmfb")
         chat = MiniGPT4(
             model_name="MiniGPT4",

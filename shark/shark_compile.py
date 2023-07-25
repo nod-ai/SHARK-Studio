@@ -10,7 +10,15 @@ from io import BytesIO
 from brevitas_examples.llm.llm_quant.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
-def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
+
+def brevitas〇matmul_rhs_group_quant〡shape(
+    lhs: List[int],
+    rhs: List[int],
+    rhs_scale: List[int],
+    rhs_zero_point: List[int],
+    rhs_bit_width: int,
+    rhs_group_size: int,
+) -> List[int]:
     if len(lhs) == 3 and len(rhs) == 2:
         return [lhs[0], lhs[1], rhs[0]]
     elif len(lhs) == 2 and len(rhs) == 2:
@@ -19,20 +27,30 @@ def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rh
         raise ValueError("Input shapes not supported.")
 
 
-def brevitas〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
+def brevitas〇matmul_rhs_group_quant〡dtype(
+    lhs_rank_dtype: Tuple[int, int],
+    rhs_rank_dtype: Tuple[int, int],
+    rhs_scale_rank_dtype: Tuple[int, int],
+    rhs_zero_point_rank_dtype: Tuple[int, int],
+    rhs_bit_width: int,
+    rhs_group_size: int,
+) -> int:
     # output dtype is the dtype of the lhs float input
     lhs_rank, lhs_dtype = lhs_rank_dtype
     return lhs_dtype
 
 
-def brevitas〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
+def brevitas〇matmul_rhs_group_quant〡has_value_semantics(
+    lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size
+) -> None:
     return
 
 
 brevitas_matmul_rhs_group_quant_library = [
     brevitas〇matmul_rhs_group_quant〡shape,
     brevitas〇matmul_rhs_group_quant〡dtype,
-    brevitas〇matmul_rhs_group_quant〡has_value_semantics]
+    brevitas〇matmul_rhs_group_quant〡has_value_semantics,
+]
 
 
 def load_vmfb(extended_model_name, device, mlir_dialect, extra_args=[]):
@@ -70,7 +88,9 @@ def compile_module(
     return shark_module
 
 
-def compile_int_precision(model, inputs, precision, device, generate_vmfb, extended_model_name):
+def compile_int_precision(
+    model, inputs, precision, device, generate_vmfb, extended_model_name
+):
     weight_bit_width = 4 if precision == "int4" else 8
     weight_group_size = 128
     quantize_model(
@@ -115,8 +135,10 @@ def compile_int_precision(model, inputs, precision, device, generate_vmfb, exten
     )
     from contextlib import redirect_stdout
 
-    mlir_file_path = os.path.join(os.getcwd(), f"{extended_model_name}_linalg.mlir")
-    with open(mlir_file_path, 'w') as f:
+    mlir_file_path = os.path.join(
+        os.getcwd(), f"{extended_model_name}_linalg.mlir"
+    )
+    with open(mlir_file_path, "w") as f:
         with redirect_stdout(f):
             print(mlir_module.operation.get_asm())
     mlir_module = str(mlir_module)
@@ -135,9 +157,15 @@ def compile_int_precision(model, inputs, precision, device, generate_vmfb, exten
         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
     ]
     return (
-        compile_module(shark_module, extended_model_name=extended_model_name, generate_vmfb=generate_vmfb, extra_args=extra_args),
-        bytecode
+        compile_module(
+            shark_module,
+            extended_model_name=extended_model_name,
+            generate_vmfb=generate_vmfb,
+            extra_args=extra_args,
+        ),
+        bytecode,
     )
+
 
 def shark_compile_through_fx(
     model,
@@ -172,7 +200,14 @@ def shark_compile_through_fx(
         shark_args.enable_tf32 = True
 
     if precision in ["int4", "int8"]:
-        mlir_module = compile_int_precision(model, inputs, precision, device, generate_or_load_vmfb, extended_model_name)
+        mlir_module = compile_int_precision(
+            model,
+            inputs,
+            precision,
+            device,
+            generate_or_load_vmfb,
+            extended_model_name,
+        )
         extra_args = [
             "--iree-hal-dump-executable-sources-to=ies",
             "--iree-vm-target-truncate-unsupported-floats",

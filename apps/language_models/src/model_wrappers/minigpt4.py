@@ -8,6 +8,7 @@ from transformers import StoppingCriteria
 from brevitas_examples.llm.llm_quant.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
+
 class LayerNorm(torch.nn.LayerNorm):
     """Subclass torch's LayerNorm to handle fp16."""
 
@@ -18,7 +19,13 @@ class LayerNorm(torch.nn.LayerNorm):
 
 
 class VisionModel(torch.nn.Module):
-    def __init__(self, ln_vision, visual_encoder, precision="fp32", weight_group_size=128):
+    def __init__(
+        self,
+        ln_vision,
+        visual_encoder,
+        precision="fp32",
+        weight_group_size=128,
+    ):
         super().__init__()
         self.ln_vision = ln_vision
         self.visual_encoder = visual_encoder
@@ -37,7 +44,9 @@ class VisionModel(torch.nn.Module):
                 quantize_weight_zero_point=False,
             )
             print("Weight quantization applied.")
-            print("Vision Model applying weight quantization to visual_encoder")
+            print(
+                "Vision Model applying weight quantization to visual_encoder"
+            )
             quantize_model(
                 self.visual_encoder,
                 dtype=torch.float32,

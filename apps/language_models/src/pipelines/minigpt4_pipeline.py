@@ -26,6 +26,7 @@ import os
 from PIL import Image
 import sys
 import requests
+
 # SHARK dependencies
 from shark.shark_compile import (
     shark_compile_through_fx,
@@ -107,6 +108,7 @@ parser.add_argument(
     help="Maximum no. of new tokens that can be generated for a query",
 )
 
+
 def disabled_train(self, mode=True):
     """Overwrite model.train with this function to make sure train/eval mode
     does not change anymore."""
@@ -120,6 +122,7 @@ def is_url(input_url):
     is_url = re.match(r"^(?:http)s?://", input_url, re.IGNORECASE) is not None
     return is_url
 
+
 import os
 import tempfile
 from shark.shark_inference import SharkInference
@@ -131,6 +134,7 @@ from typing import List, Tuple
 from io import BytesIO
 from brevitas_examples.llm.llm_quant.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
+
 
 def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
     if len(lhs) == 3 and len(rhs) == 2:
@@ -170,6 +174,7 @@ def load_vmfb(extended_model_name, device, mlir_dialect, extra_args=[]):
         shark_module.load_module(vmfb_path, extra_args=extra_args)
     return shark_module
 
+
 def compile_module(
     shark_module, extended_model_name, generate_vmfb, extra_args=[]
 ):
@@ -191,7 +196,9 @@ def compile_module(
     return shark_module
 
 
-def compile_int_precision(model, inputs, precision, device, generate_vmfb, extended_model_name):
+def compile_int_precision(
+    model, inputs, precision, device, generate_vmfb, extended_model_name
+):
     torchscript_module = import_with_fx(
         model,
         inputs,
@@ -215,8 +222,10 @@ def compile_int_precision(model, inputs, precision, device, generate_vmfb, exten
     )
     from contextlib import redirect_stdout
 
-    mlir_file_path = os.path.join(os.getcwd(), f"{extended_model_name}_linalg.mlir")
-    with open(mlir_file_path, 'w') as f:
+    mlir_file_path = os.path.join(
+        os.getcwd(), f"{extended_model_name}_linalg.mlir"
+    )
+    with open(mlir_file_path, "w") as f:
         with redirect_stdout(f):
             print(mlir_module.operation.get_asm())
     mlir_module = str(mlir_module)
@@ -235,9 +244,15 @@ def compile_int_precision(model, inputs, precision, device, generate_vmfb, exten
         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
     ]
     return (
-        compile_module(shark_module, extended_model_name=extended_model_name, generate_vmfb=generate_vmfb, extra_args=extra_args),
-        bytecode
+        compile_module(
+            shark_module,
+            extended_model_name=extended_model_name,
+            generate_vmfb=generate_vmfb,
+            extra_args=extra_args,
+        ),
+        bytecode,
     )
+
 
 def shark_compile_through_fx_int(
     model,
@@ -270,7 +285,14 @@ def shark_compile_through_fx_int(
     if "cuda" in device:
         shark_args.enable_tf32 = True
 
-    mlir_module = compile_int_precision(model, inputs, precision, device, generate_or_load_vmfb, extended_model_name)
+    mlir_module = compile_int_precision(
+        model,
+        inputs,
+        precision,
+        device,
+        generate_or_load_vmfb,
+        extended_model_name,
+    )
     extra_args = [
         "--iree-hal-dump-executable-sources-to=ies",
         "--iree-vm-target-truncate-unsupported-floats",
@@ -292,7 +314,8 @@ def shark_compile_through_fx_int(
         ),
         mlir_module,
     )
-    
+
+
 class MiniGPT4BaseModel(torch.nn.Module):
     @classmethod
     def from_config(cls, cfg):
@@ -539,12 +562,14 @@ class MiniGPT4BaseModel(torch.nn.Module):
         else:
             self.prompt_list = []
 
+
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
     base_path = getattr(
         sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
     )
     return os.path.join(base_path, relative_path)
+
 
 class MiniGPT4(SharkLLMBase):
     def __init__(
@@ -572,11 +597,15 @@ class MiniGPT4(SharkLLMBase):
         self.second_llama_vmfb_path = None
 
         print("Initializing Chat")
-        config = OmegaConf.load(resource_path("minigpt4_utils/configs/minigpt4_eval.yaml"))
+        config = OmegaConf.load(
+            resource_path("minigpt4_utils/configs/minigpt4_eval.yaml")
+        )
         model_config = OmegaConf.create()
         model_config = OmegaConf.merge(
             model_config,
-            OmegaConf.load(resource_path("minigpt4_utils/configs/minigpt4.yaml")),
+            OmegaConf.load(
+                resource_path("minigpt4_utils/configs/minigpt4.yaml")
+            ),
             {"model": config["model"]},
         )
         model_config = model_config["model"]
@@ -585,7 +614,9 @@ class MiniGPT4(SharkLLMBase):
         datasets = config.get("datasets", None)
         dataset_config = OmegaConf.create()
         for dataset_name in datasets:
-            dataset_config_path = resource_path("minigpt4_utils/configs/cc_sbu_align.yaml")
+            dataset_config_path = resource_path(
+                "minigpt4_utils/configs/cc_sbu_align.yaml"
+            )
             dataset_config = OmegaConf.merge(
                 dataset_config,
                 OmegaConf.load(dataset_config_path),
@@ -651,9 +682,13 @@ class MiniGPT4(SharkLLMBase):
                     return vmfb
 
         visionModel = VisionModel(
-            copy.deepcopy(self.model.ln_vision), copy.deepcopy(self.model.visual_encoder), vision_model_precision
+            copy.deepcopy(self.model.ln_vision),
+            copy.deepcopy(self.model.visual_encoder),
+            vision_model_precision,
         )
-        extended_model_name = f"vision_model_{vision_model_precision}_{self.device}"
+        extended_model_name = (
+            f"vision_model_{vision_model_precision}_{self.device}"
+        )
         print(f"Going to compile {extended_model_name}")
         # Inputs for VisionModel.
         inputs = [torch.randint(3, (1, 3, 224, 224), dtype=torch.float32)]
