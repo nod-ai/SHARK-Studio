@@ -1,12 +1,10 @@
 # for generate (gradio server) and finetune
 datasets==2.13.0
 sentencepiece==0.1.99
-# gradio==3.37.0
 huggingface_hub==0.16.4
 appdirs==1.4.4
 fire==0.5.0
 docutils==0.20.1
-# torch==2.0.1; sys_platform != "darwin" and platform_machine != "arm64"
 evaluate==0.4.0
 rouge_score==0.1.2
 sacrebleu==2.3.1
@@ -21,7 +19,7 @@ bitsandbytes==0.39.0
 accelerate==0.20.3
 peft==0.4.0
 # 4.31.0+ breaks load_in_8bit=True (https://github.com/huggingface/transformers/issues/25026)
-# transformers==4.30.2
+transformers==4.30.2
 tokenizers==0.13.3
 APScheduler==3.10.1
 
@@ -67,7 +65,7 @@ tiktoken==0.4.0
 openai==0.27.8
 
 # optional for chat with PDF
-langchain==0.0.235
+langchain==0.0.202
 pypdf==3.12.2
 # avoid textract, requires old six
 #textract==1.6.5
