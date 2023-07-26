@@ -446,6 +446,13 @@ p.add_argument(
     help="Flag for disabling vulkan validation layers when benchmarking.",
 )
 
+p.add_argument(
+    "--vulkan_vma_allocator",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="Flag for enabling / disabling vulkan Vulkan VMA Allocator.",
+)
+
 ##############################################################################
 # Misc. Debug and Optimization flags
 ##############################################################################
