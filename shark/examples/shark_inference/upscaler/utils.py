@@ -6,6 +6,7 @@ from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
+    get_iree_vulkan_runtime_flags,
 )
 
 
@@ -75,10 +76,7 @@ def compile_through_fx(
 
 
 def set_iree_runtime_flags():
-    vulkan_runtime_flags = [
-        f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
-        f"--vulkan_validation_layers={'true' if args.vulkan_validation_layers else 'false'}",
-    ]
+    vulkan_runtime_flags = get_iree_vulkan_runtime_flags()
     if args.enable_rgp:
         vulkan_runtime_flags += [
             f"--enable_rgp=true",
