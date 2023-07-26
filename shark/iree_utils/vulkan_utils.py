@@ -19,6 +19,7 @@ from shark.iree_utils._common import run_cmd
 import iree.runtime as ireert
 from sys import platform
 from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env_flag
+from shark.parser import shark_args
 
 
 def get_vulkan_device_name(device_num=0):
@@ -169,6 +170,15 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
         vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)
         res_vulkan_flag.append(vulkan_target_env)
     return res_vulkan_flag
+
+
+def get_iree_vulkan_runtime_flags():
+    vulkan_runtime_flags = [
+        f"--vulkan_large_heap_block_size={shark_args.vulkan_large_heap_block_size}",
+        f"--vulkan_validation_layers={'true' if shark_args.vulkan_validation_layers else 'false'}",
+        f"--vulkan_vma_allocator={'true' if shark_args.vulkan_vma_allocator else 'false'}",
+    ]
+    return vulkan_runtime_flags
 
 
 def set_iree_vulkan_runtime_flags(flags):
