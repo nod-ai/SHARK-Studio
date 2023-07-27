@@ -7,7 +7,7 @@ import torch
 from matplotlib import pyplot as plt
 
 from evaluate_params import eval_func_param_names, eval_extra_columns
-from gen import get_context, get_score_model, get_model, evaluate, check_locals
+from gen import Langchain
 from prompter import Prompter
 from utils import clear_torch_cache, NullContext, get_kwargs
 
@@ -94,7 +94,7 @@ def run_eval(  # for local function:
     force_langchain_evaluate=None,
     model_state_none=None,
 ):
-    check_locals(**locals())
+    Langchain.check_locals(**locals())
 
     if eval_prompts_only_num > 0:
         np.random.seed(eval_prompts_only_seed)
@@ -144,7 +144,7 @@ def run_eval(  # for local function:
                 ] = ""  # no input
                 examplenew[
                     eval_func_param_names.index("context")
-                ] = get_context(chat_context, prompt_type)
+                ] = Langchain.get_context(chat_context, prompt_type)
                 examples.append(examplenew)
                 responses.append(output)
         else:
@@ -170,7 +170,7 @@ def run_eval(  # for local function:
                 ] = ""  # no input
                 examplenew[
                     eval_func_param_names.index("context")
-                ] = get_context(chat_context, prompt_type)
+                ] = Langchain.get_context(chat_context, prompt_type)
                 examples.append(examplenew)
                 responses.append(output)
 
@@ -210,18 +210,22 @@ def run_eval(  # for local function:
         from functools import partial
 
         # get score model
-        smodel, stokenizer, sdevice = get_score_model(
+        smodel, stokenizer, sdevice = Langchain.get_score_model(
             reward_type=True,
             **get_kwargs(
-                get_score_model, exclude_names=["reward_type"], **locals()
+                Langchain.get_score_model,
+                exclude_names=["reward_type"],
+                **locals()
             )
         )
 
         if not eval_as_output:
-            model, tokenizer, device = get_model(
+            model, tokenizer, device = Langchain.get_model(
                 reward_type=False,
                 **get_kwargs(
-                    get_model, exclude_names=["reward_type"], **locals()
+                    Langchain.get_model,
+                    exclude_names=["reward_type"],
+                    **locals()
                 )
             )
             model_dict = dict(
@@ -236,11 +240,11 @@ def run_eval(  # for local function:
             model_state.update(model_dict)
             my_db_state = [None]
             fun = partial(
-                evaluate,
+                Langchain.evaluate,
                 model_state,
                 my_db_state,
                 **get_kwargs(
-                    evaluate,
+                    Langchain.evaluate,
                     exclude_names=["model_state", "my_db_state"]
                     + eval_func_param_names,
                     **locals()

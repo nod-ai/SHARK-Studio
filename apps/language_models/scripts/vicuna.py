@@ -791,7 +791,7 @@ class ShardedVicuna(VicunaBase):
                 module = SharkInference(
                     None,
                     device=device,
-                    device_idx=idx % 4,
+                    device_idx=device_idx,
                     mlir_dialect="tm_tensor",
                     mmap=False,
                 )
@@ -804,7 +804,7 @@ class ShardedVicuna(VicunaBase):
                 module = SharkInference(
                     mlirs[idx],
                     device=device,
-                    device_idx=idx % 4,
+                    device_idx=device_idx,
                     mlir_dialect="tm_tensor",
                     mmap=False,
                 )
@@ -1251,6 +1251,7 @@ class UnshardedVicuna(VicunaBase):
 
                 
                 first_module = self.write_in_dynamic_inputs0(str(first_module), dynamic_input_size=19)
+
                 if self.cache_vicunas:
                     with open(f"first_{self.precision}.mlir", "w+") as f:
                         f.write(first_module)
@@ -1330,6 +1331,7 @@ class UnshardedVicuna(VicunaBase):
                 if self.cache_vicunas:
                     with open(f"second_{self.precision}.mlir", "w+") as f:
                         f.write(second_module)
+
                     
             combined_module = self.combine_mlir_scripts(first_module, second_module, self.vicuna_mlir_path)
             del first_module, second_module

@@ -21,10 +21,8 @@ def user(message, history):
 
 
 sharkModel = 0
-sharded_model = 0
 h2ogpt_model = 0
 
-past_key_values = None
 
 # NOTE: Each `model_name` should have its own start message
 start_message = """
@@ -43,83 +41,78 @@ def create_prompt(history):
     return msg
 
 
-def chat(curr_system_message, history, model, device, precision):
+def chat(curr_system_message, history, device, precision):
     args.run_docuchat_web = True
-    global sharded_model
-    global past_key_values
     global h2ogpt_model
+    global h2ogpt_tokenizer
+    global model_state
+    global langchain
     global userpath_selector
 
-    model_name, model_path = list(map(str.strip, model.split("=>")))
-    print(f"In chat for {model_name}")
+    if h2ogpt_model == 0:
+        if "cuda" in device:
+            shark_device = "cuda"
+        elif "sync" in device:
+            shark_device = "cpu"
+        elif "task" in device:
+            shark_device = "cpu"
+        elif "vulkan" in device:
+            shark_device = "vulkan"
+        else:
+            print("unrecognized device")
 
-    # if h2ogpt_model == 0:
-    #     if "cuda" in device:
-    #         device = "cuda"
-    #     elif "sync" in device:
-    #         device = "cpu-sync"
-    #     elif "task" in device:
-    #         device = "cpu-task"
-    #     elif "vulkan" in device:
-    #         device = "vulkan"
-    #     else:
-    #         print("unrecognized device")
+        device = "cpu" if shark_device == "cpu" else "cuda"
 
-    #     max_toks = 128 if model_name == "codegen" else 512
-    #     h2ogpt_model = UnshardedVicuna(
-    #         model_name,
-    #         hf_model_path=model_path,
-    #         device=device,
-    #         precision=precision,
-    #         max_num_tokens=max_toks,
-    #     )
+        args.device = shark_device
+        args.precision = precision
+
+        from apps.language_models.langchain.gen import Langchain
+
+        langchain = Langchain(device, precision)
+        h2ogpt_model, h2ogpt_tokenizer, _ = langchain.get_model(
+            load_4bit=True
+            if device == "cuda"
+            else False,  # load model in 4bit if device is cuda to save memory
+            load_gptq="",
+            use_safetensors=False,
+            infer_devices=True,
+            device=device,
+            base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+            inference_server="",
+            tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+            lora_weights="",
+            gpu_id=0,
+            reward_type=None,
+            local_files_only=False,
+            resume_download=True,
+            use_auth_token=False,
+            trust_remote_code=True,
+            offload_folder=None,
+            compile_model=False,
+            verbose=False,
+        )
+        model_state = dict(
+            model=h2ogpt_model,
+            tokenizer=h2ogpt_tokenizer,
+            device=device,
+            base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+            tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
+            lora_weights="",
+            inference_server="",
+            prompt_type=None,
+            prompt_dict=None,
+        )
+
     prompt = create_prompt(history)
-    print(prompt)
-    # print("prompt = ", prompt)
-
-    # for partial_text in h2ogpt_model.generate(prompt):
-    #     history[-1][1] = partial_text
-    #     yield history
-    model, tokenizer, device = gen.get_model(
-        load_half=True,
-        load_gptq="",
-        use_safetensors=False,
-        infer_devices=True,
-        base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
-        inference_server="",
-        tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
-        lora_weights="",
-        gpu_id=0,
-        reward_type=None,
-        local_files_only=False,
-        resume_download=True,
-        use_auth_token=False,
-        trust_remote_code=True,
-        offload_folder=None,
-        compile_model=False,
-        verbose=False,
-    )
-    print(tokenizer.model_max_length)
-    model_state = dict(
-        model=model,
-        tokenizer=tokenizer,
-        device=device,
-        base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
-        tokenizer_base_model="h2oai/h2ogpt-gm-oasst1-en-2048-falcon-7b-v3",
-        lora_weights="",
-        inference_server="",
-        prompt_type=None,
-        prompt_dict=None,
-    )
-    output = gen.evaluate(
-        model_state,  # model_state
-        None,  # my_db_state
-        prompt,  # instruction
-        "",  # iinput
-        "",  # context
-        True,  # stream_output
-        "prompt_answer",  # prompt_type
-        {
+    output = langchain.evaluate(
+        model_state=model_state,
+        my_db_state=None,
+        instruction=prompt,
+        iinput="",
+        context="",
+        stream_output=True,
+        prompt_type="prompt_answer",
+        prompt_dict={
             "promptA": "",
             "promptB": "",
             "PreInstruct": "<|prompt|>",
@@ -135,27 +128,27 @@ def chat(curr_system_message, history, model, device, precision):
             "humanstr": "<|prompt|>",
             "botstr": "<|answer|>",
             "generates_leading_space": False,
-        },  # prompt_dict
-        0.1,  # temperature
-        0.75,  # top_p
-        40,  # top_k
-        1,  # num_beams
-        256,  # max_new_tokens
-        0,  # min_new_tokens
-        False,  # early_stopping
-        180,  # max_time
-        1.07,  # repetition_penalty
-        1,  # num_return_sequences
-        False,  # do_sample
-        True,  # chat
-        prompt,  # instruction_nochat
-        "",  # iinput_nochat
-        "UserData",  # langchain_mode
-        LangChainAction.QUERY.value,  # langchain_action
-        3,  # top_k_docs
-        True,  # chunk
-        512,  # chunk_size
-        [DocumentChoices.All_Relevant.name],  # document_choice
+        },
+        temperature=0.1,
+        top_p=0.75,
+        top_k=40,
+        num_beams=1,
+        max_new_tokens=256,
+        min_new_tokens=0,
+        early_stopping=False,
+        max_time=180,
+        repetition_penalty=1.07,
+        num_return_sequences=1,
+        do_sample=False,
+        chat=True,
+        instruction_nochat=prompt,
+        iinput_nochat="",
+        langchain_mode="UserData",
+        langchain_action=LangChainAction.QUERY.value,
+        top_k_docs=3,
+        chunk=True,
+        chunk_size=512,
+        document_choice=[DocumentChoices.All_Relevant.name],
         concurrency_count=1,
         memory_restriction_level=2,
         raise_generate_gpu_exceptions=False,
@@ -172,7 +165,7 @@ def chat(curr_system_message, history, model, device, precision):
         user_path=userpath_selector.value,
     )
     for partial_text in output:
-        history[-1][1] = partial_text
+        history[-1][1] = partial_text["response"]
         yield history
 
     return history
