@@ -110,6 +110,12 @@ parser.add_argument(
     default=None,
     help="Specify your own huggingface authentication tokens for models like Llama2.",
 )
+parser.add_argument(
+    "--cache_vicunas",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="For debugging purposes, creates a first_{precision}.mlir and second_{precision}.mlir and stores on disk"
+)
 
 
 def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
@@ -977,6 +983,7 @@ class UnshardedVicuna(VicunaBase):
         low_device_memory=False,
         weight_group_size=128,
         download_vmfb=False,
+        cache_vicunas=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         if "llama2" in self.model_name and hf_auth_token == None:
@@ -1003,6 +1010,7 @@ class UnshardedVicuna(VicunaBase):
         if self.vicuna_vmfb_path == None:
             self.vicuna_vmfb_path = self.get_model_path(suffix="vmfb")
         self.tokenizer = self.get_tokenizer()
+        self.cache_vicunas = cache_vicunas
         self.compile()
 
     def get_model_path(self, suffix="mlir"):
@@ -1174,10 +1182,11 @@ class UnshardedVicuna(VicunaBase):
                 else:
                     compilation_prompt = "".join(["0" for _ in range(17)])
 
-                if Path("first.mlir").exists():
-                    print("loading first.mlir")
-                    with open(Path("first.mlir"), "r") as f:
-                        first_module = f.read()
+
+                if Path(f'first_{self.precision}.mlir').exists():
+                    print(f"loading first_{self.precision}.mlir")
+                    with open(Path(f"first_{self.precision}.mlir"), "r") as f:
+                      first_module = f.read()
                 else:
                     # generate first vicuna
                     compilation_input_ids = self.tokenizer(
@@ -1211,6 +1220,7 @@ class UnshardedVicuna(VicunaBase):
                     ] = torch_mlir.TensorPlaceholder.like(
                         firstVicunaCompileInput[0], dynamic_axes=[1]
                     )
+
                     firstVicunaCompileInput = tuple(firstVicunaCompileInput)
                     first_module = None
                     print(f"[DEBUG] generating torch mlir")
@@ -1247,12 +1257,13 @@ class UnshardedVicuna(VicunaBase):
                     first_module = self.write_in_dynamic_inputs0(
                         str(first_module), dynamic_input_size=19
                     )
-                    with open("first.mlir", "w+") as f:
-                        f.write(first_module)
+                    if self.cache_vicunas:
+                        with open(f"first_{self.precision}.mlir", "w+") as f:
+                            f.write(first_module)
 
-                if Path("second.mlir").exists():
-                    print("loading second.mlir")
-                    with open(Path("second.mlir"), "r") as f:
+                if Path(f"second_{self.precision}.mlir").exists():
+                    print(f"loading second_{self.precision}.mlir")
+                    with open(Path(f"second_{self.precision}.mlir"), "r") as f:
                         second_module = f.read()
                 else:
                     # generate second vicuna
@@ -1330,8 +1341,9 @@ class UnshardedVicuna(VicunaBase):
                     second_module = self.write_in_dynamic_inputs1(
                         str(second_module)
                     )
-                    with open("second.mlir", "w+") as f:
-                        f.write(second_module)
+                    if self.cache_vicunas:
+                        with open(f"second_{self.precision}.mlir", "w+") as f:
+                            f.write(second_module)
 
                 combined_module = self.combine_mlir_scripts(
                     first_module, second_module, self.vicuna_mlir_path
@@ -1370,7 +1382,8 @@ class UnshardedVicuna(VicunaBase):
     def generate(self, prompt, cli=True):
         # TODO: refactor for cleaner integration
         import gc
-
+        if self.shark_model is None:
+            self.compile()
         res_tokens = []
         params = {"prompt": prompt, "is_first": True, "fv": self.shark_model}
 
@@ -1454,6 +1467,7 @@ if __name__ == "__main__":
             load_mlir_from_shark_tank=args.load_mlir_from_shark_tank,
             weight_group_size=args.weight_group_size,
             download_vmfb=args.download_vmfb,
+            cache_vicunas=args.cache_vicunas,
         )
     else:
         if args.config is not None:
