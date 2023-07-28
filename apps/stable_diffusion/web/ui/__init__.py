@@ -78,6 +78,7 @@ from apps.stable_diffusion.web.ui.stablelm_ui import (
     stablelm_chat,
     llm_chat_api,
 )
+from apps.stable_diffusion.web.ui.generate_config import model_config_web
 from apps.stable_diffusion.web.ui.h2ogpt import h2ogpt_web
 from apps.stable_diffusion.web.ui.minigpt4_ui import minigpt4_web
 from apps.stable_diffusion.web.ui.outputgallery_ui import (
