@@ -221,16 +221,8 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
-            with gr.TabItem(label="Model Manager", id=5):
-                model_web.render()
-            with gr.TabItem(label="Chat Bot(Experimental)", id=6):
-                stablelm_chat.render()
-            with gr.TabItem(label="LoRA Training(Experimental)", id=7):
-                lora_train_web.render()
-            with gr.TabItem(label="MultiModal (Experimental)", id=8):
-                minigpt4_web.render()
             if args.output_gallery:
-                with gr.TabItem(label="Output Gallery", id=9) as og_tab:
+                with gr.TabItem(label="Output Gallery", id=5) as og_tab:
                     outputgallery_web.render()
 
                 # extra output gallery configuration
@@ -244,6 +236,14 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
+            with gr.TabItem(label="Model Manager", id=6):
+                model_web.render()
+            with gr.TabItem(label="LoRA Training (Experimental)", id=8):
+                lora_train_web.render()
+            with gr.TabItem(label="Chat Bot (Experimental)", id=7):
+                stablelm_chat.render()
+            with gr.TabItem(label="MultiModal (Experimental)", id=9):
+                minigpt4_web.render()
             with gr.TabItem(label="DocuChat(Experimental)", id=10):
                 h2ogpt_web.render()
 
