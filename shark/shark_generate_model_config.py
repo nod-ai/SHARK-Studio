@@ -26,9 +26,9 @@ class GenerateConfigFile:
     def split_into_dispatches(
         self,
         backend,
-        fx_tracing_required=True,
+        fx_tracing_required=False,
         f16_model=False,
-        torch_mlir_tracing=False,
+        torch_mlir_tracing=True,
     ):
         graph_for_compilation = self.model
         if fx_tracing_required:
@@ -103,3 +103,29 @@ class GenerateConfigFile:
     def generate_json(self, artifacts):
         with open(self.config_file_path, "w") as outfile:
             json.dump(artifacts, outfile)
+
+
+if __name__ == "__main__":
+    import torch
+    from transformers import AutoTokenizer
+
+    hf_model_path = "TheBloke/vicuna-7B-1.1-HF"
+    tokenizer = AutoTokenizer.from_pretrained(hf_model_path, use_fast=False)
+    compilation_prompt = "".join(["0" for _ in range(17)])
+    compilation_input_ids = tokenizer(
+        compilation_prompt,
+        return_tensors="pt",
+    ).input_ids
+    compilation_input_ids = torch.tensor(compilation_input_ids).reshape(
+        [1, 19]
+    )
+    firstVicunaCompileInput = (compilation_input_ids,)
+    from apps.language_models.src.model_wrappers.vicuna_model import (
+        FirstVicuna,
+        SecondVicuna,
+        CombinedModel,
+    )
+
+    model = CombinedModel()
+    c = GenerateConfigFile(model, 1, ["gpu_id"], firstVicunaCompileInput)
+    c.split_into_dispatches("vulkan")
