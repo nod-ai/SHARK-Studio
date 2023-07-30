@@ -459,7 +459,12 @@ def get_available_devices():
                 device_name = (
                     cpu_name if device["name"] == "default" else device["name"]
                 )
-                device_list.append(f"{device_name} => {driver_name}://{i}")
+                if "local" in driver_name:
+                    device_list.append(
+                        f"{device_name} => {driver_name.replace('local', 'cpu')}"
+                    )
+                else:
+                    device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
