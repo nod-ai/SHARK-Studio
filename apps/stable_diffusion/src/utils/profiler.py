@@ -3,7 +3,9 @@ from apps.stable_diffusion.src.utils.stable_args import args
 
 # Helper function to profile the vulkan device.
 def start_profiling(file_path="foo.rdc", profiling_mode="queue"):
-    if args.vulkan_debug_utils and "vulkan" in args.device:
+    from shark.parser import shark_args
+
+    if shark_args.vulkan_debug_utils and "vulkan" in args.device:
         import iree
 
         print(f"Profiling and saving to {file_path}.")
