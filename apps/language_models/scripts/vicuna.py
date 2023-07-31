@@ -1024,7 +1024,7 @@ class UnshardedVicuna(VicunaBase):
         low_device_memory=False,
         weight_group_size=128,
         download_vmfb=False,
-        cache_vicunas=True,
+        cache_vicunas=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         if "llama2" in self.model_name and hf_auth_token == None:
