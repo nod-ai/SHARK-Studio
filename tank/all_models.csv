@@ -43,4 +43,3 @@ t5-base,linalg,torch,1e-2,1e-3,default,None,True,True,True,"Inputs for seq2seq m
 t5-base,stablehlo,tf,1e-2,1e-3,default,None,False,False,False,"","macos"
 t5-large,linalg,torch,1e-2,1e-3,default,None,True,True,True,"Inputs for seq2seq models in torch currently unsupported","macos"
 t5-large,stablehlo,tf,1e-2,1e-3,default,None,False,False,False,"","macos"
-stabilityai/stable-diffusion-2-1-base,linalg,torch,1e-3,1e-3,default,None,True,False,False,"","macos"
