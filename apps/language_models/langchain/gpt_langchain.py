@@ -87,7 +87,7 @@ from langchain.document_loaders import (
     UnstructuredExcelLoader,
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter, Language
-from langchain.chains.question_answering import load_qa_chain
+from expanded_pipelines import load_qa_chain
 from langchain.docstore.document import Document
 from langchain import PromptTemplate, HuggingFaceTextGenInference
 from langchain.vectorstores import Chroma
@@ -2958,56 +2958,8 @@ def get_similarity_chain(
                 template=template,
             )
             chain = load_qa_chain(llm, prompt=prompt)
-        else:
-            # only if use_openai_model = True, unused normally except in testing
-            chain = load_qa_with_sources_chain(llm)
-        if not use_context:
-            chain_kwargs = dict(input_documents=[], question=query)
-        else:
-            chain_kwargs = dict(input_documents=docs, question=query)
+        chain_kwargs = dict(input_documents=docs, question=query)
         target = wrapped_partial(chain, chain_kwargs)
-    elif langchain_action in [
-        LangChainAction.SUMMARIZE_MAP.value,
-        LangChainAction.SUMMARIZE_REFINE,
-        LangChainAction.SUMMARIZE_ALL.value,
-    ]:
-        from langchain.chains.summarize import load_summarize_chain
-
-        if langchain_action == LangChainAction.SUMMARIZE_MAP.value:
-            prompt = PromptTemplate(
-                input_variables=["text"], template=template
-            )
-            chain = load_summarize_chain(
-                llm,
-                chain_type="map_reduce",
-                map_prompt=prompt,
-                combine_prompt=prompt,
-                return_intermediate_steps=True,
-            )
-            target = wrapped_partial(
-                chain, {"input_documents": docs}
-            )  # , return_only_outputs=True)
-        elif langchain_action == LangChainAction.SUMMARIZE_ALL.value:
-            assert use_template
-            prompt = PromptTemplate(
-                input_variables=["text"], template=template
-            )
-            chain = load_summarize_chain(
-                llm,
-                chain_type="stuff",
-                prompt=prompt,
-                return_intermediate_steps=True,
-            )
-            target = wrapped_partial(chain)
-        elif langchain_action == LangChainAction.SUMMARIZE_REFINE.value:
-            chain = load_summarize_chain(
-                llm, chain_type="refine", return_intermediate_steps=True
-            )
-            target = wrapped_partial(chain)
-        else:
-            raise RuntimeError(
-                "No such langchain_action=%s" % langchain_action
-            )
     else:
         raise RuntimeError("No such langchain_action=%s" % langchain_action)
 

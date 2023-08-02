@@ -425,27 +425,6 @@ p.add_argument(
     help="Specify target triple for metal.",
 )
 
-p.add_argument(
-    "--vulkan_debug_utils",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Profiles vulkan device and collects the .rdc info.",
-)
-
-p.add_argument(
-    "--vulkan_large_heap_block_size",
-    default="2073741824",
-    help="Flag for setting VMA preferredLargeHeapBlockSize for "
-    "vulkan device, default is 4G.",
-)
-
-p.add_argument(
-    "--vulkan_validation_layers",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Flag for disabling vulkan validation layers when benchmarking.",
-)
-
 ##############################################################################
 # Misc. Debug and Optimization flags
 ##############################################################################
