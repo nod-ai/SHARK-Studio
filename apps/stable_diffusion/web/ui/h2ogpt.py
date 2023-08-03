@@ -164,10 +164,7 @@ def chat(curr_system_message, history, device, precision):
         model_lock=True,
         user_path=userpath_selector.value,
     )
-    for partial_text in output:
-        history[-1][1] = partial_text["response"]
-        yield history
-
+    history[-1][1] = output["response"]
     return history
 
 
