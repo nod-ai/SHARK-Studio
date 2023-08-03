@@ -49,7 +49,6 @@ def compile_stableLM(
 ):
     from shark.shark_inference import SharkInference
 
-    # device = "cuda"  # "cpu"
     # TODO: vmfb and mlir name should include precision and device
     vmfb_path = (
         Path(model_name + f"_{device}.vmfb")
@@ -130,13 +129,6 @@ def get_tokenizer():
     return tok
 
 
-# sharkStableLM = compile_stableLM
-# (
-#   None,
-#   tuple([input_ids, attention_mask]),
-#   "stableLM_linalg_f32_seqLen256",
-#   "/home/shark/vivek/stableLM_shark_f32_seqLen256"
-# )
 def generate(
     new_text,
     max_new_tokens,
@@ -148,18 +140,8 @@ def generate(
     # Construct the input message string for the model by
     # concatenating the current system message and conversation history
     # Tokenize the messages string
-    # sharkStableLM = compile_stableLM
-    # (
-    #   None,
-    #   tuple([input_ids, attention_mask]),
-    #   "stableLM_linalg_f32_seqLen256",
-    #   "/home/shark/vivek/stableLM_shark_f32_seqLen256"
-    # )
     words_list = []
     for i in range(max_new_tokens):
-        # numWords = len(new_text.split())
-        # if(numWords>220):
-        #  break
         params = {
             "new_text": new_text,
         }
@@ -188,7 +170,6 @@ def generate_new_token(shark_model, tokenizer, params):
         return_tensors="pt",
     )
     sum_attentionmask = torch.sum(model_inputs.attention_mask)
-    # sharkStableLM = compile_stableLM(None, tuple([input_ids, attention_mask]), "stableLM_linalg_f32_seqLen256", "/home/shark/vivek/stableLM_shark_f32_seqLen256")
     output = shark_model(
         "forward", [model_inputs.input_ids, model_inputs.attention_mask]
     )
