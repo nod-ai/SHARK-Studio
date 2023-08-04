@@ -1,5 +1,7 @@
 import re
 import json
+import numpy as np
+
 import torch_mlir
 from iree.compiler import compile_str
 from shark.shark_importer import import_with_fx, get_f16_inputs
@@ -11,6 +13,7 @@ class GenerateConfigFile:
         model,
         num_sharding_stages: int,
         sharding_stages_id: list[str],
+        units_in_each_stage: list[int],
         model_input=None,
         config_file_path="model_config.json",
     ):
@@ -22,6 +25,9 @@ class GenerateConfigFile:
         ), "Number of sharding stages should be equal to the list of their ID"
         self.model_input = model_input
         self.config_file_path = config_file_path
+        # (Nithin) this is a quick fix - revisit and rewrite
+        self.units_in_each_stage = np.array(units_in_each_stage)
+        self.track_loop = np.zeros(len(self.sharding_stages_id)).astype(int)
 
     def split_into_dispatches(
         self,
@@ -95,7 +101,17 @@ class GenerateConfigFile:
             if substring_before_final_period in model_dictionary:
                 del model_dictionary[substring_before_final_period]
 
-            layer_dict = {n: "None" for n in self.sharding_stages_id}
+            # layer_dict = {n: "None" for n in self.sharding_stages_id}
+
+            # By default embed increasing device id's for each layer
+            increasing_wraparound_idx_list = (
+                self.track_loop % self.units_in_each_stage
+            )
+            layer_dict = {
+                n: int(increasing_wraparound_idx_list[idx])
+                for idx, n in enumerate(self.sharding_stages_id)
+            }
+            self.track_loop += 1
             model_dictionary[name] = layer_dict
 
         self.generate_json(model_dictionary)
