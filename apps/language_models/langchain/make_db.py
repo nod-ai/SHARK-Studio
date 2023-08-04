@@ -1,5 +1,4 @@
 import os
-import fire
 
 from gpt_langchain import (
     path_to_docs,
@@ -202,7 +201,3 @@ def make_db_main(
     if verbose:
         print("DONE", flush=True)
     return db, collection_name
-
-
-if __name__ == "__main__":
-    fire.Fire(make_db_main)
