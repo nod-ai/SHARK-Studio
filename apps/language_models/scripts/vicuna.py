@@ -1201,6 +1201,9 @@ class ShardedVicuna(VicunaBase):
         return self.get_sharded_model(
             device=device, compressed=self.compressed
         )
+        return self.get_sharded_model(
+            device=device, compressed=self.compressed
+        )
 
     def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
