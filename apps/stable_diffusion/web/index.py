@@ -115,6 +115,7 @@ if __name__ == "__main__":
         txt2img_sendto_inpaint,
         txt2img_sendto_outpaint,
         txt2img_sendto_upscaler,
+        h2ogpt_upload,
         h2ogpt_web,
         img2img_web,
         img2img_custom_model,
@@ -154,6 +155,7 @@ if __name__ == "__main__":
         upscaler_sendto_outpaint,
         lora_train_web,
         model_web,
+        model_config_web,
         hf_models,
         modelmanager_sendto_txt2img,
         modelmanager_sendto_img2img,
@@ -221,6 +223,16 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
+            with gr.TabItem(label="Model Manager", id=6):
+                model_web.render()
+            with gr.TabItem(label="Chat Bot(Experimental)", id=7):
+                stablelm_chat.render()
+            with gr.TabItem(label="Generate Sharding Config", id=8):
+                model_config_web.render()
+            with gr.TabItem(label="LoRA Training(Experimental)", id=9):
+                lora_train_web.render()
+            with gr.TabItem(label="MultiModal (Experimental)", id=10):
+                minigpt4_web.render()
             if args.output_gallery:
                 with gr.TabItem(label="Output Gallery", id=5) as og_tab:
                     outputgallery_web.render()
@@ -236,15 +248,9 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
-            with gr.TabItem(label="Model Manager", id=6):
-                model_web.render()
-            with gr.TabItem(label="LoRA Training (Experimental)", id=8):
-                lora_train_web.render()
-            with gr.TabItem(label="Chat Bot (Experimental)", id=7):
-                stablelm_chat.render()
-            with gr.TabItem(label="MultiModal (Experimental)", id=9):
-                minigpt4_web.render()
-            with gr.TabItem(label="DocuChat(Experimental)", id=10):
+            with gr.TabItem(label="DocuChat Upload", id=11):
+                h2ogpt_upload.render()
+            with gr.TabItem(label="DocuChat(Experimental)", id=12):
                 h2ogpt_web.render()
 
         # send to buttons

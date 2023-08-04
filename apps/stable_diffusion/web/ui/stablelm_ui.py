@@ -7,6 +7,7 @@ from transformers import (
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
 from datetime import datetime as dt
+import json
 
 
 def user(message, history):
@@ -113,7 +114,15 @@ def set_vicuna_model(model):
 
 
 # TODO: Make chat reusable for UI and API
-def chat(curr_system_message, history, model, device, precision, cli=True):
+def chat(
+    curr_system_message,
+    history,
+    model,
+    devices,
+    precision,
+    config_file,
+    cli=True,
+):
     global past_key_values
 
     global vicuna_model
@@ -138,6 +147,7 @@ def chat(curr_system_message, history, model, device, precision, cli=True):
         from apps.stable_diffusion.src import args
 
         if vicuna_model == 0:
+            device = devices[0]
             if "cuda" in device:
                 device = "cuda"
             elif "sync" in device:
@@ -345,13 +355,14 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         supported_devices = supported_devices[-1:] + supported_devices[:-1]
         supported_devices = [x for x in supported_devices if "sync" not in x]
         print(supported_devices)
-        device = gr.Dropdown(
+        devices = gr.Dropdown(
             label="Device",
             value=supported_devices[0]
             if enabled
             else "Only CUDA Supported for now",
             choices=supported_devices,
             interactive=enabled,
+            multiselect=True,
         )
         precision = gr.Radio(
             label="Precision",
@@ -395,7 +406,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, model, devices, precision, config_file],
         outputs=[chatbot],
         queue=True,
     )
@@ -403,7 +414,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, model, devices, precision, config_file],
         outputs=[chatbot],
         queue=True,
     )

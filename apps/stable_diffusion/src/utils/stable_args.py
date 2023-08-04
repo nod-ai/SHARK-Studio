@@ -519,6 +519,12 @@ p.add_argument(
     "in shark importer. Does nothing if import_mlir is false (the default).",
 )
 
+p.add_argument(
+    "--iree_constant_folding",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Controls constant folding in iree-compile for all SD models.",
+)
 
 ##############################################################################
 # Web UI flags

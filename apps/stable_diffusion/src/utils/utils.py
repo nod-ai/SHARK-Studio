@@ -500,6 +500,12 @@ def get_opt_flags(model, precision="fp16"):
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
 
+    if args.iree_constant_folding == False:
+        iree_flags.append("--iree-opt-const-expr-hoisting=False")
+        iree_flags.append(
+            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
+        )
+
     # Disable bindings fusion to work with moltenVK.
     if sys.platform == "darwin":
         iree_flags.append("-iree-stream-fuse-binding=false")
