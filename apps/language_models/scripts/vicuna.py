@@ -6,8 +6,8 @@ from io import BytesIO
 from pathlib import Path
 from tqdm import tqdm
 from typing import List, Tuple
-
 import subprocess
+
 import torch
 import torch_mlir
 from torch_mlir import TensorPlaceholder
@@ -27,7 +27,7 @@ from apps.language_models.src.model_wrappers.vicuna_sharded_model import (
     VicunaNorm,
     VicunaNormCompiled,
 )
-from apps.language_models.src.model_wrappers.vicuna4 import(
+from apps.language_models.src.model_wrappers.vicuna4 import (
     LlamaModel,
     EightLayerLayerSV,
     EightLayerLayerFV,
@@ -478,9 +478,8 @@ class ShardedVicuna(VicunaBase):
         self.tokenizer = self.get_tokenizer()
         self.config = config_json
         self.weight_group_size = weight_group_size
-        self.compressed=compressed
+        self.compressed = compressed
         self.shark_model = self.compile(device=device)
-        
 
     def get_tokenizer(self):
         kwargs = {}
@@ -678,18 +677,23 @@ class ShardedVicuna(VicunaBase):
                 hidden_states, dynamic_axes=[1]
             )
 
-            module = torch_mlir.compile(
-                lmh,
-                (hidden_states,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
-            )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            # module = torch_mlir.compile(
+            #    lmh,
+            #    (hidden_states,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            # bytecode_stream = BytesIO()
+            # module.operation.write_bytecode(bytecode_stream)
+            # bytecode = bytecode_stream.getvalue()
+            # f_ = open(mlir_path, "wb")
+            # f_.write(bytecode)
+            # f_.close()
+            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/lmhead.mlir lmhead.mlir"
+            subprocess.check_call(command.split())
+            f_ = open(f"lmhead.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -721,18 +725,17 @@ class ShardedVicuna(VicunaBase):
                 hidden_states, dynamic_axes=[1]
             )
 
-            module = torch_mlir.compile(
-                fvn,
-                (hidden_states,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
-            )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            # module = torch_mlir.compile(
+            #    fvn,
+            #    (hidden_states,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/norm.mlir norm.mlir"
+            subprocess.check_call(command.split())
+            f_ = open(f"norm.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -763,18 +766,23 @@ class ShardedVicuna(VicunaBase):
             input_ids = torch_mlir.TensorPlaceholder.like(
                 input_ids, dynamic_axes=[1]
             )
-            module = torch_mlir.compile(
-                fve,
-                (input_ids,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
-            )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            # module = torch_mlir.compile(
+            #    fve,
+            #    (input_ids,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            # bytecode_stream = BytesIO()
+            # module.operation.write_bytecode(bytecode_stream)
+            # bytecode = bytecode_stream.getvalue()
+            # f_ = open(mlir_path, "wb")
+            # f_.write(bytecode)
+            # f_.close()
+            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/embedding.mlir embedding.mlir"
+            subprocess.check_call(command.split())
+            f_ = open(f"embedding.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -987,8 +995,6 @@ class ShardedVicuna(VicunaBase):
                 f_.close()
                 mlirs.append(bytecode)
 
-                
-
             if vmfb_path.exists():
                 # print(f"Found layer {idx} vmfb")
                 device_idx = self.get_device_index(
@@ -1125,7 +1131,6 @@ class ShardedVicuna(VicunaBase):
         )
 
         if not compressed:
-
             layers0 = [
                 FirstVicunaLayer(layer) for layer in vicuna_model.model.layers
             ]
@@ -1169,7 +1174,9 @@ class ShardedVicuna(VicunaBase):
         return sharded_model
 
     def compile(self, device="cpu"):
-        return self.get_sharded_model(device=device, compressed=self.compressed)
+        return self.get_sharded_model(
+            device=device, compressed=self.compressed
+        )
 
     def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
