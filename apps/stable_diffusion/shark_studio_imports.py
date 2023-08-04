@@ -51,6 +51,10 @@ datas += collect_data_files("jsonschema")
 datas += collect_data_files("jsonschema_specifications")
 datas += collect_data_files("cpuinfo")
 datas += collect_data_files("langchain")
+datas += [  ("../language_models/src/model_wrappers/vicuna4.py","."),
+            ("../language_models/src/model_wrappers/vicuna_model.py","."),
+            ("../language_models/src/model_wrappers/vicuna_sharded_model.py","."),
+          ]
 datas += [
     ("src/utils/resources/prompts.json", "resources"),
     ("src/utils/resources/model_db.json", "resources"),
