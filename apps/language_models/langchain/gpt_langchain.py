@@ -968,7 +968,7 @@ def get_llm(
         # not built in prompt removal that is less general and not specific for our model
         pipe.task = "text2text-generation"
 
-        from langchain.llms import HuggingFacePipeline
+        from exp_hf_pipelines import HuggingFacePipeline
 
         llm = HuggingFacePipeline(pipeline=pipe)
     return llm, model_name, streamer, prompt_type
