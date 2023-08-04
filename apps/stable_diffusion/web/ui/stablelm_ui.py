@@ -27,6 +27,7 @@ model_map = {
     "codegen": "Salesforce/codegen25-7b-multi",
     "vicuna1p3": "lmsys/vicuna-7b-v1.3",
     "vicuna": "TheBloke/vicuna-7B-1.1-HF",
+    "vicuna4": "TheBloke/vicuna-7B-1.1-HF",
     "StableLM": "stabilityai/stablelm-tuned-alpha-3b",
 }
 
@@ -66,6 +67,11 @@ start_message = {
         "The assistant gives helpful, detailed, and polite answers to the user's "
         "questions.\n"
     ),
+    "vicuna4": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
     "vicuna1p3": (
         "A chat between a curious user and an artificial intelligence assistant. "
         "The assistant gives helpful, detailed, and polite answers to the user's "
@@ -81,6 +87,7 @@ def create_prompt(model_name, history):
     if model_name in [
         "StableLM",
         "vicuna",
+        "vicuna4",
         "vicuna1p3",
         "llama2_7b",
         "llama2_70b",
@@ -123,15 +130,20 @@ def chat(
 
     if model_name in [
         "vicuna",
+        "vicuna4",
         "vicuna1p3",
         "codegen",
         "llama2_7b",
         "llama2_70b",
     ]:
-        from apps.language_models.scripts.vicuna import (
-            UnshardedVicuna,
-            ShardedVicuna,
-        )
+        if model_name == "vicuna4":
+            from apps.language_models.scripts.vicuna import (
+                ShardedVicuna as Vicuna,
+            )
+        else:
+            from apps.language_models.scripts.vicuna import (
+                UnshardedVicuna as Vicuna,
+            )
         from apps.stable_diffusion.src import args
 
         if vicuna_model == 0:
@@ -148,28 +160,39 @@ def chat(
                 print("unrecognized device")
 
             max_toks = 128 if model_name == "codegen" else 512
-            if len(devices) == 1 and config_file is None:
-                vicuna_model = UnshardedVicuna(
+            if model_name == "vicuna4":
+                vicuna_model = Vicuna(
                     model_name,
                     hf_model_path=model_path,
-                    hf_auth_token=args.hf_auth_token,
                     device=device,
                     precision=precision,
                     max_num_tokens=max_toks,
+                    compressed=True,
                 )
             else:
-                if config_file is not None:
-                    config_file = open(config_file)
-                    config_json = json.load(config_file)
-                    config_file.close()
+                if len(devices) == 1 and config_file is None:
+                    vicuna_model = Vicuna(
+                        model_name,
+                        hf_model_path=model_path,
+                        hf_auth_token=args.hf_auth_token,
+                        device=device,
+                        precision=precision,
+                        max_num_tokens=max_toks,
+                    )
                 else:
-                    config_json = None
-                vicuna_model = ShardedVicuna(
-                    model_name,
-                    device=device,
-                    precision=precision,
-                    config_json=config_json,
-                )
+                    if config_file is not None:
+                        config_file = open(config_file)
+                        config_json = json.load(config_file)
+                        config_file.close()
+                    else:
+                        config_json = None
+                    vicuna_model = Vicuna(
+                        model_name,
+                        device=device,
+                        precision=precision,
+                        config_json=config_json,
+                    )
+
         prompt = create_prompt(model_name, history)
 
         for partial_text in vicuna_model.generate(prompt, cli=cli):
