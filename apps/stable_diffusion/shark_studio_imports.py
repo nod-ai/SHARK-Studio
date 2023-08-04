@@ -50,6 +50,7 @@ datas += collect_data_files("sentencepiece")
 datas += collect_data_files("jsonschema")
 datas += collect_data_files("jsonschema_specifications")
 datas += collect_data_files("cpuinfo")
+datas += collect_data_files("langchain")
 datas += [
     ("src/utils/resources/prompts.json", "resources"),
     ("src/utils/resources/model_db.json", "resources"),
