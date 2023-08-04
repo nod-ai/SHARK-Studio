@@ -7,6 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 from typing import List, Tuple
 
+import subprocess
 import torch
 import torch_mlir
 from torch_mlir import TensorPlaceholder
