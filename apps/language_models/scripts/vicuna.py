@@ -690,8 +690,14 @@ class ShardedVicuna(VicunaBase):
             # f_ = open(mlir_path, "wb")
             # f_.write(bytecode)
             # f_.close()
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/lmhead.mlir lmhead.mlir"
-            subprocess.check_call(command.split())
+            # command = f"gsutil cp gs://shark_tank/elias/compressed_sv/lmhead.mlir lmhead.mlir"
+            # subprocess.check_call(command.split())
+            filepath = Path("lmhead.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/lmhead.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"lmhead.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -732,8 +738,14 @@ class ShardedVicuna(VicunaBase):
             #    use_tracing=False,
             #    verbose=False,
             # )
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/norm.mlir norm.mlir"
-            subprocess.check_call(command.split())
+            # command = f"gsutil cp gs://shark_tank/elias/compressed_sv/norm.mlir norm.mlir"
+            # subprocess.check_call(command.split())
+            filepath = Path("norm.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/norm.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"norm.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -779,8 +791,14 @@ class ShardedVicuna(VicunaBase):
             # f_ = open(mlir_path, "wb")
             # f_.write(bytecode)
             # f_.close()
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/embedding.mlir embedding.mlir"
-            subprocess.check_call(command.split())
+            # command = f"gsutil cp gs://shark_tank/elias/compressed_sv/embedding.mlir embedding.mlir"
+            # subprocess.check_call(command.split())
+            filepath = Path("embedding.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/embedding.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"embedding.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -986,9 +1004,15 @@ class ShardedVicuna(VicunaBase):
                 f_.close()
                 mlirs.append(bytecode)
             else:
-                command = f"gsutil cp gs://shark_tank/elias/compressed_sv/{idx}_full.mlir {idx}_full.mlir"
+                # command = f"gsutil cp gs://shark_tank/elias/compressed_sv/{idx}_full.mlir {idx}_full.mlir"
 
-                subprocess.check_call(command.split())
+                # subprocess.check_call(command.split())
+                filepath = Path(f"{idx}_full.mlir")
+                download_public_file(
+                    f"gs://shark_tank/elias/compressed_sv/{idx}_full.mlir",
+                    filepath.absolute(),
+                    single_file=True,
+                )
 
                 f_ = open(f"{idx}_full.mlir", "rb")
                 bytecode = f_.read()
@@ -1150,7 +1174,7 @@ class ShardedVicuna(VicunaBase):
             layers0 = [layers00, layers01, layers02, layers03]
             layers1 = [layers10, layers11, layers12, layers13]
 
-        _, modules = self.compile_to_vmfb_one_model(
+        _, modules = self.compile_to_vmfb_one_model4(
             placeholder_input0,
             layers0,
             placeholder_input1,
