@@ -7,6 +7,7 @@ from transformers import (
 )
 from apps.stable_diffusion.web.ui.utils import available_devices
 from datetime import datetime as dt
+import json
 
 
 def user(message, history):
@@ -26,6 +27,7 @@ model_map = {
     "codegen": "Salesforce/codegen25-7b-multi",
     "vicuna1p3": "lmsys/vicuna-7b-v1.3",
     "vicuna": "TheBloke/vicuna-7B-1.1-HF",
+    "vicuna4": "TheBloke/vicuna-7B-1.1-HF",
     "StableLM": "stabilityai/stablelm-tuned-alpha-3b",
 }
 
@@ -65,6 +67,11 @@ start_message = {
         "The assistant gives helpful, detailed, and polite answers to the user's "
         "questions.\n"
     ),
+    "vicuna4": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
     "vicuna1p3": (
         "A chat between a curious user and an artificial intelligence assistant. "
         "The assistant gives helpful, detailed, and polite answers to the user's "
@@ -80,6 +87,7 @@ def create_prompt(model_name, history):
     if model_name in [
         "StableLM",
         "vicuna",
+        "vicuna4",
         "vicuna1p3",
         "llama2_7b",
         "llama2_70b",
@@ -106,7 +114,15 @@ def set_vicuna_model(model):
 
 
 # TODO: Make chat reusable for UI and API
-def chat(curr_system_message, history, model, device, precision, cli=True):
+def chat(
+    curr_system_message,
+    history,
+    model,
+    devices,
+    precision,
+    config_file,
+    cli=True,
+):
     global past_key_values
 
     global vicuna_model
@@ -114,17 +130,24 @@ def chat(curr_system_message, history, model, device, precision, cli=True):
 
     if model_name in [
         "vicuna",
+        "vicuna4",
         "vicuna1p3",
         "codegen",
         "llama2_7b",
         "llama2_70b",
     ]:
-        from apps.language_models.scripts.vicuna import (
-            UnshardedVicuna,
-        )
+        if model_name == "vicuna4":
+            from apps.language_models.scripts.vicuna import (
+                ShardedVicuna as Vicuna,
+            )
+        else:
+            from apps.language_models.scripts.vicuna import (
+                UnshardedVicuna as Vicuna,
+            )
         from apps.stable_diffusion.src import args
 
         if vicuna_model == 0:
+            device = devices[0]
             if "cuda" in device:
                 device = "cuda"
             elif "sync" in device:
@@ -137,14 +160,39 @@ def chat(curr_system_message, history, model, device, precision, cli=True):
                 print("unrecognized device")
 
             max_toks = 128 if model_name == "codegen" else 512
-            vicuna_model = UnshardedVicuna(
-                model_name,
-                hf_model_path=model_path,
-                hf_auth_token=args.hf_auth_token,
-                device=device,
-                precision=precision,
-                max_num_tokens=max_toks,
-            )
+            if model_name == "vicuna4":
+                vicuna_model = Vicuna(
+                    model_name,
+                    hf_model_path=model_path,
+                    device=device,
+                    precision=precision,
+                    max_num_tokens=max_toks,
+                    compressed=True,
+                )
+            else:
+                if len(devices) == 1 and config_file is None:
+                    vicuna_model = Vicuna(
+                        model_name,
+                        hf_model_path=model_path,
+                        hf_auth_token=args.hf_auth_token,
+                        device=device,
+                        precision=precision,
+                        max_num_tokens=max_toks,
+                    )
+                else:
+                    if config_file is not None:
+                        config_file = open(config_file)
+                        config_json = json.load(config_file)
+                        config_file.close()
+                    else:
+                        config_json = None
+                    vicuna_model = Vicuna(
+                        model_name,
+                        device=device,
+                        precision=precision,
+                        config_json=config_json,
+                    )
+
         prompt = create_prompt(model_name, history)
 
         for partial_text in vicuna_model.generate(prompt, cli=cli):
@@ -307,13 +355,14 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         supported_devices = supported_devices[-1:] + supported_devices[:-1]
         supported_devices = [x for x in supported_devices if "sync" not in x]
         print(supported_devices)
-        device = gr.Dropdown(
+        devices = gr.Dropdown(
             label="Device",
             value=supported_devices[0]
             if enabled
             else "Only CUDA Supported for now",
             choices=supported_devices,
             interactive=enabled,
+            multiselect=True,
         )
         precision = gr.Radio(
             label="Precision",
@@ -357,7 +406,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, model, devices, precision, config_file],
         outputs=[chatbot],
         queue=True,
     )
@@ -365,7 +414,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, device, precision],
+        inputs=[system_msg, chatbot, model, devices, precision, config_file],
         outputs=[chatbot],
         queue=True,
     )

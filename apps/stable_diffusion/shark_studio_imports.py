@@ -42,7 +42,7 @@ datas += collect_data_files("gradio")
 datas += collect_data_files("gradio_client")
 datas += collect_data_files("iree")
 datas += collect_data_files("google_cloud_storage")
-datas += collect_data_files("shark")
+datas += collect_data_files("shark", include_py_files=True)
 datas += collect_data_files("timm", include_py_files=True)
 datas += collect_data_files("tkinter")
 datas += collect_data_files("webview")
@@ -50,6 +50,7 @@ datas += collect_data_files("sentencepiece")
 datas += collect_data_files("jsonschema")
 datas += collect_data_files("jsonschema_specifications")
 datas += collect_data_files("cpuinfo")
+datas += collect_data_files("langchain")
 datas += [
     ("src/utils/resources/prompts.json", "resources"),
     ("src/utils/resources/model_db.json", "resources"),
