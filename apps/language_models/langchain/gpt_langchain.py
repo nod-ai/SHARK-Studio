@@ -2510,8 +2510,7 @@ def _run_qa_db(
         formatted_doc_chunks = "\n\n".join(
             [get_url(x) + "\n\n" + x.page_content for x in docs]
         )
-        yield formatted_doc_chunks, ""
-        return
+        return formatted_doc_chunks, ""
     if not docs and langchain_action in [
         LangChainAction.SUMMARIZE_MAP.value,
         LangChainAction.SUMMARIZE_ALL.value,
@@ -2523,8 +2522,7 @@ def _run_qa_db(
             else "No documents to summarize."
         )
         extra = ""
-        yield ret, extra
-        return
+        return ret, extra
     if not docs and langchain_mode not in [
         LangChainMode.DISABLED.value,
         LangChainMode.CHAT_LLM.value,
@@ -2536,8 +2534,7 @@ def _run_qa_db(
             else "No documents to query."
         )
         extra = ""
-        yield ret, extra
-        return
+        return ret, extra
 
     if chain is None and model_name not in non_hf_types:
         # here if no docs at all and not HF type
@@ -2561,7 +2558,7 @@ def _run_qa_db(
     if not use_context:
         ret = answer["output_text"]
         extra = ""
-        yield ret, extra
+        return ret, extra
     elif answer is not None:
         ret, extra = get_sources_answer(
             query,
@@ -2571,7 +2568,7 @@ def _run_qa_db(
             answer_with_sources,
             verbose=verbose,
         )
-        yield ret, extra
+        return ret, extra
     return
 
 

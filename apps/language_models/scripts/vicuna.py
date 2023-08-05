@@ -6,6 +6,7 @@ from io import BytesIO
 from pathlib import Path
 from tqdm import tqdm
 from typing import List, Tuple
+import subprocess
 
 import torch
 import torch_mlir
@@ -25,6 +26,14 @@ from apps.language_models.src.model_wrappers.vicuna_sharded_model import (
     VicunaEmbeddingCompiled,
     VicunaNorm,
     VicunaNormCompiled,
+)
+from apps.language_models.src.model_wrappers.vicuna4 import (
+    LlamaModel,
+    EightLayerLayerSV,
+    EightLayerLayerFV,
+    CompiledEightLayerLayerSV,
+    CompiledEightLayerLayer,
+    forward_compressed,
 )
 from apps.language_models.src.model_wrappers.vicuna_model import (
     FirstVicuna,
@@ -410,6 +419,44 @@ class VicunaBase(SharkLLMBase):
 
         return ret_dict
 
+    def generate_new_token(self, params):
+        is_first = params["is_first"]
+        if is_first:
+            prompt = params["prompt"]
+            input_ids = self.tokenizer(prompt).input_ids
+            # crop input_ids
+            # input_ids = input_ids[len(input_ids) - 20 :]
+            ############
+            input_id_len = len(input_ids)
+            input_ids = torch.tensor(input_ids)
+            input_ids = input_ids.reshape([1, input_id_len])
+            output = self.shark_model.forward(input_ids, is_first=is_first)
+        else:
+            token = params["token"]
+            past_key_values = params["past_key_values"]
+            input_ids = [token]
+            input_id_len = len(input_ids)
+            input_ids = torch.tensor(input_ids)
+            input_ids = input_ids.reshape([1, input_id_len])
+            output = self.shark_model.forward(
+                input_ids, past_key_values=past_key_values, is_first=is_first
+            )
+
+        _logits = output["logits"]
+        _past_key_values = output["past_key_values"]
+        _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
+        _detok = self.tokenizer.decode(_token)
+
+        ret_dict = {
+            "token": _token,
+            "detok": _detok,
+            "past_key_values": _past_key_values,
+        }
+
+        print(f" token : {_token} | detok : {_detok}")
+
+        return ret_dict
+
 
 class ShardedVicuna(VicunaBase):
     # Class representing Sharded Vicuna Model
@@ -422,6 +469,7 @@ class ShardedVicuna(VicunaBase):
         precision="fp32",
         config_json=None,
         weight_group_size=128,
+        compressed=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
@@ -430,6 +478,7 @@ class ShardedVicuna(VicunaBase):
         self.tokenizer = self.get_tokenizer()
         self.config = config_json
         self.weight_group_size = weight_group_size
+        self.compressed = compressed
         self.shark_model = self.compile(device=device)
 
     def get_tokenizer(self):
@@ -542,6 +591,59 @@ class ShardedVicuna(VicunaBase):
         )
         return mlir_bytecode
 
+    def compile_vicuna_layer4(
+        self,
+        vicuna_layer,
+        hidden_states,
+        attention_mask,
+        position_ids,
+        past_key_values=None,
+    ):
+        # Compile a hidden decoder layer of vicuna
+        if past_key_values is None:
+            model_inputs = (hidden_states, attention_mask, position_ids)
+        else:
+            (
+                (pkv00, pkv01),
+                (pkv10, pkv11),
+                (pkv20, pkv21),
+                (pkv30, pkv31),
+                (pkv40, pkv41),
+                (pkv50, pkv51),
+                (pkv60, pkv61),
+                (pkv70, pkv71),
+            ) = past_key_values
+
+            model_inputs = (
+                hidden_states,
+                attention_mask,
+                position_ids,
+                pkv00,
+                pkv01,
+                pkv10,
+                pkv11,
+                pkv20,
+                pkv21,
+                pkv30,
+                pkv31,
+                pkv40,
+                pkv41,
+                pkv50,
+                pkv51,
+                pkv60,
+                pkv61,
+                pkv70,
+                pkv71,
+            )
+        mlir_bytecode = import_with_fx(
+            vicuna_layer,
+            model_inputs,
+            precision=self.precision,
+            f16_input_mask=[False, False],
+            mlir_type="torchscript",
+        )
+        return mlir_bytecode
+
     def get_device_index(self, layer_string):
         # Get the device index from the config file
         # In the event that different device indices are assigned to
@@ -575,18 +677,23 @@ class ShardedVicuna(VicunaBase):
                 hidden_states, dynamic_axes=[1]
             )
 
-            module = torch_mlir.compile(
-                lmh,
-                (hidden_states,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
-            )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            # module = torch_mlir.compile(
+            #    lmh,
+            #    (hidden_states,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            # bytecode_stream = BytesIO()
+            # module.operation.write_bytecode(bytecode_stream)
+            # bytecode = bytecode_stream.getvalue()
+            # f_ = open(mlir_path, "wb")
+            # f_.write(bytecode)
+            # f_.close()
+            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/lmhead.mlir lmhead.mlir"
+            subprocess.check_call(command.split())
+            f_ = open(f"lmhead.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -618,18 +725,17 @@ class ShardedVicuna(VicunaBase):
                 hidden_states, dynamic_axes=[1]
             )
 
-            module = torch_mlir.compile(
-                fvn,
-                (hidden_states,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
-            )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            # module = torch_mlir.compile(
+            #    fvn,
+            #    (hidden_states,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/norm.mlir norm.mlir"
+            subprocess.check_call(command.split())
+            f_ = open(f"norm.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -660,18 +766,23 @@ class ShardedVicuna(VicunaBase):
             input_ids = torch_mlir.TensorPlaceholder.like(
                 input_ids, dynamic_axes=[1]
             )
-            module = torch_mlir.compile(
-                fve,
-                (input_ids,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
-            )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            # module = torch_mlir.compile(
+            #    fve,
+            #    (input_ids,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            # bytecode_stream = BytesIO()
+            # module.operation.write_bytecode(bytecode_stream)
+            # bytecode = bytecode_stream.getvalue()
+            # f_ = open(mlir_path, "wb")
+            # f_.write(bytecode)
+            # f_.close()
+            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/embedding.mlir embedding.mlir"
+            subprocess.check_call(command.split())
+            f_ = open(f"embedding.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -858,11 +969,78 @@ class ShardedVicuna(VicunaBase):
             modules.append(module)
         return mlirs, modules
 
-    def get_sharded_model(self, device="cpu"):
+    def compile_to_vmfb_one_model4(
+        self, inputs0, layers0, inputs1, layers1, device="cpu"
+    ):
+        mlirs, modules = [], []
+        assert len(layers0) == len(layers1)
+        for layer0, layer1, idx in zip(layers0, layers1, range(len(layers0))):
+            mlir_path = Path(f"{idx}_full.mlir")
+            vmfb_path = Path(f"{idx}_full.vmfb")
+            # if vmfb_path.exists():
+            #    continue
+            if mlir_path.exists():
+                # print(f"Found layer {idx} mlir")
+                f_ = open(mlir_path, "rb")
+                bytecode = f_.read()
+                f_.close()
+                mlirs.append(bytecode)
+            else:
+                command = f"gsutil cp gs://shark_tank/elias/compressed_sv/{idx}_full.mlir {idx}_full.mlir"
+
+                subprocess.check_call(command.split())
+
+                f_ = open(f"{idx}_full.mlir", "rb")
+                bytecode = f_.read()
+                f_.close()
+                mlirs.append(bytecode)
+
+            if vmfb_path.exists():
+                # print(f"Found layer {idx} vmfb")
+                device_idx = self.get_device_index(
+                    f"first_vicuna.model.model.layers.{idx}[\s.$]"
+                )
+                module = SharkInference(
+                    None,
+                    device=device,
+                    device_idx=0,
+                    mlir_dialect="tm_tensor",
+                    mmap=True,
+                )
+                module.load_module(vmfb_path)
+            else:
+                print(f"Compiling layer {idx} vmfb")
+                device_idx = self.get_device_index(
+                    f"first_vicuna.model.model.layers.{idx}[\s.$]"
+                )
+                module = SharkInference(
+                    mlirs[idx],
+                    device=device,
+                    device_idx=0,
+                    mlir_dialect="tm_tensor",
+                    mmap=True,
+                )
+                module.save_module(
+                    module_name=f"{idx}_full",
+                    extra_args=[
+                        "--iree-vm-target-truncate-unsupported-floats",
+                        "--iree-codegen-check-ir-before-llvm-conversion=false",
+                        "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+                    ],
+                )
+                module.load_module(vmfb_path)
+            modules.append(module)
+        return mlirs, modules
+
+    def get_sharded_model(self, device="cpu", compressed=False):
         # SAMPLE_INPUT_LEN is used for creating mlir with dynamic inputs, which is currently an increadibly hacky proccess
         # please don't change it
         SAMPLE_INPUT_LEN = 137
         vicuna_model = self.get_src_model()
+        if compressed:
+            vicuna_model.model = LlamaModel.from_pretrained(
+                "TheBloke/vicuna-7B-1.1-HF"
+            )
 
         if self.precision in ["int4", "int8"]:
             print("Applying weight quantization..")
@@ -870,15 +1048,37 @@ class ShardedVicuna(VicunaBase):
             quantize_model(
                 get_model_impl(vicuna_model).layers,
                 dtype=torch.float32,
+                weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
                 weight_scale_precision="float",
-                weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=self.weight_group_size,
                 quantize_weight_zero_point=False,
+                input_bit_width=None,
+                input_scale_type="float",
+                input_param_method="stats",
+                input_quant_type="asym",
+                input_quant_granularity="per_tensor",
+                quantize_input_zero_point=False,
+                seqlen=2048,
             )
             print("Weight quantization applied.")
+
+        placeholder_pkv_segment = tuple(
+            (
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+            )
+            for _ in range(8)
+        )
+        placeholder_pkv_full = tuple(
+            (
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+            )
+            for _ in range(32)
+        )
 
         placeholder_input0 = (
             torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
@@ -930,12 +1130,26 @@ class ShardedVicuna(VicunaBase):
             device_idx=device_idx,
         )
 
-        layers0 = [
-            FirstVicunaLayer(layer) for layer in vicuna_model.model.layers
-        ]
-        layers1 = [
-            SecondVicunaLayer(layer) for layer in vicuna_model.model.layers
-        ]
+        if not compressed:
+            layers0 = [
+                FirstVicunaLayer(layer) for layer in vicuna_model.model.layers
+            ]
+            layers1 = [
+                SecondVicunaLayer(layer) for layer in vicuna_model.model.layers
+            ]
+
+        else:
+            layers00 = EightLayerLayerFV(vicuna_model.model.layers[0:8])
+            layers01 = EightLayerLayerFV(vicuna_model.model.layers[8:16])
+            layers02 = EightLayerLayerFV(vicuna_model.model.layers[16:24])
+            layers03 = EightLayerLayerFV(vicuna_model.model.layers[24:32])
+            layers10 = EightLayerLayerSV(vicuna_model.model.layers[0:8])
+            layers11 = EightLayerLayerSV(vicuna_model.model.layers[8:16])
+            layers12 = EightLayerLayerSV(vicuna_model.model.layers[16:24])
+            layers13 = EightLayerLayerSV(vicuna_model.model.layers[24:32])
+            layers0 = [layers00, layers01, layers02, layers03]
+            layers1 = [layers10, layers11, layers12, layers13]
+
         _, modules = self.compile_to_vmfb_one_model(
             placeholder_input0,
             layers0,
@@ -943,7 +1157,12 @@ class ShardedVicuna(VicunaBase):
             layers1,
             device=device,
         )
-        shark_layers = [CompiledVicunaLayer(m) for m in modules]
+
+        if not compressed:
+            shark_layers = [CompiledVicunaLayer(m) for m in modules]
+        else:
+            shark_layers = [CompiledEightLayerLayer(m) for m in modules]
+            vicuna_model.model.compressedlayers = shark_layers
 
         sharded_model = ShardedVicunaModel(
             vicuna_model,
@@ -955,10 +1174,14 @@ class ShardedVicuna(VicunaBase):
         return sharded_model
 
     def compile(self, device="cpu"):
-        return self.get_sharded_model(device=device)
+        return self.get_sharded_model(
+            device=device, compressed=self.compressed
+        )
 
-    def generate(self, prompt, cli=True):
+    def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
+
+        history = []
 
         tokens_generated = []
         _past_key_values = None
@@ -977,6 +1200,8 @@ class ShardedVicuna(VicunaBase):
             _token = generated_token_op["token"]
             _past_key_values = generated_token_op["past_key_values"]
             _detok = generated_token_op["detok"]
+            history.append(_token)
+            yield self.tokenizer.decode(history)
 
             if _token == 2:
                 break
@@ -987,7 +1212,7 @@ class ShardedVicuna(VicunaBase):
             if type(tokens_generated[i]) != int:
                 tokens_generated[i] = int(tokens_generated[i][0])
         result_output = self.tokenizer.decode(tokens_generated)
-        return result_output
+        yield result_output
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.

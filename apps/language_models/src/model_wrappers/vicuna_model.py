@@ -301,12 +301,13 @@ class CombinedModel(torch.nn.Module):
         self.second_vicuna = SecondVicuna(second_vicuna_model_path)
 
     def forward(self, input_ids):
-        first_output = self.first_vicuna(input_ids=input_ids, use_cache=True)
-        logits = first_output[0]
-        pkv = first_output[1:]
-
-        token = torch.argmax(torch.tensor(logits)[:, -1, :], dim=1)
-        token = token.to(torch.int64).reshape([1, 1])
-        secondVicunaInput = (token,) + tuple(pkv)
-        second_output = self.second_vicuna(secondVicunaInput)
+        first_output = self.first_vicuna(input_ids=input_ids)
+        # generate second vicuna
+        compilation_input_ids = torch.zeros([1, 1], dtype=torch.int64)
+        pkv = tuple(
+            (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
+            for _ in range(64)
+        )
+        secondVicunaCompileInput = (compilation_input_ids,) + pkv
+        second_output = self.second_vicuna(*secondVicunaCompileInput)
         return second_output
