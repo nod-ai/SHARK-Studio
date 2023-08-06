@@ -1,5 +1,5 @@
 from diffusers import AutoencoderKL, UNet2DConditionModel, ControlNetModel
-from transformers import CLIPTextModel
+from transformers import CLIPTextModel, CLIPTextModelWithProjection
 from collections import defaultdict
 from pathlib import Path
 import torch
@@ -53,6 +53,10 @@ def replace_shape_str(shape, max_len, width, height, batch_size):
                     new_shape.append(math.ceil(height / div_val))
                 elif "width" in shape[i]:
                     new_shape.append(math.ceil(width / div_val))
+            elif "+" in shape[i]:
+                # Currently this case only hits for SDXL. So, in case any other
+                # case requires this operator, change this.
+                new_shape.append(height + width)
         else:
             new_shape.append(shape[i])
     return new_shape
@@ -84,6 +88,7 @@ class SharkifyStableDiffusionModel:
         generate_vmfb: bool = True,
         is_inpaint: bool = False,
         is_upscaler: bool = False,
+        is_sdxl: bool = False,
         use_stencil: str = None,
         use_lora: str = "",
         use_quantize: str = None,
@@ -91,8 +96,14 @@ class SharkifyStableDiffusionModel:
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
-        self.height = height // 8
-        self.width = width // 8
+        self.is_sdxl = is_sdxl
+        self.height = height
+        self.width = width
+        if is_sdxl:
+            # We need to scale down the height/width by vae_scale_factor, which
+            # happens to be 8 in this case.
+            self.height = height // 8
+            self.width = width // 8
         self.batch_size = batch_size
         self.custom_weights = custom_weights
         self.use_quantize = use_quantize
@@ -174,6 +185,7 @@ class SharkifyStableDiffusionModel:
         model_name = {}
         sub_model_list = [
             "clip",
+            "clip2",
             "unet",
             "unet512",
             "stencil_unet",
@@ -330,6 +342,71 @@ class SharkifyStableDiffusionModel:
             is_f16=is_f16,
             use_tuned=self.use_tuned,
             extended_model_name=self.model_name["vae"],
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
+            save_dir=save_dir,
+            extra_args=get_opt_flags("vae", precision=self.precision),
+            base_model_id=self.base_model_id,
+            model_name="vae",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
+        )
+        return shark_vae, vae_mlir
+
+    def get_vae_sdxl(self):
+        class VaeModel(torch.nn.Module):
+            def __init__(
+                self,
+                model_id=self.model_id,
+                base_vae=self.base_vae,
+                custom_vae=self.custom_vae,
+                low_cpu_mem_usage=False,
+            ):
+                super().__init__()
+                self.vae = None
+                if custom_vae == "":
+                    self.vae = AutoencoderKL.from_pretrained(
+                        model_id,
+                        subfolder="vae",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
+                elif not isinstance(custom_vae, dict):
+                    self.vae = AutoencoderKL.from_pretrained(
+                        custom_vae,
+                        subfolder="vae",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
+                else:
+                    self.vae = AutoencoderKL.from_pretrained(
+                        model_id,
+                        subfolder="vae",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
+                    self.vae.load_state_dict(custom_vae)
+
+            def forward(self, latents):
+                image = self.vae.decode(latents / 0.13025, return_dict=False)[
+                    0
+                ]
+                return image
+
+        vae = VaeModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        inputs = tuple(self.inputs["vae"])
+        # Make sure the VAE is in float32 mode, as it overflows in float16 as per SDXL
+        # pipeline.
+        is_f16 = False
+        save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
+        if self.debug:
+            os.makedirs(save_dir, exist_ok=True)
+        vae_name_split = self.model_name["vae"].split("_")
+        vae_name_split[5] = "fp32"
+        extended_model_name = "_".join(vae_name_split)
+        shark_vae, vae_mlir = compile_through_fx(
+            vae,
+            inputs,
+            is_f16=is_f16,
+            use_tuned=self.use_tuned,
+            extended_model_name=extended_model_name,
             debug=self.debug,
             generate_vmfb=self.generate_vmfb,
             save_dir=save_dir,
@@ -687,6 +764,85 @@ class SharkifyStableDiffusionModel:
         )
         return shark_unet, unet_mlir
 
+    def get_unet_sdxl(self):
+        class UnetModel(torch.nn.Module):
+            def __init__(
+                self,
+                model_id=self.model_id,
+                low_cpu_mem_usage=False,
+            ):
+                super().__init__()
+                self.unet = UNet2DConditionModel.from_pretrained(
+                    model_id,
+                    subfolder="unet",
+                    low_cpu_mem_usage=low_cpu_mem_usage,
+                )
+                if (
+                    args.attention_slicing is not None
+                    and args.attention_slicing != "none"
+                ):
+                    if args.attention_slicing.isdigit():
+                        self.unet.set_attention_slice(
+                            int(args.attention_slicing)
+                        )
+                    else:
+                        self.unet.set_attention_slice(args.attention_slicing)
+
+            def forward(
+                self,
+                latent,
+                timestep,
+                prompt_embeds,
+                text_embeds,
+                time_ids,
+                guidance_scale,
+            ):
+                added_cond_kwargs = {
+                    "text_embeds": text_embeds,
+                    "time_ids": time_ids,
+                }
+                noise_pred = self.unet.forward(
+                    latent,
+                    timestep,
+                    encoder_hidden_states=prompt_embeds,
+                    cross_attention_kwargs=None,
+                    added_cond_kwargs=added_cond_kwargs,
+                    return_dict=False,
+                )[0]
+                noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
+                noise_pred = noise_pred_uncond + guidance_scale * (
+                    noise_pred_text - noise_pred_uncond
+                )
+                return noise_pred
+
+        unet = UnetModel(low_cpu_mem_usage=self.low_cpu_mem_usage)
+        is_f16 = True if self.precision == "fp16" else False
+        inputs = tuple(self.inputs["unet"])
+        save_dir = os.path.join(self.sharktank_dir, self.model_name["unet"])
+        input_mask = [True, True, True, True, True, True]
+        if self.debug:
+            os.makedirs(
+                save_dir,
+                exist_ok=True,
+            )
+        shark_unet, unet_mlir = compile_through_fx(
+            unet,
+            inputs,
+            extended_model_name=self.model_name["unet"],
+            is_f16=is_f16,
+            f16_input_mask=input_mask,
+            use_tuned=self.use_tuned,
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
+            save_dir=save_dir,
+            extra_args=get_opt_flags("unet", precision=self.precision),
+            base_model_id=self.base_model_id,
+            model_name="unet",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
+        )
+        return shark_unet, unet_mlir
+
     def get_clip(self):
         class CLIPText(torch.nn.Module):
             def __init__(
@@ -731,6 +887,68 @@ class SharkifyStableDiffusionModel:
         )
         return shark_clip, clip_mlir
 
+    def get_clip_sdxl(self, clip_index=1):
+        class CLIPText(torch.nn.Module):
+            def __init__(
+                self,
+                model_id=self.model_id,
+                low_cpu_mem_usage=False,
+                clip_index=1,
+            ):
+                super().__init__()
+                if clip_index == 1:
+                    self.text_encoder = CLIPTextModel.from_pretrained(
+                        model_id,
+                        subfolder="text_encoder",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
+                else:
+                    self.text_encoder = (
+                        CLIPTextModelWithProjection.from_pretrained(
+                            model_id,
+                            subfolder="text_encoder_2",
+                            low_cpu_mem_usage=low_cpu_mem_usage,
+                        )
+                    )
+
+            def forward(self, input):
+                prompt_embeds = self.text_encoder(
+                    input,
+                    output_hidden_states=True,
+                )
+                # We are only ALWAYS interested in the pooled output of the final text encoder
+                pooled_prompt_embeds = prompt_embeds[0]
+                prompt_embeds = prompt_embeds.hidden_states[-2]
+                return prompt_embeds, pooled_prompt_embeds
+
+        clip_model = CLIPText(
+            low_cpu_mem_usage=self.low_cpu_mem_usage, clip_index=clip_index
+        )
+        if clip_index == 1:
+            model_name = self.model_name["clip"]
+        else:
+            model_name = self.model_name["clip2"]
+        save_dir = os.path.join(self.sharktank_dir, model_name)
+        if self.debug:
+            os.makedirs(
+                save_dir,
+                exist_ok=True,
+            )
+        shark_clip, clip_mlir = compile_through_fx(
+            clip_model,
+            tuple(self.inputs["clip"]),
+            extended_model_name=model_name,
+            debug=self.debug,
+            generate_vmfb=self.generate_vmfb,
+            save_dir=save_dir,
+            extra_args=get_opt_flags("clip", precision="fp32"),
+            base_model_id=self.base_model_id,
+            model_name="clip",
+            precision=self.precision,
+            return_mlir=self.return_mlir,
+        )
+        return shark_clip, clip_mlir
+
     def process_custom_vae(self):
         custom_vae = self.custom_vae.lower()
         if not custom_vae.endswith((".ckpt", ".safetensors")):
@@ -763,7 +981,9 @@ class SharkifyStableDiffusionModel:
                 }
                 return vae_dict
 
-    def compile_unet_variants(self, model, use_large=False):
+    def compile_unet_variants(self, model, use_large=False, base_model=""):
+        if self.is_sdxl:
+            return self.get_unet_sdxl()
         if model == "unet":
             if self.is_upscaler:
                 return self.get_unet_upscaler(use_large=use_large)
@@ -805,6 +1025,22 @@ class SharkifyStableDiffusionModel:
         except Exception as e:
             sys.exit(e)
 
+    def sdxl_clip(self):
+        try:
+            self.inputs["clip"] = self.get_input_info_for(
+                base_models["sdxl_clip"]
+            )
+            compiled_clip, clip_mlir = self.get_clip_sdxl(clip_index=1)
+            compiled_clip2, clip_mlir2 = self.get_clip_sdxl(clip_index=2)
+
+            check_compilation(compiled_clip, "Clip")
+            check_compilation(compiled_clip, "Clip2")
+            if self.return_mlir:
+                return clip_mlir, clip_mlir2
+            return compiled_clip, compiled_clip2
+        except Exception as e:
+            sys.exit(e)
+
     def unet(self, use_large=False):
         try:
             model = "stencil_unet" if self.use_stencil is not None else "unet"
@@ -816,7 +1052,7 @@ class SharkifyStableDiffusionModel:
                     unet_inputs[self.base_model_id]
                 )
                 compiled_unet, unet_mlir = self.compile_unet_variants(
-                    model, use_large=use_large
+                    model, use_large=use_large, base_model=self.base_model_id
                 )
             else:
                 for model_id in unet_inputs:
@@ -827,7 +1063,7 @@ class SharkifyStableDiffusionModel:
 
                     try:
                         compiled_unet, unet_mlir = self.compile_unet_variants(
-                            model, use_large=use_large
+                            model, use_large=use_large, base_model=model_id
                         )
                     except Exception as e:
                         print(e)
@@ -866,7 +1102,10 @@ class SharkifyStableDiffusionModel:
             is_base_vae = self.base_vae
             if self.is_upscaler:
                 self.base_vae = True
-            compiled_vae, vae_mlir = self.get_vae()
+            if self.is_sdxl:
+                compiled_vae, vae_mlir = self.get_vae_sdxl()
+            else:
+                compiled_vae, vae_mlir = self.get_vae()
             self.base_vae = is_base_vae
 
             check_compilation(compiled_vae, "Vae")
