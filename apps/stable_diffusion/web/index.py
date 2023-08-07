@@ -253,7 +253,9 @@ if __name__ == "__main__":
                 lora_train_web.render()
             with gr.TabItem(label="Chat Bot (Experimental)", id=8):
                 stablelm_chat.render()
-            with gr.TabItem(label="Generate Sharding Config (Experimental)", id=9):
+            with gr.TabItem(
+                label="Generate Sharding Config (Experimental)", id=9
+            ):
                 model_config_web.render()
             with gr.TabItem(label="MultiModal (Experimental)", id=10):
                 minigpt4_web.render()
