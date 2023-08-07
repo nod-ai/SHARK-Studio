@@ -4,6 +4,7 @@ import torch
 from apps.stable_diffusion.src.utils.stencils import (
     CannyDetector,
     OpenposeDetector,
+    ZoeDetector,
 )
 
 stencil = {}
@@ -117,6 +118,9 @@ def controlnet_hint_conversion(
         case "scribble":
             print("Working with scribble")
             controlnet_hint = hint_scribble(image)
+        case "zoedepth":
+            print("Working with ZoeDepth")
+            controlnet_hint = hint_zoedepth(image)
         case _:
             return None
     controlnet_hint = controlnet_hint_shaping(
@@ -127,7 +131,7 @@ def controlnet_hint_conversion(
 
 stencil_to_model_id_map = {
     "canny": "lllyasviel/control_v11p_sd15_canny",
-    "depth": "lllyasviel/control_v11p_sd15_depth",
+    "depth": "lllyasviel/control_v11f1p_sd15_depth",
     "hed": "lllyasviel/sd-controlnet-hed",
     "mlsd": "lllyasviel/control_v11p_sd15_mlsd",
     "normal": "lllyasviel/control_v11p_sd15_normalbae",
@@ -183,4 +187,17 @@ def hint_scribble(image: Image.Image):
 
         detected_map = np.zeros_like(input_image, dtype=np.uint8)
         detected_map[np.min(input_image, axis=2) < 127] = 255
+        return detected_map
+
+# TODO: Hint Zoe -> Also add zoedetector
+
+def hint_zoedepth(image: Image.Image):
+    with torch.no_grad():
+        input_image = np.array(image)
+
+        if not "depth" in stencil:
+            stencil["depth"] = ZoeDetector()
+
+        detected_map = stencil["depth"](input_image)
+        detected_map = HWC3(detected_map)
         return detected_map
