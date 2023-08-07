@@ -378,7 +378,9 @@ def load_vmfb_using_mmap(
         and ".vmfb" in flatbuffer_blob_or_path
     ):
         vmfb_file_path = flatbuffer_blob_or_path
-        print(f"Loading module {flatbuffer_blob_or_path}... ", end="", flush=True)
+        print(
+            f"Loading module {flatbuffer_blob_or_path}... ", end="", flush=True
+        )
         mmaped_vmfb = ireert.VmModule.mmap(instance, flatbuffer_blob_or_path)
         print(f"mmap complete... ", end="", flush=True)
         ctx = ireert.SystemContext(config=config)
