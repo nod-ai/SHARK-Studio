@@ -14,12 +14,14 @@
 
 # All the iree_gpu related functionalities go here.
 
+import functools
 import iree.runtime as ireert
 import ctypes
 from shark.parser import shark_args
 
 
 # Get the default gpu args given the architecture.
+@functools.cache
 def get_iree_gpu_args():
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
     ireert.flags.parse_flags("--cuda_allow_inline_execution")
@@ -37,6 +39,7 @@ def get_iree_gpu_args():
 
 
 # Get the default gpu args given the architecture.
+@functools.cache
 def get_iree_rocm_args():
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
     # get arch from rocminfo.
@@ -65,6 +68,7 @@ CU_DEVICE_ATTRIBUTE_CLOCK_RATE = 13
 CU_DEVICE_ATTRIBUTE_MEMORY_CLOCK_RATE = 36
 
 
+@functools.cache
 def get_cuda_sm_cc():
     libnames = ("libcuda.so", "libcuda.dylib", "nvcuda.dll")
     for libname in libnames:

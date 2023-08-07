@@ -14,12 +14,15 @@
 
 # All the iree_vulkan related functionalities go here.
 
+import functools
+
 from shark.iree_utils._common import run_cmd
 import iree.runtime as ireert
 from sys import platform
 from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env_flag
 
 
+@functools.cache
 def get_metal_device_name(device_num=0):
     iree_device_dump = run_cmd("iree-run-module --dump_devices")
     iree_device_dump = iree_device_dump[0].split("\n\n")
@@ -60,6 +63,7 @@ def get_metal_target_triple(device_name):
     return "macos"
 
 
+@functools.cache
 def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
     for flag in extra_args:
         if "-iree-metal-target-platform=" in flag:
@@ -85,6 +89,7 @@ def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
     return None
 
 
+@functools.cache
 def get_iree_metal_args(device_num=0, extra_args=[]):
     # res_metal_flag = ["--iree-flow-demote-i64-to-i32"]
 
