@@ -21,6 +21,7 @@ import numpy as np
 import os
 import re
 import tempfile
+import time
 from pathlib import Path
 
 
@@ -377,9 +378,12 @@ def load_vmfb_using_mmap(
         and ".vmfb" in flatbuffer_blob_or_path
     ):
         vmfb_file_path = flatbuffer_blob_or_path
+        print(f"Loading module {flatbuffer_blob_or_path}... ", end="", flush=True)
         mmaped_vmfb = ireert.VmModule.mmap(instance, flatbuffer_blob_or_path)
+        print(f"mmap complete... ", end="", flush=True)
         ctx = ireert.SystemContext(config=config)
         ctx.add_vm_module(mmaped_vmfb)
+        print(f"module initialized. Ready to run!")
         mmaped_vmfb = getattr(ctx.modules, mmaped_vmfb.name)
     else:
         with tempfile.NamedTemporaryFile(delete=False) as tf:
@@ -410,7 +414,6 @@ def get_iree_compiled_module(
     #       we're setting delete=False when creating NamedTemporaryFile. That's why
     #       I'm getting hold of the name of the temporary file in `temp_file_to_unlink`.
     if mmap:
-        print(f"Will load the compiled module as a mmapped temporary file")
         vmfb, config, temp_file_to_unlink = load_vmfb_using_mmap(
             flatbuffer_blob, device, device_idx
         )
@@ -434,7 +437,6 @@ def load_flatbuffer(
 ):
     temp_file_to_unlink = None
     if mmap:
-        print(f"Loading flatbuffer at {flatbuffer_path} as a mmapped file")
         vmfb, config, temp_file_to_unlink = load_vmfb_using_mmap(
             flatbuffer_path, device, device_idx
         )
