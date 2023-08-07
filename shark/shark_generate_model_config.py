@@ -144,4 +144,4 @@ if __name__ == "__main__":
 
     model = CombinedModel()
     c = GenerateConfigFile(model, 1, ["gpu_id"], firstVicunaCompileInput)
-    c.split_into_dispatches("vulkan")
+    c.split_into_layers()
