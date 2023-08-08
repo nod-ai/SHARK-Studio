@@ -284,6 +284,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--use_tuned_vae",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Controls whether VAE model is tuned with winograd and lowering configs.",
+)
+
+p.add_argument(
     "--use_base_vae",
     default=False,
     action=argparse.BooleanOptionalAction,

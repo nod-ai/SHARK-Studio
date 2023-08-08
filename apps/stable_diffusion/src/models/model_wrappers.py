@@ -256,11 +256,15 @@ class SharkifyStableDiffusionModel:
             if not self.is_upscaler and self.precision == "fp16"
             else False
         )
+        if args.use_tuned_vae == False:
+            print(
+                "Tuning disabled by default for VAE. Specify --use_tuned_vae to change this."
+            )
         shark_vae_encode, vae_encode_mlir = compile_through_fx(
             vae_encode,
             inputs,
             is_f16=is_f16,
-            use_tuned=self.use_tuned,
+            use_tuned=args.use_tuned_vae,
             extended_model_name=self.model_name["vae_encode"],
             extra_args=get_opt_flags("vae", precision=self.precision),
             base_model_id=self.base_model_id,
@@ -322,11 +326,15 @@ class SharkifyStableDiffusionModel:
         save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
         if self.debug:
             os.makedirs(save_dir, exist_ok=True)
+        if args.use_tuned_vae == False:
+            print(
+                "Tuning disabled by default for VAE. Specify --use_tuned_vae to change this."
+            )
         shark_vae, vae_mlir = compile_through_fx(
             vae,
             inputs,
             is_f16=is_f16,
-            use_tuned=self.use_tuned,
+            use_tuned=args.use_tuned_vae,
             extended_model_name=self.model_name["vae"],
             debug=self.debug,
             generate_vmfb=self.generate_vmfb,

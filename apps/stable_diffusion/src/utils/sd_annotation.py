@@ -278,7 +278,12 @@ def sd_model_annotation(mlir_model, model_name, base_model_id=None):
             winograd_model, lowering_config_dir, model_name, use_winograd
         )
     elif args.annotation_model == "vae" and device == "vulkan":
-        if "rdna2" not in args.iree_vulkan_target_triple.split("-")[0]:
+        if args.use_tuned_vae == False:
+            print(
+                "Using untuned VAE. Use --use_tuned_vae to enable tunings for this sub-model."
+            )
+            tuned_model = mlir_model
+        elif "rdna2" not in args.iree_vulkan_target_triple.split("-")[0]:
             use_winograd = True
             winograd_config_dir = load_winograd_configs()
             tuned_model = annotate_with_winograd(
