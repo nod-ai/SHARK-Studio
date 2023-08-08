@@ -30,7 +30,6 @@ from .benchmark_utils import *
 
 
 # Get the iree-compile arguments given device.
-@functools.cache
 def get_iree_device_args(device, extra_args=[]):
     print("Configuring for device:" + device)
     device_uri = device.split("://")

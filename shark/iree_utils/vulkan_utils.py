@@ -128,7 +128,6 @@ def get_vulkan_target_triple(device_name):
     return triple
 
 
-@functools.cache
 def get_vulkan_triple_flag(device_name="", device_num=0, extra_args=[]):
     for flag in extra_args:
         if "-iree-vulkan-target-triple=" in flag:
@@ -154,7 +153,6 @@ def get_vulkan_triple_flag(device_name="", device_num=0, extra_args=[]):
     return None
 
 
-@functools.cache
 def get_iree_vulkan_args(device_num=0, extra_args=[]):
     # res_vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
 

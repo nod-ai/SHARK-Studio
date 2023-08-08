@@ -63,7 +63,6 @@ def get_metal_target_triple(device_name):
     return "macos"
 
 
-@functools.cache
 def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
     for flag in extra_args:
         if "-iree-metal-target-platform=" in flag:
@@ -89,7 +88,6 @@ def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
     return None
 
 
-@functools.cache
 def get_iree_metal_args(device_num=0, extra_args=[]):
     # res_metal_flag = ["--iree-flow-demote-i64-to-i32"]
 
