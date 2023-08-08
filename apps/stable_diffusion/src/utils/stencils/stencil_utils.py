@@ -131,7 +131,7 @@ def controlnet_hint_conversion(
 
 stencil_to_model_id_map = {
     "canny": "lllyasviel/control_v11p_sd15_canny",
-    "depth": "lllyasviel/control_v11f1p_sd15_depth",
+    "zoedepth": "lllyasviel/control_v11f1p_sd15_depth",
     "hed": "lllyasviel/sd-controlnet-hed",
     "mlsd": "lllyasviel/control_v11p_sd15_mlsd",
     "normal": "lllyasviel/control_v11p_sd15_normalbae",
@@ -189,7 +189,9 @@ def hint_scribble(image: Image.Image):
         detected_map[np.min(input_image, axis=2) < 127] = 255
         return detected_map
 
+
 # TODO: Hint Zoe -> Also add zoedetector
+
 
 def hint_zoedepth(image: Image.Image):
     with torch.no_grad():

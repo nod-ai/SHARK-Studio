@@ -73,6 +73,7 @@ def denormalize(x):
 
 class RunningAverageDict:
     """A dictionary of running averages."""
+
     def __init__(self):
         self._dict = None
 
@@ -94,7 +95,17 @@ class RunningAverageDict:
         return {key: value.get_value() for key, value in self._dict.items()}
 
 
-def colorize(value, vmin=None, vmax=None, cmap='gray_r', invalid_val=-99, invalid_mask=None, background_color=(128, 128, 128, 255), gamma_corrected=False, value_transform=None):
+def colorize(
+    value,
+    vmin=None,
+    vmax=None,
+    cmap="gray_r",
+    invalid_val=-99,
+    invalid_mask=None,
+    background_color=(128, 128, 128, 255),
+    gamma_corrected=False,
+    value_transform=None,
+):
     """Converts a depth map to a color image.
 
     Args:
@@ -120,13 +131,13 @@ def colorize(value, vmin=None, vmax=None, cmap='gray_r', invalid_val=-99, invali
     mask = np.logical_not(invalid_mask)
 
     # normalize
-    vmin = np.percentile(value[mask],2) if vmin is None else vmin
-    vmax = np.percentile(value[mask],85) if vmax is None else vmax
+    vmin = np.percentile(value[mask], 2) if vmin is None else vmin
+    vmax = np.percentile(value[mask], 85) if vmax is None else vmax
     if vmin != vmax:
         value = (value - vmin) / (vmax - vmin)  # vmin..vmax
     else:
         # Avoid 0-division
-        value = value * 0.
+        value = value * 0.0
 
     # squeeze last dim if it exists
     # grey out the invalid values
@@ -153,7 +164,9 @@ def colorize(value, vmin=None, vmax=None, cmap='gray_r', invalid_val=-99, invali
 
 
 def count_parameters(model, include_all=False):
-    return sum(p.numel() for p in model.parameters() if p.requires_grad or include_all)
+    return sum(
+        p.numel() for p in model.parameters() if p.requires_grad or include_all
+    )
 
 
 def compute_errors(gt, pred):
@@ -179,8 +192,8 @@ def compute_errors(gt, pred):
     """
     thresh = np.maximum((gt / pred), (pred / gt))
     a1 = (thresh < 1.25).mean()
-    a2 = (thresh < 1.25 ** 2).mean()
-    a3 = (thresh < 1.25 ** 3).mean()
+    a2 = (thresh < 1.25**2).mean()
+    a3 = (thresh < 1.25**3).mean()
 
     abs_rel = np.mean(np.abs(gt - pred) / gt)
     sq_rel = np.mean(((gt - pred) ** 2) / gt)
@@ -192,18 +205,36 @@ def compute_errors(gt, pred):
     rmse_log = np.sqrt(rmse_log.mean())
 
     err = np.log(pred) - np.log(gt)
-    silog = np.sqrt(np.mean(err ** 2) - np.mean(err) ** 2) * 100
+    silog = np.sqrt(np.mean(err**2) - np.mean(err) ** 2) * 100
 
     log_10 = (np.abs(np.log10(gt) - np.log10(pred))).mean()
-    return dict(a1=a1, a2=a2, a3=a3, abs_rel=abs_rel, rmse=rmse, log_10=log_10, rmse_log=rmse_log,
-                silog=silog, sq_rel=sq_rel)
+    return dict(
+        a1=a1,
+        a2=a2,
+        a3=a3,
+        abs_rel=abs_rel,
+        rmse=rmse,
+        log_10=log_10,
+        rmse_log=rmse_log,
+        silog=silog,
+        sq_rel=sq_rel,
+    )
 
 
-def compute_metrics(gt, pred, interpolate=True, garg_crop=False, eigen_crop=True, dataset='nyu', min_depth_eval=0.1, max_depth_eval=10, **kwargs):
-    """Compute metrics of predicted depth maps. Applies cropping and masking as necessary or specified via arguments. Refer to compute_errors for more details on metrics.
-    """
-    if 'config' in kwargs:
-        config = kwargs['config']
+def compute_metrics(
+    gt,
+    pred,
+    interpolate=True,
+    garg_crop=False,
+    eigen_crop=True,
+    dataset="nyu",
+    min_depth_eval=0.1,
+    max_depth_eval=10,
+    **kwargs,
+):
+    """Compute metrics of predicted depth maps. Applies cropping and masking as necessary or specified via arguments. Refer to compute_errors for more details on metrics."""
+    if "config" in kwargs:
+        config = kwargs["config"]
         garg_crop = config.garg_crop
         eigen_crop = config.eigen_crop
         min_depth_eval = config.min_depth_eval
@@ -211,7 +242,8 @@ def compute_metrics(gt, pred, interpolate=True, garg_crop=False, eigen_crop=True
 
     if gt.shape[-2:] != pred.shape[-2:] and interpolate:
         pred = nn.functional.interpolate(
-            pred, gt.shape[-2:], mode='bilinear', align_corners=True)
+            pred, gt.shape[-2:], mode="bilinear", align_corners=True
+        )
 
     pred = pred.squeeze().cpu().numpy()
     pred[pred < min_depth_eval] = min_depth_eval
@@ -221,21 +253,26 @@ def compute_metrics(gt, pred, interpolate=True, garg_crop=False, eigen_crop=True
 
     gt_depth = gt.squeeze().cpu().numpy()
     valid_mask = np.logical_and(
-        gt_depth > min_depth_eval, gt_depth < max_depth_eval)
+        gt_depth > min_depth_eval, gt_depth < max_depth_eval
+    )
 
     if garg_crop or eigen_crop:
         gt_height, gt_width = gt_depth.shape
         eval_mask = np.zeros(valid_mask.shape)
 
         if garg_crop:
-            eval_mask[int(0.40810811 * gt_height):int(0.99189189 * gt_height),
-                      int(0.03594771 * gt_width):int(0.96405229 * gt_width)] = 1
+            eval_mask[
+                int(0.40810811 * gt_height) : int(0.99189189 * gt_height),
+                int(0.03594771 * gt_width) : int(0.96405229 * gt_width),
+            ] = 1
 
         elif eigen_crop:
             # print("-"*10, " EIGEN CROP ", "-"*10)
-            if dataset == 'kitti':
-                eval_mask[int(0.3324324 * gt_height):int(0.91351351 * gt_height),
-                          int(0.0359477 * gt_width):int(0.96405229 * gt_width)] = 1
+            if dataset == "kitti":
+                eval_mask[
+                    int(0.3324324 * gt_height) : int(0.91351351 * gt_height),
+                    int(0.0359477 * gt_width) : int(0.96405229 * gt_width),
+                ] = 1
             else:
                 # assert gt_depth.shape == (480, 640), "Error: Eigen crop is currently only valid for (480, 640) images"
                 eval_mask[45:471, 41:601] = 1
@@ -249,7 +286,6 @@ def compute_metrics(gt, pred, interpolate=True, garg_crop=False, eigen_crop=True
 
 
 def parallelize(config, model, find_unused_parameters=True):
-
     if config.gpu is not None:
         torch.cuda.set_device(config.gpu)
         model = model.cuda(config.gpu)
@@ -259,19 +295,37 @@ def parallelize(config, model, find_unused_parameters=True):
         # Use DDP
         config.multigpu = True
         config.rank = config.rank * config.ngpus_per_node + config.gpu
-        dist.init_process_group(backend=config.dist_backend, init_method=config.dist_url,
-                                world_size=config.world_size, rank=config.rank)
+        dist.init_process_group(
+            backend=config.dist_backend,
+            init_method=config.dist_url,
+            world_size=config.world_size,
+            rank=config.rank,
+        )
         config.batch_size = int(config.batch_size / config.ngpus_per_node)
         # config.batch_size = 8
         config.workers = int(
-            (config.num_workers + config.ngpus_per_node - 1) / config.ngpus_per_node)
-        print("Device", config.gpu, "Rank",  config.rank, "batch size",
-              config.batch_size, "Workers", config.workers)
+            (config.num_workers + config.ngpus_per_node - 1)
+            / config.ngpus_per_node
+        )
+        print(
+            "Device",
+            config.gpu,
+            "Rank",
+            config.rank,
+            "batch size",
+            config.batch_size,
+            "Workers",
+            config.workers,
+        )
         torch.cuda.set_device(config.gpu)
         model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
         model = model.cuda(config.gpu)
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[config.gpu], output_device=config.gpu,
-                                                          find_unused_parameters=find_unused_parameters)
+        model = torch.nn.parallel.DistributedDataParallel(
+            model,
+            device_ids=[config.gpu],
+            output_device=config.gpu,
+            find_unused_parameters=find_unused_parameters,
+        )
 
     elif config.gpu is None:
         # Use DP
@@ -289,7 +343,7 @@ def parallelize(config, model, find_unused_parameters=True):
 
 
 class colors:
-    '''Colors class:
+    """Colors class:
     Reset all colors with colors.reset
     Two subclasses fg for foreground and bg for background.
     Use as colors.subclass.colorname.
@@ -297,52 +351,56 @@ class colors:
     Also, the generic bold, disable, underline, reverse, strikethrough,
     and invisible work with the main class
     i.e. colors.bold
-    '''
-    reset = '\033[0m'
-    bold = '\033[01m'
-    disable = '\033[02m'
-    underline = '\033[04m'
-    reverse = '\033[07m'
-    strikethrough = '\033[09m'
-    invisible = '\033[08m'
+    """
+
+    reset = "\033[0m"
+    bold = "\033[01m"
+    disable = "\033[02m"
+    underline = "\033[04m"
+    reverse = "\033[07m"
+    strikethrough = "\033[09m"
+    invisible = "\033[08m"
 
     class fg:
-        black = '\033[30m'
-        red = '\033[31m'
-        green = '\033[32m'
-        orange = '\033[33m'
-        blue = '\033[34m'
-        purple = '\033[35m'
-        cyan = '\033[36m'
-        lightgrey = '\033[37m'
-        darkgrey = '\033[90m'
-        lightred = '\033[91m'
-        lightgreen = '\033[92m'
-        yellow = '\033[93m'
-        lightblue = '\033[94m'
-        pink = '\033[95m'
-        lightcyan = '\033[96m'
+        black = "\033[30m"
+        red = "\033[31m"
+        green = "\033[32m"
+        orange = "\033[33m"
+        blue = "\033[34m"
+        purple = "\033[35m"
+        cyan = "\033[36m"
+        lightgrey = "\033[37m"
+        darkgrey = "\033[90m"
+        lightred = "\033[91m"
+        lightgreen = "\033[92m"
+        yellow = "\033[93m"
+        lightblue = "\033[94m"
+        pink = "\033[95m"
+        lightcyan = "\033[96m"
 
     class bg:
-        black = '\033[40m'
-        red = '\033[41m'
-        green = '\033[42m'
-        orange = '\033[43m'
-        blue = '\033[44m'
-        purple = '\033[45m'
-        cyan = '\033[46m'
-        lightgrey = '\033[47m'
+        black = "\033[40m"
+        red = "\033[41m"
+        green = "\033[42m"
+        orange = "\033[43m"
+        blue = "\033[44m"
+        purple = "\033[45m"
+        cyan = "\033[46m"
+        lightgrey = "\033[47m"
 
 
 def printc(text, color):
     print(f"{color}{text}{colors.reset}")
 
+
 ############################################
+
 
 def get_image_from_url(url):
     response = requests.get(url)
     img = Image.open(BytesIO(response.content)).convert("RGB")
     return img
+
 
 def url_to_torch(url, size=(384, 384)):
     img = get_image_from_url(url)
@@ -352,14 +410,18 @@ def url_to_torch(url, size=(384, 384)):
     img.div_(255)
     return img
 
+
 def pil_to_batched_tensor(img):
     return ToTensor()(img).unsqueeze(0)
+
 
 def save_raw_16bit(depth, fpath="raw.png"):
     if isinstance(depth, torch.Tensor):
         depth = depth.squeeze().cpu().numpy()
-    
-    assert isinstance(depth, np.ndarray), "Depth must be a torch tensor or numpy array"
+
+    assert isinstance(
+        depth, np.ndarray
+    ), "Depth must be a torch tensor or numpy array"
     assert depth.ndim == 2, "Depth must be 2D"
     depth = depth * 256  # scale for 16-bit png
     depth = depth.astype(np.uint16)

@@ -1,5 +1,3 @@
-
-
 def infer_type(x):  # hacky way to infer type from string args
     if not isinstance(x, str):
         return x

@@ -4,15 +4,16 @@ from pathlib import Path
 import requests
 
 
-
 from einops import rearrange
 from .zoedepth.models.zoedepth.zoedepth_v1 import ZoeDepth
 from .zoedepth.utils.config import get_config
 
-remote_model_path = "https://huggingface.co/lllyasviel/Annotators/resolve/main/ZoeD_M12_N.pt"
+remote_model_path = (
+    "https://huggingface.co/lllyasviel/Annotators/resolve/main/ZoeD_M12_N.pt"
+)
+
 
 class ZoeDetector:
-
     def __init__(self):
         cwd = Path.cwd()
         ckpt_path = Path(cwd, "stencil_annotator")
@@ -30,16 +31,13 @@ class ZoeDetector:
         model.eval()
         self.model = model
 
-
     def __call__(self, input_image):
-
-        print("Zoe Depth Called")
         assert input_image.ndim == 3
         image_depth = input_image
         with torch.no_grad():
             image_depth = torch.from_numpy(image_depth).float()
             image_depth = image_depth / 255.0
-            image_depth = rearrange(image_depth, 'h w c -> 1 c h w')
+            image_depth = rearrange(image_depth, "h w c -> 1 c h w")
             depth = self.model.infer(image_depth)
 
             depth = depth[0, 0].cpu().numpy()
