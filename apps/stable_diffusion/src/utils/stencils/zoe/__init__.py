@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from pathlib import Path
 import requests
-
+import os
 
 from einops import rearrange
 from .zoedepth.models.zoedepth.zoedepth_v1 import ZoeDepth
@@ -19,8 +19,6 @@ class ZoeDetector:
         ckpt_path = Path(cwd, "stencil_annotator")
         ckpt_path.mkdir(parents=True, exist_ok=True)
         modelpath = ckpt_path / "ZoeD_M12_N.pt"
-        # self.model = None
-        # self.device = devices.get_device_for("controlnet")
 
         if not modelpath.is_file():
             r = requests.get(remote_model_path, allow_redirects=True)
@@ -28,6 +26,9 @@ class ZoeDetector:
 
         conf = get_config("zoedepth", "infer")
         model = ZoeDepth.build_from_config(conf)
+        model.load_state_dict(
+            torch.load(modelpath, map_location=model.device)["model"]
+        )
         model.eval()
         self.model = model
 
