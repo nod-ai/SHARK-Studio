@@ -3,13 +3,10 @@ from apps.stable_diffusion.src.utils.utils import _compile_module
 from io import BytesIO
 import torch_mlir
 
-from transformers import TextGenerationPipeline
-from transformers.pipelines.text_generation import ReturnType
-
 from stopping import get_stopping
 from prompter import Prompter, PromptType
 
-
+from exp_hf_pipelines import TextGenerationPipeline, ReturnType
 from transformers.generation import (
     GenerationConfig,
     LogitsProcessorList,
