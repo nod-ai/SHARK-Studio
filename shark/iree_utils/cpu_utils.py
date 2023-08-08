@@ -14,6 +14,7 @@
 
 # All the iree_cpu related functionalities go here.
 
+import functools
 import subprocess
 import platform
 from shark.parser import shark_args
@@ -30,6 +31,7 @@ def get_cpu_count():
 
 
 # Get the default cpu args.
+@functools.cache
 def get_iree_cpu_args():
     uname = platform.uname()
     os_name, proc_name = uname.system, uname.machine
@@ -51,6 +53,7 @@ def get_iree_cpu_args():
 
 
 # Get iree runtime flags for cpu
+@functools.cache
 def get_iree_cpu_rt_args():
     default = get_cpu_count()
     default = default if default <= 8 else default - 2

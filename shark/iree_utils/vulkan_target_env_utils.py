@@ -13,8 +13,10 @@
 # limitations under the License.
 
 from collections import OrderedDict
+import functools
 
 
+@functools.cache
 def get_vulkan_target_env(vulkan_target_triple):
     arch, product, os = vulkan_target_triple.split("=")[1].split("-")
     triple = (arch, product, os)
@@ -52,6 +54,7 @@ def get_version(triple):
     return "v1.3"
 
 
+@functools.cache
 def get_extensions(triple):
     def make_ext_list(ext_list):
         res = ""
@@ -122,6 +125,7 @@ def get_extensions(triple):
     return make_ext_list(ext_list=ext)
 
 
+@functools.cache
 def get_vendor(triple):
     arch, product, os = triple
     if arch == "unknown":
@@ -146,6 +150,7 @@ def get_vendor(triple):
     return "Unknown"
 
 
+@functools.cache
 def get_device_type(triple):
     arch, product, _ = triple
     if arch == "unknown":
@@ -166,6 +171,7 @@ def get_device_type(triple):
 
 # get all the capabilities for the device
 # TODO: make a dataclass for capabilites and init using vulkaninfo
+@functools.cache
 def get_vulkan_target_capabilities(triple):
     def get_subgroup_val(l):
         return int(sum([subgroup_feature[sgf] for sgf in l]))
