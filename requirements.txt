@@ -24,7 +24,8 @@ ftfy
 gradio
 altair
 omegaconf
-safetensors
+# 0.3.2 doesn't have binaries for arm64
+safetensors==0.3.1
 opencv-python
 scikit-image
 pytorch_lightning # for runwayml models
