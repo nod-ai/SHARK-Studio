@@ -968,7 +968,7 @@ def get_llm(
         # not built in prompt removal that is less general and not specific for our model
         pipe.task = "text2text-generation"
 
-        from exp_hf_pipelines import HuggingFacePipeline
+        from langchain.llms import HuggingFacePipeline
 
         llm = HuggingFacePipeline(pipeline=pipe)
     return llm, model_name, streamer, prompt_type
@@ -2554,22 +2554,7 @@ def _run_qa_db(
         )
         with context_class_cast(args.device):
             answer = chain()
-
-    if not use_context:
-        ret = answer["output_text"]
-        extra = ""
-        return ret, extra
-    elif answer is not None:
-        ret, extra = get_sources_answer(
-            query,
-            answer,
-            scores,
-            show_rank,
-            answer_with_sources,
-            verbose=verbose,
-        )
-        return ret, extra
-    return
+            return answer
 
 
 def get_similarity_chain(
