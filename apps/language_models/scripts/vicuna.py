@@ -975,8 +975,6 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                        "--iree-opt-const-expr-hoisting=False",
-                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
                     ],
                 )
                 module.load_module(vmfb_path)
@@ -1043,8 +1041,6 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                        "--iree-opt-const-expr-hoisting=False",
-                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
                     ],
                 )
                 module.load_module(vmfb_path)
@@ -1639,8 +1635,6 @@ class UnshardedVicuna(VicunaBase):
                 "--iree-vm-target-truncate-unsupported-floats",
                 "--iree-codegen-check-ir-before-llvm-conversion=false",
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                "--iree-opt-const-expr-hoisting=False",
-                "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
             ],
         )
         print("Saved vic vmfb at ", str(path))
