@@ -28,7 +28,9 @@ class ZoeDetector:
 
         conf = get_config("zoedepth", "infer")
         model = ZoeDepth.build_from_config(conf)
-        model.load_state_dict(torch.load(modelpath, map_location=model.device)['model'])
+        model.load_state_dict(
+            torch.load(modelpath, map_location=model.device)["model"]
+        )
         model.eval()
         self.model = model
 

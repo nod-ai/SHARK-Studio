@@ -190,9 +190,7 @@ def hint_scribble(image: Image.Image):
         return detected_map
 
 
-# TODO: Hint Zoe -> Also add zoedetector
-
-
+# Stencil 4. Depth (Only Zoe Preprocessing)
 def hint_zoedepth(image: Image.Image):
     with torch.no_grad():
         input_image = np.array(image)
