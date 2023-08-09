@@ -135,7 +135,6 @@ class StencilPipeline(StableDiffusionPipeline):
                 ).to(dtype)
             else:
                 latent_model_input_1 = latent_model_input
-
             control = self.controlnet(
                 "forward",
                 (
