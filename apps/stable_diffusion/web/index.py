@@ -249,9 +249,9 @@ if __name__ == "__main__":
                     ]
                 )
             # with gr.TabItem(label="DocuChat Upload", id=11):
-            #    h2ogpt_upload.render()
+            #     h2ogpt_upload.render()
             # with gr.TabItem(label="DocuChat(Experimental)", id=12):
-            #    h2ogpt_web.render()
+            #     h2ogpt_web.render()
 
         # send to buttons
         register_button_click(
