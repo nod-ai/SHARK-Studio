@@ -372,7 +372,7 @@ def get_embedding(
         from langchain.embeddings import HuggingFaceEmbeddings
 
         torch_dtype, context_class = get_dtype()
-        model_kwargs = dict(device=args.device)
+        model_kwargs = dict(device="cpu")
         if "instructor" in hf_embedding_model:
             encode_kwargs = {"normalize_embeddings": True}
             embedding = HuggingFaceInstructEmbeddings(
