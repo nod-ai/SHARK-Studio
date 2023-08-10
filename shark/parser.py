@@ -114,7 +114,7 @@ parser.add_argument(
     "--device_allocator",
     type=str,
     nargs="*",
-    default=[],
+    default=["caching"],
     help="Specifies one or more HAL device allocator specs "
     "to augment the base device allocator",
     choices=["debug", "caching"],
