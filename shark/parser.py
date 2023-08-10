@@ -149,7 +149,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--vulkan_vma_allocator",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for enabling / disabling Vulkan VMA Allocator.",
 )
