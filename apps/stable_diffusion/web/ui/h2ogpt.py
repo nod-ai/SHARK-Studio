@@ -274,9 +274,7 @@ with gr.Blocks(title="DocuChat Upload") as h2ogpt_upload:
 
     upload_path = None
     database = None
-    database_directory = os.path.abspath(
-        "apps/language_models/langchain/db_path/"
-    )
+    database_directory = "db_dir_UserData"
 
     def read_path():
         global upload_path
