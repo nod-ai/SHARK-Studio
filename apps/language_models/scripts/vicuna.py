@@ -419,44 +419,6 @@ class VicunaBase(SharkLLMBase):
 
         return ret_dict
 
-    def generate_new_token(self, params):
-        is_first = params["is_first"]
-        if is_first:
-            prompt = params["prompt"]
-            input_ids = self.tokenizer(prompt).input_ids
-            # crop input_ids
-            # input_ids = input_ids[len(input_ids) - 20 :]
-            ############
-            input_id_len = len(input_ids)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            output = self.shark_model.forward(input_ids, is_first=is_first)
-        else:
-            token = params["token"]
-            past_key_values = params["past_key_values"]
-            input_ids = [token]
-            input_id_len = len(input_ids)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            output = self.shark_model.forward(
-                input_ids, past_key_values=past_key_values, is_first=is_first
-            )
-
-        _logits = output["logits"]
-        _past_key_values = output["past_key_values"]
-        _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
-        _detok = self.tokenizer.decode(_token)
-
-        ret_dict = {
-            "token": _token,
-            "detok": _detok,
-            "past_key_values": _past_key_values,
-        }
-
-        print(f" token : {_token} | detok : {_detok}")
-
-        return ret_dict
-
 
 class ShardedVicuna(VicunaBase):
     # Class representing Sharded Vicuna Model
@@ -690,8 +652,12 @@ class ShardedVicuna(VicunaBase):
             # f_ = open(mlir_path, "wb")
             # f_.write(bytecode)
             # f_.close()
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/lmhead.mlir lmhead.mlir"
-            subprocess.check_call(command.split())
+            filepath = Path("lmhead.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/lmhead.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"lmhead.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -732,8 +698,12 @@ class ShardedVicuna(VicunaBase):
             #    use_tracing=False,
             #    verbose=False,
             # )
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/norm.mlir norm.mlir"
-            subprocess.check_call(command.split())
+            filepath = Path("norm.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/norm.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"norm.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -779,8 +749,12 @@ class ShardedVicuna(VicunaBase):
             # f_ = open(mlir_path, "wb")
             # f_.write(bytecode)
             # f_.close()
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/embedding.mlir embedding.mlir"
-            subprocess.check_call(command.split())
+            filepath = Path("embedding.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/embedding.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"embedding.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -963,6 +937,8 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+                        "--iree-opt-const-expr-hoisting=False",
+                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
                     ],
                 )
                 module.load_module(vmfb_path)
@@ -986,9 +962,12 @@ class ShardedVicuna(VicunaBase):
                 f_.close()
                 mlirs.append(bytecode)
             else:
-                command = f"gsutil cp gs://shark_tank/elias/compressed_sv/{idx}_full.mlir {idx}_full.mlir"
-
-                subprocess.check_call(command.split())
+                filepath = Path(f"{idx}_full.mlir")
+                download_public_file(
+                    f"gs://shark_tank/elias/compressed_sv/{idx}_full.mlir",
+                    filepath.absolute(),
+                    single_file=True,
+                )
 
                 f_ = open(f"{idx}_full.mlir", "rb")
                 bytecode = f_.read()
@@ -1026,6 +1005,8 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+                        "--iree-opt-const-expr-hoisting=False",
+                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
                     ],
                 )
                 module.load_module(vmfb_path)
@@ -1150,7 +1131,7 @@ class ShardedVicuna(VicunaBase):
             layers0 = [layers00, layers01, layers02, layers03]
             layers1 = [layers10, layers11, layers12, layers13]
 
-        _, modules = self.compile_to_vmfb_one_model(
+        _, modules = self.compile_to_vmfb_one_model4(
             placeholder_input0,
             layers0,
             placeholder_input1,
@@ -1174,6 +1155,9 @@ class ShardedVicuna(VicunaBase):
         return sharded_model
 
     def compile(self, device="cpu"):
+        return self.get_sharded_model(
+            device=device, compressed=self.compressed
+        )
         return self.get_sharded_model(
             device=device, compressed=self.compressed
         )
@@ -1617,6 +1601,8 @@ class UnshardedVicuna(VicunaBase):
                 "--iree-vm-target-truncate-unsupported-floats",
                 "--iree-codegen-check-ir-before-llvm-conversion=false",
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+                "--iree-opt-const-expr-hoisting=False",
+                "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
             ],
         )
         print("Saved vic vmfb at ", str(path))
@@ -1768,8 +1754,9 @@ if __name__ == "__main__":
                 system_message,
                 history,
                 model=model_list[args.model_name],
-                device=args.device,
+                devices=args.device,
                 precision=args.precision,
+                config_file=None,
                 cli=args.cli,
             )
         )[0]

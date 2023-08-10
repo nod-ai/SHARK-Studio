@@ -154,26 +154,182 @@ class Chain(Serializable, ABC):
             include_run_info: Whether to include run info in the response. Defaults
                 to False.
         """
-        inputs = self.prep_inputs(inputs)
+        input_docs = inputs["input_documents"]
+        missing_keys = set(self.input_keys).difference(inputs)
+        if missing_keys:
+            raise ValueError(f"Missing some input keys: {missing_keys}")
+
         callback_manager = CallbackManager.configure(
             callbacks, self.callbacks, self.verbose, tags, self.tags
-        )
-        new_arg_supported = inspect.signature(self._call).parameters.get(
-            "run_manager"
         )
         run_manager = callback_manager.on_chain_start(
             dumpd(self),
             inputs,
         )
-        try:
-            outputs = (
-                self._call(inputs, run_manager=run_manager)
-                if new_arg_supported
-                else self._call(inputs)
+
+        if "is_first" in inputs.keys() and not inputs["is_first"]:
+            run_manager_ = run_manager
+            input_list = [inputs]
+            stop = None
+            prompts = []
+            for inputs in input_list:
+                selected_inputs = {
+                    k: inputs[k] for k in self.prompt.input_variables
+                }
+                prompt = self.prompt.format_prompt(**selected_inputs)
+                _colored_text = get_colored_text(prompt.to_string(), "green")
+                _text = "Prompt after formatting:\n" + _colored_text
+                if run_manager_:
+                    run_manager_.on_text(_text, end="\n", verbose=self.verbose)
+                if "stop" in inputs and inputs["stop"] != stop:
+                    raise ValueError(
+                        "If `stop` is present in any inputs, should be present in all."
+                    )
+                prompts.append(prompt)
+
+            prompt_strings = [p.to_string() for p in prompts]
+            prompts = prompt_strings
+            callbacks = run_manager_.get_child() if run_manager_ else None
+            tags = None
+
+            """Run the LLM on the given prompt and input."""
+            # If string is passed in directly no errors will be raised but outputs will
+            # not make sense.
+            if not isinstance(prompts, list):
+                raise ValueError(
+                    "Argument 'prompts' is expected to be of type List[str], received"
+                    f" argument of type {type(prompts)}."
+                )
+            params = self.llm.dict()
+            params["stop"] = stop
+            options = {"stop": stop}
+            disregard_cache = self.llm.cache is not None and not self.llm.cache
+            callback_manager = CallbackManager.configure(
+                callbacks,
+                self.llm.callbacks,
+                self.llm.verbose,
+                tags,
+                self.llm.tags,
             )
-        except (KeyboardInterrupt, Exception) as e:
-            run_manager.on_chain_error(e)
-            raise e
+            if langchain.llm_cache is None or disregard_cache:
+                # This happens when langchain.cache is None, but self.cache is True
+                if self.llm.cache is not None and self.cache:
+                    raise ValueError(
+                        "Asked to cache, but no cache found at `langchain.cache`."
+                    )
+                run_manager_ = callback_manager.on_llm_start(
+                    dumpd(self),
+                    prompts,
+                    invocation_params=params,
+                    options=options,
+                )
+
+                generations = []
+                for prompt in prompts:
+                    inputs_ = prompt
+                    num_workers = None
+                    batch_size = None
+
+                    if num_workers is None:
+                        if self.llm.pipeline._num_workers is None:
+                            num_workers = 0
+                        else:
+                            num_workers = self.llm.pipeline._num_workers
+                    if batch_size is None:
+                        if self.llm.pipeline._batch_size is None:
+                            batch_size = 1
+                        else:
+                            batch_size = self.llm.pipeline._batch_size
+
+                    preprocess_params = {}
+                    generate_kwargs = {}
+                    preprocess_params.update(generate_kwargs)
+                    forward_params = generate_kwargs
+                    postprocess_params = {}
+                    # Fuse __init__ params and __call__ params without modifying the __init__ ones.
+                    preprocess_params = {
+                        **self.llm.pipeline._preprocess_params,
+                        **preprocess_params,
+                    }
+                    forward_params = {
+                        **self.llm.pipeline._forward_params,
+                        **forward_params,
+                    }
+                    postprocess_params = {
+                        **self.llm.pipeline._postprocess_params,
+                        **postprocess_params,
+                    }
+
+                    self.llm.pipeline.call_count += 1
+                    if (
+                        self.llm.pipeline.call_count > 10
+                        and self.llm.pipeline.framework == "pt"
+                        and self.llm.pipeline.device.type == "cuda"
+                    ):
+                        warnings.warn(
+                            "You seem to be using the pipelines sequentially on GPU. In order to maximize efficiency please use a"
+                            " dataset",
+                            UserWarning,
+                        )
+
+                    model_inputs = self.llm.pipeline.preprocess(
+                        inputs_, **preprocess_params
+                    )
+                    model_outputs = self.llm.pipeline.forward(
+                        model_inputs, **forward_params
+                    )
+                    model_outputs["process"] = False
+                    return model_outputs
+                output = LLMResult(generations=generations)
+                run_manager_.on_llm_end(output)
+                if run_manager_:
+                    output.run = RunInfo(run_id=run_manager_.run_id)
+                response = output
+
+            outputs = [
+                # Get the text of the top generated string.
+                {self.output_key: generation[0].text}
+                for generation in response.generations
+            ][0]
+            run_manager.on_chain_end(outputs)
+            final_outputs: Dict[str, Any] = self.prep_outputs(
+                inputs, outputs, return_only_outputs
+            )
+            if include_run_info:
+                final_outputs[RUN_KEY] = RunInfo(run_id=run_manager.run_id)
+            return final_outputs
+        else:
+            _run_manager = (
+                run_manager or CallbackManagerForChainRun.get_noop_manager()
+            )
+            docs = inputs[self.input_key]
+            # Other keys are assumed to be needed for LLM prediction
+            other_keys = {
+                k: v for k, v in inputs.items() if k != self.input_key
+            }
+            doc_strings = [
+                format_document(doc, self.document_prompt) for doc in docs
+            ]
+            # Join the documents together to put them in the prompt.
+            inputs = {
+                k: v
+                for k, v in other_keys.items()
+                if k in self.llm_chain.prompt.input_variables
+            }
+            inputs[self.document_variable_name] = self.document_separator.join(
+                doc_strings
+            )
+            inputs["is_first"] = False
+            inputs["input_documents"] = input_docs
+
+            # Call predict on the LLM.
+            output = self.llm_chain(inputs, callbacks=_run_manager.get_child())
+            if "process" in output.keys() and not output["process"]:
+                return output
+            output = output[self.llm_chain.output_key]
+            extra_return_dict = {}
+        extra_return_dict[self.output_key] = output
+        outputs = extra_return_dict
         run_manager.on_chain_end(outputs)
         final_outputs: Dict[str, Any] = self.prep_outputs(
             inputs, outputs, return_only_outputs
@@ -374,6 +530,24 @@ class BaseCombineDocumentsChain(Chain, ABC):
 
         extra_return_dict[self.output_key] = output
         return extra_return_dict
+
+
+from pydantic import BaseModel
+
+
+class Generation(Serializable):
+    """Output of a single generation."""
+
+    text: str
+    """Generated text output."""
+
+    generation_info: Optional[Dict[str, Any]] = None
+    """Raw generation info response from the provider"""
+    """May include things like reason for finishing (e.g. in OpenAI)"""
+    # TODO: add log probs
+
+
+VALID_TASKS = ("text2text-generation", "text-generation", "summarization")
 
 
 class LLMChain(Chain):
