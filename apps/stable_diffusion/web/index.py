@@ -20,24 +20,24 @@ if args.clear_all:
     clear_all()
 
 
-def launch_app(address):
-    from tkinter import Tk
-    import webview
-
-    window = Tk()
-
-    # get screen width and height of display and make it more reasonably
-    # sized as we aren't making it full-screen or maximized
-    width = int(window.winfo_screenwidth() * 0.81)
-    height = int(window.winfo_screenheight() * 0.91)
-    webview.create_window(
-        "SHARK AI Studio",
-        url=address,
-        width=width,
-        height=height,
-        text_select=True,
-    )
-    webview.start(private_mode=False)
+#  def launch_app(address):
+#      from tkinter import Tk
+#      import webview
+#
+#      window = Tk()
+#
+#      # get screen width and height of display and make it more reasonably
+#      # sized as we aren't making it full-screen or maximized
+#      width = int(window.winfo_screenwidth() * 0.81)
+#      height = int(window.winfo_screenheight() * 0.91)
+#      webview.create_window(
+#          "SHARK AI Studio",
+#          url=address,
+#          width=width,
+#          height=height,
+#          text_select=True,
+#      )
+#      webview.start(private_mode=False)
 
 
 if __name__ == "__main__":
@@ -424,11 +424,11 @@ if __name__ == "__main__":
         )
 
     sd_web.queue()
-    if args.ui == "app":
-        t = Process(
-            target=launch_app, args=[f"http://localhost:{args.server_port}"]
-        )
-        t.start()
+    #  if args.ui == "app":
+    #      t = Process(
+    #          target=launch_app, args=[f"http://localhost:{args.server_port}"]
+    #      )
+    #      t.start()
     sd_web.launch(
         share=args.share,
         inbrowser=args.ui == "web",
