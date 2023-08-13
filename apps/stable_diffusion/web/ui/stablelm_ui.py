@@ -180,6 +180,15 @@ def chat(
                 print("unrecognized device")
 
             max_toks = 128 if model_name == "codegen" else 512
+
+            # get iree flags that need to be overridden, from commandline args
+            _extra_args = []
+            # vulkan target triple
+            if args.iree_vulkan_target_triple != "":
+                _extra_args.append(
+                    f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+                )
+
             if model_name == "vicuna4":
                 vicuna_model = ShardedVicuna(
                     model_name,
@@ -188,6 +197,7 @@ def chat(
                     precision=precision,
                     max_num_tokens=max_toks,
                     compressed=True,
+                    extra_args_cmd=_extra_args,
                 )
             else:
                 #  if config_file is None:
@@ -198,6 +208,7 @@ def chat(
                     device=device,
                     precision=precision,
                     max_num_tokens=max_toks,
+                    extra_args_cmd=_extra_args,
                 )
                 #  else:
                 #      if config_file is not None:
