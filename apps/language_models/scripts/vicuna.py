@@ -362,7 +362,7 @@ class VicunaBase(SharkLLMBase):
         with open(output_name, "rb") as f:
             return f.read()
 
-    def generate_new_token(self, params, sharded=True):
+    def generate_new_token(self, params, sharded=True, cli=True):
         is_first = params["is_first"]
         if is_first:
             prompt = params["prompt"]
@@ -415,7 +415,8 @@ class VicunaBase(SharkLLMBase):
             "past_key_values": _past_key_values,
         }
 
-        print(f" token : {_token} | detok : {_detok}")
+        if cli:
+            print(f" token : {_token} | detok : {_detok}")
 
         return ret_dict
 
@@ -1628,14 +1629,14 @@ class UnshardedVicuna(VicunaBase):
         params = {"prompt": prompt, "is_first": True, "fv": self.shark_model}
 
         generated_token_op = self.generate_new_token(
-            params=params, sharded=False
+            params=params, sharded=False, cli=False
         )
 
         token = generated_token_op["token"]
         logits = generated_token_op["logits"]
         pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
-        yield detok
+        yield detok, ""
 
         res_tokens.append(token)
         if cli:
@@ -1668,14 +1669,11 @@ class UnshardedVicuna(VicunaBase):
             else:
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
-
-            if len(res_tokens) % 3 == 0:
-                part_str = self.decode_tokens(res_tokens)
-                yield part_str
+            yield detok, ""
 
         res_str = self.decode_tokens(res_tokens)
         # print(f"[DEBUG] final output : \n{res_str}")
-        yield res_str
+        yield res_str, "formatted"
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
