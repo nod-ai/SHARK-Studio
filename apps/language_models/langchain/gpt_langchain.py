@@ -436,7 +436,7 @@ class GradioInference(LLM):
     chat_client: bool = False
 
     return_full_text: bool = True
-    stream: bool = False
+    stream_output: bool = Field(False, alias="stream")
     sanitize_bot_response: bool = False
 
     prompter: Any = None
@@ -481,7 +481,7 @@ class GradioInference(LLM):
         # so server should get prompt_type or '', not plain
         # This is good, so gradio server can also handle stopping.py conditions
         # this is different than TGI server that uses prompter to inject prompt_type prompting
-        stream_output = self.stream
+        stream_output = self.stream_output
         gr_client = self.client
         client_langchain_mode = "Disabled"
         client_langchain_action = LangChainAction.QUERY.value
@@ -596,7 +596,7 @@ class H2OHuggingFaceTextGenInference(HuggingFaceTextGenInference):
     inference_server_url: str = ""
     timeout: int = 300
     headers: dict = None
-    stream: bool = False
+    stream_output: bool = Field(False, alias="stream")
     sanitize_bot_response: bool = False
     prompter: Any = None
     tokenizer: Any = None
@@ -663,7 +663,7 @@ class H2OHuggingFaceTextGenInference(HuggingFaceTextGenInference):
         # lower bound because client is re-used if multi-threading
         self.client.timeout = max(300, self.timeout)
 
-        if not self.stream:
+        if not self.stream_output:
             res = self.client.generate(
                 prompt,
                 **gen_server_kwargs,
@@ -852,7 +852,7 @@ def get_llm(
                 top_p=top_p,
                 # typical_p=top_p,
                 callbacks=callbacks if stream_output else None,
-                stream=stream_output,
+                stream_output=stream_output,
                 prompter=prompter,
                 tokenizer=tokenizer,
                 client=hf_client,
@@ -2554,22 +2554,7 @@ def _run_qa_db(
         )
         with context_class_cast(args.device):
             answer = chain()
-
-    if not use_context:
-        ret = answer["output_text"]
-        extra = ""
-        return ret, extra
-    elif answer is not None:
-        ret, extra = get_sources_answer(
-            query,
-            answer,
-            scores,
-            show_rank,
-            answer_with_sources,
-            verbose=verbose,
-        )
-        return ret, extra
-    return
+            return answer
 
 
 def get_similarity_chain(

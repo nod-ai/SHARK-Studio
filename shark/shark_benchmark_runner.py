@@ -13,7 +13,11 @@
 # limitations under the License.
 
 from shark.shark_runner import SharkRunner
-from shark.iree_utils.compile_utils import export_iree_module_to_vmfb
+from shark.iree_utils.compile_utils import (
+    export_iree_module_to_vmfb,
+    load_flatbuffer,
+    get_iree_runtime_config,
+)
 from shark.iree_utils.benchmark_utils import (
     build_benchmark_args,
     run_benchmark_module,
@@ -79,22 +83,31 @@ class SharkBenchmarkRunner(SharkRunner):
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
         self.import_args = {}
+        self.temp_file_to_unlink = None
         SharkRunner.__init__(
             self,
             mlir_module,
             device,
             self.mlir_dialect,
             self.extra_args,
-            compile_vmfb=True,
+            compile_vmfb=False,
         )
-        if self.vmfb_file == None:
-            self.vmfb_file = export_iree_module_to_vmfb(
-                mlir_module,
-                device,
-                ".",
-                self.mlir_dialect,
-                extra_args=self.extra_args,
-            )
+        self.vmfb_file = export_iree_module_to_vmfb(
+            mlir_module,
+            device,
+            ".",
+            self.mlir_dialect,
+            extra_args=self.extra_args,
+        )
+        params = load_flatbuffer(
+            self.vmfb_file,
+            device,
+            mmap=True,
+        )
+        self.iree_compilation_module = params["vmfb"]
+        self.iree_config = params["config"]
+        self.temp_file_to_unlink = params["temp_file_to_unlink"]
+        del params
 
     def setup_cl(self, input_tensors):
         self.benchmark_cl = build_benchmark_args(

@@ -14,6 +14,7 @@
 
 # All the iree_vulkan related functionalities go here.
 
+import functools
 from os import linesep
 from shark.iree_utils._common import run_cmd
 import iree.runtime as ireert
@@ -22,6 +23,7 @@ from shark.iree_utils.vulkan_target_env_utils import get_vulkan_target_env_flag
 from shark.parser import shark_args
 
 
+@functools.cache
 def get_vulkan_device_name(device_num=0):
     vulkaninfo_dump, _ = run_cmd("vulkaninfo")
     vulkaninfo_dump = vulkaninfo_dump.split(linesep)
@@ -48,6 +50,7 @@ def get_os_name():
         return "linux"
 
 
+@functools.cache
 def get_vulkan_target_triple(device_name):
     """This method provides a target triple str for specified vulkan device.
 
@@ -172,6 +175,7 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
     return res_vulkan_flag
 
 
+@functools.cache
 def get_iree_vulkan_runtime_flags():
     vulkan_runtime_flags = [
         f"--vulkan_large_heap_block_size={shark_args.vulkan_large_heap_block_size}",

@@ -521,7 +521,7 @@ p.add_argument(
 
 p.add_argument(
     "--iree_constant_folding",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Controls constant folding in iree-compile for all SD models.",
 )
