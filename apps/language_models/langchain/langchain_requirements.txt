@@ -17,6 +17,7 @@ better-profanity==0.7.0
 numpy==1.24.3
 pandas==2.0.2
 matplotlib==3.7.1
+accelerate==0.20.3
 loralib==0.1.1
 bitsandbytes==0.39.0
 peft==0.4.0
