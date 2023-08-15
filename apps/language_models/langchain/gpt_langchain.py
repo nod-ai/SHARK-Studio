@@ -2554,22 +2554,7 @@ def _run_qa_db(
         )
         with context_class_cast(args.device):
             answer = chain()
-
-    if not use_context:
-        ret = answer["output_text"]
-        extra = ""
-        return ret, extra
-    elif answer is not None:
-        ret, extra = get_sources_answer(
-            query,
-            answer,
-            scores,
-            show_rank,
-            answer_with_sources,
-            verbose=verbose,
-        )
-        return ret, extra
-    return
+            return answer
 
 
 def get_similarity_chain(

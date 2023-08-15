@@ -108,7 +108,7 @@ class GenerateConfigFile:
                 self.track_loop % self.units_in_each_stage
             )
             layer_dict = {
-                n: int(increasing_wraparound_idx_list[idx])
+                n: int(increasing_wraparound_idx_list[idx][0][0])
                 for idx, n in enumerate(self.sharding_stages_id)
             }
             self.track_loop += 1
@@ -144,4 +144,4 @@ if __name__ == "__main__":
 
     model = CombinedModel()
     c = GenerateConfigFile(model, 1, ["gpu_id"], firstVicunaCompileInput)
-    c.split_into_dispatches("vulkan")
+    c.split_into_layers()

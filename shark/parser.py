@@ -114,7 +114,7 @@ parser.add_argument(
     "--device_allocator",
     type=str,
     nargs="*",
-    default=[],
+    default=["caching"],
     help="Specifies one or more HAL device allocator specs "
     "to augment the base device allocator",
     choices=["debug", "caching"],
@@ -149,7 +149,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--vulkan_vma_allocator",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for enabling / disabling Vulkan VMA Allocator.",
 )

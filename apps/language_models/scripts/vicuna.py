@@ -123,7 +123,12 @@ parser.add_argument(
     action=argparse.BooleanOptionalAction,
     help="For debugging purposes, creates a first_{precision}.mlir and second_{precision}.mlir and stores on disk",
 )
-
+parser.add_argument(
+    "--iree_vulkan_target_triple",
+    type=str,
+    default="",
+    help="Specify target triple for vulkan.",
+)
 
 # fmt: off
 def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
@@ -160,11 +165,13 @@ class VicunaBase(SharkLLMBase):
         max_num_tokens=512,
         device="cpu",
         precision="int8",
+        extra_args_cmd=[],
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
+        self.extra_args = extra_args_cmd
 
     def get_tokenizer(self):
         # Retrieve the tokenizer from Huggingface
@@ -362,7 +369,7 @@ class VicunaBase(SharkLLMBase):
         with open(output_name, "rb") as f:
             return f.read()
 
-    def generate_new_token(self, params, sharded=True):
+    def generate_new_token(self, params, sharded=True, cli=True):
         is_first = params["is_first"]
         if is_first:
             prompt = params["prompt"]
@@ -415,45 +422,8 @@ class VicunaBase(SharkLLMBase):
             "past_key_values": _past_key_values,
         }
 
-        print(f" token : {_token} | detok : {_detok}")
-
-        return ret_dict
-
-    def generate_new_token(self, params):
-        is_first = params["is_first"]
-        if is_first:
-            prompt = params["prompt"]
-            input_ids = self.tokenizer(prompt).input_ids
-            # crop input_ids
-            # input_ids = input_ids[len(input_ids) - 20 :]
-            ############
-            input_id_len = len(input_ids)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            output = self.shark_model.forward(input_ids, is_first=is_first)
-        else:
-            token = params["token"]
-            past_key_values = params["past_key_values"]
-            input_ids = [token]
-            input_id_len = len(input_ids)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            output = self.shark_model.forward(
-                input_ids, past_key_values=past_key_values, is_first=is_first
-            )
-
-        _logits = output["logits"]
-        _past_key_values = output["past_key_values"]
-        _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
-        _detok = self.tokenizer.decode(_token)
-
-        ret_dict = {
-            "token": _token,
-            "detok": _detok,
-            "past_key_values": _past_key_values,
-        }
-
-        print(f" token : {_token} | detok : {_detok}")
+        if cli:
+            print(f" token : {_token} | detok : {_detok}")
 
         return ret_dict
 
@@ -470,8 +440,9 @@ class ShardedVicuna(VicunaBase):
         config_json=None,
         weight_group_size=128,
         compressed=False,
+        extra_args_cmd=[],
     ) -> None:
-        super().__init__(model_name, hf_model_path, max_num_tokens)
+        super().__init__(model_name, hf_model_path, max_num_tokens, extra_args_cmd=extra_args_cmd)
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
@@ -690,8 +661,12 @@ class ShardedVicuna(VicunaBase):
             # f_ = open(mlir_path, "wb")
             # f_.write(bytecode)
             # f_.close()
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/lmhead.mlir lmhead.mlir"
-            subprocess.check_call(command.split())
+            filepath = Path("lmhead.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/lmhead.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"lmhead.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -732,8 +707,12 @@ class ShardedVicuna(VicunaBase):
             #    use_tracing=False,
             #    verbose=False,
             # )
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/norm.mlir norm.mlir"
-            subprocess.check_call(command.split())
+            filepath = Path("norm.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/norm.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"norm.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -779,8 +758,12 @@ class ShardedVicuna(VicunaBase):
             # f_ = open(mlir_path, "wb")
             # f_.write(bytecode)
             # f_.close()
-            command = f"gsutil cp gs://shark_tank/elias/compressed_sv/embedding.mlir embedding.mlir"
-            subprocess.check_call(command.split())
+            filepath = Path("embedding.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/embedding.mlir",
+                filepath.absolute(),
+                single_file=True,
+            )
             f_ = open(f"embedding.mlir", "rb")
             bytecode = f_.read()
             f_.close()
@@ -963,7 +946,7 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                    ],
+                    ] + self.extra_args,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -986,9 +969,12 @@ class ShardedVicuna(VicunaBase):
                 f_.close()
                 mlirs.append(bytecode)
             else:
-                command = f"gsutil cp gs://shark_tank/elias/compressed_sv/{idx}_full.mlir {idx}_full.mlir"
-
-                subprocess.check_call(command.split())
+                filepath = Path(f"{idx}_full.mlir")
+                download_public_file(
+                    f"gs://shark_tank/elias/compressed_sv/{idx}_full.mlir",
+                    filepath.absolute(),
+                    single_file=True,
+                )
 
                 f_ = open(f"{idx}_full.mlir", "rb")
                 bytecode = f_.read()
@@ -1026,7 +1012,7 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                    ],
+                    ] + self.extra_args,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -1150,7 +1136,7 @@ class ShardedVicuna(VicunaBase):
             layers0 = [layers00, layers01, layers02, layers03]
             layers1 = [layers10, layers11, layers12, layers13]
 
-        _, modules = self.compile_to_vmfb_one_model(
+        _, modules = self.compile_to_vmfb_one_model4(
             placeholder_input0,
             layers0,
             placeholder_input1,
@@ -1174,6 +1160,9 @@ class ShardedVicuna(VicunaBase):
         return sharded_model
 
     def compile(self, device="cpu"):
+        return self.get_sharded_model(
+            device=device, compressed=self.compressed
+        )
         return self.get_sharded_model(
             device=device, compressed=self.compressed
         )
@@ -1235,8 +1224,9 @@ class UnshardedVicuna(VicunaBase):
         weight_group_size=128,
         download_vmfb=False,
         cache_vicunas=False,
+        extra_args_cmd=[],
     ) -> None:
-        super().__init__(model_name, hf_model_path, max_num_tokens)
+        super().__init__(model_name, hf_model_path, max_num_tokens, extra_args_cmd=extra_args_cmd)
         if "llama2" in self.model_name and hf_auth_token == None:
             raise ValueError(
                 "HF auth token required. Pass it using --hf_auth_token flag."
@@ -1617,7 +1607,7 @@ class UnshardedVicuna(VicunaBase):
                 "--iree-vm-target-truncate-unsupported-floats",
                 "--iree-codegen-check-ir-before-llvm-conversion=false",
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-            ],
+            ] + self.extra_args,
         )
         print("Saved vic vmfb at ", str(path))
         shark_module.load_module(path)
@@ -1642,14 +1632,14 @@ class UnshardedVicuna(VicunaBase):
         params = {"prompt": prompt, "is_first": True, "fv": self.shark_model}
 
         generated_token_op = self.generate_new_token(
-            params=params, sharded=False
+            params=params, sharded=False, cli=False
         )
 
         token = generated_token_op["token"]
         logits = generated_token_op["logits"]
         pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
-        yield detok
+        yield detok, ""
 
         res_tokens.append(token)
         if cli:
@@ -1682,14 +1672,11 @@ class UnshardedVicuna(VicunaBase):
             else:
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
-
-            if len(res_tokens) % 3 == 0:
-                part_str = self.decode_tokens(res_tokens)
-                yield part_str
+            yield detok, ""
 
         res_str = self.decode_tokens(res_tokens)
         # print(f"[DEBUG] final output : \n{res_str}")
-        yield res_str
+        yield res_str, "formatted"
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
@@ -1698,6 +1685,13 @@ class UnshardedVicuna(VicunaBase):
 
 if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
+
+    _extra_args = []
+    # vulkan target triple
+    if args.iree_vulkan_target_triple != "":
+        _extra_args.append(
+            f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+        )
 
     vic = None
     if not args.sharded:
@@ -1722,6 +1716,7 @@ if __name__ == "__main__":
             weight_group_size=args.weight_group_size,
             download_vmfb=args.download_vmfb,
             cache_vicunas=args.cache_vicunas,
+            extra_args_cmd=_extra_args,
         )
     else:
         if args.config is not None:
@@ -1736,6 +1731,7 @@ if __name__ == "__main__":
             precision=args.precision,
             config_json=config_json,
             weight_group_size=args.weight_group_size,
+            extra_args_cmd=_extra_args,
         )
     if args.model_name == "vicuna":
         system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
@@ -1768,8 +1764,9 @@ if __name__ == "__main__":
                 system_message,
                 history,
                 model=model_list[args.model_name],
-                device=args.device,
+                devices=args.device,
                 precision=args.precision,
+                config_file=None,
                 cli=args.cli,
             )
         )[0]

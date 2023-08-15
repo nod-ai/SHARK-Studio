@@ -20,24 +20,24 @@ if args.clear_all:
     clear_all()
 
 
-def launch_app(address):
-    from tkinter import Tk
-    import webview
-
-    window = Tk()
-
-    # get screen width and height of display and make it more reasonably
-    # sized as we aren't making it full-screen or maximized
-    width = int(window.winfo_screenwidth() * 0.81)
-    height = int(window.winfo_screenheight() * 0.91)
-    webview.create_window(
-        "SHARK AI Studio",
-        url=address,
-        width=width,
-        height=height,
-        text_select=True,
-    )
-    webview.start(private_mode=False)
+#  def launch_app(address):
+#      from tkinter import Tk
+#      import webview
+#
+#      window = Tk()
+#
+#      # get screen width and height of display and make it more reasonably
+#      # sized as we aren't making it full-screen or maximized
+#      width = int(window.winfo_screenwidth() * 0.81)
+#      height = int(window.winfo_screenheight() * 0.91)
+#      webview.create_window(
+#          "SHARK AI Studio",
+#          url=address,
+#          width=width,
+#          height=height,
+#          text_select=True,
+#      )
+#      webview.start(private_mode=False)
 
 
 if __name__ == "__main__":
@@ -213,6 +213,15 @@ if __name__ == "__main__":
         css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
     ) as sd_web:
         with gr.Tabs() as tabs:
+            # NOTE: If adding, removing, or re-ordering tabs, make sure that they
+            # have a unique id that doesn't clash with any of the other tabs,
+            # and that the order in the code here is the order they should
+            # appear in the ui, as the id value doesn't determine the order.
+
+            # Where possible, avoid changing the id of any tab that is the
+            # destination of one of the 'send to' buttons. If you do have to change
+            # that id, make sure you update the relevant register_button_click calls
+            # further down with the new id.
             with gr.TabItem(label="Text-to-Image", id=0):
                 txt2img_web.render()
             with gr.TabItem(label="Image-to-Image", id=1):
@@ -223,16 +232,6 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
-            with gr.TabItem(label="Model Manager", id=6):
-                model_web.render()
-            with gr.TabItem(label="Chat Bot(Experimental)", id=7):
-                stablelm_chat.render()
-            with gr.TabItem(label="Generate Sharding Config", id=8):
-                model_config_web.render()
-            with gr.TabItem(label="LoRA Training(Experimental)", id=9):
-                lora_train_web.render()
-            with gr.TabItem(label="MultiModal (Experimental)", id=10):
-                minigpt4_web.render()
             if args.output_gallery:
                 with gr.TabItem(label="Output Gallery", id=5) as og_tab:
                     outputgallery_web.render()
@@ -248,10 +247,22 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
+            with gr.TabItem(label="Model Manager", id=6):
+                model_web.render()
+            with gr.TabItem(label="LoRA Training (Experimental)", id=7):
+                lora_train_web.render()
+            with gr.TabItem(label="Chat Bot (Experimental)", id=8):
+                stablelm_chat.render()
+            with gr.TabItem(
+                label="Generate Sharding Config (Experimental)", id=9
+            ):
+                model_config_web.render()
+            with gr.TabItem(label="MultiModal (Experimental)", id=10):
+                minigpt4_web.render()
             # with gr.TabItem(label="DocuChat Upload", id=11):
-            #    h2ogpt_upload.render()
+            #     h2ogpt_upload.render()
             # with gr.TabItem(label="DocuChat(Experimental)", id=12):
-            #    h2ogpt_web.render()
+            #     h2ogpt_web.render()
 
         # send to buttons
         register_button_click(
@@ -413,11 +424,11 @@ if __name__ == "__main__":
         )
 
     sd_web.queue()
-    if args.ui == "app":
-        t = Process(
-            target=launch_app, args=[f"http://localhost:{args.server_port}"]
-        )
-        t.start()
+    #  if args.ui == "app":
+    #      t = Process(
+    #          target=launch_app, args=[f"http://localhost:{args.server_port}"]
+    #      )
+    #      t.start()
     sd_web.launch(
         share=args.share,
         inbrowser=args.ui == "web",

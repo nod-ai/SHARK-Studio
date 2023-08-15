@@ -3,13 +3,11 @@ from apps.stable_diffusion.src.utils.utils import _compile_module
 from io import BytesIO
 import torch_mlir
 
-from transformers import TextGenerationPipeline
-from transformers.pipelines.text_generation import ReturnType
-
 from stopping import get_stopping
 from prompter import Prompter, PromptType
 
-
+from transformers import TextGenerationPipeline
+from transformers.pipelines.text_generation import ReturnType
 from transformers.generation import (
     GenerationConfig,
     LogitsProcessorList,
@@ -285,7 +283,215 @@ class H2OGPTSHARKModel(torch.nn.Module):
         return result
 
 
-h2ogpt_model = H2OGPTSHARKModel()
+def decode_tokens(tokenizer, res_tokens):
+    for i in range(len(res_tokens)):
+        if type(res_tokens[i]) != int:
+            res_tokens[i] = int(res_tokens[i][0])
+
+    res_str = tokenizer.decode(res_tokens, skip_special_tokens=True)
+    return res_str
+
+
+def generate_token(h2ogpt_shark_model, model, tokenizer, **generate_kwargs):
+    del generate_kwargs["max_time"]
+    generate_kwargs["input_ids"] = generate_kwargs["input_ids"].to(
+        device=tensor_device
+    )
+    generate_kwargs["attention_mask"] = generate_kwargs["attention_mask"].to(
+        device=tensor_device
+    )
+    truncated_input_ids = []
+    stopping_criteria = generate_kwargs["stopping_criteria"]
+
+    generation_config_ = GenerationConfig.from_model_config(model.config)
+    generation_config = copy.deepcopy(generation_config_)
+    model_kwargs = generation_config.update(**generate_kwargs)
+
+    logits_processor = LogitsProcessorList()
+    stopping_criteria = (
+        stopping_criteria
+        if stopping_criteria is not None
+        else StoppingCriteriaList()
+    )
+
+    eos_token_id = generation_config.eos_token_id
+    generation_config.pad_token_id = eos_token_id
+
+    (
+        inputs_tensor,
+        model_input_name,
+        model_kwargs,
+    ) = model._prepare_model_inputs(
+        None, generation_config.bos_token_id, model_kwargs
+    )
+
+    model_kwargs["output_attentions"] = generation_config.output_attentions
+    model_kwargs[
+        "output_hidden_states"
+    ] = generation_config.output_hidden_states
+    model_kwargs["use_cache"] = generation_config.use_cache
+
+    input_ids = (
+        inputs_tensor
+        if model_input_name == "input_ids"
+        else model_kwargs.pop("input_ids")
+    )
+
+    input_ids_seq_length = input_ids.shape[-1]
+
+    generation_config.max_length = (
+        generation_config.max_new_tokens + input_ids_seq_length
+    )
+
+    logits_processor = model._get_logits_processor(
+        generation_config=generation_config,
+        input_ids_seq_length=input_ids_seq_length,
+        encoder_input_ids=inputs_tensor,
+        prefix_allowed_tokens_fn=None,
+        logits_processor=logits_processor,
+    )
+
+    stopping_criteria = model._get_stopping_criteria(
+        generation_config=generation_config,
+        stopping_criteria=stopping_criteria,
+    )
+
+    logits_warper = model._get_logits_warper(generation_config)
+
+    (
+        input_ids,
+        model_kwargs,
+    ) = model._expand_inputs_for_generation(
+        input_ids=input_ids,
+        expand_size=generation_config.num_return_sequences,  # 1
+        is_encoder_decoder=model.config.is_encoder_decoder,  # False
+        **model_kwargs,
+    )
+
+    if isinstance(eos_token_id, int):
+        eos_token_id = [eos_token_id]
+    eos_token_id_tensor = (
+        torch.tensor(eos_token_id).to(device=tensor_device)
+        if eos_token_id is not None
+        else None
+    )
+
+    pad_token_id = generation_config.pad_token_id
+    eos_token_id = eos_token_id
+
+    output_scores = generation_config.output_scores  # False
+    return_dict_in_generate = (
+        generation_config.return_dict_in_generate  # False
+    )
+
+    # init attention / hidden states / scores tuples
+    scores = () if (return_dict_in_generate and output_scores) else None
+
+    # keep track of which sequences are already finished
+    unfinished_sequences = torch.ones(
+        input_ids.shape[0],
+        dtype=torch.long,
+        device=input_ids.device,
+    )
+
+    timesRan = 0
+    import time
+
+    start = time.time()
+    print("\n")
+
+    res_tokens = []
+    while True:
+        model_inputs = model.prepare_inputs_for_generation(
+            input_ids, **model_kwargs
+        )
+
+        outputs = h2ogpt_shark_model.forward(
+            model_inputs["input_ids"], model_inputs["attention_mask"]
+        )
+
+        if args.precision == "fp16":
+            outputs = outputs.to(dtype=torch.float32)
+        next_token_logits = outputs
+
+        # pre-process distribution
+        next_token_scores = logits_processor(input_ids, next_token_logits)
+        next_token_scores = logits_warper(input_ids, next_token_scores)
+
+        # sample
+        probs = torch.nn.functional.softmax(next_token_scores, dim=-1)
+
+        next_token = torch.multinomial(probs, num_samples=1).squeeze(1)
+
+        # finished sentences should have their next token be a padding token
+        if eos_token_id is not None:
+            if pad_token_id is None:
+                raise ValueError(
+                    "If `eos_token_id` is defined, make sure that `pad_token_id` is defined."
+                )
+            next_token = next_token * unfinished_sequences + pad_token_id * (
+                1 - unfinished_sequences
+            )
+
+        input_ids = torch.cat([input_ids, next_token[:, None]], dim=-1)
+
+        model_kwargs["past_key_values"] = None
+        if "attention_mask" in model_kwargs:
+            attention_mask = model_kwargs["attention_mask"]
+            model_kwargs["attention_mask"] = torch.cat(
+                [
+                    attention_mask,
+                    attention_mask.new_ones((attention_mask.shape[0], 1)),
+                ],
+                dim=-1,
+            )
+
+        truncated_input_ids.append(input_ids[:, 0])
+        input_ids = input_ids[:, 1:]
+        model_kwargs["attention_mask"] = model_kwargs["attention_mask"][:, 1:]
+
+        new_word = tokenizer.decode(
+            next_token.cpu().numpy(),
+            add_special_tokens=False,
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True,
+        )
+
+        res_tokens.append(next_token)
+        if new_word == "<0x0A>":
+            print("\n", end="", flush=True)
+        else:
+            print(f"{new_word}", end=" ", flush=True)
+
+        part_str = decode_tokens(tokenizer, res_tokens)
+        yield part_str
+
+        # if eos_token was found in one sentence, set sentence to finished
+        if eos_token_id_tensor is not None:
+            unfinished_sequences = unfinished_sequences.mul(
+                next_token.tile(eos_token_id_tensor.shape[0], 1)
+                .ne(eos_token_id_tensor.unsqueeze(1))
+                .prod(dim=0)
+            )
+            # stop when each sentence is finished
+            if unfinished_sequences.max() == 0 or stopping_criteria(
+                input_ids, scores
+            ):
+                break
+        timesRan = timesRan + 1
+
+    end = time.time()
+    print(
+        "\n\nTime taken is {:.2f} seconds/token\n".format(
+            (end - start) / timesRan
+        )
+    )
+
+    torch.cuda.empty_cache()
+    gc.collect()
+
+    res_str = decode_tokens(tokenizer, res_tokens)
+    yield res_str
 
 
 def pad_or_truncate_inputs(
@@ -498,233 +704,6 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
             )
         return records
 
-    def generate_new_token(self):
-        model_inputs = self.model.prepare_inputs_for_generation(
-            self.input_ids, **self.model_kwargs
-        )
-
-        outputs = h2ogpt_model.forward(
-            model_inputs["input_ids"], model_inputs["attention_mask"]
-        )
-
-        if args.precision == "fp16":
-            outputs = outputs.to(dtype=torch.float32)
-        next_token_logits = outputs
-
-        # pre-process distribution
-        next_token_scores = self.logits_processor(
-            self.input_ids, next_token_logits
-        )
-        next_token_scores = self.logits_warper(
-            self.input_ids, next_token_scores
-        )
-
-        # sample
-        probs = torch.nn.functional.softmax(next_token_scores, dim=-1)
-
-        next_token = torch.multinomial(probs, num_samples=1).squeeze(1)
-
-        # finished sentences should have their next token be a padding token
-        if self.eos_token_id is not None:
-            if self.pad_token_id is None:
-                raise ValueError(
-                    "If `eos_token_id` is defined, make sure that `pad_token_id` is defined."
-                )
-            next_token = (
-                next_token * self.unfinished_sequences
-                + self.pad_token_id * (1 - self.unfinished_sequences)
-            )
-
-        self.input_ids = torch.cat(
-            [self.input_ids, next_token[:, None]], dim=-1
-        )
-
-        self.model_kwargs["past_key_values"] = None
-        if "attention_mask" in self.model_kwargs:
-            attention_mask = self.model_kwargs["attention_mask"]
-            self.model_kwargs["attention_mask"] = torch.cat(
-                [
-                    attention_mask,
-                    attention_mask.new_ones((attention_mask.shape[0], 1)),
-                ],
-                dim=-1,
-            )
-
-        self.truncated_input_ids.append(self.input_ids[:, 0])
-        self.input_ids = self.input_ids[:, 1:]
-        self.model_kwargs["attention_mask"] = self.model_kwargs[
-            "attention_mask"
-        ][:, 1:]
-
-        return next_token
-
-    def generate_token(self, **generate_kwargs):
-        del generate_kwargs["max_time"]
-        self.truncated_input_ids = []
-
-        generation_config_ = GenerationConfig.from_model_config(
-            self.model.config
-        )
-        generation_config = copy.deepcopy(generation_config_)
-        self.model_kwargs = generation_config.update(**generate_kwargs)
-
-        logits_processor = LogitsProcessorList()
-        self.stopping_criteria = (
-            self.stopping_criteria
-            if self.stopping_criteria is not None
-            else StoppingCriteriaList()
-        )
-
-        eos_token_id = generation_config.eos_token_id
-        generation_config.pad_token_id = eos_token_id
-
-        (
-            inputs_tensor,
-            model_input_name,
-            self.model_kwargs,
-        ) = self.model._prepare_model_inputs(
-            None, generation_config.bos_token_id, self.model_kwargs
-        )
-        batch_size = inputs_tensor.shape[0]
-
-        self.model_kwargs[
-            "output_attentions"
-        ] = generation_config.output_attentions
-        self.model_kwargs[
-            "output_hidden_states"
-        ] = generation_config.output_hidden_states
-        self.model_kwargs["use_cache"] = generation_config.use_cache
-
-        self.input_ids = (
-            inputs_tensor
-            if model_input_name == "input_ids"
-            else self.model_kwargs.pop("input_ids")
-        )
-
-        input_ids_seq_length = self.input_ids.shape[-1]
-
-        generation_config.max_length = (
-            generation_config.max_new_tokens + input_ids_seq_length
-        )
-
-        self.logits_processor = self.model._get_logits_processor(
-            generation_config=generation_config,
-            input_ids_seq_length=input_ids_seq_length,
-            encoder_input_ids=inputs_tensor,
-            prefix_allowed_tokens_fn=None,
-            logits_processor=logits_processor,
-        )
-
-        self.stopping_criteria = self.model._get_stopping_criteria(
-            generation_config=generation_config,
-            stopping_criteria=self.stopping_criteria,
-        )
-
-        self.logits_warper = self.model._get_logits_warper(generation_config)
-
-        (
-            self.input_ids,
-            self.model_kwargs,
-        ) = self.model._expand_inputs_for_generation(
-            input_ids=self.input_ids,
-            expand_size=generation_config.num_return_sequences,  # 1
-            is_encoder_decoder=self.model.config.is_encoder_decoder,  # False
-            **self.model_kwargs,
-        )
-
-        if isinstance(eos_token_id, int):
-            eos_token_id = [eos_token_id]
-        self.eos_token_id_tensor = (
-            torch.tensor(eos_token_id).to(device=tensor_device)
-            if eos_token_id is not None
-            else None
-        )
-
-        self.pad_token_id = generation_config.pad_token_id
-        self.eos_token_id = eos_token_id
-
-        output_scores = generation_config.output_scores  # False
-        output_attentions = generation_config.output_attentions  # False
-        output_hidden_states = generation_config.output_hidden_states  # False
-        return_dict_in_generate = (
-            generation_config.return_dict_in_generate  # False
-        )
-
-        # init attention / hidden states / scores tuples
-        self.scores = (
-            () if (return_dict_in_generate and output_scores) else None
-        )
-        decoder_attentions = (
-            () if (return_dict_in_generate and output_attentions) else None
-        )
-        cross_attentions = (
-            () if (return_dict_in_generate and output_attentions) else None
-        )
-        decoder_hidden_states = (
-            () if (return_dict_in_generate and output_hidden_states) else None
-        )
-
-        # keep track of which sequences are already finished
-        self.unfinished_sequences = torch.ones(
-            self.input_ids.shape[0],
-            dtype=torch.long,
-            device=self.input_ids.device,
-        )
-
-        timesRan = 0
-        import time
-
-        start = time.time()
-        print("\n")
-
-        while True:
-            next_token = self.generate_new_token()
-            new_word = self.tokenizer.decode(
-                next_token.cpu().numpy(),
-                add_special_tokens=False,
-                skip_special_tokens=True,
-                clean_up_tokenization_spaces=True,
-            )
-
-            print(f"{new_word}", end="", flush=True)
-
-            # if eos_token was found in one sentence, set sentence to finished
-            if self.eos_token_id_tensor is not None:
-                self.unfinished_sequences = self.unfinished_sequences.mul(
-                    next_token.tile(self.eos_token_id_tensor.shape[0], 1)
-                    .ne(self.eos_token_id_tensor.unsqueeze(1))
-                    .prod(dim=0)
-                )
-                # stop when each sentence is finished
-                if (
-                    self.unfinished_sequences.max() == 0
-                    or self.stopping_criteria(self.input_ids, self.scores)
-                ):
-                    break
-            timesRan = timesRan + 1
-
-        end = time.time()
-        print(
-            "\n\nTime taken is {:.2f} seconds/token\n".format(
-                (end - start) / timesRan
-            )
-        )
-
-        self.input_ids = torch.cat(
-            [
-                torch.tensor(self.truncated_input_ids)
-                .to(device=tensor_device)
-                .unsqueeze(dim=0),
-                self.input_ids,
-            ],
-            dim=-1,
-        )
-
-        torch.cuda.empty_cache()
-        gc.collect()
-
-        return self.input_ids
-
     def _forward(self, model_inputs, **generate_kwargs):
         if self.can_stop:
             stopping_criteria = get_stopping(
@@ -784,19 +763,13 @@ class H2OTextGenerationPipeline(TextGenerationPipeline):
         input_ids, attention_mask = pad_or_truncate_inputs(
             input_ids, attention_mask, max_padding_length=max_padding_length
         )
-        self.stopping_criteria = generate_kwargs["stopping_criteria"]
 
-        generated_sequence = self.generate_token(
-            input_ids=input_ids,
-            attention_mask=attention_mask,
-            **generate_kwargs,
-        )
-        out_b = generated_sequence.shape[0]
-        generated_sequence = generated_sequence.reshape(
-            in_b, out_b // in_b, *generated_sequence.shape[1:]
-        )
-        return {
-            "generated_sequence": generated_sequence,
+        return_dict = {
+            "model": self.model,
+            "tokenizer": self.tokenizer,
             "input_ids": input_ids,
-            "prompt_text": prompt_text,
+            "attention_mask": attention_mask,
+            "attention_mask": attention_mask,
         }
+        return_dict = {**return_dict, **generate_kwargs}
+        return return_dict
