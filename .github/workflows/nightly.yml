@@ -51,7 +51,7 @@ jobs:
       run: |
         ./setup_venv.ps1
         $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
-        pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
+        pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
         python process_skipfiles.py
         pyinstaller .\apps\stable_diffusion\shark_sd.spec
         mv ./dist/nodai_shark_studio.exe ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
@@ -104,7 +104,7 @@ jobs:
         echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
         python -m pip install --upgrade pip
         python -m pip install flake8 pytest toml
-        if [ -f requirements.txt ]; then pip install -r requirements.txt -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html; fi
+        if [ -f requirements.txt ]; then pip install -r requirements.txt -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html; fi
     - name: Lint with flake8
       run: |
         # stop the build if there are Python syntax errors or undefined names
@@ -144,7 +144,7 @@ jobs:
         source shark.venv/bin/activate
         package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
         SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html
+        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
         # Install the built wheel
         pip install ./wheelhouse/nodai*
         # Validate the Models
