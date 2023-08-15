@@ -1129,7 +1129,7 @@ class Langchain:
                 max_time=max_time,
                 num_return_sequences=num_return_sequences,
             )
-            outr, extra = run_qa_db(
+            out = run_qa_db(
                 query=instruction,
                 iinput=iinput,
                 context=context,
@@ -1171,14 +1171,7 @@ class Langchain:
                 max_chunks=max_chunks,
                 device=self.device,
             )
-            response = dict(response=outr, sources=extra)
-            if outr or base_model in non_hf_types:
-                # if got no response (e.g. not showing sources and got no sources,
-                # so nothing to give to LLM), then slip through and ask LLM
-                # Or if llama/gptj, then just return since they had no response and can't go down below code path
-                # clear before return, since .then() never done if from API
-                clear_torch_cache()
-            return response
+            return out
 
     inputs_list_names = list(inspect.signature(evaluate).parameters)
     global inputs_kwargs_list

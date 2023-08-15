@@ -37,8 +37,15 @@ start_message = """
 
 def create_prompt(history):
     system_message = start_message
+    for item in history:
+        print("His item: ", item)
 
-    conversation = "".join(["".join([item[0], item[1]]) for item in history])
+    conversation = "<|endoftext|>".join(
+        [
+            "<|endoftext|><|answer|>".join([item[0], item[1]])
+            for item in history
+        ]
+    )
 
     msg = system_message + conversation
     msg = msg.strip()
@@ -48,10 +55,12 @@ def create_prompt(history):
 def chat(curr_system_message, history, device, precision):
     args.run_docuchat_web = True
     global h2ogpt_model
+    global sharkModel
     global h2ogpt_tokenizer
     global model_state
     global langchain
     global userpath_selector
+    from apps.language_models.langchain.h2oai_pipeline import generate_token
 
     if h2ogpt_model == 0:
         if "cuda" in device:
@@ -106,9 +115,14 @@ def chat(curr_system_message, history, device, precision):
             prompt_type=None,
             prompt_dict=None,
         )
+        from apps.language_models.langchain.h2oai_pipeline import (
+            H2OGPTSHARKModel,
+        )
+
+        sharkModel = H2OGPTSHARKModel()
 
     prompt = create_prompt(history)
-    output = langchain.evaluate(
+    output_dict = langchain.evaluate(
         model_state=model_state,
         my_db_state=None,
         instruction=prompt,
@@ -168,7 +182,11 @@ def chat(curr_system_message, history, device, precision):
         model_lock=True,
         user_path=userpath_selector.value,
     )
-    history[-1][1] = output["response"]
+
+    output = generate_token(sharkModel, **output_dict)
+    for partial_text in output:
+        history[-1][1] = partial_text
+        yield history
     return history
 
 

@@ -62,16 +62,12 @@ def build_benchmark_args(
     and whether it is training or not.
     Outputs: string that execute benchmark-module on target model.
     """
-    path = benchmark_module.__path__[0]
+    path = os.path.join(os.environ["VIRTUAL_ENV"], "bin")
     if platform.system() == "Windows":
-        benchmarker_path = os.path.join(
-            path, "..", "..", "iree-benchmark-module.exe"
-        )
+        benchmarker_path = os.path.join(path, "iree-benchmark-module.exe")
         time_extractor = None
     else:
-        benchmarker_path = os.path.join(
-            path, "..", "..", "iree-benchmark-module"
-        )
+        benchmarker_path = os.path.join(path, "iree-benchmark-module")
         time_extractor = "| awk 'END{{print $2 $3}}'"
     benchmark_cl = [benchmarker_path, f"--module={input_file}"]
     # TODO: The function named can be passed as one of the args.
