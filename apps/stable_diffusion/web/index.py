@@ -424,11 +424,11 @@ if __name__ == "__main__":
         )
 
     sd_web.queue()
-    #  if args.ui == "app":
-    #      t = Process(
-    #          target=launch_app, args=[f"http://localhost:{args.server_port}"]
-    #      )
-    #      t.start()
+    if args.ui == "app":
+        t = Process(
+            target=launch_app, args=[f"http://localhost:{args.server_port}"]
+        )
+        t.start()
     sd_web.launch(
         share=args.share,
         inbrowser=args.ui == "web",
