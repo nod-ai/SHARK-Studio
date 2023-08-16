@@ -278,7 +278,7 @@ def get_vision_model(torch_model, import_args):
         int(import_args["batch_size"]), 3, *input_image_size
     )
     actual_out = model(test_input)
-    if fp16_model is not None:
+    if fp16_model == True:
         test_input_fp16 = test_input.to(
             device=torch.device("cuda"), dtype=torch.half
         )

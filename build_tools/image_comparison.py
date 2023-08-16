@@ -24,13 +24,13 @@ def get_image(url, local_filename):
             shutil.copyfileobj(res.raw, f)
 
 
-def compare_images(new_filename, golden_filename):
+def compare_images(new_filename, golden_filename, upload=False):
     new = np.array(Image.open(new_filename)) / 255.0
     golden = np.array(Image.open(golden_filename)) / 255.0
     diff = np.abs(new - golden)
     mean = np.mean(diff)
     if mean > 0.1:
-        if os.name != "nt":
+        if os.name != "nt" and upload == True:
             subprocess.run(
                 [
                     "gsutil",
@@ -39,7 +39,7 @@ def compare_images(new_filename, golden_filename):
                     "gs://shark_tank/testdata/builder/",
                 ]
             )
-        raise SystemExit("new and golden not close")
+        raise AssertionError("new and golden not close")
     else:
         print("SUCCESS")
 
