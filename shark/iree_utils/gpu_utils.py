@@ -17,6 +17,7 @@
 import functools
 import iree.runtime as ireert
 import ctypes
+import sys
 from shark.parser import shark_args
 
 
@@ -46,18 +47,35 @@ def get_iree_rocm_args():
     import re
     import subprocess
 
-#    rocm_arch = re.match(
-#        r".*(gfx\w+)",
-#        subprocess.check_output(
-#            "hipinfo | grep -i 'gfx'", shell=True, text=True
-#        ),
-#    ).group(1)
-    rocm_arch = "gfx1100"
-    print(f"Found rocm arch {rocm_arch}...")
+    if "ROCM_PATH" in os.environ:
+        rocm_path = os.environ["ROCM_PATH"]
+        print(f"Found a ROCm installation at {rocm_path}.")
+    else:
+    
+    try:
+        if sys.platform == "win32":
+            rocm_arch = re.match(
+                r".*(gfx\w+)",
+                subprocess.check_output(
+                    "hipinfo", shell=True, text=True
+                ),
+            ).group(1)
+        else:
+            rocm_arch = re.match(
+                r".*(gfx\w+)",
+                subprocess.check_output(
+                    "rocminfo | grep -i 'gfx'", shell=True, text=True
+                ),
+            ).group(1)
+        print(f"Found rocm arch {rocm_arch}...")
+    except:
+        print("Failed to find ROCm architecture from hipinfo / rocminfo. Defaulting to gfx1100.")
+        rocm_arch = "gfx1100"
+   
     return [
         f"--iree-rocm-target-chip={rocm_arch}",
         "--iree-rocm-link-bc=true",
-        "--iree-rocm-bc-dir=/opt/rocm/amdgcn/bitcode",
+        f"--iree-rocm-bc-dir={rocm_path}/amdgcn/bitcode",
     ]
 
 
