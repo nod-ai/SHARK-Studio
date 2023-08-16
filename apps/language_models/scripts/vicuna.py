@@ -47,8 +47,6 @@ from shark.shark_importer import get_f16_inputs
 from shark.shark_importer import import_with_fx
 from shark.shark_inference import SharkInference
 
-from brevitas_examples.llm.llm_quant.quantize import quantize_model
-from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
 parser = argparse.ArgumentParser(
@@ -831,6 +829,8 @@ class ShardedVicuna(VicunaBase):
                     layer0, inputs0[0], inputs0[1], inputs0[2]
                 )
                 if self.precision in ["int4", "int8"]:
+                    from brevitas_examples.llm.llm_quant.quantize import quantize_model
+                    from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
                     module0 = torch_mlir.compile(
                         ts_g,
                         (
@@ -1029,6 +1029,8 @@ class ShardedVicuna(VicunaBase):
             )
 
         if self.precision in ["int4", "int8"]:
+            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
             print("Applying weight quantization..")
             weight_bit_width = 4 if self.precision == "int4" else 8
             quantize_model(
@@ -1595,6 +1597,9 @@ class UnshardedVicuna(VicunaBase):
                 )
                 del first_module, second_module
 
+        print(self.device)
+        if "rocm" in self.device:
+            self.device = "rocm"
         shark_module = SharkInference(
             mlir_module=combined_module,
             device=self.device,

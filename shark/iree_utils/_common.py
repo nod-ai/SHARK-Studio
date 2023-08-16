@@ -52,6 +52,8 @@ def iree_device_map(device):
     )
     if len(uri_parts) == 1:
         return iree_driver
+    elif "rocm" in uri_parts:
+        return "rocm"
     else:
         return f"{iree_driver}://{uri_parts[1]}"
 
@@ -121,7 +123,7 @@ def check_device_drivers(device):
         return False
     elif device == "rocm":
         try:
-            subprocess.check_output("rocminfo")
+            subprocess.check_output("hipinfo")
         except Exception:
             return True
 

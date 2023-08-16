@@ -176,6 +176,8 @@ def chat(
                 device = "cpu-task"
             elif "vulkan" in device:
                 device = "vulkan"
+            elif "rocm" in device:
+                device = "rocm"
             else:
                 print("unrecognized device")
 

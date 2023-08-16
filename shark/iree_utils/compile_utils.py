@@ -343,7 +343,8 @@ def load_vmfb_using_mmap(
     flatbuffer_blob_or_path, device: str, device_idx: int = None
 ):
     print(f"Loading module {flatbuffer_blob_or_path}...")
-
+    if "rocm" in device:
+        device = "rocm"
     with DetailLogger(timeout=2.5) as dl:
         # First get configs.
         if device_idx is not None:

@@ -426,6 +426,24 @@ p.add_argument(
 )
 
 ##############################################################################
+# IREE - ROCM supported flags
+##############################################################################
+
+p.add_argument(
+    "--iree_rocm_bc_dir",
+    type=str,
+    default=None,
+    help="Specify bitcode directory for ROCm install.",
+)
+
+p.add_argument(
+    "--iree_rocm_target_chip",
+    type=str,
+    default="gfx1100",
+    help="Specify target triple for ROCm.",
+)
+
+##############################################################################
 # Misc. Debug and Optimization flags
 ##############################################################################
 
