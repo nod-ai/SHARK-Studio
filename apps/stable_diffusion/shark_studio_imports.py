@@ -30,6 +30,7 @@ datas += copy_metadata("safetensors")
 datas += copy_metadata("Pillow")
 datas += copy_metadata("sentencepiece")
 datas += copy_metadata("pyyaml")
+datas += copy_metadata("huggingface-hub")
 datas += collect_data_files("tokenizers")
 datas += collect_data_files("tiktoken")
 datas += collect_data_files("accelerate")
@@ -76,3 +77,4 @@ hiddenimports += [
     x for x in collect_submodules("transformers") if "tests" not in x
 ]
 hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
+hiddenimports += ["iree._runtime", "iree._runtime_libs"]
