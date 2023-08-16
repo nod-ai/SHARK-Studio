@@ -1,10 +1,6 @@
 import torch
 from transformers import AutoModelForCausalLM
 
-#from brevitas_examples.llm.llm_quant.quantize import quantize_model
-#from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
-
-
 class FirstVicuna(torch.nn.Module):
     def __init__(
         self,
@@ -22,19 +18,22 @@ class FirstVicuna(torch.nn.Module):
             model_path, low_cpu_mem_usage=True, **kwargs
         )
         if precision in ["int4", "int8"]:
+            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
+            
             print("First Vicuna applying weight quantization..")
             weight_bit_width = 4 if precision == "int4" else 8
-#             quantize_model(
-#                 get_model_impl(self.model).layers,
-#                 dtype=torch.float32,
-#                 weight_bit_width=weight_bit_width,
-#                 weight_param_method="stats",
-#                 weight_scale_precision="float",
-#                 weight_quant_type="asym",
-#                 weight_quant_granularity="per_group",
-#                 weight_group_size=weight_group_size,
-#                 quantize_weight_zero_point=False,
-#             )
+            quantize_model(
+                get_model_impl(self.model).layers,
+                dtype=torch.float32,
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_type="asym",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+            )
             print("Weight quantization applied.")
 
     def forward(self, input_ids):
@@ -65,19 +64,21 @@ class SecondVicuna(torch.nn.Module):
             model_path, low_cpu_mem_usage=True, **kwargs
         )
         if precision in ["int4", "int8"]:
+            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
             print("Second Vicuna applying weight quantization..")
             weight_bit_width = 4 if precision == "int4" else 8
-            # quantize_model(
-            #     get_model_impl(self.model).layers,
-            #     dtype=torch.float32,
-            #     weight_bit_width=weight_bit_width,
-            #     weight_param_method="stats",
-            #     weight_scale_precision="float",
-            #     weight_quant_type="asym",
-            #     weight_quant_granularity="per_group",
-            #     weight_group_size=weight_group_size,
-            #     quantize_weight_zero_point=False,
-            # )
+            quantize_model(
+                get_model_impl(self.model).layers,
+                dtype=torch.float32,
+                weight_bit_width=weight_bit_width,
+                weight_param_method="stats",
+                weight_scale_precision="float",
+                weight_quant_type="asym",
+                weight_quant_granularity="per_group",
+                weight_group_size=weight_group_size,
+                quantize_weight_zero_point=False,
+            )
             print("Weight quantization applied.")
 
     def forward(
