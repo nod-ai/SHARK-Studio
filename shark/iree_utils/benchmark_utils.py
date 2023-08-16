@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#import iree._runtime.iree_benchmark_module as benchmark_module
 from shark.iree_utils._common import run_cmd, iree_device_map
 from shark.iree_utils.cpu_utils import get_cpu_count
 import numpy as np
@@ -102,15 +101,13 @@ def build_benchmark_args_non_tensor_input(
     and whether it is training or not.
     Outputs: string that execute benchmark-module on target model.
     """
-    path = benchmark_module.__path__[0]
+    path = os.path.join(os.environ["VIRTUAL_ENV"], "bin")
     if platform.system() == "Windows":
-        benchmarker_path = os.path.join(
-            path, "..", "..", "iree-benchmark-module.exe"
-        )
+        benchmarker_path = os.path.join(path, "iree-benchmark-module.exe")
+        time_extractor = None
     else:
-        benchmarker_path = os.path.join(
-            path, "..", "..", "iree-benchmark-module"
-        )
+        benchmarker_path = os.path.join(path, "iree-benchmark-module")
+        time_extractor = "| awk 'END{{print $2 $3}}'"
     benchmark_cl = [benchmarker_path, f"--module={input_file}"]
     # TODO: The function named can be passed as one of the args.
     if function_name:
@@ -135,7 +132,7 @@ def run_benchmark_module(benchmark_cl):
     benchmark_path = benchmark_cl[0]
     assert os.path.exists(
         benchmark_path
-    ), "Cannot find benchmark_module, Please contact SHARK maintainer on discord."
+    ), "Cannot find iree_benchmark_module, Please contact SHARK maintainer on discord."
     bench_stdout, bench_stderr = run_cmd(" ".join(benchmark_cl))
     try:
         regex_split = re.compile("(\d+[.]*\d*)(  *)([a-zA-Z]+)")
