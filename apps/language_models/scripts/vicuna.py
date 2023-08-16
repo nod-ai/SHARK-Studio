@@ -156,10 +156,10 @@ class VicunaBase(SharkLLMBase):
     def __init__(
         self,
         model_name,
-        hf_model_path="TheBloke/vicuna-7B-1.1-HF",
+        hf_model_path="elinas/llama-65b-hf-transformers-4.29",
         max_num_tokens=512,
         device="cpu",
-        precision="int8",
+        precision="int4",
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
@@ -425,7 +425,7 @@ class ShardedVicuna(VicunaBase):
     def __init__(
         self,
         model_name,
-        hf_model_path="TheBloke/vicuna-7B-1.1-HF",
+        hf_model_path="elinas/llama-65b-hf-transformers-4.29",
         max_num_tokens=512,
         device="cuda",
         precision="fp32",
@@ -1207,7 +1207,7 @@ class UnshardedVicuna(VicunaBase):
     def __init__(
         self,
         model_name,
-        hf_model_path="TheBloke/vicuna-7B-1.1-HF",
+        hf_model_path="elinas/llama-65b-hf-transformers-4.29",
         hf_auth_token: str = None,
         max_num_tokens=512,
         device="cpu",
@@ -1508,8 +1508,8 @@ class UnshardedVicuna(VicunaBase):
                         [1, 1], dtype=torch.int64
                     )
                     pkv = tuple(
-                        (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
-                        for _ in range(64)
+                        (torch.zeros([1, 64, 19, 128], dtype=torch.float32))
+                        for _ in range(128)
                     )
                     secondVicunaCompileInput = (compilation_input_ids,) + pkv
                     model = SecondVicuna(
@@ -1525,7 +1525,7 @@ class UnshardedVicuna(VicunaBase):
                         secondVicunaCompileInput,
                         is_f16=self.precision == "fp16",
                         precision=self.precision,
-                        f16_input_mask=[False] + [True] * 64,
+                        f16_input_mask=[False] + [True] * 128,
                         mlir_type="torchscript",
                     )
                     del model
@@ -1533,7 +1533,7 @@ class UnshardedVicuna(VicunaBase):
                         secondVicunaCompileInput = get_f16_inputs(
                             secondVicunaCompileInput,
                             True,
-                            f16_input_mask=[False] + [True] * 64,
+                            f16_input_mask=[False] + [True] * 128,
                         )
                     secondVicunaCompileInput = list(secondVicunaCompileInput)
                     for i in range(len(secondVicunaCompileInput)):

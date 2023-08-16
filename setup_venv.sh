@@ -14,7 +14,7 @@
 
 TD="$(cd $(dirname $0) && pwd)"
 if [ -z "$PYTHON" ]; then
-  PYTHON="$(which python3)"
+  PYTHON="$(which python)"
 fi
 
 function die() {

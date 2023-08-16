@@ -147,6 +147,70 @@ class SecondVicuna(torch.nn.Module):
         i62,
         i63,
         i64,
+        i65,
+        i66,
+        i67,
+        i68,
+        i69,
+        i70,
+        i71,
+        i72,
+        i73,
+        i74,
+        i75,
+        i76,
+        i77,
+        i78,
+        i79,
+        i80,
+        i81,
+        i82,
+        i83,
+        i84,
+        i85,
+        i86,
+        i87,
+        i88,
+        i89,
+        i90,
+        i91,
+        i92,
+        i93,
+        i94,
+        i95,
+        i96,
+        i97,
+        i98,
+        i99,
+        i100,
+        i101,
+        i102,
+        i103,
+        i104,
+        i105,
+        i106,
+        i107,
+        i108,
+        i109,
+        i110,
+        i111,
+        i112,
+        i113,
+        i114,
+        i115,
+        i116,
+        i117,
+        i118,
+        i119,
+        i120,
+        i121,
+        i122,
+        i123,
+        i124,
+        i125,
+        i126,
+        i127,
+        i128,
     ):
         # input_ids = input_tuple[0]
         # input_tuple = torch.unbind(pkv, dim=0)
@@ -277,6 +341,134 @@ class SecondVicuna(torch.nn.Module):
                 i63,
                 i64,
             ),
+            (
+                i65,
+                i66,
+            ),
+            (
+                i67,
+                i68,
+            ),
+            (
+                i69,
+                i70,
+            ),
+            (
+                i71,
+                i72,
+            ),
+            (
+                i73,
+                i74,
+            ),
+            (
+                i75,
+                i76,
+            ),
+            (
+                i77,
+                i78,
+            ),
+            (
+                i79,
+                i80,
+            ),
+            (
+                i81,
+                i82,
+            ),
+            (
+                i83,
+                i84,
+            ),
+            (
+                i85,
+                i86,
+            ),
+            (
+                i87,
+                i88,
+            ),
+            (
+                i89,
+                i90,
+            ),
+            (
+                i91,
+                i92,
+            ),
+            (
+                i93,
+                i94,
+            ),
+            (
+                i95,
+                i96,
+            ),
+            (
+                i97,
+                i98,
+            ),
+            (
+                i99,
+                i100,
+            ),
+            (
+                i101,
+                i102,
+            ),
+            (
+                i103,
+                i104,
+            ),
+            (
+                i105,
+                i106,
+            ),
+            (
+                i107,
+                i108,
+            ),
+            (
+                i109,
+                i110,
+            ),
+            (
+                i111,
+                i112,
+            ),
+            (
+                i113,
+                i114,
+            ),
+            (
+                i115,
+                i116,
+            ),
+            (
+                i117,
+                i118,
+            ),
+            (
+                i119,
+                i120,
+            ),
+            (
+                i121,
+                i122,
+            ),
+            (
+                i123,
+                i124,
+            ),
+            (
+                i125,
+                i126,
+            ),
+            (
+                i127,
+                i128
+            ),
         )
         op = self.model(
             input_ids=token, use_cache=True, past_key_values=past_key_values
@@ -306,7 +498,7 @@ class CombinedModel(torch.nn.Module):
         compilation_input_ids = torch.zeros([1, 1], dtype=torch.int64)
         pkv = tuple(
             (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
-            for _ in range(64)
+            for _ in range(128)
         )
         secondVicunaCompileInput = (compilation_input_ids,) + pkv
         second_output = self.second_vicuna(*secondVicunaCompileInput)
