@@ -583,7 +583,7 @@ def import_with_fx(
     ]
     if precision in ["int4", "int8"]:
         from brevitas_examples.llm.llm_quant.export import (
-        block_quant_layer_level_manager,
+            block_quant_layer_level_manager,
         )
         from brevitas_examples.llm.llm_quant.export import (
             brevitas_layer_export_mode,
@@ -591,13 +591,16 @@ def import_with_fx(
         from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
             LinearWeightBlockQuantHandlerFwd,
         )
-        from brevitas_examples.llm.llm_quant.export import replace_call_fn_target
+        from brevitas_examples.llm.llm_quant.export import (
+            replace_call_fn_target,
+        )
         from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
             matmul_rhs_group_quant_placeholder,
         )
         from brevitas.backport.fx.experimental.proxy_tensor import (
             make_fx as brevitas_make_fx,
         )
+
         export_context_manager = brevitas_layer_export_mode
         export_class = block_quant_layer_level_manager(
             export_handlers=[LinearWeightBlockQuantHandlerFwd]

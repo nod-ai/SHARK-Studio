@@ -1,6 +1,7 @@
 import torch
 from transformers import AutoModelForCausalLM
 
+
 class FirstVicuna(torch.nn.Module):
     def __init__(
         self,
@@ -19,8 +20,10 @@ class FirstVicuna(torch.nn.Module):
         )
         if precision in ["int4", "int8"]:
             from brevitas_examples.llm.llm_quant.quantize import quantize_model
-            from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
-            
+            from brevitas_examples.llm.llm_quant.run_utils import (
+                get_model_impl,
+            )
+
             print("First Vicuna applying weight quantization..")
             weight_bit_width = 4 if precision == "int4" else 8
             quantize_model(
@@ -65,7 +68,10 @@ class SecondVicuna(torch.nn.Module):
         )
         if precision in ["int4", "int8"]:
             from brevitas_examples.llm.llm_quant.quantize import quantize_model
-            from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
+            from brevitas_examples.llm.llm_quant.run_utils import (
+                get_model_impl,
+            )
+
             print("Second Vicuna applying weight quantization..")
             weight_bit_width = 4 if precision == "int4" else 8
             quantize_model(
