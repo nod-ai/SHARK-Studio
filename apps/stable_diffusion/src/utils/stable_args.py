@@ -436,13 +436,6 @@ p.add_argument(
     help="Specify bitcode directory for ROCm install.",
 )
 
-p.add_argument(
-    "--iree_rocm_target_chip",
-    type=str,
-    default="gfx1100",
-    help="Specify target triple for ROCm.",
-)
-
 ##############################################################################
 # Misc. Debug and Optimization flags
 ##############################################################################
