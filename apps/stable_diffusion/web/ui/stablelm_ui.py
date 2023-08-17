@@ -23,6 +23,7 @@ vicuna_model = 0
 past_key_values = None
 
 model_map = {
+    "llama_65b": "elinas/llama-65b-hf-transformers-4.29",
     "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
     "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
     "codegen": "Salesforce/codegen25-7b-multi",
@@ -34,6 +35,15 @@ model_map = {
 
 # NOTE: Each `model_name` should have its own start message
 start_message = {
+    "llama_65b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
     "llama2_7b": (
         "System: You are a helpful, respectful and honest assistant. Always answer "
         "as helpfully as possible, while being safe.  Your answers should not "
@@ -175,6 +185,7 @@ def chat(
         "vicuna4",
         "vicuna1p3",
         "codegen",
+        "llama_65b",
         "llama2_7b",
         "llama2_70b",
     ]:
