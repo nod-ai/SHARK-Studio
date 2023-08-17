@@ -16,12 +16,6 @@ import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
-from apps.stable_diffusion.src.models import (
-    model_wrappers as mw,
-)
-from apps.stable_diffusion.src.utils.stable_args import (
-    args,
-)
 
 
 def create_hash(file_name):
@@ -60,31 +54,6 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
             print("generating artifacts for: " + torch_model_name)
             model = None
             input = None
-            if model_type == "stable_diffusion":
-                args.use_tuned = False
-                args.import_mlir = True
-                args.local_tank_cache = local_tank_cache
-
-                precision_values = ["fp16"]
-                seq_lengths = [64, 77]
-                for precision_value in precision_values:
-                    args.precision = precision_value
-                    for length in seq_lengths:
-                        model = mw.SharkifyStableDiffusionModel(
-                            model_id=torch_model_name,
-                            custom_weights="",
-                            precision=precision_value,
-                            max_len=length,
-                            width=512,
-                            height=512,
-                            use_base_vae=False,
-                            custom_vae="",
-                            debug=True,
-                            sharktank_dir=local_tank_cache,
-                            generate_vmfb=False,
-                        )
-                        model()
-                continue
             if model_type == "vision":
                 model, input, _ = get_vision_model(
                     torch_model_name, import_args
@@ -103,10 +72,11 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 model, input, _ = get_hf_img_cls_model(
                     torch_model_name, import_args
                 )
-            elif model_type == "fp16":
-                model, input, _ = get_fp16_model(torch_model_name, import_args)
             torch_model_name = torch_model_name.replace("/", "_")
-            if import_args["batch_size"] != 1:
+            if import_args["batch_size"] > 1:
+                print(
+                    f"Batch size for this model set to {import_args['batch_size']}"
+                )
                 torch_model_dir = os.path.join(
                     local_tank_cache,
                     str(torch_model_name)
@@ -391,7 +361,7 @@ if __name__ == "__main__":
 
     # old_import_args = parser.parse_import_args()
     import_args = {
-        "batch_size": "1",
+        "batch_size": 1,
     }
     print(import_args)
     home = str(Path.home())
@@ -404,11 +374,6 @@ if __name__ == "__main__":
         os.path.dirname(__file__), "tflite", "tflite_model_list.csv"
     )
 
-    save_torch_model(
-        os.path.join(os.path.dirname(__file__), "torch_sd_list.csv"),
-        WORKDIR,
-        import_args,
-    )
     save_torch_model(torch_model_csv, WORKDIR, import_args)
-    save_tf_model(tf_model_csv, WORKDIR, import_args)
-    save_tflite_model(tflite_model_csv, WORKDIR, import_args)
+    # save_tf_model(tf_model_csv, WORKDIR, import_args)
+    # save_tflite_model(tflite_model_csv, WORKDIR, import_args)
