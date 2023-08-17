@@ -195,7 +195,8 @@ class VicunaBase(SharkLLMBase):
         print(f"[DEBIG] output_name = {output_name}")
         maps1 = []
         maps2 = []
-        constants = set()
+        constants_1 = set()
+        constants_2 = set()
         f1 = []
         f2 = []
 
@@ -206,7 +207,7 @@ class VicunaBase(SharkLLMBase):
             if re.search("#map\d*\s*=", line):
                 maps1.append(line)
             elif re.search("arith.constant", line):
-                constants.add(line)
+                constants_1.add(line)
             elif not re.search("module", line):
                 line = re.sub("forward", "first_vicuna_forward", line)
                 f1.append(line)
@@ -232,7 +233,7 @@ class VicunaBase(SharkLLMBase):
             elif "global_seed" in line:
                 continue
             elif re.search("arith.constant", line):
-                constants.add(line)
+                constants_2.add(line)
             elif not re.search("module", line):
                 line = re.sub("forward", "second_vicuna_forward", line)
                 f2.append(line)
@@ -255,15 +256,21 @@ class VicunaBase(SharkLLMBase):
         module_end = "}"
 
         global_vars = []
-        vnames = []
-        global_var_loading1 = []
-        global_var_loading2 = []
+        global_var_loading1 = dict()
+        global_var_loading2 = dict()
 
         print(f"[DEBUG] processing constants")
-        counter = 0
-        constants = list(constants)
+        # in both 1 and 2
+        constants = [(e , "") for e in list(constants_1 & constants_2)]
+        # only in 1
+        constants.extend([(e, "_1") for e in list(constants_1.difference(constants_2))])
+        # only in 2
+        constants.extend([(e, "_2") for e in list(constants_2.difference(constants_1))])
+        del constants_1, constants_2
+        gc.collect()
+
         while constants:
-            constant = constants.pop(0)
+            constant, vname_suf = constants.pop(0)
             vname, vbody = constant.split("=")
             vname = re.sub("%", "", vname)
             vname = vname.strip()
@@ -273,41 +280,41 @@ class VicunaBase(SharkLLMBase):
                 print(constant)
             vdtype = vbody.split(":")[-1].strip()
             fixed_vdtype = vdtype
-            if "c1_i64" in vname:
-                print(constant)
-                counter += 1
-            if counter == 2:
-                counter = 0
-                print("detected duplicate")
-                continue
-            vnames.append(vname)
             if "true" not in vname:
                 global_vars.append(
-                    f"ml_program.global public @{vname}({vbody}) : {fixed_vdtype}"
+                    f"ml_program.global public @{vname}{vname_suf}({vbody}) : {fixed_vdtype}"
                 )
-                global_var_loading1.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
-                )
-                global_var_loading2.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
-                )
+                if vname_suf != "_2":
+                    global_var_loading1[
+                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : {fixed_vdtype}"
+                    ] = ""
+                if vname_suf != "_1":
+                    global_var_loading2[
+                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : {fixed_vdtype}"
+                    ] = ""
             else:
                 global_vars.append(
-                    f"ml_program.global public @{vname}({vbody}) : i1"
+                    f"ml_program.global public @{vname}{vname_suf}({vbody}) : i1"
                 )
-                global_var_loading1.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
-                )
-                global_var_loading2.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
-                )
+                if vname_suf != "_2":
+                    global_var_loading1[
+                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : i1"
+                    ] = ""
+                if vname_suf != "_1":
+                    global_var_loading2[
+                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : i1"
+                    ] = ""
+
+        del constants
+        gc.collect()
+
         new_f1, new_f2 = [], []
 
         print(f"[DEBUG] processing f1")
         for line in f1:
             if "func.func" in line:
                 new_f1.append(line)
-                for global_var in global_var_loading1:
+                for global_var in global_var_loading1.keys():
                     new_f1.append(global_var)
             else:
                 new_f1.append(line)
@@ -316,7 +323,7 @@ class VicunaBase(SharkLLMBase):
         for line in f2:
             if "func.func" in line:
                 new_f2.append(line)
-                for global_var in global_var_loading2:
+                for global_var in global_var_loading2.keys():
                     if (
                         "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64"
                         in global_var
@@ -369,7 +376,7 @@ class VicunaBase(SharkLLMBase):
         with open(output_name, "rb") as f:
             return f.read()
 
-    def generate_new_token(self, params, sharded=True, cli=True):
+    def generate_new_token(self, params, sharded=True):
         is_first = params["is_first"]
         if is_first:
             prompt = params["prompt"]
@@ -422,8 +429,7 @@ class VicunaBase(SharkLLMBase):
             "past_key_values": _past_key_values,
         }
 
-        if cli:
-            print(f" token : {_token} | detok : {_detok}")
+        print(f" token : {_token} | detok : {_detok}")
 
         return ret_dict
 
@@ -1350,7 +1356,7 @@ class UnshardedVicuna(VicunaBase):
             if "%c19_i64 = arith.constant 19 : i64" in line:
                 new_lines.append("%c2 = arith.constant 2 : index")
                 new_lines.append(
-                    f"%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128x{'f16' if self.precision == 'fp16' else 'f32'}>"
+                    f"%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128xf16>"
                 )
                 new_lines.append(
                     "%dim_i64 = arith.index_cast %dim_4_int : index to i64"
@@ -1448,7 +1454,7 @@ class UnshardedVicuna(VicunaBase):
                     ts_graph = import_with_fx(
                         model,
                         firstVicunaCompileInput,
-                        is_f16=self.precision == "fp16",
+                        is_f16=True,
                         precision=self.precision,
                         f16_input_mask=[False, False],
                         mlir_type="torchscript",
@@ -1476,6 +1482,10 @@ class UnshardedVicuna(VicunaBase):
                             use_tracing=False,
                             verbose=False,
                         )
+                        from contextlib import redirect_stdout
+                        with open(f"first_{self.model_name}_{self.precision}_torch_elided.mlir", 'w') as f:
+                            with redirect_stdout(f):
+                                print(first_module.operation.get_asm(large_elements_limit=4))
                         print(f"[DEBUG] converting torch to linalg")
                         run_pipeline_with_repro_report(
                             first_module,
@@ -1529,18 +1539,18 @@ class UnshardedVicuna(VicunaBase):
                     ts_graph = import_with_fx(
                         model,
                         secondVicunaCompileInput,
-                        is_f16=self.precision == "fp16",
+                        is_f16=True,
                         precision=self.precision,
                         f16_input_mask=[False] + [True] * 64,
                         mlir_type="torchscript",
                     )
                     del model
-                    if self.precision == "fp16":
-                        secondVicunaCompileInput = get_f16_inputs(
-                            secondVicunaCompileInput,
-                            True,
-                            f16_input_mask=[False] + [True] * 64,
-                        )
+                    # if self.precision == "fp16":
+                    secondVicunaCompileInput = get_f16_inputs(
+                        secondVicunaCompileInput,
+                        True,
+                        f16_input_mask=[False] + [True] * 64,
+                    )
                     secondVicunaCompileInput = list(secondVicunaCompileInput)
                     for i in range(len(secondVicunaCompileInput)):
                         if i != 0:
@@ -1563,6 +1573,10 @@ class UnshardedVicuna(VicunaBase):
                             use_tracing=False,
                             verbose=False,
                         )
+                        from contextlib import redirect_stdout
+                        with open(f"second_{self.model_name}_{self.precision}_torch_elided.mlir", 'w') as f:
+                            with redirect_stdout(f):
+                                print(second_module.operation.get_asm(large_elements_limit=4))
                         print(f"[DEBUG] converting torch to linalg")
                         run_pipeline_with_repro_report(
                             second_module,
@@ -1632,14 +1646,14 @@ class UnshardedVicuna(VicunaBase):
         params = {"prompt": prompt, "is_first": True, "fv": self.shark_model}
 
         generated_token_op = self.generate_new_token(
-            params=params, sharded=False, cli=False
+            params=params, sharded=False
         )
 
         token = generated_token_op["token"]
         logits = generated_token_op["logits"]
         pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
-        yield detok, ""
+        yield detok
 
         res_tokens.append(token)
         if cli:
@@ -1672,11 +1686,14 @@ class UnshardedVicuna(VicunaBase):
             else:
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
-            yield detok, ""
+
+            if len(res_tokens) % 3 == 0:
+                part_str = self.decode_tokens(res_tokens)
+                yield part_str
 
         res_str = self.decode_tokens(res_tokens)
         # print(f"[DEBUG] final output : \n{res_str}")
-        yield res_str, "formatted"
+        yield res_str
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.

@@ -26,7 +26,7 @@ class FirstVicuna(torch.nn.Module):
             weight_bit_width = 4 if precision == "int4" else 8
             quantize_model(
                 get_model_impl(self.model).layers,
-                dtype=torch.float32,
+                dtype=torch.float16,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
                 weight_scale_precision="float",
@@ -69,7 +69,7 @@ class SecondVicuna(torch.nn.Module):
             weight_bit_width = 4 if precision == "int4" else 8
             quantize_model(
                 get_model_impl(self.model).layers,
-                dtype=torch.float32,
+                dtype=torch.float16,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
                 weight_scale_precision="float",
