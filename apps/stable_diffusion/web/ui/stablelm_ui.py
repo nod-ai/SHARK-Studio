@@ -150,7 +150,7 @@ def chat(
     device,
     precision,
     config_file,
-    cli=True,
+    cli=False,
     progress=gr.Progress(),
 ):
     global past_key_values
@@ -235,7 +235,7 @@ def chat(
         count = 0
         start_time = time.time()
         for text, msg in progress.tqdm(
-            vicuna_model.generate(prompt, cli=False),
+            vicuna_model.generate(prompt, cli=cli),
             desc="generating response",
         ):
             count += 1
