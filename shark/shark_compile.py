@@ -11,14 +11,8 @@ from brevitas_examples.llm.llm_quant.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
-def brevitas〇matmul_rhs_group_quant〡shape(
-    lhs: List[int],
-    rhs: List[int],
-    rhs_scale: List[int],
-    rhs_zero_point: List[int],
-    rhs_bit_width: int,
-    rhs_group_size: int,
-) -> List[int]:
+# fmt: off
+def quant〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
     if len(lhs) == 3 and len(rhs) == 2:
         return [lhs[0], lhs[1], rhs[0]]
     elif len(lhs) == 2 and len(rhs) == 2:
@@ -27,30 +21,21 @@ def brevitas〇matmul_rhs_group_quant〡shape(
         raise ValueError("Input shapes not supported.")
 
 
-def brevitas〇matmul_rhs_group_quant〡dtype(
-    lhs_rank_dtype: Tuple[int, int],
-    rhs_rank_dtype: Tuple[int, int],
-    rhs_scale_rank_dtype: Tuple[int, int],
-    rhs_zero_point_rank_dtype: Tuple[int, int],
-    rhs_bit_width: int,
-    rhs_group_size: int,
-) -> int:
+def quant〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
     # output dtype is the dtype of the lhs float input
     lhs_rank, lhs_dtype = lhs_rank_dtype
     return lhs_dtype
 
 
-def brevitas〇matmul_rhs_group_quant〡has_value_semantics(
-    lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size
-) -> None:
+def quant〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
     return
 
 
 brevitas_matmul_rhs_group_quant_library = [
-    brevitas〇matmul_rhs_group_quant〡shape,
-    brevitas〇matmul_rhs_group_quant〡dtype,
-    brevitas〇matmul_rhs_group_quant〡has_value_semantics,
-]
+    quant〇matmul_rhs_group_quant〡shape,
+    quant〇matmul_rhs_group_quant〡dtype,
+    quant〇matmul_rhs_group_quant〡has_value_semantics]
+# fmt: on
 
 
 def load_vmfb(extended_model_name, device, mlir_dialect, extra_args=[]):
@@ -122,7 +107,7 @@ def compile_int_precision(
         torchscript_module,
         inputs,
         output_type="torch",
-        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
+        backend_legal_ops=["quant.matmul_rhs_group_quant"],
         extra_library=brevitas_matmul_rhs_group_quant_library,
         use_tracing=False,
         verbose=False,
