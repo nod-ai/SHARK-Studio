@@ -612,7 +612,7 @@ def import_with_fx(
         replace_call_fn_target(
             fx_g,
             src=matmul_rhs_group_quant_placeholder,
-            target=torch.ops.brevitas.matmul_rhs_group_quant,
+            target=torch.ops.quant.matmul_rhs_group_quant,
         )
 
         fx_g.recompile()
