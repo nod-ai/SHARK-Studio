@@ -408,7 +408,6 @@ class VicunaBase(SharkLLMBase):
             _past_key_values = output["past_key_values"]
             _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
         else:
-            #  print(len(output))
             _logits = torch.tensor(output[0])
             _past_key_values = torch.tensor(output[1:])
             _token = torch.argmax(_logits[:, -1, :], dim=1)
@@ -1818,7 +1817,7 @@ if __name__ == "__main__":
         # TODO: Add break condition from user input
         user_prompt = input("User: ")
         history.append([user_prompt, ""])
-        prompt = create_prompt(model_name, history)
+        prompt = create_prompt(args.model_name, history)
         for text, msg in vic.generate(prompt, cli=True):
             if "formatted" in msg:
                 print("Response:",text)
