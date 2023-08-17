@@ -193,3 +193,8 @@ stencil_annotator/
 # For DocuChat
 apps/language_models/langchain/user_path/
 db_dir_UserData
+
+# Windows Installer Caches and Builds
+windows_installer/shark_studio-cache/
+windows_installer/shark_studio-SetupFiles/
+windows_installer/shark_updater-SetupFiles/
