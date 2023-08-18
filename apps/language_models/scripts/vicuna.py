@@ -276,7 +276,7 @@ class VicunaBase(SharkLLMBase):
             vnames.append(vname)
             if "true" not in vname:
                 global_vars.append(
-                    f"ml_program.global public @{vname}({vbody}) : {fixed_vdtype}"
+                    f"ml_program.global private @{vname}({vbody}) : {fixed_vdtype}"
                 )
                 global_var_loading1.append(
                     f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
@@ -286,7 +286,7 @@ class VicunaBase(SharkLLMBase):
                 )
             else:
                 global_vars.append(
-                    f"ml_program.global public @{vname}({vbody}) : i1"
+                    f"ml_program.global private @{vname}({vbody}) : i1"
                 )
                 global_var_loading1.append(
                     f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
