@@ -21,6 +21,7 @@ class FirstVicuna(torch.nn.Module):
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
+        print(f"[DEBUG] model_path : {model_path}")
         if precision in ["int4", "int8"]:
             print("First Vicuna applying weight quantization..")
             weight_bit_width = 4 if precision == "int4" else 8
@@ -64,6 +65,7 @@ class SecondVicuna7B(torch.nn.Module):
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
+        print(f"[DEBUG] model_path : {model_path}")
         if precision in ["int4", "int8"]:
             print("Second Vicuna applying weight quantization..")
             weight_bit_width = 4 if precision == "int4" else 8
@@ -147,6 +149,102 @@ class SecondVicuna7B(torch.nn.Module):
         i62,
         i63,
         i64,
+        i65,
+        i66,
+        i67,
+        i68,
+        i69,
+        i70,
+        i71,
+        i72,
+        i73,
+        i74,
+        i75,
+        i76,
+        i77,
+        i78,
+        i79,
+        i80,
+        i81,
+        i82,
+        i83,
+        i84,
+        i85,
+        i86,
+        i87,
+        i88,
+        i89,
+        i90,
+        i91,
+        i92,
+        i93,
+        i94,
+        i95,
+        i96,
+        i97,
+        i98,
+        i99,
+        i100,
+        i101,
+        i102,
+        i103,
+        i104,
+        i105,
+        i106,
+        i107,
+        i108,
+        i109,
+        i110,
+        i111,
+        i112,
+        i113,
+        i114,
+        i115,
+        i116,
+        i117,
+        i118,
+        i119,
+        i120,
+        i121,
+        i122,
+        i123,
+        i124,
+        i125,
+        i126,
+        i127,
+        i128,
+        i129,
+        i130,
+        i131,
+        i132,
+        i133,
+        i134,
+        i135,
+        i136,
+        i137,
+        i138,
+        i139,
+        i140,
+        i141,
+        i142,
+        i143,
+        i144,
+        i145,
+        i146,
+        i147,
+        i148,
+        i149,
+        i150,
+        i151,
+        i152,
+        i153,
+        i154,
+        i155,
+        i156,
+        i157,
+        i158,
+        i159,
+        i160,
     ):
         # input_ids = input_tuple[0]
         # input_tuple = torch.unbind(pkv, dim=0)
@@ -276,6 +374,198 @@ class SecondVicuna7B(torch.nn.Module):
             (
                 i63,
                 i64,
+            ),
+            (
+                i65,
+                i66,
+            ),
+            (
+                i67,
+                i68,
+            ),
+            (
+                i69,
+                i70,
+            ),
+            (
+                i71,
+                i72,
+            ),
+            (
+                i73,
+                i74,
+            ),
+            (
+                i75,
+                i76,
+            ),
+            (
+                i77,
+                i78,
+            ),
+            (
+                i79,
+                i80,
+            ),
+            (
+                i81,
+                i82,
+            ),
+            (
+                i83,
+                i84,
+            ),
+            (
+                i85,
+                i86,
+            ),
+            (
+                i87,
+                i88,
+            ),
+            (
+                i89,
+                i90,
+            ),
+            (
+                i91,
+                i92,
+            ),
+            (
+                i93,
+                i94,
+            ),
+            (
+                i95,
+                i96,
+            ),
+            (
+                i97,
+                i98,
+            ),
+            (
+                i99,
+                i100,
+            ),
+            (
+                i101,
+                i102,
+            ),
+            (
+                i103,
+                i104,
+            ),
+            (
+                i105,
+                i106,
+            ),
+            (
+                i107,
+                i108,
+            ),
+            (
+                i109,
+                i110,
+            ),
+            (
+                i111,
+                i112,
+            ),
+            (
+                i113,
+                i114,
+            ),
+            (
+                i115,
+                i116,
+            ),
+            (
+                i117,
+                i118,
+            ),
+            (
+                i119,
+                i120,
+            ),
+            (
+                i121,
+                i122,
+            ),
+            (
+                i123,
+                i124,
+            ),
+            (
+                i125,
+                i126,
+            ),
+            (
+                i127,
+                i128,
+            ),
+            (
+                i129,
+                i130,
+            ),
+            (
+                i131,
+                i132,
+            ),
+            (
+                i133,
+                i134,
+            ),
+            (
+                i135,
+                i136,
+            ),
+            (
+                i137,
+                i138,
+            ),
+            (
+                i139,
+                i140,
+            ),
+            (
+                i141,
+                i142,
+            ),
+            (
+                i143,
+                i144,
+            ),
+            (
+                i145,
+                i146,
+            ),
+            (
+                i147,
+                i148,
+            ),
+            (
+                i149,
+                i150,
+            ),
+            (
+                i151,
+                i152,
+            ),
+            (
+                i153,
+                i154,
+            ),
+            (
+                i155,
+                i156,
+            ),
+            (
+                i157,
+                i158,
+            ),
+            (
+                i159,
+                i160,
             ),
         )
         op = self.model(
@@ -596,8 +886,8 @@ class CombinedModel(torch.nn.Module):
         # generate second vicuna
         compilation_input_ids = torch.zeros([1, 1], dtype=torch.int64)
         pkv = tuple(
-            (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
-            for _ in range(64)
+            (torch.zeros([1, 8, 19, 128], dtype=torch.float32))
+            for _ in range(160)
         )
         secondVicunaCompileInput = (compilation_input_ids,) + pkv
         second_output = self.second_vicuna(*secondVicunaCompileInput)
