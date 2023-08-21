@@ -276,34 +276,24 @@ class VicunaBase(SharkLLMBase):
             vname = vname.strip()
             vbody = re.sub("arith.constant", "", vbody)
             vbody = vbody.strip()
-            if len(vbody.split(":")) < 2:
-                print(constant)
             vdtype = vbody.split(":")[-1].strip()
+            vbody = vbody.split(":")[0].strip()
             fixed_vdtype = vdtype
-            if "true" not in vname:
-                global_vars.append(
-                    f"ml_program.global public @{vname}{vname_suf}({vbody}) : {fixed_vdtype}"
-                )
-                if vname_suf != "_2":
-                    global_var_loading1[
-                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : {fixed_vdtype}"
-                    ] = ""
-                if vname_suf != "_1":
-                    global_var_loading2[
-                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : {fixed_vdtype}"
-                    ] = ""
-            else:
-                global_vars.append(
-                    f"ml_program.global public @{vname}{vname_suf}({vbody}) : i1"
-                )
-                if vname_suf != "_2":
-                    global_var_loading1[
-                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : i1"
-                    ] = ""
-                if vname_suf != "_1":
-                    global_var_loading2[
-                        f"\t\t%{vname} = ml_program.global_load_const @{vname}{vname_suf} : i1"
-                    ] = ""
+            formatted_vdtype = " : " +vdtype
+            if "true" in vname:
+                formatted_vdtype = ""
+                fixed_vdtype = "i1"
+            noinline = "{noinline} " if "tensor" in fixed_vdtype else ""  #fstring compatibility
+
+            global_vars.append(
+                f"util.global private @{vname}{vname_suf} {noinline}= {vbody}{formatted_vdtype}"
+            )
+            if vname_suf != "_2":
+                global_var_loading1[
+                f"\t\t%{vname} = util.global.load @{vname}{vname_suf} : {fixed_vdtype}"] = ""
+            if vname_suf != "_1":
+                global_var_loading2[
+                f"\t\t%{vname} = util.global.load @{vname}{vname_suf} : {fixed_vdtype}"] = ""
 
         del constants
         gc.collect()
@@ -324,11 +314,6 @@ class VicunaBase(SharkLLMBase):
             if "func.func" in line:
                 new_f2.append(line)
                 for global_var in global_var_loading2.keys():
-                    if (
-                        "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64"
-                        in global_var
-                    ):
-                        print(global_var)
                     new_f2.append(global_var)
             else:
                 if "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64" in line:
@@ -342,13 +327,6 @@ class VicunaBase(SharkLLMBase):
         del new_f1
         del new_f2
         gc.collect()
-
-        print(
-            [
-                "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64" in x
-                for x in [maps1, maps2, global_vars, f1, f2]
-            ]
-        )
 
         # doing it this way rather than assembling the whole string
         # to prevent OOM with 64GiB RAM when encoding the file.
@@ -1429,9 +1407,9 @@ class UnshardedVicuna(VicunaBase):
                 else:
                     compilation_prompt = "".join(["0" for _ in range(17)])
 
-                if Path(f"first_{self.precision}.mlir").exists():
-                    print(f"loading first_{self.precision}.mlir")
-                    with open(Path(f"first_{self.precision}.mlir"), "r") as f:
+                if Path(f"first_{self.model_name}_{self.precision}.mlir").exists():
+                    print(f"loading first_{self.model_name}_{self.precision}.mlir")
+                    with open(Path(f"first_{self.model_name}_{self.precision}.mlir"), "r") as f:
                         first_module = f.read()
                 else:
                     # generate first vicuna
@@ -1511,12 +1489,12 @@ class UnshardedVicuna(VicunaBase):
                         str(first_module), dynamic_input_size=19
                     )
                     if self.cache_vicunas:
-                        with open(f"first_{self.precision}.mlir", "w+") as f:
+                        with open(f"first_{self.model_name}_{self.precision}.mlir", "w+") as f:
                             f.write(first_module)
 
-                if Path(f"second_{self.precision}.mlir").exists():
-                    print(f"loading second_{self.precision}.mlir")
-                    with open(Path(f"second_{self.precision}.mlir"), "r") as f:
+                if Path(f"second_{self.model_name}_{self.precision}.mlir").exists():
+                    print(f"loading second_{self.model_name}_{self.precision}.mlir")
+                    with open(Path(f"second_{self.model_name}_{self.precision}.mlir"), "r") as f:
                         second_module = f.read()
                 else:
                     # generate second vicuna
@@ -1601,7 +1579,7 @@ class UnshardedVicuna(VicunaBase):
                         str(second_module)
                     )
                     if self.cache_vicunas:
-                        with open(f"second_{self.precision}.mlir", "w+") as f:
+                        with open(f"second_{self.model_name}_{self.precision}.mlir", "w+") as f:
                             f.write(second_module)
 
                 combined_module = self.combine_mlir_scripts(
