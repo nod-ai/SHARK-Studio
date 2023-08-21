@@ -146,7 +146,7 @@ if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
 fi
 
 if [[ -z "${NO_BREVITAS}" ]]; then
-  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@llm
+  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
 fi
 
 if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
