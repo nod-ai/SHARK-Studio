@@ -149,7 +149,7 @@ class StencilPipeline(StableDiffusionPipeline):
                 ).to(dtype)
             else:
                 latent_model_input_1 = latent_model_input
-            if text_embeddings.shapes[1] <= self.model_max_length:
+            if text_embeddings.shape[1] <= self.model_max_length:
                 control = self.controlnet(
                     "forward",
                     (
@@ -175,29 +175,56 @@ class StencilPipeline(StableDiffusionPipeline):
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
             # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.
-            noise_pred = self.unet(
-                "forward",
-                (
-                    latent_model_input,
-                    timestep,
-                    text_embeddings_numpy,
-                    guidance_scale,
-                    control[0],
-                    control[1],
-                    control[2],
-                    control[3],
-                    control[4],
-                    control[5],
-                    control[6],
-                    control[7],
-                    control[8],
-                    control[9],
-                    control[10],
-                    control[11],
-                    control[12],
-                ),
-                send_to_host=False,
-            )
+
+            if text_embeddings.shape[1] <= self.model_max_length:
+                noise_pred = self.unet(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                        control[0],
+                        control[1],
+                        control[2],
+                        control[3],
+                        control[4],
+                        control[5],
+                        control[6],
+                        control[7],
+                        control[8],
+                        control[9],
+                        control[10],
+                        control[11],
+                        control[12],
+                    ),
+                    send_to_host=False,
+                )
+            else:
+                print(self.unet_512)
+                noise_pred = self.unet_512(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                        control[0],
+                        control[1],
+                        control[2],
+                        control[3],
+                        control[4],
+                        control[5],
+                        control[6],
+                        control[7],
+                        control[8],
+                        control[9],
+                        control[10],
+                        control[11],
+                        control[12],
+                    ),
+                    send_to_host=False,
+                )
             end_profiling(profile_device)
 
             if cpu_scheduling:
