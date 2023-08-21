@@ -283,23 +283,23 @@ class VicunaBase(SharkLLMBase):
             vnames.append(vname)
             if "true" not in vname:
                 global_vars.append(
-                    f"ml_program.global private @{vname}({vbody}) : {fixed_vdtype}"
+                    f"util.global private @{vname} {noinline} = {vbody} : {fixed_vdtype}"
                 )
                 global_var_loading1.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
+                    f"\t\t%{vname} = util.global_load @{vname} : {fixed_vdtype}"
                 )
                 global_var_loading2.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
+                    f"\t\t%{vname} = util.global_load @{vname} : {fixed_vdtype}"
                 )
             else:
                 global_vars.append(
-                    f"ml_program.global private @{vname}({vbody}) : i1"
+                    f"util.global private @{vname} = {vbody} : i1"
                 )
                 global_var_loading1.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
+                    f"\t\t%{vname} = util.global_load @{vname} : i1"
                 )
                 global_var_loading2.append(
-                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
+                    f"\t\t%{vname} = util.global_load @{vname} : i1"
                 )
         new_f1, new_f2 = [], []
 
@@ -441,7 +441,12 @@ class ShardedVicuna(VicunaBase):
         compressed=False,
         extra_args_cmd=[],
     ) -> None:
-        super().__init__(model_name, hf_model_path, max_num_tokens, extra_args_cmd=extra_args_cmd)
+        super().__init__(
+            model_name,
+            hf_model_path,
+            max_num_tokens,
+            extra_args_cmd=extra_args_cmd,
+        )
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
@@ -945,7 +950,8 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                    ] + self.extra_args,
+                    ]
+                    + self.extra_args,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -1011,7 +1017,8 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                    ] + self.extra_args,
+                    ]
+                    + self.extra_args,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -1225,7 +1232,12 @@ class UnshardedVicuna(VicunaBase):
         cache_vicunas=False,
         extra_args_cmd=[],
     ) -> None:
-        super().__init__(model_name, hf_model_path, max_num_tokens, extra_args_cmd=extra_args_cmd)
+        super().__init__(
+            model_name,
+            hf_model_path,
+            max_num_tokens,
+            extra_args_cmd=extra_args_cmd,
+        )
         if "llama2" in self.model_name and hf_auth_token == None:
             raise ValueError(
                 "HF auth token required. Pass it using --hf_auth_token flag."
@@ -1468,9 +1480,7 @@ class UnshardedVicuna(VicunaBase):
                             ts_graph,
                             [*firstVicunaCompileInput],
                             output_type=torch_mlir.OutputType.TORCH,
-                            backend_legal_ops=[
-                                "quant.matmul_rhs_group_quant"
-                            ],
+                            backend_legal_ops=["quant.matmul_rhs_group_quant"],
                             extra_library=brevitas_matmul_rhs_group_quant_library,
                             use_tracing=False,
                             verbose=False,
@@ -1555,9 +1565,7 @@ class UnshardedVicuna(VicunaBase):
                             ts_graph,
                             [*secondVicunaCompileInput],
                             output_type=torch_mlir.OutputType.TORCH,
-                            backend_legal_ops=[
-                                "quant.matmul_rhs_group_quant"
-                            ],
+                            backend_legal_ops=["quant.matmul_rhs_group_quant"],
                             extra_library=brevitas_matmul_rhs_group_quant_library,
                             use_tracing=False,
                             verbose=False,
@@ -1606,7 +1614,8 @@ class UnshardedVicuna(VicunaBase):
                 "--iree-vm-target-truncate-unsupported-floats",
                 "--iree-codegen-check-ir-before-llvm-conversion=false",
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-            ] + self.extra_args,
+            ]
+            + self.extra_args,
         )
         print("Saved vic vmfb at ", str(path))
         shark_module.load_module(path)
@@ -1681,6 +1690,7 @@ class UnshardedVicuna(VicunaBase):
         # use First vic alone to complete a story / prompt / sentence.
         pass
 
+
 # NOTE: Each `model_name` should have its own start message
 start_message = {
     "llama2_7b": (
@@ -1729,6 +1739,7 @@ start_message = {
     ),
     "codegen": "",
 }
+
 
 def create_prompt(model_name, history):
     global start_message
@@ -1820,5 +1831,5 @@ if __name__ == "__main__":
         prompt = create_prompt(args.model_name, history)
         for text, msg in vic.generate(prompt, cli=True):
             if "formatted" in msg:
-                print("Response:",text)
+                print("Response:", text)
                 history[-1][1] = text
