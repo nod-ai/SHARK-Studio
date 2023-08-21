@@ -37,7 +37,7 @@ def launch_app(address):
         height=height,
         text_select=True,
     )
-    webview.start(private_mode=False)
+    webview.start(private_mode=False, storage_path=os.getcwd())
 
 
 if __name__ == "__main__":
@@ -50,7 +50,9 @@ if __name__ == "__main__":
             upscaler_api,
             inpaint_api,
             outpaint_api,
+            llm_chat_api,
         )
+
         from fastapi import FastAPI, APIRouter
         import uvicorn
 
@@ -63,8 +65,19 @@ if __name__ == "__main__":
         app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
         app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
         app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
+
+        # chat APIs needed for compatibility with multiple extensions using OpenAI API
+        app.add_api_route(
+            "/v1/chat/completions", llm_chat_api, methods=["post"]
+        )
+        app.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
+        app.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
+        app.add_api_route("/completions", llm_chat_api, methods=["post"])
+        app.add_api_route(
+            "/v1/engines/codegen/completions", llm_chat_api, methods=["post"]
+        )
         app.include_router(APIRouter())
-        uvicorn.run(app, host="127.0.0.1", port=args.server_port)
+        uvicorn.run(app, host="0.0.0.0", port=args.server_port)
         sys.exit(0)
 
     # Setup to use shark_tmp for gradio's temporary image files and clear any
@@ -102,6 +115,8 @@ if __name__ == "__main__":
         txt2img_sendto_inpaint,
         txt2img_sendto_outpaint,
         txt2img_sendto_upscaler,
+        # h2ogpt_upload,
+        # h2ogpt_web,
         img2img_web,
         img2img_custom_model,
         img2img_hf_model_id,
@@ -140,6 +155,7 @@ if __name__ == "__main__":
         upscaler_sendto_outpaint,
         lora_train_web,
         model_web,
+        model_config_web,
         hf_models,
         modelmanager_sendto_txt2img,
         modelmanager_sendto_img2img,
@@ -147,6 +163,7 @@ if __name__ == "__main__":
         modelmanager_sendto_outpaint,
         modelmanager_sendto_upscaler,
         stablelm_chat,
+        minigpt4_web,
         outputgallery_web,
         outputgallery_tab_select,
         outputgallery_watch,
@@ -196,6 +213,15 @@ if __name__ == "__main__":
         css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
     ) as sd_web:
         with gr.Tabs() as tabs:
+            # NOTE: If adding, removing, or re-ordering tabs, make sure that they
+            # have a unique id that doesn't clash with any of the other tabs,
+            # and that the order in the code here is the order they should
+            # appear in the ui, as the id value doesn't determine the order.
+
+            # Where possible, avoid changing the id of any tab that is the
+            # destination of one of the 'send to' buttons. If you do have to change
+            # that id, make sure you update the relevant register_button_click calls
+            # further down with the new id.
             with gr.TabItem(label="Text-to-Image", id=0):
                 txt2img_web.render()
             with gr.TabItem(label="Image-to-Image", id=1):
@@ -206,14 +232,8 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
-            with gr.TabItem(label="Model Manager", id=5):
-                model_web.render()
-            with gr.TabItem(label="Chat Bot(Experimental)", id=6):
-                stablelm_chat.render()
-            with gr.TabItem(label="LoRA Training(Experimental)", id=7):
-                lora_train_web.render()
             if args.output_gallery:
-                with gr.TabItem(label="Output Gallery", id=8) as og_tab:
+                with gr.TabItem(label="Output Gallery", id=5) as og_tab:
                     outputgallery_web.render()
 
                 # extra output gallery configuration
@@ -227,6 +247,22 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
+            with gr.TabItem(label="Model Manager", id=6):
+                model_web.render()
+            with gr.TabItem(label="LoRA Training (Experimental)", id=7):
+                lora_train_web.render()
+            with gr.TabItem(label="Chat Bot (Experimental)", id=8):
+                stablelm_chat.render()
+            with gr.TabItem(
+                label="Generate Sharding Config (Experimental)", id=9
+            ):
+                model_config_web.render()
+            with gr.TabItem(label="MultiModal (Experimental)", id=10):
+                minigpt4_web.render()
+            # with gr.TabItem(label="DocuChat Upload", id=11):
+            #     h2ogpt_upload.render()
+            # with gr.TabItem(label="DocuChat(Experimental)", id=12):
+            #     h2ogpt_web.render()
 
         # send to buttons
         register_button_click(

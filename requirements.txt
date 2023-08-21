@@ -1,3 +1,6 @@
+-f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
+--pre
+
 setuptools
 wheel
 
@@ -17,12 +20,15 @@ parameterized
 # Add transformers, diffusers and scipy since it most commonly used
 transformers
 diffusers
+#accelerate is now required for diffusers import from ckpt.
+accelerate
 scipy
 ftfy
 gradio
 altair
 omegaconf
-safetensors
+# 0.3.2 doesn't have binaries for arm64
+safetensors==0.3.1
 opencv-python
 scikit-image
 pytorch_lightning # for runwayml models
@@ -30,10 +36,14 @@ tk
 pywebview
 sentencepiece
 py-cpuinfo
+tiktoken # for codegen
+joblib # for langchain
+timm # for MiniGPT4
+langchain
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
 pyinstaller
 
-# low precision vicuna
-brevitas @ git+https://github.com/Xilinx/brevitas.git@llm
+# vicuna quantization
+brevitas @ git+https://github.com/Xilinx/brevitas.git@dev

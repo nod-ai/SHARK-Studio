@@ -8,7 +8,12 @@ from datetime import datetime as dt
 from csv import DictWriter
 from pathlib import Path
 import numpy as np
-from random import randint
+from random import (
+    randint,
+    seed as seed_random,
+    getstate as random_getstate,
+    setstate as random_setstate,
+)
 import tempfile
 import torch
 from safetensors.torch import load_file
@@ -17,6 +22,7 @@ from shark.shark_importer import import_with_fx
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
+    get_iree_vulkan_runtime_flags,
 )
 from shark.iree_utils.metal_utils import get_metal_target_triple
 from shark.iree_utils.gpu_utils import get_cuda_sm_cc
@@ -178,10 +184,7 @@ def compile_through_fx(
 
 
 def set_iree_runtime_flags():
-    vulkan_runtime_flags = [
-        f"--vulkan_large_heap_block_size={args.vulkan_large_heap_block_size}",
-        f"--vulkan_validation_layers={'true' if args.vulkan_validation_layers else 'false'}",
-    ]
+    vulkan_runtime_flags = get_iree_vulkan_runtime_flags()
     if args.enable_rgp:
         vulkan_runtime_flags += [
             f"--enable_rgp=true",
@@ -456,7 +459,12 @@ def get_available_devices():
                 device_name = (
                     cpu_name if device["name"] == "default" else device["name"]
                 )
-                device_list.append(f"{device_name} => {driver_name}://{i}")
+                if "local" in driver_name:
+                    device_list.append(
+                        f"{device_name} => {driver_name.replace('local', 'cpu')}"
+                    )
+                else:
+                    device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
@@ -490,6 +498,12 @@ def get_opt_flags(model, precision="fp16"):
     if len(args.iree_vulkan_target_triple) > 0:
         iree_flags.append(
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+        )
+
+    if args.iree_constant_folding == False:
+        iree_flags.append("--iree-opt-const-expr-hoisting=False")
+        iree_flags.append(
+            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
         )
 
     # Disable bindings fusion to work with moltenVK.
@@ -722,12 +736,63 @@ def fetch_and_update_base_model_id(model_to_run, base_model=""):
 
 # Generate and return a new seed if the provided one is not in the
 # supported range (including -1)
-def sanitize_seed(seed):
+def sanitize_seed(seed: int | str):
+    seed = int(seed)
     uint32_info = np.iinfo(np.uint32)
     uint32_min, uint32_max = uint32_info.min, uint32_info.max
     if seed < uint32_min or seed >= uint32_max:
         seed = randint(uint32_min, uint32_max)
     return seed
+
+
+# take a seed expression in an input format and convert it to
+# a list of integers, where possible
+def parse_seed_input(seed_input: str | list | int):
+    if isinstance(seed_input, str):
+        try:
+            seed_input = json.loads(seed_input)
+        except (ValueError, TypeError):
+            seed_input = None
+
+    if isinstance(seed_input, int):
+        return [seed_input]
+
+    if isinstance(seed_input, list) and all(
+        type(seed) is int for seed in seed_input
+    ):
+        return seed_input
+
+    raise TypeError(
+        "Seed input must be an integer or an array of integers in JSON format"
+    )
+
+
+# Generate a set of seeds from an input expression for batch_count batches,
+# optionally using that input as the rng seed for any randomly generated seeds.
+def batch_seeds(
+    seed_input: str | list | int, batch_count: int, repeatable=False
+):
+    # turn the input into a list if possible
+    seeds = parse_seed_input(seed_input)
+
+    # slice or pad the list to be of batch_count length
+    seeds = seeds[:batch_count] + [-1] * (batch_count - len(seeds))
+
+    if repeatable:
+        # set seed for the rng based on what we have so far
+        saved_random_state = random_getstate()
+        if all(seed < 0 for seed in seeds):
+            seeds[0] = sanitize_seed(seeds[0])
+        seed_random(str(seeds))
+
+    # generate any seeds that are unspecified
+    seeds = [sanitize_seed(seed) for seed in seeds]
+
+    if repeatable:
+        # reset the rng back to normal
+        random_setstate(saved_random_state)
+
+    return seeds
 
 
 # clear all the cached objects to recompile cleanly.

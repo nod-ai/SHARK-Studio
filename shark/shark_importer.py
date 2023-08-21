@@ -488,7 +488,7 @@ def flatten_training_input(inputs):
     return tuple(flattened_input)
 
 
-# TODO: get rid of is_f16 by using precision
+# TODO: Remove is_f16 and fix all calls with using precision instead
 # Applies fx conversion to the model and imports the mlir.
 def import_with_fx(
     model,
@@ -612,7 +612,7 @@ def import_with_fx(
         replace_call_fn_target(
             fx_g,
             src=matmul_rhs_group_quant_placeholder,
-            target=torch.ops.brevitas.matmul_rhs_group_quant,
+            target=torch.ops.quant.matmul_rhs_group_quant,
         )
 
         fx_g.recompile()

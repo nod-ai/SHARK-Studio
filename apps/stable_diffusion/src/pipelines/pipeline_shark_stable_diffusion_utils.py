@@ -756,6 +756,12 @@ def get_unweighted_text_embeddings(
     return text_embeddings
 
 
+# This function deals with NoneType values occuring in tokens after padding
+# It switches out None with 49407 as truncating None values causes matrix dimension errors,
+def filter_nonetype_tokens(tokens: List[List]):
+    return [[49407 if token is None else token for token in tokens[0]]]
+
+
 def get_weighted_text_embeddings(
     pipe: StableDiffusionPipeline,
     prompt: Union[str, List[str]],
@@ -847,6 +853,10 @@ def get_weighted_text_embeddings(
         no_boseos_middle=no_boseos_middle,
         chunk_length=pipe.model_max_length,
     )
+
+    # FIXME: This is a hacky fix caused by tokenizer padding with None values
+    prompt_tokens = filter_nonetype_tokens(prompt_tokens)
+
     # prompt_tokens = torch.tensor(prompt_tokens, dtype=torch.long, device=pipe.device)
     prompt_tokens = torch.tensor(prompt_tokens, dtype=torch.long, device="cpu")
     if uncond_prompt is not None:
@@ -859,6 +869,10 @@ def get_weighted_text_embeddings(
             no_boseos_middle=no_boseos_middle,
             chunk_length=pipe.model_max_length,
         )
+
+        # FIXME: This is a hacky fix caused by tokenizer padding with None values
+        uncond_tokens = filter_nonetype_tokens(uncond_tokens)
+
         # uncond_tokens = torch.tensor(uncond_tokens, dtype=torch.long, device=pipe.device)
         uncond_tokens = torch.tensor(
             uncond_tokens, dtype=torch.long, device="cpu"

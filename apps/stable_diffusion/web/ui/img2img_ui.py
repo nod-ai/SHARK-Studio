@@ -51,7 +51,7 @@ def img2img_inf(
     steps: int,
     strength: float,
     guidance_scale: float,
-    seed: int,
+    seed: str | int,
     batch_count: int,
     batch_size: int,
     scheduler: str,
@@ -67,6 +67,7 @@ def img2img_inf(
     lora_weights: str,
     lora_hf_id: str,
     ondemand: bool,
+    repeatable_seeds: bool,
     resample_type: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
@@ -231,13 +232,14 @@ def img2img_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    seeds = []
-    img_seed = utils.sanitize_seed(seed)
     extra_info = {"STRENGTH": strength}
     text_output = ""
+    try:
+        seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
+    except TypeError as error:
+        raise gr.Error(str(error)) from None
+
     for current_batch in range(batch_count):
-        if current_batch > 0:
-            img_seed = utils.sanitize_seed(-1)
         out_imgs = global_obj.get_sd_obj().generate_images(
             prompt,
             negative_prompt,
@@ -248,7 +250,7 @@ def img2img_inf(
             ceil(steps / strength),
             strength,
             guidance_scale,
-            img_seed,
+            seeds[current_batch],
             args.max_length,
             dtype,
             args.use_base_vae,
@@ -257,9 +259,10 @@ def img2img_inf(
             use_stencil=use_stencil,
             resample_type=resample_type,
         )
-        seeds.append(img_seed)
         total_time = time.time() - start_time
-        text_output = get_generation_text_info(seeds, device)
+        text_output = get_generation_text_info(
+            seeds[: current_batch + 1], device
+        )
         text_output += "\n" + global_obj.get_sd_obj().log
         text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
 
@@ -268,7 +271,7 @@ def img2img_inf(
         else:
             save_output_img(
                 out_imgs[0],
-                img_seed,
+                seeds[current_batch],
                 extra_info,
             )
             generated_imgs.extend(out_imgs)
@@ -347,6 +350,7 @@ def img2img_api(
         lora_weights="None",
         lora_hf_id="",
         ondemand=False,
+        repeatable_seeds=False,
         resample_type="Lanczos"
     )
 
@@ -560,25 +564,26 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             visible=False,
                         )
                     with gr.Row():
-                        steps = gr.Slider(
-                            1, 100, value=args.steps, step=1, label="Steps"
-                        )
-                        strength = gr.Slider(
-                            0,
-                            1,
-                            value=args.strength,
-                            step=0.01,
-                            label="Denoising Strength",
-                        )
-                        resample_type = gr.Radio(
-                            value=args.resample_type,
-                            choices=[
-                                "Lanczos",
-                                "Nearest Neighbor"
-                            ],
-                            label="Resample Type",
-                        )
-                    with gr.Row():
+                        with gr.Column(scale=3):
+                            steps = gr.Slider(
+                                1, 100, value=args.steps, step=1, label="Steps"
+                            )
+                        with gr.Column(scale=3):
+                            strength = gr.Slider(
+                                0,
+                                1,
+                                value=args.strength,
+                                step=0.01,
+                                label="Denoising Strength",
+                            )
+                            resample_type = gr.Radio(
+                                value=args.resample_type,
+                                choices=[
+                                    "Lanczos",
+                                    "Nearest Neighbor"
+                                ],
+                                label="Resample Type",
+                            )
                         ondemand = gr.Checkbox(
                             value=args.ondemand,
                             label="Low VRAM",
@@ -611,6 +616,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 label="Batch Count",
                                 interactive=True,
                             )
+                        repeatable_seeds = gr.Checkbox(
+                            args.repeatable_seeds,
+                            label="Repeatable Seeds",
+                        )
+                    with gr.Row():
                         batch_size = gr.Slider(
                             1,
                             4,
@@ -620,10 +630,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             interactive=False,
                             visible=False,
                         )
-                        stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
-                    seed = gr.Number(
-                        value=args.seed, precision=0, label="Seed"
+                    seed = gr.Textbox(
+                        value=args.seed,
+                        label="Seed",
+                        info="An integer or a JSON list of integers, -1 for random",
                     )
                     device = gr.Dropdown(
                         elem_id="device",
@@ -632,16 +643,15 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    with gr.Column(scale=2):
-                        random_seed = gr.Button("Randomize Seed")
-                        random_seed.click(
-                            lambda: -1,
-                            inputs=[],
-                            outputs=[seed],
-                            queue=False,
-                        )
-                    with gr.Column(scale=6):
-                        stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                    stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -696,6 +706,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 lora_weights,
                 lora_hf_id,
                 ondemand,
+                repeatable_seeds,
                 resample_type,
             ],
             outputs=[img2img_gallery, std_output, img2img_status],

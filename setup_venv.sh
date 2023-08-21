@@ -88,7 +88,7 @@ if [ "$torch_mlir_bin" = true ]; then
     echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
     $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
   else
-    $PYTHON -m pip install --pre torch-mlir==20230620.875 -f https://llvm.github.io/torch-mlir/package-index/
+    $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
     if [ $? -eq 0 ];then
       echo "Successfully Installed torch-mlir"
     else
@@ -103,7 +103,7 @@ else
 fi
 if [[ -z "${USE_IREE}" ]]; then
   rm .use-iree
-  RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
+  RUNTIME="https://nod-ai.github.io/SRT/pip-release-links.html"
 else
   touch ./.use-iree
   RUNTIME="https://openxla.github.io/iree/pip-release-links.html"
@@ -128,7 +128,7 @@ if [[ ! -z "${IMPORTER}" ]]; then
   fi
 fi
 
-$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
+$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/cpu/
 
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   T_VER=$($PYTHON -m pip show torch | grep Version)
@@ -145,19 +145,11 @@ if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   fi
 fi
 
-if [[ ! -z "${ONNX}" ]]; then
-  echo "${Yellow}Installing ONNX and onnxruntime for benchmarks..."
-  $PYTHON -m pip install onnx onnxruntime psutil
-  if [ $? -eq 0 ];then
-    echo "Successfully installed ONNX and ONNX runtime."
-  else
-    echo "Could not install ONNX." >&2
-  fi
+if [[ -z "${NO_BREVITAS}" ]]; then
+  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@llm
 fi
 
 if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
   echo "${Green}Before running examples activate venv with:"
   echo "  ${Green}source $VENV_DIR/bin/activate"
 fi
-
-$PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@llm

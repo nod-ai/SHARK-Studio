@@ -189,3 +189,7 @@ apps/stable_diffusion/web/models/
 
 # Stencil annotators.
 stencil_annotator/
+
+# For DocuChat
+apps/language_models/langchain/user_path/
+db_dir_UserData

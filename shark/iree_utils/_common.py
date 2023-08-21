@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ## Common utilities to be shared by iree utilities.
-
+import functools
 import os
 import sys
 import subprocess
@@ -93,6 +93,7 @@ _IREE_TARGET_MAP = {
 
 
 # Finds whether the required drivers are installed for the given device.
+@functools.cache
 def check_device_drivers(device):
     """Checks necessary drivers present for gpu and vulkan devices"""
     if "://" in device:

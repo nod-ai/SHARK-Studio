@@ -117,16 +117,12 @@ body {
     padding: 0 var(--size-4) !important;
 }
 
-.container {
-    background-color: black !important;
-    padding-top: var(--size-5) !important;
-}
-
 #ui_title {
     padding: var(--size-2) 0 0 var(--size-1);
 }
 
 #top_logo {
+    color: transparent;
     background-color: transparent;
     border-radius: 0 !important;
     border: 0;

@@ -109,7 +109,7 @@ def load_lower_configs(base_model_id=None):
             spec = spec.split("-")[0]
 
     if args.annotation_model == "vae":
-        if not spec or spec in ["rdna3", "sm_80"]:
+        if not spec or spec in ["sm_80"]:
             config_name = (
                 f"{args.annotation_model}_{args.precision}_{device}.json"
             )
@@ -281,8 +281,12 @@ def sd_model_annotation(mlir_model, model_name, base_model_id=None):
         if "rdna2" not in args.iree_vulkan_target_triple.split("-")[0]:
             use_winograd = True
             winograd_config_dir = load_winograd_configs()
-            tuned_model = annotate_with_winograd(
+            winograd_model = annotate_with_winograd(
                 mlir_model, winograd_config_dir, model_name
+            )
+            lowering_config_dir = load_lower_configs(base_model_id)
+            tuned_model = annotate_with_lower_configs(
+                winograd_model, lowering_config_dir, model_name, use_winograd
             )
         else:
             tuned_model = mlir_model

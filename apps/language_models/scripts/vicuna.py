@@ -1,10 +1,12 @@
 import argparse
 import json
 import re
+import gc
 from io import BytesIO
 from pathlib import Path
 from tqdm import tqdm
 from typing import List, Tuple
+import subprocess
 
 import torch
 import torch_mlir
@@ -25,6 +27,14 @@ from apps.language_models.src.model_wrappers.vicuna_sharded_model import (
     VicunaNorm,
     VicunaNormCompiled,
 )
+from apps.language_models.src.model_wrappers.vicuna4 import (
+    LlamaModel,
+    EightLayerLayerSV,
+    EightLayerLayerFV,
+    CompiledEightLayerLayerSV,
+    CompiledEightLayerLayer,
+    forward_compressed,
+)
 from apps.language_models.src.model_wrappers.vicuna_model import (
     FirstVicuna,
     SecondVicuna,
@@ -40,20 +50,17 @@ from shark.shark_inference import SharkInference
 from brevitas_examples.llm.llm_quant.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
-if __name__ == "__main__":
-    import gc
-
 
 parser = argparse.ArgumentParser(
     prog="vicuna runner",
     description="runs a vicuna model",
 )
 parser.add_argument(
-    "--precision", "-p", default="fp32", help="fp32, fp16, int8, int4"
+    "--precision", "-p", default="int8", help="fp32, fp16, int8, int4"
 )
 parser.add_argument("--device", "-d", default="cuda", help="vulkan, cpu, cuda")
 parser.add_argument(
-    "--first_vicuna_vmfb_path", default=None, help="path to first vicuna vmfb"
+    "--vicuna_vmfb_path", default=None, help="path to vicuna vmfb"
 )
 parser.add_argument(
     "-s",
@@ -64,19 +71,9 @@ parser.add_argument(
 )
 # TODO: sharded config
 parser.add_argument(
-    "--second_vicuna_vmfb_path",
+    "--vicuna_mlir_path",
     default=None,
-    help="path to second vicuna vmfb",
-)
-parser.add_argument(
-    "--first_vicuna_mlir_path",
-    default=None,
-    help="path to first vicuna mlir file",
-)
-parser.add_argument(
-    "--second_vicuna_mlir_path",
-    default=None,
-    help="path to second vicuna mlir",
+    help="path to vicuna mlir file",
 )
 parser.add_argument(
     "--load_mlir_from_shark_tank",
@@ -101,9 +98,40 @@ parser.add_argument(
     default=128,
     help="Group size for per_group weight quantization. Default: 128.",
 )
+parser.add_argument(
+    "--download_vmfb",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="download vmfb from sharktank, system dependent, YMMV",
+)
+parser.add_argument(
+    "--model_name",
+    type=str,
+    default="vicuna",
+    choices=["vicuna", "llama2_7b", "llama2_70b"],
+    help="Specify which model to run.",
+)
+parser.add_argument(
+    "--hf_auth_token",
+    type=str,
+    default=None,
+    help="Specify your own huggingface authentication tokens for models like Llama2.",
+)
+parser.add_argument(
+    "--cache_vicunas",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="For debugging purposes, creates a first_{precision}.mlir and second_{precision}.mlir and stores on disk",
+)
+parser.add_argument(
+    "--iree_vulkan_target_triple",
+    type=str,
+    default="",
+    help="Specify target triple for vulkan.",
+)
 
-
-def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
+# fmt: off
+def quant〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
     if len(lhs) == 3 and len(rhs) == 2:
         return [lhs[0], lhs[1], rhs[0]]
     elif len(lhs) == 2 and len(rhs) == 2:
@@ -112,42 +140,38 @@ def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rh
         raise ValueError("Input shapes not supported.")
 
 
-def brevitas〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
+def quant〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
     # output dtype is the dtype of the lhs float input
     lhs_rank, lhs_dtype = lhs_rank_dtype
     return lhs_dtype
 
 
-def brevitas〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
+def quant〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
     return
 
 
 brevitas_matmul_rhs_group_quant_library = [
-    brevitas〇matmul_rhs_group_quant〡shape,
-    brevitas〇matmul_rhs_group_quant〡dtype,
-    brevitas〇matmul_rhs_group_quant〡has_value_semantics]
+    quant〇matmul_rhs_group_quant〡shape,
+    quant〇matmul_rhs_group_quant〡dtype,
+    quant〇matmul_rhs_group_quant〡has_value_semantics]
+# fmt: on
 
 
-class ShardedVicuna(SharkLLMBase):
-    # Class representing Sharded Vicuna Model
+class VicunaBase(SharkLLMBase):
     def __init__(
         self,
         model_name,
         hf_model_path="TheBloke/vicuna-7B-1.1-HF",
         max_num_tokens=512,
-        device="cuda",
-        precision="fp32",
-        config_json=None,
-        weight_group_size=128,
+        device="cpu",
+        precision="int8",
+        extra_args_cmd=[],
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
-        self.tokenizer = self.get_tokenizer()
-        self.config = config_json
-        self.weight_group_size = weight_group_size
-        self.shark_model = self.compile(device=device)
+        self.extra_args = extra_args_cmd
 
     def get_tokenizer(self):
         # Retrieve the tokenizer from Huggingface
@@ -161,6 +185,299 @@ class ShardedVicuna(SharkLLMBase):
         kwargs = {"torch_dtype": torch.float}
         vicuna_model = AutoModelForCausalLM.from_pretrained(
             self.hf_model_path, **kwargs
+        )
+        return vicuna_model
+
+    def combine_mlir_scripts(
+        self, first_vicuna_mlir, second_vicuna_mlir, output_name
+    ):
+        print(f"[DEBUG] combining first and second mlir")
+        print(f"[DEBIG] output_name = {output_name}")
+        maps1 = []
+        maps2 = []
+        constants = set()
+        f1 = []
+        f2 = []
+
+        print(f"[DEBUG] processing first vircuna mlir")
+        first_vicuna_mlir = first_vicuna_mlir.splitlines()
+        while first_vicuna_mlir:
+            line = first_vicuna_mlir.pop(0)
+            if re.search("#map\d*\s*=", line):
+                maps1.append(line)
+            elif re.search("arith.constant", line):
+                constants.add(line)
+            elif not re.search("module", line):
+                line = re.sub("forward", "first_vicuna_forward", line)
+                f1.append(line)
+        f1 = f1[:-1]
+        del first_vicuna_mlir
+        gc.collect()
+
+        for i, map_line in enumerate(maps1):
+            map_var = map_line.split(" ")[0]
+            map_line = re.sub(f"{map_var}(?!\d)", map_var + "_0", map_line)
+            maps1[i] = map_line
+            f1 = [
+                re.sub(f"{map_var}(?!\d)", map_var + "_0", func_line)
+                for func_line in f1
+            ]
+
+        print(f"[DEBUG] processing second vircuna mlir")
+        second_vicuna_mlir = second_vicuna_mlir.splitlines()
+        while second_vicuna_mlir:
+            line = second_vicuna_mlir.pop(0)
+            if re.search("#map\d*\s*=", line):
+                maps2.append(line)
+            elif "global_seed" in line:
+                continue
+            elif re.search("arith.constant", line):
+                constants.add(line)
+            elif not re.search("module", line):
+                line = re.sub("forward", "second_vicuna_forward", line)
+                f2.append(line)
+        f2 = f2[:-1]
+        del second_vicuna_mlir
+        gc.collect()
+
+        for i, map_line in enumerate(maps2):
+            map_var = map_line.split(" ")[0]
+            map_line = re.sub(f"{map_var}(?!\d)", map_var + "_1", map_line)
+            maps2[i] = map_line
+            f2 = [
+                re.sub(f"{map_var}(?!\d)", map_var + "_1", func_line)
+                for func_line in f2
+            ]
+
+        module_start = (
+            'module attributes {torch.debug_module_name = "_lambda"} {'
+        )
+        module_end = "}"
+
+        global_vars = []
+        vnames = []
+        global_var_loading1 = []
+        global_var_loading2 = []
+
+        print(f"[DEBUG] processing constants")
+        counter = 0
+        constants = list(constants)
+        while constants:
+            constant = constants.pop(0)
+            vname, vbody = constant.split("=")
+            vname = re.sub("%", "", vname)
+            vname = vname.strip()
+            vbody = re.sub("arith.constant", "", vbody)
+            vbody = vbody.strip()
+            if len(vbody.split(":")) < 2:
+                print(constant)
+            vdtype = vbody.split(":")[-1].strip()
+            fixed_vdtype = vdtype
+            if "c1_i64" in vname:
+                print(constant)
+                counter += 1
+            if counter == 2:
+                counter = 0
+                print("detected duplicate")
+                continue
+            vnames.append(vname)
+            if "true" not in vname:
+                global_vars.append(
+                    f"ml_program.global private @{vname}({vbody}) : {fixed_vdtype}"
+                )
+                global_var_loading1.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
+                )
+                global_var_loading2.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
+                )
+            else:
+                global_vars.append(
+                    f"ml_program.global private @{vname}({vbody}) : i1"
+                )
+                global_var_loading1.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
+                )
+                global_var_loading2.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
+                )
+        new_f1, new_f2 = [], []
+
+        print(f"[DEBUG] processing f1")
+        for line in f1:
+            if "func.func" in line:
+                new_f1.append(line)
+                for global_var in global_var_loading1:
+                    new_f1.append(global_var)
+            else:
+                new_f1.append(line)
+
+        print(f"[DEBUG] processing f2")
+        for line in f2:
+            if "func.func" in line:
+                new_f2.append(line)
+                for global_var in global_var_loading2:
+                    if (
+                        "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64"
+                        in global_var
+                    ):
+                        print(global_var)
+                    new_f2.append(global_var)
+            else:
+                if "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64" in line:
+                    new_f2.append("%" + line)
+                else:
+                    new_f2.append(line)
+
+        f1 = new_f1
+        f2 = new_f2
+
+        del new_f1
+        del new_f2
+        gc.collect()
+
+        print(
+            [
+                "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64" in x
+                for x in [maps1, maps2, global_vars, f1, f2]
+            ]
+        )
+
+        # doing it this way rather than assembling the whole string
+        # to prevent OOM with 64GiB RAM when encoding the file.
+
+        print(f"[DEBUG] Saving mlir to {output_name}")
+        with open(output_name, "w+") as f_:
+            f_.writelines(line + "\n" for line in maps1)
+            f_.writelines(line + "\n" for line in maps2)
+            f_.writelines(line + "\n" for line in [module_start])
+            f_.writelines(line + "\n" for line in global_vars)
+            f_.writelines(line + "\n" for line in f1)
+            f_.writelines(line + "\n" for line in f2)
+            f_.writelines(line + "\n" for line in [module_end])
+
+        del maps1
+        del maps2
+        del module_start
+        del global_vars
+        del f1
+        del f2
+        del module_end
+        gc.collect()
+
+        print(f"[DEBUG] Reading combined mlir back in")
+        with open(output_name, "rb") as f:
+            return f.read()
+
+    def generate_new_token(self, params, sharded=True, cli=True):
+        is_first = params["is_first"]
+        if is_first:
+            prompt = params["prompt"]
+            input_ids = self.tokenizer(prompt).input_ids
+            input_id_len = len(input_ids)
+            input_ids = torch.tensor(input_ids)
+            input_ids = input_ids.reshape([1, input_id_len])
+            if sharded:
+                output = self.shark_model.forward(input_ids, is_first=is_first)
+            else:
+                output = self.shark_model("first_vicuna_forward", (input_ids,))
+                out_tensor = torch.tensor(output[1:])
+
+        else:
+            token = params["token"]
+            past_key_values = params["past_key_values"]
+            input_ids = [token]
+            input_id_len = len(input_ids)
+            input_ids = torch.tensor(input_ids)
+            input_ids = input_ids.reshape([1, input_id_len])
+            if sharded:
+                output = self.shark_model.forward(
+                    input_ids,
+                    past_key_values=past_key_values,
+                    is_first=is_first,
+                )
+            else:
+                token = token.to(torch.int64).reshape([1, 1])
+                second_input = (token,) + tuple(past_key_values)
+                output = self.shark_model(
+                    "second_vicuna_forward", second_input
+                )
+
+        if sharded:
+            _logits = output["logits"]
+            _past_key_values = output["past_key_values"]
+            _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
+        else:
+            _logits = torch.tensor(output[0])
+            _past_key_values = torch.tensor(output[1:])
+            _token = torch.argmax(_logits[:, -1, :], dim=1)
+
+        skip_sp_tok = True if self.model_name == "codegen" else False
+        _detok = self.tokenizer.decode(_token, skip_special_tokens=skip_sp_tok)
+        ret_dict = {
+            "token": _token,
+            "detok": _detok,
+            "logits": _logits,
+            "past_key_values": _past_key_values,
+        }
+
+        if cli:
+            print(f" token : {_token} | detok : {_detok}")
+
+        return ret_dict
+
+
+class ShardedVicuna(VicunaBase):
+    # Class representing Sharded Vicuna Model
+    def __init__(
+        self,
+        model_name,
+        hf_model_path="TheBloke/vicuna-7B-1.1-HF",
+        max_num_tokens=512,
+        device="cuda",
+        precision="fp32",
+        config_json=None,
+        weight_group_size=128,
+        compressed=False,
+        extra_args_cmd=[],
+    ) -> None:
+        super().__init__(model_name, hf_model_path, max_num_tokens, extra_args_cmd=extra_args_cmd)
+        self.max_sequence_length = 256
+        self.device = device
+        self.precision = precision
+        self.tokenizer = self.get_tokenizer()
+        self.config = config_json
+        self.weight_group_size = weight_group_size
+        self.compressed = compressed
+        self.shark_model = self.compile(device=device)
+
+    def get_tokenizer(self):
+        kwargs = {}
+        if self.model_name == "llama2":
+            kwargs = {
+                "use_auth_token": "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"
+            }
+        if self.model_name == "codegen":
+            tokenizer = AutoTokenizer.from_pretrained(
+                self.hf_model_path,
+                trust_remote_code=True,
+            )
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(
+                self.hf_model_path,
+                use_fast=False,
+                **kwargs,
+            )
+        return tokenizer
+
+    def get_src_model(self):
+        # Retrieve the torch model from Huggingface
+        kwargs = {"torch_dtype": torch.float}
+        if self.model_name == "llama2":
+            kwargs["use_auth_token"] = "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"
+        vicuna_model = AutoModelForCausalLM.from_pretrained(
+            self.hf_model_path,
+            **kwargs,
         )
         return vicuna_model
 
@@ -215,124 +532,6 @@ class ShardedVicuna(SharkLLMBase):
         new_module = "\n".join(new_lines)
         return new_module
 
-    def combine_mlir_scripts(
-        self, first_vicuna_mlir, second_vicuna_mlir, output_name
-    ):
-        maps1 = []
-        maps2 = []
-        constants = set()
-        f1 = []
-        f2 = []
-
-        for line in first_vicuna_mlir.splitlines():
-            if re.search("#map\d*\s*=", line):
-                maps1.append(line)
-            elif re.search("arith.constant", line):
-                constants.add(line)
-            elif not re.search("module", line):
-                line = re.sub("forward", "first_vicuna_forward", line)
-                f1.append(line)
-        f1 = f1[:-1]
-
-        for i, map_line in enumerate(maps1):
-            map_var = map_line.split(" ")[0]
-            map_line = re.sub(f"{map_var}(?!\d)", map_var + "_0", map_line)
-            maps1[i] = map_line
-            f1 = [
-                re.sub(f"{map_var}(?!\d)", map_var + "_0", func_line)
-                for func_line in f1
-            ]
-
-        for line in second_vicuna_mlir.splitlines():
-            if re.search("#map\d*\s*=", line):
-                maps2.append(line)
-            elif "global_seed" in line:
-                continue
-            elif re.search("arith.constant", line):
-                constants.add(line)
-            elif not re.search("module", line):
-                line = re.sub("forward", "second_vicuna_forward", line)
-                f2.append(line)
-        f2 = f2[:-1]
-
-        for i, map_line in enumerate(maps2):
-            map_var = map_line.split(" ")[0]
-            map_line = re.sub(f"{map_var}(?!\d)", map_var + "_1", map_line)
-            maps2[i] = map_line
-            f2 = [
-                re.sub(f"{map_var}(?!\d)", map_var + "_1", func_line)
-                for func_line in f2
-            ]
-
-        module_start = (
-            'module attributes {torch.debug_module_name = "_lambda"} {'
-        )
-        module_end = "}"
-
-        global_vars = []
-        vnames = []
-        vdtypes = []
-        global_var_loading1 = []
-        global_var_loading2 = []
-
-        for constant in list(constants):
-            vname, vbody = constant.split("=")
-            vname = re.sub("%", "", vname)
-            vname = vname.strip()
-            vbody = re.sub("arith.constant", "", vbody)
-            vbody = vbody.strip()
-            vdtype = vbody.split(":")[1].strip()
-            fixed_vdtype = vdtype
-            vdtypes.append(vdtype)
-            vdtype = re.sub("\d{1,}x", "?x", vdtype)
-            vnames.append(vname)
-            global_vars.append(
-                f"ml_program.global public @{vname}({vbody}) : {fixed_vdtype}"
-            )
-            global_var_loading1.append(
-                f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
-            )
-            global_var_loading2.append(
-                f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
-            )
-
-        new_f1, new_f2 = [], []
-
-        for line in f1:
-            if "func.func" in line:
-                new_f1.append(line)
-                for global_var in global_var_loading1:
-                    new_f1.append(global_var)
-            else:
-                new_f1.append(line)
-
-        for line in f2:
-            if "func.func" in line:
-                new_f2.append(line)
-                for global_var in global_var_loading1:
-                    new_f2.append(global_var)
-            else:
-                new_f2.append(line)
-
-        f1 = new_f1
-        f2 = new_f2
-
-        whole_string = "\n".join(
-            maps1
-            + maps2
-            + [module_start]
-            + global_vars
-            + f1
-            + f2
-            + [module_end]
-        )
-
-        f_ = open(output_name, "w+")
-        f_.write(whole_string)
-        f_.close()
-
-        return whole_string
-
     def compile_vicuna_layer(
         self,
         vicuna_layer,
@@ -352,6 +551,59 @@ class ShardedVicuna(SharkLLMBase):
                 position_ids,
                 past_key_value0,
                 past_key_value1,
+            )
+        mlir_bytecode = import_with_fx(
+            vicuna_layer,
+            model_inputs,
+            precision=self.precision,
+            f16_input_mask=[False, False],
+            mlir_type="torchscript",
+        )
+        return mlir_bytecode
+
+    def compile_vicuna_layer4(
+        self,
+        vicuna_layer,
+        hidden_states,
+        attention_mask,
+        position_ids,
+        past_key_values=None,
+    ):
+        # Compile a hidden decoder layer of vicuna
+        if past_key_values is None:
+            model_inputs = (hidden_states, attention_mask, position_ids)
+        else:
+            (
+                (pkv00, pkv01),
+                (pkv10, pkv11),
+                (pkv20, pkv21),
+                (pkv30, pkv31),
+                (pkv40, pkv41),
+                (pkv50, pkv51),
+                (pkv60, pkv61),
+                (pkv70, pkv71),
+            ) = past_key_values
+
+            model_inputs = (
+                hidden_states,
+                attention_mask,
+                position_ids,
+                pkv00,
+                pkv01,
+                pkv10,
+                pkv11,
+                pkv20,
+                pkv21,
+                pkv30,
+                pkv31,
+                pkv40,
+                pkv41,
+                pkv50,
+                pkv51,
+                pkv60,
+                pkv61,
+                pkv70,
+                pkv71,
             )
         mlir_bytecode = import_with_fx(
             vicuna_layer,
@@ -395,18 +647,27 @@ class ShardedVicuna(SharkLLMBase):
                 hidden_states, dynamic_axes=[1]
             )
 
-            module = torch_mlir.compile(
-                lmh,
-                (hidden_states,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
+            # module = torch_mlir.compile(
+            #    lmh,
+            #    (hidden_states,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            # bytecode_stream = BytesIO()
+            # module.operation.write_bytecode(bytecode_stream)
+            # bytecode = bytecode_stream.getvalue()
+            # f_ = open(mlir_path, "wb")
+            # f_.write(bytecode)
+            # f_.close()
+            filepath = Path("lmhead.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/lmhead.mlir",
+                filepath.absolute(),
+                single_file=True,
             )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            f_ = open(f"lmhead.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -438,18 +699,21 @@ class ShardedVicuna(SharkLLMBase):
                 hidden_states, dynamic_axes=[1]
             )
 
-            module = torch_mlir.compile(
-                fvn,
-                (hidden_states,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
+            # module = torch_mlir.compile(
+            #    fvn,
+            #    (hidden_states,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            filepath = Path("norm.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/norm.mlir",
+                filepath.absolute(),
+                single_file=True,
             )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            f_ = open(f"norm.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -480,18 +744,27 @@ class ShardedVicuna(SharkLLMBase):
             input_ids = torch_mlir.TensorPlaceholder.like(
                 input_ids, dynamic_axes=[1]
             )
-            module = torch_mlir.compile(
-                fve,
-                (input_ids,),
-                torch_mlir.OutputType.LINALG_ON_TENSORS,
-                use_tracing=False,
-                verbose=False,
+            # module = torch_mlir.compile(
+            #    fve,
+            #    (input_ids,),
+            #    torch_mlir.OutputType.LINALG_ON_TENSORS,
+            #    use_tracing=False,
+            #    verbose=False,
+            # )
+            # bytecode_stream = BytesIO()
+            # module.operation.write_bytecode(bytecode_stream)
+            # bytecode = bytecode_stream.getvalue()
+            # f_ = open(mlir_path, "wb")
+            # f_.write(bytecode)
+            # f_.close()
+            filepath = Path("embedding.mlir")
+            download_public_file(
+                "gs://shark_tank/elias/compressed_sv/embedding.mlir",
+                filepath.absolute(),
+                single_file=True,
             )
-            bytecode_stream = BytesIO()
-            module.operation.write_bytecode(bytecode_stream)
-            bytecode = bytecode_stream.getvalue()
-            f_ = open(mlir_path, "wb")
-            f_.write(bytecode)
+            f_ = open(f"embedding.mlir", "rb")
+            bytecode = f_.read()
             f_.close()
 
         shark_module = SharkInference(
@@ -565,16 +838,15 @@ class ShardedVicuna(SharkLLMBase):
                             inputs0[2],
                         ),
                         output_type="torch",
-                        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
+                        backend_legal_ops=["quant.matmul_rhs_group_quant"],
                         extra_library=brevitas_matmul_rhs_group_quant_library,
                         use_tracing=False,
                         verbose=False,
                     )
-                    # TODO: apply --canonicalize to unpack tensor for int4
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module0,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -610,16 +882,15 @@ class ShardedVicuna(SharkLLMBase):
                             pkv1_placeholder,
                         ),
                         output_type="torch",
-                        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
+                        backend_legal_ops=["quant.matmul_rhs_group_quant"],
                         extra_library=brevitas_matmul_rhs_group_quant_library,
                         use_tracing=False,
                         verbose=False,
                     )
-                    # TODO: apply --canonicalize to unpack tensor for int4
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module1,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -651,7 +922,7 @@ class ShardedVicuna(SharkLLMBase):
                 module = SharkInference(
                     None,
                     device=device,
-                    device_idx=idx % 4,
+                    device_idx=device_idx,
                     mlir_dialect="tm_tensor",
                     mmap=False,
                 )
@@ -664,7 +935,7 @@ class ShardedVicuna(SharkLLMBase):
                 module = SharkInference(
                     mlirs[idx],
                     device=device,
-                    device_idx=idx % 4,
+                    device_idx=device_idx,
                     mlir_dialect="tm_tensor",
                     mmap=False,
                 )
@@ -674,17 +945,87 @@ class ShardedVicuna(SharkLLMBase):
                         "--iree-vm-target-truncate-unsupported-floats",
                         "--iree-codegen-check-ir-before-llvm-conversion=false",
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                    ],
+                    ] + self.extra_args,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
         return mlirs, modules
 
-    def get_sharded_model(self, device="cpu"):
+    def compile_to_vmfb_one_model4(
+        self, inputs0, layers0, inputs1, layers1, device="cpu"
+    ):
+        mlirs, modules = [], []
+        assert len(layers0) == len(layers1)
+        for layer0, layer1, idx in zip(layers0, layers1, range(len(layers0))):
+            mlir_path = Path(f"{idx}_full.mlir")
+            vmfb_path = Path(f"{idx}_full.vmfb")
+            # if vmfb_path.exists():
+            #    continue
+            if mlir_path.exists():
+                # print(f"Found layer {idx} mlir")
+                f_ = open(mlir_path, "rb")
+                bytecode = f_.read()
+                f_.close()
+                mlirs.append(bytecode)
+            else:
+                filepath = Path(f"{idx}_full.mlir")
+                download_public_file(
+                    f"gs://shark_tank/elias/compressed_sv/{idx}_full.mlir",
+                    filepath.absolute(),
+                    single_file=True,
+                )
+
+                f_ = open(f"{idx}_full.mlir", "rb")
+                bytecode = f_.read()
+                f_.close()
+                mlirs.append(bytecode)
+
+            if vmfb_path.exists():
+                # print(f"Found layer {idx} vmfb")
+                device_idx = self.get_device_index(
+                    f"first_vicuna.model.model.layers.{idx}[\s.$]"
+                )
+                module = SharkInference(
+                    None,
+                    device=device,
+                    device_idx=0,
+                    mlir_dialect="tm_tensor",
+                    mmap=True,
+                )
+                module.load_module(vmfb_path)
+            else:
+                print(f"Compiling layer {idx} vmfb")
+                device_idx = self.get_device_index(
+                    f"first_vicuna.model.model.layers.{idx}[\s.$]"
+                )
+                module = SharkInference(
+                    mlirs[idx],
+                    device=device,
+                    device_idx=0,
+                    mlir_dialect="tm_tensor",
+                    mmap=True,
+                )
+                module.save_module(
+                    module_name=f"{idx}_full",
+                    extra_args=[
+                        "--iree-vm-target-truncate-unsupported-floats",
+                        "--iree-codegen-check-ir-before-llvm-conversion=false",
+                        "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+                    ] + self.extra_args,
+                )
+                module.load_module(vmfb_path)
+            modules.append(module)
+        return mlirs, modules
+
+    def get_sharded_model(self, device="cpu", compressed=False):
         # SAMPLE_INPUT_LEN is used for creating mlir with dynamic inputs, which is currently an increadibly hacky proccess
         # please don't change it
         SAMPLE_INPUT_LEN = 137
         vicuna_model = self.get_src_model()
+        if compressed:
+            vicuna_model.model = LlamaModel.from_pretrained(
+                "TheBloke/vicuna-7B-1.1-HF"
+            )
 
         if self.precision in ["int4", "int8"]:
             print("Applying weight quantization..")
@@ -708,6 +1049,21 @@ class ShardedVicuna(SharkLLMBase):
                 seqlen=2048,
             )
             print("Weight quantization applied.")
+
+        placeholder_pkv_segment = tuple(
+            (
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+            )
+            for _ in range(8)
+        )
+        placeholder_pkv_full = tuple(
+            (
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+            )
+            for _ in range(32)
+        )
 
         placeholder_input0 = (
             torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
@@ -759,20 +1115,39 @@ class ShardedVicuna(SharkLLMBase):
             device_idx=device_idx,
         )
 
-        layers0 = [
-            FirstVicunaLayer(layer) for layer in vicuna_model.model.layers
-        ]
-        layers1 = [
-            SecondVicunaLayer(layer) for layer in vicuna_model.model.layers
-        ]
-        _, modules = self.compile_to_vmfb_one_model(
+        if not compressed:
+            layers0 = [
+                FirstVicunaLayer(layer) for layer in vicuna_model.model.layers
+            ]
+            layers1 = [
+                SecondVicunaLayer(layer) for layer in vicuna_model.model.layers
+            ]
+
+        else:
+            layers00 = EightLayerLayerFV(vicuna_model.model.layers[0:8])
+            layers01 = EightLayerLayerFV(vicuna_model.model.layers[8:16])
+            layers02 = EightLayerLayerFV(vicuna_model.model.layers[16:24])
+            layers03 = EightLayerLayerFV(vicuna_model.model.layers[24:32])
+            layers10 = EightLayerLayerSV(vicuna_model.model.layers[0:8])
+            layers11 = EightLayerLayerSV(vicuna_model.model.layers[8:16])
+            layers12 = EightLayerLayerSV(vicuna_model.model.layers[16:24])
+            layers13 = EightLayerLayerSV(vicuna_model.model.layers[24:32])
+            layers0 = [layers00, layers01, layers02, layers03]
+            layers1 = [layers10, layers11, layers12, layers13]
+
+        _, modules = self.compile_to_vmfb_one_model4(
             placeholder_input0,
             layers0,
             placeholder_input1,
             layers1,
             device=device,
         )
-        shark_layers = [CompiledVicunaLayer(m) for m in modules]
+
+        if not compressed:
+            shark_layers = [CompiledVicunaLayer(m) for m in modules]
+        else:
+            shark_layers = [CompiledEightLayerLayer(m) for m in modules]
+            vicuna_model.model.compressedlayers = shark_layers
 
         sharded_model = ShardedVicunaModel(
             vicuna_model,
@@ -784,10 +1159,17 @@ class ShardedVicuna(SharkLLMBase):
         return sharded_model
 
     def compile(self, device="cpu"):
-        return self.get_sharded_model(device=device)
+        return self.get_sharded_model(
+            device=device, compressed=self.compressed
+        )
+        return self.get_sharded_model(
+            device=device, compressed=self.compressed
+        )
 
     def generate(self, prompt, cli=False):
         # TODO: refactor for cleaner integration
+
+        history = []
 
         tokens_generated = []
         _past_key_values = None
@@ -806,6 +1188,8 @@ class ShardedVicuna(SharkLLMBase):
             _token = generated_token_op["token"]
             _past_key_values = generated_token_op["past_key_values"]
             _detok = generated_token_op["detok"]
+            history.append(_token)
+            yield self.tokenizer.decode(history)
 
             if _token == 2:
                 break
@@ -816,579 +1200,469 @@ class ShardedVicuna(SharkLLMBase):
             if type(tokens_generated[i]) != int:
                 tokens_generated[i] = int(tokens_generated[i][0])
         result_output = self.tokenizer.decode(tokens_generated)
-        return result_output
-
-    def generate_new_token(self, params):
-        is_first = params["is_first"]
-        if is_first:
-            prompt = params["prompt"]
-            input_ids = self.tokenizer(prompt).input_ids
-            input_id_len = len(input_ids)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            output = self.shark_model.forward(input_ids, is_first=is_first)
-        else:
-            token = params["token"]
-            past_key_values = params["past_key_values"]
-            input_ids = [token]
-            input_id_len = len(input_ids)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            output = self.shark_model.forward(
-                input_ids, past_key_values=past_key_values, is_first=is_first
-            )
-
-        _logits = output["logits"]
-        _past_key_values = output["past_key_values"]
-        _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
-        _detok = self.tokenizer.decode(_token)
-
-        ret_dict = {
-            "token": _token,
-            "detok": _detok,
-            "past_key_values": _past_key_values,
-        }
-
-        print(f" token : {_token} | detok : {_detok}")
-
-        return ret_dict
+        yield result_output
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
         pass
 
 
-class UnshardedVicuna(SharkLLMBase):
+class UnshardedVicuna(VicunaBase):
     def __init__(
         self,
         model_name,
         hf_model_path="TheBloke/vicuna-7B-1.1-HF",
+        hf_auth_token: str = None,
         max_num_tokens=512,
-        device="cuda",
-        precision="fp32",
-        first_vicuna_mlir_path=None,
-        second_vicuna_mlir_path=None,
-        first_vicuna_vmfb_path=None,
-        second_vicuna_vmfb_path=None,
+        device="cpu",
+        precision="int8",
+        vicuna_mlir_path=None,
+        vicuna_vmfb_path=None,
         load_mlir_from_shark_tank=True,
         low_device_memory=False,
         weight_group_size=128,
+        download_vmfb=False,
+        cache_vicunas=False,
+        extra_args_cmd=[],
     ) -> None:
-        super().__init__(model_name, hf_model_path, max_num_tokens)
+        super().__init__(model_name, hf_model_path, max_num_tokens, extra_args_cmd=extra_args_cmd)
+        if "llama2" in self.model_name and hf_auth_token == None:
+            raise ValueError(
+                "HF auth token required. Pass it using --hf_auth_token flag."
+            )
+        self.hf_auth_token = hf_auth_token
+        if self.model_name == "llama2_7b":
+            self.hf_model_path = "meta-llama/Llama-2-7b-chat-hf"
+        elif self.model_name == "llama2_70b":
+            self.hf_model_path = "meta-llama/Llama-2-70b-chat-hf"
+        print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
-        self.first_vicuna_vmfb_path = first_vicuna_vmfb_path
-        self.second_vicuna_vmfb_path = second_vicuna_vmfb_path
-        self.first_vicuna_mlir_path = first_vicuna_mlir_path
-        self.second_vicuna_mlir_path = second_vicuna_mlir_path
+        self.download_vmfb = download_vmfb
+        self.vicuna_vmfb_path = vicuna_vmfb_path
+        self.vicuna_mlir_path = vicuna_mlir_path
         self.load_mlir_from_shark_tank = load_mlir_from_shark_tank
         self.low_device_memory = low_device_memory
         self.weight_group_size = weight_group_size
-        self.first_vic = None
-        self.second_vic = None
-        if self.first_vicuna_mlir_path == None:
-            self.first_vicuna_mlir_path = self.get_model_path()
-        if self.second_vicuna_mlir_path == None:
-            self.second_vicuna_mlir_path = self.get_model_path("second")
-        if self.first_vicuna_vmfb_path == None:
-            self.first_vicuna_vmfb_path = self.get_model_path(suffix="vmfb")
-        if self.second_vicuna_vmfb_path == None:
-            self.second_vicuna_vmfb_path = self.get_model_path(
-                "second", "vmfb"
-            )
+        if self.vicuna_mlir_path == None:
+            self.vicuna_mlir_path = self.get_model_path()
+        if self.vicuna_vmfb_path == None:
+            self.vicuna_vmfb_path = self.get_model_path(suffix="vmfb")
         self.tokenizer = self.get_tokenizer()
-        self.shark_model = self.compile()
+        self.cache_vicunas = cache_vicunas
+        self.compile()
 
-    def get_model_path(self, model_number="first", suffix="mlir"):
+    def get_model_path(self, suffix="mlir"):
         safe_device = self.device.split("-")[0]
         if suffix == "mlir":
-            return Path(f"{model_number}_vicuna_{self.precision}.{suffix}")
+            return Path(f"{self.model_name}_{self.precision}.{suffix}")
         return Path(
-            f"{model_number}_vicuna_{self.precision}_{safe_device}.{suffix}"
+            f"{self.model_name}_{self.precision}_{safe_device}.{suffix}"
         )
 
     def get_tokenizer(self):
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.hf_model_path, use_fast=False
-        )
+        kwargs = {"use_auth_token": self.hf_auth_token}
+        if self.model_name == "codegen":
+            tokenizer = AutoTokenizer.from_pretrained(
+                self.hf_model_path,
+                trust_remote_code=True,
+            )
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(
+                self.hf_model_path,
+                use_fast=False,
+                **kwargs,
+            )
         return tokenizer
 
     def get_src_model(self):
-        kwargs = {"torch_dtype": torch.float}
+        kwargs = {
+            "torch_dtype": torch.float,
+            "use_auth_token": self.hf_auth_token,
+        }
         vicuna_model = AutoModelForCausalLM.from_pretrained(
-            self.hf_model_path, **kwargs
+            self.hf_model_path,
+            **kwargs,
         )
         return vicuna_model
 
-    def compile_first_vicuna(self):
-        vmfb = get_vmfb_from_path(
-            self.first_vicuna_vmfb_path, self.device, "tm_tensor"
-        )
-        if vmfb is not None:
-            return vmfb
-
-        # Compilation path needs some more work before it is functional
-        print(
-            f"[DEBUG] vmfb not found at {self.first_vicuna_vmfb_path.absolute()}. Trying to work with\n"
-            f"[DEBUG] mlir path { self.first_vicuna_mlir_path} {'exists' if self.first_vicuna_mlir_path.exists() else 'does not exist'}"
-        )
-        if self.first_vicuna_mlir_path.exists():
-            with open(self.first_vicuna_mlir_path, "rb") as f:
-                bytecode = f.read()
-        else:
-            mlir_generated = False
-            if self.load_mlir_from_shark_tank:
-                if self.precision in ["fp32", "fp16", "int8", "int4"]:
-                    # download MLIR from shark_tank
-                    download_public_file(
-                        f"gs://shark_tank/vicuna/unsharded/mlir/{self.first_vicuna_mlir_path.name}",
-                        self.first_vicuna_mlir_path.absolute(),
-                        single_file=True,
-                    )
-                    if self.first_vicuna_mlir_path.exists():
-                        with open(self.first_vicuna_mlir_path, "rb") as f:
-                            bytecode = f.read()
-                        mlir_generated = True
-                    else:
-                        raise ValueError(
-                            f"MLIR not found at {self.first_vicuna_mlir_path.absolute()}"
-                            " after downloading! Please check path and try again"
-                        )
-                else:
-                    print(
-                        f"Only fp32/fp16/int8/int4 mlir added to tank, generating {self.precision} mlir on device."
-                    )
-
-            if not mlir_generated:
-                compilation_prompt = "".join(["0" for _ in range(17)])
-                compilation_input_ids = self.tokenizer(
-                    compilation_prompt
-                ).input_ids
-                compilation_input_ids = torch.tensor(
-                    compilation_input_ids
-                ).reshape([1, 19])
-                firstVicunaCompileInput = (compilation_input_ids,)
-                model = FirstVicuna(
-                    self.hf_model_path, self.precision, self.weight_group_size
+    def write_in_dynamic_inputs0(self, module, dynamic_input_size):
+        print("[DEBUG] writing dynamic inputs to first vicuna")
+        # Current solution for ensuring mlir files support dynamic inputs
+        # TODO: find a more elegant way to implement this
+        new_lines = []
+        module = module.splitlines()
+        while module:
+            line = module.pop(0)
+            line = re.sub(f"{dynamic_input_size}x", "?x", line)
+            if "?x" in line:
+                line = re.sub("tensor.empty\(\)", "tensor.empty(%dim)", line)
+            line = re.sub(f" {dynamic_input_size},", " %dim,", line)
+            if "tensor.empty" in line and "?x?" in line:
+                line = re.sub(
+                    "tensor.empty\(%dim\)", "tensor.empty(%dim, %dim)", line
                 )
-
-                print(f"[DEBUG] generating torchscript graph")
-                ts_graph = import_with_fx(
-                    model,
-                    firstVicunaCompileInput,
-                    precision=self.precision,
-                    f16_input_mask=[False, False],
-                    mlir_type="torchscript",
+            if "arith.cmpi" in line:
+                line = re.sub(f"c{dynamic_input_size}", "dim", line)
+            if "%0 = tensor.empty(%dim) : tensor<?xi64>" in line:
+                new_lines.append(
+                    "%dim = tensor.dim %arg0, %c1 : tensor<1x?xi64>"
                 )
-                del model
+            if "%dim = tensor.dim %arg0, %c1 : tensor<1x?xi64>" in line:
+                continue
 
-                firstVicunaCompileInput = list(firstVicunaCompileInput)
-                firstVicunaCompileInput[0] = torch_mlir.TensorPlaceholder.like(
-                    firstVicunaCompileInput[0], dynamic_axes=[1]
+            new_lines.append(line)
+        return "\n".join(new_lines)
+
+    def write_in_dynamic_inputs1(self, module):
+        print("[DEBUG] writing dynamic inputs to second vicuna")
+
+        def remove_constant_dim(line):
+            if "c19_i64" in line:
+                line = re.sub("c19_i64", "dim_i64", line)
+            if "19x" in line:
+                line = re.sub("19x", "?x", line)
+                line = re.sub("tensor.empty\(\)", "tensor.empty(%dim)", line)
+            if "tensor.empty" in line and "?x?" in line:
+                line = re.sub(
+                    "tensor.empty\(%dim\)",
+                    "tensor.empty(%dim, %dim)",
+                    line,
                 )
-                firstVicunaCompileInput = tuple(firstVicunaCompileInput)
+            if "arith.cmpi" in line:
+                line = re.sub("c19", "dim", line)
+            if " 19," in line:
+                line = re.sub(" 19,", " %dim,", line)
+            if "20x" in line:
+                line = re.sub("20x", "?x", line)
+                line = re.sub("tensor.empty\(\)", "tensor.empty(%dimp1)", line)
+            if " 20," in line:
+                line = re.sub(" 20,", " %dimp1,", line)
+            return line
 
-                print(f"[DEBUG] generating torch mlir")
-                if self.precision in ["int4", "int8"]:
-                    module = torch_mlir.compile(
-                        ts_graph,
-                        [*firstVicunaCompileInput],
-                        output_type=torch_mlir.OutputType.TORCH,
-                        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
-                        extra_library=brevitas_matmul_rhs_group_quant_library,
-                        use_tracing=False,
-                        verbose=False,
-                    )
-                    # TODO: apply --canonicalize to unpack tensor for int4
-                    print(f"[DEBUG] converting torch to linalg")
-                    run_pipeline_with_repro_report(
-                        module,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
-                        description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
-                    )
-                else:
-                    module = torch_mlir.compile(
-                        ts_graph,
-                        [*firstVicunaCompileInput],
-                        torch_mlir.OutputType.LINALG_ON_TENSORS,
-                        use_tracing=False,
-                        verbose=False,
-                    )
-                del ts_graph
-
-                def remove_constant_dim(line):
-                    if "19x" in line:
-                        line = re.sub("19x", "?x", line)
-                        line = re.sub(
-                            "tensor.empty\(\)", "tensor.empty(%dim)", line
-                        )
-                    if "tensor.empty" in line and "?x?" in line:
-                        line = re.sub(
-                            "tensor.empty\(%dim\)",
-                            "tensor.empty(%dim, %dim)",
-                            line,
-                        )
-                    if "arith.cmpi" in line:
-                        line = re.sub("c19", "dim", line)
-                    if " 19," in line:
-                        line = re.sub(" 19,", " %dim,", line)
-                    return line
-
-                module = str(module)
-                new_lines = []
-
-                print(f"[DEBUG] rewriting torch_mlir file")
-                for line in module.splitlines():
-                    line = remove_constant_dim(line)
-                    if "%0 = tensor.empty(%dim) : tensor<?xi64>" in line:
-                        new_lines.append(
-                            "%dim = tensor.dim %arg0, %c1 : tensor<1x?xi64>"
-                        )
-                    if (
-                        "%dim = tensor.dim %arg0, %c1 : tensor<1x?xi64>"
-                        in line
-                    ):
-                        continue
-
-                    new_lines.append(line)
-
-                module = "\n".join(new_lines)
-                print(f"[DEBUG] converting to bytecode")
-                del new_lines
-                module = module.encode("UTF-8")
-                module = BytesIO(module)
-                bytecode = module.read()
-                del module
-
-                print(f"[DEBUG] writing mlir to file")
-                f_ = open(self.first_vicuna_mlir_path, "wb")
-                f_.write(bytecode)
-                f_.close()
-
-        shark_module = SharkInference(
-            mlir_module=bytecode, device=self.device, mlir_dialect="tm_tensor"
-        )
-        path = shark_module.save_module(
-            self.first_vicuna_vmfb_path.parent.absolute(),
-            self.first_vicuna_vmfb_path.stem,
-            extra_args=[
-                "--iree-hal-dump-executable-sources-to=ies",
-                "--iree-vm-target-truncate-unsupported-floats",
-                "--iree-codegen-check-ir-before-llvm-conversion=false",
-                "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-            ],
-        )
-        print("Saved first vic vmfb at ", str(path))
-        shark_module.load_module(path)
-
-        return shark_module
-
-    def compile_second_vicuna(self):
-        vmfb = get_vmfb_from_path(
-            self.second_vicuna_vmfb_path, self.device, "tm_tensor"
-        )
-        if vmfb is not None:
-            return vmfb
-
-        # Compilation path needs some more work before it is functional
-        print(
-            f"[DEBUG] mlir path {self.second_vicuna_mlir_path} {'exists' if self.second_vicuna_mlir_path.exists() else 'does not exist'}"
-        )
-        if self.second_vicuna_mlir_path.exists():
-            with open(self.second_vicuna_mlir_path, "rb") as f:
-                bytecode = f.read()
-        else:
-            mlir_generated = False
-            if self.load_mlir_from_shark_tank:
-                if self.precision in ["fp32", "fp16", "int8", "int4"]:
-                    # download MLIR from shark_tank
-                    download_public_file(
-                        f"gs://shark_tank/vicuna/unsharded/mlir/{self.second_vicuna_mlir_path.name}",
-                        self.second_vicuna_mlir_path.absolute(),
-                        single_file=True,
-                    )
-                    if self.second_vicuna_mlir_path.exists():
-                        with open(self.second_vicuna_mlir_path, "rb") as f:
-                            bytecode = f.read()
-                        mlir_generated = True
-                    else:
-                        raise ValueError(
-                            f"MLIR not found at {self.second_vicuna_mlir_path.absolute()}"
-                            " after downloading! Please check path and try again"
-                        )
-                else:
-                    print(
-                        "Only fp32/fp16/int8/int4 mlir added to tank, generating mlir on device."
-                    )
-
-            if not mlir_generated:
-                compilation_input_ids = torch.zeros([1, 1], dtype=torch.int64)
-                pkv = tuple(
-                    (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
-                    for _ in range(64)
+        module = module.splitlines()
+        new_lines = []
+        # Using a while loop and the pop method to avoid creating a copy of module
+        while module:
+            line = module.pop(0)
+            if "%c19_i64 = arith.constant 19 : i64" in line:
+                new_lines.append("%c2 = arith.constant 2 : index")
+                new_lines.append(
+                    f"%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128x{'f16' if self.precision == 'fp16' else 'f32'}>"
                 )
-                secondVicunaCompileInput = (compilation_input_ids,) + pkv
-                model = SecondVicuna(
-                    self.hf_model_path, self.precision, self.weight_group_size
+                new_lines.append(
+                    "%dim_i64 = arith.index_cast %dim_4_int : index to i64"
                 )
-
-                print(f"[DEBUG] generating torchscript graph")
-                ts_graph = import_with_fx(
-                    model,
-                    secondVicunaCompileInput,
-                    precision=self.precision,
-                    f16_input_mask=[False] + [True] * 64,
-                    mlir_type="torchscript",
+                continue
+            if "%c2 = arith.constant 2 : index" in line:
+                continue
+            if "%c20_i64 = arith.constant 20 : i64" in line:
+                new_lines.append("%c1_i64 = arith.constant 1 : i64")
+                new_lines.append(
+                    "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64"
                 )
-                if self.precision == "fp16":
-                    secondVicunaCompileInput = get_f16_inputs(
-                        secondVicunaCompileInput,
-                        True,
-                        f16_input_mask=[False] + [True] * 64,
-                    )
-                secondVicunaCompileInput = list(secondVicunaCompileInput)
-                for i in range(len(secondVicunaCompileInput)):
-                    if i != 0:
-                        secondVicunaCompileInput[
-                            i
-                        ] = torch_mlir.TensorPlaceholder.like(
-                            secondVicunaCompileInput[i], dynamic_axes=[2]
-                        )
-                secondVicunaCompileInput = tuple(secondVicunaCompileInput)
+                new_lines.append(
+                    "%dimp1 = arith.index_cast %c20_i64 : i64 to index"
+                )
+                continue
+            line = remove_constant_dim(line)
+            new_lines.append(line)
 
-                print(f"[DEBUG] generating torch mlir")
-                if self.precision in ["int4", "int8"]:
-                    module = torch_mlir.compile(
-                        ts_graph,
-                        [*secondVicunaCompileInput],
-                        output_type=torch_mlir.OutputType.TORCH,
-                        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
-                        extra_library=brevitas_matmul_rhs_group_quant_library,
-                        use_tracing=False,
-                        verbose=False,
-                    )
-                    # TODO: apply --canonicalize to unpack tensor for int4
-                    print(f"[DEBUG] converting torch to linalg")
-                    run_pipeline_with_repro_report(
-                        module,
-                        "builtin.module(torch-backend-to-linalg-on-tensors-backend-pipeline)",
-                        description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
-                    )
-                else:
-                    module = torch_mlir.compile(
-                        ts_graph,
-                        [*secondVicunaCompileInput],
-                        torch_mlir.OutputType.LINALG_ON_TENSORS,
-                        use_tracing=False,
-                        verbose=False,
-                    )
+        return "\n".join(new_lines)
 
-                def remove_constant_dim(line):
-                    if "c19_i64" in line:
-                        line = re.sub("c19_i64", "dim_i64", line)
-                    if "19x" in line:
-                        line = re.sub("19x", "?x", line)
-                        line = re.sub(
-                            "tensor.empty\(\)", "tensor.empty(%dim)", line
-                        )
-                    if "tensor.empty" in line and "?x?" in line:
-                        line = re.sub(
-                            "tensor.empty\(%dim\)",
-                            "tensor.empty(%dim, %dim)",
-                            line,
-                        )
-                    if "arith.cmpi" in line:
-                        line = re.sub("c19", "dim", line)
-                    if " 19," in line:
-                        line = re.sub(" 19,", " %dim,", line)
-                    if "20x" in line:
-                        line = re.sub("20x", "?x", line)
-                        line = re.sub(
-                            "tensor.empty\(\)", "tensor.empty(%dimp1)", line
-                        )
-                    if " 20," in line:
-                        line = re.sub(" 20,", " %dimp1,", line)
-                    return line
-
-                module_str = str(module)
-                new_lines = []
-
-                print(f"[DEBUG] rewriting torch_mlir file")
-                for line in module_str.splitlines():
-                    if "%c19_i64 = arith.constant 19 : i64" in line:
-                        new_lines.append("%c2 = arith.constant 2 : index")
-                        new_lines.append(
-                            f"%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128x{'f16' if self.precision == 'fp16' else 'f32'}>"
-                        )
-                        new_lines.append(
-                            "%dim_i64 = arith.index_cast %dim_4_int : index to i64"
-                        )
-                        continue
-                    if "%c2 = arith.constant 2 : index" in line:
-                        continue
-                    if "%c20_i64 = arith.constant 20 : i64" in line:
-                        new_lines.append("%c1_i64 = arith.constant 1 : i64")
-                        new_lines.append(
-                            "%c20_i64 = arith.addi %dim_i64, %c1_i64 : i64"
-                        )
-                        new_lines.append(
-                            "%dimp1 = arith.index_cast %c20_i64 : i64 to index"
-                        )
-                        continue
-                    line = remove_constant_dim(line)
-                    new_lines.append(line)
-
-                module_str = "\n".join(new_lines)
-                print(f"[DEBUG] converting to bytecode")
-                bytecode = module_str.encode("UTF-8")
-                bytecode_stream = BytesIO(bytecode)
-                bytecode = bytecode_stream.read()
-
-                print(f"[DEBUG] writing mlir to file")
-                f_ = open(self.second_vicuna_mlir_path, "wb")
-                f_.write(bytecode)
-                f_.close()
-
-        shark_module = SharkInference(
-            mlir_module=bytecode, device=self.device, mlir_dialect="tm_tensor"
-        )
-
-        path = shark_module.save_module(
-            self.second_vicuna_vmfb_path.parent.absolute(),
-            self.second_vicuna_vmfb_path.stem,
-            extra_args=[
-                "--iree-hal-dump-executable-sources-to=ies",
-                "--iree-vm-target-truncate-unsupported-floats",
-                "--iree-codegen-check-ir-before-llvm-conversion=false",
-                "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-            ],
-        )
-        print("Saved second vic vmfb at ", str(path))
-        shark_module.load_module(self.second_vicuna_vmfb_path)
-
-        # self.shark_module = shark_module
-        return shark_module
-
-    def compile(self):
-        # Cannot load both the models in the memory at once
-        # due to memory constraints, hence on demand compilation
-        # is being used until the space is enough for both models
-
+    def compile(self, download_vmfb=False):
         # Testing : DO NOT Download Vmfbs if not found. Modify later
         # download vmfbs for A100
-        supported_devices = ["cuda", "cpu-sync", "cpu-task", "cpu"]
-        if (
-            not self.first_vicuna_vmfb_path.exists()
-            and self.device in supported_devices
-            and self.precision in ["fp32", "fp16", "int8"]
-        ):
-            if (self.device == "cuda" and self.precision == "fp16") or (
-                self.device in ["cpu-sync", "cpu-task"]
-                and self.precision == "int8"
-            ):
+        if not self.vicuna_vmfb_path.exists() and download_vmfb:
+            download_public_file(
+                f"gs://shark_tank/{self.model_name}/unsharded/vmfb/{self.vicuna_vmfb_path.name}",
+                self.vicuna_vmfb_path.absolute(),
+                single_file=True,
+            )
+        self.shark_model = get_vmfb_from_path(
+            self.vicuna_vmfb_path, self.device, "tm_tensor"
+        )
+        if self.shark_model is not None:
+            print(f"[DEBUG] vmfb found at {self.vicuna_vmfb_path.absolute()}")
+            return
+
+        print(f"[DEBUG] vmfb not found at {self.vicuna_vmfb_path.absolute()}")
+        if self.vicuna_mlir_path.exists():
+            print(f"[DEBUG] mlir found at {self.vicuna_mlir_path.absolute()}")
+            with open(self.vicuna_mlir_path, "rb") as f:
+                combined_module = f.read()
+        else:
+            print(
+                f"[DEBUG] mlir not found at {self.vicuna_mlir_path.absolute()}"
+            )
+            mlir_generated = False
+            if self.load_mlir_from_shark_tank:
+                # download MLIR from shark tank
                 download_public_file(
-                    f"gs://shark_tank/vicuna/unsharded/vmfb/{self.first_vicuna_vmfb_path.name}",
-                    self.first_vicuna_vmfb_path.absolute(),
+                    f"gs://shark_tank/{self.model_name}/unsharded/mlir/{self.vicuna_mlir_path.name}",
+                    self.vicuna_mlir_path.absolute(),
                     single_file=True,
                 )
-            else:
-                pass
+                if self.vicuna_mlir_path.exists():
+                    with open(self.vicuna_mlir_path, "rb") as f:
+                        combined_module = f.read()
+                    mlir_generated = True
+                else:
+                    print(
+                        f"[DEBUG] failed to download {self.vicuna_mlir_path.name} from shark tank"
+                    )
 
-        else:
-            # get first vic
-            # TODO: Remove after testing to avoid memory overload
-            # fvic_shark_model = self.compile_first_vicuna()
-            pass
-        if (
-            not self.second_vicuna_vmfb_path.exists()
-            and self.device in supported_devices
-            and self.precision in ["fp32", "fp16", "int8"]
-        ):
-            if (self.device == "cuda" and self.precision == "fp16") or (
-                self.device in ["cpu-sync", "cpu-task"]
-                and self.precision == "int8"
-            ):
-                download_public_file(
-                    f"gs://shark_tank/vicuna/unsharded/vmfb/{self.second_vicuna_vmfb_path.name}",
-                    self.second_vicuna_vmfb_path.absolute(),
-                    single_file=True,
+            if not mlir_generated:
+                print("[DEBUG] generating mlir on device")
+                # Select a compilation prompt such that the resulting input_ids
+                # from the model's tokenizer has shape [1, 19]
+                if self.model_name == "codegen":
+                    compilation_prompt = "def hello_world():\n    print('Hello World')\n    print('Hello World')"
+                else:
+                    compilation_prompt = "".join(["0" for _ in range(17)])
+
+                if Path(f"first_{self.precision}.mlir").exists():
+                    print(f"loading first_{self.precision}.mlir")
+                    with open(Path(f"first_{self.precision}.mlir"), "r") as f:
+                        first_module = f.read()
+                else:
+                    # generate first vicuna
+                    compilation_input_ids = self.tokenizer(
+                        compilation_prompt,
+                        return_tensors="pt",
+                    ).input_ids
+                    compilation_input_ids = torch.tensor(
+                        compilation_input_ids
+                    ).reshape([1, 19])
+                    firstVicunaCompileInput = (compilation_input_ids,)
+                    model = FirstVicuna(
+                        self.hf_model_path,
+                        self.precision,
+                        self.weight_group_size,
+                        self.model_name,
+                        self.hf_auth_token,
+                    )
+                    print(f"[DEBUG] generating torchscript graph")
+                    ts_graph = import_with_fx(
+                        model,
+                        firstVicunaCompileInput,
+                        is_f16=self.precision == "fp16",
+                        precision=self.precision,
+                        f16_input_mask=[False, False],
+                        mlir_type="torchscript",
+                    )
+                    del model
+                    firstVicunaCompileInput = list(firstVicunaCompileInput)
+                    firstVicunaCompileInput[
+                        0
+                    ] = torch_mlir.TensorPlaceholder.like(
+                        firstVicunaCompileInput[0], dynamic_axes=[1]
+                    )
+
+                    firstVicunaCompileInput = tuple(firstVicunaCompileInput)
+                    first_module = None
+                    print(f"[DEBUG] generating torch mlir")
+                    if self.precision in ["int4", "int8"]:
+                        first_module = torch_mlir.compile(
+                            ts_graph,
+                            [*firstVicunaCompileInput],
+                            output_type=torch_mlir.OutputType.TORCH,
+                            backend_legal_ops=[
+                                "quant.matmul_rhs_group_quant"
+                            ],
+                            extra_library=brevitas_matmul_rhs_group_quant_library,
+                            use_tracing=False,
+                            verbose=False,
+                        )
+                        print(f"[DEBUG] converting torch to linalg")
+                        run_pipeline_with_repro_report(
+                            first_module,
+                            "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                            description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
+                        )
+                    else:
+                        first_module = torch_mlir.compile(
+                            ts_graph,
+                            [*firstVicunaCompileInput],
+                            torch_mlir.OutputType.LINALG_ON_TENSORS,
+                            use_tracing=False,
+                            verbose=False,
+                        )
+                    del ts_graph
+                    del firstVicunaCompileInput
+                    gc.collect()
+
+                    print(
+                        "[DEBUG] successfully generated first vicuna linalg mlir"
+                    )
+                    first_module = self.write_in_dynamic_inputs0(
+                        str(first_module), dynamic_input_size=19
+                    )
+                    if self.cache_vicunas:
+                        with open(f"first_{self.precision}.mlir", "w+") as f:
+                            f.write(first_module)
+
+                if Path(f"second_{self.precision}.mlir").exists():
+                    print(f"loading second_{self.precision}.mlir")
+                    with open(Path(f"second_{self.precision}.mlir"), "r") as f:
+                        second_module = f.read()
+                else:
+                    # generate second vicuna
+                    compilation_input_ids = torch.zeros(
+                        [1, 1], dtype=torch.int64
+                    )
+                    pkv = tuple(
+                        (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
+                        for _ in range(64)
+                    )
+                    secondVicunaCompileInput = (compilation_input_ids,) + pkv
+                    model = SecondVicuna(
+                        self.hf_model_path,
+                        self.precision,
+                        self.weight_group_size,
+                        self.model_name,
+                        self.hf_auth_token,
+                    )
+                    print(f"[DEBUG] generating torchscript graph")
+                    ts_graph = import_with_fx(
+                        model,
+                        secondVicunaCompileInput,
+                        is_f16=self.precision == "fp16",
+                        precision=self.precision,
+                        f16_input_mask=[False] + [True] * 64,
+                        mlir_type="torchscript",
+                    )
+                    del model
+                    if self.precision == "fp16":
+                        secondVicunaCompileInput = get_f16_inputs(
+                            secondVicunaCompileInput,
+                            True,
+                            f16_input_mask=[False] + [True] * 64,
+                        )
+                    secondVicunaCompileInput = list(secondVicunaCompileInput)
+                    for i in range(len(secondVicunaCompileInput)):
+                        if i != 0:
+                            secondVicunaCompileInput[
+                                i
+                            ] = torch_mlir.TensorPlaceholder.like(
+                                secondVicunaCompileInput[i], dynamic_axes=[2]
+                            )
+                    secondVicunaCompileInput = tuple(secondVicunaCompileInput)
+                    print(f"[DEBUG] generating torch mlir")
+                    if self.precision in ["int4", "int8"]:
+                        second_module = torch_mlir.compile(
+                            ts_graph,
+                            [*secondVicunaCompileInput],
+                            output_type=torch_mlir.OutputType.TORCH,
+                            backend_legal_ops=[
+                                "quant.matmul_rhs_group_quant"
+                            ],
+                            extra_library=brevitas_matmul_rhs_group_quant_library,
+                            use_tracing=False,
+                            verbose=False,
+                        )
+                        print(f"[DEBUG] converting torch to linalg")
+                        run_pipeline_with_repro_report(
+                            second_module,
+                            "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                            description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
+                        )
+                    else:
+                        second_module = torch_mlir.compile(
+                            ts_graph,
+                            [*secondVicunaCompileInput],
+                            torch_mlir.OutputType.LINALG_ON_TENSORS,
+                            use_tracing=False,
+                            verbose=False,
+                        )
+                    del ts_graph
+                    del secondVicunaCompileInput
+                    gc.collect()
+                    print(
+                        "[DEBUG] successfully generated second vicuna linalg mlir"
+                    )
+                    second_module = self.write_in_dynamic_inputs1(
+                        str(second_module)
+                    )
+                    if self.cache_vicunas:
+                        with open(f"second_{self.precision}.mlir", "w+") as f:
+                            f.write(second_module)
+
+                combined_module = self.combine_mlir_scripts(
+                    first_module, second_module, self.vicuna_mlir_path
                 )
-            else:
-                pass
-        else:
-            # get second vic
-            # TODO: Remove after testing to avoid memory overload
-            # svic_shark_model = self.compile_second_vicuna()
-            pass
+                del first_module, second_module
 
-        return None
-        # return tuple of shark_modules once mem is supported
-        # return fvic_shark_model, svic_shark_model
+        shark_module = SharkInference(
+            mlir_module=combined_module,
+            device=self.device,
+            mlir_dialect="tm_tensor",
+        )
+        path = shark_module.save_module(
+            self.vicuna_vmfb_path.parent.absolute(),
+            self.vicuna_vmfb_path.stem,
+            extra_args=[
+                "--iree-vm-target-truncate-unsupported-floats",
+                "--iree-codegen-check-ir-before-llvm-conversion=false",
+                "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+            ] + self.extra_args,
+        )
+        print("Saved vic vmfb at ", str(path))
+        shark_module.load_module(path)
+        self.shark_model = shark_module
 
     def decode_tokens(self, res_tokens):
         for i in range(len(res_tokens)):
             if type(res_tokens[i]) != int:
                 res_tokens[i] = int(res_tokens[i][0])
 
-        res_str = self.tokenizer.decode(res_tokens)
+        skip_sp_tok = True if self.model_name == "codegen" else False
+        res_str = self.tokenizer.decode(
+            res_tokens, skip_special_tokens=skip_sp_tok
+        )
         return res_str
 
-    def generate(self, prompt, cli=False):
+    def generate(self, prompt, cli):
         # TODO: refactor for cleaner integration
-        import gc
-
-        if not self.low_device_memory:
-            if self.first_vic == None:
-                self.first_vic = self.compile_first_vicuna()
-            if self.second_vic == None:
-                self.second_vic = self.compile_second_vicuna()
+        if self.shark_model is None:
+            self.compile()
         res_tokens = []
-        params = {
-            "prompt": prompt,
-            "is_first": True,
-            "fv": self.compile_first_vicuna()
-            if self.first_vic == None
-            else self.first_vic,
-        }
+        params = {"prompt": prompt, "is_first": True, "fv": self.shark_model}
 
-        generated_token_op = self.generate_new_token(params=params)
+        generated_token_op = self.generate_new_token(
+            params=params, sharded=False, cli=cli
+        )
 
         token = generated_token_op["token"]
         logits = generated_token_op["logits"]
-        pkv = generated_token_op["pkv"]
+        pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
-        yield detok
+        yield detok, ""
 
         res_tokens.append(token)
         if cli:
             print(f"Assistant: {detok}", end=" ", flush=True)
 
-        # Clear First Vic from Memory (main and cuda)
-        if self.low_device_memory:
-            del params
-            torch.cuda.empty_cache()
-            gc.collect()
-
         for _ in range(self.max_num_tokens - 2):
             params = {
-                "prompt": None,
+                "token": token,
                 "is_first": False,
                 "logits": logits,
-                "pkv": pkv,
-                "sv": self.compile_second_vicuna()
-                if self.second_vic == None
-                else self.second_vic,
+                "past_key_values": pkv,
+                "sv": self.shark_model,
             }
 
-            generated_token_op = self.generate_new_token(params=params)
+            generated_token_op = self.generate_new_token(
+                params=params, sharded=False, cli=cli
+            )
 
             token = generated_token_op["token"]
             logits = generated_token_op["logits"]
-            pkv = generated_token_op["pkv"]
+            pkv = generated_token_op["past_key_values"]
             detok = generated_token_op["detok"]
 
-            if token == 2:
+            if token == 2 and self.model_name != "codegen":
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
@@ -1397,142 +1671,113 @@ class UnshardedVicuna(SharkLLMBase):
             else:
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
-
-            if len(res_tokens) % 3 == 0:
-                part_str = self.decode_tokens(res_tokens)
-                yield part_str
-
-        if self.device == "cuda":
-            del sec_vic, pkv, logits
-            torch.cuda.empty_cache()
-            gc.collect()
+            yield detok, ""
 
         res_str = self.decode_tokens(res_tokens)
         # print(f"[DEBUG] final output : \n{res_str}")
-        yield res_str
-
-    def generate_new_token(self, params, debug=False):
-        def forward_first(first_vic, prompt, cache_outputs=False):
-            input_ids = self.tokenizer(prompt).input_ids
-            input_id_len = len(input_ids)
-            input_ids = torch.tensor(input_ids)
-            input_ids = input_ids.reshape([1, input_id_len])
-            firstVicunaInput = (input_ids,)
-            assert first_vic is not None
-            output_first_vicuna = first_vic("forward", firstVicunaInput)
-            output_first_vicuna_tensor = torch.tensor(output_first_vicuna[1:])
-            logits_first_vicuna = torch.tensor(output_first_vicuna[0])
-            if cache_outputs:
-                torch.save(
-                    logits_first_vicuna, "logits_first_vicuna_tensor.pt"
-                )
-                torch.save(
-                    output_first_vicuna_tensor, "output_first_vicuna_tensor.pt"
-                )
-            token = torch.argmax(
-                torch.tensor(logits_first_vicuna)[:, -1, :], dim=1
-            )
-            return token, logits_first_vicuna, output_first_vicuna_tensor
-
-        def forward_second(sec_vic, inputs=None, load_inputs=False):
-            if inputs is not None:
-                logits = inputs[0]
-                pkv = inputs[1:]
-            elif load_inputs:
-                pkv = torch.load("output_first_vicuna_tensor.pt")
-                pkv = tuple(torch.tensor(x) for x in pkv)
-                logits = torch.load("logits_first_vicuna_tensor.pt")
-            else:
-                print(
-                    "Either inputs must be given, or load_inputs must be true"
-                )
-                return None
-            token = torch.argmax(torch.tensor(logits)[:, -1, :], dim=1)
-            token = token.to(torch.int64).reshape([1, 1])
-            secondVicunaInput = (token,) + tuple(pkv)
-
-            secondVicunaOutput = sec_vic("forward", secondVicunaInput)
-            new_pkv = secondVicunaOutput[1:]
-            new_logits = secondVicunaOutput[0]
-            new_token = torch.argmax(torch.tensor(new_logits)[:, -1, :], dim=1)
-            return new_token, new_logits, new_pkv
-
-        is_first = params["is_first"]
-
-        if is_first:
-            prompt = params["prompt"]
-            fv = params["fv"]
-            token, logits, pkv = forward_first(
-                fv,  # self.shark_model[0],
-                prompt=prompt,
-                cache_outputs=False,
-            )
-        else:
-            _logits = params["logits"]
-            _pkv = params["pkv"]
-            inputs = (_logits,) + tuple(_pkv)
-            sv = params["sv"]
-            token, logits, pkv = forward_second(
-                sv,  # self.shark_model[1],
-                inputs=inputs,
-                load_inputs=False,
-            )
-
-        detok = self.tokenizer.decode(token)
-        if debug:
-            print(
-                f"[DEBUG] is_first: {is_first} |"
-                f" token : {token} | detok : {detok}"
-            )
-        ret_dict = {
-            "token": token,
-            "logits": logits,
-            "pkv": pkv,
-            "detok": detok,
-        }
-        return ret_dict
+        yield res_str, "formatted"
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
         pass
 
+# NOTE: Each `model_name` should have its own start message
+start_message = {
+    "llama2_7b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
+    "llama2_70b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
+    "StableLM": (
+        "<|SYSTEM|># StableLM Tuned (Alpha version)"
+        "\n- StableLM is a helpful and harmless open-source AI language model "
+        "developed by StabilityAI."
+        "\n- StableLM is excited to be able to help the user, but will refuse "
+        "to do anything that could be considered harmful to the user."
+        "\n- StableLM is more than just an information source, StableLM is also "
+        "able to write poetry, short stories, and make jokes."
+        "\n- StableLM will refuse to participate in anything that "
+        "could harm a human."
+    ),
+    "vicuna": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
+    "vicuna4": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
+    "vicuna1p3": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
+    "codegen": "",
+}
+
+def create_prompt(model_name, history):
+    global start_message
+    system_message = start_message[model_name]
+    conversation = "".join(
+        [
+            "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
+            for item in history
+        ]
+    )
+    msg = system_message + conversation
+    msg = msg.strip()
+    return msg
+
 
 if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
-    vic = None
-    if not args.sharded:
-        first_vic_mlir_path = (
-            None
-            if args.first_vicuna_mlir_path is None
-            else Path(args.first_vicuna_mlir_path)
-        )
-        second_vic_mlir_path = (
-            None
-            if args.second_vicuna_mlir_path is None
-            else Path(args.second_vicuna_mlir_path)
-        )
-        first_vic_vmfb_path = (
-            None
-            if args.first_vicuna_vmfb_path is None
-            else Path(args.first_vicuna_vmfb_path)
-        )
-        second_vic_vmfb_path = (
-            None
-            if args.second_vicuna_vmfb_path is None
-            else Path(args.second_vicuna_vmfb_path)
+    _extra_args = []
+    # vulkan target triple
+    if args.iree_vulkan_target_triple != "":
+        _extra_args.append(
+            f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
 
+    vic = None
+    if not args.sharded:
+        vic_mlir_path = (
+            None
+            if args.vicuna_mlir_path is None
+            else Path(args.vicuna_mlir_path)
+        )
+        vic_vmfb_path = (
+            None
+            if args.vicuna_vmfb_path is None
+            else Path(args.vicuna_vmfb_path)
+        )
         vic = UnshardedVicuna(
-            "vicuna",
+            model_name=args.model_name,
+            hf_auth_token=args.hf_auth_token,
             device=args.device,
             precision=args.precision,
-            first_vicuna_mlir_path=first_vic_mlir_path,
-            second_vicuna_mlir_path=second_vic_mlir_path,
-            first_vicuna_vmfb_path=first_vic_vmfb_path,
-            second_vicuna_vmfb_path=second_vic_vmfb_path,
+            vicuna_mlir_path=vic_mlir_path,
+            vicuna_vmfb_path=vic_vmfb_path,
             load_mlir_from_shark_tank=args.load_mlir_from_shark_tank,
             weight_group_size=args.weight_group_size,
+            download_vmfb=args.download_vmfb,
+            cache_vicunas=args.cache_vicunas,
+            extra_args_cmd=_extra_args,
         )
     else:
         if args.config is not None:
@@ -1542,27 +1787,38 @@ if __name__ == "__main__":
         else:
             config_json = None
         vic = ShardedVicuna(
-            "vicuna",
+            model_name=args.model_name,
             device=args.device,
             precision=args.precision,
             config_json=config_json,
             weight_group_size=args.weight_group_size,
+            extra_args_cmd=_extra_args,
         )
-    prompt_history = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    if args.model_name == "vicuna":
+        system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
+    else:
+        system_message = """System: You are a helpful, respectful and honest assistant. Always answer "
+        as helpfully as possible, while being safe.  Your answers should not
+        include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal
+        content. Please ensure that your responses are socially unbiased and positive
+        in nature. If a question does not make any sense, or is not factually coherent,
+        explain why instead of answering something not correct. If you don't know the
+        answer to a question, please don't share false information."""
     prologue_prompt = "ASSISTANT:\n"
 
+    history = []
+
+    model_list = {
+        "vicuna": "vicuna=>TheBloke/vicuna-7B-1.1-HF",
+        "llama2_7b": "llama2_7b=>meta-llama/Llama-2-7b-chat-hf",
+        "llama2_70b": "llama2_70b=>meta-llama/Llama-2-70b-chat-hf",
+    }
     while True:
         # TODO: Add break condition from user input
         user_prompt = input("User: ")
-        prompt_history = (
-            prompt_history + "USER:\n" + user_prompt + prologue_prompt
-        )
-        prompt = prompt_history.strip()
-        res_str = vic.generate(prompt, cli=True)
-        torch.cuda.empty_cache()
-        gc.collect()
-        print(
-            "\n-----\nAssistant: Here's the complete formatted reply:\n",
-            res_str,
-        )
-        prompt_history += f"\n{res_str}\n"
+        history.append([user_prompt, ""])
+        prompt = create_prompt(args.model_name, history)
+        for text, msg in vic.generate(prompt, cli=True):
+            if "formatted" in msg:
+                print("Response:",text)
+                history[-1][1] = text

@@ -47,7 +47,7 @@ def txt2img_inf(
     width: int,
     steps: int,
     guidance_scale: float,
-    seed: int,
+    seed: str | int,
     batch_count: int,
     batch_size: int,
     scheduler: str,
@@ -62,6 +62,7 @@ def txt2img_inf(
     lora_weights: str,
     lora_hf_id: str,
     ondemand: bool,
+    repeatable_seeds: bool,
     use_hiresfix: bool,
     hiresfix_height: int,
     hiresfix_width: int,
@@ -183,12 +184,13 @@ def txt2img_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    seeds = []
-    img_seed = utils.sanitize_seed(seed)
     text_output = ""
-    for i in range(batch_count):
-        if i > 0:
-            img_seed = utils.sanitize_seed(-1)
+    try:
+        seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
+    except TypeError as error:
+        raise gr.Error(str(error)) from None
+
+    for current_batch in range(batch_count):
         out_imgs = global_obj.get_sd_obj().generate_images(
             prompt,
             negative_prompt,
@@ -197,26 +199,27 @@ def txt2img_inf(
             width,
             steps,
             guidance_scale,
-            img_seed,
+            seeds[current_batch],
             args.max_length,
             dtype,
             args.use_base_vae,
             cpu_scheduling,
             args.max_embeddings_multiples,
         )
-        seeds.append(img_seed)
         total_time = time.time() - start_time
-        text_output = get_generation_text_info(seeds, device)
+        text_output = get_generation_text_info(
+            seeds[: current_batch + 1], device
+        )
         text_output += "\n" + global_obj.get_sd_obj().log
         text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
 
         if global_obj.get_sd_status() == SD_STATE_CANCEL:
             break
         else:
-            save_output_img(out_imgs[0], img_seed)
+            save_output_img(out_imgs[0], seeds[current_batch])
             generated_imgs.extend(out_imgs)
             yield generated_imgs, text_output, status_label(
-                "Text-to-Image", i + 1, batch_count, batch_size
+                "Text-to-Image", current_batch + 1, batch_count, batch_size
             )
 
     # TODO: make this show the hiresfix image in the UI with the original
@@ -251,6 +254,7 @@ def txt2img_inf(
             lora_weights=lora_weights,
             lora_hf_id=lora_hf_id,
             ondemand=ondemand,
+            repeatable_seeds=False,
             resample_type=resample_type,
         )
         hri = next(hri)
@@ -309,6 +313,7 @@ def txt2img_api(
         lora_weights="None",
         lora_hf_id="",
         ondemand=False,
+        repeatable_seeds=False,
         use_hiresfix=False,
         hiresfix_height=512,
         hiresfix_width=512,
@@ -441,7 +446,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             value=args.scheduler,
                             choices=scheduler_list,
                         )
-                        with gr.Group():
+                        with gr.Column():
                             save_metadata_to_png = gr.Checkbox(
                                 label="Save prompt information to PNG",
                                 value=args.write_metadata_to_png,
@@ -486,16 +491,18 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             visible=False,
                         )
                     with gr.Row():
-                        steps = gr.Slider(
-                            1, 100, value=args.steps, step=1, label="Steps"
-                        )
-                        guidance_scale = gr.Slider(
-                            0,
-                            50,
-                            value=args.guidance_scale,
-                            step=0.1,
-                            label="CFG Scale",
-                        )
+                        with gr.Column(scale=3):
+                            steps = gr.Slider(
+                                1, 100, value=args.steps, step=1, label="Steps"
+                            )
+                        with gr.Column(scale=3):
+                            guidance_scale = gr.Slider(
+                                0,
+                                50,
+                                value=args.guidance_scale,
+                                step=0.1,
+                                label="CFG Scale",
+                            )
                         ondemand = gr.Checkbox(
                             value=args.ondemand,
                             label="Low VRAM",
@@ -556,10 +563,15 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 label="Batch Size",
                                 interactive=True,
                             )
-                        stop_batch = gr.Button("Stop Batch")
+                        repeatable_seeds = gr.Checkbox(
+                            args.repeatable_seeds,
+                            label="Repeatable Seeds",
+                        )
                 with gr.Row():
-                    seed = gr.Number(
-                        value=args.seed, precision=0, label="Seed"
+                    seed = gr.Textbox(
+                        value=args.seed,
+                        label="Seed",
+                        info="An integer or a JSON list of integers, -1 for random",
                     )
                     device = gr.Dropdown(
                         elem_id="device",
@@ -568,17 +580,15 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         choices=available_devices,
                     )
                 with gr.Row():
-                    with gr.Column(scale=2):
-                        random_seed = gr.Button("Randomize Seed")
-                        random_seed.click(
-                            lambda: -1,
-                            inputs=[],
-                            outputs=[seed],
-                            queue=False,
-                        )
-                    with gr.Column(scale=6):
-                        stable_diffusion = gr.Button("Generate Image(s)")
-
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                    stable_diffusion = gr.Button("Generate Image(s)")
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
@@ -638,6 +648,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 lora_weights,
                 lora_hf_id,
                 ondemand,
+                repeatable_seeds,
                 use_hiresfix,
                 hiresfix_height,
                 hiresfix_width,

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import iree.runtime.scripts.iree_benchmark_module as benchmark_module
+import iree._runtime.scripts.iree_benchmark_module as benchmark_module
 from shark.iree_utils._common import run_cmd, iree_device_map
 from shark.iree_utils.cpu_utils import get_cpu_count
 import numpy as np
@@ -62,16 +62,12 @@ def build_benchmark_args(
     and whether it is training or not.
     Outputs: string that execute benchmark-module on target model.
     """
-    path = benchmark_module.__path__[0]
+    path = os.path.join(os.environ["VIRTUAL_ENV"], "bin")
     if platform.system() == "Windows":
-        benchmarker_path = os.path.join(
-            path, "..", "..", "iree-benchmark-module.exe"
-        )
+        benchmarker_path = os.path.join(path, "iree-benchmark-module.exe")
         time_extractor = None
     else:
-        benchmarker_path = os.path.join(
-            path, "..", "..", "iree-benchmark-module"
-        )
+        benchmarker_path = os.path.join(path, "iree-benchmark-module")
         time_extractor = "| awk 'END{{print $2 $3}}'"
     benchmark_cl = [benchmarker_path, f"--module={input_file}"]
     # TODO: The function named can be passed as one of the args.

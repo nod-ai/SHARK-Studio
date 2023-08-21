@@ -94,18 +94,5 @@ p.add_argument(
     help="Profiles vulkan device and collects the .rdc info",
 )
 
-p.add_argument(
-    "--vulkan_large_heap_block_size",
-    default="4147483648",
-    help="flag for setting VMA preferredLargeHeapBlockSize for vulkan device, default is 4G",
-)
-
-p.add_argument(
-    "--vulkan_validation_layers",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="flag for disabling vulkan validation layers when benchmarking",
-)
-
 
 args = p.parse_args()

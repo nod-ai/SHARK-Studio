@@ -43,9 +43,7 @@ if __name__ == "__main__":
     minilm_mlir, func_name = mlir_importer.import_mlir(
         is_dynamic=False, tracing_required=True
     )
-    shark_module = SharkInference(
-        minilm_mlir, func_name, mlir_dialect="linalg"
-    )
+    shark_module = SharkInference(minilm_mlir)
     shark_module.compile()
     token_logits = torch.tensor(shark_module.forward(inputs))
     mask_id = torch.where(
