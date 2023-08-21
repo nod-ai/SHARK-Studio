@@ -1337,30 +1337,43 @@ class UnshardedVicuna(VicunaBase):
         print("[DEBUG] writing dynamic inputs to second vicuna")
 
         def remove_constant_dim(line):
+            dbg_line = line[:999] +"..."+ line[-100:] if len(line>1000) else line
             if "c19_i64" in line:
+                # print(f"[DEBUG] subbing c19_i64 in {dbg_line}")
                 line = re.sub("c19_i64", "dim_i64", line)
             if "19x" in line:
+                # print(f"[DEBUG] subbing 19x in {dbg_line}")
                 line = re.sub("19x", "?x", line)
                 line = re.sub("tensor.empty\(\)", "tensor.empty(%dim)", line)
             if "tensor.empty" in line and "?x?" in line:
+                # print(f"[DEBUG] subbing empty tensor ?x? in {dbg_line}")
                 line = re.sub(
                     "tensor.empty\(%dim\)",
                     "tensor.empty(%dim, %dim)",
                     line,
                 )
             if "arith.cmpi" in line:
+                # print(f"[DEBUG] subbing arith.cmpi c19 in {dbg_line}")
                 line = re.sub("c19", "dim", line)
             if " 19," in line:
+                # print(f"[DEBUG] subbing dim 19, in {dbg_line}")
                 line = re.sub(" 19,", " %dim,", line)
             if "x20x" in line or "<20x" in line:
                 line = re.sub("20x", "?x", line)
                 line = re.sub("tensor.empty\(\)", "tensor.empty(%dimp1)", line)
             if " 20," in line:
+                print(f"[DEBUG] subbing dim 20, in {dbg_line}")
                 line = re.sub(" 20,", " %dimp1,", line)
             return line
 
         module = module.splitlines()
         new_lines = []
+        # dimensions of pkv change from model to model depending on the arch
+        # llama2-70b : 1x8x?x128xdtype
+        # add for others as needed
+        pkv_dim_1 = {"llama2_70b" : 8}
+        pkv_dim_1_use = pkv_dim_1[self.model_name] if self.model_name in pkv_dim_1 else 32
+
         # Using a while loop and the pop method to avoid creating a copy of module
         if "llama2_13b" in model_name:
             pkv_tensor_shape = "tensor<1x40x?x128x"
