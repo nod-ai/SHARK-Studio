@@ -56,7 +56,7 @@ parser = argparse.ArgumentParser(
     description="runs a vicuna model",
 )
 parser.add_argument(
-    "--precision", "-p", default="fp32", help="fp32, fp16, int8, int4"
+    "--precision", "-p", default="int8", help="fp32, fp16, int8, int4"
 )
 parser.add_argument("--device", "-d", default="cuda", help="vulkan, cpu, cuda")
 parser.add_argument(
@@ -131,7 +131,7 @@ parser.add_argument(
 )
 
 # fmt: off
-def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
+def quant〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
     if len(lhs) == 3 and len(rhs) == 2:
         return [lhs[0], lhs[1], rhs[0]]
     elif len(lhs) == 2 and len(rhs) == 2:
@@ -140,20 +140,20 @@ def brevitas〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rh
         raise ValueError("Input shapes not supported.")
 
 
-def brevitas〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
+def quant〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
     # output dtype is the dtype of the lhs float input
     lhs_rank, lhs_dtype = lhs_rank_dtype
     return lhs_dtype
 
 
-def brevitas〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
+def quant〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
     return
 
 
 brevitas_matmul_rhs_group_quant_library = [
-    brevitas〇matmul_rhs_group_quant〡shape,
-    brevitas〇matmul_rhs_group_quant〡dtype,
-    brevitas〇matmul_rhs_group_quant〡has_value_semantics]
+    quant〇matmul_rhs_group_quant〡shape,
+    quant〇matmul_rhs_group_quant〡dtype,
+    quant〇matmul_rhs_group_quant〡has_value_semantics]
 # fmt: on
 
 
@@ -279,6 +279,7 @@ class VicunaBase(SharkLLMBase):
             vdtype = vbody.split(":")[-1].strip()
             vbody = vbody.split(":")[0].strip()
             fixed_vdtype = vdtype
+
             formatted_vdtype = " : " +vdtype
             if "true" in vname:
                 formatted_vdtype = ""
@@ -393,7 +394,6 @@ class VicunaBase(SharkLLMBase):
             _past_key_values = output["past_key_values"]
             _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
         else:
-            print(len(output))
             _logits = torch.tensor(output[0])
             _past_key_values = torch.tensor(output[1:])
             _token = torch.argmax(_logits[:, -1, :], dim=1)
@@ -823,7 +823,7 @@ class ShardedVicuna(VicunaBase):
                             inputs0[2],
                         ),
                         output_type="torch",
-                        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
+                        backend_legal_ops=["quant.matmul_rhs_group_quant"],
                         extra_library=brevitas_matmul_rhs_group_quant_library,
                         use_tracing=False,
                         verbose=False,
@@ -867,7 +867,7 @@ class ShardedVicuna(VicunaBase):
                             pkv1_placeholder,
                         ),
                         output_type="torch",
-                        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
+                        backend_legal_ops=["quant.matmul_rhs_group_quant"],
                         extra_library=brevitas_matmul_rhs_group_quant_library,
                         use_tracing=False,
                         verbose=False,
@@ -1454,7 +1454,7 @@ class UnshardedVicuna(VicunaBase):
                             [*firstVicunaCompileInput],
                             output_type=torch_mlir.OutputType.TORCH,
                             backend_legal_ops=[
-                                "brevitas.matmul_rhs_group_quant"
+                                "quant.matmul_rhs_group_quant"
                             ],
                             extra_library=brevitas_matmul_rhs_group_quant_library,
                             use_tracing=False,
@@ -1545,7 +1545,7 @@ class UnshardedVicuna(VicunaBase):
                             [*secondVicunaCompileInput],
                             output_type=torch_mlir.OutputType.TORCH,
                             backend_legal_ops=[
-                                "brevitas.matmul_rhs_group_quant"
+                                "quant.matmul_rhs_group_quant"
                             ],
                             extra_library=brevitas_matmul_rhs_group_quant_library,
                             use_tracing=False,
@@ -1616,7 +1616,7 @@ class UnshardedVicuna(VicunaBase):
         )
         return res_str
 
-    def generate(self, prompt, cli=True):
+    def generate(self, prompt, cli):
         # TODO: refactor for cleaner integration
         if self.shark_model is None:
             self.compile()
@@ -1624,7 +1624,7 @@ class UnshardedVicuna(VicunaBase):
         params = {"prompt": prompt, "is_first": True, "fv": self.shark_model}
 
         generated_token_op = self.generate_new_token(
-            params=params, sharded=False
+            params=params, sharded=False, cli=cli
         )
 
         token = generated_token_op["token"]
@@ -1647,7 +1647,7 @@ class UnshardedVicuna(VicunaBase):
             }
 
             generated_token_op = self.generate_new_token(
-                params=params, sharded=False
+                params=params, sharded=False, cli=cli
             )
 
             token = generated_token_op["token"]
@@ -1676,6 +1676,68 @@ class UnshardedVicuna(VicunaBase):
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
         pass
+
+# NOTE: Each `model_name` should have its own start message
+start_message = {
+    "llama2_7b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
+    "llama2_70b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
+    "StableLM": (
+        "<|SYSTEM|># StableLM Tuned (Alpha version)"
+        "\n- StableLM is a helpful and harmless open-source AI language model "
+        "developed by StabilityAI."
+        "\n- StableLM is excited to be able to help the user, but will refuse "
+        "to do anything that could be considered harmful to the user."
+        "\n- StableLM is more than just an information source, StableLM is also "
+        "able to write poetry, short stories, and make jokes."
+        "\n- StableLM will refuse to participate in anything that "
+        "could harm a human."
+    ),
+    "vicuna": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
+    "vicuna4": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
+    "vicuna1p3": (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's "
+        "questions.\n"
+    ),
+    "codegen": "",
+}
+
+def create_prompt(model_name, history):
+    global start_message
+    system_message = start_message[model_name]
+    conversation = "".join(
+        [
+            "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
+            for item in history
+        ]
+    )
+    msg = system_message + conversation
+    msg = msg.strip()
+    return msg
 
 
 if __name__ == "__main__":
@@ -1740,10 +1802,7 @@ if __name__ == "__main__":
         answer to a question, please don't share false information."""
     prologue_prompt = "ASSISTANT:\n"
 
-    from apps.stable_diffusion.web.ui.stablelm_ui import chat, set_vicuna_model
-
     history = []
-    set_vicuna_model(vic)
 
     model_list = {
         "vicuna": "vicuna=>TheBloke/vicuna-7B-1.1-HF",
@@ -1754,14 +1813,8 @@ if __name__ == "__main__":
         # TODO: Add break condition from user input
         user_prompt = input("User: ")
         history.append([user_prompt, ""])
-        history = list(
-            chat(
-                system_message,
-                history,
-                model=model_list[args.model_name],
-                devices=args.device,
-                precision=args.precision,
-                config_file=None,
-                cli=args.cli,
-            )
-        )[0]
+        prompt = create_prompt(args.model_name, history)
+        for text, msg in vic.generate(prompt, cli=True):
+            if "formatted" in msg:
+                print("Response:",text)
+                history[-1][1] = text

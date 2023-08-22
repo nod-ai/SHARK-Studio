@@ -128,7 +128,7 @@ if [[ ! -z "${IMPORTER}" ]]; then
   fi
 fi
 
-$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
+$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/cpu/
 
 if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   T_VER=$($PYTHON -m pip show torch | grep Version)
@@ -145,14 +145,8 @@ if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   fi
 fi
 
-if [[ ! -z "${ONNX}" ]]; then
-  echo "${Yellow}Installing ONNX and onnxruntime for benchmarks..."
-  $PYTHON -m pip install onnx onnxruntime psutil
-  if [ $? -eq 0 ];then
-    echo "Successfully installed ONNX and ONNX runtime."
-  else
-    echo "Could not install ONNX." >&2
-  fi
+if [[ -z "${NO_BREVITAS}" ]]; then
+  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
 fi
 
 if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then

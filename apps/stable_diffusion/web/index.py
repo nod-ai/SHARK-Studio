@@ -37,7 +37,7 @@ def launch_app(address):
         height=height,
         text_select=True,
     )
-    webview.start(private_mode=False)
+    webview.start(private_mode=False, storage_path=os.getcwd())
 
 
 if __name__ == "__main__":

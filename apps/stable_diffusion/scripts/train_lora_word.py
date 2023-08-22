@@ -34,7 +34,7 @@ from PIL import Image
 from tqdm.auto import tqdm
 from transformers import CLIPFeatureExtractor, CLIPTextModel, CLIPTokenizer
 from diffusers.loaders import AttnProcsLayers
-from diffusers.models.cross_attention import LoRACrossAttnProcessor
+from diffusers.models.attention_processor import LoRAXFormersAttnProcessor
 
 import torch_mlir
 from torch_mlir.dynamo import make_simple_dynamo_backend
@@ -287,7 +287,7 @@ def lora_train(
                 block_id = int(name[len("down_blocks.")])
                 hidden_size = unet.config.block_out_channels[block_id]
 
-            lora_attn_procs[name] = LoRACrossAttnProcessor(
+            lora_attn_procs[name] = LoRAXFormersAttnProcessor(
                 hidden_size=hidden_size,
                 cross_attention_dim=cross_attention_dim,
             )
