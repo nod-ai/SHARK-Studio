@@ -4,7 +4,7 @@ PyTorch.
 
 Usage Example:
 
-python opt_perf_comparision --max-seq-len=32 --model-name=facebook/opt-125m \
+python opt_perf_comparision.py --max-seq-len=32 --model-name=facebook/opt-125m \
         --platform=shark
 
 See parse_args() below for command line argument usage.
