@@ -5,11 +5,12 @@ Usage: python opt_perf_comparison_batch.py
 """
 
 from typing import Iterable, List
+import shlex
 import subprocess
 
 
 def make_commands() -> Iterable[List[str]]:
-    command = 'python opt_perf_comparison.py --no-save-json'.split(' ')
+    command = shlex.split('python opt_perf_comparison.py --no-save-json')
     max_seq_lens = [32, 128, 512]
     model_names = ['facebook/opt-' + e for e in ['125m', '350m']]
     for max_seq_len in max_seq_lens:
@@ -20,7 +21,6 @@ def make_commands() -> Iterable[List[str]]:
 
 
 def main():
-    #    command = 'python --version'.split(' ')
     for command in make_commands():
         result = subprocess.run(command, check=True)
 
