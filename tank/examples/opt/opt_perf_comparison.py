@@ -1,3 +1,15 @@
+"""
+Script for comparing OPT model performance between SHARK and Huggingface
+PyTorch.
+
+Usage Example:
+
+python opt_perf_comparision --max-seq-len=32 --model-name=facebook/opt-125m \
+        --platform=shark
+
+See parse_args() below for command line argument usage.
+"""
+
 import argparse
 import collections
 import json
