@@ -61,8 +61,13 @@ def get_memory_info():
     return process.memory_info()
 
 
-def create_vmfb_module(model_name: str, tokenizer, device: str,
-                       max_seq_len: int, recompile_shark: bool):
+def create_vmfb_module(
+    model_name: str,
+    tokenizer,
+    device: str,
+    max_seq_len: int,
+    recompile_shark: bool,
+):
     opt_base_model = OPTForCausalLM.from_pretrained(model_name)
     opt_base_model.eval()
     opt_model = OPTForCausalLMModel(opt_base_model)
@@ -112,21 +117,25 @@ def create_vmfb_module(model_name: str, tokenizer, device: str,
         is_benchmark=False,
     )
 
-    vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels"
+    vmfb_name = (
+        f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels"
+    )
     shark_module.save_module(module_name=vmfb_name)
     vmfb_path = vmfb_name + ".vmfb"
     return vmfb_path
 
 
-def load_shark_model(model_name: str, max_seq_len: int,
-                     recompile_shark: bool) -> ModelWrapper:
+def load_shark_model(
+    model_name: str, max_seq_len: int, recompile_shark: bool
+) -> ModelWrapper:
     opt_fs_name = get_opt_fs_name(model_name)
     vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels.vmfb"
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
     if recompile_shark or not os.path.isfile(vmfb_name):
         print(f"vmfb not found. compiling and saving to {vmfb_name}")
-        create_vmfb_module(model_name, tokenizer, DEVICE, max_seq_len,
-                           recompile_shark)
+        create_vmfb_module(
+            model_name, tokenizer, DEVICE, max_seq_len, recompile_shark
+        )
     shark_module = SharkInference(mlir_module=None, device="cpu-task")
     shark_module.load_module(vmfb_name)
     return ModelWrapper(model=shark_module, tokenizer=tokenizer)
@@ -145,9 +154,9 @@ def load_huggingface_model(model_name: str) -> ModelWrapper:
 
 
 def run_huggingface_model(model_wrapper: ModelWrapper, tokens):
-    return model_wrapper.model.forward(tokens.input_ids,
-                                       tokens.attention_mask,
-                                       return_dict=False)
+    return model_wrapper.model.forward(
+        tokens.input_ids, tokens.attention_mask, return_dict=False
+    )
 
 
 def save_json(data, filename):
@@ -155,8 +164,9 @@ def save_json(data, filename):
         json.dump(data, file)
 
 
-def collect_huggingface_logits(model_name: str, max_seq_len: int,
-                               save_json: bool) -> Tuple[float, float]:
+def collect_huggingface_logits(
+    model_name: str, max_seq_len: int, save_json: bool
+) -> Tuple[float, float]:
     # Load
     t0 = time.time()
     model_wrapper = load_huggingface_model(model_name)
@@ -201,9 +211,9 @@ def collect_huggingface_logits(model_name: str, max_seq_len: int,
     }
 
 
-def collect_shark_logits(model_name: str, max_seq_len: int,
-                         recompile_shark: bool,
-                         save_json: bool) -> Tuple[float, float]:
+def collect_shark_logits(
+    model_name: str, max_seq_len: int, recompile_shark: bool, save_json: bool
+) -> Tuple[float, float]:
     # Load
     t0 = time.time()
     model_wrapper = load_shark_model(model_name, max_seq_len, recompile_shark)
@@ -239,7 +249,7 @@ def collect_shark_logits(model_name: str, max_seq_len: int,
     print("--- Took {} seconds to run Shark.".format(run_time))
     if save_json:
         save_json(results, "/tmp/shark.json")
-    platform_postfix = '-compile' if recompile_shark else '-precompiled'
+    platform_postfix = "-compile" if recompile_shark else "-precompiled"
     run_memory_info = get_memory_info()
     return {
         REPORT_PLATFORM: PLATFORM_SHARK + platform_postfix,
@@ -259,54 +269,67 @@ def get_opt_fs_name(model_name: str) -> str:
 
     Example: get_opt_fs_name('facebook/opt-1.3b') == 'opt_1-3b'
     """
-    slash_split = model_name.split('/')
-    assert 1 <= len(slash_split) <= 2, 'There should be at most one slash.'
+    slash_split = model_name.split("/")
+    assert 1 <= len(slash_split) <= 2, "There should be at most one slash."
     model_name = slash_split[-1]
-    for src_pattern, dest_pattern in (('-', '_'), ('.', '-')):
+    for src_pattern, dest_pattern in (("-", "_"), (".", "-")):
         model_name = model_name.replace(src_pattern, dest_pattern)
     return model_name
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--save-json',
-                        help='If set, saves output JSON.',
-                        action=argparse.BooleanOptionalAction,
-                        default=False)
-    parser.add_argument('--max-seq-len',
-                        help='Max sequence length',
-                        type=int,
-                        default=32)
-    parser.add_argument('--model-name',
-                        help='Model name',
-                        type=str,
-                        choices=[
-                            'facebook/opt-125m', 'facebook/opt-350m',
-                            'facebook/opt-1.3b', 'facebook/opt-6.7b'
-                        ],
-                        default='facebook/opt-1.3b')
-    parser.add_argument('--recompile-shark',
-                        help='If set, recompiles MLIR',
-                        action=argparse.BooleanOptionalAction,
-                        default=False)
-    parser.add_argument('--platform',
-                        help='Either shark or huggingface',
-                        type=str,
-                        choices=[PLATFORM_SHARK, PLATFORM_HUGGINGFACE],
-                        default=PLATFORM_SHARK)
+    parser.add_argument(
+        "--save-json",
+        help="If set, saves output JSON.",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--max-seq-len", help="Max sequence length", type=int, default=32
+    )
+    parser.add_argument(
+        "--model-name",
+        help="Model name",
+        type=str,
+        choices=[
+            "facebook/opt-125m",
+            "facebook/opt-350m",
+            "facebook/opt-1.3b",
+            "facebook/opt-6.7b",
+        ],
+        default="facebook/opt-1.3b",
+    )
+    parser.add_argument(
+        "--recompile-shark",
+        help="If set, recompiles MLIR",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+    )
+    parser.add_argument(
+        "--platform",
+        help="Either shark or huggingface",
+        type=str,
+        choices=[PLATFORM_SHARK, PLATFORM_HUGGINGFACE],
+        default=PLATFORM_SHARK,
+    )
     args = parser.parse_args()
-    print('args={}'.format(args))
+    print("args={}".format(args))
     return args
 
 
 if __name__ == "__main__":
     args = parse_args()
     if args.platform == PLATFORM_SHARK:
-        shark_report = collect_shark_logits(args.model_name, args.max_seq_len,
-                                            args.recompile_shark, args.save_json)
-        print('# Summary: {}'.format(json.dumps(shark_report)))
+        shark_report = collect_shark_logits(
+            args.model_name,
+            args.max_seq_len,
+            args.recompile_shark,
+            args.save_json,
+        )
+        print("# Summary: {}".format(json.dumps(shark_report)))
     else:
-        huggingface_report = collect_huggingface_logits(args.model_name,
-                                                        args.max_seq_len,
-                                                        args.save_json)
-        print('# Summary: {}'.format(json.dumps(huggingface_report)))
+        huggingface_report = collect_huggingface_logits(
+            args.model_name, args.max_seq_len, args.save_json
+        )
+        print("# Summary: {}".format(json.dumps(huggingface_report)))
