@@ -8,6 +8,7 @@ from math import ceil
 import base64
 from io import BytesIO
 from fastapi.exceptions import HTTPException
+from apps.stable_diffusion.web.ui.img2img_ui import img2img_inf
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -206,6 +207,42 @@ def txt2img_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
         )
+        # TODO: make this show the hiresfix image in the UI instead of
+        #  the original
+        # TODO: make this add info about hiresfix to image_details.csv
+        # TODO: make this work with batch
+        # TODO: add option to let user keep both pipelines loaded, and unload
+        #  either at will
+        if use_hiresfix is True:
+            hri = img2img_inf(
+                prompt=prompt,
+                negative_prompt=negative_prompt,
+                image_dict=out_imgs[0],
+                height=hiresfix_height,
+                width=hiresfix_width,
+                steps=steps,
+                strength=hiresfix_strength,
+                guidance_scale=guidance_scale,
+                seed=seed,
+                batch_size=1,
+                batch_count=1,
+                scheduler=scheduler,
+                custom_model=custom_model,
+                hf_model_id=hf_model_id,
+                custom_vae=custom_vae,
+                precision=precision,
+                device=device,
+                max_length=max_length,
+                use_stencil=None,
+                save_metadata_to_json=save_metadata_to_json,
+                save_metadata_to_png=save_metadata_to_png,
+                lora_weights=lora_weights,
+                lora_hf_id=lora_hf_id,
+                ondemand=ondemand,
+                repeatable_seeds=False,
+                resample_type=resample_type,
+            )
+            hri = next(hri)
         total_time = time.time() - start_time
         text_output = get_generation_text_info(
             seeds[: current_batch + 1], device
@@ -222,43 +259,6 @@ def txt2img_inf(
                 "Text-to-Image", current_batch + 1, batch_count, batch_size
             )
 
-    # TODO: make this show the hiresfix image in the UI with the original
-    # TODO: make this add info about hiresfix to image_details.csv
-    # TODO: add more resample types
-    # TODO: make this work with batch
-    # currently does not show the final result in the UI, only the original
-    if use_hiresfix is True:
-        from apps.stable_diffusion.web.ui.img2img_ui import img2img_inf
-        hri = img2img_inf(
-            prompt=prompt,
-            negative_prompt=negative_prompt,
-            image_dict=out_imgs[0],
-            height=hiresfix_height,
-            width=hiresfix_width,
-            steps=steps,
-            strength=hiresfix_strength,
-            guidance_scale=guidance_scale,
-            seed=seed,
-            batch_size=1,
-            batch_count=1,
-            scheduler=scheduler,
-            custom_model=custom_model,
-            hf_model_id=hf_model_id,
-            custom_vae=custom_vae,
-            precision=precision,
-            device=device,
-            max_length=max_length,
-            use_stencil=None,
-            save_metadata_to_json=save_metadata_to_json,
-            save_metadata_to_png=save_metadata_to_png,
-            lora_weights=lora_weights,
-            lora_hf_id=lora_hf_id,
-            ondemand=ondemand,
-            repeatable_seeds=False,
-            resample_type=resample_type,
-        )
-        hri = next(hri)
-        hri = None
     return generated_imgs, text_output, ""
 
 
@@ -515,11 +515,18 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 label="Use Hires Fix",
                                 interactive=True,
                             )
-                            resample_type = gr.Radio(
+                            resample_type = gr.Dropdown(
                                 value=args.resample_type,
                                 choices=[
                                     "Lanczos",
-                                    "Nearest Neighbor"
+                                    "Nearest Neighbor",
+                                    "Bilinear",
+                                    "Bicubic",
+                                    "Adaptive",
+                                    "Antialias",
+                                    "Box",
+                                    "Affine",
+                                    "Cubic",
                                 ],
                                 label="Resample Type",
                             )

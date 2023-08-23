@@ -90,12 +90,26 @@ class Image2ImagePipeline(StableDiffusionPipeline):
 
         # TODO: process with variable HxW combos
 
-        # Pre process image
+        # Pre-process image
         if resample_type == "Lanczos":
             resample_type = Image.LANCZOS
         elif resample_type == "Nearest Neighbor":
             resample_type = Image.NEAREST
-        else:
+        elif resample_type == "Bilinear":
+            resample_type = Image.BILINEAR
+        elif resample_type == "Bicubic":
+            resample_type = Image.BICUBIC
+        elif resample_type == "Adaptive":
+            resample_type = Image.ADAPTIVE
+        elif resample_type == "Antialias":
+            resample_type = Image.ANTIALIAS
+        elif resample_type == "Box":
+            resample_type = Image.BOX
+        elif resample_type == "Affine":
+            resample_type = Image.AFFINE
+        elif resample_type == "Cubic":
+            resample_type = Image.CUBIC
+        else:  # Fallback to Lanczos
             resample_type = Image.LANCZOS
 
         image = image.resize((width, height), resample=resample_type)
