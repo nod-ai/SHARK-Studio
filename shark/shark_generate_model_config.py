@@ -138,7 +138,7 @@ if __name__ == "__main__":
     firstVicunaCompileInput = (compilation_input_ids,)
     from apps.language_models.src.model_wrappers.vicuna_model import (
         FirstVicuna,
-        SecondVicuna,
+        SecondVicuna7B,
         CombinedModel,
     )
 
