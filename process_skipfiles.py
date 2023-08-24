@@ -6,15 +6,22 @@ from distutils.sysconfig import get_python_lib
 import fileinput
 from pathlib import Path
 
-# Temorary workaround for transformers/__init__.py.
-path_to_tranformers_hook = Path(
-    get_python_lib()
-    + "/_pyinstaller_hooks_contrib/hooks/stdhooks/hook-transformers.py"
+# Temporary workaround for transformers/__init__.py.
+path_to_stdhooks = Path(
+    get_python_lib() + "/_pyinstaller_hooks_contrib/hooks/stdhooks"
 )
-if path_to_tranformers_hook.is_file():
+path_to_transformers_hook = Path(path_to_stdhooks + "hook-transformers.py")
+if path_to_transformers_hook.is_file():
     pass
 else:
-    with open(path_to_tranformers_hook, "w") as f:
+    if not path_to_stdhooks.is_dir():
+        import os
+
+        print(
+            f"Path to pyinstaller stdhooks not found. Please check your pyinstaller packages at {path_to_stdhooks}."
+        )
+        os.mkdir(path_to_stdhooks)
+    with open(path_to_transformers_hook, "w") as f:
         f.write("module_collection_mode = 'pyz+py'")
 
 path_to_skipfiles = Path(get_python_lib() + "/torch/_dynamo/skipfiles.py")
