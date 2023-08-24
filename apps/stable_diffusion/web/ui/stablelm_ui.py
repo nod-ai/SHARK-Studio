@@ -24,6 +24,7 @@ past_key_values = None
 
 model_map = {
     "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2_13b": "meta-llama/Llama-2-13b-chat-hf",
     "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
     "codegen": "Salesforce/codegen25-7b-multi",
     "vicuna1p3": "lmsys/vicuna-7b-v1.3",
@@ -35,6 +36,15 @@ model_map = {
 # NOTE: Each `model_name` should have its own start message
 start_message = {
     "llama2_7b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
+    "llama2_13b": (
         "System: You are a helpful, respectful and honest assistant. Always answer "
         "as helpfully as possible, while being safe.  Your answers should not "
         "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
@@ -91,6 +101,7 @@ def create_prompt(model_name, history):
         "vicuna4",
         "vicuna1p3",
         "llama2_7b",
+        "llama2_13b",
         "llama2_70b",
     ]:
         conversation = "".join(
@@ -139,6 +150,9 @@ def get_default_config():
     c.split_into_layers()
 
 
+model_vmfb_key = ""
+
+
 # TODO: Make chat reusable for UI and API
 def chat(
     curr_system_message,
@@ -147,20 +161,33 @@ def chat(
     device,
     precision,
     config_file,
-    cli=True,
+    cli=False,
     progress=gr.Progress(),
 ):
     global past_key_values
+    global model_vmfb_key
 
     global vicuna_model
     model_name, model_path = list(map(str.strip, model.split("=>")))
+    if "cuda" in device:
+        device = "cuda"
+    elif "sync" in device:
+        device = "cpu-sync"
+    elif "task" in device:
+        device = "cpu-task"
+    elif "vulkan" in device:
+        device = "vulkan"
+    else:
+        print("unrecognized device")
 
+    new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{precision}"
     if model_name in [
         "vicuna",
         "vicuna4",
         "vicuna1p3",
         "codegen",
         "llama2_7b",
+        "llama2_13b",
         "llama2_70b",
     ]:
         from apps.language_models.scripts.vicuna import ShardedVicuna
@@ -181,6 +208,8 @@ def chat(
             else:
                 print("unrecognized device")
 
+        if new_model_vmfb_key != model_vmfb_key:
+            model_vmfb_key = new_model_vmfb_key
             max_toks = 128 if model_name == "codegen" else 512
 
             # get iree flags that need to be overridden, from commandline args
@@ -232,7 +261,7 @@ def chat(
         count = 0
         start_time = time.time()
         for text, msg in progress.tqdm(
-            vicuna_model.generate(prompt, cli=False),
+            vicuna_model.generate(prompt, cli=cli),
             desc="generating response",
         ):
             count += 1
@@ -256,7 +285,8 @@ def chat(
         SharkStableLM,
     )
 
-    if sharkModel == 0:
+    if new_model_vmfb_key != model_vmfb_key:
+        model_vmfb_key = new_model_vmfb_key
         # max_new_tokens=512
         shark_slm = SharkStableLM(
             model_name

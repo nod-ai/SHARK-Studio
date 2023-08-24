@@ -58,6 +58,7 @@ class StencilPipeline(StableDiffusionPipeline):
     ):
         super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
         self.controlnet = None
+        self.controlnet_512 = None
 
     def load_controlnet(self):
         if self.controlnet is not None:
@@ -67,6 +68,15 @@ class StencilPipeline(StableDiffusionPipeline):
     def unload_controlnet(self):
         del self.controlnet
         self.controlnet = None
+
+    def load_controlnet_512(self):
+        if self.controlnet_512 is not None:
+            return
+        self.controlnet_512 = self.sd_model.controlnet(use_large=True)
+
+    def unload_controlnet_512(self):
+        del self.controlnet_512
+        self.controlnet_512 = None
 
     def prepare_latents(
         self,
@@ -111,8 +121,12 @@ class StencilPipeline(StableDiffusionPipeline):
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
-        self.load_unet()
-        self.load_controlnet()
+        if text_embeddings.shape[1] <= self.model_max_length:
+            self.load_unet()
+            self.load_controlnet()
+        else:
+            self.load_unet_512()
+            self.load_controlnet_512()
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(dtype)
@@ -135,43 +149,82 @@ class StencilPipeline(StableDiffusionPipeline):
                 ).to(dtype)
             else:
                 latent_model_input_1 = latent_model_input
-            control = self.controlnet(
-                "forward",
-                (
-                    latent_model_input_1,
-                    timestep,
-                    text_embeddings,
-                    controlnet_hint,
-                ),
-                send_to_host=False,
-            )
+            if text_embeddings.shape[1] <= self.model_max_length:
+                control = self.controlnet(
+                    "forward",
+                    (
+                        latent_model_input_1,
+                        timestep,
+                        text_embeddings,
+                        controlnet_hint,
+                    ),
+                    send_to_host=False,
+                )
+            else:
+                control = self.controlnet_512(
+                    "forward",
+                    (
+                        latent_model_input_1,
+                        timestep,
+                        text_embeddings,
+                        controlnet_hint,
+                    ),
+                    send_to_host=False,
+                )
             timestep = timestep.detach().numpy()
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
             # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.
-            noise_pred = self.unet(
-                "forward",
-                (
-                    latent_model_input,
-                    timestep,
-                    text_embeddings_numpy,
-                    guidance_scale,
-                    control[0],
-                    control[1],
-                    control[2],
-                    control[3],
-                    control[4],
-                    control[5],
-                    control[6],
-                    control[7],
-                    control[8],
-                    control[9],
-                    control[10],
-                    control[11],
-                    control[12],
-                ),
-                send_to_host=False,
-            )
+
+            if text_embeddings.shape[1] <= self.model_max_length:
+                noise_pred = self.unet(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                        control[0],
+                        control[1],
+                        control[2],
+                        control[3],
+                        control[4],
+                        control[5],
+                        control[6],
+                        control[7],
+                        control[8],
+                        control[9],
+                        control[10],
+                        control[11],
+                        control[12],
+                    ),
+                    send_to_host=False,
+                )
+            else:
+                print(self.unet_512)
+                noise_pred = self.unet_512(
+                    "forward",
+                    (
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                        control[0],
+                        control[1],
+                        control[2],
+                        control[3],
+                        control[4],
+                        control[5],
+                        control[6],
+                        control[7],
+                        control[8],
+                        control[9],
+                        control[10],
+                        control[11],
+                        control[12],
+                    ),
+                    send_to_host=False,
+                )
             end_profiling(profile_device)
 
             if cpu_scheduling:
@@ -191,7 +244,9 @@ class StencilPipeline(StableDiffusionPipeline):
 
         if self.ondemand:
             self.unload_unet()
+            self.unload_unet_512()
             self.unload_controlnet()
+            self.unload_controlnet_512()
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 

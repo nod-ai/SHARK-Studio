@@ -47,7 +47,7 @@ from apps.language_models.src.model_wrappers.vicuna_sharded_model import (
 )
 from apps.language_models.src.model_wrappers.vicuna_model import (
     FirstVicuna,
-    SecondVicuna,
+    SecondVicuna7B,
 )
 from apps.language_models.utils import (
     get_vmfb_from_path,

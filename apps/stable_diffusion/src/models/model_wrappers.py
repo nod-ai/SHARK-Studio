@@ -177,9 +177,11 @@ class SharkifyStableDiffusionModel:
             "unet",
             "unet512",
             "stencil_unet",
+            "stencil_unet_512",
             "vae",
             "vae_encode",
             "stencil_adaptor",
+            "stencil_adaptor_512",
         ]
         index = 0
         for model in sub_model_list:
@@ -339,7 +341,7 @@ class SharkifyStableDiffusionModel:
         )
         return shark_vae, vae_mlir
 
-    def get_controlled_unet(self):
+    def get_controlled_unet(self, use_large=False):
         class ControlledUnetModel(torch.nn.Module):
             def __init__(
                 self,
@@ -415,6 +417,16 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
 
         inputs = tuple(self.inputs["unet"])
+        model_name = "stencil_unet"
+        if use_large:
+            pad = (0, 0) * (len(inputs[2].shape) - 2)
+            pad = pad + (0, 512 - inputs[2].shape[1])
+            inputs = (
+                inputs[:2]
+                + (torch.nn.functional.pad(inputs[2], pad),)
+                + inputs[3:]
+            )
+            model_name = "stencil_unet_512"
         input_mask = [
             True,
             True,
@@ -437,19 +449,19 @@ class SharkifyStableDiffusionModel:
         shark_controlled_unet, controlled_unet_mlir = compile_through_fx(
             unet,
             inputs,
-            extended_model_name=self.model_name["stencil_unet"],
+            extended_model_name=self.model_name[model_name],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
-            model_name="stencil_unet",
+            model_name=model_name,
             precision=self.precision,
             return_mlir=self.return_mlir,
         )
         return shark_controlled_unet, controlled_unet_mlir
 
-    def get_control_net(self):
+    def get_control_net(self, use_large=False):
         class StencilControlNetModel(torch.nn.Module):
             def __init__(
                 self, model_id=self.use_stencil, low_cpu_mem_usage=False
@@ -497,17 +509,34 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
 
         inputs = tuple(self.inputs["stencil_adaptor"])
+        if use_large:
+            pad = (0, 0) * (len(inputs[2].shape) - 2)
+            pad = pad + (0, 512 - inputs[2].shape[1])
+            inputs = (
+                inputs[0],
+                inputs[1],
+                torch.nn.functional.pad(inputs[2], pad),
+                inputs[3],
+            )
+            save_dir = os.path.join(
+                self.sharktank_dir, self.model_name["stencil_adaptor_512"]
+            )
+        else:
+            save_dir = os.path.join(
+                self.sharktank_dir, self.model_name["stencil_adaptor"]
+            )
         input_mask = [True, True, True, True]
+        model_name = "stencil_adaptor" if use_large else "stencil_adaptor_512"
         shark_cnet, cnet_mlir = compile_through_fx(
             scnet,
             inputs,
-            extended_model_name=self.model_name["stencil_adaptor"],
+            extended_model_name=self.model_name[model_name],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
-            model_name="stencil_adaptor",
+            model_name=model_name,
             precision=self.precision,
             return_mlir=self.return_mlir,
         )
@@ -748,7 +777,7 @@ class SharkifyStableDiffusionModel:
             else:
                 return self.get_unet(use_large=use_large)
         else:
-            return self.get_controlled_unet()
+            return self.get_controlled_unet(use_large=use_large)
 
     def vae_encode(self):
         try:
@@ -847,12 +876,14 @@ class SharkifyStableDiffusionModel:
         except Exception as e:
             sys.exit(e)
 
-    def controlnet(self):
+    def controlnet(self, use_large=False):
         try:
             self.inputs["stencil_adaptor"] = self.get_input_info_for(
                 base_models["stencil_adaptor"]
             )
-            compiled_stencil_adaptor, controlnet_mlir = self.get_control_net()
+            compiled_stencil_adaptor, controlnet_mlir = self.get_control_net(
+                use_large=use_large
+            )
 
             check_compilation(compiled_stencil_adaptor, "Stencil")
             if self.return_mlir:
