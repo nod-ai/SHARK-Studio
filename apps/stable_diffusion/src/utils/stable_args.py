@@ -137,8 +137,8 @@ p.add_argument(
     type=bool,
     default=False,
     help="Use Hires Fix to do higher resolution images, while trying to "
-         "avoid the issues that come with it. This is accomplished by first "
-         "generating an image using txt2img, then running it through img2img."
+    "avoid the issues that come with it. This is accomplished by first "
+    "generating an image using txt2img, then running it through img2img.",
 )
 
 p.add_argument(
@@ -180,7 +180,7 @@ p.add_argument(
         "Cubic",
     ],
     help="The resample type to use when resizing an image before being run "
-         "through stable diffusion.",
+    "through stable diffusion.",
 )
 
 ##############################################################################

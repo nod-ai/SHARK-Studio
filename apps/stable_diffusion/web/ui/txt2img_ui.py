@@ -240,7 +240,6 @@ def txt2img_inf(
             global_obj.set_schedulers(get_schedulers(model_id))
             scheduler_obj = global_obj.get_scheduler(args.scheduler)
 
-
             global_obj.set_sd_obj(
                 Image2ImagePipeline.from_pretrained(
                     scheduler_obj,
