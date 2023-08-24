@@ -16,4 +16,3 @@ line-length = 79
 include = '\.pyi?$'
 exclude = "apps/language_models/scripts/vicuna.py"
 extend-exclude = "apps/language_models/src/pipelines/minigpt4_pipeline.py"
-extend-exclude = "shark.venv"
