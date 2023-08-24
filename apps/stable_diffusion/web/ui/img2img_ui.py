@@ -351,7 +351,7 @@ def img2img_api(
         lora_hf_id="",
         ondemand=False,
         repeatable_seeds=False,
-        resample_type="Lanczos"
+        resample_type="Lanczos",
     )
 
     # Converts generator type to subscriptable
@@ -576,11 +576,18 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 step=0.01,
                                 label="Denoising Strength",
                             )
-                            resample_type = gr.Radio(
+                            resample_type = gr.Dropdown(
                                 value=args.resample_type,
                                 choices=[
                                     "Lanczos",
-                                    "Nearest Neighbor"
+                                    "Nearest Neighbor",
+                                    "Bilinear",
+                                    "Bicubic",
+                                    "Adaptive",
+                                    "Antialias",
+                                    "Box",
+                                    "Affine",
+                                    "Cubic",
                                 ],
                                 label="Resample Type",
                             )

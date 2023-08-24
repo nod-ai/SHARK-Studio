@@ -144,7 +144,7 @@ p.add_argument(
 p.add_argument(
     "--hiresfix_height",
     type=int,
-    default=512,
+    default=768,
     choices=range(128, 769, 8),
     help="The height of the Hires Fix image.",
 )
@@ -152,7 +152,7 @@ p.add_argument(
 p.add_argument(
     "--hiresfix_width",
     type=int,
-    default=512,
+    default=768,
     choices=range(128, 769, 8),
     help="The width of the Hires Fix image.",
 )
@@ -160,15 +160,25 @@ p.add_argument(
 p.add_argument(
     "--hiresfix_strength",
     type=float,
-    default=0.35,
+    default=0.6,
     help="The denoising strength to apply for the Hires Fix.",
 )
 
 p.add_argument(
     "--resample_type",
     type=str,
-    default="Lanczos",
-    choices=["Lanczos", "Nearest Neighbor"],
+    default="Nearest Neighbor",
+    choices=[
+        "Lanczos",
+        "Nearest Neighbor",
+        "Bilinear",
+        "Bicubic",
+        "Adaptive",
+        "Antialias",
+        "Box",
+        "Affine",
+        "Cubic",
+    ],
     help="The resample type to use when resizing an image before being run "
          "through stable diffusion.",
 )

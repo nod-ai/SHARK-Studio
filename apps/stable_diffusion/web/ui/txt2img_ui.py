@@ -8,7 +8,6 @@ from math import ceil
 import base64
 from io import BytesIO
 from fastapi.exceptions import HTTPException
-from apps.stable_diffusion.web.ui.img2img_ui import img2img_inf
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -28,6 +27,7 @@ from apps.stable_diffusion.src import (
     utils,
     save_output_img,
     prompt_examples,
+    Image2ImagePipeline,
 )
 from apps.stable_diffusion.src.utils import (
     get_generated_imgs_path,
@@ -207,42 +207,82 @@ def txt2img_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
         )
-        # TODO: make this show the hiresfix image in the UI instead of
-        #  the original
-        # TODO: make this add info about hiresfix to image_details.csv
-        # TODO: make this work with batch
+        # TODO: allow user to save original image
         # TODO: add option to let user keep both pipelines loaded, and unload
         #  either at will
+        # TODO: add custom step value slider
+        # TODO: add option to use secondary model for the img2img pass
         if use_hiresfix is True:
-            hri = img2img_inf(
-                prompt=prompt,
-                negative_prompt=negative_prompt,
-                image_dict=out_imgs[0],
-                height=hiresfix_height,
-                width=hiresfix_width,
-                steps=steps,
-                strength=hiresfix_strength,
-                guidance_scale=guidance_scale,
-                seed=seed,
-                batch_size=1,
-                batch_count=1,
-                scheduler=scheduler,
-                custom_model=custom_model,
-                hf_model_id=hf_model_id,
-                custom_vae=custom_vae,
-                precision=precision,
-                device=device,
-                max_length=max_length,
-                use_stencil=None,
-                save_metadata_to_json=save_metadata_to_json,
-                save_metadata_to_png=save_metadata_to_png,
-                lora_weights=lora_weights,
-                lora_hf_id=lora_hf_id,
+            new_config_obj = Config(
+                "img2img",
+                args.hf_model_id,
+                args.ckpt_loc,
+                args.custom_vae,
+                precision,
+                1,
+                max_length,
+                height,
+                width,
+                device,
+                use_lora=args.use_lora,
+                use_stencil="None",
                 ondemand=ondemand,
-                repeatable_seeds=False,
+            )
+
+            global_obj.clear_cache()
+            global_obj.set_cfg_obj(new_config_obj)
+            set_init_device_flags()
+            model_id = (
+                args.hf_model_id
+                if args.hf_model_id
+                else "stabilityai/stable-diffusion-2-1-base"
+            )
+            global_obj.set_schedulers(get_schedulers(model_id))
+            scheduler_obj = global_obj.get_scheduler(args.scheduler)
+
+
+            global_obj.set_sd_obj(
+                Image2ImagePipeline.from_pretrained(
+                    scheduler_obj,
+                    args.import_mlir,
+                    args.hf_model_id,
+                    args.ckpt_loc,
+                    args.custom_vae,
+                    args.precision,
+                    args.max_length,
+                    1,
+                    hiresfix_height,
+                    hiresfix_width,
+                    args.use_base_vae,
+                    args.use_tuned,
+                    low_cpu_mem_usage=args.low_cpu_mem_usage,
+                    debug=args.import_debug if args.import_mlir else False,
+                    use_lora=args.use_lora,
+                    ondemand=args.ondemand,
+                )
+            )
+
+            global_obj.set_sd_scheduler(args.scheduler)
+
+            out_imgs = global_obj.get_sd_obj().generate_images(
+                prompt,
+                negative_prompt,
+                out_imgs[0],
+                batch_size,
+                hiresfix_height,
+                hiresfix_width,
+                ceil(steps / hiresfix_strength),
+                hiresfix_strength,
+                guidance_scale,
+                seeds[current_batch],
+                args.max_length,
+                dtype,
+                args.use_base_vae,
+                cpu_scheduling,
+                args.max_embeddings_multiples,
+                use_stencil="None",
                 resample_type=resample_type,
             )
-            hri = next(hri)
         total_time = time.time() - start_time
         text_output = get_generation_text_info(
             seeds[: current_batch + 1], device
@@ -318,7 +358,7 @@ def txt2img_api(
         hiresfix_height=512,
         hiresfix_width=512,
         hiresfix_strength=0.6,
-        resample_type="Nearest Neighbor"
+        resample_type="Nearest Neighbor",
     )
 
     # Convert Generator to Subscriptable
@@ -586,16 +626,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         value=available_devices[0],
                         choices=available_devices,
                     )
-                with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        lambda: -1,
-                        inputs=[],
-                        outputs=[seed],
-                        queue=False,
-                    )
-                    stop_batch = gr.Button("Stop Batch")
-                    stable_diffusion = gr.Button("Generate Image(s)")
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
                         examples=prompt_examples,
@@ -621,6 +651,18 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         show_label=False,
                     )
                     txt2img_status = gr.Textbox(visible=False)
+                with gr.Row():
+                    stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                with gr.Row():
+                    blank_thing_for_row = None
                 with gr.Row():
                     txt2img_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     txt2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
