@@ -97,6 +97,7 @@ def get_iree_common_args():
         "--iree-stream-resource-max-allocation-size=4294967295",
         "--iree-vm-bytecode-module-strip-source-map=true",
         "--iree-util-zero-fill-elided-attrs",
+        "--iree-opt-strip-assertions=true",
     ]
 
 
