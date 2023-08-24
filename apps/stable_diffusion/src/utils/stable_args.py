@@ -476,6 +476,13 @@ p.add_argument(
     help="Specify target triple for metal.",
 )
 
+p.add_argument(
+    "--iree-vulkan-vma-allocator",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="Toggles vma allocator for vulkan in IREE runtime. Useful for debugging resource allocation issues -- default to True.",
+)
+
 ##############################################################################
 # Misc. Debug and Optimization flags
 ##############################################################################

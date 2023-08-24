@@ -190,6 +190,8 @@ def set_iree_runtime_flags():
             f"--enable_rgp=true",
             f"--vulkan_debug_utils=true",
         ]
+    if args.iree_vulkan_vma_allocator:
+        vulkan_runtime_flags += [f"--vulkan_vma_allocator=true"]
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
 
