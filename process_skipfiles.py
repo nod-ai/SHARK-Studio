@@ -10,7 +10,9 @@ from pathlib import Path
 path_to_stdhooks = Path(
     get_python_lib() + "/_pyinstaller_hooks_contrib/hooks/stdhooks"
 )
-path_to_transformers_hook = Path(path_to_stdhooks + "hook-transformers.py")
+path_to_transformers_hook = Path(
+    str(path_to_stdhooks) + "hook-transformers.py"
+)
 if path_to_transformers_hook.is_file():
     pass
 else:
