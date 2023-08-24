@@ -84,13 +84,35 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         num_inference_steps,
         strength,
         dtype,
+        resample_type,
     ):
         # Pre process image -> get image encoded -> process latents
 
         # TODO: process with variable HxW combos
 
-        # Pre process image
-        image = image.resize((width, height))
+        # Pre-process image
+        if resample_type == "Lanczos":
+            resample_type = Image.LANCZOS
+        elif resample_type == "Nearest Neighbor":
+            resample_type = Image.NEAREST
+        elif resample_type == "Bilinear":
+            resample_type = Image.BILINEAR
+        elif resample_type == "Bicubic":
+            resample_type = Image.BICUBIC
+        elif resample_type == "Adaptive":
+            resample_type = Image.ADAPTIVE
+        elif resample_type == "Antialias":
+            resample_type = Image.ANTIALIAS
+        elif resample_type == "Box":
+            resample_type = Image.BOX
+        elif resample_type == "Affine":
+            resample_type = Image.AFFINE
+        elif resample_type == "Cubic":
+            resample_type = Image.CUBIC
+        else:  # Fallback to Lanczos
+            resample_type = Image.LANCZOS
+
+        image = image.resize((width, height), resample=resample_type)
         image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
         image_arr = image_arr / 255.0
         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
@@ -147,6 +169,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         cpu_scheduling,
         max_embeddings_multiples,
         use_stencil,
+        resample_type,
     ):
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
@@ -186,6 +209,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
             num_inference_steps=num_inference_steps,
             strength=strength,
             dtype=dtype,
+            resample_type=resample_type,
         )
 
         # Get Image latents
