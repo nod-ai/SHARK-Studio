@@ -24,6 +24,7 @@ past_key_values = None
 
 model_map = {
     "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2_13b": "meta-llama/Llama-2-13b-chat-hf",
     "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
     "codegen": "Salesforce/codegen25-7b-multi",
     "vicuna1p3": "lmsys/vicuna-7b-v1.3",
@@ -35,6 +36,15 @@ model_map = {
 # NOTE: Each `model_name` should have its own start message
 start_message = {
     "llama2_7b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
+    "llama2_13b": (
         "System: You are a helpful, respectful and honest assistant. Always answer "
         "as helpfully as possible, while being safe.  Your answers should not "
         "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
@@ -91,6 +101,7 @@ def create_prompt(model_name, history):
         "vicuna4",
         "vicuna1p3",
         "llama2_7b",
+        "llama2_13b",
         "llama2_70b",
     ]:
         conversation = "".join(
@@ -176,6 +187,7 @@ def chat(
         "vicuna1p3",
         "codegen",
         "llama2_7b",
+        "llama2_13b",
         "llama2_70b",
     ]:
         from apps.language_models.scripts.vicuna import ShardedVicuna
