@@ -18,6 +18,7 @@ Pillow
 parameterized
 
 # Add transformers, diffusers and scipy since it most commonly used
+tokenizers==0.13.3
 transformers
 diffusers
 #accelerate is now required for diffusers import from ckpt.

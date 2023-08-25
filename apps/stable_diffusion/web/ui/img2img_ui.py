@@ -3,6 +3,7 @@ import torch
 import time
 import gradio as gr
 import PIL
+from math import ceil
 from PIL import Image
 import base64
 from io import BytesIO
@@ -67,6 +68,7 @@ def img2img_inf(
     lora_hf_id: str,
     ondemand: bool,
     repeatable_seeds: bool,
+    resample_type: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -245,7 +247,7 @@ def img2img_inf(
             batch_size,
             height,
             width,
-            steps,
+            ceil(steps / strength),
             strength,
             guidance_scale,
             seeds[current_batch],
@@ -255,6 +257,7 @@ def img2img_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
             use_stencil=use_stencil,
+            resample_type=resample_type,
         )
         total_time = time.time() - start_time
         text_output = get_generation_text_info(
@@ -348,6 +351,7 @@ def img2img_api(
         lora_hf_id="",
         ondemand=False,
         repeatable_seeds=False,
+        resample_type="Lanczos",
     )
 
     # Converts generator type to subscriptable
@@ -432,7 +436,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
-
+                # TODO: make this import image prompt info if it exists
                 img2img_init_image = gr.Image(
                     label="Input Image",
                     source="upload",
@@ -550,15 +554,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         width = gr.Slider(
                             384, 768, value=args.width, step=8, label="Width"
                         )
-                        precision = gr.Radio(
-                            label="Precision",
-                            value=args.precision,
-                            choices=[
-                                "fp16",
-                                "fp32",
-                            ],
-                            visible=True,
-                        )
                         max_length = gr.Radio(
                             label="Max Length",
                             value=args.max_length,
@@ -581,10 +576,34 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 step=0.01,
                                 label="Denoising Strength",
                             )
+                            resample_type = gr.Dropdown(
+                                value=args.resample_type,
+                                choices=[
+                                    "Lanczos",
+                                    "Nearest Neighbor",
+                                    "Bilinear",
+                                    "Bicubic",
+                                    "Adaptive",
+                                    "Antialias",
+                                    "Box",
+                                    "Affine",
+                                    "Cubic",
+                                ],
+                                label="Resample Type",
+                            )
                         ondemand = gr.Checkbox(
                             value=args.ondemand,
                             label="Low VRAM",
                             interactive=True,
+                        )
+                        precision = gr.Radio(
+                            label="Precision",
+                            value=args.precision,
+                            choices=[
+                                "fp16",
+                                "fp32",
+                            ],
+                            visible=True,
                         )
                     with gr.Row():
                         with gr.Column(scale=3):
@@ -695,6 +714,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 lora_hf_id,
                 ondemand,
                 repeatable_seeds,
+                resample_type,
             ],
             outputs=[img2img_gallery, std_output, img2img_status],
             show_progress="minimal" if args.progress_bar else "none",
