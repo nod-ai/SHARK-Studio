@@ -92,13 +92,23 @@ def get_iree_frontend_args(frontend):
 
 
 # Common args to be used given any frontend or device.
-def get_iree_common_args():
-    return [
+def get_iree_common_args(debug=False):
+    common_args = [
         "--iree-stream-resource-max-allocation-size=4294967295",
         "--iree-vm-bytecode-module-strip-source-map=true",
         "--iree-util-zero-fill-elided-attrs",
-        "--iree-opt-strip-assertions=true",
     ]
+    if debug == True:
+        common_args.extend([
+            "--iree-opt-strip-assertions=false",
+            "--verify=true",
+        ])
+    else:
+        common_args.extend([
+            "--iree-opt-strip-assertions=true",
+            "--verify=false",
+        ])
+    return common_args
 
 
 # Args that are suitable only for certain models or groups of models.
