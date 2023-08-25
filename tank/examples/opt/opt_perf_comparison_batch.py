@@ -11,8 +11,8 @@ import subprocess
 
 def make_commands() -> Iterable[List[str]]:
     command = shlex.split("python opt_perf_comparison.py --no-save-json")
-    max_seq_lens = [32, 128, 512]
-    model_names = ["facebook/opt-" + e for e in ["125m", "350m"]]
+    max_seq_lens = [32, 128, 256, 512]
+    model_names = ["facebook/opt-" + e for e in ["125m", "350m", "1.3b"]]
     for max_seq_len in max_seq_lens:
         for model_name in model_names:
             yield command + [
