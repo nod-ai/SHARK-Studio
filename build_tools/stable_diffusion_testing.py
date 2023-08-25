@@ -125,6 +125,7 @@ def test_loop(
                         + os.path.join(os.getcwd(), "test_images", model_name),
                         "--hf_model_id=" + model_name,
                         use_tune,
+                        "--iree-vulkan-vma-allocator=true",  # remove this as soon as issues with vulkan allocations are fixed
                     ]
                     if "inpainting" not in model_name
                     else [
@@ -141,6 +142,7 @@ def test_loop(
                         + os.path.join(os.getcwd(), "test_images", model_name),
                         "--hf_model_id=" + model_name,
                         use_tune,
+                        "--iree-vulkan-vma-allocator=true",  # remove this as soon as issues with vulkan allocations are fixed
                     ]
                 )
                 command += extra_flags
