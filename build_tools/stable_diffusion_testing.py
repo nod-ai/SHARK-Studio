@@ -125,7 +125,6 @@ def test_loop(
                         + os.path.join(os.getcwd(), "test_images", model_name),
                         "--hf_model_id=" + model_name,
                         use_tune,
-                        "--iree-vulkan-vma-allocator",  # remove this as soon as issues with vulkan allocations are fixed
                     ]
                     if "inpainting" not in model_name
                     else [
@@ -142,12 +141,14 @@ def test_loop(
                         + os.path.join(os.getcwd(), "test_images", model_name),
                         "--hf_model_id=" + model_name,
                         use_tune,
-                        "--iree-vulkan-vma-allocator",  # remove this as soon as issues with vulkan allocations are fixed
                     ]
                 )
                 command += extra_flags
                 if os.name == "nt":
                     command = " ".join(command)
+                elif "vulkan" in device:
+                    # use this flag for linux tests temporarily; remove this as soon as issues with vulkan allocations are fixed
+                    command += "--iree-vulkan-vma-allocator"
                 dumpfile_name = "_".join(model_name.split("/")) + ".txt"
                 dumpfile_name = os.path.join(os.getcwd(), dumpfile_name)
                 with open(dumpfile_name, "w+") as f:
