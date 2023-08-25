@@ -205,8 +205,6 @@ def chat(
                 device = "vulkan"
             elif "rocm" in device:
                 device = "rocm"
-            else:
-                print("unrecognized device")
 
         if new_model_vmfb_key != model_vmfb_key:
             model_vmfb_key = new_model_vmfb_key
