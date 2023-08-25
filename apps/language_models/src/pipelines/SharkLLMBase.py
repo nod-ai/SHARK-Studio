@@ -7,12 +7,10 @@ class SharkLLMBase(ABC):
         model_name,
         hf_model_path=None,
         max_num_tokens=512,
-        debug=False,
     ) -> None:
         self.model_name = model_name
         self.hf_model_path = hf_model_path
         self.max_num_tokens = max_num_tokens
-        self.debug = debug
         self.shark_model = None
         self.device = "cpu"
         self.precision = "fp32"
