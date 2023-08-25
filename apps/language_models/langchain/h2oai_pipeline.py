@@ -237,7 +237,7 @@ class H2OGPTSHARKModel(torch.nn.Module):
             print(f"[DEBUG] converting torch to linalg")
             run_pipeline_with_repro_report(
                 module,
-                "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                 description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
             )
         else:
