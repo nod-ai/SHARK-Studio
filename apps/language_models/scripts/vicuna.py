@@ -857,7 +857,7 @@ class ShardedVicuna(VicunaBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module0,
-                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -901,7 +901,7 @@ class ShardedVicuna(VicunaBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module1,
-                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -1515,7 +1515,7 @@ class UnshardedVicuna(VicunaBase):
                         print(f"[DEBUG] converting torch to linalg")
                         run_pipeline_with_repro_report(
                             first_module,
-                            "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                            "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                             description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                         )
                     else:
@@ -1616,7 +1616,7 @@ class UnshardedVicuna(VicunaBase):
                         )
                         run_pipeline_with_repro_report(
                             second_module,
-                            "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                            "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                             description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                         )
                     else:
