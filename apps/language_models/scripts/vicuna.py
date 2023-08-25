@@ -1273,11 +1273,11 @@ class UnshardedVicuna(VicunaBase):
             self.vicuna_vmfb_path = self.get_model_path(suffix="vmfb")
         self.tokenizer = self.get_tokenizer()
         self.cache_vicunas = cache_vicunas
-        self.compile()
+        self.compile(download_vmfb)
 
     def get_model_path(self, suffix="mlir"):
         safe_device = self.device.split("-")[0]
-        if suffix == "mlir":
+        if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
         return Path(
             f"{self.model_name}_{self.precision}_{safe_device}.{suffix}"
@@ -1433,7 +1433,7 @@ class UnshardedVicuna(VicunaBase):
             mlir_generated = False
             if self.load_mlir_from_shark_tank:
                 # download MLIR from shark tank
-                for suffix in ["mlir", "mlirbc"]:
+                for suffix in ["mlirbc", "mlir"]:
                     self.vicuna_mlir_path = self.get_model_path(suffix)
                     download_public_file(
                         f"gs://shark_tank/{self.model_name}/unsharded/mlir/{self.vicuna_mlir_path.name}",
