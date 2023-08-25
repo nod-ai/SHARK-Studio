@@ -444,6 +444,7 @@ class ShardedVicuna(VicunaBase):
         weight_group_size=128,
         compressed=False,
         extra_args_cmd=[],
+        debug=False,
     ) -> None:
         super().__init__(
             model_name,
@@ -454,6 +455,7 @@ class ShardedVicuna(VicunaBase):
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
+        self.debug = debug
         self.tokenizer = self.get_tokenizer()
         self.config = config_json
         self.weight_group_size = weight_group_size
@@ -641,7 +643,7 @@ class ShardedVicuna(VicunaBase):
         return device_idx
 
     def compile_lmhead(
-        self, lmh, hidden_states, device="cpu", device_idx=None
+        self, lmh, hidden_states, device="cpu", device_idx=None,
     ):
         # compile the lm head of the vicuna model
         # This can be used for both first and second vicuna, so only needs to be run once
@@ -689,7 +691,7 @@ class ShardedVicuna(VicunaBase):
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
         else:
-            shark_module.save_module(module_name="lmhead")
+            shark_module.save_module(module_name="lmhead", debug=self.debug)
             shark_module.load_module(vmfb_path)
         compiled_module = LMHeadCompiled(shark_module)
         return compiled_module
@@ -735,7 +737,7 @@ class ShardedVicuna(VicunaBase):
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
         else:
-            shark_module.save_module(module_name="norm")
+            shark_module.save_module(module_name="norm", debug=self.debug)
             shark_module.load_module(vmfb_path)
         compiled_module = VicunaNormCompiled(shark_module)
         return compiled_module
@@ -786,14 +788,14 @@ class ShardedVicuna(VicunaBase):
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
         else:
-            shark_module.save_module(module_name="embedding")
+            shark_module.save_module(module_name="embedding", debug=self.debug)
             shark_module.load_module(vmfb_path)
         compiled_module = VicunaEmbeddingCompiled(shark_module)
 
         return compiled_module
 
     def compile_to_vmfb_one_model(
-        self, inputs0, layers0, inputs1, layers1, device="cpu"
+        self, inputs0, layers0, inputs1, layers1, device="cpu",
     ):
         mlirs, modules = [], []
         assert len(layers0) == len(layers1)
@@ -956,6 +958,7 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
                     ]
                     + self.extra_args,
+                    debug=self.debug,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -1023,6 +1026,7 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
                     ]
                     + self.extra_args,
+                    debug=self.debug,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -1659,6 +1663,7 @@ class UnshardedVicuna(VicunaBase):
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
             ]
             + self.extra_args,
+            debug=self.debug,
         )
         print("Saved vic vmfb at ", str(path))
         shark_module.load_module(path)

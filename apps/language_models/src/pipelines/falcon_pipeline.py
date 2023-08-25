@@ -71,6 +71,7 @@ class Falcon(SharkLLMBase):
         precision="fp32",
         falcon_mlir_path=None,
         falcon_vmfb_path=None,
+        debug=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_padding_length = 100
@@ -78,6 +79,7 @@ class Falcon(SharkLLMBase):
         self.precision = precision
         self.falcon_vmfb_path = falcon_vmfb_path
         self.falcon_mlir_path = falcon_mlir_path
+        self.debug = debug
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
         self.src_model = self.get_src_model()
@@ -208,6 +210,7 @@ class Falcon(SharkLLMBase):
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
                 "--iree-spirv-index-bits=64",
             ],
+            debug=self.debug,
         )
         print("Saved falcon vmfb at ", str(path))
         shark_module.load_module(path)

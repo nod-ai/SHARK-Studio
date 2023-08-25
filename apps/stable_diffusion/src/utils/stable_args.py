@@ -571,6 +571,14 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--compile_debug",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Flag to toggle debug assert/verify flags for imported IR in the"
+    "iree-compiler. Default to false.",
+)
+
+p.add_argument(
     "--iree_constant_folding",
     default=True,
     action=argparse.BooleanOptionalAction,
