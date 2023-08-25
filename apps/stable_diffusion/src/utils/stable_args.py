@@ -478,7 +478,7 @@ p.add_argument(
 
 p.add_argument(
     "--iree-vulkan-vma-allocator",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="Toggles vma allocator for vulkan in IREE runtime. Useful for debugging resource allocation issues -- default to True.",
 )
