@@ -8,7 +8,7 @@ from pathlib import Path
 
 # Temporary workaround for transformers/__init__.py.
 path_to_stdhooks = Path(
-    get_python_lib() + "/_pyinstaller_hooks_contrib/hooks/stdhooks"
+    get_python_lib() + "/_pyinstaller_hooks_contrib/hooks/stdhooks/"
 )
 path_to_transformers_hook = Path(
     str(path_to_stdhooks) + "hook-transformers.py"
@@ -16,13 +16,6 @@ path_to_transformers_hook = Path(
 if path_to_transformers_hook.is_file():
     pass
 else:
-    if not path_to_stdhooks.is_dir():
-        import os
-
-        print(
-            f"Path to pyinstaller stdhooks not found. Please check your pyinstaller packages at {path_to_stdhooks}."
-        )
-        os.mkdir(path_to_stdhooks)
     with open(path_to_transformers_hook, "w") as f:
         f.write("module_collection_mode = 'pyz+py'")
 
