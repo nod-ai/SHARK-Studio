@@ -59,7 +59,7 @@ def create_module(model_name, tokenizer, device):
     )
 
     vmfb_name = f"{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch_{device}"
-    shark_module.save_module(module_name=vmfb_name)
+    shark_module.save_module(module_name=vmfb_name, debug=False)
     vmfb_path = vmfb_name + ".vmfb"
     return vmfb_path
 
