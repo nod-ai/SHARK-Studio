@@ -192,7 +192,9 @@ class SharkInference:
 
     # TODO: Instead of passing directory and having names decided by the module
     # , user may want to save the module with manual names.
-    def save_module(self, dir=os.getcwd(), module_name=None, extra_args=[]):
+    def save_module(
+        self, dir=os.getcwd(), module_name=None, extra_args=[], debug=False
+    ):
         return export_iree_module_to_vmfb(
             self.mlir_module,
             self.device,
@@ -200,6 +202,7 @@ class SharkInference:
             self.mlir_dialect,
             module_name=module_name,
             extra_args=extra_args,
+            debug=debug,
         )
 
     # load and return the module.

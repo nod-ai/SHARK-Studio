@@ -32,11 +32,13 @@ class SharkStableLM(SharkLLMBase):
         max_num_tokens=512,
         device="cuda",
         precision="fp32",
+        debug="False",
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_len = 256
         self.device = device
         self.precision = precision
+        self.debug = debug
         self.tokenizer = self.get_tokenizer()
         self.shark_model = self.compile()
 
@@ -111,7 +113,7 @@ class SharkStableLM(SharkLLMBase):
         shark_module.compile()
 
         path = shark_module.save_module(
-            vmfb_path.parent.absolute(), vmfb_path.stem
+            vmfb_path.parent.absolute(), vmfb_path.stem, debug=self.debug
         )
         print("Saved vmfb at ", str(path))
 

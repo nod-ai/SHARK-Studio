@@ -92,13 +92,27 @@ def get_iree_frontend_args(frontend):
 
 
 # Common args to be used given any frontend or device.
-def get_iree_common_args():
-    return [
+def get_iree_common_args(debug=False):
+    common_args = [
         "--iree-stream-resource-max-allocation-size=4294967295",
         "--iree-vm-bytecode-module-strip-source-map=true",
         "--iree-util-zero-fill-elided-attrs",
-        "--iree-opt-strip-assertions=true",
     ]
+    if debug == True:
+        common_args.extend(
+            [
+                "--iree-opt-strip-assertions=false",
+                "--verify=true",
+            ]
+        )
+    else:
+        common_args.extend(
+            [
+                "--iree-opt-strip-assertions=true",
+                "--verify=false",
+            ]
+        )
+    return common_args
 
 
 # Args that are suitable only for certain models or groups of models.
@@ -277,12 +291,13 @@ def compile_module_to_flatbuffer(
     model_config_path,
     extra_args,
     model_name="None",
+    debug=False,
 ):
     # Setup Compile arguments wrt to frontends.
     input_type = ""
     args = get_iree_frontend_args(frontend)
     args += get_iree_device_args(device, extra_args)
-    args += get_iree_common_args()
+    args += get_iree_common_args(debug=debug)
     args += get_model_specific_args()
     args += extra_args
 
@@ -409,10 +424,11 @@ def get_iree_compiled_module(
     extra_args: list = [],
     device_idx: int = None,
     mmap: bool = False,
+    debug: bool = False,
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, frontend, model_config_path, extra_args
+        module, device, frontend, model_config_path, extra_args, debug
     )
     temp_file_to_unlink = None
     # TODO: Currently mmap=True control flow path has been switched off for mmap.
@@ -468,10 +484,11 @@ def export_iree_module_to_vmfb(
     model_config_path: str = None,
     module_name: str = None,
     extra_args: list = [],
+    debug: bool = False,
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, mlir_dialect, model_config_path, extra_args
+        module, device, mlir_dialect, model_config_path, extra_args, debug
     )
     if module_name is None:
         device_name = (
