@@ -52,6 +52,8 @@ def iree_device_map(device):
     )
     if len(uri_parts) == 1:
         return iree_driver
+    elif "rocm" in uri_parts:
+        return "rocm"
     else:
         return f"{iree_driver}://{uri_parts[1]}"
 
@@ -63,7 +65,6 @@ def get_supported_device_list():
 _IREE_DEVICE_MAP = {
     "cpu": "local-task",
     "cpu-task": "local-task",
-    "AMD-AIE": "local-task",
     "cpu-sync": "local-sync",
     "cuda": "cuda",
     "vulkan": "vulkan",
@@ -82,7 +83,6 @@ def iree_target_map(device):
 _IREE_TARGET_MAP = {
     "cpu": "llvm-cpu",
     "cpu-task": "llvm-cpu",
-    "AMD-AIE": "llvm-cpu",
     "cpu-sync": "llvm-cpu",
     "cuda": "cuda",
     "vulkan": "vulkan",
@@ -121,7 +121,10 @@ def check_device_drivers(device):
         return False
     elif device == "rocm":
         try:
-            subprocess.check_output("rocminfo")
+            if sys.platform == "win32":
+                subprocess.check_output("hipinfo")
+            else:
+                subprocess.check_output("rocminfo")
         except Exception:
             return True
 

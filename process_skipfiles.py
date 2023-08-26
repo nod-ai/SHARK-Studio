@@ -6,7 +6,7 @@ from distutils.sysconfig import get_python_lib
 import fileinput
 from pathlib import Path
 
-# Temorary workaround for transformers/__init__.py.
+# Temporary workaround for transformers/__init__.py.
 path_to_transformers_hook = Path(
     get_python_lib()
     + "/_pyinstaller_hooks_contrib/hooks/stdhooks/hook-transformers.py"
