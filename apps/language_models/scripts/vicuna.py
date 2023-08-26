@@ -39,6 +39,7 @@ from apps.language_models.src.model_wrappers.vicuna_model import (
     FirstVicuna,
     SecondVicuna7B,
     SecondVicuna13B,
+    SecondVicuna70B,
 )
 from apps.language_models.utils import (
     get_vmfb_from_path,
@@ -191,7 +192,6 @@ class VicunaBase(SharkLLMBase):
         first_vicuna_mlir,
         second_vicuna_mlir,
         output_name,
-        model_name=None,
     ):
         print(f"[DEBUG] combining first and second mlir")
         print(f"[DEBUG] output_name = {output_name}")
@@ -355,7 +355,7 @@ class VicunaBase(SharkLLMBase):
             f_.writelines(line + "\n" for line in global_vars)
             f_.writelines(line + "\n" for line in f1)
             f_.writelines(line + "\n" for line in f2)
-            if not (model_name and "llama2_13b" in model_name):
+            if not self.model_name in ["llama2_13b"]:
                 f_.writelines(line + "\n" for line in [module_end])
 
         del maps1
@@ -803,7 +803,6 @@ class ShardedVicuna(VicunaBase):
             # if vmfb_path.exists():
             #    continue
             if mlir_path.exists():
-                # print(f"Found layer {idx} mlir")
                 f_ = open(mlir_path, "rb")
                 bytecode = f_.read()
                 f_.close()
@@ -926,7 +925,6 @@ class ShardedVicuna(VicunaBase):
                 mlirs.append(module_combined)
 
             if vmfb_path.exists():
-                # print(f"Found layer {idx} vmfb")
                 device_idx = self.get_device_index(
                     f"first_vicuna.model.model.layers.{idx}[\s.$]"
                 )
@@ -975,7 +973,6 @@ class ShardedVicuna(VicunaBase):
             # if vmfb_path.exists():
             #    continue
             if mlir_path.exists():
-                # print(f"Found layer {idx} mlir")
                 f_ = open(mlir_path, "rb")
                 bytecode = f_.read()
                 f_.close()
@@ -994,7 +991,6 @@ class ShardedVicuna(VicunaBase):
                 mlirs.append(bytecode)
 
             if vmfb_path.exists():
-                # print(f"Found layer {idx} vmfb")
                 device_idx = self.get_device_index(
                     f"first_vicuna.model.model.layers.{idx}[\s.$]"
                 )
@@ -1235,7 +1231,7 @@ class UnshardedVicuna(VicunaBase):
         precision="int8",
         vicuna_mlir_path=None,
         vicuna_vmfb_path=None,
-        load_mlir_from_shark_tank=True,
+        load_mlir_from_shark_tank=False,
         low_device_memory=False,
         weight_group_size=128,
         download_vmfb=False,
@@ -1341,7 +1337,7 @@ class UnshardedVicuna(VicunaBase):
             new_lines.append(line)
         return "\n".join(new_lines)
 
-    def write_in_dynamic_inputs1(self, module, model_name):
+    def write_in_dynamic_inputs1(self, module):
         print("[DEBUG] writing dynamic inputs to second vicuna")
 
         def remove_constant_dim(line):
@@ -1369,9 +1365,12 @@ class UnshardedVicuna(VicunaBase):
 
         module = module.splitlines()
         new_lines = []
+
         # Using a while loop and the pop method to avoid creating a copy of module
-        if "llama2_13b" in model_name:
+        if "llama2_13b" in self.model_name:
             pkv_tensor_shape = "tensor<1x40x?x128x"
+        elif "llama2_70b" in self.model_name:
+            pkv_tensor_shape = "tensor<1x60x?x128x"
         else:
             pkv_tensor_shape = "tensor<1x32x?x128x"
         if self.precision in ["fp16", "int4", "int8"]:
@@ -1464,9 +1463,10 @@ class UnshardedVicuna(VicunaBase):
                 else:
                     compilation_prompt = "".join(["0" for _ in range(17)])
 
-                if Path(f"first_{self.precision}.mlir").exists():
-                    print(f"loading first_{self.precision}.mlir")
-                    with open(Path(f"first_{self.precision}.mlir"), "r") as f:
+                first_model_path = f"first_{self.model_name}_{self.precision}.mlir"
+                if Path(first_model_path).exists():
+                    print(f"loading {first_model_path}")
+                    with open(Path(first_model_path), "r") as f:
                         first_module = f.read()
                 else:
                     # generate first vicuna
@@ -1541,13 +1541,14 @@ class UnshardedVicuna(VicunaBase):
                         str(first_module), dynamic_input_size=19
                     )
                     if self.cache_vicunas:
-                        with open(f"first_{self.precision}.mlir", "w+") as f:
+                        with open(first_model_path, "w+") as f:
                             f.write(first_module)
                         print("Finished writing IR after dynamic")
-
-                if Path(f"second_{self.precision}.mlir").exists():
-                    print(f"loading second_{self.precision}.mlir")
-                    with open(Path(f"second_{self.precision}.mlir"), "r") as f:
+                print(f"[DEBUG] Starting generation of second llama")
+                second_model_path = f"second_{self.model_name}_{self.precision}.mlir"
+                if Path(second_model_path).exists():
+                    print(f"loading {second_model_path}")
+                    with open(Path(second_model_path), "r") as f:
                         second_module = f.read()
                 else:
                     # generate second vicuna
@@ -1557,6 +1558,9 @@ class UnshardedVicuna(VicunaBase):
                     if self.model_name == "llama2_13b":
                         dim1 = 40
                         total_tuple = 80
+                    elif self.model_name == "llama2_70b":
+                        dim1 = 8
+                        total_tuple = 160
                     else:
                         dim1 = 32
                         total_tuple = 64
@@ -1567,6 +1571,14 @@ class UnshardedVicuna(VicunaBase):
                     secondVicunaCompileInput = (compilation_input_ids,) + pkv
                     if self.model_name == "llama2_13b":
                         model = SecondVicuna13B(
+                            self.hf_model_path,
+                            self.precision,
+                            self.weight_group_size,
+                            self.model_name,
+                            self.hf_auth_token,
+                        )
+                    elif self.model_name == "llama2_70b":
+                        model = SecondVicuna70B(
                             self.hf_model_path,
                             self.precision,
                             self.weight_group_size,
@@ -1601,9 +1613,7 @@ class UnshardedVicuna(VicunaBase):
                     secondVicunaCompileInput = list(secondVicunaCompileInput)
                     for i in range(len(secondVicunaCompileInput)):
                         if i != 0:
-                            secondVicunaCompileInput[
-                                i
-                            ] = torch_mlir.TensorPlaceholder.like(
+                            secondVicunaCompileInput[i] = torch_mlir.TensorPlaceholder.like(
                                 secondVicunaCompileInput[i], dynamic_axes=[2]
                             )
                     secondVicunaCompileInput = tuple(secondVicunaCompileInput)
@@ -1634,6 +1644,7 @@ class UnshardedVicuna(VicunaBase):
                     del ts_graph
                     del secondVicunaCompileInput
                     gc.collect()
+
                     print(
                         "[DEBUG] successfully generated second vicuna linalg mlir"
                     )
@@ -1641,7 +1652,7 @@ class UnshardedVicuna(VicunaBase):
                         str(second_module)
                     )
                     if self.cache_vicunas:
-                        with open(f"second_{self.precision}.mlir", "w") as f:
+                        with open(second_model_path, "w+") as f:
                             f.write(second_module)
                         print("Finished writing IR after dynamic")
 
@@ -1649,7 +1660,6 @@ class UnshardedVicuna(VicunaBase):
                     first_module,
                     second_module,
                     self.vicuna_mlir_path,
-                    self.model_name,
                 )
                 del first_module, second_module
 
@@ -1738,7 +1748,6 @@ class UnshardedVicuna(VicunaBase):
             yield detok, ""
 
         res_str = self.decode_tokens(res_tokens)
-        # print(f"[DEBUG] final output : \n{res_str}")
         yield res_str, "formatted"
 
     def autocomplete(self, prompt):
