@@ -3,7 +3,10 @@ from abc import ABC, abstractmethod
 
 class SharkLLMBase(ABC):
     def __init__(
-        self, model_name, hf_model_path=None, max_num_tokens=512
+        self,
+        model_name,
+        hf_model_path=None,
+        max_num_tokens=512,
     ) -> None:
         self.model_name = model_name
         self.hf_model_path = hf_model_path

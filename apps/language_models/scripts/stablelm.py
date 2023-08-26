@@ -46,6 +46,7 @@ def compile_stableLM(
     model_vmfb_name,
     device="cuda",
     precision="fp32",
+    debug=False,
 ):
     from shark.shark_inference import SharkInference
 
@@ -92,7 +93,7 @@ def compile_stableLM(
     shark_module.compile()
 
     path = shark_module.save_module(
-        vmfb_path.parent.absolute(), vmfb_path.stem
+        vmfb_path.parent.absolute(), vmfb_path.stem, debug=debug
     )
     print("Saved vmfb at ", str(path))
 

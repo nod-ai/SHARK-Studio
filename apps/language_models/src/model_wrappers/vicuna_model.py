@@ -1107,17 +1107,17 @@ class SecondVicuna70B(torch.nn.Module):
         return tuple(return_vals)
 
 
-
 class CombinedModel(torch.nn.Module):
     def __init__(
         self,
         first_vicuna_model_path="TheBloke/vicuna-7B-1.1-HF",
         second_vicuna_model_path="TheBloke/vicuna-7B-1.1-HF",
-        ):
+    ):
         super().__init__()
         self.first_vicuna = FirstVicuna(first_vicuna_model_path)
         # NOT using this path for 13B currently, hence using `SecondVicuna7B`.
         self.second_vicuna = SecondVicuna7B(second_vicuna_model_path)
+
     def forward(self, input_ids):
         first_output = self.first_vicuna(input_ids=input_ids)
         # generate second vicuna
@@ -1125,9 +1125,7 @@ class CombinedModel(torch.nn.Module):
         pkv = tuple(
             (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
             for _ in range(64)
-
         )
         secondVicunaCompileInput = (compilation_input_ids,) + pkv
         second_output = self.second_vicuna(*secondVicunaCompileInput)
         return second_output
-

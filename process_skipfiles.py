@@ -7,14 +7,14 @@ import fileinput
 from pathlib import Path
 
 # Temorary workaround for transformers/__init__.py.
-path_to_tranformers_hook = Path(
+path_to_transformers_hook = Path(
     get_python_lib()
     + "/_pyinstaller_hooks_contrib/hooks/stdhooks/hook-transformers.py"
 )
-if path_to_tranformers_hook.is_file():
+if path_to_transformers_hook.is_file():
     pass
 else:
-    with open(path_to_tranformers_hook, "w") as f:
+    with open(path_to_transformers_hook, "w") as f:
         f.write("module_collection_mode = 'pyz+py'")
 
 path_to_skipfiles = Path(get_python_lib() + "/torch/_dynamo/skipfiles.py")

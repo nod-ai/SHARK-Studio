@@ -78,7 +78,7 @@ def _compile_module(shark_module, model_name, extra_args=[]):
                     )
                 )
             path = shark_module.save_module(
-                os.getcwd(), model_name, extra_args
+                os.getcwd(), model_name, extra_args, debug=args.compile_debug
             )
             shark_module.load_module(path, extra_args=extra_args)
     else:
