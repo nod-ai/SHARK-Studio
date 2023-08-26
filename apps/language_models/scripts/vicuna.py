@@ -1241,6 +1241,7 @@ class UnshardedVicuna(VicunaBase):
         download_vmfb=False,
         cache_vicunas=False,
         extra_args_cmd=[],
+        debug=False,
     ) -> None:
         super().__init__(
             model_name,
@@ -1269,6 +1270,7 @@ class UnshardedVicuna(VicunaBase):
         self.load_mlir_from_shark_tank = load_mlir_from_shark_tank
         self.low_device_memory = low_device_memory
         self.weight_group_size = weight_group_size
+        self.debug = debug
         if self.vicuna_mlir_path == None:
             self.vicuna_mlir_path = self.get_model_path()
         if self.vicuna_vmfb_path == None:
