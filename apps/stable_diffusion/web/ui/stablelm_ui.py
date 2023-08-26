@@ -194,6 +194,18 @@ def chat(
         from apps.language_models.scripts.vicuna import UnshardedVicuna
         from apps.stable_diffusion.src import args
 
+        if vicuna_model == 0:
+            if "cuda" in device:
+                device = "cuda"
+            elif "sync" in device:
+                device = "cpu-sync"
+            elif "task" in device:
+                device = "cpu-task"
+            elif "vulkan" in device:
+                device = "vulkan"
+            elif "rocm" in device:
+                device = "rocm"
+
         if new_model_vmfb_key != model_vmfb_key:
             model_vmfb_key = new_model_vmfb_key
             max_toks = 128 if model_name == "codegen" else 512
