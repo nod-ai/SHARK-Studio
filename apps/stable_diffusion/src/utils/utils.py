@@ -25,7 +25,7 @@ from shark.iree_utils.vulkan_utils import (
     get_iree_vulkan_runtime_flags,
 )
 from shark.iree_utils.metal_utils import get_metal_target_triple
-from shark.iree_utils.gpu_utils import get_cuda_sm_cc
+from shark.iree_utils.gpu_utils import get_cuda_sm_cc, get_iree_rocm_args
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
@@ -476,6 +476,8 @@ def get_available_devices():
     available_devices.extend(metal_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
+    rocm_devices = get_devices_by_name("rocm")
+    available_devices.extend(rocm_devices)
     cpu_device = get_devices_by_name("cpu-sync")
     available_devices.extend(cpu_device)
     cpu_device = get_devices_by_name("cpu-task")
@@ -499,7 +501,10 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags.append(
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
-
+    if "rocm" in args.device:
+        rocm_args = get_iree_rocm_args()
+        iree_flags.extend(rocm_args)
+        print(iree_flags)
     if args.iree_constant_folding == False:
         iree_flags.append("--iree-opt-const-expr-hoisting=False")
         iree_flags.append(
