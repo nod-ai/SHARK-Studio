@@ -160,14 +160,15 @@ def chat(
     model,
     device,
     precision,
+    download_vmfb,
     config_file,
     cli=False,
     progress=gr.Progress(),
 ):
     global past_key_values
     global model_vmfb_key
-
     global vicuna_model
+
     model_name, model_path = list(map(str.strip, model.split("=>")))
     if "cuda" in device:
         device = "cuda"
@@ -177,6 +178,8 @@ def chat(
         device = "cpu-task"
     elif "vulkan" in device:
         device = "vulkan"
+    elif "rocm" in device:
+        device = "rocm"
     else:
         print("unrecognized device")
 
@@ -193,18 +196,6 @@ def chat(
         from apps.language_models.scripts.vicuna import ShardedVicuna
         from apps.language_models.scripts.vicuna import UnshardedVicuna
         from apps.stable_diffusion.src import args
-
-        if vicuna_model == 0:
-            if "cuda" in device:
-                device = "cuda"
-            elif "sync" in device:
-                device = "cpu-sync"
-            elif "task" in device:
-                device = "cpu-task"
-            elif "vulkan" in device:
-                device = "vulkan"
-            elif "rocm" in device:
-                device = "rocm"
 
         if new_model_vmfb_key != model_vmfb_key:
             model_vmfb_key = new_model_vmfb_key
@@ -237,6 +228,8 @@ def chat(
                     device=device,
                     precision=precision,
                     max_num_tokens=max_toks,
+                    download_vmfb=download_vmfb,
+                    load_mlir_from_shark_tank=True,
                     extra_args_cmd=_extra_args,
                 )
                 #  else:
@@ -360,6 +353,8 @@ def llm_chat_api(InputData: dict):
             device=device,
             precision=precision,
             max_num_tokens=max_toks,
+            download_vmfb=True,
+            load_mlir_from_shark_tank=True,
         )
 
     # TODO: add role dict for different models
@@ -430,15 +425,14 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         # show cpu-task device first in list for chatbot
         supported_devices = supported_devices[-1:] + supported_devices[:-1]
         supported_devices = [x for x in supported_devices if "sync" not in x]
-        #  print(supported_devices)
-        devices = gr.Dropdown(
+        device = gr.Dropdown(
             label="Device",
             value=supported_devices[0]
             if enabled
             else "Only CUDA Supported for now",
             choices=supported_devices,
             interactive=enabled,
-            #  multiselect=True,
+            # multiselect=True,
         )
         precision = gr.Radio(
             label="Precision",
@@ -450,7 +444,13 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             ],
             visible=True,
         )
-        tokens_time = gr.Textbox(label="Tokens generated per second")
+        with gr.Column():
+            download_vmfb = gr.Checkbox(
+                label="Download vmfb from Shark tank if available",
+                value=True,
+                interactive=True,
+            )
+            tokens_time = gr.Textbox(label="Tokens generated per second")
 
     with gr.Row(visible=False):
         with gr.Group():
@@ -485,7 +485,15 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, devices, precision, config_file],
+        inputs=[
+            system_msg,
+            chatbot,
+            model,
+            device,
+            precision,
+            download_vmfb,
+            config_file,
+        ],
         outputs=[chatbot, tokens_time],
         queue=True,
     )
@@ -493,7 +501,15 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, devices, precision, config_file],
+        inputs=[
+            system_msg,
+            chatbot,
+            model,
+            device,
+            precision,
+            download_vmfb,
+            config_file,
+        ],
         outputs=[chatbot, tokens_time],
         queue=True,
     )
