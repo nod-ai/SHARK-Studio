@@ -355,8 +355,7 @@ class VicunaBase(SharkLLMBase):
             f_.writelines(line + "\n" for line in global_vars)
             f_.writelines(line + "\n" for line in f1)
             f_.writelines(line + "\n" for line in f2)
-            if not self.model_name in ["llama2_13b"]:
-                f_.writelines(line + "\n" for line in [module_end])
+            f_.writelines(line + "\n" for line in [module_end])
 
         del maps1
         del maps2
@@ -1628,6 +1627,7 @@ class UnshardedVicuna(VicunaBase):
                             use_tracing=False,
                             verbose=False,
                         )
+                        print(f"[DEBUG] converting torch to linalg")
                         run_pipeline_with_repro_report(
                             second_module,
                             "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
