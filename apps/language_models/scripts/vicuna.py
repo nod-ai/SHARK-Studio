@@ -1369,7 +1369,7 @@ class UnshardedVicuna(VicunaBase):
         if "llama2_13b" in self.model_name:
             pkv_tensor_shape = "tensor<1x40x?x128x"
         elif "llama2_70b" in self.model_name:
-            pkv_tensor_shape = "tensor<1x60x?x128x"
+            pkv_tensor_shape = "tensor<1x8x?x128x"
         else:
             pkv_tensor_shape = "tensor<1x32x?x128x"
         if self.precision in ["fp16", "int4", "int8"]:
