@@ -580,6 +580,7 @@ def import_with_fx(
         torch.ops.aten.native_layer_norm,
         torch.ops.aten.masked_fill.Tensor,
         torch.ops.aten.masked_fill.Scalar,
+        torch.ops.aten._scaled_dot_product_flash_attention.default,
     ]
     if precision in ["int4", "int8"]:
         from brevitas_examples.llm.llm_quant.export import (
