@@ -1,6 +1,8 @@
 from multiprocessing import Process, freeze_support
 import os
 import sys
+import subprocess
+from apps.stable_diffusion.web.utils import install_updates
 
 if sys.platform == "darwin":
     # import before IREE to avoid torch-MLIR library issues
@@ -43,6 +45,10 @@ def launch_app(address):
 if __name__ == "__main__":
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
+
+    # install updates if running in windows
+    install_updates()
+
     if args.api or "api" in args.ui.split(","):
         from apps.stable_diffusion.web.ui import (
             txt2img_api,
