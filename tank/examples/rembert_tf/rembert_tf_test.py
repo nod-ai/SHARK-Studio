@@ -1,4 +1,3 @@
-from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_model
 from tank.test_utils import get_valid_test_params, shark_test_name_func
