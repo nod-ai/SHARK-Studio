@@ -26,11 +26,7 @@ model_map = {
     "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
     "llama2_13b": "meta-llama/Llama-2-13b-chat-hf",
     "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
-    "codegen": "Salesforce/codegen25-7b-multi",
-    "vicuna1p3": "lmsys/vicuna-7b-v1.3",
     "vicuna": "TheBloke/vicuna-7B-1.1-HF",
-    "vicuna4": "TheBloke/vicuna-7B-1.1-HF",
-    "StableLM": "stabilityai/stablelm-tuned-alpha-3b",
 }
 
 # NOTE: Each `model_name` should have its own start message
@@ -62,33 +58,11 @@ start_message = {
         "explain why instead of answering something not correct. If you don't know the "
         "answer to a question, please don't share false information."
     ),
-    "StableLM": (
-        "<|SYSTEM|># StableLM Tuned (Alpha version)"
-        "\n- StableLM is a helpful and harmless open-source AI language model "
-        "developed by StabilityAI."
-        "\n- StableLM is excited to be able to help the user, but will refuse "
-        "to do anything that could be considered harmful to the user."
-        "\n- StableLM is more than just an information source, StableLM is also "
-        "able to write poetry, short stories, and make jokes."
-        "\n- StableLM will refuse to participate in anything that "
-        "could harm a human."
-    ),
     "vicuna": (
         "A chat between a curious user and an artificial intelligence assistant. "
         "The assistant gives helpful, detailed, and polite answers to the user's "
         "questions.\n"
     ),
-    "vicuna4": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "vicuna1p3": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "codegen": "",
 }
 
 
@@ -96,10 +70,7 @@ def create_prompt(model_name, history):
     system_message = start_message[model_name]
 
     if model_name in [
-        "StableLM",
         "vicuna",
-        "vicuna4",
-        "vicuna1p3",
         "llama2_7b",
         "llama2_13b",
         "llama2_70b",
@@ -186,9 +157,6 @@ def chat(
     new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{precision}"
     if model_name in [
         "vicuna",
-        "vicuna4",
-        "vicuna1p3",
-        "codegen",
         "llama2_7b",
         "llama2_13b",
         "llama2_70b",
