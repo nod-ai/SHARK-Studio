@@ -95,44 +95,64 @@ _IREE_TARGET_MAP = {
 # Finds whether the required drivers are installed for the given device.
 @functools.cache
 def check_device_drivers(device):
-    """Checks necessary drivers present for gpu and vulkan devices"""
+    """
+    Checks necessary drivers present for gpu and vulkan devices
+    False => drivers present!
+    """
     if "://" in device:
         device = device.split("://")[0]
 
-    if device == "cuda":
-        try:
-            subprocess.check_output("nvidia-smi")
-        except Exception:
-            return True
-    elif device in ["vulkan"]:
-        try:
-            subprocess.check_output("vulkaninfo")
-        except Exception:
-            return True
-    elif device == "metal":
-        return False
-    elif device in ["intel-gpu"]:
-        try:
-            subprocess.check_output(["dpkg", "-L", "intel-level-zero-gpu"])
-            return False
-        except Exception:
-            return True
-    elif device == "cpu":
-        return False
-    elif device == "rocm":
-        # Required ROCm driver libs are already part of IREE
-        return False
+    from iree.runtime import get_driver
+
+    device_mapped = iree_device_map(device)
+
+    try:
+        _ = get_driver(device_mapped)
+    except ValueError as ve:
+        print(
+            f"[ERR] device `{device}` not registered with IREE. "
+            "Ensure IREE is configured for use with this device.\n"
+            f"Full Error: \n {repr(ve)}"
+        )
+        return True
+    except RuntimeError as re:
+        print(
+            f"[ERR] Failed to get driver for {device} with error:\n{repr(re)}"
+        )
+        return True
+
     # Unknown device. We assume drivers are installed.
     return False
 
 
 # Installation info for the missing device drivers.
 def device_driver_info(device):
-    if device == "cuda":
-        return "nvidia-smi not found, please install the required drivers from https://www.nvidia.in/Download/index.aspx?lang=en-in"
-    elif device in ["metal", "vulkan"]:
-        return "vulkaninfo not found, Install from https://vulkan.lunarg.com/sdk/home or your distribution"
-    elif device == "rocm":
-        return "rocm info not found. Please install rocm"
+    device_driver_err_map = {
+        "cuda": {
+            "debug": "Try `nvidia-smi` on system to check.",
+            "solution": " from https://www.nvidia.in/Download/index.aspx?lang=en-in for your system.",
+        },
+        "vulkan": {
+            "debug": "Try `vulkaninfo` on system to check.",
+            "solution": " from https://vulkan.lunarg.com/sdk/home for your distribution.",
+        },
+        "metal": {
+            "debug": "Check if Bare metal is supported and enabled on your system.",
+            "solution": ".",
+        },
+        "rocm": {
+            "debug": f"Try `{'hip' if sys.platform == 'win32' else 'rocm'}info` on system to check.",
+            "solution": " from https://rocm.docs.amd.com/en/latest/rocm.html for your system.",
+        },
+    }
+
+    if device in device_driver_err_map:
+        err_msg = (
+            f"Required drivers for {device} not found. {device_driver_err_map[device]['debug']} "
+            f"Please install the required drivers{device_driver_err_map[device]['solution']} "
+            f"For further assistance please reach out to the community on discord [https://discord.com/invite/RUqY2h2s9u]"
+            f" and/or file a bug at https://github.com/nod-ai/SHARK/issues"
+        )
+        return err_msg
     else:
         return f"{device} is not supported."
