@@ -3,10 +3,6 @@ import os
 import torch
 import numpy as np
 from shark_opt_wrapper import OPTForCausalLMModel
-from shark.iree_utils._common import (
-    check_device_drivers,
-    device_driver_info,
-)
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM

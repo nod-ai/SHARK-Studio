@@ -129,12 +129,12 @@ pytest_benchmark_param = pytest.mark.parametrize(
         pytest.param(True, "cpu", marks=pytest.mark.skip),
         pytest.param(
             False,
-            "gpu",
+            "cuda",
             marks=pytest.mark.skipif(
-                check_device_drivers("gpu"), reason="nvidia-smi not found"
+                check_device_drivers("cuda"), reason="nvidia-smi not found"
             ),
         ),
-        pytest.param(True, "gpu", marks=pytest.mark.skip),
+        pytest.param(True, "cuda", marks=pytest.mark.skip),
         pytest.param(
             False,
             "vulkan",
