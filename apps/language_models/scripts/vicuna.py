@@ -413,8 +413,7 @@ class VicunaBase(SharkLLMBase):
             _past_key_values = torch.tensor(output[1:])
             _token = torch.argmax(_logits[:, -1, :], dim=1)
 
-        skip_sp_tok = True if self.model_name == "codegen" else False
-        _detok = self.tokenizer.decode(_token, skip_special_tokens=skip_sp_tok)
+        _detok = self.tokenizer.decode(_token, skip_special_tokens=False)
         ret_dict = {
             "token": _token,
             "detok": _detok,
@@ -465,17 +464,11 @@ class ShardedVicuna(VicunaBase):
             kwargs = {
                 "use_auth_token": "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"
             }
-        if self.model_name == "codegen":
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                trust_remote_code=True,
-            )
-        else:
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                use_fast=False,
-                **kwargs,
-            )
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.hf_model_path,
+            use_fast=False,
+            **kwargs,
+        )
         return tokenizer
 
     def get_src_model(self):
@@ -1284,17 +1277,11 @@ class UnshardedVicuna(VicunaBase):
 
     def get_tokenizer(self):
         kwargs = {"use_auth_token": self.hf_auth_token}
-        if self.model_name == "codegen":
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                trust_remote_code=True,
-            )
-        else:
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                use_fast=False,
-                **kwargs,
-            )
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.hf_model_path,
+            use_fast=False,
+            **kwargs,
+        )
         return tokenizer
 
     def get_src_model(self):
@@ -1448,10 +1435,7 @@ class UnshardedVicuna(VicunaBase):
             print("[DEBUG] generating mlir on device")
             # Select a compilation prompt such that the resulting input_ids
             # from the model's tokenizer has shape [1, 19]
-            if self.model_name == "codegen":
-                compilation_prompt = "def hello_world():\n    print('Hello World')\n    print('Hello World')"
-            else:
-                compilation_prompt = "".join(["0" for _ in range(17)])
+            compilation_prompt = "".join(["0" for _ in range(17)])
 
             first_model_path = f"first_{self.model_name}_{self.precision}.mlir"
             if Path(first_model_path).exists():
@@ -1683,9 +1667,8 @@ class UnshardedVicuna(VicunaBase):
             if type(res_tokens[i]) != int:
                 res_tokens[i] = int(res_tokens[i][0])
 
-        skip_sp_tok = True if self.model_name == "codegen" else False
         res_str = self.tokenizer.decode(
-            res_tokens, skip_special_tokens=skip_sp_tok
+            res_tokens, skip_special_tokens=False
         )
         return res_str
 
@@ -1728,7 +1711,7 @@ class UnshardedVicuna(VicunaBase):
             pkv = generated_token_op["past_key_values"]
             detok = generated_token_op["detok"]
 
-            if token == 2 and self.model_name != "codegen":
+            if token == 2:
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
@@ -1776,33 +1759,11 @@ start_message = {
         "explain why instead of answering something not correct. If you don't know the "
         "answer to a question, please don't share false information."
     ),
-    "StableLM": (
-        "<|SYSTEM|># StableLM Tuned (Alpha version)"
-        "\n- StableLM is a helpful and harmless open-source AI language model "
-        "developed by StabilityAI."
-        "\n- StableLM is excited to be able to help the user, but will refuse "
-        "to do anything that could be considered harmful to the user."
-        "\n- StableLM is more than just an information source, StableLM is also "
-        "able to write poetry, short stories, and make jokes."
-        "\n- StableLM will refuse to participate in anything that "
-        "could harm a human."
-    ),
     "vicuna": (
         "A chat between a curious user and an artificial intelligence assistant. "
         "The assistant gives helpful, detailed, and polite answers to the user's "
         "questions.\n"
     ),
-    "vicuna4": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "vicuna1p3": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "codegen": "",
 }
 
 

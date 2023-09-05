@@ -46,7 +46,7 @@ def get_iree_device_args(device, extra_args=[]):
     if device_uri[0] == "cpu":
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
-        data_tiling_flag = ["--iree-flow-enable-data-tiling"]
+        data_tiling_flag = ["--iree-opt-data-tiling"]
         u_kernel_flag = ["--iree-llvmcpu-enable-microkernels"]
         stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=256000"]
 
@@ -84,7 +84,7 @@ def get_iree_frontend_args(frontend):
     elif frontend in ["tensorflow", "tf", "mhlo", "stablehlo"]:
         return [
             "--iree-llvmcpu-target-cpu-features=host",
-            "--iree-flow-demote-i64-to-i32",
+            "--iree-input-demote-i64-to-i32",
         ]
     else:
         # Frontend not found.

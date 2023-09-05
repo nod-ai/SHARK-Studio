@@ -26,11 +26,7 @@ model_map = {
     "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
     "llama2_13b": "meta-llama/Llama-2-13b-chat-hf",
     "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
-    "codegen": "Salesforce/codegen25-7b-multi",
-    "vicuna1p3": "lmsys/vicuna-7b-v1.3",
     "vicuna": "TheBloke/vicuna-7B-1.1-HF",
-    "vicuna4": "TheBloke/vicuna-7B-1.1-HF",
-    "StableLM": "stabilityai/stablelm-tuned-alpha-3b",
 }
 
 # NOTE: Each `model_name` should have its own start message
@@ -62,33 +58,11 @@ start_message = {
         "explain why instead of answering something not correct. If you don't know the "
         "answer to a question, please don't share false information."
     ),
-    "StableLM": (
-        "<|SYSTEM|># StableLM Tuned (Alpha version)"
-        "\n- StableLM is a helpful and harmless open-source AI language model "
-        "developed by StabilityAI."
-        "\n- StableLM is excited to be able to help the user, but will refuse "
-        "to do anything that could be considered harmful to the user."
-        "\n- StableLM is more than just an information source, StableLM is also "
-        "able to write poetry, short stories, and make jokes."
-        "\n- StableLM will refuse to participate in anything that "
-        "could harm a human."
-    ),
     "vicuna": (
         "A chat between a curious user and an artificial intelligence assistant. "
         "The assistant gives helpful, detailed, and polite answers to the user's "
         "questions.\n"
     ),
-    "vicuna4": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "vicuna1p3": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "codegen": "",
 }
 
 
@@ -96,10 +70,7 @@ def create_prompt(model_name, history):
     system_message = start_message[model_name]
 
     if model_name in [
-        "StableLM",
         "vicuna",
-        "vicuna4",
-        "vicuna1p3",
         "llama2_7b",
         "llama2_13b",
         "llama2_70b",
@@ -183,123 +154,68 @@ def chat(
     else:
         print("unrecognized device")
 
+    from apps.language_models.scripts.vicuna import ShardedVicuna
+    from apps.language_models.scripts.vicuna import UnshardedVicuna
+    from apps.stable_diffusion.src import args
+
     new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{precision}"
-    if model_name in [
-        "vicuna",
-        "vicuna4",
-        "vicuna1p3",
-        "codegen",
-        "llama2_7b",
-        "llama2_13b",
-        "llama2_70b",
-    ]:
-        from apps.language_models.scripts.vicuna import ShardedVicuna
-        from apps.language_models.scripts.vicuna import UnshardedVicuna
-        from apps.stable_diffusion.src import args
-
-        if new_model_vmfb_key != model_vmfb_key:
-            model_vmfb_key = new_model_vmfb_key
-            max_toks = 128 if model_name == "codegen" else 512
-
-            # get iree flags that need to be overridden, from commandline args
-            _extra_args = []
-            # vulkan target triple
-            if args.iree_vulkan_target_triple != "":
-                _extra_args.append(
-                    f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
-                )
-
-            if model_name == "vicuna4":
-                vicuna_model = ShardedVicuna(
-                    model_name,
-                    hf_model_path=model_path,
-                    device=device,
-                    precision=precision,
-                    max_num_tokens=max_toks,
-                    compressed=True,
-                    extra_args_cmd=_extra_args,
-                )
-            else:
-                #  if config_file is None:
-                vicuna_model = UnshardedVicuna(
-                    model_name,
-                    hf_model_path=model_path,
-                    hf_auth_token=args.hf_auth_token,
-                    device=device,
-                    precision=precision,
-                    max_num_tokens=max_toks,
-                    download_vmfb=download_vmfb,
-                    load_mlir_from_shark_tank=True,
-                    extra_args_cmd=_extra_args,
-                )
-                #  else:
-                #      if config_file is not None:
-                #          config_file = open(config_file)
-                #          config_json = json.load(config_file)
-                #          config_file.close()
-                #      else:
-                #          config_json = get_default_config()
-                #      vicuna_model = ShardedVicuna(
-                #          model_name,
-                #          device=device,
-                #          precision=precision,
-                #          config_json=config_json,
-                #      )
-
-        prompt = create_prompt(model_name, history)
-
-        partial_text = ""
-        count = 0
-        start_time = time.time()
-        for text, msg in progress.tqdm(
-            vicuna_model.generate(prompt, cli=cli),
-            desc="generating response",
-        ):
-            count += 1
-            if "formatted" in msg:
-                history[-1][1] = text
-                end_time = time.time()
-                tokens_per_sec = count / (end_time - start_time)
-                yield history, str(
-                    format(tokens_per_sec, ".2f")
-                ) + " tokens/sec"
-            else:
-                partial_text += text + " "
-                history[-1][1] = partial_text
-                yield history, ""
-
-        return history, ""
-
-    # else Model is StableLM
-    global sharkModel
-    from apps.language_models.src.pipelines.stablelm_pipeline import (
-        SharkStableLM,
-    )
-
     if new_model_vmfb_key != model_vmfb_key:
         model_vmfb_key = new_model_vmfb_key
-        # max_new_tokens=512
-        shark_slm = SharkStableLM(
-            model_name
-        )  # pass elements from UI as required
+        max_toks = 128 if model_name == "codegen" else 512
 
-    # Construct the input message string for the model by concatenating the
-    # current system message and conversation history
-    if len(curr_system_message.split()) > 160:
-        print("clearing context")
+        # get iree flags that need to be overridden, from commandline args
+        _extra_args = []
+        # vulkan target triple
+        if args.iree_vulkan_target_triple != "":
+            _extra_args.append(
+                f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+            )
+
+        if model_name == "vicuna4":
+            vicuna_model = ShardedVicuna(
+                model_name,
+                hf_model_path=model_path,
+                device=device,
+                precision=precision,
+                max_num_tokens=max_toks,
+                compressed=True,
+                extra_args_cmd=_extra_args,
+            )
+        else:
+            #  if config_file is None:
+            vicuna_model = UnshardedVicuna(
+                model_name,
+                hf_model_path=model_path,
+                hf_auth_token=args.hf_auth_token,
+                device=device,
+                precision=precision,
+                max_num_tokens=max_toks,
+                download_vmfb=download_vmfb,
+                load_mlir_from_shark_tank=True,
+                extra_args_cmd=_extra_args,
+            )
+
     prompt = create_prompt(model_name, history)
-    generate_kwargs = dict(prompt=prompt)
-
-    words_list = shark_slm.generate(**generate_kwargs)
 
     partial_text = ""
-    for new_text in words_list:
-        partial_text += new_text
-        history[-1][1] = partial_text
-        # Yield an empty string to clean up the message textbox and the updated
-        # conversation history
-        yield history
-    return words_list
+    count = 0
+    start_time = time.time()
+    for text, msg in progress.tqdm(
+        vicuna_model.generate(prompt, cli=cli),
+        desc="generating response",
+    ):
+        count += 1
+        if "formatted" in msg:
+            history[-1][1] = text
+            end_time = time.time()
+            tokens_per_sec = count / (end_time - start_time)
+            yield history, str(format(tokens_per_sec, ".2f")) + " tokens/sec"
+        else:
+            partial_text += text + " "
+            history[-1][1] = partial_text
+            yield history, ""
+
+    return history, ""
 
 
 def llm_chat_api(InputData: dict):
@@ -417,7 +333,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         )
         model = gr.Dropdown(
             label="Select Model",
-            value=model_choices[4],
+            value=model_choices[1],
             choices=model_choices,
         )
         supported_devices = available_devices
