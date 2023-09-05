@@ -84,7 +84,7 @@ def get_iree_frontend_args(frontend):
     elif frontend in ["tensorflow", "tf", "mhlo", "stablehlo"]:
         return [
             "--iree-llvmcpu-target-cpu-features=host",
-            "--iree-flow-demote-i64-to-i32",
+            "--iree-input-demote-i64-to-i32",
         ]
     else:
         # Frontend not found.
