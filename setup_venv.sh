@@ -130,14 +130,13 @@ fi
 
 $PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/cpu/
 
-if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
+if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   T_VER=$($PYTHON -m pip show torch | grep Version)
-  TORCH_VERSION=${T_VER:9:17}
+  T_VER_MIN=${T_VER:14:12}
   TV_VER=$($PYTHON -m pip show torchvision | grep Version)
-  TV_VERSION=${TV_VER:9:18}
-  $PYTHON -m pip uninstall -y torch torchvision
-  $PYTHON -m pip install -U --pre --no-warn-conflicts triton
-  $PYTHON -m pip install --no-deps https://download.pytorch.org/whl/nightly/cu118/torch-${TORCH_VERSION}%2Bcu118-cp311-cp311-linux_x86_64.whl https://download.pytorch.org/whl/nightly/cu118/torchvision-${TV_VERSION}%2Bcu118-cp311-cp311-linux_x86_64.whl
+  TV_VER_MAJ=${TV_VER:9:6}
+  $PYTHON -m pip uninstall -y torchvision
+  $PYTHON -m pip install torchvision==${TV_VER_MAJ}${T_VER_MIN} --no-deps -f https://download.pytorch.org/whl/nightly/cpu/torchvision/
   if [ $? -eq 0 ];then
     echo "Successfully Installed torch + cu118."
   else
