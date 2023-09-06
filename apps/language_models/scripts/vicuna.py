@@ -1432,6 +1432,10 @@ class UnshardedVicuna(VicunaBase):
 
         if not mlir_generated:
             print(f"[DEBUG] mlir not found")
+            # Disabling this path of IR generation for now as it is broken.
+            print("Please check if the mlir file is present at the shark tank. Exiting.")
+            return
+
             print("[DEBUG] generating mlir on device")
             # Select a compilation prompt such that the resulting input_ids
             # from the model's tokenizer has shape [1, 19]
