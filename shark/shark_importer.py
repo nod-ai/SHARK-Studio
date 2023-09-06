@@ -581,6 +581,8 @@ def import_with_fx(
         torch.ops.aten.masked_fill.Tensor,
         torch.ops.aten.masked_fill.Scalar,
         torch.ops.aten._scaled_dot_product_flash_attention.default,
+        torch.ops.aten.index_add,
+        torch.ops.aten.index_add_,
     ]
     if precision in ["int4", "int8"]:
         from brevitas_examples.llm.llm_quant.export import (
@@ -681,5 +683,5 @@ def import_with_fx(
         )
         return mlir_module, func_name
 
-    mlir_module, func_name = mlir_importer.import_mlir()
+    mlir_module, func_name = mlir_importer.import_mlir(mlir_type=mlir_type)
     return mlir_module, func_name
