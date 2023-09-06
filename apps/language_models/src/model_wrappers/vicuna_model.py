@@ -8,13 +8,9 @@ class FirstVicuna(torch.nn.Module):
         model_path,
         precision="fp32",
         weight_group_size=128,
-        model_name="vicuna",
-        hf_auth_token: str = None,
     ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
-        if "llama2" in model_name:
-            kwargs["use_auth_token"] = hf_auth_token
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
@@ -57,13 +53,9 @@ class SecondVicuna7B(torch.nn.Module):
         model_path,
         precision="fp32",
         weight_group_size=128,
-        model_name="vicuna",
-        hf_auth_token: str = None,
     ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
-        if "llama2" in model_name:
-            kwargs["use_auth_token"] = hf_auth_token
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
@@ -303,13 +295,9 @@ class SecondVicuna13B(torch.nn.Module):
         model_path,
         precision="int8",
         weight_group_size=128,
-        model_name="vicuna",
-        hf_auth_token: str = None,
     ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
-        if "llama2" in model_name:
-            kwargs["use_auth_token"] = hf_auth_token
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )
@@ -596,13 +584,9 @@ class SecondVicuna70B(torch.nn.Module):
         model_path,
         precision="fp32",
         weight_group_size=128,
-        model_name="vicuna",
-        hf_auth_token: str = None,
     ):
         super().__init__()
         kwargs = {"torch_dtype": torch.float32}
-        if "llama2" in model_name:
-            kwargs["use_auth_token"] = hf_auth_token
         self.model = AutoModelForCausalLM.from_pretrained(
             model_path, low_cpu_mem_usage=True, **kwargs
         )

@@ -23,9 +23,9 @@ vicuna_model = 0
 past_key_values = None
 
 model_map = {
-    "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
-    "llama2_13b": "meta-llama/Llama-2-13b-chat-hf",
-    "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
+    "llama2_7b": "daryl149/llama-2-7b-chat-hf",
+    "llama2_13b": "daryl149/llama-2-13b-chat-hf",
+    "llama2_70b": "daryl149/llama-2-70b-chat-hf",
     "vicuna": "TheBloke/vicuna-7B-1.1-HF",
 }
 
@@ -186,7 +186,6 @@ def chat(
             vicuna_model = UnshardedVicuna(
                 model_name,
                 hf_model_path=model_path,
-                hf_auth_token=args.hf_auth_token,
                 device=device,
                 precision=precision,
                 max_num_tokens=max_toks,
