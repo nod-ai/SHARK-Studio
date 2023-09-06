@@ -333,7 +333,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         )
         model = gr.Dropdown(
             label="Select Model",
-            value=model_choices[1],
+            value=model_choices[0],
             choices=model_choices,
         )
         supported_devices = available_devices
