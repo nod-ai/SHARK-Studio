@@ -57,7 +57,7 @@ def get_version(triple):
 @functools.cache
 def get_extensions(triple):
     def make_ext_list(ext_list):
-        res = ", ".join(ext_list)
+        res = ", ".join(ext_list) + ", "
         res = f"[{res[:-2]}]"
         return res
 
