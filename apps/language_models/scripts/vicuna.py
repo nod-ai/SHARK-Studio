@@ -7,6 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 from typing import List, Tuple
 import subprocess
+import sys
 
 import torch
 import torch_mlir
@@ -1434,6 +1435,8 @@ class UnshardedVicuna(VicunaBase):
             print(f"[DEBUG] mlir not found")
             # Disabling this path of IR generation for now as it is broken.
             print("Please check if the mlir file is present at the shark tank. Exiting.")
+            self.shark_model = None
+            sys.exit()
             return
 
             print("[DEBUG] generating mlir on device")
