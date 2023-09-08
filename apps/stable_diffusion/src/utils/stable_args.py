@@ -634,6 +634,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--debug",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Flag for enabling debugging log in WebUI.",
+)
+
+p.add_argument(
     "--output_gallery",
     default=True,
     action=argparse.BooleanOptionalAction,

@@ -1,6 +1,7 @@
 from multiprocessing import Process, freeze_support
 import os
 import sys
+import logging
 
 if sys.platform == "darwin":
     # import before IREE to avoid torch-MLIR library issues
@@ -41,6 +42,8 @@ def launch_app(address):
 
 
 if __name__ == "__main__":
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
     if args.api or "api" in args.ui.split(","):
