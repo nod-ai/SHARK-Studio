@@ -356,7 +356,6 @@ def get_iree_module(flatbuffer_blob, device, device_idx=None):
 def load_vmfb_using_mmap(
     flatbuffer_blob_or_path, device: str, device_idx: int = None
 ):
-    print(f"Loading module {flatbuffer_blob_or_path}...")
     if "rocm" in device:
         device = "rocm"
     with DetailLogger(timeout=2.5) as dl:
