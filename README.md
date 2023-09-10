@@ -1,129 +1,114 @@
 # SHARK
 
-High Performance Machine Learning Distribution
+ SHARK is a high performarce machine learning distribution that is built on LLVM, MLIR, OpenXLA’s IREE and nod.ai’s tuning.
 
 [![Nightly Release](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml)
 [![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
 
-
-<details>
-  <summary>Prerequisites - Drivers </summary>
-  
-#### Install your Windows hardware drivers
-* [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-2-1).
-* [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work. 
-* [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
-  
-#### Linux Drivers
-* MESA / RADV drivers wont work with FP16. Please use the latest AMGPU-PRO drivers (non-pro OSS drivers also wont work) or the latest NVidia Linux Drivers.
-
-Other users please ensure you have your latest vendor drivers and Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home) and if you are using vulkan check `vulkaninfo` works in a terminal window
-
-</details>
-
-
  
-### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
+## Windows 10/11 QuickStart Guide
 
-Install the Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
+### Installation
 
-Download the [stable release](https://github.com/nod-ai/shark/releases/latest)
+Install Windows Hardware Drivers
+* [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-2-1).
+* [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
 
-Double click the .exe and you should have the [UI](http://localhost:8080/) in the browser. 
+Download the SHARK [stable release](https://github.com/nod-ai/shark/releases/latest)
 
-If you have custom models put them in a `models/` directory where the .exe is. 
+Double click the .exe and the [UI](http://localhost:8080/) will open in the browser. 
 
-Enjoy. 
+If you have custom models put them in a `models/` directory where the .exe is located. 
 
-<details>
-  <summary>More installation notes</summary>
+
+
 * We recommend that you download EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files with `rm *.vmfb`. You can also use `--clear_all` flag once to clean all the old files. 
 * If you recently updated the driver or this binary (EXE file), we recommend you clear all the local artifacts with `--clear_all` 
 
-## Running
+### Running
 
 * Open a Command Prompt or Powershell terminal, change folder (`cd`) to the .exe folder. Then run the EXE from the command prompt. That way, if an error occurs, you'll be able to cut-and-paste it to ask for help. (if it always works for you without error, you may simply double-click the EXE)
 * The first run may take few minutes when the models are downloaded and compiled. Your patience is appreciated. The download could be about 5GB.
 * You will likely see a Windows Defender message asking you to give permission to open a web server port. Accept it.
 * Open a browser to access the Stable Diffusion web server. By default, the port is 8080, so you can go to http://localhost:8080/.
 
-## Stopping
+### Stopping
 
 * Select the command prompt that's running the EXE. Press CTRL-C and wait a moment or close the terminal. 
-</details>
 
-<details>
-  <summary>Advanced Installation (Only for developers)</summary>
-  
-## Advanced Installation (Windows, Linux and macOS) for developers
+## Windows 10/11 Advanced Installation Guide
 
-## Check out the code
+### Prerequisites
 
+* Install the latest Python 3.11.x version from [here](https://www.python.org/downloads/windows/)
+* Install Git for Windows from [here](https://git-scm.com/download/win)
+
+#### Install Windows Hardware Drivers
+* [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-2-1).
+* [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
+
+### Clone the code
 ```shell
 git clone https://github.com/nod-ai/SHARK.git
 cd SHARK
 ```
-
-## Setup your Python VirtualEnvironment and Dependencies
-
-### Windows 10/11 Users
-
-* Install the latest Python 3.11.x version from [here](https://www.python.org/downloads/windows/)
-
-* Install Git for Windows from [here](https://git-scm.com/download/win)
+### Setup your Virtual Environment and Dependencies
 
 #### Allow the install script to run in Powershell
 ```powershell
 set-executionpolicy remotesigned
 ```
-
 #### Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...)
 ```powershell
 ./setup_venv.ps1 #You can re-run this script to get the latest version
 ```
 
-### Linux / macOS Users
-
-```shell
-./setup_venv.sh
-source shark.venv/bin/activate
-```
-
-
 ### Run Stable Diffusion on your device - WebUI
 
-#### Windows 10/11 Users
 ```powershell
 (shark.venv) PS C:\g\shark> cd .\apps\stable_diffusion\web\
 (shark.venv) PS C:\g\shark\apps\stable_diffusion\web> python .\index.py
 ```
-#### Linux / macOS Users
+#### Access Stable Diffusion on http://localhost:8080/?__theme=dark
+
+### Run Stable Diffusion from Commandline
+```powershell
+(shark.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\main.py --app="txt2img" --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
+```
+<img width="1607" alt="webui" src="https://user-images.githubusercontent.com/74956/204939260-b8308bc2-8dc4-47f6-9ac0-f60b66edab99.png">
+
+## MacOS & Linux Guide
+
+### Prerequisites
+* Install Python 3.11
+#### MacOS Drivers
+* Install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Note: Newer versions of the SDK will not work. 
+#### Linux Drivers
+* MESA / RADV drivers wont work with FP16. Please use the latest AMGPU-PRO drivers (non-pro OSS drivers also wont work) or the latest NVidia Linux Drivers.
+  
+Other users please ensure you have your latest vendor drivers and Vulkan SDK from [here](https://vulkan.lunarg.com/sdk/home) and if you are using vulkan check `vulkaninfo` works in a terminal window
+### Clone the code
+```shell
+git clone https://github.com/nod-ai/SHARK.git
+cd SHARK
+```
+###  Set up your virtual environment
+```shell
+./setup_venv.sh
+source shark.venv/bin/activate
+```
+### Run Stable Diffusion and open the web interface
 ```shell
 (shark.venv) > cd apps/stable_diffusion/web
 (shark.venv) > python index.py
 ```
-
-#### Access Stable Diffusion on http://localhost:8080/?__theme=dark
-
-
-<img width="1607" alt="webui" src="https://user-images.githubusercontent.com/74956/204939260-b8308bc2-8dc4-47f6-9ac0-f60b66edab99.png">
-
-
-
-### Run Stable Diffusion on your device - Commandline
-
-#### Windows 10/11 Users
-```powershell
-(shark.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\main.py --app="txt2img" --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
-```
-
-#### Linux / macOS Users
+### Run Stable Diffusion via command line  
 ```shell
-python3.11 apps/stable_diffusion/scripts/main.py --app=txt2img --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
+python apps/stable_diffusion/scripts/main.py --app=txt2img --precision=fp16 --device=vulkan --prompt="tajmahal, oil on canvas, sunflowers, 4k, uhd"
 ```
+You can replace `vulkan` with `cpu` to run on your CPU. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
 
-You can replace `vulkan` with `cpu` to run on your CPU or with `cuda` to run on CUDA devices. If you have multiple vulkan devices you can address them with `--device=vulkan://1` etc
-</details>
+## Notes & Extras
 
 The output on a AMD 7900XTX would look something like:
 
