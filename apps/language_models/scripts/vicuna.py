@@ -1782,14 +1782,26 @@ start_message = {
 def create_prompt(model_name, history):
     global start_message
     system_message = start_message[model_name]
-    conversation = "".join(
-        [
-            "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
-            for item in history
-        ]
-    )
-    msg = system_message + conversation
-    msg = msg.strip()
+    if "llama2" in model_name:
+        B_INST, E_INST = "[INST]", "[/INST]"
+        B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+        conversation = "".join(
+            [
+                f"{B_INST} {item[0].strip()} {E_INST} {item[1].strip()} "
+                for item in history[1:]
+            ]
+        )
+        msg = f"{B_INST} {B_SYS} {system_message} {E_SYS} {history[0][0]} {E_INST} {history[0][1]} {conversation}"
+
+    else:
+        conversation = "".join(
+            [
+                "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
+                for item in history
+            ]
+        )
+        msg = system_message + conversation
+        msg = msg.strip()
     return msg
 
 
