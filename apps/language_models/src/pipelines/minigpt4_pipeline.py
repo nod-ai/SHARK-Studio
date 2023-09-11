@@ -178,7 +178,7 @@ def load_vmfb(extended_model_name, device, mlir_dialect, extra_args=[]):
 
 
 def compile_module(
-    shark_module, extended_model_name, generate_vmfb, extra_args=[]
+    shark_module, extended_model_name, generate_vmfb, extra_args=[], debug=False,
 ):
     if generate_vmfb:
         vmfb_path = os.path.join(os.getcwd(), extended_model_name + ".vmfb")
@@ -190,7 +190,7 @@ def compile_module(
                 "No vmfb found. Compiling and saving to {}".format(vmfb_path)
             )
             path = shark_module.save_module(
-                os.getcwd(), extended_model_name, extra_args
+                os.getcwd(), extended_model_name, extra_args, debug=debug
             )
             shark_module.load_module(path, extra_args=extra_args)
     else:
@@ -199,7 +199,7 @@ def compile_module(
 
 
 def compile_int_precision(
-    model, inputs, precision, device, generate_vmfb, extended_model_name
+    model, inputs, precision, device, generate_vmfb, extended_model_name, debug=False
 ):
     torchscript_module = import_with_fx(
         model,
@@ -219,7 +219,7 @@ def compile_int_precision(
     print(f"[DEBUG] converting torch to linalg")
     run_pipeline_with_repro_report(
         mlir_module,
-        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
     )
     from contextlib import redirect_stdout
@@ -251,6 +251,7 @@ def compile_int_precision(
             extended_model_name=extended_model_name,
             generate_vmfb=generate_vmfb,
             extra_args=extra_args,
+            debug=debug,
         ),
         bytecode,
     )
@@ -294,6 +295,7 @@ def shark_compile_through_fx_int(
         device,
         generate_or_load_vmfb,
         extended_model_name,
+        debug,
     )
     extra_args = [
         "--iree-hal-dump-executable-sources-to=ies",

@@ -45,6 +45,7 @@ datas += collect_data_files("iree")
 datas += collect_data_files("google_cloud_storage")
 datas += collect_data_files("shark", include_py_files=True)
 datas += collect_data_files("timm", include_py_files=True)
+datas += collect_data_files("tqdm")
 datas += collect_data_files("tkinter")
 datas += collect_data_files("webview")
 datas += collect_data_files("sentencepiece")
@@ -73,8 +74,11 @@ datas += [
 # hidden imports for pyinstaller
 hiddenimports = ["shark", "shark.shark_inference", "apps"]
 hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
+blacklist = ["tests", "convert"]
 hiddenimports += [
-    x for x in collect_submodules("transformers") if "tests" not in x
+    x
+    for x in collect_submodules("transformers")
+    if not any(kw in x for kw in blacklist)
 ]
 hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
 hiddenimports += ["iree._runtime", "iree._runtime_libs"]

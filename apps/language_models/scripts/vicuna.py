@@ -7,6 +7,7 @@ from pathlib import Path
 from tqdm import tqdm
 from typing import List, Tuple
 import subprocess
+import sys
 
 import torch
 import torch_mlir
@@ -37,7 +38,9 @@ from apps.language_models.src.model_wrappers.vicuna4 import (
 )
 from apps.language_models.src.model_wrappers.vicuna_model import (
     FirstVicuna,
-    SecondVicuna,
+    SecondVicuna7B,
+    SecondVicuna13B,
+    SecondVicuna70B,
 )
 from apps.language_models.utils import (
     get_vmfb_from_path,
@@ -46,9 +49,6 @@ from shark.shark_downloader import download_public_file
 from shark.shark_importer import get_f16_inputs
 from shark.shark_importer import import_with_fx
 from shark.shark_inference import SharkInference
-
-from brevitas_examples.llm.llm_quant.quantize import quantize_model
-from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
 parser = argparse.ArgumentParser(
@@ -108,7 +108,7 @@ parser.add_argument(
     "--model_name",
     type=str,
     default="vicuna",
-    choices=["vicuna", "llama2_7b", "llama2_70b"],
+    choices=["vicuna", "llama2_7b", "llama2_13b", "llama2_70b"],
     help="Specify which model to run.",
 )
 parser.add_argument(
@@ -189,25 +189,27 @@ class VicunaBase(SharkLLMBase):
         return vicuna_model
 
     def combine_mlir_scripts(
-        self, first_vicuna_mlir, second_vicuna_mlir, output_name
+        self,
+        first_vicuna_mlir,
+        second_vicuna_mlir,
+        output_name,
     ):
         print(f"[DEBUG] combining first and second mlir")
-        print(f"[DEBIG] output_name = {output_name}")
+        print(f"[DEBUG] output_name = {output_name}")
         maps1 = []
         maps2 = []
-        constants_1 = set()
-        constants_2 = set()
+        constants = set()
         f1 = []
         f2 = []
 
-        print(f"[DEBUG] processing first vircuna mlir")
+        print(f"[DEBUG] processing first vicuna mlir")
         first_vicuna_mlir = first_vicuna_mlir.splitlines()
         while first_vicuna_mlir:
             line = first_vicuna_mlir.pop(0)
             if re.search("#map\d*\s*=", line):
                 maps1.append(line)
             elif re.search("arith.constant", line):
-                constants_1.add(line)
+                constants.add(line)
             elif not re.search("module", line):
                 line = re.sub("forward", "first_vicuna_forward", line)
                 f1.append(line)
@@ -224,7 +226,7 @@ class VicunaBase(SharkLLMBase):
                 for func_line in f1
             ]
 
-        print(f"[DEBUG] processing second vircuna mlir")
+        print(f"[DEBUG] processing second vicuna mlir")
         second_vicuna_mlir = second_vicuna_mlir.splitlines()
         while second_vicuna_mlir:
             line = second_vicuna_mlir.pop(0)
@@ -233,7 +235,7 @@ class VicunaBase(SharkLLMBase):
             elif "global_seed" in line:
                 continue
             elif re.search("arith.constant", line):
-                constants_2.add(line)
+                constants.add(line)
             elif not re.search("module", line):
                 line = re.sub("forward", "second_vicuna_forward", line)
                 f2.append(line)
@@ -256,25 +258,15 @@ class VicunaBase(SharkLLMBase):
         module_end = "}"
 
         global_vars = []
-        global_var_loading1 = dict()
-        global_var_loading2 = dict()
+        vnames = []
+        global_var_loading1 = []
+        global_var_loading2 = []
 
         print(f"[DEBUG] processing constants")
-        # in both 1 and 2
-        constants = [(e, "") for e in list(constants_1 & constants_2)]
-        # only in 1
-        constants.extend(
-            [(e, "_1") for e in list(constants_1.difference(constants_2))]
-        )
-        # only in 2
-        constants.extend(
-            [(e, "_2") for e in list(constants_2.difference(constants_1))]
-        )
-        del constants_1, constants_2
-        gc.collect()
-
+        counter = 0
+        constants = list(constants)
         while constants:
-            constant, vname_suf = constants.pop(0)
+            constant = constants.pop(0)
             vname, vbody = constant.split("=")
             vname = re.sub("%", "", vname)
             vname = vname.strip()
@@ -285,33 +277,34 @@ class VicunaBase(SharkLLMBase):
             vdtype = vbody.split(":")[-1].strip()
             fixed_vdtype = vdtype
             noinline = "{noinline}" if "tensor" in fixed_vdtype else ""
+            if "c1_i64" in vname:
+                print(constant)
+                counter += 1
+            if counter == 2:
+                counter = 0
+                print("detected duplicate")
+                continue
+            vnames.append(vname)
             if "true" not in vname:
                 global_vars.append(
-                    f"util.global private @{vname}{vname_suf} {noinline} = {vbody} : {fixed_vdtype}"
+                    f"ml_program.global private @{vname}({vbody}) : {fixed_vdtype}"
                 )
-                if vname_suf != "_2":
-                    global_var_loading1[
-                        f"\t\t%{vname} = util.global_load @{vname}{vname_suf} : {fixed_vdtype}"
-                    ] = ""
-                if vname_suf != "_1":
-                    global_var_loading2[
-                        f"\t\t%{vname} = util.global_load @{vname}{vname_suf} : {fixed_vdtype}"
-                    ] = ""
+                global_var_loading1.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
+                )
+                global_var_loading2.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : {fixed_vdtype}"
+                )
             else:
                 global_vars.append(
-                    f"util.global private @{vname}{vname_suf} = {vbody} : i1"
+                    f"ml_program.global private @{vname}({vbody}) : i1"
                 )
-                if vname_suf != "_2":
-                    global_var_loading1[
-                        f"\t\t%{vname} = util.global_load @{vname}{vname_suf} : i1"
-                    ] = ""
-                if vname_suf != "_1":
-                    global_var_loading2[
-                        f"\t\t%{vname} = util.global_load @{vname}{vname_suf} : i1"
-                    ] = ""
-
-        del constants
-        gc.collect()
+                global_var_loading1.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
+                )
+                global_var_loading2.append(
+                    f"\t\t%{vname} = ml_program.global_load_const @{vname} : i1"
+                )
 
         new_f1, new_f2 = [], []
 
@@ -319,7 +312,7 @@ class VicunaBase(SharkLLMBase):
         for line in f1:
             if "func.func" in line:
                 new_f1.append(line)
-                for global_var in global_var_loading1.keys():
+                for global_var in global_var_loading1:
                     new_f1.append(global_var)
             else:
                 new_f1.append(line)
@@ -328,7 +321,7 @@ class VicunaBase(SharkLLMBase):
         for line in f2:
             if "func.func" in line:
                 new_f2.append(line)
-                for global_var in global_var_loading2.keys():
+                for global_var in global_var_loading2:
                     if (
                         "c20_i64 = arith.addi %dim_i64, %c1_i64 : i64"
                         in global_var
@@ -421,8 +414,7 @@ class VicunaBase(SharkLLMBase):
             _past_key_values = torch.tensor(output[1:])
             _token = torch.argmax(_logits[:, -1, :], dim=1)
 
-        skip_sp_tok = True if self.model_name == "codegen" else False
-        _detok = self.tokenizer.decode(_token, skip_special_tokens=skip_sp_tok)
+        _detok = self.tokenizer.decode(_token, skip_special_tokens=False)
         ret_dict = {
             "token": _token,
             "detok": _detok,
@@ -449,6 +441,7 @@ class ShardedVicuna(VicunaBase):
         weight_group_size=128,
         compressed=False,
         extra_args_cmd=[],
+        debug=False,
     ) -> None:
         super().__init__(
             model_name,
@@ -459,6 +452,7 @@ class ShardedVicuna(VicunaBase):
         self.max_sequence_length = 256
         self.device = device
         self.precision = precision
+        self.debug = debug
         self.tokenizer = self.get_tokenizer()
         self.config = config_json
         self.weight_group_size = weight_group_size
@@ -471,17 +465,11 @@ class ShardedVicuna(VicunaBase):
             kwargs = {
                 "use_auth_token": "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"
             }
-        if self.model_name == "codegen":
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                trust_remote_code=True,
-            )
-        else:
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                use_fast=False,
-                **kwargs,
-            )
+        tokenizer = AutoTokenizer.from_pretrained(
+            self.hf_model_path,
+            use_fast=False,
+            **kwargs,
+        )
         return tokenizer
 
     def get_src_model(self):
@@ -646,7 +634,7 @@ class ShardedVicuna(VicunaBase):
         return device_idx
 
     def compile_lmhead(
-        self, lmh, hidden_states, device="cpu", device_idx=None
+        self, lmh, hidden_states, device="cpu", device_idx=None,
     ):
         # compile the lm head of the vicuna model
         # This can be used for both first and second vicuna, so only needs to be run once
@@ -694,7 +682,7 @@ class ShardedVicuna(VicunaBase):
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
         else:
-            shark_module.save_module(module_name="lmhead")
+            shark_module.save_module(module_name="lmhead", debug=self.debug)
             shark_module.load_module(vmfb_path)
         compiled_module = LMHeadCompiled(shark_module)
         return compiled_module
@@ -740,7 +728,7 @@ class ShardedVicuna(VicunaBase):
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
         else:
-            shark_module.save_module(module_name="norm")
+            shark_module.save_module(module_name="norm", debug=self.debug)
             shark_module.load_module(vmfb_path)
         compiled_module = VicunaNormCompiled(shark_module)
         return compiled_module
@@ -791,14 +779,14 @@ class ShardedVicuna(VicunaBase):
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
         else:
-            shark_module.save_module(module_name="embedding")
+            shark_module.save_module(module_name="embedding", debug=self.debug)
             shark_module.load_module(vmfb_path)
         compiled_module = VicunaEmbeddingCompiled(shark_module)
 
         return compiled_module
 
     def compile_to_vmfb_one_model(
-        self, inputs0, layers0, inputs1, layers1, device="cpu"
+        self, inputs0, layers0, inputs1, layers1, device="cpu",
     ):
         mlirs, modules = [], []
         assert len(layers0) == len(layers1)
@@ -808,7 +796,6 @@ class ShardedVicuna(VicunaBase):
             # if vmfb_path.exists():
             #    continue
             if mlir_path.exists():
-                # print(f"Found layer {idx} mlir")
                 f_ = open(mlir_path, "rb")
                 bytecode = f_.read()
                 f_.close()
@@ -844,6 +831,8 @@ class ShardedVicuna(VicunaBase):
                     layer0, inputs0[0], inputs0[1], inputs0[2]
                 )
                 if self.precision in ["int4", "int8"]:
+                    from brevitas_examples.llm.llm_quant.quantize import quantize_model
+                    from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
                     module0 = torch_mlir.compile(
                         ts_g,
                         (
@@ -860,7 +849,7 @@ class ShardedVicuna(VicunaBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module0,
-                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -904,7 +893,7 @@ class ShardedVicuna(VicunaBase):
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         module1,
-                        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
                         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
                     )
                 else:
@@ -929,7 +918,6 @@ class ShardedVicuna(VicunaBase):
                 mlirs.append(module_combined)
 
             if vmfb_path.exists():
-                # print(f"Found layer {idx} vmfb")
                 device_idx = self.get_device_index(
                     f"first_vicuna.model.model.layers.{idx}[\s.$]"
                 )
@@ -961,6 +949,7 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
                     ]
                     + self.extra_args,
+                    debug=self.debug,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -977,7 +966,6 @@ class ShardedVicuna(VicunaBase):
             # if vmfb_path.exists():
             #    continue
             if mlir_path.exists():
-                # print(f"Found layer {idx} mlir")
                 f_ = open(mlir_path, "rb")
                 bytecode = f_.read()
                 f_.close()
@@ -996,7 +984,6 @@ class ShardedVicuna(VicunaBase):
                 mlirs.append(bytecode)
 
             if vmfb_path.exists():
-                # print(f"Found layer {idx} vmfb")
                 device_idx = self.get_device_index(
                     f"first_vicuna.model.model.layers.{idx}[\s.$]"
                 )
@@ -1028,6 +1015,7 @@ class ShardedVicuna(VicunaBase):
                         "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
                     ]
                     + self.extra_args,
+                    debug=self.debug,
                 )
                 module.load_module(vmfb_path)
             modules.append(module)
@@ -1044,6 +1032,8 @@ class ShardedVicuna(VicunaBase):
             )
 
         if self.precision in ["int4", "int8"]:
+            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
             print("Applying weight quantization..")
             weight_bit_width = 4 if self.precision == "int4" else 8
             quantize_model(
@@ -1234,12 +1224,13 @@ class UnshardedVicuna(VicunaBase):
         precision="int8",
         vicuna_mlir_path=None,
         vicuna_vmfb_path=None,
-        load_mlir_from_shark_tank=True,
+        load_mlir_from_shark_tank=False,
         low_device_memory=False,
         weight_group_size=128,
         download_vmfb=False,
         cache_vicunas=False,
         extra_args_cmd=[],
+        debug=False,
     ) -> None:
         super().__init__(
             model_name,
@@ -1247,13 +1238,11 @@ class UnshardedVicuna(VicunaBase):
             max_num_tokens,
             extra_args_cmd=extra_args_cmd,
         )
-        if "llama2" in self.model_name and hf_auth_token == None:
-            raise ValueError(
-                "HF auth token required. Pass it using --hf_auth_token flag."
-            )
         self.hf_auth_token = hf_auth_token
         if self.model_name == "llama2_7b":
             self.hf_model_path = "meta-llama/Llama-2-7b-chat-hf"
+        elif self.model_name == "llama2_13b":
+            self.hf_model_path = "meta-llama/Llama-2-13b-chat-hf"
         elif self.model_name == "llama2_70b":
             self.hf_model_path = "meta-llama/Llama-2-70b-chat-hf"
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
@@ -1266,6 +1255,7 @@ class UnshardedVicuna(VicunaBase):
         self.load_mlir_from_shark_tank = load_mlir_from_shark_tank
         self.low_device_memory = low_device_memory
         self.weight_group_size = weight_group_size
+        self.debug = debug
         if self.vicuna_mlir_path == None:
             self.vicuna_mlir_path = self.get_model_path()
         if self.vicuna_vmfb_path == None:
@@ -1276,25 +1266,28 @@ class UnshardedVicuna(VicunaBase):
 
     def get_model_path(self, suffix="mlir"):
         safe_device = self.device.split("-")[0]
-        if suffix == "mlir":
+        if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
         return Path(
             f"{self.model_name}_{self.precision}_{safe_device}.{suffix}"
         )
 
     def get_tokenizer(self):
-        kwargs = {"use_auth_token": self.hf_auth_token}
-        if self.model_name == "codegen":
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                trust_remote_code=True,
+        local_tokenizer_path = Path(Path.cwd(), "llama2_tokenizer_configs")
+        local_tokenizer_path.mkdir(parents=True, exist_ok=True)
+        tokenizer_files_to_download = [
+            "config.json",
+            "special_tokens_map.json",
+            "tokenizer.model",
+            "tokenizer_config.json",
+        ]
+        for tokenizer_file in tokenizer_files_to_download:
+            download_public_file(
+                f"gs://shark_tank/llama2_tokenizer/{tokenizer_file}",
+                Path(local_tokenizer_path, tokenizer_file),
+                single_file=True,
             )
-        else:
-            tokenizer = AutoTokenizer.from_pretrained(
-                self.hf_model_path,
-                use_fast=False,
-                **kwargs,
-            )
+        tokenizer = AutoTokenizer.from_pretrained(str(local_tokenizer_path))
         return tokenizer
 
     def get_src_model(self):
@@ -1355,7 +1348,7 @@ class UnshardedVicuna(VicunaBase):
                 line = re.sub("c19", "dim", line)
             if " 19," in line:
                 line = re.sub(" 19,", " %dim,", line)
-            if "20x" in line:
+            if "x20x" in line or "<20x" in line:
                 line = re.sub("20x", "?x", line)
                 line = re.sub("tensor.empty\(\)", "tensor.empty(%dimp1)", line)
             if " 20," in line:
@@ -1364,13 +1357,25 @@ class UnshardedVicuna(VicunaBase):
 
         module = module.splitlines()
         new_lines = []
+
         # Using a while loop and the pop method to avoid creating a copy of module
+        if "llama2_13b" in self.model_name:
+            pkv_tensor_shape = "tensor<1x40x?x128x"
+        elif "llama2_70b" in self.model_name:
+            pkv_tensor_shape = "tensor<1x8x?x128x"
+        else:
+            pkv_tensor_shape = "tensor<1x32x?x128x"
+        if self.precision in ["fp16", "int4", "int8"]:
+            pkv_tensor_shape += "f16>"
+        else:
+            pkv_tensor_shape += "f32>"
+
         while module:
             line = module.pop(0)
             if "%c19_i64 = arith.constant 19 : i64" in line:
                 new_lines.append("%c2 = arith.constant 2 : index")
                 new_lines.append(
-                    f"%dim_4_int = tensor.dim %arg1, %c2 : tensor<1x32x?x128x{'f16' if self.precision == 'fp16' else 'f32'}>"
+                    f"%dim_4_int = tensor.dim %arg1, %c2 : {pkv_tensor_shape}"
                 )
                 new_lines.append(
                     "%dim_i64 = arith.index_cast %dim_4_int : index to i64"
@@ -1392,10 +1397,13 @@ class UnshardedVicuna(VicunaBase):
 
         return "\n".join(new_lines)
 
-    def compile(self, download_vmfb=False):
+    def compile(self):
         # Testing : DO NOT Download Vmfbs if not found. Modify later
         # download vmfbs for A100
-        if not self.vicuna_vmfb_path.exists() and download_vmfb:
+        if not self.vicuna_vmfb_path.exists() and self.download_vmfb:
+            print(
+                f"Looking into gs://shark_tank/{self.model_name}/unsharded/vmfb/{self.vicuna_vmfb_path.name}"
+            )
             download_public_file(
                 f"gs://shark_tank/{self.model_name}/unsharded/vmfb/{self.vicuna_vmfb_path.name}",
                 self.vicuna_vmfb_path.absolute(),
@@ -1408,213 +1416,244 @@ class UnshardedVicuna(VicunaBase):
             print(f"[DEBUG] vmfb found at {self.vicuna_vmfb_path.absolute()}")
             return
 
-        print(f"[DEBUG] vmfb not found at {self.vicuna_vmfb_path.absolute()}")
-        if self.vicuna_mlir_path.exists():
-            print(f"[DEBUG] mlir found at {self.vicuna_mlir_path.absolute()}")
-            with open(self.vicuna_mlir_path, "rb") as f:
-                combined_module = f.read()
-        else:
-            print(
-                f"[DEBUG] mlir not found at {self.vicuna_mlir_path.absolute()}"
-            )
-            mlir_generated = False
-            if self.load_mlir_from_shark_tank:
-                # download MLIR from shark tank
+        print(f"[DEBUG] vmfb not found")
+        mlir_generated = False
+        for suffix in ["mlirbc", "mlir"]:
+            self.vicuna_mlir_path = self.get_model_path(suffix)
+            if not self.vicuna_mlir_path.exists() and self.load_mlir_from_shark_tank:
+                print(
+                    f"Looking into gs://shark_tank/{self.model_name}/unsharded/mlir/{self.vicuna_mlir_path.name}"
+                )
                 download_public_file(
                     f"gs://shark_tank/{self.model_name}/unsharded/mlir/{self.vicuna_mlir_path.name}",
                     self.vicuna_mlir_path.absolute(),
                     single_file=True,
                 )
-                if self.vicuna_mlir_path.exists():
-                    with open(self.vicuna_mlir_path, "rb") as f:
-                        combined_module = f.read()
-                    mlir_generated = True
-                else:
-                    print(
-                        f"[DEBUG] failed to download {self.vicuna_mlir_path.name} from shark tank"
-                    )
+            if self.vicuna_mlir_path.exists():
+                print(f"[DEBUG] mlir found at {self.vicuna_mlir_path.absolute()}")
+                with open(self.vicuna_mlir_path, "rb") as f:
+                    combined_module = f.read()
+                mlir_generated = True
+                break
 
-            if not mlir_generated:
-                print("[DEBUG] generating mlir on device")
-                # Select a compilation prompt such that the resulting input_ids
-                # from the model's tokenizer has shape [1, 19]
-                if self.model_name == "codegen":
-                    compilation_prompt = "def hello_world():\n    print('Hello World')\n    print('Hello World')"
-                else:
-                    compilation_prompt = "".join(["0" for _ in range(17)])
+        if not mlir_generated:
+            print(f"[DEBUG] mlir not found")
+            # Disabling this path of IR generation for now as it is broken.
+            print("Please check if the mlir file is present at the shark tank. Exiting.")
+            self.shark_model = None
+            sys.exit()
+            return
 
-                if Path(f"first_{self.precision}.mlir").exists():
-                    print(f"loading first_{self.precision}.mlir")
-                    with open(Path(f"first_{self.precision}.mlir"), "r") as f:
-                        first_module = f.read()
-                else:
-                    # generate first vicuna
-                    compilation_input_ids = self.tokenizer(
-                        compilation_prompt,
-                        return_tensors="pt",
-                    ).input_ids
-                    compilation_input_ids = torch.tensor(
-                        compilation_input_ids
-                    ).reshape([1, 19])
-                    firstVicunaCompileInput = (compilation_input_ids,)
-                    model = FirstVicuna(
-                        self.hf_model_path,
-                        self.precision,
-                        self.weight_group_size,
-                        self.model_name,
-                        self.hf_auth_token,
-                    )
-                    print(f"[DEBUG] generating torchscript graph")
-                    ts_graph = import_with_fx(
-                        model,
-                        firstVicunaCompileInput,
-                        is_f16=True
-                        if self.precision in ["fp16", "int4"]
-                        else False,
-                        precision=self.precision,
-                        f16_input_mask=[False, False],
-                        mlir_type="torchscript",
-                    )
-                    del model
-                    firstVicunaCompileInput = list(firstVicunaCompileInput)
-                    firstVicunaCompileInput[
-                        0
-                    ] = torch_mlir.TensorPlaceholder.like(
-                        firstVicunaCompileInput[0], dynamic_axes=[1]
-                    )
+            print("[DEBUG] generating mlir on device")
+            # Select a compilation prompt such that the resulting input_ids
+            # from the model's tokenizer has shape [1, 19]
+            compilation_prompt = "".join(["0" for _ in range(17)])
 
-                    firstVicunaCompileInput = tuple(firstVicunaCompileInput)
-                    first_module = None
-                    print(f"[DEBUG] generating torch mlir")
-                    if self.precision in ["int4", "int8"]:
-                        first_module = torch_mlir.compile(
-                            ts_graph,
-                            [*firstVicunaCompileInput],
-                            output_type=torch_mlir.OutputType.TORCH,
-                            backend_legal_ops=["quant.matmul_rhs_group_quant"],
-                            extra_library=brevitas_matmul_rhs_group_quant_library,
-                            use_tracing=False,
-                            verbose=False,
-                        )
-                        print(f"[DEBUG] converting torch to linalg")
-                        run_pipeline_with_repro_report(
-                            first_module,
-                            "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
-                            description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
-                        )
-                    else:
-                        first_module = torch_mlir.compile(
-                            ts_graph,
-                            [*firstVicunaCompileInput],
-                            torch_mlir.OutputType.LINALG_ON_TENSORS,
-                            use_tracing=False,
-                            verbose=False,
-                        )
-                    del ts_graph
-                    del firstVicunaCompileInput
-                    gc.collect()
-
-                    print(
-                        "[DEBUG] successfully generated first vicuna linalg mlir"
-                    )
-                    first_module = self.write_in_dynamic_inputs0(
-                        str(first_module), dynamic_input_size=19
-                    )
-                    if self.cache_vicunas:
-                        with open(f"first_{self.precision}.mlir", "w+") as f:
-                            f.write(first_module)
-
-                if Path(f"second_{self.precision}.mlir").exists():
-                    print(f"loading second_{self.precision}.mlir")
-                    with open(Path(f"second_{self.precision}.mlir"), "r") as f:
-                        second_module = f.read()
-                else:
-                    # generate second vicuna
-                    compilation_input_ids = torch.zeros(
-                        [1, 1], dtype=torch.int64
-                    )
-                    pkv = tuple(
-                        (torch.zeros([1, 32, 19, 128], dtype=torch.float32))
-                        for _ in range(64)
-                    )
-                    secondVicunaCompileInput = (compilation_input_ids,) + pkv
-                    model = SecondVicuna(
-                        self.hf_model_path,
-                        self.precision,
-                        self.weight_group_size,
-                        self.model_name,
-                        self.hf_auth_token,
-                    )
-                    print(f"[DEBUG] generating torchscript graph")
-                    ts_graph = import_with_fx(
-                        model,
-                        secondVicunaCompileInput,
-                        is_f16=True
-                        if self.precision in ["fp16", "int4"]
-                        else False,
-                        precision=self.precision,
-                        f16_input_mask=[False] + [True] * 64,
-                        mlir_type="torchscript",
-                    )
-                    del model
-                    if self.precision in ["fp16", "int4"]:
-                        secondVicunaCompileInput = get_f16_inputs(
-                            secondVicunaCompileInput,
-                            True,
-                            f16_input_mask=[False] + [True] * 64,
-                        )
-                    secondVicunaCompileInput = list(secondVicunaCompileInput)
-                    for i in range(len(secondVicunaCompileInput)):
-                        if i != 0:
-                            secondVicunaCompileInput[
-                                i
-                            ] = torch_mlir.TensorPlaceholder.like(
-                                secondVicunaCompileInput[i], dynamic_axes=[2]
-                            )
-                    secondVicunaCompileInput = tuple(secondVicunaCompileInput)
-                    print(f"[DEBUG] generating torch mlir")
-                    if self.precision in ["int4", "int8"]:
-                        second_module = torch_mlir.compile(
-                            ts_graph,
-                            [*secondVicunaCompileInput],
-                            output_type=torch_mlir.OutputType.TORCH,
-                            backend_legal_ops=["quant.matmul_rhs_group_quant"],
-                            extra_library=brevitas_matmul_rhs_group_quant_library,
-                            use_tracing=False,
-                            verbose=False,
-                        )
-                        print(f"[DEBUG] converting torch to linalg")
-                        run_pipeline_with_repro_report(
-                            second_module,
-                            "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
-                            description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
-                        )
-                    else:
-                        second_module = torch_mlir.compile(
-                            ts_graph,
-                            [*secondVicunaCompileInput],
-                            torch_mlir.OutputType.LINALG_ON_TENSORS,
-                            use_tracing=False,
-                            verbose=False,
-                        )
-                    del ts_graph
-                    del secondVicunaCompileInput
-                    gc.collect()
-                    print(
-                        "[DEBUG] successfully generated second vicuna linalg mlir"
-                    )
-                    second_module = self.write_in_dynamic_inputs1(
-                        str(second_module)
-                    )
-                    if self.cache_vicunas:
-                        with open(f"second_{self.precision}.mlir", "w+") as f:
-                            f.write(second_module)
-
-                combined_module = self.combine_mlir_scripts(
-                    first_module, second_module, self.vicuna_mlir_path
+            first_model_path = f"first_{self.model_name}_{self.precision}.mlir"
+            if Path(first_model_path).exists():
+                print(f"loading {first_model_path}")
+                with open(Path(first_model_path), "r") as f:
+                    first_module = f.read()
+            else:
+                # generate first vicuna
+                compilation_input_ids = self.tokenizer(
+                    compilation_prompt,
+                    return_tensors="pt",
+                ).input_ids
+                compilation_input_ids = torch.tensor(
+                    compilation_input_ids
+                ).reshape([1, 19])
+                firstVicunaCompileInput = (compilation_input_ids,)
+                model = FirstVicuna(
+                    self.hf_model_path,
+                    self.precision,
+                    self.weight_group_size,
+                    self.model_name,
+                    self.hf_auth_token,
                 )
-                del first_module, second_module
+                print(f"[DEBUG] generating torchscript graph")
+                is_f16 = self.precision in ["fp16", "int4"]
+                ts_graph = import_with_fx(
+                    model,
+                    firstVicunaCompileInput,
+                    is_f16=is_f16,
+                    precision=self.precision,
+                    f16_input_mask=[False, False],
+                    mlir_type="torchscript",
+                )
+                del model
+                firstVicunaCompileInput = list(firstVicunaCompileInput)
+                firstVicunaCompileInput[
+                    0
+                ] = torch_mlir.TensorPlaceholder.like(
+                    firstVicunaCompileInput[0], dynamic_axes=[1]
+                )
 
+                firstVicunaCompileInput = tuple(firstVicunaCompileInput)
+                first_module = None
+                print(f"[DEBUG] generating torch mlir")
+                if self.precision in ["int4", "int8"]:
+                    first_module = torch_mlir.compile(
+                        ts_graph,
+                        [*firstVicunaCompileInput],
+                        output_type=torch_mlir.OutputType.TORCH,
+                        backend_legal_ops=["quant.matmul_rhs_group_quant"],
+                        extra_library=brevitas_matmul_rhs_group_quant_library,
+                        use_tracing=False,
+                        verbose=False,
+                    )
+                    print(f"[DEBUG] converting torch to linalg")
+                    run_pipeline_with_repro_report(
+                        first_module,
+                        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
+                    )
+                else:
+                    first_module = torch_mlir.compile(
+                        ts_graph,
+                        [*firstVicunaCompileInput],
+                        torch_mlir.OutputType.LINALG_ON_TENSORS,
+                        use_tracing=False,
+                        verbose=False,
+                    )
+                del ts_graph
+                del firstVicunaCompileInput
+                gc.collect()
+
+                print(
+                    "[DEBUG] successfully generated first vicuna linalg mlir"
+                )
+                first_module = self.write_in_dynamic_inputs0(
+                    str(first_module), dynamic_input_size=19
+                )
+                if self.cache_vicunas:
+                    with open(first_model_path, "w+") as f:
+                        f.write(first_module)
+                    print("Finished writing IR after dynamic")
+
+            print(f"[DEBUG] Starting generation of second llama")
+            second_model_path = f"second_{self.model_name}_{self.precision}.mlir"
+            if Path(second_model_path).exists():
+                print(f"loading {second_model_path}")
+                with open(Path(second_model_path), "r") as f:
+                    second_module = f.read()
+            else:
+                # generate second vicuna
+                compilation_input_ids = torch.zeros(
+                    [1, 1], dtype=torch.int64
+                )
+                if self.model_name == "llama2_13b":
+                    dim1 = 40
+                    total_tuple = 80
+                elif self.model_name == "llama2_70b":
+                    dim1 = 8
+                    total_tuple = 160
+                else:
+                    dim1 = 32
+                    total_tuple = 64
+                pkv = tuple(
+                    (torch.zeros([1, dim1, 19, 128], dtype=torch.float32))
+                    for _ in range(total_tuple)
+                )
+                secondVicunaCompileInput = (compilation_input_ids,) + pkv
+                if self.model_name == "llama2_13b":
+                    model = SecondVicuna13B(
+                        self.hf_model_path,
+                        self.precision,
+                        self.weight_group_size,
+                        self.model_name,
+                        self.hf_auth_token,
+                    )
+                elif self.model_name == "llama2_70b":
+                    model = SecondVicuna70B(
+                        self.hf_model_path,
+                        self.precision,
+                        self.weight_group_size,
+                        self.model_name,
+                        self.hf_auth_token,
+                    )
+                else:
+                    model = SecondVicuna7B(
+                        self.hf_model_path,
+                        self.precision,
+                        self.weight_group_size,
+                        self.model_name,
+                        self.hf_auth_token,
+                    )
+                print(f"[DEBUG] generating torchscript graph")
+                is_f16 = self.precision in ["fp16", "int4"]
+                ts_graph = import_with_fx(
+                    model,
+                    secondVicunaCompileInput,
+                    is_f16=is_f16,
+                    precision=self.precision,
+                    f16_input_mask=[False] + [True] * total_tuple,
+                    mlir_type="torchscript",
+                )
+                del model
+                if self.precision in ["fp16", "int4"]:
+                    secondVicunaCompileInput = get_f16_inputs(
+                        secondVicunaCompileInput,
+                        True,
+                        f16_input_mask=[False] + [True] * total_tuple,
+                    )
+                secondVicunaCompileInput = list(secondVicunaCompileInput)
+                for i in range(len(secondVicunaCompileInput)):
+                    if i != 0:
+                        secondVicunaCompileInput[i] = torch_mlir.TensorPlaceholder.like(
+                            secondVicunaCompileInput[i], dynamic_axes=[2]
+                        )
+                secondVicunaCompileInput = tuple(secondVicunaCompileInput)
+                print(f"[DEBUG] generating torch mlir")
+                if self.precision in ["int4", "int8"]:
+                    second_module = torch_mlir.compile(
+                        ts_graph,
+                        [*secondVicunaCompileInput],
+                        output_type=torch_mlir.OutputType.TORCH,
+                        backend_legal_ops=["quant.matmul_rhs_group_quant"],
+                        extra_library=brevitas_matmul_rhs_group_quant_library,
+                        use_tracing=False,
+                        verbose=False,
+                    )
+                    print(f"[DEBUG] converting torch to linalg")
+                    run_pipeline_with_repro_report(
+                        second_module,
+                        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+                        description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
+                    )
+                else:
+                    second_module = torch_mlir.compile(
+                        ts_graph,
+                        [*secondVicunaCompileInput],
+                        torch_mlir.OutputType.LINALG_ON_TENSORS,
+                        use_tracing=False,
+                        verbose=False,
+                    )
+                del ts_graph
+                del secondVicunaCompileInput
+                gc.collect()
+
+                print(
+                    "[DEBUG] successfully generated second vicuna linalg mlir"
+                )
+                second_module = self.write_in_dynamic_inputs1(
+                    str(second_module)
+                )
+                if self.cache_vicunas:
+                    with open(second_model_path, "w+") as f:
+                        f.write(second_module)
+                    print("Finished writing IR after dynamic")
+
+            combined_module = self.combine_mlir_scripts(
+                first_module,
+                second_module,
+                self.vicuna_mlir_path,
+            )
+            del first_module, second_module
+
+        print(self.device)
+        if "rocm" in self.device:
+            self.device = "rocm"
         shark_module = SharkInference(
             mlir_module=combined_module,
             device=self.device,
@@ -1629,6 +1668,7 @@ class UnshardedVicuna(VicunaBase):
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
             ]
             + self.extra_args,
+            debug=self.debug,
         )
         print("Saved vic vmfb at ", str(path))
         shark_module.load_module(path)
@@ -1639,9 +1679,8 @@ class UnshardedVicuna(VicunaBase):
             if type(res_tokens[i]) != int:
                 res_tokens[i] = int(res_tokens[i][0])
 
-        skip_sp_tok = True if self.model_name == "codegen" else False
         res_str = self.tokenizer.decode(
-            res_tokens, skip_special_tokens=skip_sp_tok
+            res_tokens, skip_special_tokens=False
         )
         return res_str
 
@@ -1684,7 +1723,7 @@ class UnshardedVicuna(VicunaBase):
             pkv = generated_token_op["past_key_values"]
             detok = generated_token_op["detok"]
 
-            if token == 2 and self.model_name != "codegen":
+            if token == 2:
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
@@ -1696,7 +1735,6 @@ class UnshardedVicuna(VicunaBase):
             yield detok, ""
 
         res_str = self.decode_tokens(res_tokens)
-        # print(f"[DEBUG] final output : \n{res_str}")
         yield res_str, "formatted"
 
     def autocomplete(self, prompt):
@@ -1715,6 +1753,15 @@ start_message = {
         "explain why instead of answering something not correct. If you don't know the "
         "answer to a question, please don't share false information."
     ),
+    "llama2_13b": (
+        "System: You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe.  Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
+        "content. Please ensure that your responses are socially unbiased and positive "
+        "in nature. If a question does not make any sense, or is not factually coherent, "
+        "explain why instead of answering something not correct. If you don't know the "
+        "answer to a question, please don't share false information."
+    ),
     "llama2_70b": (
         "System: You are a helpful, respectful and honest assistant. Always answer "
         "as helpfully as possible, while being safe.  Your answers should not "
@@ -1724,33 +1771,11 @@ start_message = {
         "explain why instead of answering something not correct. If you don't know the "
         "answer to a question, please don't share false information."
     ),
-    "StableLM": (
-        "<|SYSTEM|># StableLM Tuned (Alpha version)"
-        "\n- StableLM is a helpful and harmless open-source AI language model "
-        "developed by StabilityAI."
-        "\n- StableLM is excited to be able to help the user, but will refuse "
-        "to do anything that could be considered harmful to the user."
-        "\n- StableLM is more than just an information source, StableLM is also "
-        "able to write poetry, short stories, and make jokes."
-        "\n- StableLM will refuse to participate in anything that "
-        "could harm a human."
-    ),
     "vicuna": (
         "A chat between a curious user and an artificial intelligence assistant. "
         "The assistant gives helpful, detailed, and polite answers to the user's "
         "questions.\n"
     ),
-    "vicuna4": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "vicuna1p3": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "codegen": "",
 }
 
 
@@ -1835,6 +1860,7 @@ if __name__ == "__main__":
     model_list = {
         "vicuna": "vicuna=>TheBloke/vicuna-7B-1.1-HF",
         "llama2_7b": "llama2_7b=>meta-llama/Llama-2-7b-chat-hf",
+        "llama2_13b": "llama2_13b=>meta-llama/Llama-2-13b-chat-hf",
         "llama2_70b": "llama2_70b=>meta-llama/Llama-2-70b-chat-hf",
     }
     while True:

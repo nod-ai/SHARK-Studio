@@ -132,6 +132,57 @@ p.add_argument(
     "img2img.",
 )
 
+p.add_argument(
+    "--use_hiresfix",
+    type=bool,
+    default=False,
+    help="Use Hires Fix to do higher resolution images, while trying to "
+    "avoid the issues that come with it. This is accomplished by first "
+    "generating an image using txt2img, then running it through img2img.",
+)
+
+p.add_argument(
+    "--hiresfix_height",
+    type=int,
+    default=768,
+    choices=range(128, 769, 8),
+    help="The height of the Hires Fix image.",
+)
+
+p.add_argument(
+    "--hiresfix_width",
+    type=int,
+    default=768,
+    choices=range(128, 769, 8),
+    help="The width of the Hires Fix image.",
+)
+
+p.add_argument(
+    "--hiresfix_strength",
+    type=float,
+    default=0.6,
+    help="The denoising strength to apply for the Hires Fix.",
+)
+
+p.add_argument(
+    "--resample_type",
+    type=str,
+    default="Nearest Neighbor",
+    choices=[
+        "Lanczos",
+        "Nearest Neighbor",
+        "Bilinear",
+        "Bicubic",
+        "Adaptive",
+        "Antialias",
+        "Box",
+        "Affine",
+        "Cubic",
+    ],
+    help="The resample type to use when resizing an image before being run "
+    "through stable diffusion.",
+)
+
 ##############################################################################
 # Stable Diffusion Training Params
 ##############################################################################
@@ -520,6 +571,14 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--compile_debug",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Flag to toggle debug assert/verify flags for imported IR in the"
+    "iree-compiler. Default to false.",
+)
+
+p.add_argument(
     "--iree_constant_folding",
     default=True,
     action=argparse.BooleanOptionalAction,
@@ -572,6 +631,13 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for enabling rest API.",
+)
+
+p.add_argument(
+    "--debug",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Flag for enabling debugging log in WebUI.",
 )
 
 p.add_argument(

@@ -25,7 +25,7 @@ class Config:
     device: str
     use_lora: str
     use_stencil: str
-    ondemand: str
+    ondemand: str  # should this be expecting a bool instead?
 
 
 custom_model_filetypes = (

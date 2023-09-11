@@ -193,3 +193,9 @@ stencil_annotator/
 # For DocuChat
 apps/language_models/langchain/user_path/
 db_dir_UserData
+
+# Embeded browser cache and other
+apps/stable_diffusion/web/EBWebView/
+
+# Llama2 tokenizer configs
+llama2_tokenizer_configs/
