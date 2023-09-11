@@ -57,7 +57,8 @@ def get_version(triple):
 @functools.cache
 def get_extensions(triple):
     def make_ext_list(ext_list):
-        return ", ".join(ext_list)
+        res = ", ".join(ext_list)
+        return f"[{res}]"
 
     arch, product, os = triple
     if arch == "m1":

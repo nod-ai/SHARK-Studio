@@ -81,4 +81,3 @@ hiddenimports += [
     if not any(kw in x for kw in blacklist)
 ]
 hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
-hiddenimports += ["iree._runtime", "iree._runtime_libs"]
