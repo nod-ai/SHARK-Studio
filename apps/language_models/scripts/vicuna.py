@@ -8,6 +8,7 @@ from tqdm import tqdm
 from typing import List, Tuple
 import subprocess
 import sys
+import numpy as np
 
 import torch
 import torch_mlir
@@ -383,7 +384,6 @@ class VicunaBase(SharkLLMBase):
                 output = self.shark_model.forward(input_ids, is_first=is_first)
             else:
                 output = self.shark_model("first_vicuna_forward", (input_ids,))
-                out_tensor = torch.tensor(output[1:])
 
         else:
             token = params["token"]
@@ -411,7 +411,7 @@ class VicunaBase(SharkLLMBase):
             _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
         else:
             _logits = torch.tensor(output[0])
-            _past_key_values = torch.tensor(output[1:])
+            _past_key_values = torch.tensor(np.array(output[1:]))
             _token = torch.argmax(_logits[:, -1, :], dim=1)
 
         _detok = self.tokenizer.decode(_token, skip_special_tokens=False)
