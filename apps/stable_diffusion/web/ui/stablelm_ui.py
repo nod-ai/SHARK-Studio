@@ -69,25 +69,28 @@ start_message = {
 def create_prompt(model_name, history):
     system_message = start_message[model_name]
 
-    if model_name in [
-        "vicuna",
-        "llama2_7b",
-        "llama2_13b",
-        "llama2_70b",
-    ]:
+    if "llama2" in model_name:
+        B_INST, E_INST = "[INST]", "[/INST]"
+        B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+        conversation = "".join(
+            [f"{B_INST} {item[0]} {E_INST} {item[1]} " for item in history[1:]]
+        )
+        msg = f"{B_INST} {B_SYS} {system_message} {E_SYS} {history[0][0]} {E_INST} {history[0][1]} {conversation}"
+    elif model_name in ["vicuna"]:
         conversation = "".join(
             [
                 "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
                 for item in history
             ]
         )
+        msg = system_message + conversation
+        msg = msg.strip()
     else:
         conversation = "".join(
             ["".join([item[0], item[1]]) for item in history]
         )
-
-    msg = system_message + conversation
-    msg = msg.strip()
+        msg = system_message + conversation
+        msg = msg.strip()
     return msg
 
 
