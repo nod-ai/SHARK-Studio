@@ -99,8 +99,7 @@ def load_lower_configs(base_model_id=None):
     elif version == "inpaint_v2":
         version = "v2_1base"
 
-    config_bucket = "gs://shark_tank/sd_tuned_configs/09112023/"
-    config_bucket_fallback = "gs://shark_tank/sd_tuned_configs/"
+    config_bucket = "gs://shark_tank/sd_tuned_configs/"
 
     device, device_spec_args = get_device_args()
     spec = ""
@@ -161,12 +160,8 @@ def load_lower_configs(base_model_id=None):
 
     lowering_config_dir = os.path.join(WORKDIR, "configs", config_name)
     print("Loading lowering config file from ", lowering_config_dir)
-    try:
-        full_gs_url = config_bucket + config_name
-        download_public_file(full_gs_url, lowering_config_dir, True)
-    except:
-        full_gs_url = config_bucket_fallback + config_name
-        download_public_file(full_gs_url, lowering_config_dir, True)
+    full_gs_url = config_bucket + config_name
+    download_public_file(full_gs_url, lowering_config_dir, True)
     return lowering_config_dir
 
 
