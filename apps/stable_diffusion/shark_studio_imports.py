@@ -15,8 +15,8 @@ pathex = [
 
 # datafiles for pyinstaller
 datas = []
-datas += collect_data_files("torch")
 datas += copy_metadata("torch")
+datas += copy_metadata("tokenizers")
 datas += copy_metadata("tqdm")
 datas += copy_metadata("regex")
 datas += copy_metadata("requests")
@@ -31,18 +31,17 @@ datas += copy_metadata("Pillow")
 datas += copy_metadata("sentencepiece")
 datas += copy_metadata("pyyaml")
 datas += copy_metadata("huggingface-hub")
+datas += collect_data_files("torch")
 datas += collect_data_files("tokenizers")
 datas += collect_data_files("tiktoken")
 datas += collect_data_files("accelerate")
 datas += collect_data_files("diffusers")
 datas += collect_data_files("transformers")
 datas += collect_data_files("pytorch_lightning")
-datas += collect_data_files("opencv_python")
 datas += collect_data_files("skimage")
 datas += collect_data_files("gradio")
 datas += collect_data_files("gradio_client")
 datas += collect_data_files("iree")
-datas += collect_data_files("google_cloud_storage")
 datas += collect_data_files("shark", include_py_files=True)
 datas += collect_data_files("timm", include_py_files=True)
 datas += collect_data_files("tqdm")
@@ -53,6 +52,7 @@ datas += collect_data_files("jsonschema")
 datas += collect_data_files("jsonschema_specifications")
 datas += collect_data_files("cpuinfo")
 datas += collect_data_files("langchain")
+datas += collect_data_files("cv2")
 datas += [
     ("src/utils/resources/prompts.json", "resources"),
     ("src/utils/resources/model_db.json", "resources"),
@@ -81,3 +81,4 @@ hiddenimports += [
     if not any(kw in x for kw in blacklist)
 ]
 hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
+hiddenimports += ["iree._runtime", "iree.compiler._mlir_libs._mlir.ir"]

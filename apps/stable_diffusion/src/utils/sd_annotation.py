@@ -158,9 +158,9 @@ def load_lower_configs(base_model_id=None):
                 f"{spec}.json"
             )
 
-    full_gs_url = config_bucket + config_name
     lowering_config_dir = os.path.join(WORKDIR, "configs", config_name)
     print("Loading lowering config file from ", lowering_config_dir)
+    full_gs_url = config_bucket + config_name
     download_public_file(full_gs_url, lowering_config_dir, True)
     return lowering_config_dir
 
@@ -281,12 +281,8 @@ def sd_model_annotation(mlir_model, model_name, base_model_id=None):
         if "rdna2" not in args.iree_vulkan_target_triple.split("-")[0]:
             use_winograd = True
             winograd_config_dir = load_winograd_configs()
-            winograd_model = annotate_with_winograd(
+            tuned_model = annotate_with_winograd(
                 mlir_model, winograd_config_dir, model_name
-            )
-            lowering_config_dir = load_lower_configs(base_model_id)
-            tuned_model = annotate_with_lower_configs(
-                winograd_model, lowering_config_dir, model_name, use_winograd
             )
         else:
             tuned_model = mlir_model

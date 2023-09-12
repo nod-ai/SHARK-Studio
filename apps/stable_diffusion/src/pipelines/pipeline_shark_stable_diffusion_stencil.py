@@ -273,6 +273,7 @@ class StencilPipeline(StableDiffusionPipeline):
         cpu_scheduling,
         max_embeddings_multiples,
         use_stencil,
+        resample_type,
     ):
         # Control Embedding check & conversion
         # TODO: 1. Change `num_images_per_prompt`.
