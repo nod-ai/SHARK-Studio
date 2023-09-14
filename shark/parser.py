@@ -134,24 +134,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--vulkan_large_heap_block_size",
-    default="2073741824",
-    help="Flag for setting VMA preferredLargeHeapBlockSize for "
-    "vulkan device, default is 4G.",
-)
-
-parser.add_argument(
     "--vulkan_validation_layers",
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for disabling vulkan validation layers when benchmarking.",
-)
-
-parser.add_argument(
-    "--vulkan_vma_allocator",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Flag for enabling / disabling Vulkan VMA Allocator.",
 )
 
 shark_args, unknown = parser.parse_known_args()
