@@ -178,9 +178,7 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
 @functools.cache
 def get_iree_vulkan_runtime_flags():
     vulkan_runtime_flags = [
-        f"--vulkan_large_heap_block_size={shark_args.vulkan_large_heap_block_size}",
         f"--vulkan_validation_layers={'true' if shark_args.vulkan_validation_layers else 'false'}",
-        f"--vulkan_vma_allocator={'true' if shark_args.vulkan_vma_allocator else 'false'}",
     ]
     return vulkan_runtime_flags
 
