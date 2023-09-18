@@ -827,6 +827,8 @@ def clear_all():
     elif os.name == "unix":
         shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
+    if args.local_tank_cache != "":
+        shutil.rmtree(args.local_tank_cache)
 
 
 def get_generated_imgs_path() -> Path:
