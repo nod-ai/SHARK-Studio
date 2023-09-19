@@ -26,7 +26,7 @@ class SplitStrToListAction(argparse.Action):
 
     def __call__(self, parser, namespace, values, option_string=None):
         del parser, option_string
-        setattr(namespace, self.dest, shlex.split(values[0]))
+        setattr(namespace, self.dest, shlex.split(" "))
 
 
 parser = argparse.ArgumentParser(description="SHARK runner.")
@@ -43,6 +43,13 @@ parser.add_argument(
     nargs=1,
     action=SplitStrToListAction,
     help="Additional arguments to pass to the compiler. These are appended as the last arguments.",
+)
+parser.add_argument(
+    "--additional_runtime_args",
+    default=list(),
+    nargs=1,
+    action=SplitStrToListAction,
+    help="Additional arguments to pass to the IREE runtime. These are appended as the last arguments.",
 )
 parser.add_argument(
     "--enable_tf32",

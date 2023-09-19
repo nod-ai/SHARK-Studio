@@ -20,12 +20,15 @@ import os
 import psutil
 import resource
 import time
+import numpy as np
 from typing import Tuple
 
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM
 from shark_opt_wrapper import OPTForCausalLMModel
+from shark.parser import shark_args
+import iree.compiler as ireec
 
 DEVICE = "cpu"
 PLATFORM_SHARK = "shark"
@@ -63,13 +66,11 @@ def get_memory_info():
     process = psutil.Process(pid)
     return process.memory_info()
 
-
-def create_vmfb_module(
+def import_mlir_module(
     model_name: str,
     tokenizer,
-    device: str,
+    device:str,
     max_seq_len: int,
-    recompile_shark: bool,
 ):
     opt_base_model = OPTForCausalLM.from_pretrained(model_name)
     opt_base_model.eval()
@@ -85,9 +86,29 @@ def create_vmfb_module(
         encoded_inputs["input_ids"],
         encoded_inputs["attention_mask"],
     )
-    # np.save("model_inputs_0.npy", inputs[0])
-    # np.save("model_inputs_1.npy", inputs[1])
+    #np.save("model_inputs_0.npy", inputs[0])
+    #np.save("model_inputs_1.npy", inputs[1])
 
+    opt_fs_name = get_opt_fs_name(model_name)
+    mlir_path = f"./{opt_fs_name}_causallm_{max_seq_len}_torch.mlir"
+    (model_mlir, func_name) = import_with_fx(
+        model=opt_model,
+        inputs=inputs,
+        is_f16=False,
+        model_name=opt_fs_name,
+        return_str=True,
+    )
+    with open(mlir_path, "w") as f:
+        f.write(model_mlir)
+    print(f"Saved mlir at {mlir_path}")
+
+def create_vmfb_module(
+    model_name: str,
+    tokenizer,
+    device: str,
+    max_seq_len: int,
+    recompile_shark: bool,
+):
     opt_fs_name = get_opt_fs_name(model_name)
     mlir_path = f"./{opt_fs_name}_causallm_{max_seq_len}_torch.mlir"
     # If MLIR has already been loaded and recompilation is not requested, use
@@ -97,39 +118,39 @@ def create_vmfb_module(
     # compilation time can be correctly measured only when MLIR has already been
     # loaded.
     assert not recompile_shark or has_mlir
-    if has_mlir:
-        with open(mlir_path, "r") as f:
-            model_mlir = f.read()
-        print(f"Loaded .mlir from {mlir_path}")
-    else:
-        (model_mlir, func_name) = import_with_fx(
-            model=opt_model,
-            inputs=inputs,
-            is_f16=False,
-            model_name=opt_fs_name,
-            return_str=True,
+    if not has_mlir:
+        import_mlir_module(
+            model_name,
+            tokenizer,
+            device,
+            max_seq_len,
         )
-        with open(mlir_path, "w") as f:
-            f.write(model_mlir)
-        print(f"Saved mlir at {mlir_path}")
-
-    shark_module = SharkInference(
-        model_mlir,
-        device=device,
-        mlir_dialect="tm_tensor",
-        is_benchmark=False,
-    )
+    #with open(mlir_path, "r") as f:
+    #    model_mlir = f.read()
+    #print(f"Loaded .mlir from {mlir_path}")
+    #breakpoint()
+    #shark_module = SharkInference(
+    #    model_mlir,
+    #    device=device,
+    #    mlir_dialect="tm_tensor",
+    #    is_benchmark=False,
+    #    rt_flags=[],
+    #)
 
     vmfb_name = (
         f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels"
     )
-    shark_module.save_module(module_name=vmfb_name)
+    #shark_module.save_module(module_name=vmfb_name)
     vmfb_path = vmfb_name + ".vmfb"
+    ireec.compile_file(mlir_path, output_file=vmfb_path, target_backends=["llvm-cpu"], input_type="tm_tensor", extra_args=["--iree-opt-data-tiling", "--verify=False", "--iree-llvmcpu-target-cpu-features=host", "--iree-llvmcpu-target-triple=x86_64-linux-gnu", "--iree-llvmcpu-stack-allocation-limit=2560000", "--iree-opt-strip-assertions=true", "--iree-vm-bytecode-module-strip-source-map=true"])
     return vmfb_path
 
 
 def load_shark_model(
-    model_name: str, max_seq_len: int, recompile_shark: bool
+    model_name: str,
+    max_seq_len: int,
+    recompile_shark: bool,
+    plugin_path: str = [],
 ) -> ModelWrapper:
     opt_fs_name = get_opt_fs_name(model_name)
     vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels.vmfb"
@@ -139,7 +160,13 @@ def load_shark_model(
         create_vmfb_module(
             model_name, tokenizer, DEVICE, max_seq_len, recompile_shark
         )
-    shark_module = SharkInference(mlir_module=None, device="cpu-task")
+    if plugin_path is not None:
+        rt_flags = [f"--executable_plugin={plugin_path}"]
+    else:
+        rt_flags = []
+    shark_module = SharkInference(
+        mlir_module=None, device="cpu-task", rt_flags=rt_flags
+    )
     shark_module.load_module(vmfb_name)
     return ModelWrapper(model=shark_module, tokenizer=tokenizer)
 
@@ -219,10 +246,13 @@ def collect_shark_logits(
     max_seq_len: int,
     recompile_shark: bool,
     to_save_json: bool,
+    plugin_path: str,
 ) -> Tuple[float, float]:
     # Load
     t0 = time.time()
-    model_wrapper = load_shark_model(model_name, max_seq_len, recompile_shark)
+    model_wrapper = load_shark_model(
+        model_name, max_seq_len, recompile_shark, plugin_path
+    )
     load_time = time.time() - t0
     print("--- Took {} seconds to load Shark.".format(load_time))
     load_memory_info = get_memory_info()
@@ -319,6 +349,12 @@ def parse_args():
         choices=[PLATFORM_SHARK, PLATFORM_HUGGINGFACE],
         default=PLATFORM_SHARK,
     )
+    parser.add_argument(
+        "--plugin_path",
+        help="path to executable plugin",
+        type=str,
+        default=None,
+    )
     args = parser.parse_args()
     print("args={}".format(args))
     return args
@@ -332,6 +368,7 @@ if __name__ == "__main__":
             args.max_seq_len,
             args.recompile_shark,
             args.save_json,
+            args.plugin_path,
         )
         print("# Summary: {}".format(json.dumps(shark_report)))
     else:
