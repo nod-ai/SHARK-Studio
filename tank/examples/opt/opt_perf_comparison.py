@@ -26,6 +26,7 @@ from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM
 from shark_opt_wrapper import OPTForCausalLMModel
+from shark.parser import shark_args
 
 DEVICE = "cpu"
 PLATFORM_SHARK = "shark"
@@ -118,6 +119,7 @@ def create_vmfb_module(
         device=device,
         mlir_dialect="tm_tensor",
         is_benchmark=False,
+        rt_flags=rt_flags,
     )
 
     vmfb_name = (
@@ -129,7 +131,10 @@ def create_vmfb_module(
 
 
 def load_shark_model(
-    model_name: str, max_seq_len: int, recompile_shark: bool
+    model_name: str,
+    max_seq_len: int,
+    recompile_shark: bool,
+    plugin_path: str = [],
 ) -> ModelWrapper:
     opt_fs_name = get_opt_fs_name(model_name)
     vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels.vmfb"
@@ -139,7 +144,10 @@ def load_shark_model(
         create_vmfb_module(
             model_name, tokenizer, DEVICE, max_seq_len, recompile_shark
         )
-    shark_module = SharkInference(mlir_module=None, device="cpu-task")
+    rt_flags = [f"--executable_plugin={plugin_path}"]
+    shark_module = SharkInference(
+        mlir_module=None, device="cpu-task", rt_flags=rt_flags
+    )
     shark_module.load_module(vmfb_name)
     return ModelWrapper(model=shark_module, tokenizer=tokenizer)
 
@@ -162,7 +170,7 @@ def run_huggingface_model(model_wrapper: ModelWrapper, tokens):
     )
 
 
-def save_json(data, filename):
+def save_to_json(data, filename):
     with open(filename, "w") as file:
         json.dump(data, file)
 
@@ -219,10 +227,13 @@ def collect_shark_logits(
     max_seq_len: int,
     recompile_shark: bool,
     to_save_json: bool,
+    plugin_path: str,
 ) -> Tuple[float, float]:
     # Load
     t0 = time.time()
-    model_wrapper = load_shark_model(model_name, max_seq_len, recompile_shark)
+    model_wrapper = load_shark_model(
+        model_name, max_seq_len, recompile_shark, plugin_path
+    )
     load_time = time.time() - t0
     print("--- Took {} seconds to load Shark.".format(load_time))
     load_memory_info = get_memory_info()
@@ -319,6 +330,12 @@ def parse_args():
         choices=[PLATFORM_SHARK, PLATFORM_HUGGINGFACE],
         default=PLATFORM_SHARK,
     )
+    parser.add_argument(
+        "--plugin_path",
+        help="path to executable plugin",
+        type=str,
+        default=None,
+    )
     args = parser.parse_args()
     print("args={}".format(args))
     return args
@@ -332,6 +349,7 @@ if __name__ == "__main__":
             args.max_seq_len,
             args.recompile_shark,
             args.save_json,
+            args.plugin_path,
         )
         print("# Summary: {}".format(json.dumps(shark_report)))
     else:
