@@ -215,7 +215,10 @@ def collect_huggingface_logits(
 
 
 def collect_shark_logits(
-    model_name: str, max_seq_len: int, recompile_shark: bool, to_save_json: bool
+    model_name: str,
+    max_seq_len: int,
+    recompile_shark: bool,
+    to_save_json: bool,
 ) -> Tuple[float, float]:
     # Load
     t0 = time.time()
