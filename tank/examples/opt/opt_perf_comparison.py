@@ -170,7 +170,7 @@ def run_huggingface_model(model_wrapper: ModelWrapper, tokens):
     )
 
 
-def save_to_json(data, filename):
+def save_json(data, filename):
     with open(filename, "w") as file:
         json.dump(data, file)
 
