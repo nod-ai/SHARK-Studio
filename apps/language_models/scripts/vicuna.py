@@ -1229,6 +1229,7 @@ class UnshardedVicuna(VicunaBase):
         download_vmfb=False,
         cache_vicunas=False,
         extra_args_cmd=[],
+        device_id=None,
         debug=False,
     ) -> None:
         super().__init__(
@@ -1247,6 +1248,7 @@ class UnshardedVicuna(VicunaBase):
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.device = device
+        self.device_id = device_id
         self.precision = precision
         self.download_vmfb = download_vmfb
         self.vicuna_vmfb_path = vicuna_vmfb_path
@@ -1409,7 +1411,7 @@ class UnshardedVicuna(VicunaBase):
                 single_file=True,
             )
         self.shark_model = get_vmfb_from_path(
-            self.vicuna_vmfb_path, self.device, "tm_tensor"
+            self.vicuna_vmfb_path, self.device, "tm_tensor", self.device_id
         )
         if self.shark_model is not None:
             print(f"[DEBUG] vmfb found at {self.vicuna_vmfb_path.absolute()}")
@@ -1657,6 +1659,7 @@ class UnshardedVicuna(VicunaBase):
             mlir_module=combined_module,
             device=self.device,
             mlir_dialect="tm_tensor",
+            device_idx=self.device_id
         )
         path = shark_module.save_module(
             self.vicuna_vmfb_path.parent.absolute(),
@@ -1808,11 +1811,37 @@ if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
     _extra_args = []
-    # vulkan target triple
-    if args.iree_vulkan_target_triple != "":
+    device_id = None
+    # Process vulkan target triple.
+    # TODO: This feature should just be in a common utils for other LLMs and in general
+    #       any model run via SHARK for Vulkan backend.
+    vulkan_target_triple = args.iree_vulkan_target_triple
+    if vulkan_target_triple != "":
         _extra_args.append(
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
+        # Step 1. Fetch the device ID.
+        from shark.iree_utils.vulkan_utils import (
+            get_all_vulkan_devices,
+            get_vulkan_target_triple
+        )
+        vulkaninfo_list = get_all_vulkan_devices()
+        id = 0
+        for device in vulkaninfo_list:
+            target_triple = get_vulkan_target_triple(vulkaninfo_list[id])
+            if target_triple == vulkan_target_triple:
+                device_id = id
+                break
+            id += 1
+        
+        assert device_id, f"no vulkan hardware for target-triple '{vulkan_target_triple}' exists"
+        # Step 2. Add a few flags targetting specific hardwares.
+        if "rdna" in vulkan_target_triple:
+            flags_to_add = [
+                "--iree-spirv-index-bits=64",
+            ]
+            _extra_args = _extra_args + flags_to_add
+        
 
     vic = None
     if not args.sharded:
@@ -1838,6 +1867,7 @@ if __name__ == "__main__":
             download_vmfb=args.download_vmfb,
             cache_vicunas=args.cache_vicunas,
             extra_args_cmd=_extra_args,
+            device_id=device_id
         )
     else:
         if args.config is not None:
