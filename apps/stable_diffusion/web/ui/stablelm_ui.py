@@ -143,6 +143,7 @@ def chat(
     global model_vmfb_key
     global vicuna_model
 
+    device_id = None
     model_name, model_path = list(map(str.strip, model.split("=>")))
     if "cuda" in device:
         device = "cuda"
@@ -151,6 +152,7 @@ def chat(
     elif "task" in device:
         device = "cpu-task"
     elif "vulkan" in device:
+        device_id = int(device.split("://")[1])
         device = "vulkan"
     elif "rocm" in device:
         device = "rocm"
@@ -169,10 +171,45 @@ def chat(
         # get iree flags that need to be overridden, from commandline args
         _extra_args = []
         # vulkan target triple
-        if args.iree_vulkan_target_triple != "":
+        vulkan_target_triple = args.iree_vulkan_target_triple
+        from shark.iree_utils.vulkan_utils import (
+            get_all_vulkan_devices,
+            get_vulkan_target_triple,
+        )
+
+        if device == "vulkan":
+            vulkaninfo_list = get_all_vulkan_devices()
+            if vulkan_target_triple == "":
+                # We already have the device_id extracted via WebUI, so we directly use
+                # that to find the target triple.
+                vulkan_target_triple = get_vulkan_target_triple(
+                    vulkaninfo_list[device_id]
+                )
             _extra_args.append(
-                f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
+                f"-iree-vulkan-target-triple={vulkan_target_triple}"
             )
+            if "rdna" in vulkan_target_triple:
+                flags_to_add = [
+                    "--iree-spirv-index-bits=64",
+                ]
+                _extra_args = _extra_args + flags_to_add
+
+            if device_id is None:
+                id = 0
+                for device in vulkaninfo_list:
+                    target_triple = get_vulkan_target_triple(
+                        vulkaninfo_list[id]
+                    )
+                    if target_triple == vulkan_target_triple:
+                        device_id = id
+                        break
+                    id += 1
+
+                assert (
+                    device_id
+                ), f"no vulkan hardware for target-triple '{vulkan_target_triple}' exists"
+
+        print(f"Will use target triple : {vulkan_target_triple}")
 
         if model_name == "vicuna4":
             vicuna_model = ShardedVicuna(
@@ -196,6 +233,7 @@ def chat(
                 download_vmfb=download_vmfb,
                 load_mlir_from_shark_tank=True,
                 extra_args_cmd=_extra_args,
+                device_id=device_id,
             )
 
     prompt = create_prompt(model_name, history)
@@ -254,6 +292,7 @@ def llm_chat_api(InputData: dict):
         UnshardedVicuna,
     )
 
+    device_id = None
     if vicuna_model == 0:
         if "cuda" in device:
             device = "cuda"
@@ -262,6 +301,7 @@ def llm_chat_api(InputData: dict):
         elif "task" in device:
             device = "cpu-task"
         elif "vulkan" in device:
+            device_id = int(device.split("://")[1])
             device = "vulkan"
         else:
             print("unrecognized device")
@@ -274,6 +314,7 @@ def llm_chat_api(InputData: dict):
             max_num_tokens=max_toks,
             download_vmfb=True,
             load_mlir_from_shark_tank=True,
+            device_id=device_id,
         )
 
     # TODO: add role dict for different models

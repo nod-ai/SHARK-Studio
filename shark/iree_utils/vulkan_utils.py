@@ -24,10 +24,16 @@ from shark.parser import shark_args
 
 
 @functools.cache
-def get_vulkan_device_name(device_num=0):
+def get_all_vulkan_devices():
     vulkaninfo_dump, _ = run_cmd("vulkaninfo")
     vulkaninfo_dump = vulkaninfo_dump.split(linesep)
     vulkaninfo_list = [s.strip() for s in vulkaninfo_dump if "deviceName" in s]
+    return vulkaninfo_list
+
+
+@functools.cache
+def get_vulkan_device_name(device_num=0):
+    vulkaninfo_list = get_all_vulkan_devices()
     if len(vulkaninfo_list) == 0:
         raise ValueError("No device name found in VulkanInfo!")
     if len(vulkaninfo_list) > 1:
