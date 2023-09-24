@@ -591,7 +591,7 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     )
     num_in_channels = 9 if is_inpaint else 4
     pipe = download_from_original_stable_diffusion_ckpt(
-        checkpoint_path=custom_weights,
+        checkpoint_path_or_dict=custom_weights,
         extract_ema=extract_ema,
         from_safetensors=from_safetensors,
         num_in_channels=num_in_channels,
