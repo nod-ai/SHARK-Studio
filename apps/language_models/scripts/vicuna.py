@@ -1220,6 +1220,7 @@ class UnshardedVicuna(VicunaBase):
         hf_auth_token: str = None,
         max_num_tokens=512,
         device="cpu",
+        vulkan_target_triple="",
         precision="int8",
         vicuna_mlir_path=None,
         vicuna_vmfb_path=None,
@@ -1248,6 +1249,7 @@ class UnshardedVicuna(VicunaBase):
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.device = device
+        self.vulkan_target_triple = vulkan_target_triple.replace("-","_")
         self.device_id = device_id
         self.precision = precision
         self.download_vmfb = download_vmfb
@@ -1269,8 +1271,9 @@ class UnshardedVicuna(VicunaBase):
         safe_device = self.device.split("-")[0]
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
+        target_triple = "" if self.vulkan_target_triple=="" else f"_{self.vulkan_target_triple}"
         return Path(
-            f"{self.model_name}_{self.precision}_{safe_device}.{suffix}"
+            f"{self.model_name}_{self.precision}_{safe_device}{target_triple}.{suffix}"
         )
 
     def get_tokenizer(self):

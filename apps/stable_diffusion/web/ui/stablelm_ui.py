@@ -228,6 +228,7 @@ def chat(
                 hf_model_path=model_path,
                 hf_auth_token=args.hf_auth_token,
                 device=device,
+                vulkan_target_triple=vulkan_target_triple,
                 precision=precision,
                 max_num_tokens=max_toks,
                 download_vmfb=download_vmfb,
