@@ -498,9 +498,9 @@ def export_iree_module_to_vmfb(
         )
         module_name = f"{mlir_dialect}_{device_name}"
     filename = os.path.join(directory, module_name + ".vmfb")
-    print(f"Saved vmfb in {filename}.")
     with open(filename, "wb") as f:
         f.write(flatbuffer_blob)
+    print(f"Saved vmfb in {filename}.")
     return filename
 
 
