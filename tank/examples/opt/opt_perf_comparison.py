@@ -112,7 +112,8 @@ def create_vmfb_module(
         with open(mlir_path, "w") as f:
             f.write(model_mlir)
         print(f"Saved mlir at {mlir_path}")
-
+    del opt_base_model
+    del opt_model
     shark_module = SharkInference(
         model_mlir,
         device=device,
