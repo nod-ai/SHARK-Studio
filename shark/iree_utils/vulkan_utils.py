@@ -25,10 +25,12 @@ from shark.parser import shark_args
 
 @functools.cache
 def get_all_vulkan_devices():
-    vulkaninfo_dump, _ = run_cmd("vulkaninfo")
-    vulkaninfo_dump = vulkaninfo_dump.split(linesep)
-    vulkaninfo_list = [s.strip() for s in vulkaninfo_dump if "deviceName" in s]
-    return vulkaninfo_list
+    from iree.runtime import get_driver
+
+    driver = get_driver("vulkan")
+    device_list_src = driver.query_available_devices()
+    device_list_src.sort(key=lambda d: d["path"])
+    return [d["name"] for d in device_list_src]
 
 
 @functools.cache
