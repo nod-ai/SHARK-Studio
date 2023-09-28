@@ -116,7 +116,7 @@ def get_extensions(triple):
     ]
 
     if get_vendor(triple) == "NVIDIA" or arch == "rdna3":
-        ext.append("VK_NV_cooperative_matrix")
+        ext.append("VK_KHR_cooperative_matrix")
     if get_vendor(triple) == ["NVIDIA", "AMD", "Intel"]:
         ext.append("VK_KHR_shader_integer_dot_product")
     return make_ext_list(ext_list=ext)
@@ -244,7 +244,7 @@ def get_vulkan_target_capabilities(triple):
         if arch == "rdna3":
             # TODO: Get scope value
             cap["coopmatCases"] = [
-                "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f16, resultType = f16, scope = #vk.scope<Subgroup>"
+                "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f16, resultType = f16, accSat = false, scope = #vk.scope<Subgroup>"
             ]
 
         if product == "rx5700xt":
@@ -465,9 +465,9 @@ def get_vulkan_target_capabilities(triple):
         cap["variablePointersStorageBuffer"] = True
 
         cap["coopmatCases"] = [
-            "mSize = 8, nSize = 8, kSize = 32, aType = i8, bType = i8, cType = i32, resultType = i32, scope = #vk.scope<Subgroup>",
-            "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f16, resultType = f16, scope = #vk.scope<Subgroup>",
-            "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f32, resultType = f32, scope = #vk.scope<Subgroup>",
+            "mSize = 8, nSize = 8, kSize = 32, aType = i8, bType = i8, cType = i32, resultType = i32, accSat = false, scope = #vk.scope<Subgroup>",
+            "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f16, resultType = f16, accSat = false, scope = #vk.scope<Subgroup>",
+            "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f32, resultType = f32, accSat = false, scope = #vk.scope<Subgroup>",
         ]
 
     elif arch == "adreno":
@@ -528,7 +528,7 @@ def get_vulkan_target_capabilities(triple):
                 cmc = ""
                 for case in v:
                     cmc += f"#vk.coop_matrix_props<{case}>, "
-                res += f"cooperativeMatrixPropertiesNV = [{cmc[:-2]}], "
+                res += f"cooperativeMatrixPropertiesKHR = [{cmc[:-2]}], "
             else:
                 res += f"{k} = {get_comma_sep_str(v)}, "
         else:
