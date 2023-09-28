@@ -8,7 +8,6 @@ from transformers import (
 from apps.stable_diffusion.web.ui.utils import available_devices
 from datetime import datetime as dt
 import json
-import time
 import sys
 
 
@@ -244,22 +243,32 @@ def chat(
     prompt = create_prompt(model_name, history)
 
     partial_text = ""
-    count = 0
-    start_time = time.time()
-    for text, msg in progress.tqdm(
+    token_count = 0
+    total_time_ms = 0.001  # In order to avoid divide by zero error
+    prefill_time = 0
+    is_first = True
+    for text, msg, exec_time in progress.tqdm(
         vicuna_model.generate(prompt, cli=cli),
         desc="generating response",
     ):
-        count += 1
-        if "formatted" in msg:
-            history[-1][1] = text
-            end_time = time.time()
-            tokens_per_sec = count / (end_time - start_time)
-            yield history, str(format(tokens_per_sec, ".2f")) + " tokens/sec"
-        else:
+        if msg is None:
+            if is_first:
+                prefill_time = exec_time
+                is_first = False
+            else:
+                total_time_ms += exec_time
+                token_count += 1
             partial_text += text + " "
             history[-1][1] = partial_text
-            yield history, ""
+            yield history, f"Prefill: {prefill_time:.2f}"
+        elif "formatted" in msg:
+            history[-1][1] = text
+            tokens_per_sec = (token_count / total_time_ms) * 1000
+            yield history, f"Prefill: {prefill_time:.2f} seconds\n Decode: {tokens_per_sec:.2f} tokens/sec"
+        else:
+            sys.exit(
+                "unexpected message from the vicuna generate call, exiting."
+            )
 
     return history, ""
 
