@@ -9,6 +9,7 @@ from apps.stable_diffusion.web.ui.utils import available_devices
 from datetime import datetime as dt
 import json
 import time
+import sys
 
 
 def user(message, history):
@@ -163,8 +164,8 @@ def chat(
     from apps.language_models.scripts.vicuna import UnshardedVicuna
     from apps.stable_diffusion.src import args
 
-    new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{precision}"
-    if new_model_vmfb_key != model_vmfb_key:
+    new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{device_id}#{precision}#{download_vmfb}"
+    if vicuna_model is None or new_model_vmfb_key != model_vmfb_key:
         model_vmfb_key = new_model_vmfb_key
         max_toks = 128 if model_name == "codegen" else 512
 
@@ -236,6 +237,9 @@ def chat(
                 extra_args_cmd=_extra_args,
                 device_id=device_id,
             )
+
+    if vicuna_model is None:
+        sys.exit("Unable to instantiate the model object, exiting.")
 
     prompt = create_prompt(model_name, history)
 
