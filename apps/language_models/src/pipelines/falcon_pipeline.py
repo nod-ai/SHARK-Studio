@@ -28,7 +28,9 @@ parser = argparse.ArgumentParser(
     description="runs a falcon model",
 )
 
-parser.add_argument("--falcon_variant_to_use", default="7b", help="7b, 40b")
+parser.add_argument(
+    "--falcon_variant_to_use", default="7b", help="7b, 40b, 180b"
+)
 parser.add_argument(
     "--precision", "-p", default="fp16", help="fp32, fp16, int8, int4"
 )
@@ -49,7 +51,7 @@ parser.add_argument(
 )
 parser.add_argument(
     "--load_mlir_from_shark_tank",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="download precompile mlir from shark tank",
 )
@@ -59,13 +61,20 @@ parser.add_argument(
     action=argparse.BooleanOptionalAction,
     help="Run model in cli mode",
 )
+parser.add_argument(
+    "--hf_auth_token",
+    type=str,
+    default=None,
+    help="Specify your own huggingface authentication token for falcon-180B model.",
+)
 
 
 class Falcon(SharkLLMBase):
     def __init__(
         self,
         model_name,
-        hf_model_path,
+        hf_model_path="tiiuae/falcon-7b-instruct",
+        hf_auth_token: str = None,
         max_num_tokens=150,
         device="cuda",
         precision="fp32",
@@ -74,6 +83,15 @@ class Falcon(SharkLLMBase):
         debug=False,
     ) -> None:
         super().__init__(model_name, hf_model_path, max_num_tokens)
+        print("hf_model_path: ", self.hf_model_path)
+
+        if "180b" in self.model_name and hf_auth_token == None:
+            raise ValueError(
+                """ HF auth token required for falcon-180b. Pass it using
+                --hf_auth_token flag. You can ask for the access to the model
+                here: https://huggingface.co/tiiuae/falcon-180B-chat."""
+            )
+        self.hf_auth_token = hf_auth_token
         self.max_padding_length = 100
         self.device = device
         self.precision = precision
@@ -81,12 +99,14 @@ class Falcon(SharkLLMBase):
         self.falcon_mlir_path = falcon_mlir_path
         self.debug = debug
         self.tokenizer = self.get_tokenizer()
-        self.shark_model = self.compile()
         self.src_model = self.get_src_model()
+        self.shark_model = self.compile()
 
     def get_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(
-            self.hf_model_path, trust_remote_code=True
+            self.hf_model_path,
+            trust_remote_code=True,
+            token=self.hf_auth_token,
         )
         tokenizer.padding_side = "left"
         tokenizer.pad_token_id = 11
@@ -94,13 +114,17 @@ class Falcon(SharkLLMBase):
 
     def get_src_model(self):
         print("Loading src model: ", self.model_name)
-        kwargs = {"torch_dtype": torch.float, "trust_remote_code": True}
+        kwargs = {
+            "torch_dtype": torch.float,
+            "trust_remote_code": True,
+            "token": self.hf_auth_token,
+        }
         falcon_model = AutoModelForCausalLM.from_pretrained(
             self.hf_model_path, **kwargs
         )
         return falcon_model
 
-    def compile_falcon(self):
+    def compile(self):
         if args.use_precompiled_model:
             if not self.falcon_vmfb_path.exists():
                 # Downloading VMFB from shark_tank
@@ -122,37 +146,39 @@ class Falcon(SharkLLMBase):
             if vmfb is not None:
                 return vmfb
 
-        print(
-            f"[DEBUG] vmfb not found at {self.falcon_vmfb_path.absolute()}. Trying to work with"
-            f"[DEBUG] mlir path { self.falcon_mlir_path} {'exists' if self.falcon_mlir_path.exists() else 'does not exist'}"
-        )
+        print(f"[DEBUG] vmfb not found at {self.falcon_vmfb_path.absolute()}")
         if self.falcon_mlir_path.exists():
+            print(f"[DEBUG] mlir found at {self.falcon_mlir_path.absolute()}")
             with open(self.falcon_mlir_path, "rb") as f:
                 bytecode = f.read()
         else:
             mlir_generated = False
-            # Downloading MLIR from shark_tank
-            download_public_file(
-                "gs://shark_tank/falcon/"
-                + "falcon_"
-                + args.falcon_variant_to_use
-                + "_"
-                + self.precision
-                + ".mlir",
-                self.falcon_mlir_path.absolute(),
-                single_file=True,
+            print(
+                f"[DEBUG] mlir not found at {self.falcon_mlir_path.absolute()}"
             )
-            if self.falcon_mlir_path.exists():
-                with open(self.falcon_mlir_path, "rb") as f:
-                    bytecode = f.read()
-                mlir_generated = True
-            else:
-                raise ValueError(
-                    f"MLIR not found at {self.falcon_mlir_path.absolute()}"
-                    " after downloading! Please check path and try again"
+            if args.load_mlir_from_shark_tank:
+                # Downloading MLIR from shark_tank
+                print(f"[DEBUG] Trying to download mlir from shark_tank")
+                download_public_file(
+                    "gs://shark_tank/falcon/"
+                    + "falcon_"
+                    + args.falcon_variant_to_use
+                    + "_"
+                    + self.precision
+                    + ".mlir",
+                    self.falcon_mlir_path.absolute(),
+                    single_file=True,
                 )
+                if self.falcon_mlir_path.exists():
+                    print(
+                        f"[DEBUG] mlir found at {self.falcon_mlir_path.absolute()}"
+                    )
+                    with open(self.falcon_mlir_path, "rb") as f:
+                        bytecode = f.read()
+                    mlir_generated = True
 
             if not mlir_generated:
+                print(f"[DEBUG] generating MLIR locally")
                 compilation_input_ids = torch.randint(
                     low=1, high=10000, size=(1, 100)
                 )
@@ -191,10 +217,9 @@ class Falcon(SharkLLMBase):
                 bytecode = bytecode_stream.getvalue()
                 del module
 
-                print(f"[DEBUG] writing mlir to file")
-                with open(f"{self.model_name}.mlir", "wb") as f_:
-                    with redirect_stdout(f_):
-                        print(module.operation.get_asm())
+                f_ = open(self.falcon_mlir_path, "wb")
+                f_.write(bytecode)
+                print("Saved falcon mlir at ", str(self.falcon_mlir_path))
                 f_.close()
 
         shark_module = SharkInference(
@@ -204,11 +229,9 @@ class Falcon(SharkLLMBase):
             self.falcon_vmfb_path.parent.absolute(),
             self.falcon_vmfb_path.stem,
             extra_args=[
-                "--iree-hal-dump-executable-sources-to=ies",
                 "--iree-vm-target-truncate-unsupported-floats",
                 "--iree-codegen-check-ir-before-llvm-conversion=false",
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-                "--iree-spirv-index-bits=64",
             ],
             debug=self.debug,
         )
@@ -216,10 +239,6 @@ class Falcon(SharkLLMBase):
         shark_module.load_module(path)
 
         return shark_module
-
-    def compile(self):
-        falcon_shark_model = self.compile_falcon()
-        return falcon_shark_model
 
     def generate(self, prompt):
         model_inputs = self.tokenizer(
@@ -469,11 +488,16 @@ if __name__ == "__main__":
         else Path(args.falcon_vmfb_path)
     )
 
+    if args.falcon_variant_to_use == "180b":
+        hf_model_path_value = "tiiuae/falcon-180B-chat"
+    else:
+        hf_model_path_value = (
+            "tiiuae/falcon-" + args.falcon_variant_to_use + "-instruct"
+        )
+
     falcon = Falcon(
-        "falcon_" + args.falcon_variant_to_use,
-        hf_model_path="tiiuae/falcon-"
-        + args.falcon_variant_to_use
-        + "-instruct",
+        model_name="falcon_" + args.falcon_variant_to_use,
+        hf_model_path=hf_model_path_value,
         device=args.device,
         precision=args.precision,
         falcon_mlir_path=falcon_mlir_path,
