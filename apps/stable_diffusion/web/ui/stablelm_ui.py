@@ -401,13 +401,13 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         )
         precision = gr.Radio(
             label="Precision",
-            value="int8",
+            value="int4",
             choices=[
                 "int4",
                 "int8",
                 "fp16",
             ],
-            visible=True,
+            visible=False,
         )
         with gr.Column():
             download_vmfb = gr.Checkbox(
@@ -447,7 +447,11 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
     )
 
     submit_event = msg.submit(
-        fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
+        fn=user,
+        inputs=[msg, chatbot],
+        outputs=[msg, chatbot],
+        show_progress=False,
+        queue=False,
     ).then(
         fn=chat,
         inputs=[
@@ -460,10 +464,15 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             config_file,
         ],
         outputs=[chatbot, tokens_time],
+        show_progress=False,
         queue=True,
     )
     submit_click_event = submit.click(
-        fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
+        fn=user,
+        inputs=[msg, chatbot],
+        outputs=[msg, chatbot],
+        show_progress=False,
+        queue=False,
     ).then(
         fn=chat,
         inputs=[
@@ -476,6 +485,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             config_file,
         ],
         outputs=[chatbot, tokens_time],
+        show_progress=False,
         queue=True,
     )
     stop.click(
