@@ -134,6 +134,8 @@ jobs:
             gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/${DATE}_$SHA
             gsutil -m cp -r gs://shark_tank/${DATE}_$SHA/* gs://shark_tank/nightly/
         fi
+        export SHA=$(git log -1 --format='%h')
+        gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/${DATE}_$SHA
         rm -rf ./wheelhouse/nodai*
 
     - name: Build and validate the SHARK Runtime package
