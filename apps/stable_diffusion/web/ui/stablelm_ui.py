@@ -8,7 +8,7 @@ from transformers import (
 from apps.stable_diffusion.web.ui.utils import available_devices
 from datetime import datetime as dt
 import json
-import time
+import sys
 
 
 def user(message, history):
@@ -163,8 +163,8 @@ def chat(
     from apps.language_models.scripts.vicuna import UnshardedVicuna
     from apps.stable_diffusion.src import args
 
-    new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{precision}"
-    if new_model_vmfb_key != model_vmfb_key:
+    new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{device_id}#{precision}#{download_vmfb}"
+    if vicuna_model is None or new_model_vmfb_key != model_vmfb_key:
         model_vmfb_key = new_model_vmfb_key
         max_toks = 128 if model_name == "codegen" else 512
 
@@ -228,6 +228,7 @@ def chat(
                 hf_model_path=model_path,
                 hf_auth_token=args.hf_auth_token,
                 device=device,
+                vulkan_target_triple=vulkan_target_triple,
                 precision=precision,
                 max_num_tokens=max_toks,
                 download_vmfb=download_vmfb,
@@ -236,25 +237,38 @@ def chat(
                 device_id=device_id,
             )
 
+    if vicuna_model is None:
+        sys.exit("Unable to instantiate the model object, exiting.")
+
     prompt = create_prompt(model_name, history)
 
     partial_text = ""
-    count = 0
-    start_time = time.time()
-    for text, msg in progress.tqdm(
+    token_count = 0
+    total_time_ms = 0.001  # In order to avoid divide by zero error
+    prefill_time = 0
+    is_first = True
+    for text, msg, exec_time in progress.tqdm(
         vicuna_model.generate(prompt, cli=cli),
         desc="generating response",
     ):
-        count += 1
-        if "formatted" in msg:
-            history[-1][1] = text
-            end_time = time.time()
-            tokens_per_sec = count / (end_time - start_time)
-            yield history, str(format(tokens_per_sec, ".2f")) + " tokens/sec"
-        else:
+        if msg is None:
+            if is_first:
+                prefill_time = exec_time
+                is_first = False
+            else:
+                total_time_ms += exec_time
+                token_count += 1
             partial_text += text + " "
             history[-1][1] = partial_text
-            yield history, ""
+            yield history, f"Prefill: {prefill_time:.2f}"
+        elif "formatted" in msg:
+            history[-1][1] = text
+            tokens_per_sec = (token_count / total_time_ms) * 1000
+            yield history, f"Prefill: {prefill_time:.2f} seconds\n Decode: {tokens_per_sec:.2f} tokens/sec"
+        else:
+            sys.exit(
+                "unexpected message from the vicuna generate call, exiting."
+            )
 
     return history, ""
 
@@ -396,21 +410,20 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         )
         precision = gr.Radio(
             label="Precision",
-            value="int8",
+            value="int4",
             choices=[
                 "int4",
                 "int8",
                 "fp16",
             ],
-            visible=True,
+            visible=False,
         )
-        with gr.Column():
-            download_vmfb = gr.Checkbox(
-                label="Download vmfb from Shark tank if available",
-                value=True,
-                interactive=True,
-            )
-            tokens_time = gr.Textbox(label="Tokens generated per second")
+        tokens_time = gr.Textbox(label="Tokens generated per second")
+        download_vmfb = gr.Checkbox(
+            label="Download vmfb from Shark tank if available",
+            value=True,
+            interactive=True,
+        )
 
     with gr.Row(visible=False):
         with gr.Group():
@@ -442,7 +455,11 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
     )
 
     submit_event = msg.submit(
-        fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
+        fn=user,
+        inputs=[msg, chatbot],
+        outputs=[msg, chatbot],
+        show_progress=False,
+        queue=False,
     ).then(
         fn=chat,
         inputs=[
@@ -455,10 +472,15 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             config_file,
         ],
         outputs=[chatbot, tokens_time],
+        show_progress=False,
         queue=True,
     )
     submit_click_event = submit.click(
-        fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
+        fn=user,
+        inputs=[msg, chatbot],
+        outputs=[msg, chatbot],
+        show_progress=False,
+        queue=False,
     ).then(
         fn=chat,
         inputs=[
@@ -471,6 +493,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             config_file,
         ],
         outputs=[chatbot, tokens_time],
+        show_progress=False,
         queue=True,
     )
     stop.click(

@@ -470,7 +470,6 @@ def get_available_devices():
     set_iree_runtime_flags()
 
     available_devices = []
-    from shark.iree_utils._common import run_cmd
     from shark.iree_utils.vulkan_utils import (
         get_all_vulkan_devices,
     )
@@ -479,9 +478,7 @@ def get_available_devices():
     vulkan_devices = []
     id = 0
     for device in vulkaninfo_list:
-        vulkan_devices.append(
-            f"{device.split('=')[1].strip()} => vulkan://{id}"
-        )
+        vulkan_devices.append(f"{device.strip()} => vulkan://{id}")
         id += 1
     if id != 0:
         print(f"vulkan devices are available.")

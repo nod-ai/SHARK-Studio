@@ -8,6 +8,7 @@ from tqdm import tqdm
 from typing import List, Tuple
 import subprocess
 import sys
+import time
 
 import torch
 import torch_mlir
@@ -1220,6 +1221,7 @@ class UnshardedVicuna(VicunaBase):
         hf_auth_token: str = None,
         max_num_tokens=512,
         device="cpu",
+        vulkan_target_triple="",
         precision="int8",
         vicuna_mlir_path=None,
         vicuna_vmfb_path=None,
@@ -1248,6 +1250,7 @@ class UnshardedVicuna(VicunaBase):
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.device = device
+        self.vulkan_target_triple = vulkan_target_triple
         self.device_id = device_id
         self.precision = precision
         self.download_vmfb = download_vmfb
@@ -1269,8 +1272,14 @@ class UnshardedVicuna(VicunaBase):
         safe_device = self.device.split("-")[0]
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
+
+        target_triple = ""
+        if self.vulkan_target_triple != "":
+            target_triple = "_"
+            target_triple += "_".join(self.vulkan_target_triple.split("-")[:-1])
+            
         return Path(
-            f"{self.model_name}_{self.precision}_{safe_device}.{suffix}"
+            f"{self.model_name}_{self.precision}_{safe_device}{target_triple}.{suffix}"
         )
 
     def get_tokenizer(self):
@@ -1693,15 +1702,17 @@ class UnshardedVicuna(VicunaBase):
         res_tokens = []
         params = {"prompt": prompt, "is_first": True, "fv": self.shark_model}
 
+        prefill_st_time = time.time()
         generated_token_op = self.generate_new_token(
             params=params, sharded=False, cli=cli
         )
+        prefill_time = time.time() - prefill_st_time
 
         token = generated_token_op["token"]
         logits = generated_token_op["logits"]
         pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
-        yield detok, ""
+        yield detok, None, prefill_time
 
         res_tokens.append(token)
         if cli:
@@ -1716,9 +1727,11 @@ class UnshardedVicuna(VicunaBase):
                 "sv": self.shark_model,
             }
 
+            decode_st_time = time.time()
             generated_token_op = self.generate_new_token(
                 params=params, sharded=False, cli=cli
             )
+            decode_time_ms = (time.time() - decode_st_time)*1000
 
             token = generated_token_op["token"]
             logits = generated_token_op["logits"]
@@ -1734,10 +1747,10 @@ class UnshardedVicuna(VicunaBase):
             else:
                 if cli:
                     print(f"{detok}", end=" ", flush=True)
-            yield detok, ""
+            yield detok, None, decode_time_ms
 
         res_str = self.decode_tokens(res_tokens)
-        yield res_str, "formatted"
+        yield res_str, "formatted", None
 
     def autocomplete(self, prompt):
         # use First vic alone to complete a story / prompt / sentence.
