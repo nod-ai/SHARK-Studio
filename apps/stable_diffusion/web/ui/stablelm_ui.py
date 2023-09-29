@@ -418,13 +418,12 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             ],
             visible=False,
         )
-        with gr.Column():
-            download_vmfb = gr.Checkbox(
-                label="Download vmfb from Shark tank if available",
-                value=True,
-                interactive=True,
-            )
-            tokens_time = gr.Textbox(label="Tokens generated per second")
+        tokens_time = gr.Textbox(label="Tokens generated per second")
+        download_vmfb = gr.Checkbox(
+            label="Download vmfb from Shark tank if available",
+            value=True,
+            interactive=True,
+        )
 
     with gr.Row(visible=False):
         with gr.Group():

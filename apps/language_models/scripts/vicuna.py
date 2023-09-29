@@ -1250,7 +1250,7 @@ class UnshardedVicuna(VicunaBase):
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.device = device
-        self.vulkan_target_triple = vulkan_target_triple.replace("-","_")
+        self.vulkan_target_triple = vulkan_target_triple
         self.device_id = device_id
         self.precision = precision
         self.download_vmfb = download_vmfb
@@ -1272,7 +1272,12 @@ class UnshardedVicuna(VicunaBase):
         safe_device = self.device.split("-")[0]
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
-        target_triple = "" if self.vulkan_target_triple=="" else f"_{self.vulkan_target_triple}"
+
+        target_triple = ""
+        if self.vulkan_target_triple != "":
+            target_triple = "_"
+            target_triple += "_".join(self.vulkan_target_triple.split("-")[:-1])
+            
         return Path(
             f"{self.model_name}_{self.precision}_{safe_device}{target_triple}.{suffix}"
         )
