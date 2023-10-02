@@ -118,6 +118,7 @@ class Falcon(SharkLLMBase):
             "torch_dtype": torch.float,
             "trust_remote_code": True,
             "token": self.hf_auth_token,
+            "device_map": "cpu" if args.device == "cpu" else "cuda:0",
         }
         falcon_model = AutoModelForCausalLM.from_pretrained(
             self.hf_model_path, **kwargs
@@ -198,6 +199,7 @@ class Falcon(SharkLLMBase):
                     is_f16=self.precision == "fp16",
                     f16_input_mask=[False, False],
                     mlir_type="torchscript",
+                    is_gptq=self.precision == "int4",
                 )
                 del model
                 print(f"[DEBUG] generating torch mlir")
@@ -488,12 +490,22 @@ if __name__ == "__main__":
         else Path(args.falcon_vmfb_path)
     )
 
-    if args.falcon_variant_to_use == "180b":
-        hf_model_path_value = "tiiuae/falcon-180B-chat"
+    if args.precision == "int4":
+        if args.falcon_variant_to_use == "180b":
+            hf_model_path_value = "TheBloke/Falcon-180B-Chat-GPTQ"
+        else:
+            hf_model_path_value = (
+                "TheBloke/falcon-"
+                + args.falcon_variant_to_use
+                + "-instruct-GPTQ"
+            )
     else:
-        hf_model_path_value = (
-            "tiiuae/falcon-" + args.falcon_variant_to_use + "-instruct"
-        )
+        if args.falcon_variant_to_use == "180b":
+            hf_model_path_value = "tiiuae/falcon-180B-chat"
+        else:
+            hf_model_path_value = (
+                "tiiuae/falcon-" + args.falcon_variant_to_use + "-instruct"
+            )
 
     falcon = Falcon(
         model_name="falcon_" + args.falcon_variant_to_use,
@@ -524,7 +536,11 @@ if __name__ == "__main__":
             prompt = input("Please enter the prompt text: ")
         print("\nPrompt Text: ", prompt)
 
-        res_str = falcon.generate(prompt)
+        prompt_template = f"""A helpful assistant who helps the user with any questions asked.
+        User: {prompt}
+        Assistant:"""
+
+        res_str = falcon.generate(prompt_template)
         torch.cuda.empty_cache()
         gc.collect()
         print(
