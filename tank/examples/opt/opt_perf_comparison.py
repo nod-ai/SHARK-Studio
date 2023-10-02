@@ -18,7 +18,6 @@ import collections
 import json
 import os
 import psutil
-import resource
 import time
 from typing import Tuple
 
