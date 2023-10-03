@@ -74,6 +74,9 @@ datas += [
 # hidden imports for pyinstaller
 hiddenimports = ["shark", "shark.shark_inference", "apps"]
 hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
+hiddenimports += [
+    x for x in collect_submodules("diffusers") if "tests" not in x
+]
 blacklist = ["tests", "convert"]
 hiddenimports += [
     x
