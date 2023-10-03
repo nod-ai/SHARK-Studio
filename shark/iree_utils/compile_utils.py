@@ -406,7 +406,9 @@ def load_vmfb_using_mmap(
             dl.log(f"ireert.SystemContext created")
             if "vulkan" in device:
                 # Vulkan pipeline creation consumes significant amount of time.
-                print("\tCompiling Vulkan shaders. This may take a few minutes.")
+                print(
+                    "\tCompiling Vulkan shaders. This may take a few minutes."
+                )
             ctx.add_vm_module(mmaped_vmfb)
             dl.log(f"module initialized")
             mmaped_vmfb = getattr(ctx.modules, mmaped_vmfb.name)
