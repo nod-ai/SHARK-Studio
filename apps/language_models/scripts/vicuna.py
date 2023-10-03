@@ -1922,7 +1922,24 @@ if __name__ == "__main__":
         user_prompt = input("User: ")
         history.append([user_prompt, ""])
         prompt = create_prompt(args.model_name, history)
-        for text, msg in vic.generate(prompt, cli=True):
-            if "formatted" in msg:
-                print("Response:", text)
+        token_count = 0
+        total_time_ms = 0.001  # In order to avoid divide by zero error
+        prefill_time = 0
+        is_first = True
+        for text, msg, exec_time in vic.generate(prompt, cli=True):
+            if msg is None:
+                if is_first:
+                    prefill_time = exec_time
+                    is_first = False
+                else:
+                    total_time_ms += exec_time
+                    token_count += 1
+            elif "formatted" in msg:
                 history[-1][1] = text
+                tokens_per_sec = (token_count / total_time_ms) * 1000
+                print(f"Prefill: {prefill_time:.2f} seconds\n Decode: {tokens_per_sec:.2f} tokens/sec")
+                print("\nResponse:", text)
+            else:
+                sys.exit(
+                    "unexpected message from the vicuna generate call, exiting."
+                )
