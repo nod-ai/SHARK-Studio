@@ -451,6 +451,65 @@ def transform_fx(fx_g, quantized=False):
     fx_g.graph.lint()
 
 
+def gptq_transforms(fx_g):
+    import torch
+
+    for node in fx_g.graph.nodes:
+        if node.op == "call_function":
+            if node.target in [
+                torch.ops.aten.arange,
+                torch.ops.aten.empty,
+                torch.ops.aten.ones,
+                torch.ops.aten._to_copy,
+            ]:
+                if node.kwargs.get("device") == torch.device(device="cuda:0"):
+                    updated_kwargs = node.kwargs.copy()
+                    updated_kwargs["device"] = torch.device(device="cpu")
+                    node.kwargs = updated_kwargs
+
+            if node.target in [
+                torch.ops.aten._to_copy,
+            ]:
+                if node.kwargs.get("dtype") == torch.bfloat16:
+                    updated_kwargs = node.kwargs.copy()
+                    updated_kwargs["dtype"] = torch.float16
+                    node.kwargs = updated_kwargs
+
+            # Inputs of aten.native_layer_norm should be upcasted to fp32.
+            if node.target in [torch.ops.aten.native_layer_norm]:
+                with fx_g.graph.inserting_before(node):
+                    new_node_arg0 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[0], torch.float32),
+                        kwargs={},
+                    )
+                    node.args = (
+                        new_node_arg0,
+                        node.args[1],
+                        node.args[2],
+                        node.args[3],
+                        node.args[4],
+                    )
+
+            # Downcasting the result of native_layer_norm back to fp16.
+            if node.name.startswith("getitem"):
+                with fx_g.graph.inserting_before(node):
+                    if node.args[0].target in [
+                        torch.ops.aten.native_layer_norm
+                    ]:
+                        new_node = fx_g.graph.call_function(
+                            torch.ops.aten._to_copy,
+                            args=(node,),
+                            kwargs={"dtype": torch.float32},
+                        )
+                        node.append(new_node)
+                        node.replace_all_uses_with(new_node)
+                        new_node.args = (node,)
+                        new_node.kwargs = {"dtype": torch.float32}
+
+    fx_g.graph.lint()
+
+
 # Doesn't replace the None type.
 def change_fx_graph_return_to_tuple(fx_g):
     for node in fx_g.graph.nodes:
@@ -504,6 +563,7 @@ def import_with_fx(
     is_dynamic=False,
     tracing_required=False,
     precision="fp32",
+    is_gptq=False,
 ):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
@@ -584,7 +644,7 @@ def import_with_fx(
         torch.ops.aten.index_add,
         torch.ops.aten.index_add_,
     ]
-    if precision in ["int4", "int8"]:
+    if precision in ["int4", "int8"] and not is_gptq:
         from brevitas_examples.llm.llm_quant.export import (
             block_quant_layer_level_manager,
         )
@@ -651,6 +711,10 @@ def import_with_fx(
         transform_fx(fx_g)
         # TODO: Have to make it more generic.
         add_upcast(fx_g)
+        fx_g.recompile()
+
+    if is_gptq:
+        gptq_transforms(fx_g)
         fx_g.recompile()
 
     if mlir_type == "fx":
