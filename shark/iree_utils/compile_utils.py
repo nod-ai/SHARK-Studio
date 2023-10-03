@@ -358,6 +358,10 @@ def load_vmfb_using_mmap(
     flatbuffer_blob_or_path, device: str, device_idx: int = None
 ):
     print(f"Loading module {flatbuffer_blob_or_path}...")
+    if "vulkan" in device:
+        # Vulkan pipeline creation consumes significant amount of time.
+        print("(This step may take a few minutes)")
+
     if "rocm" in device:
         device = "rocm"
     with DetailLogger(timeout=2.5) as dl:
