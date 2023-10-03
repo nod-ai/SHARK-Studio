@@ -184,11 +184,17 @@ def compile_through_fx(
 
 
 def set_iree_runtime_flags():
+    # TODO: This function should be device-agnostic and piped properly
+    # to general runtime driver init.
     vulkan_runtime_flags = get_iree_vulkan_runtime_flags()
     if args.enable_rgp:
         vulkan_runtime_flags += [
             f"--enable_rgp=true",
             f"--vulkan_debug_utils=true",
+        ]
+    if args.device_allocator_heap_key:
+        vulkan_runtime_flags += [
+            f"--device_allocator=caching:device_local={args.device_allocator_heap_key}",
         ]
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 

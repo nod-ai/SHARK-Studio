@@ -458,6 +458,14 @@ p.add_argument(
     help="Specify your own huggingface authentication tokens for models like Llama2.",
 )
 
+p.add_argument(
+    "--device_allocator_heap_key",
+    type=str,
+    default="",
+    help="Specify heap key for device caching allocator."
+    "Expected form: max_allocation_size;max_allocation_capacity;max_free_allocation_count"
+    "Example: --device_allocator_heap_key='*;1gib' (will limit caching on device to 1 gigabyte)",
+)
 ##############################################################################
 # IREE - Vulkan supported flags
 ##############################################################################
