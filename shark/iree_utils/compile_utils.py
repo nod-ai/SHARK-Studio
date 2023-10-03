@@ -358,10 +358,6 @@ def load_vmfb_using_mmap(
     flatbuffer_blob_or_path, device: str, device_idx: int = None
 ):
     print(f"Loading module {flatbuffer_blob_or_path}...")
-    if "vulkan" in device:
-        # Vulkan pipeline creation consumes significant amount of time.
-        print("(This step may take a few minutes)")
-
     if "rocm" in device:
         device = "rocm"
     with DetailLogger(timeout=2.5) as dl:
@@ -408,6 +404,9 @@ def load_vmfb_using_mmap(
             dl.log(f"mmap {flatbuffer_blob_or_path}")
             ctx = ireert.SystemContext(config=config)
             dl.log(f"ireert.SystemContext created")
+            if "vulkan" in device:
+                # Vulkan pipeline creation consumes significant amount of time.
+                print("\tCompiling Vulkan shaders. This may take a few minutes.")
             ctx.add_vm_module(mmaped_vmfb)
             dl.log(f"module initialized")
             mmaped_vmfb = getattr(ctx.modules, mmaped_vmfb.name)
