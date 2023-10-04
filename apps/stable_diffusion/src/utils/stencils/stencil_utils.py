@@ -4,6 +4,7 @@ import torch
 from apps.stable_diffusion.src.utils.stencils import (
     CannyDetector,
     OpenposeDetector,
+    NormalBaeDetector,
 )
 
 stencil = {}
@@ -117,11 +118,15 @@ def controlnet_hint_conversion(
         case "scribble":
             print("Working with scribble")
             controlnet_hint = hint_scribble(image)
+        case "normal":
+            print("Working with normalBAE")
+            controlnet_hint = hint_normal(image)
         case _:
             return None
     controlnet_hint = controlnet_hint_shaping(
         controlnet_hint, height, width, dtype, num_images_per_prompt
     )
+    print(controlnet_hint)
     return controlnet_hint
 
 
@@ -183,4 +188,18 @@ def hint_scribble(image: Image.Image):
 
         detected_map = np.zeros_like(input_image, dtype=np.uint8)
         detected_map[np.min(input_image, axis=2) < 127] = 255
+        return detected_map
+
+
+def hint_normal(image: Image.Image):
+    with torch.no_grad():
+        input_image = np.array(image)
+
+        if not "normal" in stencil:
+            stencil["normal"] = NormalBaeDetector.from_pretrained(
+                "lllyasviel/Annotators"
+            )
+
+        detected_map = stencil["normal"](input_image)
+        detected_map = HWC3(np.array(detected_map))
         return detected_map

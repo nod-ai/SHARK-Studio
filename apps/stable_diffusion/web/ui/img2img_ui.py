@@ -451,7 +451,13 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             elem_id="stencil_model",
                             label="Stencil model",
                             value="None",
-                            choices=["None", "canny", "openpose", "scribble"],
+                            choices=[
+                                "None",
+                                "canny",
+                                "openpose",
+                                "scribble",
+                                "normal",
+                            ],
                         )
 
                     def show_canvas(choice):
