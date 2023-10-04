@@ -7,7 +7,7 @@ from io import BytesIO
 from pathlib import Path
 from contextlib import redirect_stdout
 from shark.shark_downloader import download_public_file
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 from shark.shark_inference import SharkInference
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers.generation import (
@@ -174,8 +174,6 @@ class Falcon(SharkLLMBase):
                     print(
                         f"[DEBUG] mlir found at {self.falcon_mlir_path.absolute()}"
                     )
-                    with open(self.falcon_mlir_path, "rb") as f:
-                        bytecode = f.read()
                     mlir_generated = True
 
             if not mlir_generated:
@@ -223,12 +221,15 @@ class Falcon(SharkLLMBase):
                 f_.write(bytecode)
                 print("Saved falcon mlir at ", str(self.falcon_mlir_path))
                 f_.close()
+                del bytecode
 
         shark_module = SharkInference(
-            mlir_module=bytecode, device=self.device, mlir_dialect="linalg"
+            mlir_module=self.falcon_mlir_path,
+            device=self.device,
+            mlir_dialect="linalg",
         )
         path = shark_module.save_module(
-            self.falcon_vmfb_path.parent.absolute(),
+            self.falcon_vmfb_path,
             self.falcon_vmfb_path.stem,
             extra_args=[
                 "--iree-vm-target-truncate-unsupported-floats",

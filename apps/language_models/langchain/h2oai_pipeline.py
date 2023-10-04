@@ -20,7 +20,7 @@ import gc
 from pathlib import Path
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_public_file
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 from apps.stable_diffusion.src import args
 
 # Brevitas
@@ -256,6 +256,11 @@ class H2OGPTSHARKModel(torch.nn.Module):
         bytecode = bytecode_stream.getvalue()
         del module
 
+        bytecode = save_mlir(
+            bytecode,
+            model_name=f"h2ogpt_{precision}",
+            frontend="torch",
+        )
         return bytecode
 
     def forward(self, input_ids, attention_mask):

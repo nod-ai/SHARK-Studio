@@ -36,7 +36,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
         get_hf_img_cls_model,
         get_fp16_model,
     )
-    from shark.shark_importer import import_with_fx
+    from shark.shark_importer import import_with_fx, save_mlir
 
     with open(torch_model_list) as csvfile:
         torch_reader = csv.reader(csvfile, delimiter=",")

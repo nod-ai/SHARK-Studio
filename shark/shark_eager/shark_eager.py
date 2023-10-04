@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Tuple
 from collections import defaultdict
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 import torchvision.models as models
 import copy
 import io
@@ -20,10 +20,16 @@ def shark_backend(fx_g: torch.fx.GraphModule, inputs, device: str = "cpu"):
     bytecode_stream = io.BytesIO()
     mlir_module.operation.write_bytecode(bytecode_stream)
     bytecode = bytecode_stream.getvalue()
+    bytecode_path = save_mlir(
+        bytecode,
+        model_name="shark_eager_module",
+        frontend="torch",
+        mlir_dialect="tm_tensor",
+    )
     from shark.shark_inference import SharkInference
 
     shark_module = SharkInference(
-        mlir_module=bytecode,
+        mlir_module=bytecode_path,
         device=device,
         mlir_dialect="tm_tensor",
     )

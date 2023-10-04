@@ -275,11 +275,11 @@ def download_model(
     model_dir = os.path.join(WORKDIR, model_dir_name)
     tuned_str = "" if tuned is None else "_" + tuned
     suffix = f"{dyn_str}_{frontend}{tuned_str}.mlir"
-    filename = os.path.join(model_dir, model_name + suffix)
+    mlir_filename = os.path.join(model_dir, model_name + suffix)
     print(
-        f"Verifying that model artifacts were downloaded successfully to {filename}..."
+        f"Verifying that model artifacts were downloaded successfully to {mlir_filename}..."
     )
-    if not os.path.exists(filename):
+    if not os.path.exists(mlir_filename):
         from tank.generate_sharktank import gen_shark_files
 
         print(
@@ -287,13 +287,11 @@ def download_model(
         )
         gen_shark_files(model_name, frontend, WORKDIR, import_args)
 
-    assert os.path.exists(filename), f"MLIR not found at {filename}"
-    with open(filename, mode="rb") as f:
-        mlir_file = f.read()
+    assert os.path.exists(mlir_filename), f"MLIR not found at {mlir_filename}"
     function_name = str(np.load(os.path.join(model_dir, "function_name.npy")))
     inputs = np.load(os.path.join(model_dir, "inputs.npz"))
     golden_out = np.load(os.path.join(model_dir, "golden_out.npz"))
 
     inputs_tuple = tuple([inputs[key] for key in inputs])
     golden_out_tuple = tuple([golden_out[key] for key in golden_out])
-    return mlir_file, function_name, inputs_tuple, golden_out_tuple
+    return mlir_filename, function_name, inputs_tuple, golden_out_tuple

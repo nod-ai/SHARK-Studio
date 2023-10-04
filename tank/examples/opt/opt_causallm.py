@@ -36,9 +36,7 @@ def create_module(model_name, tokenizer, device):
 
     mlir_path = f"./{OPT_FS_NAME}_causallm_{MAX_SEQUENCE_LENGTH}_torch.mlir"
     if os.path.isfile(mlir_path):
-        with open(mlir_path, "r") as f:
-            model_mlir = f.read()
-        print(f"Loaded .mlir from {mlir_path}")
+        print(f"Found .mlir from {mlir_path}")
     else:
         (model_mlir, func_name) = import_with_fx(
             model=opt_model,
@@ -50,9 +48,10 @@ def create_module(model_name, tokenizer, device):
         with open(mlir_path, "w") as f:
             f.write(model_mlir)
         print(f"Saved mlir at {mlir_path}")
+        del model_mlir
 
     shark_module = SharkInference(
-        model_mlir,
+        mlir_path,
         device=device,
         mlir_dialect="tm_tensor",
         is_benchmark=False,
