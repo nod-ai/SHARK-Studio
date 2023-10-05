@@ -66,8 +66,10 @@ start_message = {
 }
 
 
-def create_prompt(model_name, history):
-    system_message = start_message[model_name]
+def create_prompt(model_name, history, prompt_prefix):
+    system_message = ""
+    if prompt_prefix:
+        system_message = start_message[model_name]
 
     if "llama2" in model_name:
         B_INST, E_INST = "[INST]", "[/INST]"
@@ -129,7 +131,7 @@ model_vmfb_key = ""
 
 # TODO: Make chat reusable for UI and API
 def chat(
-    curr_system_message,
+    prompt_prefix,
     history,
     model,
     device,
@@ -240,7 +242,7 @@ def chat(
     if vicuna_model is None:
         sys.exit("Unable to instantiate the model object, exiting.")
 
-    prompt = create_prompt(model_name, history)
+    prompt = create_prompt(model_name, history, prompt_prefix)
 
     partial_text = ""
     token_count = 0
@@ -419,11 +421,17 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             visible=False,
         )
         tokens_time = gr.Textbox(label="Tokens generated per second")
-        download_vmfb = gr.Checkbox(
-            label="Download vmfb from Shark tank if available",
-            value=True,
-            interactive=True,
-        )
+        with gr.Column():
+            download_vmfb = gr.Checkbox(
+                label="Download vmfb from Shark tank if available",
+                value=True,
+                interactive=True,
+            )
+            prompt_prefix = gr.Checkbox(
+                label="Add System Prompt",
+                value=False,
+                interactive=True,
+            )
 
     with gr.Row(visible=False):
         with gr.Group():
@@ -450,9 +458,6 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 submit = gr.Button("Submit", interactive=enabled)
                 stop = gr.Button("Stop", interactive=enabled)
                 clear = gr.Button("Clear", interactive=enabled)
-    system_msg = gr.Textbox(
-        start_message, label="System Message", interactive=False, visible=False
-    )
 
     submit_event = msg.submit(
         fn=user,
@@ -463,7 +468,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
     ).then(
         fn=chat,
         inputs=[
-            system_msg,
+            prompt_prefix,
             chatbot,
             model,
             device,
@@ -484,7 +489,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
     ).then(
         fn=chat,
         inputs=[
-            system_msg,
+            prompt_prefix,
             chatbot,
             model,
             device,
