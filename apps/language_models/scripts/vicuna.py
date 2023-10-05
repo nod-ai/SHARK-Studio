@@ -1752,7 +1752,6 @@ class UnshardedVicuna(VicunaBase):
         if cli:
             print(f"Assistant: {detok}", end=" ", flush=True)
 
-        print(f"JAKUB: min tokens: {self.min_num_tokens}, max tokens: {self.max_num_tokens}")
         for idx in range(self.max_num_tokens - 2):
             params = {
                 "token": token,
