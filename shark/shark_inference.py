@@ -75,13 +75,14 @@ class SharkInference:
         mmap: bool = True,
     ):
         self.mlir_module = mlir_module
-        if not os.path.isfile(mlir_module):
-            print(
-                "Warning: Initializing SharkInference with a mlir string/bytecode object will duplicate the model in RAM at compile time. To avoid this, initialize SharkInference with a path to a MLIR module on your hard disk instead."
-            )
-            self.compile_str = True
-        else:
-            self.compile_str = False
+        if mlir_module is not None:
+            if mlir_module and not os.path.isfile(mlir_module):
+                print(
+                    "Warning: Initializing SharkInference with a mlir string/bytecode object will duplicate the model in RAM at compile time. To avoid this, initialize SharkInference with a path to a MLIR module on your hard disk instead."
+                )
+                self.compile_str = True
+            else:
+                self.compile_str = False
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.is_benchmark = is_benchmark
