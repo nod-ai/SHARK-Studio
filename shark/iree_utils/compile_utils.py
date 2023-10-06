@@ -317,6 +317,7 @@ def compile_module_to_flatbuffer(
             module,
             target_backends=[iree_target_map(device)],
             extra_args=args,
+            input_type=input_type,
         )
     else:
         assert os.path.isfile(module)
