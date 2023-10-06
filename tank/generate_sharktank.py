@@ -129,6 +129,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                         mlir_type=mlir_type,
                     )
 
+
 def check_requirements(frontend):
     import importlib
 
@@ -159,7 +160,7 @@ def gen_shark_files(modelname, frontend, tank_dir, importer_args):
             dir=os.path.dirname(__file__),
             delete=True,
         )
-        elif frontend == "torch":
+        if frontend == "torch":
             with open(torch_model_csv, mode="r") as src:
                 reader = csv.reader(src)
                 for row in reader:
