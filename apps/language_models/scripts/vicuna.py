@@ -103,7 +103,7 @@ parser.add_argument(
     "--download_vmfb",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="download vmfb from sharktank, system dependent, YMMV",
+    help="Download vmfb from sharktank, system dependent, YMMV",
 )
 parser.add_argument(
     "--model_name",
@@ -129,6 +129,38 @@ parser.add_argument(
     type=str,
     default="",
     help="Specify target triple for vulkan.",
+)
+
+# Microbenchmarking options.
+parser.add_argument(
+    "--enable_microbenchmark",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Enables the microbenchmarking mode (non-interactive). Uses the system and the user prompt from args.",
+)
+parser.add_argument(
+    "--microbenchmark_iterations",
+    type=int,
+    default=2,
+    help="Number of microbenchmark iterations. Default: 2.",
+)
+parser.add_argument(
+    "--microbenchmark_num_tokens",
+    type=int,
+    default=512,
+    help="Generate an exact number of output tokens. Default: 512.",
+)
+parser.add_argument(
+    "--system_prompt",
+    type=str,
+    default="",
+    help="Specify the system prompt. This is only used with `--enable_microbenchmark`",
+)
+parser.add_argument(
+    "--user_prompt",
+    type=str,
+    default="Hi",
+    help="Specify the user prompt. This is only used with `--enable_microbenchmark`",
 )
 
 # fmt: off
@@ -1218,6 +1250,7 @@ class UnshardedVicuna(VicunaBase):
         hf_model_path="TheBloke/vicuna-7B-1.1-HF",
         hf_auth_token: str = None,
         max_num_tokens=512,
+        min_num_tokens=0,
         device="cpu",
         vulkan_target_triple="",
         precision="int8",
@@ -1247,6 +1280,7 @@ class UnshardedVicuna(VicunaBase):
             self.hf_model_path = "meta-llama/Llama-2-70b-chat-hf"
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
+        self.min_num_tokens = min_num_tokens
         self.device = device
         self.vulkan_target_triple = vulkan_target_triple
         self.device_id = device_id
@@ -1716,7 +1750,7 @@ class UnshardedVicuna(VicunaBase):
         if cli:
             print(f"Assistant: {detok}", end=" ", flush=True)
 
-        for _ in range(self.max_num_tokens - 2):
+        for idx in range(self.max_num_tokens - 2):
             params = {
                 "token": token,
                 "is_first": False,
@@ -1734,7 +1768,7 @@ class UnshardedVicuna(VicunaBase):
             pkv = generated_token_op["past_key_values"]
             detok = generated_token_op["detok"]
 
-            if token == 2:
+            if token == 2 and idx >= self.min_num_tokens:
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
@@ -1842,7 +1876,7 @@ if __name__ == "__main__":
                 device_id = id
                 break
             id += 1
-        
+
         assert device_id, f"no vulkan hardware for target-triple '{vulkan_target_triple}' exists"
         # Step 2. Add a few flags targetting specific hardwares.
         if "rdna" in vulkan_target_triple:
@@ -1850,7 +1884,7 @@ if __name__ == "__main__":
                 "--iree-spirv-index-bits=64",
             ]
             _extra_args = _extra_args + flags_to_add
-        
+
 
     vic = None
     if not args.sharded:
@@ -1864,9 +1898,16 @@ if __name__ == "__main__":
             if args.vicuna_vmfb_path is None
             else Path(args.vicuna_vmfb_path)
         )
+        min_tokens = 0
+        max_tokens = 512
+        if args.enable_microbenchmark:
+            min_tokens = max_tokens = args.microbenchmark_num_tokens
+
         vic = UnshardedVicuna(
             model_name=args.model_name,
             hf_auth_token=args.hf_auth_token,
+            max_num_tokens=max_tokens,
+            min_num_tokens=min_tokens,
             device=args.device,
             precision=args.precision,
             vicuna_mlir_path=vic_mlir_path,
@@ -1893,17 +1934,6 @@ if __name__ == "__main__":
             weight_group_size=args.weight_group_size,
             extra_args_cmd=_extra_args,
         )
-    if args.model_name == "vicuna":
-        system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
-    else:
-        system_message = """System: You are a helpful, respectful and honest assistant. Always answer "
-        as helpfully as possible, while being safe.  Your answers should not
-        include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal
-        content. Please ensure that your responses are socially unbiased and positive
-        in nature. If a question does not make any sense, or is not factually coherent,
-        explain why instead of answering something not correct. If you don't know the
-        answer to a question, please don't share false information."""
-    prologue_prompt = "ASSISTANT:\n"
 
     history = []
 
@@ -1913,11 +1943,23 @@ if __name__ == "__main__":
         "llama2_13b": "llama2_13b=>meta-llama/Llama-2-13b-chat-hf",
         "llama2_70b": "llama2_70b=>meta-llama/Llama-2-70b-chat-hf",
     }
+
+    iteration = 0
+
     while True:
         # TODO: Add break condition from user input
-        user_prompt = input("User: ")
-        history.append([user_prompt, ""])
-        prompt = create_prompt(args.model_name, history)
+        iteration += 1
+        if not args.enable_microbenchmark:
+            user_prompt = input("User prompt: ")
+            history.append([user_prompt, ""])
+            prompt = create_prompt(args.model_name, history)
+        else:
+            if iteration > args.microbenchmark_iterations:
+                break
+            user_prompt = args.user_prompt
+            prompt = args.system_prompt + user_prompt
+            history = [[user_prompt, ""]]
+
         token_count = 0
         total_time_ms = 0.001  # In order to avoid divide by zero error
         prefill_time = 0
@@ -1933,8 +1975,10 @@ if __name__ == "__main__":
             elif "formatted" in msg:
                 history[-1][1] = text
                 tokens_per_sec = (token_count / total_time_ms) * 1000
-                print(f"Prefill: {prefill_time:.2f} seconds\n Decode: {tokens_per_sec:.2f} tokens/sec")
-                print("\nResponse:", text)
+                print("\nResponse:", text.strip())
+                print(f"\nNum tokens: {token_count}")
+                print(f"Prefill: {prefill_time:.2f} seconds")
+                print(f"Decode: {tokens_per_sec:.2f} tokens/sec")
             else:
                 sys.exit(
                     "unexpected message from the vicuna generate call, exiting."
