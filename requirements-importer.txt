@@ -9,23 +9,13 @@ tabulate
 tqdm
 
 #iree-compiler  | iree-runtime should already be installed
-iree-tools-tflite
 iree-tools-xla
-iree-tools-tf
 
-# TensorFlow and JAX.
+# Modelling and JAX.
 gin-config
-tf-nightly
-keras-nightly
-#tf-models-nightly
-#tensorflow-text-nightly
 transformers
 diffusers
-#tensorflow-probability
 #jax[cpu]
-
-
-# tflitehub dependencies.
 Pillow
 
 # Testing and support.
