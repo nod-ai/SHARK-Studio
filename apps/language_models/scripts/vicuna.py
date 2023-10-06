@@ -1996,7 +1996,7 @@ if __name__ == "__main__":
                 )
 
     if args.enable_microbenchmark:
-        print("\n### Final Staticstics ###")
+        print("\n### Final Statistics ###")
         print("Number of iterations:", iteration - 1)
         print(f"Prefill: avg. {mean(prefill_times):.2f} s, stdev {stdev(prefill_times):.2f}")
         print(f"Decode: avg. {mean(avg_decode_speed):.2f} tokens/s, stdev {stdev(avg_decode_speed):.2f}")
