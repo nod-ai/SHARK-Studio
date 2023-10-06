@@ -1504,6 +1504,7 @@ class UnshardedVicuna(VicunaBase):
                 model = FirstVicuna(
                     self.hf_model_path,
                     self.precision,
+                    "fp32" if self.device=="cpu" else "fp16",
                     self.weight_group_size,
                     self.model_name,
                     self.hf_auth_token,
@@ -1600,6 +1601,7 @@ class UnshardedVicuna(VicunaBase):
                     model = SecondVicuna13B(
                         self.hf_model_path,
                         self.precision,
+                        "fp32" if self.device=="cpu" else "fp16",
                         self.weight_group_size,
                         self.model_name,
                         self.hf_auth_token,
@@ -1608,6 +1610,7 @@ class UnshardedVicuna(VicunaBase):
                     model = SecondVicuna70B(
                         self.hf_model_path,
                         self.precision,
+                        "fp32" if self.device=="cpu" else "fp16",
                         self.weight_group_size,
                         self.model_name,
                         self.hf_auth_token,
@@ -1616,6 +1619,7 @@ class UnshardedVicuna(VicunaBase):
                     model = SecondVicuna7B(
                         self.hf_model_path,
                         self.precision,
+                        "fp32" if self.device=="cpu" else "fp16",
                         self.weight_group_size,
                         self.model_name,
                         self.hf_auth_token,
