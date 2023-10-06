@@ -52,8 +52,8 @@ class FirstVicuna(torch.nn.Module):
 
         temp_past_key_values = op.past_key_values
         for item in temp_past_key_values:
-            return_vals.append(item[0])
-            return_vals.append(item[1])
+            return_vals.append(item[0].transpose(1,2))
+            return_vals.append(item[1].transpose(1,2))
         return tuple(return_vals)
 
 
@@ -295,6 +295,9 @@ class SecondVicuna7B(torch.nn.Module):
                 i64,
             ),
         )
+
+        past_key_values = [(x[0].transpose(1,2), x[0].transpose(1,2)) for x in past_key_values]
+        past_key_values = tuple(past_key_values)
         op = self.model(
             input_ids=token, use_cache=True, past_key_values=past_key_values
         )
@@ -303,8 +306,8 @@ class SecondVicuna7B(torch.nn.Module):
         return_vals.append(token)
         temp_past_key_values = op.past_key_values
         for item in temp_past_key_values:
-            return_vals.append(item[0])
-            return_vals.append(item[1])
+            return_vals.append(item[0].transpose(1,2))
+            return_vals.append(item[1].transpose(1,2))
         return tuple(return_vals)
 
 
