@@ -8,19 +8,8 @@ torchvision
 tqdm
 
 #iree-compiler  | iree-runtime should already be installed
-#these dont work ok osx
-#iree-tools-tflite
-#iree-tools-xla
-#iree-tools-tf
 
-# TensorFlow and JAX.
-gin-config
-tensorflow-macos
-tensorflow-metal
-#tf-models-nightly
-#tensorflow-text-nightly
 transformers
-tensorflow-probability
 #jax[cpu]
 
 # tflitehub dependencies.
