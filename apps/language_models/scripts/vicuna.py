@@ -410,15 +410,13 @@ class VicunaBase(SharkLLMBase):
             _past_key_values = output["past_key_values"]
             _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
         else:
-            _logits = torch.tensor(output[0].to_host())
             _past_key_values = output[1:]
-            _token = torch.argmax(_logits[:, -1, :], dim=1)
+            _token = torch.tensor(output[0].to_host())
 
         _detok = self.tokenizer.decode(_token, skip_special_tokens=False)
         ret_dict = {
             "token": _token,
             "detok": _detok,
-            "logits": _logits,
             "past_key_values": _past_key_values,
         }
 
@@ -1448,11 +1446,6 @@ class UnshardedVicuna(VicunaBase):
 
         if not mlir_generated:
             print(f"[DEBUG] mlir not found")
-            # Disabling this path of IR generation for now as it is broken.
-            print("Please check if the mlir file is present at the shark tank. Exiting.")
-            self.shark_model = None
-            sys.exit()
-            return
 
             print("[DEBUG] generating mlir on device")
             # Select a compilation prompt such that the resulting input_ids
@@ -1512,6 +1505,9 @@ class UnshardedVicuna(VicunaBase):
                         use_tracing=False,
                         verbose=False,
                     )
+                    if self.cache_vicunas:
+                        with open(first_model_path[:-5]+"_torch.mlir", "w+") as f:
+                            f.write(str(first_module))
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         first_module,
@@ -1626,6 +1622,9 @@ class UnshardedVicuna(VicunaBase):
                         verbose=False,
                     )
                     print(f"[DEBUG] converting torch to linalg")
+                    if self.cache_vicunas:
+                        with open(second_model_path[:-5]+"_torch.mlir", "w+") as f:
+                            f.write(str(second_module))
                     run_pipeline_with_repro_report(
                         second_module,
                         "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
@@ -1709,7 +1708,6 @@ class UnshardedVicuna(VicunaBase):
         prefill_time = time.time() - prefill_st_time
 
         token = generated_token_op["token"]
-        logits = generated_token_op["logits"]
         pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
         yield detok, None, prefill_time
@@ -1722,7 +1720,6 @@ class UnshardedVicuna(VicunaBase):
             params = {
                 "token": token,
                 "is_first": False,
-                "logits": logits,
                 "past_key_values": pkv,
                 "sv": self.shark_model,
             }
@@ -1734,7 +1731,6 @@ class UnshardedVicuna(VicunaBase):
             decode_time_ms = (time.time() - decode_st_time)*1000
 
             token = generated_token_op["token"]
-            logits = generated_token_op["logits"]
             pkv = generated_token_op["past_key_values"]
             detok = generated_token_op["detok"]
 

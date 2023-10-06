@@ -43,7 +43,9 @@ class FirstVicuna(torch.nn.Module):
     def forward(self, input_ids):
         op = self.model(input_ids=input_ids, use_cache=True)
         return_vals = []
-        return_vals.append(op.logits)
+        token = torch.argmax(op.logits[:, -1, :], dim=1)
+        return_vals.append(token)
+
         temp_past_key_values = op.past_key_values
         for item in temp_past_key_values:
             return_vals.append(item[0])
@@ -289,7 +291,8 @@ class SecondVicuna7B(torch.nn.Module):
             input_ids=token, use_cache=True, past_key_values=past_key_values
         )
         return_vals = []
-        return_vals.append(op.logits)
+        token = torch.argmax(op.logits[:, -1, :], dim=1)
+        return_vals.append(token)
         temp_past_key_values = op.past_key_values
         for item in temp_past_key_values:
             return_vals.append(item[0])
