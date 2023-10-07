@@ -292,9 +292,10 @@ def compile_module_to_flatbuffer(
     extra_args,
     model_name="None",
     debug=False,
+    compile_str=False,
 ):
     # Setup Compile arguments wrt to frontends.
-    input_type = ""
+    input_type = "auto"
     args = get_iree_frontend_args(frontend)
     args += get_iree_device_args(device, extra_args)
     args += get_iree_common_args(debug=debug)
@@ -311,10 +312,7 @@ def compile_module_to_flatbuffer(
     elif frontend in ["tm_tensor"]:
         input_type = ireec.InputType.TM_TENSOR
 
-    # TODO: make it simpler.
-    # Compile according to the input type, else just try compiling.
-    if input_type != "":
-        # Currently for MHLO/TOSA.
+    if compile_str:
         flatbuffer_blob = ireec.compile_str(
             module,
             target_backends=[iree_target_map(device)],
@@ -322,9 +320,10 @@ def compile_module_to_flatbuffer(
             input_type=input_type,
         )
     else:
-        # Currently for Torch.
-        flatbuffer_blob = ireec.compile_str(
+        assert os.path.isfile(module)
+        flatbuffer_blob = ireec.compile_file(
             module,
+            input_type=input_type,
             target_backends=[iree_target_map(device)],
             extra_args=args,
         )
@@ -432,10 +431,17 @@ def get_iree_compiled_module(
     device_idx: int = None,
     mmap: bool = False,
     debug: bool = False,
+    compile_str: bool = False,
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, frontend, model_config_path, extra_args, debug
+        module,
+        device,
+        frontend,
+        model_config_path,
+        extra_args,
+        debug,
+        compile_str,
     )
     temp_file_to_unlink = None
     # TODO: Currently mmap=True control flow path has been switched off for mmap.
@@ -492,10 +498,17 @@ def export_iree_module_to_vmfb(
     module_name: str = None,
     extra_args: list = [],
     debug: bool = False,
+    compile_str: bool = False,
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, mlir_dialect, model_config_path, extra_args, debug
+        module,
+        device,
+        mlir_dialect,
+        model_config_path,
+        extra_args,
+        debug,
+        compile_str,
     )
     if module_name is None:
         device_name = (

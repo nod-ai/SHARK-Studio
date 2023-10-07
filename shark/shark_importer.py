@@ -749,3 +749,25 @@ def import_with_fx(
 
     mlir_module, func_name = mlir_importer.import_mlir(mlir_type=mlir_type)
     return mlir_module, func_name
+
+
+# Saves a .mlir module python object to the directory 'dir' with 'model_name' and returns a path to the saved file.
+def save_mlir(
+    mlir_module,
+    model_name,
+    mlir_dialect="linalg",
+    frontend="torch",
+    dir=tempfile.gettempdir(),
+):
+    model_name_mlir = (
+        model_name + "_" + frontend + "_" + mlir_dialect + ".mlir"
+    )
+    if dir == "":
+        dir = tempfile.gettempdir()
+    mlir_path = os.path.join(dir, model_name_mlir)
+    print(f"saving {model_name_mlir} to {dir}")
+    if frontend == "torch":
+        with open(mlir_path, "wb") as mlir_file:
+            mlir_file.write(mlir_module)
+
+    return mlir_path
