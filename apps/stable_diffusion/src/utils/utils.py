@@ -168,6 +168,9 @@ def compile_through_fx(
             mlir_module, extended_model_name, base_model_id
         )
 
+    if not os.path.isdir(save_dir):
+        save_dir = ""
+
     mlir_module = save_mlir(
         mlir_module,
         model_name=extended_model_name,
