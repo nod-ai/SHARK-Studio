@@ -39,8 +39,9 @@ sentencepiece
 py-cpuinfo
 tiktoken # for codegen
 joblib # for langchain
-timm # for MiniGPT4
+timm==0.9.5 # for MiniGPT4
 langchain
+einops # for zoedepth
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
