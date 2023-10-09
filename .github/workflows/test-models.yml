@@ -123,7 +123,7 @@ jobs:
         cd $GITHUB_WORKSPACE
         PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
-        pytest --forked --benchmark=native --ci --ci_sha=${SHORT_SHA} --force_update_tank --tank_url="gs://shark_tank/nightly/" -k cuda
+        pytest --forked --benchmark=native --ci --ci_sha=${SHORT_SHA} --update_tank --tank_url="gs://shark_tank/nightly/" -k cuda
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
         gsutil cp gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv gs://shark-public/builder/bench_results/latest/bench_results_cuda_latest.csv
         # Disabled due to black image bug
@@ -137,8 +137,9 @@ jobs:
         source shark.venv/bin/activate
         echo $PATH
         pip list | grep -E "torch|iree"
+        rm -rf /Volumes/builder/anush/shark_cache/
         # disabled due to bug with requests
-        # pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_tank" --tank_url="gs://shark_tank/nightly/" -k metal
+        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k metal
 
     - name: Validate Vulkan Models (a100)
       if: matrix.suite == 'vulkan' && matrix.os == 'a100'
