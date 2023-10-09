@@ -50,6 +50,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                                 choices=["None"]
                                 + get_custom_model_files()
                                 + predefined_models,
+                                allow_custom_value=True,
                             )
                             hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
@@ -73,6 +74,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                         elem_id="lora_weights",
                         value="None",
                         choices=["None"] + get_custom_model_files("lora"),
+                        allow_custom_value=True,
                     )
                     lora_hf_id = gr.Textbox(
                         elem_id="lora_hf_id",
@@ -105,6 +107,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                             label="Scheduler",
                             value=args.scheduler,
                             choices=scheduler_list,
+                            allow_custom_value=True,
                         )
                     with gr.Row():
                         height = gr.Slider(
@@ -177,6 +180,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
+                        allow_custom_value=True,
                     )
                 with gr.Row():
                     with gr.Column(scale=2):

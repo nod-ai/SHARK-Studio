@@ -395,6 +395,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             label="Select Model",
             value=model_choices[0],
             choices=model_choices,
+            allow_custom_value=True,
         )
         supported_devices = available_devices
         enabled = len(supported_devices) > 0
@@ -408,6 +409,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             else "Only CUDA Supported for now",
             choices=supported_devices,
             interactive=enabled,
+            allow_custom_value=True,
             # multiselect=True,
         )
         precision = gr.Radio(

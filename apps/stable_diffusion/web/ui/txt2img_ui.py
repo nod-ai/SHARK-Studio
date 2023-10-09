@@ -437,6 +437,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 choices=["None"]
                                 + get_custom_model_files()
                                 + predefined_models,
+                                allow_custom_value=True,
                             )
                             txt2img_hf_model_id = gr.Textbox(
                                 elem_id="hf_model_id",
@@ -461,6 +462,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 else "None",
                                 choices=["None"]
                                 + get_custom_model_files("vae"),
+                                allow_custom_value=True,
                             )
                     with gr.Column(scale=1, min_width=170):
                         txt2img_png_info_img = gr.Image(
@@ -497,6 +499,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             elem_id="lora_weights",
                             value="None",
                             choices=["None"] + get_custom_model_files("lora"),
+                            allow_custom_value=True,
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
@@ -515,6 +518,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="Scheduler",
                             value=args.scheduler,
                             choices=scheduler_list,
+                            allow_custom_value=True,
                         )
                         with gr.Column():
                             save_metadata_to_png = gr.Checkbox(
@@ -599,6 +603,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                     "Cubic",
                                 ],
                                 label="Resample Type",
+                                allow_custom_value=True,
                             )
                         hiresfix_height = gr.Slider(
                             384,
@@ -655,6 +660,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
+                        allow_custom_value=True,
                     )
                 with gr.Accordion(label="Prompt Examples!", open=False):
                     ex = gr.Examples(
