@@ -8,6 +8,15 @@
             "dtype":"i64"
         }
     },
+    "sdxl_clip": {
+        "token" : {
+            "shape" : [
+                "1*batch_size",
+                "max_len"
+            ],
+            "dtype":"i64"
+        }
+    },
     "vae_encode": {
         "image" : {
             "shape" : [
@@ -178,6 +187,49 @@
             "noise_level": {
                 "shape": [2],
                 "dtype": "i64"
+            }
+        },
+        "stabilityai/stable-diffusion-xl-base-1.0": {
+            "latents": {
+                "shape": [
+                    "2*batch_size",
+                    4,
+                    "height",
+                    "width"
+                ],
+                "dtype": "f32"
+            },
+            "timesteps": {
+                "shape": [
+                    1
+                ],
+                "dtype": "f32"
+            },
+            "prompt_embeds": {
+                "shape": [
+                    "2*batch_size",
+                    "max_len",
+                    2048
+                ],
+                "dtype": "f32"
+            },
+            "text_embeds": {
+                "shape": [
+                    "2*batch_size",
+                    1280
+                ],
+                "dtype": "f32"
+            },
+            "time_ids": {
+                "shape": [
+                    "2*batch_size",
+                    6
+                ],
+                "dtype": "f32"
+            },
+            "guidance_scale": {
+                "shape": 1,
+                "dtype": "f32"
             }
         }
     },
