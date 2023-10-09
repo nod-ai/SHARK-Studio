@@ -448,7 +448,7 @@ class VicunaBase(SharkLLMBase):
             _logits = output["logits"]
             _past_key_values = output["past_key_values"]
             _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
-        else if "cpu" in self.device:
+        elif "cpu" in self.device:
             _past_key_values = output[1:]
             _token = int(output[0].to_host())
         else:
