@@ -143,6 +143,7 @@ with gr.Blocks() as minigpt4_web:
                 # else "Only CUDA Supported for now",
                 choices=["cuda"],
                 interactive=False,
+                allow_custom_value=True,
             )
 
         with gr.Column():

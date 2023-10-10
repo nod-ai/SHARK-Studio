@@ -351,6 +351,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                             custom_checkpoint_type="inpainting"
                         )
                         + predefined_paint_models,
+                        allow_custom_value=True,
                     )
                     outpaint_hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
@@ -376,6 +377,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         if args.custom_vae
                         else "None",
                         choices=["None"] + get_custom_model_files("vae"),
+                        allow_custom_value=True,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -411,6 +413,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                             elem_id="lora_weights",
                             value="None",
                             choices=["None"] + get_custom_model_files("lora"),
+                            allow_custom_value=True,
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
@@ -429,6 +432,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                             label="Scheduler",
                             value="EulerDiscrete",
                             choices=scheduler_list_cpu_only,
+                            allow_custom_value=True,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -555,6 +559,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
+                        allow_custom_value=True,
                     )
                 with gr.Row():
                     random_seed = gr.Button("Randomize Seed")
