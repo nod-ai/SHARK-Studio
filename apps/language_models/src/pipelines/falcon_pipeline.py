@@ -32,7 +32,7 @@ parser.add_argument(
     "--falcon_variant_to_use", default="7b", help="7b, 40b, 180b"
 )
 parser.add_argument(
-    "--precision", "-p", default="fp16", help="fp32, fp16, int8, int4"
+    "--precision", "-p", default="fp16", choices=["fp32", "fp16", "int4"]
 )
 parser.add_argument("--device", "-d", default="cuda", help="vulkan, cpu, cuda")
 parser.add_argument(
@@ -235,7 +235,12 @@ class Falcon(SharkLLMBase):
                 "--iree-vm-target-truncate-unsupported-floats",
                 "--iree-codegen-check-ir-before-llvm-conversion=false",
                 "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-            ],
+            ]
+            + [
+                "--iree-llvmcpu-use-fast-min-max-ops",
+            ]
+            if self.precision == "int4"
+            else [],
             debug=self.debug,
         )
         print("Saved falcon vmfb at ", str(path))
