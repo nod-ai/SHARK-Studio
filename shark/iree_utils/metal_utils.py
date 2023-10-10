@@ -89,24 +89,10 @@ def get_metal_triple_flag(device_name="", device_num=0, extra_args=[]):
 
 
 def get_iree_metal_args(device_num=0, extra_args=[]):
-    # res_metal_flag = ["--iree-flow-demote-i64-to-i32"]
-
+    # Add any metal spefic compilation flags here
     res_metal_flag = []
-    metal_triple_flag = None
-    for arg in extra_args:
-        if "-iree-metal-target-platform=" in arg:
-            print(f"Using target triple {arg} from command line args")
-            metal_triple_flag = arg
-            break
-
-    if metal_triple_flag is None:
-        metal_triple_flag = get_metal_triple_flag(extra_args=extra_args)
-
-    if metal_triple_flag is not None:
-        vulkan_target_env = get_vulkan_target_env_flag(
-            "-iree-vulkan-target-triple=m1-moltenvk-macos"
-        )
-        res_metal_flag.append(vulkan_target_env)
+    if len(extra_args) > 0:
+        res_metal_flag.extend(extra_args)
     return res_metal_flag
 
 
