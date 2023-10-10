@@ -500,12 +500,69 @@ def gptq_transforms(fx_g):
                         new_node = fx_g.graph.call_function(
                             torch.ops.aten._to_copy,
                             args=(node,),
-                            kwargs={"dtype": torch.float32},
+                            kwargs={"dtype": torch.float16},
                         )
                         node.append(new_node)
                         node.replace_all_uses_with(new_node)
                         new_node.args = (node,)
-                        new_node.kwargs = {"dtype": torch.float32}
+                        new_node.kwargs = {"dtype": torch.float16}
+
+            # Inputs and outputs of aten.mm should be upcasted to fp32.
+            if node.target in [torch.ops.aten.mm]:
+                with fx_g.graph.inserting_before(node):
+                    new_node_arg0 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[0], torch.float32),
+                        kwargs={},
+                    )
+                    new_node_arg1 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[1], torch.float32),
+                        kwargs={},
+                    )
+                    node.args = (new_node_arg0, new_node_arg1)
+
+            if type(node.args[0]) == torch.fx.node.Node and node.args[
+                0
+            ].target in [torch.ops.aten.mm]:
+                with fx_g.graph.inserting_before(node):
+                    tmp = node.args[0]
+                    new_node = fx_g.graph.call_function(
+                        torch.ops.aten._to_copy,
+                        args=(node.args[0],),
+                        kwargs={"dtype": torch.float16},
+                    )
+                    node.args[0].append(new_node)
+                    node.args[0].replace_all_uses_with(new_node)
+                    new_node.args = (tmp,)
+                    new_node.kwargs = {"dtype": torch.float16}
+
+            # Inputs and outputs of aten._softmax should be upcasted to fp32.
+            if node.target in [torch.ops.aten._softmax]:
+                with fx_g.graph.inserting_before(node):
+                    new_node_arg0 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[0], torch.float32),
+                        kwargs={},
+                    )
+                    node.args = (new_node_arg0, node.args[1], node.args[2])
+
+            if (
+                type(node.args[0]) == torch.fx.node.Node
+                and node.args[0].target in [torch.ops.aten._softmax]
+                and node.target in [torch.ops.aten.expand]
+            ):
+                with fx_g.graph.inserting_before(node):
+                    tmp = node.args[0]
+                    new_node = fx_g.graph.call_function(
+                        torch.ops.aten._to_copy,
+                        args=(node.args[0],),
+                        kwargs={"dtype": torch.float16},
+                    )
+                    node.args[0].append(new_node)
+                    node.args[0].replace_all_uses_with(new_node)
+                    new_node.args = (tmp,)
+                    new_node.kwargs = {"dtype": torch.float16}
 
     fx_g.graph.lint()
 
