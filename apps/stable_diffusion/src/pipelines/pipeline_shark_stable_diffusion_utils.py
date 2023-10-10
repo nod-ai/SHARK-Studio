@@ -33,7 +33,6 @@ from apps.stable_diffusion.src.utils import (
     end_profiling,
 )
 import sys
-from typing import List, Optional
 
 SD_STATE_IDLE = "idle"
 SD_STATE_CANCEL = "cancel"
@@ -64,7 +63,6 @@ class StableDiffusionPipeline:
     ):
         self.vae = None
         self.text_encoder = None
-        self.text_encoder_2 = None
         self.unet = None
         self.unet_512 = None
         self.model_max_length = 77
@@ -107,34 +105,6 @@ class StableDiffusionPipeline:
     def unload_clip(self):
         del self.text_encoder
         self.text_encoder = None
-
-    def load_clip_sdxl(self):
-        if self.text_encoder and self.text_encoder_2:
-            return
-
-        if self.import_mlir or self.use_lora:
-            if not self.import_mlir:
-                print(
-                    "Warning: LoRA provided but import_mlir not specified. "
-                    "Importing MLIR anyways."
-                )
-            self.text_encoder, self.text_encoder_2 = self.sd_model.sdxl_clip()
-        else:
-            try:
-                # TODO: Fix this for SDXL
-                self.text_encoder = get_clip()
-            except Exception as e:
-                print(e)
-                print("download pipeline failed, falling back to import_mlir")
-                (
-                    self.text_encoder,
-                    self.text_encoder_2,
-                ) = self.sd_model.sdxl_clip()
-
-    def unload_clip_sdxl(self):
-        del self.text_encoder, self.text_encoder_2
-        self.text_encoder = None
-        self.text_encoder_2 = None
 
     def load_unet(self):
         if self.unet is not None:
@@ -189,177 +159,6 @@ class StableDiffusionPipeline:
     def unload_vae(self):
         del self.vae
         self.vae = None
-
-    def encode_prompt_sdxl(
-        self,
-        prompt: str,
-        num_images_per_prompt: int = 1,
-        do_classifier_free_guidance: bool = True,
-        negative_prompt: Optional[str] = None,
-        prompt_embeds: Optional[torch.FloatTensor] = None,
-        negative_prompt_embeds: Optional[torch.FloatTensor] = None,
-        pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
-        negative_pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
-    ):
-        if prompt is not None and isinstance(prompt, str):
-            batch_size = 1
-        elif prompt is not None and isinstance(prompt, list):
-            batch_size = len(prompt)
-        else:
-            batch_size = prompt_embeds.shape[0]
-
-        # Define tokenizers and text encoders
-        self.tokenizer_2 = get_tokenizer("tokenizer_2")
-        self.load_clip_sdxl()
-        tokenizers = (
-            [self.tokenizer, self.tokenizer_2]
-            if self.tokenizer is not None
-            else [self.tokenizer_2]
-        )
-        text_encoders = (
-            [self.text_encoder, self.text_encoder_2]
-            if self.text_encoder is not None
-            else [self.text_encoder_2]
-        )
-
-        # textual inversion: procecss multi-vector tokens if necessary
-        prompt_embeds_list = []
-        prompts = [prompt, prompt]
-        for prompt, tokenizer, text_encoder in zip(
-            prompts, tokenizers, text_encoders
-        ):
-            text_inputs = tokenizer(
-                prompt,
-                padding="max_length",
-                max_length=tokenizer.model_max_length,
-                truncation=True,
-                return_tensors="pt",
-            )
-
-            text_input_ids = text_inputs.input_ids
-            untruncated_ids = tokenizer(
-                prompt, padding="longest", return_tensors="pt"
-            ).input_ids
-
-            if untruncated_ids.shape[-1] >= text_input_ids.shape[
-                -1
-            ] and not torch.equal(text_input_ids, untruncated_ids):
-                removed_text = tokenizer.batch_decode(
-                    untruncated_ids[:, tokenizer.model_max_length - 1 : -1]
-                )
-                print(
-                    "The following part of your input was truncated because CLIP can only handle sequences up to"
-                    f" {tokenizer.model_max_length} tokens: {removed_text}"
-                )
-
-            text_encoder_output = text_encoder("forward", (text_input_ids,))
-            prompt_embeds = torch.from_numpy(text_encoder_output[0])
-            pooled_prompt_embeds = torch.from_numpy(text_encoder_output[1])
-
-            prompt_embeds_list.append(prompt_embeds)
-
-        prompt_embeds = torch.concat(prompt_embeds_list, dim=-1)
-
-        # get unconditional embeddings for classifier free guidance
-        zero_out_negative_prompt = (
-            negative_prompt is None
-            and self.config.force_zeros_for_empty_prompt
-        )
-        if (
-            do_classifier_free_guidance
-            and negative_prompt_embeds is None
-            and zero_out_negative_prompt
-        ):
-            negative_prompt_embeds = torch.zeros_like(prompt_embeds)
-            negative_pooled_prompt_embeds = torch.zeros_like(
-                pooled_prompt_embeds
-            )
-        elif do_classifier_free_guidance and negative_prompt_embeds is None:
-            negative_prompt = negative_prompt or ""
-            negative_prompt_2 = negative_prompt
-
-            uncond_tokens: List[str]
-            if prompt is not None and type(prompt) is not type(
-                negative_prompt
-            ):
-                raise TypeError(
-                    f"`negative_prompt` should be the same type to `prompt`, but got {type(negative_prompt)} !="
-                    f" {type(prompt)}."
-                )
-            elif isinstance(negative_prompt, str):
-                uncond_tokens = [negative_prompt, negative_prompt_2]
-            elif batch_size != len(negative_prompt):
-                raise ValueError(
-                    f"`negative_prompt`: {negative_prompt} has batch size {len(negative_prompt)}, but `prompt`:"
-                    f" {prompt} has batch size {batch_size}. Please make sure that passed `negative_prompt` matches"
-                    " the batch size of `prompt`."
-                )
-            else:
-                uncond_tokens = [negative_prompt, negative_prompt_2]
-
-            negative_prompt_embeds_list = []
-            for negative_prompt, tokenizer, text_encoder in zip(
-                uncond_tokens, tokenizers, text_encoders
-            ):
-                max_length = prompt_embeds.shape[1]
-                uncond_input = tokenizer(
-                    negative_prompt,
-                    padding="max_length",
-                    max_length=max_length,
-                    truncation=True,
-                    return_tensors="pt",
-                )
-                text_encoder_output = text_encoder(
-                    "forward", (uncond_input.input_ids,)
-                )
-                negative_prompt_embeds = torch.from_numpy(
-                    text_encoder_output[0]
-                )
-                negative_pooled_prompt_embeds = torch.from_numpy(
-                    text_encoder_output[1]
-                )
-
-                negative_prompt_embeds_list.append(negative_prompt_embeds)
-
-            negative_prompt_embeds = torch.concat(
-                negative_prompt_embeds_list, dim=-1
-            )
-
-        if self.ondemand:
-            self.unload_clip_sdxl()
-
-        # TODO: Look into dtype for text_encoder_2!
-        prompt_embeds = prompt_embeds.to(dtype=torch.float32)
-        bs_embed, seq_len, _ = prompt_embeds.shape
-        # duplicate text embeddings for each generation per prompt, using mps friendly method
-        prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
-        prompt_embeds = prompt_embeds.view(
-            bs_embed * num_images_per_prompt, seq_len, -1
-        )
-
-        # duplicate unconditional embeddings for each generation per prompt, using mps friendly method
-        seq_len = negative_prompt_embeds.shape[1]
-        negative_prompt_embeds = negative_prompt_embeds.to(dtype=torch.float32)
-        negative_prompt_embeds = negative_prompt_embeds.repeat(
-            1, num_images_per_prompt, 1
-        )
-        negative_prompt_embeds = negative_prompt_embeds.view(
-            batch_size * num_images_per_prompt, seq_len, -1
-        )
-
-        pooled_prompt_embeds = pooled_prompt_embeds.repeat(
-            1, num_images_per_prompt
-        ).view(bs_embed * num_images_per_prompt, -1)
-        negative_pooled_prompt_embeds = negative_pooled_prompt_embeds.repeat(
-            1, num_images_per_prompt
-        ).view(bs_embed * num_images_per_prompt, -1)
-
-        return (
-            prompt_embeds,
-            negative_prompt_embeds,
-            pooled_prompt_embeds,
-            negative_pooled_prompt_embeds,
-        )
 
     def encode_prompts(self, prompts, neg_prompts, max_length):
         # Tokenize text and get embeddings
@@ -507,69 +306,6 @@ class StableDiffusionPipeline:
         all_latents = torch.cat(latent_history, dim=0)
         return all_latents
 
-    def produce_img_latents_sdxl(
-        self,
-        latents,
-        total_timesteps,
-        add_text_embeds,
-        add_time_ids,
-        prompt_embeds,
-        cpu_scheduling,
-        guidance_scale,
-        dtype,
-    ):
-        self.status = SD_STATE_IDLE
-        step_time_sum = 0
-        extra_step_kwargs = {"generator": None}
-        self.load_unet()
-        for i, t in tqdm(enumerate(total_timesteps)):
-            step_start_time = time.time()
-            timestep = torch.tensor([t]).to(dtype).detach().numpy()
-            # expand the latents if we are doing classifier free guidance
-            latent_model_input = torch.cat([latents] * 2)
-
-            latent_model_input = self.scheduler.scale_model_input(
-                latent_model_input, t
-            ).to(dtype)
-
-            noise_pred = self.unet(
-                "forward",
-                (
-                    latent_model_input,
-                    timestep,
-                    prompt_embeds,
-                    add_text_embeds,
-                    add_time_ids,
-                    guidance_scale,
-                ),
-                send_to_host=False,
-            )
-            latents = self.scheduler.step(
-                noise_pred, t, latents, **extra_step_kwargs, return_dict=False
-            )[0]
-
-            step_time = (time.time() - step_start_time) * 1000
-            step_time_sum += step_time
-
-            if self.status == SD_STATE_CANCEL:
-                break
-        if self.ondemand:
-            self.unload_unet()
-        avg_step_time = step_time_sum / len(total_timesteps)
-        self.log += f"\nAverage step time: {avg_step_time}ms/it"
-
-        return latents
-
-    def decode_latents_sdxl(self, latents):
-        latents = latents.to(torch.float32)
-        images = self.vae("forward", (latents,))
-        images = (torch.from_numpy(images) / 2 + 0.5).clamp(0, 1)
-        images = images.cpu().permute(0, 2, 3, 1).float().numpy()
-        images = (images * 255).round().astype("uint8")
-        pil_images = [Image.fromarray(image[:, :, :3]) for image in images]
-
-        return pil_images
-
     @classmethod
     def from_pretrained(
         cls,
@@ -619,7 +355,6 @@ class StableDiffusionPipeline:
             "OutpaintPipeline",
         ]
         is_upscaler = cls.__name__ in ["UpscalerPipeline"]
-        is_sdxl = cls.__name__ in ["Text2ImageSDXLPipeline"]
 
         sd_model = SharkifyStableDiffusionModel(
             model_id,
@@ -636,7 +371,6 @@ class StableDiffusionPipeline:
             debug=debug,
             is_inpaint=is_inpaint,
             is_upscaler=is_upscaler,
-            is_sdxl=is_sdxl,
             use_stencil=use_stencil,
             use_lora=use_lora,
             use_quantize=use_quantize,

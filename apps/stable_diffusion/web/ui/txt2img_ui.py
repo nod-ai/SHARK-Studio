@@ -22,7 +22,6 @@ from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
     Text2ImagePipeline,
-    Text2ImageSDXLPipeline,
     get_schedulers,
     set_init_device_flags,
     utils,
@@ -160,37 +159,8 @@ def txt2img_inf(
         )
         global_obj.set_schedulers(get_schedulers(model_id))
         scheduler_obj = global_obj.get_scheduler(scheduler)
-        if height == 1024:
-            assert (
-                width == 1024
-            ), "currently we support only 1024x1024 image size via SDXL"
-            assert precision == "fp16", "currently we support fp16 for SDXL"
-            # For SDXL we set max_length as 77.
-            max_length = 77
-            txt2img_obj = Text2ImageSDXLPipeline.from_pretrained(
-                scheduler=scheduler_obj,
-                import_mlir=args.import_mlir,
-                model_id=args.hf_model_id,
-                ckpt_loc=args.ckpt_loc,
-                precision=precision,
-                max_length=max_length,
-                batch_size=batch_size,
-                height=height,
-                width=width,
-                use_base_vae=args.use_base_vae,
-                use_tuned=args.use_tuned,
-                custom_vae=args.custom_vae,
-                low_cpu_mem_usage=args.low_cpu_mem_usage,
-                debug=args.import_debug if args.import_mlir else False,
-                use_lora=args.use_lora,
-                use_quantize=args.use_quantize,
-                ondemand=args.ondemand,
-            )
-        else:
-            assert (
-                height <= 768 and width <= 768
-            ), "height/width not in supported range"
-            txt2img_obj = Text2ImagePipeline.from_pretrained(
+        global_obj.set_sd_obj(
+            Text2ImagePipeline.from_pretrained(
                 scheduler=scheduler_obj,
                 import_mlir=args.import_mlir,
                 model_id=args.hf_model_id,
@@ -198,18 +168,17 @@ def txt2img_inf(
                 precision=args.precision,
                 max_length=args.max_length,
                 batch_size=args.batch_size,
-                height=height,
-                width=width,
+                height=args.height,
+                width=args.width,
                 use_base_vae=args.use_base_vae,
                 use_tuned=args.use_tuned,
                 custom_vae=args.custom_vae,
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
                 use_lora=args.use_lora,
-                use_quantize=args.use_quantize,
                 ondemand=args.ondemand,
             )
-        global_obj.set_sd_obj(txt2img_obj)
+        )
 
     global_obj.set_sd_scheduler(scheduler)
 
@@ -533,15 +502,15 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             )
                     with gr.Row():
                         height = gr.Slider(
-                            128,
-                            1024,
+                            384,
+                            768,
                             value=args.height,
                             step=8,
                             label="Height",
                         )
                         width = gr.Slider(
-                            128,
-                            1024,
+                            384,
+                            768,
                             value=args.width,
                             step=8,
                             label="Width",
