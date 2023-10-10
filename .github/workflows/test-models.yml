@@ -137,9 +137,8 @@ jobs:
         source shark.venv/bin/activate
         echo $PATH
         pip list | grep -E "torch|iree"
-        rm -rf /Volumes/builder/anush/shark_cache/
         # disabled due to bug with requests
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k metal
+        # pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="/Volumes/builder/anush/shark_cache" --tank_url="gs://shark_tank/nightly/" -k metal
 
     - name: Validate Vulkan Models (a100)
       if: matrix.suite == 'vulkan' && matrix.os == 'a100'
