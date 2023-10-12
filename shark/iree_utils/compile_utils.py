@@ -43,7 +43,7 @@ def get_iree_device_args(device, extra_args=[]):
     else:
         device_num = 0
 
-    if device_uri[0] == "cpu":
+    if "cpu" in device:
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
         data_tiling_flag = ["--iree-opt-data-tiling"]
@@ -55,6 +55,8 @@ def get_iree_device_args(device, extra_args=[]):
             + data_tiling_flag
             + u_kernel_flag
             + stack_size_flag
+            + ["--iree-flow-enable-quantized-matmul-reassociation"]
+            + ["--iree-llvmcpu-enable-quantized-matmul-reassociation"]
         )
     if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
