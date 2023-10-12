@@ -808,7 +808,7 @@ def batch_seeds(
         saved_random_state = random_getstate()
         if all(seed < 0 for seed in seeds):
             seeds[0] = sanitize_seed(seeds[0])
-        seed_random(str(seeds))
+        seed_random(str([n for n in seeds if n > -1]))
 
     # generate any seeds that are unspecified
     seeds = [sanitize_seed(seed) for seed in seeds]
