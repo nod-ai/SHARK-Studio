@@ -804,10 +804,11 @@ def batch_seeds(
     seeds = seeds[:batch_count] + [-1] * (batch_count - len(seeds))
 
     if repeatable:
-        # set seed for the rng based on what we have so far
-        saved_random_state = random_getstate()
         if all(seed < 0 for seed in seeds):
             seeds[0] = sanitize_seed(seeds[0])
+
+        # set seed for the rng based on what we have so far
+        saved_random_state = random_getstate()
         seed_random(str([n for n in seeds if n > -1]))
 
     # generate any seeds that are unspecified
