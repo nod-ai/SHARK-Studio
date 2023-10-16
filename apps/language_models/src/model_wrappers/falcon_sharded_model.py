@@ -115,8 +115,12 @@ class CompiledDecoderLayer(torch.nn.Module):
             return tuple(
                 [
                     torch.tensor(new_hidden_states),
-                    torch.tensor(pkv1),
-                    torch.tensor(pkv2),
+                    tuple(
+                        [
+                            torch.tensor(pkv1),
+                            torch.tensor(pkv2),
+                        ]
+                    ),
                 ]
             )
 
