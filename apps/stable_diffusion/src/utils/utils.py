@@ -482,7 +482,9 @@ def get_available_devices():
                     if len(device_list_dict) == 1:
                         device_list.append(f"{device_name} => {driver_name}")
                     else:
-                        device_list.append(f"{device_name} => {driver_name}://{i}")
+                        device_list.append(
+                            f"{device_name} => {driver_name}://{i}"
+                        )
         return device_list
 
     set_iree_runtime_flags()
