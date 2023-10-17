@@ -164,6 +164,8 @@ def chat(
         device = "vulkan"
     elif "rocm" in device:
         device = "rocm"
+    elif "metal" in device:
+        device = "metal"
     else:
         print("unrecognized device")
 
@@ -331,6 +333,8 @@ def llm_chat_api(InputData: dict):
         elif "vulkan" in device:
             device_id = int(device.split("://")[1])
             device = "vulkan"
+        elif "metal" in device:
+            device = "metal"
         else:
             print("unrecognized device")
 
