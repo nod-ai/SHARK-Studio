@@ -153,6 +153,7 @@ def chat(
 
     device_id = None
     model_name, model_path = list(map(str.strip, model.split("=>")))
+    device = device if "=>" not in device else device.split("=>")[1].strip()
     if "cuda" in device:
         device = "cuda"
     elif "sync" in device:

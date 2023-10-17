@@ -1303,6 +1303,7 @@ class UnshardedVicuna(VicunaBase):
 
     def get_model_path(self, suffix="mlir"):
         safe_device = self.device.split("-")[0]
+        safe_device = safe_device.split("://")[0]
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
 

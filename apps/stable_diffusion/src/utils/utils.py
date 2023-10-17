@@ -477,7 +477,12 @@ def get_available_devices():
                         f"{device_name} => {driver_name.replace('local', 'cpu')}"
                     )
                 else:
-                    device_list.append(f"{device_name} => {driver_name}://{i}")
+                    # for drivers with single devices
+                    # let the default device be selected without any indexing
+                    if len(device_list_dict) == 1:
+                        device_list.append(f"{device_name} => {driver_name}")
+                    else:
+                        device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
