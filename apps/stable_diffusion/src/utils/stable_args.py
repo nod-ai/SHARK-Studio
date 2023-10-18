@@ -725,6 +725,17 @@ p.add_argument(
     help="Specifies whether the docuchat's web version is running or not.",
 )
 
+##############################################################################
+# rocm Flags
+##############################################################################
+
+p.add_argument(
+    "--iree_rocm_target_chip",
+    type=str,
+    default="gfx1100",
+    help="Add the rocm device architecture ex gfx1100, gfx90a, etc. Default gfx1100",
+)
+
 args, unknown = p.parse_known_args()
 if args.import_debug:
     os.environ["IREE_SAVE_TEMPS"] = os.path.join(

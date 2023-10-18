@@ -216,8 +216,14 @@ def chat(
                 assert (
                     device_id
                 ), f"no vulkan hardware for target-triple '{vulkan_target_triple}' exists"
+            print(f"Will use vulkan target triple : {vulkan_target_triple}")
 
-        print(f"Will use target triple : {vulkan_target_triple}")
+        elif "rocm" in device:
+            # add iree rocm flags
+            _extra_args.append(
+                f"--iree-rocm-target-chip={args.iree_rocm_target_chip}"
+            )
+            print(f"extra args = {_extra_args}")
 
         if model_name == "vicuna4":
             vicuna_model = ShardedVicuna(
