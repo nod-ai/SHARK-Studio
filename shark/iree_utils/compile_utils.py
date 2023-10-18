@@ -324,7 +324,7 @@ def compile_module_to_flatbuffer(
     else:
         assert os.path.isfile(module)
         flatbuffer_blob = ireec.compile_file(
-            module,
+            str(module),
             input_type=input_type,
             target_backends=[iree_target_map(device)],
             extra_args=args,
