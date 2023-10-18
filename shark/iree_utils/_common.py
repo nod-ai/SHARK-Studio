@@ -120,14 +120,8 @@ def check_device_drivers(device):
     elif device == "cpu":
         return False
     elif device == "rocm":
-        try:
-            if sys.platform == "win32":
-                subprocess.check_output("hipinfo")
-            else:
-                subprocess.check_output("rocminfo")
-        except Exception:
-            return True
-
+        print(f"Device ROCM - Assuming hip / rocm libs already installed.")
+        return False
     # Unknown device. We assume drivers are installed.
     return False
 
