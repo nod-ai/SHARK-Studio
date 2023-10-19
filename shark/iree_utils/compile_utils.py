@@ -301,7 +301,6 @@ def compile_module_to_flatbuffer(
     args += get_model_specific_args()
     args += extra_args
     args += shark_args.additional_compile_args
-    print(args)
 
     if frontend in ["tensorflow", "tf"]:
         input_type = "auto"
@@ -396,6 +395,12 @@ def load_vmfb_using_mmap(
         else:
             config = get_iree_runtime_config(device)
             dl.log("get_iree_runtime_config")
+        if "task" in device:
+            print(
+                f"[DEBUG] setting iree runtime flags for cpu:\n{' '.join(get_iree_cpu_rt_args())}"
+            )
+            for flag in get_iree_cpu_rt_args():
+                ireert.flags.parse_flags(flag)
 
         # Now load vmfb.
         # Two scenarios we have here :-
