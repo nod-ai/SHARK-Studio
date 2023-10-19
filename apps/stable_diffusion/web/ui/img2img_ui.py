@@ -396,6 +396,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         choices=["None"]
                         + get_custom_model_files()
                         + predefined_models,
+                        allow_custom_value=True,
                     )
                     img2img_hf_model_id = gr.Textbox(
                         elem_id="hf_model_id",
@@ -421,6 +422,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         if args.custom_vae
                         else "None",
                         choices=["None"] + get_custom_model_files("vae"),
+                        allow_custom_value=True,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -518,6 +520,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         ).replace("\\", "\n\\")
                         i2i_lora_info = f"LoRA Path: {i2i_lora_info}"
                         lora_weights = gr.Dropdown(
+                            allow_custom_value=True,
                             label=f"Standalone LoRA Weights",
                             info=i2i_lora_info,
                             elem_id="lora_weights",
@@ -541,6 +544,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             label="Scheduler",
                             value="EulerDiscrete",
                             choices=scheduler_list_cpu_only,
+                            allow_custom_value=True,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -596,6 +600,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     "Cubic",
                                 ],
                                 label="Resample Type",
+                                allow_custom_value=True,
                             )
                         ondemand = gr.Checkbox(
                             value=args.ondemand,
@@ -654,6 +659,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
+                        allow_custom_value=True,
                     )
                 with gr.Row():
                     random_seed = gr.Button("Randomize Seed")

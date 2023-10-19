@@ -212,6 +212,7 @@ with gr.Blocks(title="DocuChat") as h2ogpt_web:
             else "Only CUDA Supported for now",
             choices=supported_devices,
             interactive=enabled,
+            allow_custom_value=True,
         )
         precision = gr.Radio(
             label="Precision",

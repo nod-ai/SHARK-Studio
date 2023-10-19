@@ -535,10 +535,6 @@ def get_opt_flags(model, precision="fp16"):
             "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
         )
 
-    # Disable bindings fusion to work with moltenVK.
-    if sys.platform == "darwin":
-        iree_flags.append("-iree-stream-fuse-binding=false")
-
     if "default_compilation_flags" in opt_flags[model][is_tuned][precision]:
         iree_flags += opt_flags[model][is_tuned][precision][
             "default_compilation_flags"
@@ -808,11 +804,12 @@ def batch_seeds(
     seeds = seeds[:batch_count] + [-1] * (batch_count - len(seeds))
 
     if repeatable:
-        # set seed for the rng based on what we have so far
-        saved_random_state = random_getstate()
         if all(seed < 0 for seed in seeds):
             seeds[0] = sanitize_seed(seeds[0])
-        seed_random(str(seeds))
+
+        # set seed for the rng based on what we have so far
+        saved_random_state = random_getstate()
+        seed_random(str([n for n in seeds if n > -1]))
 
     # generate any seeds that are unspecified
     seeds = [sanitize_seed(seed) for seed in seeds]
