@@ -120,7 +120,7 @@ def check_device_drivers(device):
     elif device == "cpu":
         return False
     elif device == "rocm":
-        print(f"Device ROCM - Assuming hip / rocm libs already installed.")
+        # Required ROCm driver libs are already part of IREE
         return False
     # Unknown device. We assume drivers are installed.
     return False
