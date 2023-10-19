@@ -55,20 +55,10 @@ import requests
 
 
 def preprocess_input_image(model_name):
-    # from datasets import load_dataset
-    # dataset = load_dataset("huggingface/cats-image")
-    # image1 = dataset["test"]["image"][0]
-    # # print("image1: ", image1) # <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=640x480 at 0x7FA0B86BB6D0>
     url = "http://images.cocodataset.org/val2017/000000039769.jpg"
-    # <PIL.JpegImagePlugin.JpegImageFile image mode=RGB size=640x480 at 0x7FA0B86BB6D0>
     image = Image.open(requests.get(url, stream=True).raw)
-    # feature_extractor = img_models_fe_dict[model_name].from_pretrained(
-    #     model_name
-    # )
     feature_extractor = AutoFeatureExtractor.from_pretrained(model_name)
     inputs = feature_extractor(images=image, return_tensors="pt")
-    # inputs = {'pixel_values': tensor([[[[ 0.1137..., -0.2000, -0.4275, -0.5294]]]])}
-    #           torch.Size([1, 3, 224, 224]), torch.FloatTensor
 
     return inputs[str(*inputs)]
 
@@ -89,15 +79,9 @@ class HuggingFaceImageClassification(torch.nn.Module):
 
 def get_hf_img_cls_model(name, import_args):
     model = HuggingFaceImageClassification(name)
-    # you can use preprocess_input_image to get the test_input or just random value.
     test_input = preprocess_input_image(name)
-    # test_input = torch.FloatTensor(1, 3, 224, 224).uniform_(-1, 1)
-    # print("test_input.shape: ", test_input.shape)
-    # test_input.shape:  torch.Size([1, 3, 224, 224])
     test_input = test_input.repeat(int(import_args["batch_size"]), 1, 1, 1)
     actual_out = model(test_input)
-    # print("actual_out.shape： ", actual_out.shape)
-    # actual_out.shape：  torch.Size([1, 1000])
     return model, test_input, actual_out
 
 
@@ -229,47 +213,22 @@ class VisionModule(torch.nn.Module):
 
 
 def get_vision_model(torch_model, import_args):
-    import torchvision.models as models
+    import torchvision
+    from torchvision.models import get_model
 
     default_image_size = (224, 224)
     modelname = torch_model
-    if modelname == "alexnet":
-        torch_model = models.alexnet(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "resnet18":
-        torch_model = models.resnet18(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "resnet50":
-        torch_model = models.resnet50(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "resnet50_fp16":
-        torch_model = models.resnet50(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "resnet50_fp16":
-        torch_model = models.resnet50(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "resnet101":
-        torch_model = models.resnet101(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "squeezenet1_0":
-        torch_model = models.squeezenet1_0(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "wide_resnet50_2":
-        torch_model = models.wide_resnet50_2(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "mobilenet_v3_small":
-        torch_model = models.mobilenet_v3_small(weights="DEFAULT")
-        input_image_size = default_image_size
-    if modelname == "mnasnet1_0":
-        torch_model = models.mnasnet1_0(weights="DEFAULT")
-        input_image_size = default_image_size
     if modelname == "efficientnet_b0":
-        torch_model = models.efficientnet_b0(weights="DEFAULT")
         input_image_size = (224, 224)
-    if modelname == "efficientnet_b7":
-        torch_model = models.efficientnet_b7(weights="DEFAULT")
+        weights = None
+    elif modelname == "efficientnet_b7":
         input_image_size = (600, 600)
-
+        weights = None
+    else:
+        input_image_size = default_image_size
+        weights = "DEFAULT"
+    
+    torch_model = get_model(modelname, weights=weights)
     fp16_model = False
     if "fp16" in modelname:
         fp16_model = True

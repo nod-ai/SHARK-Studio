@@ -11,11 +11,12 @@
 import os
 import csv
 import argparse
-from shark.shark_importer import SharkImporter
+from shark.shark_importer import SharkImporter, save_mlir
 import subprocess as sp
 import hashlib
 import numpy as np
 from pathlib import Path
+import shark_turbine.aot as aot
 
 
 def create_hash(file_name):
@@ -89,45 +90,16 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 )
             os.makedirs(torch_model_dir, exist_ok=True)
 
-            if is_decompose:
-                # Add decomposition to some torch ops
-                # TODO add op whitelist/blacklist
-                import_with_fx(
-                    model,
-                    (input,),
-                    is_f16=False,
-                    f16_input_mask=None,
-                    debug=True,
-                    training=False,
-                    return_str=False,
-                    save_dir=torch_model_dir,
-                    model_name=torch_model_name,
-                    mlir_type=mlir_type,
-                    is_dynamic=False,
-                    tracing_required=tracing_required,
-                )
-            else:
-                mlir_importer = SharkImporter(
-                    model,
-                    (input,),
+            exported_model = aot.export(model, input)
+            mlir_path = save_mlir(
+                    exported_model,
+                    torch_model_name,
+                    mlir_dialect="tm_tensor",
                     frontend="torch",
-                )
-                mlir_importer.import_debug(
-                    is_dynamic=False,
-                    tracing_required=tracing_required,
                     dir=torch_model_dir,
-                    model_name=torch_model_name,
-                    mlir_type=mlir_type,
-                )
-                # Generate torch dynamic models.
-                if is_dynamic:
-                    mlir_importer.import_debug(
-                        is_dynamic=True,
-                        tracing_required=tracing_required,
-                        dir=torch_model_dir,
-                        model_name=torch_model_name + "_dynamic",
-                        mlir_type=mlir_type,
-                    )
+            )
+            np.save(os.path.join(torch_model_dir, "inputs.npz"), (input,))
+            print(f"Finished saving artifacts for {torch_model_name}!")
 
 
 def check_requirements(frontend):
