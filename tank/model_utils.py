@@ -44,7 +44,7 @@ def get_torch_model(modelname, import_args):
     elif "fp16" in modelname:
         return get_fp16_model(modelname, import_args)
     else:
-        return get_hf_model(modelname, import_args)
+        return get_hf_causallm_model(modelname, import_args)
 
 
 ##################### Hugging Face Image Classification Models ###################################
@@ -114,7 +114,7 @@ def get_hf_model(name, import_args):
     )
 
     model = HuggingFaceLanguage(name)
-    test_input = torch.randint(2, (int(import_args["batch_size"]), 128))
+    test_input = torch.randint(2, (1, 128))
     actual_out = model(test_input)
     return model, test_input, actual_out
 
@@ -161,12 +161,25 @@ def get_hf_seq2seq_model(name, import_args):
 
 
 ##################### Hugging Face CausalLM Models ###################################
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import AutoTokenizer, AutoModelForCausalLM, OPTForCausalLM
 
 
 def prepare_sentence_tokens(hf_model: str, sentence: str):
-    tokenizer = AutoTokenizer.from_pretrained(hf_model)
-    return torch.tensor([tokenizer.encode(sentence)])
+    tokenizer = AutoTokenizer.from_pretrained(hf_model, use_fast=False)
+    if not tokenizer.pad_token:
+        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+    encoded_inputs = tokenizer(
+        sentence,
+        padding="max_length",
+        truncation=True,
+        max_length=128,
+        return_tensors="pt",
+    )
+    prepared_tokens = (
+        encoded_inputs["input_ids"],
+        encoded_inputs["attention_mask"],
+    )
+    return prepared_tokens
 
 
 class HFCausalLM(torch.nn.Module):
@@ -174,26 +187,23 @@ class HFCausalLM(torch.nn.Module):
         super().__init__()
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,  # The pretrained model name.
-            # The number of output labels--2 for binary classification.
-            num_labels=2,
-            # Whether the model returns attentions weights.
-            output_attentions=False,
-            # Whether the model returns all hidden-states.
-            output_hidden_states=False,
-            torchscript=True,
         )
         self.model.eval()
 
-    def forward(self, tokens):
-        return self.model.forward(tokens)[0]
-
+    def forward(self, input_tuple):
+        combine_input_dict = {
+            "input_ids": input_tuple[0],
+            "attention_mask": input_tuple[1],
+        }
+        output = self.model(**combine_input_dict)
+        return output.logits
 
 def get_hf_causallm_model(name, import_args):
-    m = HFCausalLM(name)
     test_input = prepare_sentence_tokens(
         name, "this project is very interesting"
     )
-    actual_out = m.forward(*test_input)
+    m = HFCausalLM(name)
+    actual_out = m.forward(test_input)
     return m, test_input, actual_out
 
 
