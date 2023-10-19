@@ -2,7 +2,7 @@ import torch
 from transformers import AutoModelForCausalLM
 
 
-class FirstVicuna(torch.nn.Module):
+class FirstVicunaGPU(torch.nn.Module):
     def __init__(
         self,
         model_path,
@@ -47,8 +47,7 @@ class FirstVicuna(torch.nn.Module):
     def forward(self, input_ids):
         op = self.model(input_ids=input_ids, use_cache=True)
         return_vals = []
-        token = torch.argmax(op.logits[:, -1, :], dim=1)
-        return_vals.append(token)
+        return_vals.append(op.logits)
 
         temp_past_key_values = op.past_key_values
         for item in temp_past_key_values:
@@ -57,7 +56,7 @@ class FirstVicuna(torch.nn.Module):
         return tuple(return_vals)
 
 
-class SecondVicuna7B(torch.nn.Module):
+class SecondVicuna7BGPU(torch.nn.Module):
     def __init__(
         self,
         model_path,
@@ -299,8 +298,7 @@ class SecondVicuna7B(torch.nn.Module):
             input_ids=token, use_cache=True, past_key_values=past_key_values
         )
         return_vals = []
-        token = torch.argmax(op.logits[:, -1, :], dim=1)
-        return_vals.append(token)
+        return_vals.append(op.logits)
         temp_past_key_values = op.past_key_values
         for item in temp_past_key_values:
             return_vals.append(item[0])
@@ -308,7 +306,7 @@ class SecondVicuna7B(torch.nn.Module):
         return tuple(return_vals)
 
 
-class SecondVicuna13B(torch.nn.Module):
+class SecondVicuna13BGPU(torch.nn.Module):
     def __init__(
         self,
         model_path,
@@ -605,7 +603,7 @@ class SecondVicuna13B(torch.nn.Module):
         return tuple(return_vals)
 
 
-class SecondVicuna70B(torch.nn.Module):
+class SecondVicuna70BGPU(torch.nn.Module):
     def __init__(
         self,
         model_path,
@@ -1150,9 +1148,9 @@ class CombinedModel(torch.nn.Module):
         second_vicuna_model_path="TheBloke/vicuna-7B-1.1-HF",
     ):
         super().__init__()
-        self.first_vicuna = FirstVicuna(first_vicuna_model_path)
+        self.first_vicuna = FirstVicunaGPU(first_vicuna_model_path)
         # NOT using this path for 13B currently, hence using `SecondVicuna7B`.
-        self.second_vicuna = SecondVicuna7B(second_vicuna_model_path)
+        self.second_vicuna = SecondVicuna7BGPU(second_vicuna_model_path)
 
     def forward(self, input_ids):
         first_output = self.first_vicuna(input_ids=input_ids)

@@ -54,7 +54,6 @@ from apps.language_models.utils import (
 )
 from shark.shark_downloader import download_public_file
 from shark.shark_importer import get_f16_inputs
-from shark.shark_importer import import_with_fx
 from shark.shark_inference import SharkInference
 
 from transformers.models.llama.configuration_llama import LlamaConfig

@@ -18,7 +18,7 @@ import tempfile
 import torch
 from safetensors.torch import load_file
 from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
@@ -154,8 +154,8 @@ def compile_through_fx(
         f16_input_mask=f16_input_mask,
         debug=debug,
         model_name=extended_model_name,
-        save_dir=save_dir,
     )
+
     if use_tuned:
         if "vae" in extended_model_name.split("_")[0]:
             args.annotation_model = "vae"
@@ -168,6 +168,14 @@ def compile_through_fx(
             mlir_module, extended_model_name, base_model_id
         )
 
+    if not os.path.isdir(save_dir):
+        save_dir = ""
+
+    mlir_module = save_mlir(
+        mlir_module,
+        model_name=extended_model_name,
+        dir=save_dir,
+    )
     shark_module = SharkInference(
         mlir_module,
         device=args.device if device is None else device,
@@ -179,16 +187,21 @@ def compile_through_fx(
             mlir_module,
         )
 
-    del mlir_module
     gc.collect()
 
 
 def set_iree_runtime_flags():
+    # TODO: This function should be device-agnostic and piped properly
+    # to general runtime driver init.
     vulkan_runtime_flags = get_iree_vulkan_runtime_flags()
     if args.enable_rgp:
         vulkan_runtime_flags += [
             f"--enable_rgp=true",
             f"--vulkan_debug_utils=true",
+        ]
+    if args.device_allocator_heap_key:
+        vulkan_runtime_flags += [
+            f"--device_allocator=caching:device_local={args.device_allocator_heap_key}",
         ]
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
@@ -522,10 +535,6 @@ def get_opt_flags(model, precision="fp16"):
             "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
         )
 
-    # Disable bindings fusion to work with moltenVK.
-    if sys.platform == "darwin":
-        iree_flags.append("-iree-stream-fuse-binding=false")
-
     if "default_compilation_flags" in opt_flags[model][is_tuned][precision]:
         iree_flags += opt_flags[model][is_tuned][precision][
             "default_compilation_flags"
@@ -795,11 +804,12 @@ def batch_seeds(
     seeds = seeds[:batch_count] + [-1] * (batch_count - len(seeds))
 
     if repeatable:
-        # set seed for the rng based on what we have so far
-        saved_random_state = random_getstate()
         if all(seed < 0 for seed in seeds):
             seeds[0] = sanitize_seed(seeds[0])
-        seed_random(str(seeds))
+
+        # set seed for the rng based on what we have so far
+        saved_random_state = random_getstate()
+        seed_random(str([n for n in seeds if n > -1]))
 
     # generate any seeds that are unspecified
     seeds = [sanitize_seed(seed) for seed in seeds]

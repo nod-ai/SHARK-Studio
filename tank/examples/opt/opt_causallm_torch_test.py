@@ -6,7 +6,7 @@ import numpy as np
 from shark_opt_wrapper import OPTForCausalLMModel
 from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 from transformers import AutoTokenizer, OPTForCausalLM
 
 OPT_MODEL = "facebook/opt-1.3b"
@@ -57,9 +57,10 @@ class OPTModuleTester:
         with open(mlir_path, "w") as f:
             f.write(mlir_module)
         print(f"Saved mlir at {mlir_path}")
+        del mlir_module
 
         shark_module = SharkInference(
-            mlir_module,
+            mlir_path,
             device=device,
             mlir_dialect="tm_tensor",
             is_benchmark=self.benchmark,

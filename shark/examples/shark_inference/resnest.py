@@ -33,7 +33,7 @@ mlir_importer = SharkImporter(
 
 print(golden_out)
 
-shark_module = SharkInference(vision_mlir, func_name, mlir_dialect="linalg")
+shark_module = SharkInference(vision_mlir, mlir_dialect="linalg")
 shark_module.compile()
 result = shark_module.forward((input,))
 print("Obtained result", result)

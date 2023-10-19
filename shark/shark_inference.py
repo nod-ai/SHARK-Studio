@@ -39,7 +39,7 @@ class SharkInference:
     Attributes
     ----------
     mlir_module : str
-        mlir_module represented in string; modules from torch-mlir are serialized in bytecode format.
+        mlir_module or path represented in string; modules from torch-mlir are serialized in bytecode format.
     device : str
         device to execute the mlir_module on.
         currently supports cpu, cuda, vulkan, and metal backends.
@@ -65,7 +65,7 @@ class SharkInference:
 
     def __init__(
         self,
-        mlir_module: bytes,
+        mlir_module,
         device: str = "none",
         mlir_dialect: str = "linalg",
         is_benchmark: bool = False,
@@ -76,6 +76,14 @@ class SharkInference:
         rt_flags: list = [],
     ):
         self.mlir_module = mlir_module
+        if mlir_module is not None:
+            if mlir_module and not os.path.isfile(mlir_module):
+                print(
+                    "Warning: Initializing SharkInference with a mlir string/bytecode object will duplicate the model in RAM at compile time. To avoid this, initialize SharkInference with a path to a MLIR module on your hard disk instead."
+                )
+                self.compile_str = True
+            else:
+                self.compile_str = False
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.is_benchmark = is_benchmark
@@ -206,6 +214,7 @@ class SharkInference:
             module_name=module_name,
             extra_args=extra_args,
             debug=debug,
+            compile_str=self.compile_str,
         )
 
     # load and return the module.

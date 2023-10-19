@@ -45,7 +45,7 @@ class SharkRunner:
     Attributes
     ----------
     mlir_module : str
-        mlir_module represented in string.
+        mlir_module path, string, or bytecode.
     device : str
         device to execute the mlir_module on.
         currently supports cpu, cuda, vulkan, and metal backends.
@@ -75,6 +75,14 @@ class SharkRunner:
         rt_flags: list = [],
     ):
         self.mlir_module = mlir_module
+        if self.mlir_module is not None:
+            if not os.path.isfile(mlir_module):
+                print(
+                    "Warning: Initializing SharkRunner with a mlir string/bytecode object will duplicate the model in RAM at compile time. To avoid this, initialize SharkInference with a path to a MLIR module on your hard disk instead."
+                )
+                self.compile_str = True
+            else:
+                self.compile_str = False
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
@@ -94,6 +102,7 @@ class SharkRunner:
                 extra_args=self.extra_args,
                 device_idx=self.device_idx,
                 rt_flags=self.rt_flags,
+                compile_str=self.compile_str,
             )
             self.iree_compilation_module = params["vmfb"]
             self.iree_config = params["config"]

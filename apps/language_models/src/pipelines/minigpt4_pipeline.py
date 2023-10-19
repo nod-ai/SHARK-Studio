@@ -126,7 +126,7 @@ def is_url(input_url):
 import os
 import tempfile
 from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 import torch
 import torch_mlir
 from torch_mlir.compiler_utils import run_pipeline_with_repro_report
@@ -235,6 +235,12 @@ def compile_int_precision(
     mlir_module = BytesIO(mlir_module)
     bytecode = mlir_module.read()
     print(f"Elided IR written for {extended_model_name}")
+    bytecode = save_mlir(
+        bytecode,
+        model_name=extended_model_name,
+        frontend="torch",
+        dir=os.getcwd(),
+    )
     return bytecode
     shark_module = SharkInference(
         mlir_module=bytecode, device=device, mlir_dialect="tm_tensor"

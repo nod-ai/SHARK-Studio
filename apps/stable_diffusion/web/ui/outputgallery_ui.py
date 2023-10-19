@@ -109,6 +109,7 @@ with gr.Blocks() as outputgallery_web:
                             value="",
                             interactive=True,
                             elem_classes="dropdown_no_container",
+                            allow_custom_value=True,
                         )
                     with gr.Column(
                         scale=1,

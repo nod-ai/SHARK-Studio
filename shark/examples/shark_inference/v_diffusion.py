@@ -7,7 +7,7 @@ mlir_model, func_name, inputs, golden_out = download_model(
 )
 
 shark_module = SharkInference(
-    mlir_model, func_name, device="vulkan", mlir_dialect="linalg"
+    mlir_model, device="vulkan", mlir_dialect="linalg"
 )
 shark_module.compile()
 result = shark_module.forward(inputs)

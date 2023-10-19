@@ -15,7 +15,7 @@
 from shark.parser import shark_args
 from shark.shark_runner import SharkRunner
 from shark.backward_makefx import MakeFxModule
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 import numpy as np
 from tqdm import tqdm
 import sys
@@ -83,6 +83,12 @@ class SharkTrainer:
                 [],
                 training=True,
                 mlir_type=mlir_type,
+            )
+            mlir_module = save_mlir(
+                mlir_module,
+                model_name="shark_model",
+                frontend="torch",
+                mlir_dialect=mlir_type,
             )
             self.shark_runner = SharkRunner(
                 mlir_module,

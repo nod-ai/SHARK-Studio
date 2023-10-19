@@ -156,9 +156,9 @@ if __name__ == "__main__":
         upscaler_sendto_img2img,
         upscaler_sendto_inpaint,
         upscaler_sendto_outpaint,
-        lora_train_web,
-        model_web,
-        model_config_web,
+        #  lora_train_web,
+        #  model_web,
+        #  model_config_web,
         hf_models,
         modelmanager_sendto_txt2img,
         modelmanager_sendto_img2img,
@@ -250,16 +250,16 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
-            with gr.TabItem(label="Model Manager", id=6):
-                model_web.render()
-            with gr.TabItem(label="LoRA Training (Experimental)", id=7):
-                lora_train_web.render()
-            with gr.TabItem(label="Chat Bot (Experimental)", id=8):
+            #  with gr.TabItem(label="Model Manager", id=6):
+            #      model_web.render()
+            #  with gr.TabItem(label="LoRA Training (Experimental)", id=7):
+            #      lora_train_web.render()
+            with gr.TabItem(label="Chat Bot", id=8):
                 stablelm_chat.render()
-            with gr.TabItem(
-                label="Generate Sharding Config (Experimental)", id=9
-            ):
-                model_config_web.render()
+            #  with gr.TabItem(
+            #      label="Generate Sharding Config (Experimental)", id=9
+            #  ):
+            #      model_config_web.render()
             with gr.TabItem(label="MultiModal (Experimental)", id=10):
                 minigpt4_web.render()
             # with gr.TabItem(label="DocuChat Upload", id=11):

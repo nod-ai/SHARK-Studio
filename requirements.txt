@@ -47,4 +47,4 @@ pefile
 pyinstaller
 
 # vicuna quantization
-brevitas @ git+https://github.com/Xilinx/brevitas.git@dev
+brevitas @ git+https://github.com/Xilinx/brevitas.git@56edf56a3115d5ac04f19837b388fd7d3b1ff7ea

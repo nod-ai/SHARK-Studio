@@ -4,6 +4,7 @@ import re
 import gc
 from io import BytesIO
 from pathlib import Path
+from statistics import mean, stdev
 from tqdm import tqdm
 from typing import List, Tuple
 import subprocess
@@ -43,12 +44,18 @@ from apps.language_models.src.model_wrappers.vicuna_model import (
     SecondVicuna13B,
     SecondVicuna70B,
 )
+from apps.language_models.src.model_wrappers.vicuna_model_gpu import (
+    FirstVicunaGPU,
+    SecondVicuna7BGPU,
+    SecondVicuna13BGPU,
+    SecondVicuna70BGPU,
+)
 from apps.language_models.utils import (
     get_vmfb_from_path,
 )
 from shark.shark_downloader import download_public_file
 from shark.shark_importer import get_f16_inputs
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 from shark.shark_inference import SharkInference
 
 
@@ -103,7 +110,7 @@ parser.add_argument(
     "--download_vmfb",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="download vmfb from sharktank, system dependent, YMMV",
+    help="Download vmfb from sharktank, system dependent, YMMV",
 )
 parser.add_argument(
     "--model_name",
@@ -129,6 +136,38 @@ parser.add_argument(
     type=str,
     default="",
     help="Specify target triple for vulkan.",
+)
+
+# Microbenchmarking options.
+parser.add_argument(
+    "--enable_microbenchmark",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Enables the microbenchmarking mode (non-interactive). Uses the system and the user prompt from args.",
+)
+parser.add_argument(
+    "--microbenchmark_iterations",
+    type=int,
+    default=5,
+    help="Number of microbenchmark iterations. Default: 5.",
+)
+parser.add_argument(
+    "--microbenchmark_num_tokens",
+    type=int,
+    default=512,
+    help="Generate an exact number of output tokens. Default: 512.",
+)
+parser.add_argument(
+    "--system_prompt",
+    type=str,
+    default="",
+    help="Specify the system prompt. This is only used with `--enable_microbenchmark`",
+)
+parser.add_argument(
+    "--user_prompt",
+    type=str,
+    default="Hi",
+    help="Specify the user prompt. This is only used with `--enable_microbenchmark`",
 )
 
 # fmt: off
@@ -399,7 +438,7 @@ class VicunaBase(SharkLLMBase):
                     is_first=is_first,
                 )
             else:
-                token = token.to(torch.int64).reshape([1, 1])
+                token = torch.tensor(token).reshape([1, 1])
                 second_input = (token,) + tuple(past_key_values)
                 output = self.shark_model(
                     "second_vicuna_forward", second_input, send_to_host=False
@@ -409,6 +448,9 @@ class VicunaBase(SharkLLMBase):
             _logits = output["logits"]
             _past_key_values = output["past_key_values"]
             _token = int(torch.argmax(_logits[:, -1, :], dim=1)[0])
+        elif "cpu" in self.device:
+            _past_key_values = output[1:]
+            _token = int(output[0].to_host())
         else:
             _logits = torch.tensor(output[0].to_host())
             _past_key_values = output[1:]
@@ -418,9 +460,10 @@ class VicunaBase(SharkLLMBase):
         ret_dict = {
             "token": _token,
             "detok": _detok,
-            "logits": _logits,
             "past_key_values": _past_key_values,
         }
+        if "cpu" not in self.device:
+            ret_dict["logits"] = _logits
 
         if cli:
             print(f" token : {_token} | detok : {_detok}")
@@ -641,9 +684,7 @@ class ShardedVicuna(VicunaBase):
         mlir_path = Path(f"lmhead.mlir")
         vmfb_path = Path(f"lmhead.vmfb")
         if mlir_path.exists():
-            f_ = open(mlir_path, "rb")
-            bytecode = f_.read()
-            f_.close()
+            print(f"Found bytecode module at {mlir_path}.")
         else:
             hidden_states = torch_mlir.TensorPlaceholder.like(
                 hidden_states, dynamic_axes=[1]
@@ -668,12 +709,10 @@ class ShardedVicuna(VicunaBase):
                 filepath.absolute(),
                 single_file=True,
             )
-            f_ = open(f"lmhead.mlir", "rb")
-            bytecode = f_.read()
-            f_.close()
+            mlir_path = filepath
 
         shark_module = SharkInference(
-            bytecode,
+            mlir_path,
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
@@ -693,9 +732,7 @@ class ShardedVicuna(VicunaBase):
         mlir_path = Path(f"norm.mlir")
         vmfb_path = Path(f"norm.vmfb")
         if mlir_path.exists():
-            f_ = open(mlir_path, "rb")
-            bytecode = f_.read()
-            f_.close()
+            print(f"Found bytecode module at {mlir_path}.")
         else:
             hidden_states = torch_mlir.TensorPlaceholder.like(
                 hidden_states, dynamic_axes=[1]
@@ -714,12 +751,10 @@ class ShardedVicuna(VicunaBase):
                 filepath.absolute(),
                 single_file=True,
             )
-            f_ = open(f"norm.mlir", "rb")
-            bytecode = f_.read()
-            f_.close()
+            mlir_path = filepath
 
         shark_module = SharkInference(
-            bytecode,
+            mlir_path,
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
@@ -739,9 +774,7 @@ class ShardedVicuna(VicunaBase):
         mlir_path = Path(f"embedding.mlir")
         vmfb_path = Path(f"embedding.vmfb")
         if mlir_path.exists():
-            f_ = open(mlir_path, "rb")
-            bytecode = f_.read()
-            f_.close()
+            print(f"Found bytecode module at {mlir_path}.")
         else:
             input_ids = torch_mlir.TensorPlaceholder.like(
                 input_ids, dynamic_axes=[1]
@@ -765,12 +798,10 @@ class ShardedVicuna(VicunaBase):
                 filepath.absolute(),
                 single_file=True,
             )
-            f_ = open(f"embedding.mlir", "rb")
-            bytecode = f_.read()
-            f_.close()
+            mlir_path = filepath
 
         shark_module = SharkInference(
-            bytecode,
+            mlir_path,
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
@@ -1220,6 +1251,7 @@ class UnshardedVicuna(VicunaBase):
         hf_model_path="TheBloke/vicuna-7B-1.1-HF",
         hf_auth_token: str = None,
         max_num_tokens=512,
+        min_num_tokens=0,
         device="cpu",
         vulkan_target_triple="",
         precision="int8",
@@ -1249,6 +1281,7 @@ class UnshardedVicuna(VicunaBase):
             self.hf_model_path = "meta-llama/Llama-2-70b-chat-hf"
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
+        self.min_num_tokens = min_num_tokens
         self.device = device
         self.vulkan_target_triple = vulkan_target_triple
         self.device_id = device_id
@@ -1426,10 +1459,12 @@ class UnshardedVicuna(VicunaBase):
             print(f"[DEBUG] vmfb found at {self.vicuna_vmfb_path.absolute()}")
             return
 
-        print(f"[DEBUG] vmfb not found")
+        print(f"[DEBUG] vmfb not found (search path: {self.vicuna_vmfb_path})")
         mlir_generated = False
         for suffix in ["mlirbc", "mlir"]:
             self.vicuna_mlir_path = self.get_model_path(suffix)
+            if "cpu" in self.device and "llama2_7b" in self.vicuna_mlir_path.name:
+                self.vicuna_mlir_path = Path("llama2_7b_int4_f32.mlir")
             if not self.vicuna_mlir_path.exists() and self.load_mlir_from_shark_tank:
                 print(
                     f"Looking into gs://shark_tank/{self.model_name}/unsharded/mlir/{self.vicuna_mlir_path.name}"
@@ -1441,18 +1476,12 @@ class UnshardedVicuna(VicunaBase):
                 )
             if self.vicuna_mlir_path.exists():
                 print(f"[DEBUG] mlir found at {self.vicuna_mlir_path.absolute()}")
-                with open(self.vicuna_mlir_path, "rb") as f:
-                    combined_module = f.read()
+                combined_module = self.vicuna_mlir_path.absolute()
                 mlir_generated = True
                 break
 
         if not mlir_generated:
             print(f"[DEBUG] mlir not found")
-            # Disabling this path of IR generation for now as it is broken.
-            print("Please check if the mlir file is present at the shark tank. Exiting.")
-            self.shark_model = None
-            sys.exit()
-            return
 
             print("[DEBUG] generating mlir on device")
             # Select a compilation prompt such that the resulting input_ids
@@ -1474,13 +1503,24 @@ class UnshardedVicuna(VicunaBase):
                     compilation_input_ids
                 ).reshape([1, 19])
                 firstVicunaCompileInput = (compilation_input_ids,)
-                model = FirstVicuna(
-                    self.hf_model_path,
-                    self.precision,
-                    self.weight_group_size,
-                    self.model_name,
-                    self.hf_auth_token,
-                )
+                if "cpu" in self.device:
+                    model = FirstVicuna(
+                        self.hf_model_path,
+                        self.precision,
+                        "fp32" if self.device=="cpu" else "fp16",
+                        self.weight_group_size,
+                        self.model_name,
+                        self.hf_auth_token,
+                    )
+                else:
+                    model = FirstVicunaGPU(
+                        self.hf_model_path,
+                        self.precision,
+                        "fp32" if self.device=="cpu" else "fp16",
+                        self.weight_group_size,
+                        self.model_name,
+                        self.hf_auth_token,
+                    )
                 print(f"[DEBUG] generating torchscript graph")
                 is_f16 = self.precision in ["fp16", "int4"]
                 ts_graph = import_with_fx(
@@ -1512,6 +1552,9 @@ class UnshardedVicuna(VicunaBase):
                         use_tracing=False,
                         verbose=False,
                     )
+                    if self.cache_vicunas:
+                        with open(first_model_path[:-5]+"_torch.mlir", "w+") as f:
+                            f.write(str(first_module))
                     print(f"[DEBUG] converting torch to linalg")
                     run_pipeline_with_repro_report(
                         first_module,
@@ -1566,30 +1609,62 @@ class UnshardedVicuna(VicunaBase):
                     for _ in range(total_tuple)
                 )
                 secondVicunaCompileInput = (compilation_input_ids,) + pkv
-                if self.model_name == "llama2_13b":
-                    model = SecondVicuna13B(
-                        self.hf_model_path,
-                        self.precision,
-                        self.weight_group_size,
-                        self.model_name,
-                        self.hf_auth_token,
-                    )
-                elif self.model_name == "llama2_70b":
-                    model = SecondVicuna70B(
-                        self.hf_model_path,
-                        self.precision,
-                        self.weight_group_size,
-                        self.model_name,
-                        self.hf_auth_token,
-                    )
+                if "cpu" in self.device:
+                    if self.model_name == "llama2_13b":
+                        model = SecondVicuna13B(
+                            self.hf_model_path,
+                            self.precision,
+                            "fp32",
+                            self.weight_group_size,
+                            self.model_name,
+                            self.hf_auth_token,
+                        )
+                    elif self.model_name == "llama2_70b":
+                        model = SecondVicuna70B(
+                            self.hf_model_path,
+                            self.precision,
+                            "fp32",
+                            self.weight_group_size,
+                            self.model_name,
+                            self.hf_auth_token,
+                        )
+                    else:
+                        model = SecondVicuna7B(
+                            self.hf_model_path,
+                            self.precision,
+                            "fp32",
+                            self.weight_group_size,
+                            self.model_name,
+                            self.hf_auth_token,
+                        )
                 else:
-                    model = SecondVicuna7B(
-                        self.hf_model_path,
-                        self.precision,
-                        self.weight_group_size,
-                        self.model_name,
-                        self.hf_auth_token,
-                    )
+                    if self.model_name == "llama2_13b":
+                        model = SecondVicuna13BGPU(
+                            self.hf_model_path,
+                            self.precision,
+                            "fp16",
+                            self.weight_group_size,
+                            self.model_name,
+                            self.hf_auth_token,
+                        )
+                    elif self.model_name == "llama2_70b":
+                        model = SecondVicuna70BGPU(
+                            self.hf_model_path,
+                            self.precision,
+                            "fp16",
+                            self.weight_group_size,
+                            self.model_name,
+                            self.hf_auth_token,
+                        )
+                    else:
+                        model = SecondVicuna7BGPU(
+                            self.hf_model_path,
+                            self.precision,
+                            "fp16",
+                            self.weight_group_size,
+                            self.model_name,
+                            self.hf_auth_token,
+                        )
                 print(f"[DEBUG] generating torchscript graph")
                 is_f16 = self.precision in ["fp16", "int4"]
                 ts_graph = import_with_fx(
@@ -1626,6 +1701,9 @@ class UnshardedVicuna(VicunaBase):
                         verbose=False,
                     )
                     print(f"[DEBUG] converting torch to linalg")
+                    if self.cache_vicunas:
+                        with open(second_model_path[:-5]+"_torch.mlir", "w+") as f:
+                            f.write(str(second_module))
                     run_pipeline_with_repro_report(
                         second_module,
                         "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
@@ -1658,6 +1736,12 @@ class UnshardedVicuna(VicunaBase):
                 first_module,
                 second_module,
                 self.vicuna_mlir_path,
+            )
+            combined_module = save_mlir(
+                combined_module,
+                model_name="combined_llama",
+                mlir_dialect="tm_tensor",
+                dir=self.vicuna_mlir_path,
             )
             del first_module, second_module
 
@@ -1709,7 +1793,8 @@ class UnshardedVicuna(VicunaBase):
         prefill_time = time.time() - prefill_st_time
 
         token = generated_token_op["token"]
-        logits = generated_token_op["logits"]
+        if "cpu" not in self.device:
+            logits = generated_token_op["logits"]
         pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
         yield detok, None, prefill_time
@@ -1718,14 +1803,15 @@ class UnshardedVicuna(VicunaBase):
         if cli:
             print(f"Assistant: {detok}", end=" ", flush=True)
 
-        for _ in range(self.max_num_tokens - 2):
+        for idx in range(self.max_num_tokens):
             params = {
                 "token": token,
                 "is_first": False,
-                "logits": logits,
                 "past_key_values": pkv,
                 "sv": self.shark_model,
             }
+            if "cpu" not in self.device:
+                params["logits"] = logits
 
             decode_st_time = time.time()
             generated_token_op = self.generate_new_token(
@@ -1734,11 +1820,12 @@ class UnshardedVicuna(VicunaBase):
             decode_time_ms = (time.time() - decode_st_time)*1000
 
             token = generated_token_op["token"]
-            logits = generated_token_op["logits"]
+            if "cpu" not in self.device:
+                logits = generated_token_op["logits"]
             pkv = generated_token_op["past_key_values"]
             detok = generated_token_op["detok"]
 
-            if token == 2:
+            if token == 2 and idx >= self.min_num_tokens:
                 break
             res_tokens.append(token)
             if detok == "<0x0A>":
@@ -1846,7 +1933,7 @@ if __name__ == "__main__":
                 device_id = id
                 break
             id += 1
-        
+
         assert device_id, f"no vulkan hardware for target-triple '{vulkan_target_triple}' exists"
         # Step 2. Add a few flags targetting specific hardwares.
         if "rdna" in vulkan_target_triple:
@@ -1854,7 +1941,7 @@ if __name__ == "__main__":
                 "--iree-spirv-index-bits=64",
             ]
             _extra_args = _extra_args + flags_to_add
-        
+
 
     vic = None
     if not args.sharded:
@@ -1868,9 +1955,16 @@ if __name__ == "__main__":
             if args.vicuna_vmfb_path is None
             else Path(args.vicuna_vmfb_path)
         )
+        min_tokens = 0
+        max_tokens = 512
+        if args.enable_microbenchmark:
+            min_tokens = max_tokens = args.microbenchmark_num_tokens
+
         vic = UnshardedVicuna(
             model_name=args.model_name,
             hf_auth_token=args.hf_auth_token,
+            max_num_tokens=max_tokens,
+            min_num_tokens=min_tokens,
             device=args.device,
             precision=args.precision,
             vicuna_mlir_path=vic_mlir_path,
@@ -1897,17 +1991,6 @@ if __name__ == "__main__":
             weight_group_size=args.weight_group_size,
             extra_args_cmd=_extra_args,
         )
-    if args.model_name == "vicuna":
-        system_message = "A chat between a curious user and an artificial intelligence assistant. The assistant gives helpful, detailed, and polite answers to the user's questions.\n"
-    else:
-        system_message = """System: You are a helpful, respectful and honest assistant. Always answer "
-        as helpfully as possible, while being safe.  Your answers should not
-        include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal
-        content. Please ensure that your responses are socially unbiased and positive
-        in nature. If a question does not make any sense, or is not factually coherent,
-        explain why instead of answering something not correct. If you don't know the
-        answer to a question, please don't share false information."""
-    prologue_prompt = "ASSISTANT:\n"
 
     history = []
 
@@ -1917,12 +2000,55 @@ if __name__ == "__main__":
         "llama2_13b": "llama2_13b=>meta-llama/Llama-2-13b-chat-hf",
         "llama2_70b": "llama2_70b=>meta-llama/Llama-2-70b-chat-hf",
     }
+
+    iteration = 0
+
+    prefill_times = []
+    avg_decode_speed = []
+
     while True:
         # TODO: Add break condition from user input
-        user_prompt = input("User: ")
-        history.append([user_prompt, ""])
-        prompt = create_prompt(args.model_name, history)
-        for text, msg in vic.generate(prompt, cli=True):
-            if "formatted" in msg:
-                print("Response:", text)
+        iteration += 1
+        if not args.enable_microbenchmark:
+            user_prompt = input("User prompt: ")
+            history.append([user_prompt, ""])
+            prompt = create_prompt(args.model_name, history)
+        else:
+            if iteration > args.microbenchmark_iterations:
+                break
+            user_prompt = args.user_prompt
+            prompt = args.system_prompt + user_prompt
+            history = [[user_prompt, ""]]
+
+        token_count = 0
+        total_time_ms = 0.001  # In order to avoid divide by zero error
+        prefill_time = 0
+        is_first = True
+        for text, msg, exec_time in vic.generate(prompt, cli=True):
+            if msg is None:
+                if is_first:
+                    prefill_time = exec_time
+                    is_first = False
+                else:
+                    total_time_ms += exec_time
+                    token_count += 1
+            elif "formatted" in msg:
                 history[-1][1] = text
+                tokens_per_sec = (token_count / total_time_ms) * 1000
+                prefill_times.append(prefill_time)
+                avg_decode_speed.append(tokens_per_sec)
+
+                print("\nResponse:", text.strip())
+                print(f"\nNum tokens: {token_count}")
+                print(f"Prefill: {prefill_time:.2f} seconds")
+                print(f"Decode: {tokens_per_sec:.2f} tokens/s")
+            else:
+                sys.exit(
+                    "unexpected message from the vicuna generate call, exiting."
+                )
+
+    if args.enable_microbenchmark:
+        print("\n### Final Statistics ###")
+        print("Number of iterations:", iteration - 1)
+        print(f"Prefill: avg. {mean(prefill_times):.2f} s, stdev {stdev(prefill_times):.2f}")
+        print(f"Decode: avg. {mean(avg_decode_speed):.2f} tokens/s, stdev {stdev(avg_decode_speed):.2f}")

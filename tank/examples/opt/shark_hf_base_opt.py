@@ -2,7 +2,7 @@ import os
 import torch
 from transformers import AutoTokenizer, OPTForCausalLM
 from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 from shark_opt_wrapper import OPTForCausalLMModel
 
 model_name = "facebook/opt-1.3b"
@@ -25,11 +25,13 @@ inputs = (
     model=model,
     inputs=inputs,
     is_f16=False,
-    debug=True,
-    model_name=model_name.split("/")[1],
-    save_dir=".",
 )
-
+mlir_module = save_mlir(
+    mlir_module,
+    model_name=model_name.split("/")[1],
+    frontend="torch",
+    mlir_dialect="linalg",
+)
 shark_module = SharkInference(
     mlir_module,
     device="cpu-sync",
