@@ -65,10 +65,11 @@ def get_memory_info():
     process = psutil.Process(pid)
     return process.memory_info()
 
+
 def import_mlir_module(
     model_name: str,
     tokenizer,
-    device:str,
+    device: str,
     max_seq_len: int,
 ):
     opt_base_model = OPTForCausalLM.from_pretrained(model_name)
@@ -85,8 +86,8 @@ def import_mlir_module(
         encoded_inputs["input_ids"],
         encoded_inputs["attention_mask"],
     )
-    #np.save("model_inputs_0.npy", inputs[0])
-    #np.save("model_inputs_1.npy", inputs[1])
+    # np.save("model_inputs_0.npy", inputs[0])
+    # np.save("model_inputs_1.npy", inputs[1])
 
     opt_fs_name = get_opt_fs_name(model_name)
     mlir_path = f"./{opt_fs_name}_causallm_{max_seq_len}_torch.mlir"
@@ -100,6 +101,7 @@ def import_mlir_module(
     with open(mlir_path, "w") as f:
         f.write(model_mlir)
     print(f"Saved mlir at {mlir_path}")
+
 
 def create_vmfb_module(
     model_name: str,
@@ -124,24 +126,38 @@ def create_vmfb_module(
             device,
             max_seq_len,
         )
-    #with open(mlir_path, "r") as f:
+    # with open(mlir_path, "r") as f:
     #    model_mlir = f.read()
-    #print(f"Loaded .mlir from {mlir_path}")
-    #breakpoint()
-    #shark_module = SharkInference(
+    # print(f"Loaded .mlir from {mlir_path}")
+    # breakpoint()
+    # shark_module = SharkInference(
     #    model_mlir,
     #    device=device,
     #    mlir_dialect="tm_tensor",
     #    is_benchmark=False,
     #    rt_flags=[],
-    #)
+    # )
 
     vmfb_name = (
         f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels"
     )
-    #shark_module.save_module(module_name=vmfb_name)
+    # shark_module.save_module(module_name=vmfb_name)
     vmfb_path = vmfb_name + ".vmfb"
-    ireec.compile_file(mlir_path, output_file=vmfb_path, target_backends=["llvm-cpu"], input_type="tm_tensor", extra_args=["--iree-opt-data-tiling", "--verify=False", "--iree-llvmcpu-target-cpu-features=host", "--iree-llvmcpu-target-triple=x86_64-linux-gnu", "--iree-llvmcpu-stack-allocation-limit=2560000", "--iree-opt-strip-assertions=true", "--iree-vm-bytecode-module-strip-source-map=true"])
+    ireec.compile_file(
+        mlir_path,
+        output_file=vmfb_path,
+        target_backends=["llvm-cpu"],
+        input_type="tm_tensor",
+        extra_args=[
+            "--iree-opt-data-tiling",
+            "--verify=False",
+            "--iree-llvmcpu-target-cpu-features=host",
+            "--iree-llvmcpu-target-triple=x86_64-linux-gnu",
+            "--iree-llvmcpu-stack-allocation-limit=2560000",
+            "--iree-opt-strip-assertions=true",
+            "--iree-vm-bytecode-module-strip-source-map=true",
+        ],
+    )
     return vmfb_path
 
 
