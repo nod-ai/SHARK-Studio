@@ -6,7 +6,7 @@ mlir_model, func_name, inputs, golden_out = download_model(
 )
 
 shark_module = SharkInference(
-    mlir_model, func_name, device="cpu", mlir_dialect="tm_tensor"
+    mlir_model, device="cpu", mlir_dialect="tm_tensor"
 )
 shark_module.compile()
 result = shark_module.forward(inputs)

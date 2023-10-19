@@ -177,7 +177,7 @@ def compile_through_fx(model, inputs, mlir_loc=None):
     mlir_model = str(module)
     func_name = "forward"
     shark_module = SharkInference(
-        mlir_model, func_name, device=args.device, mlir_dialect="linalg"
+        mlir_model, device=args.device, mlir_dialect="linalg"
     )
     shark_module.compile()
 
