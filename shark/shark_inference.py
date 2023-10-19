@@ -73,6 +73,7 @@ class SharkInference:
         dispatch_benchmark_dir: str = "temp_dispatch_benchmarks",
         device_idx: int = None,
         mmap: bool = True,
+        rt_flags: list = [],
     ):
         self.mlir_module = mlir_module
         if mlir_module is not None:
@@ -100,6 +101,7 @@ class SharkInference:
 
         self.shark_runner = None
         self.mmap = mmap
+        self.rt_flags = rt_flags
 
     def compile(self, extra_args=[]):
         if self.dispatch_benchmarks is not None:
@@ -134,6 +136,7 @@ class SharkInference:
                 self.mlir_dialect,
                 extra_args=extra_args,
                 device_idx=self.device_idx,
+                rt_flags=self.rt_flags,
             )
 
         if self.dispatch_benchmarks is not None:
@@ -220,12 +223,14 @@ class SharkInference:
             device=self.device,
             compile_vmfb=False,
             extra_args=extra_args,
+            rt_flags=self.rt_flags,
         )
         params = load_flatbuffer(
             path,
             self.device,
             self.device_idx,
             mmap=self.mmap,
+            rt_flags=self.rt_flags,
         )
         self.shark_runner.iree_compilation_module = params["vmfb"]
         self.shark_runner.iree_config = params["config"]

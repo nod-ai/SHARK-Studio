@@ -333,8 +333,12 @@ def compile_module_to_flatbuffer(
     return flatbuffer_blob
 
 
-def get_iree_module(flatbuffer_blob, device, device_idx=None):
+def get_iree_module(
+    flatbuffer_blob, device, device_idx=None, rt_flags: list = []
+):
     # Returns the compiled module and the configs.
+    for flag in rt_flags:
+        ireert.flags.parse_flag(flag)
     if device_idx is not None:
         device = iree_device_map(device)
         print("registering device id: ", device_idx)
@@ -356,9 +360,22 @@ def get_iree_module(flatbuffer_blob, device, device_idx=None):
 
 
 def load_vmfb_using_mmap(
-    flatbuffer_blob_or_path, device: str, device_idx: int = None
+    flatbuffer_blob_or_path,
+    device: str,
+    device_idx: int = None,
+    rt_flags: list = [],
 ):
     print(f"Loading module {flatbuffer_blob_or_path}...")
+    if "task" in device:
+        print(
+            f"[DEBUG] setting iree runtime flags for cpu:\n{' '.join(get_iree_cpu_rt_args())}"
+        )
+        for flag in get_iree_cpu_rt_args():
+            rt_flags.append(flag)
+    for flag in rt_flags:
+        print(flag)
+        ireert.flags.parse_flags(flag)
+
     if "rocm" in device:
         device = "rocm"
     with DetailLogger(timeout=2.5) as dl:
@@ -385,6 +402,7 @@ def load_vmfb_using_mmap(
             )
             for flag in get_iree_cpu_rt_args():
                 ireert.flags.parse_flags(flag)
+
         # Now load vmfb.
         # Two scenarios we have here :-
         #      1. We either have the vmfb already saved and therefore pass the path of it.
@@ -404,6 +422,8 @@ def load_vmfb_using_mmap(
             )
             dl.log(f"mmap {flatbuffer_blob_or_path}")
             ctx = ireert.SystemContext(config=config)
+            for flag in shark_args.additional_runtime_args:
+                ireert.flags.parse_flags(flag)
             dl.log(f"ireert.SystemContext created")
             if "vulkan" in device:
                 # Vulkan pipeline creation consumes significant amount of time.
@@ -430,6 +450,7 @@ def get_iree_compiled_module(
     frontend: str = "torch",
     model_config_path: str = None,
     extra_args: list = [],
+    rt_flags: list = [],
     device_idx: int = None,
     mmap: bool = False,
     debug: bool = False,
@@ -452,11 +473,14 @@ def get_iree_compiled_module(
     #       I'm getting hold of the name of the temporary file in `temp_file_to_unlink`.
     if mmap:
         vmfb, config, temp_file_to_unlink = load_vmfb_using_mmap(
-            flatbuffer_blob, device, device_idx
+            flatbuffer_blob, device, device_idx, rt_flags
         )
     else:
         vmfb, config = get_iree_module(
-            flatbuffer_blob, device, device_idx=device_idx
+            flatbuffer_blob,
+            device,
+            device_idx=device_idx,
+            rt_flags=rt_flags,
         )
     ret_params = {
         "vmfb": vmfb,
@@ -471,17 +495,21 @@ def load_flatbuffer(
     device: str,
     device_idx: int = None,
     mmap: bool = False,
+    rt_flags: list = [],
 ):
     temp_file_to_unlink = None
     if mmap:
         vmfb, config, temp_file_to_unlink = load_vmfb_using_mmap(
-            flatbuffer_path, device, device_idx
+            flatbuffer_path, device, device_idx, rt_flags
         )
     else:
         with open(os.path.join(flatbuffer_path), "rb") as f:
             flatbuffer_blob = f.read()
         vmfb, config = get_iree_module(
-            flatbuffer_blob, device, device_idx=device_idx
+            flatbuffer_blob,
+            device,
+            device_idx=device_idx,
+            rt_flags=rt_flags,
         )
     ret_params = {
         "vmfb": vmfb,

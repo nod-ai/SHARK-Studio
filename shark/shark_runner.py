@@ -72,6 +72,7 @@ class SharkRunner:
         extra_args: list = [],
         compile_vmfb: bool = True,
         device_idx: int = None,
+        rt_flags: list = [],
     ):
         self.mlir_module = mlir_module
         if self.mlir_module is not None:
@@ -86,6 +87,7 @@ class SharkRunner:
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
         self.device_idx = device_idx
+        self.rt_flags = rt_flags
 
         if check_device_drivers(self.device):
             print(device_driver_info(self.device))
@@ -99,6 +101,7 @@ class SharkRunner:
                 self.mlir_dialect,
                 extra_args=self.extra_args,
                 device_idx=self.device_idx,
+                rt_flags=self.rt_flags,
                 compile_str=self.compile_str,
             )
             self.iree_compilation_module = params["vmfb"]
