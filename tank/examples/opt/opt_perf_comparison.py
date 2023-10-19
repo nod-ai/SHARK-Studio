@@ -134,9 +134,7 @@ def create_vmfb_module(
         rt_flags=[],
     )
 
-    vmfb_name = (
-        f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}"
-    )
+    vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}"
     shark_module.save_module(module_name=vmfb_name)
     vmfb_path = vmfb_name + ".vmfb"
     return vmfb_path
