@@ -39,7 +39,7 @@ sentencepiece
 py-cpuinfo
 tiktoken # for codegen
 joblib # for langchain
-timm==0.9.5 # for MiniGPT4
+timm # for MiniGPT4
 langchain
 einops # for zoedepth
 
