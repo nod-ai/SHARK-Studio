@@ -24,14 +24,8 @@ class ZoeDetector:
                 for chunk in r.iter_content(chunk_size=8192):
                     f.write(chunk)
 
-        midas = torch.hub.load(
-            "gpetters94/MiDaS",
-            "DPT_BEiT_L_384",
-            pretrained=False,
-            force_reload=False,
-        )
         model = torch.hub.load(
-            "AyaanShah2204/ZoeDepth",
+            "monorimet/ZoeDepth:torch_update",
             "ZoeD_N",
             pretrained=False,
             force_reload=False,
