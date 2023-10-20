@@ -11,7 +11,7 @@
 import os
 import csv
 import argparse
-from shark.shark_importer import SharkImporter, save_mlir
+from shark.shark_importer import SharkImporter
 import subprocess as sp
 import hashlib
 import numpy as np
@@ -35,22 +35,20 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
         get_hf_causallm_model,
         get_vision_model,
         get_hf_img_cls_model,
-        get_fp16_model,
     )
-    from shark.shark_importer import import_with_fx, save_mlir
 
     with open(torch_model_list) as csvfile:
         torch_reader = csv.reader(csvfile, delimiter=",")
         fields = next(torch_reader)
         for row in torch_reader:
             torch_model_name = row[0]
-            tracing_required = row[1]
+            dict_inputs = row[1]
             model_type = row[2]
             is_dynamic = row[3]
             mlir_type = row[4]
             is_decompose = row[5]
 
-            tracing_required = False if tracing_required == "False" else True
+            tracing_required = True
             is_dynamic = False if is_dynamic == "False" else True
             print("generating artifacts for: " + torch_model_name)
             model = None
@@ -65,6 +63,8 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 model, input, _ = get_hf_seq2seq_model(
                     torch_model_name, import_args
                 )
+            elif model_type == "hf_seqcls":
+                model, input, _ = get_hf_model(torch_model_name, import_args)
             elif model_type == "hf_causallm":
                 model, input, _ = get_hf_causallm_model(
                     torch_model_name, import_args
@@ -89,16 +89,28 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                     local_tank_cache, str(torch_model_name) + "_torch"
                 )
             os.makedirs(torch_model_dir, exist_ok=True)
+            file_path = os.path.join(torch_model_dir, torch_model_name)
+            if dict_inputs == "True":
+                from shark.shark_importer import import_with_fx
 
-            exported_model = aot.export(model, input)
-            mlir_path = save_mlir(
-                    exported_model,
-                    torch_model_name,
-                    mlir_dialect="tm_tensor",
-                    frontend="torch",
-                    dir=torch_model_dir,
-            )
-            np.save(os.path.join(torch_model_dir, "inputs.npz"), (input,))
+                import_with_fx(
+                    model,
+                    inputs=input,
+                    is_f16=False,
+                    debug=True,
+                    training=False,
+                    return_str=False,
+                    save_dir=torch_model_dir,
+                    model_name=torch_model_name,
+                    mlir_type=mlir_type,
+                    is_dynamic=False,
+                    tracing_required=True,
+                )
+            else:
+                exported_model = aot.export(model, input)
+                exported_model.save_mlir(file_path=file_path)
+                np.save(os.path.join(torch_model_dir, "inputs.npz"), (input,))
+
             print(f"Finished saving artifacts for {torch_model_name}!")
 
 
@@ -156,23 +168,6 @@ def is_valid_file(arg):
 
 
 if __name__ == "__main__":
-    # Note, all of these flags are overridden by the import of import_args from stable_args.py, flags are duplicated temporarily to preserve functionality
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument(
-    #    "--torch_model_csv",
-    #    type=lambda x: is_valid_file(x),
-    #    default="./tank/torch_model_list.csv",
-    #    help="""Contains the file with torch_model name and args.
-    #         Please see: https://github.com/nod-ai/SHARK/blob/main/tank/torch_model_list.csv""",
-    # )
-    # parser.add_argument(
-    #    "--ci_tank_dir",
-    #    type=bool,
-    #    default=False,
-    # )
-    # parser.add_argument("--upload", type=bool, default=False)
-
-    # old_import_args = parser.parse_import_args()
     import_args = {
         "batch_size": 1,
     }

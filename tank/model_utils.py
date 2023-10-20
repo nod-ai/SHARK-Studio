@@ -47,7 +47,10 @@ def get_torch_model(modelname, import_args):
         return get_hf_causallm_model(modelname, import_args)
 
 
+##################################################################################################
+
 ##################### Hugging Face Image Classification Models ###################################
+
 from transformers import AutoModelForImageClassification
 from transformers import AutoFeatureExtractor
 from PIL import Image
@@ -72,6 +75,7 @@ class HuggingFaceImageClassification(torch.nn.Module):
             return_dict=False,  # https://github.com/huggingface/transformers/issues/9095
             torchscript=True,
         )
+        self.train(False)
 
     def forward(self, inputs):
         return self.model.forward(inputs)[0]
@@ -80,12 +84,16 @@ class HuggingFaceImageClassification(torch.nn.Module):
 def get_hf_img_cls_model(name, import_args):
     model = HuggingFaceImageClassification(name)
     test_input = preprocess_input_image(name)
+    print(test_input.size())
     test_input = test_input.repeat(int(import_args["batch_size"]), 1, 1, 1)
-    actual_out = model(test_input)
+    with torch.no_grad():
+        actual_out = model(test_input)
     return model, test_input, actual_out
 
 
-##################### Hugging Face LM Models ###################################
+#######################################################################################
+
+##################### Hugging Face SeqClsLM Models ####################################
 
 
 class HuggingFaceLanguage(torch.nn.Module):
@@ -119,45 +127,61 @@ def get_hf_model(name, import_args):
     return model, test_input, actual_out
 
 
+#######################################################################################
+
 ##################### Hugging Face Seq2SeqLM Models ###################################
 
 # We use a maximum sequence length of 512 since this is the default used in the T5 config.
-T5_MAX_SEQUENCE_LENGTH = 512
+S2S_MAX_SEQUENCE_LENGTH = 512
 
 
 class HFSeq2SeqLanguageModel(torch.nn.Module):
     def __init__(self, model_name):
         super().__init__()
-        from transformers import AutoTokenizer, T5Model
+        from transformers import AutoTokenizer, AutoModelForQuestionAnswering
 
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.tokenization_kwargs = {
-            "pad_to_multiple_of": T5_MAX_SEQUENCE_LENGTH,
-            "padding": True,
-            "return_tensors": "pt",
-        }
-        self.model = T5Model.from_pretrained(model_name, return_dict=True)
+        self.model = AutoModelForQuestionAnswering.from_pretrained(
+            model_name,
+            output_attentions=False,  # Whether the model returns attentions weights.
+            torchscript=True,
+        )
+        self.model.eval()
 
     def preprocess_input(self, text):
-        return self.tokenizer(text, **self.tokenization_kwargs)
+        encoded_inputs = self.tokenizer(
+            text,
+            padding="max_length",
+            truncation=True,
+            max_length=128,
+            return_tensors="pt",
+        )
+        prepared_tokens = (
+            encoded_inputs["input_ids"],
+            encoded_inputs["attention_mask"],
+        )
+        return prepared_tokens
 
-    def forward(self, input_ids, decoder_input_ids):
-        return self.model.forward(
-            input_ids, decoder_input_ids=decoder_input_ids
-        )[0]
+    def forward(self, input_ids, attention_mask):
+        combine_input_dict = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+        }
+        output = self.model(**combine_input_dict)
+        return output[0]
 
 
 def get_hf_seq2seq_model(name, import_args):
     m = HFSeq2SeqLanguageModel(name)
-    encoded_input_ids = m.preprocess_input(
+    encoded_inputs = m.preprocess_input(
         "Studies have been shown that owning a dog is good for you"
-    ).input_ids
-    decoder_input_ids = m.preprocess_input("Studies show that").input_ids
-    decoder_input_ids = m.model._shift_right(decoder_input_ids)
+    )
 
-    test_input = (encoded_input_ids, decoder_input_ids)
-    actual_out = m.forward(*test_input)
-    return m, test_input, actual_out
+    actual_out = m.forward(*encoded_inputs)
+    return m, encoded_inputs, actual_out
+
+
+######################################################################################
 
 
 ##################### Hugging Face CausalLM Models ###################################
@@ -167,7 +191,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, OPTForCausalLM
 def prepare_sentence_tokens(hf_model: str, sentence: str):
     tokenizer = AutoTokenizer.from_pretrained(hf_model, use_fast=False)
     if not tokenizer.pad_token:
-        tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+        tokenizer.add_special_tokens({"pad_token": "[PAD]"})
     encoded_inputs = tokenizer(
         sentence,
         padding="max_length",
@@ -198,12 +222,32 @@ class HFCausalLM(torch.nn.Module):
         output = self.model(**combine_input_dict)
         return output.logits
 
+
+class OPTForCausalLMModel(torch.nn.Module):
+    def __init__(self, model_name: str):
+        super().__init__()
+        self.model = OPTForCausalLM.from_pretrained(model_name)
+        self.model.eval()
+
+    def forward(self, input_ids, attention_mask):
+        combine_input_dict = {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+        }
+        output = self.model(**combine_input_dict)
+        return output.logits
+
+
 def get_hf_causallm_model(name, import_args):
     test_input = prepare_sentence_tokens(
         name, "this project is very interesting"
     )
-    m = HFCausalLM(name)
-    actual_out = m.forward(test_input)
+    if any(word in name for word in ["opt", "gpt", "deberta"]):
+        m = OPTForCausalLMModel(name)
+        actual_out = m.forward(test_input[0], test_input[1])
+    else:
+        m = HFCausalLM(name)
+        actual_out = m.forward(test_input)
     return m, test_input, actual_out
 
 
@@ -219,7 +263,9 @@ class VisionModule(torch.nn.Module):
         self.train(False)
 
     def forward(self, input):
-        return self.model.forward(input)
+        return self.model.forward(
+            (input),
+        )
 
 
 def get_vision_model(torch_model, import_args):
@@ -230,85 +276,23 @@ def get_vision_model(torch_model, import_args):
     modelname = torch_model
     if modelname == "efficientnet_b0":
         input_image_size = (224, 224)
-        weights = None
     elif modelname == "efficientnet_b7":
         input_image_size = (600, 600)
-        weights = None
     else:
         input_image_size = default_image_size
-        weights = "DEFAULT"
-    
+    weights = "DEFAULT"
+
     torch_model = get_model(modelname, weights=weights)
-    fp16_model = False
-    if "fp16" in modelname:
-        fp16_model = True
     model = VisionModule(torch_model)
     test_input = torch.randn(
-        int(import_args["batch_size"]), 3, *input_image_size
+        int(import_args["batch_size"]),
+        3,
+        input_image_size[0],
+        input_image_size[1],
     )
-    actual_out = model(test_input)
-    if fp16_model == True:
-        test_input_fp16 = test_input.to(
-            device=torch.device("cuda"), dtype=torch.half
-        )
-        model_fp16 = model.half()
-        model_fp16.eval()
-        model_fp16.to("cuda")
-        actual_out_fp16 = model_fp16(test_input_fp16)
-        model, test_input, actual_out = (
-            model_fp16,
-            test_input_fp16,
-            actual_out_fp16,
-        )
-    return model, test_input, actual_out
-
-
-################################################################################
-
-####################### Other PyTorch HF Models ###############################
-
-
-class BertHalfPrecisionModel(torch.nn.Module):
-    def __init__(self, hf_model_name):
-        super().__init__()
-        from transformers import AutoModelForMaskedLM
-
-        self.model = AutoModelForMaskedLM.from_pretrained(
-            hf_model_name,  # The pretrained model.
-            num_labels=2,  # The number of output labels--2 for binary classification.
-            output_attentions=False,  # Whether the model returns attentions weights.
-            output_hidden_states=False,  # Whether the model returns all hidden-states.
-            torchscript=True,
-            torch_dtype=torch.float16,
-        ).to("cuda")
-
-    def forward(self, tokens):
-        return self.model.forward(tokens)[0]
-
-
-def get_fp16_model(torch_model, import_args):
-    from transformers import AutoTokenizer
-
-    modelname = torch_model.replace("_fp16", "")
-    model = BertHalfPrecisionModel(modelname)
-    tokenizer = AutoTokenizer.from_pretrained(modelname)
-    text = "Replace me by any text you like."
-    text = [text] * int(import_args["batch_size"])
-    test_input_fp16 = tokenizer(
-        text,
-        truncation=True,
-        max_length=128,
-        return_tensors="pt",
-    ).input_ids.to("cuda")
-    # test_input = torch.randint(2, (1, 128))
-    # test_input_fp16 = test_input.to(
-    #    device=torch.device("cuda")
-    # )
-    model_fp16 = model.half()
-    model_fp16.eval()
     with torch.no_grad():
-        actual_out_fp16 = model_fp16(test_input_fp16)
-    return model_fp16, test_input_fp16, actual_out_fp16
+        actual_out = model(test_input)
+    return model, test_input, actual_out
 
 
 # Utility function for comparing two tensors (torch).
