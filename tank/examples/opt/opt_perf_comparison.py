@@ -86,8 +86,8 @@ def import_mlir_module(
         encoded_inputs["input_ids"],
         encoded_inputs["attention_mask"],
     )
-    np.save("model_inputs_0.npy", inputs[0])
-    np.save("model_inputs_1.npy", inputs[1])
+    #np.save("model_inputs_0.npy", inputs[0])
+    #np.save("model_inputs_1.npy", inputs[1])
 
     opt_fs_name = get_opt_fs_name(model_name)
     mlir_path = f"./{opt_fs_name}_causallm_{max_seq_len}_torch.mlir"
@@ -346,7 +346,7 @@ def parse_args():
         default=PLATFORM_SHARK,
     )
     parser.add_argument(
-        "--plugin_path",
+        "--plugin-path",
         help="path to executable plugin",
         type=str,
         default=None,
