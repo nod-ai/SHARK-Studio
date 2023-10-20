@@ -11,6 +11,7 @@ from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM
 
+
 def create_module(model_name, tokenizer, device, args):
     opt_base_model = OPTForCausalLM.from_pretrained(model_name)
     opt_base_model.eval()
@@ -99,12 +100,10 @@ def generate_new_token(shark_model, tokenizer, new_text, args):
     }
     return ret_dict
 
-def parse_args():
 
+def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--max-seq-len", type=int, default=32
-    )
+    parser.add_argument("--max-seq-len", type=int, default=32)
     parser.add_argument(
         "--model-name",
         help="Model name",
@@ -133,11 +132,10 @@ def parse_args():
     print("args={}".format(args))
     return args
 
+
 if __name__ == "__main__":
     args = parse_args()
-    tokenizer = AutoTokenizer.from_pretrained(
-        args.model_name, use_fast=False
-    )
+    tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=False)
     opt_fs_name = "-".join("_".join(args.model_name.split("/")[1]).split("."))
     vmfb_path = (
         f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu-task.vmfb"
@@ -146,7 +144,9 @@ if __name__ == "__main__":
         rt_flags = [f"--executable_plugin={plugin_path}"]
     else:
         rt_flags = []
-    opt_shark_module = SharkInference(mlir_module=None, device="cpu-task", rt_flags=rt_flags)
+    opt_shark_module = SharkInference(
+        mlir_module=None, device="cpu-task", rt_flags=rt_flags
+    )
     if os.path.isfile(vmfb_path) and not args.recompile:
         opt_shark_module.load_module(vmfb_path)
     else:
