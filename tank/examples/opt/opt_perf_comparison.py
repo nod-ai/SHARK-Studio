@@ -86,8 +86,8 @@ def import_mlir_module(
         encoded_inputs["input_ids"],
         encoded_inputs["attention_mask"],
     )
-    # np.save("model_inputs_0.npy", inputs[0])
-    # np.save("model_inputs_1.npy", inputs[1])
+    np.save("model_inputs_0.npy", inputs[0])
+    np.save("model_inputs_1.npy", inputs[1])
 
     opt_fs_name = get_opt_fs_name(model_name)
     mlir_path = f"./{opt_fs_name}_causallm_{max_seq_len}_torch.mlir"
@@ -147,7 +147,7 @@ def load_shark_model(
     plugin_path: str = [],
 ) -> ModelWrapper:
     opt_fs_name = get_opt_fs_name(model_name)
-    vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}_tiled_ukernels.vmfb"
+    vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}.vmfb"
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
     if recompile_shark or not os.path.isfile(vmfb_name):
         print(f"vmfb not found. compiling and saving to {vmfb_name}")
@@ -307,7 +307,9 @@ def get_opt_fs_name(model_name: str) -> str:
     return model_name
 
 
+
 def parse_args():
+
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--save-json",
@@ -352,7 +354,6 @@ def parse_args():
     args = parser.parse_args()
     print("args={}".format(args))
     return args
-
 
 if __name__ == "__main__":
     args = parse_args()
