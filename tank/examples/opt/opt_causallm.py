@@ -29,7 +29,7 @@ def create_module(model_name, tokenizer, device, args):
     )
     # np.save("model_inputs_0.npy", inputs[0])
     # np.save("model_inputs_1.npy", inputs[1])
-    opt_fs_name = "-".join("_".join(args.model_name.split("/")).split("."))
+    opt_fs_name = "-".join("_".join(args.model_name.split("/")[1].split("-")).split("."))
 
     mlir_path = f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch.mlir"
     if os.path.isfile(mlir_path):
@@ -54,7 +54,7 @@ def create_module(model_name, tokenizer, device, args):
         is_benchmark=False,
     )
 
-    vmfb_name = f"{opt_fs_name}_causallm_{args.max_seq_len}_torch_{device}"
+    vmfb_name = f"{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu"
     shark_module.save_module(module_name=vmfb_name, debug=False)
     vmfb_path = vmfb_name + ".vmfb"
     return vmfb_path
@@ -136,9 +136,9 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=False)
-    opt_fs_name = "-".join("_".join(args.model_name.split("/")[1]).split("."))
+    opt_fs_name = "-".join("_".join(args.model_name.split("/")[1].split("-")).split("."))
     vmfb_path = (
-        f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu-task.vmfb"
+        f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu.vmfb"
     )
     if args.plugin_path is not None:
         rt_flags = [f"--executable_plugin={args.plugin_path}"]
@@ -147,7 +147,7 @@ if __name__ == "__main__":
     opt_shark_module = SharkInference(
         mlir_module=None, device="cpu-task", rt_flags=rt_flags
     )
-    if os.path.isfile(vmfb_path) and not args.recompile:
+    if os.path.isfile(vmfb_path):
         opt_shark_module.load_module(vmfb_path)
     else:
         vmfb_path = create_module(args.model_name, tokenizer, "cpu-task", args)
