@@ -141,7 +141,7 @@ if __name__ == "__main__":
         f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu-task.vmfb"
     )
     if args.plugin_path is not None:
-        rt_flags = [f"--executable_plugin={plugin_path}"]
+        rt_flags = [f"--executable_plugin={args.plugin_path}"]
     else:
         rt_flags = []
     opt_shark_module = SharkInference(
