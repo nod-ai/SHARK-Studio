@@ -41,8 +41,6 @@ def get_torch_model(modelname, import_args):
         return get_hf_img_cls_model(modelname, import_args)
     elif modelname in hf_seq2seq_models:
         return get_hf_seq2seq_model(modelname, import_args)
-    elif "fp16" in modelname:
-        return get_fp16_model(modelname, import_args)
     else:
         return get_hf_causallm_model(modelname, import_args)
 
