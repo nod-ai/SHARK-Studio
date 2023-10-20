@@ -1,6 +1,7 @@
 -f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
 --pre
 
+shark-turbine
 numpy>1.22.4
 pytorch-triton
 torchvision 
