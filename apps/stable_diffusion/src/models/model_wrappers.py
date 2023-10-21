@@ -8,6 +8,7 @@ import traceback
 import subprocess
 import sys
 import os
+import requests
 from apps.stable_diffusion.src.utils import (
     compile_through_fx,
     get_opt_flags,
@@ -16,6 +17,7 @@ from apps.stable_diffusion.src.utils import (
     preprocessCKPT,
     convert_original_vae,
     get_path_to_diffusers_checkpoint,
+    get_civitai_checkpoint,
     fetch_and_update_base_model_id,
     get_path_stem,
     get_extended_name,
@@ -94,21 +96,19 @@ class SharkifyStableDiffusionModel:
         self.height = height // 8
         self.width = width // 8
         self.batch_size = batch_size
-        self.custom_weights = custom_weights
+        self.custom_weights = custom_weights.strip()
         self.use_quantize = use_quantize
         if custom_weights != "":
-            if "civitai" in custom_weights:
-                weights_id = custom_weights.split("/")[-1]
-                # TODO: use model name and identify file type by civitai rest api
-                weights_path = (
-                    str(Path.cwd()) + "/models/" + weights_id + ".safetensors"
-                )
-                if not os.path.isfile(weights_path):
-                    subprocess.run(
-                        ["wget", custom_weights, "-O", weights_path]
-                    )
+            if custom_weights.startswith("https://civitai.com/api/"):
+                # download the checkpoint from civitai if we don't already have it
+                weights_path = get_civitai_checkpoint(custom_weights)
+
+                # act as if we were given the local file as custom_weights originally
                 custom_weights = get_path_to_diffusers_checkpoint(weights_path)
                 self.custom_weights = weights_path
+
+                # needed to ensure webui sets the correct model name metadata
+                args.ckpt_loc = weights_path
             else:
                 assert custom_weights.lower().endswith(
                     (".ckpt", ".safetensors")
@@ -116,6 +116,7 @@ class SharkifyStableDiffusionModel:
                 custom_weights = get_path_to_diffusers_checkpoint(
                     custom_weights
                 )
+
         self.model_id = model_id if custom_weights == "" else custom_weights
         # TODO: remove the following line when stable-diffusion-2-1 works
         if self.model_id == "stabilityai/stable-diffusion-2-1":

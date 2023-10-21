@@ -41,3 +41,4 @@ from apps.stable_diffusion.src.utils.utils import (
     resize_stencil,
     _compile_module,
 )
+from apps.stable_diffusion.src.utils.civitai import get_civitai_checkpoint
