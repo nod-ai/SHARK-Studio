@@ -53,8 +53,7 @@ def inpaint_inf(
     batch_count: int,
     batch_size: int,
     scheduler: str,
-    custom_model: str,
-    hf_model_id: str,
+    model_id: str,
     custom_vae: str,
     precision: str,
     device: str,
@@ -89,21 +88,17 @@ def inpaint_inf(
     args.ckpt_loc = ""
     args.hf_model_id = ""
     args.custom_vae = ""
-    if custom_model == "None":
-        if not hf_model_id:
-            return (
-                None,
-                "Please provide either custom model or huggingface model ID, "
-                "both must not be empty.",
-            )
-        if "civitai" in hf_model_id:
-            args.ckpt_loc = hf_model_id
-        else:
-            args.hf_model_id = hf_model_id
-    elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = get_custom_model_pathfile(custom_model)
+
+    # .safetensor or .chkpt on the custom model path
+    if model_id in get_custom_model_files(custom_checkpoint_type="inpainting"):
+        args.ckpt_loc = get_custom_model_pathfile(model_id)
+    # civitai download
+    elif "civitai" in model_id:
+        args.ckpt_loc = model_id
+    # either predefined or huggingface
     else:
-        args.hf_model_id = custom_model
+        args.hf_model_id = model_id
+
     if custom_vae != "None":
         args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
@@ -282,8 +277,7 @@ def inpaint_api(
         batch_count=1,
         batch_size=1,
         scheduler="EulerDiscrete",
-        custom_model="None",
-        hf_model_id=InputData["hf_model_id"]
+        model_id=InputData["hf_model_id"]
         if "hf_model_id" in InputData.keys()
         else "stabilityai/stable-diffusion-2-inpainting",
         custom_vae="None",
@@ -327,35 +321,21 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 with gr.Row():
                     # janky fix for overflowing text
                     inpaint_model_info = (
-                        str(get_custom_model_path())
-                    ).replace("\\", "\n\\")
-                    inpaint_model_info = (
-                        f"Custom Model Path: {inpaint_model_info}"
+                        f"Custom Model Path: {str(get_custom_model_path())}"
                     )
                     inpaint_custom_model = gr.Dropdown(
                         label=f"Models",
-                        info=inpaint_model_info,
+                        info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
                         else "stabilityai/stable-diffusion-2-inpainting",
-                        choices=["None"]
-                        + get_custom_model_files(
+                        choices=get_custom_model_files(
                             custom_checkpoint_type="inpainting"
                         )
                         + predefined_paint_models,
                         allow_custom_value=True,
-                    )
-                    inpaint_hf_model_id = gr.Textbox(
-                        elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown "
-                        "on the left and enter model ID here "
-                        "e.g: ghunkins/stable-diffusion-liberty-inpainting, "
-                        "https://civitai.com/api/download/models/3433",
-                        value="",
-                        label="HuggingFace Model ID or Civitai model "
-                        "download URL",
-                        lines=3,
+                        scale=2,
                     )
                     # janky fix for overflowing text
                     inpaint_vae_info = (
@@ -371,6 +351,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         else "None",
                         choices=["None"] + get_custom_model_files("vae"),
                         allow_custom_value=True,
+                        scale=1,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -554,9 +535,10 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         object_fit="contain",
                     )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at "
+                        value=f"{inpaint_model_info}\n"
+                        "Images will be saved at "
                         f"{get_generated_imgs_path()}",
-                        lines=1,
+                        lines=2,
                         elem_id="std_output",
                         show_label=False,
                     )
@@ -588,7 +570,6 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 batch_size,
                 scheduler,
                 inpaint_custom_model,
-                inpaint_hf_model_id,
                 custom_vae,
                 precision,
                 device,

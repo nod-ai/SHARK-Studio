@@ -149,7 +149,6 @@ def import_png_metadata(
     width,
     height,
     custom_model,
-    hf_model_id,
     custom_lora,
     hf_lora_id,
     custom_vae,
@@ -175,10 +174,8 @@ def import_png_metadata(
 
         if "Model" in metadata and png_custom_model:
             custom_model = png_custom_model
-            hf_model_id = ""
-        if "Model" in metadata and png_hf_model_id:
-            custom_model = "None"
-            hf_model_id = png_hf_model_id
+        elif "Model" in metadata and png_hf_model_id:
+            custom_model = png_hf_model_id
 
         if "LoRA" in metadata and lora_custom_model:
             custom_lora = lora_custom_model
@@ -217,7 +214,6 @@ def import_png_metadata(
         width,
         height,
         custom_model,
-        hf_model_id,
         custom_lora,
         hf_lora_id,
         custom_vae,
