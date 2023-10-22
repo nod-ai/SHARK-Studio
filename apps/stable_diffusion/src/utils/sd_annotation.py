@@ -203,8 +203,8 @@ def dump_after_mlir(input_mlir, use_winograd):
     if use_winograd:
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline=builtin.module"
-            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
-            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "(func.func(iree-global-opt-detach-elementwise-from-named-ops,"
+            "iree-global-opt-convert-1x1-filter-conv2d-to-matmul,"
             "iree-preprocessing-convert-conv2d-to-img2col,"
             "iree-preprocessing-pad-linalg-ops{pad-size=32},"
             "iree-linalg-ext-convert-conv2d-to-winograd))"
@@ -212,8 +212,8 @@ def dump_after_mlir(input_mlir, use_winograd):
     else:
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline=builtin.module"
-            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
-            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "(func.func(iree-global-opt-detach-elementwise-from-named-ops,"
+            "iree-global-opt-convert-1x1-filter-conv2d-to-matmul,"
             "iree-preprocessing-convert-conv2d-to-img2col,"
             "iree-preprocessing-pad-linalg-ops{pad-size=32}))"
         )
