@@ -52,8 +52,7 @@ def txt2img_inf(
     batch_count: int,
     batch_size: int,
     scheduler: str,
-    custom_model: str,
-    hf_model_id: str,
+    model_id: str,
     custom_vae: str,
     precision: str,
     device: str,
@@ -91,21 +90,17 @@ def txt2img_inf(
     args.ckpt_loc = ""
     args.hf_model_id = ""
     args.custom_vae = ""
-    if custom_model == "None":
-        if not hf_model_id:
-            return (
-                None,
-                "Please provide either custom model or huggingface model ID, "
-                "both must not be empty",
-            )
-        if "civitai" in hf_model_id:
-            args.ckpt_loc = hf_model_id
-        else:
-            args.hf_model_id = hf_model_id
-    elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = get_custom_model_pathfile(custom_model)
+
+    # .safetensor or .chkpt on the custom model path
+    if model_id in get_custom_model_files():
+        args.ckpt_loc = get_custom_model_pathfile(model_id)
+    # civitai download
+    elif "civitai" in model_id:
+        args.ckpt_loc = model_id
+    # either predefined or huggingface
     else:
-        args.hf_model_id = custom_model
+        args.hf_model_id = model_id
+
     if custom_vae != "None":
         args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
@@ -339,8 +334,7 @@ def txt2img_api(
         batch_count=1,
         batch_size=1,
         scheduler="EulerDiscrete",
-        custom_model="None",
-        hf_model_id=InputData["hf_model_id"]
+        model_id=InputData["hf_model_id"]
         if "hf_model_id" in InputData.keys()
         else "stabilityai/stable-diffusion-2-1-base",
         custom_vae="None",
@@ -389,33 +383,18 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 with gr.Row():
                     with gr.Column(scale=10):
                         with gr.Row():
-                            # janky fix for overflowing text
-                            t2i_model_info = (
-                                str(get_custom_model_path())
-                            ).replace("\\", "\n\\")
-                            t2i_model_info = (
-                                f"Custom Model Path: {t2i_model_info}"
-                            )
+                            t2i_model_info = f"Custom Model Path: {str(get_custom_model_path())}"
                             txt2img_custom_model = gr.Dropdown(
                                 label=f"Models",
-                                info=t2i_model_info,
+                                info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                                 elem_id="custom_model",
                                 value=os.path.basename(args.ckpt_loc)
                                 if args.ckpt_loc
                                 else "stabilityai/stable-diffusion-2-1-base",
-                                choices=["None"]
-                                + get_custom_model_files()
+                                choices=get_custom_model_files()
                                 + predefined_models,
                                 allow_custom_value=True,
-                            )
-                            txt2img_hf_model_id = gr.Textbox(
-                                elem_id="hf_model_id",
-                                placeholder="Select 'None' in the dropdown "
-                                "on the left and enter model ID here.",
-                                value="",
-                                label="HuggingFace Model ID or Civitai model "
-                                "download URL.",
-                                lines=3,
+                                scale=2,
                             )
                             # janky fix for overflowing text
                             t2i_vae_info = (
@@ -432,6 +411,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 choices=["None"]
                                 + get_custom_model_files("vae"),
                                 allow_custom_value=True,
+                                scale=1,
                             )
                     with gr.Column(scale=1, min_width=170):
                         txt2img_png_info_img = gr.Image(
@@ -649,7 +629,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         object_fit="contain",
                     )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at "
+                        value=f"{t2i_model_info}\n"
+                        f"Images will be saved at "
                         f"{get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
@@ -692,7 +673,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 batch_size,
                 scheduler,
                 txt2img_custom_model,
-                txt2img_hf_model_id,
                 custom_vae,
                 precision,
                 device,
@@ -742,7 +722,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 width,
                 height,
                 txt2img_custom_model,
-                txt2img_hf_model_id,
                 lora_weights,
                 lora_hf_id,
                 custom_vae,
@@ -758,7 +737,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 width,
                 height,
                 txt2img_custom_model,
-                txt2img_hf_model_id,
                 lora_weights,
                 lora_hf_id,
                 custom_vae,

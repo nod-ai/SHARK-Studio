@@ -32,36 +32,39 @@ model_map = {
 # NOTE: Each `model_name` should have its own start message
 start_message = {
     "llama2_7b": (
-        "System: You are a helpful, respectful and honest assistant. Always answer "
-        "as helpfully as possible, while being safe.  Your answers should not "
-        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
-        "content. Please ensure that your responses are socially unbiased and positive "
-        "in nature. If a question does not make any sense, or is not factually coherent, "
-        "explain why instead of answering something not correct. If you don't know the "
-        "answer to a question, please don't share false information."
+        "You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe. Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or "
+        "illegal content. Please ensure that your responses are socially "
+        "unbiased and positive in nature. If a question does not make any "
+        "sense, or is not factually coherent, explain why instead of "
+        "answering something not correct. If you don't know the answer "
+        "to a question, please don't share false information."
     ),
     "llama2_13b": (
-        "System: You are a helpful, respectful and honest assistant. Always answer "
-        "as helpfully as possible, while being safe.  Your answers should not "
-        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
-        "content. Please ensure that your responses are socially unbiased and positive "
-        "in nature. If a question does not make any sense, or is not factually coherent, "
-        "explain why instead of answering something not correct. If you don't know the "
-        "answer to a question, please don't share false information."
+        "You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe. Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or "
+        "illegal content. Please ensure that your responses are socially "
+        "unbiased and positive in nature. If a question does not make any "
+        "sense, or is not factually coherent, explain why instead of "
+        "answering something not correct. If you don't know the answer "
+        "to a question, please don't share false information."
     ),
     "llama2_70b": (
-        "System: You are a helpful, respectful and honest assistant. Always answer "
-        "as helpfully as possible, while being safe.  Your answers should not "
-        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
-        "content. Please ensure that your responses are socially unbiased and positive "
-        "in nature. If a question does not make any sense, or is not factually coherent, "
-        "explain why instead of answering something not correct. If you don't know the "
-        "answer to a question, please don't share false information."
+        "You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe. Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or "
+        "illegal content. Please ensure that your responses are socially "
+        "unbiased and positive in nature. If a question does not make any "
+        "sense, or is not factually coherent, explain why instead of "
+        "answering something not correct. If you don't know the answer "
+        "to a question, please don't share false information."
     ),
     "vicuna": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
+        "A chat between a curious user and an artificial intelligence "
+        "assistant. The assistant gives helpful, detailed, and "
+        "polite answers to the user's questions.\n"
     ),
 }
 
@@ -77,7 +80,10 @@ def create_prompt(model_name, history, prompt_prefix):
         conversation = "".join(
             [f"{B_INST} {item[0]} {E_INST} {item[1]} " for item in history[1:]]
         )
-        msg = f"{B_INST} {B_SYS} {system_message} {E_SYS} {history[0][0]} {E_INST} {history[0][1]} {conversation}"
+        if prompt_prefix:
+            msg = f"{B_INST} {B_SYS}{system_message}{E_SYS}{history[0][0]} {E_INST} {history[0][1]} {conversation}"
+        else:
+            msg = f"{B_INST} {history[0][0]} {E_INST} {history[0][1]} {conversation}"
     elif model_name in ["vicuna"]:
         conversation = "".join(
             [
