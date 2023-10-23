@@ -29,7 +29,9 @@ def create_module(model_name, tokenizer, device, args):
     )
     # np.save("model_inputs_0.npy", inputs[0])
     # np.save("model_inputs_1.npy", inputs[1])
-    opt_fs_name = "-".join("_".join(args.model_name.split("/")[1].split("-")).split("."))
+    opt_fs_name = "-".join(
+        "_".join(args.model_name.split("/")[1].split("-")).split(".")
+    )
 
     mlir_path = f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch.mlir"
     if os.path.isfile(mlir_path):
@@ -136,10 +138,10 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=False)
-    opt_fs_name = "-".join("_".join(args.model_name.split("/")[1].split("-")).split("."))
-    vmfb_path = (
-        f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu.vmfb"
+    opt_fs_name = "-".join(
+        "_".join(args.model_name.split("/")[1].split("-")).split(".")
     )
+    vmfb_path = f"./{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu.vmfb"
     if args.plugin_path is not None:
         rt_flags = [f"--executable_plugin={args.plugin_path}"]
     else:
