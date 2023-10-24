@@ -638,16 +638,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         choices=available_devices,
                         allow_custom_value=True,
                     )
-                with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        lambda: -1,
-                        inputs=[],
-                        outputs=[seed],
-                        queue=False,
-                    )
-                    stop_batch = gr.Button("Stop Batch")
-                    stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -667,6 +657,18 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         show_label=False,
                     )
                     img2img_status = gr.Textbox(visible=False)
+                with gr.Row():
+                    stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                with gr.Row():
+                    blank_thing_for_row = None
                 with gr.Row():
                     img2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
                     img2img_sendto_outpaint = gr.Button(

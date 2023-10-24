@@ -140,6 +140,11 @@ def txt2img_inf(
         args.max_length = max_length
         args.height = height
         args.width = width
+        args.use_hiresfix = use_hiresfix
+        args.hiresfix_height = hiresfix_height
+        args.hiresfix_width = hiresfix_width
+        args.hiresfix_strength = hiresfix_strength
+        args.resample_type = resample_type
         args.device = device.split("=>", 1)[1].strip()
         args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
         args.iree_metal_target_platform = init_iree_metal_target_platform

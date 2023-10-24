@@ -514,16 +514,6 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         choices=available_devices,
                         allow_custom_value=True,
                     )
-                with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        lambda: -1,
-                        inputs=[],
-                        outputs=[seed],
-                        queue=False,
-                    )
-                    stop_batch = gr.Button("Stop Batch")
-                    stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -543,7 +533,18 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         show_label=False,
                     )
                     inpaint_status = gr.Textbox(visible=False)
-
+                with gr.Row():
+                    stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                with gr.Row():
+                    blank_thing_for_row = None
                 with gr.Row():
                     inpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     inpaint_sendto_outpaint = gr.Button(
