@@ -10,6 +10,7 @@ from shark.iree_utils._common import (
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM
+from typing import Iterable
 
 
 def create_module(model_name, tokenizer, device, args):
@@ -70,11 +71,11 @@ def shouldStop(tokens):
     return False
 
 
-def generate_new_token(shark_model, tokenizer, new_text, args):
+def generate_new_token(shark_module, tokenizer, new_text, max_seq_len: int):
     model_inputs = tokenizer(
         new_text,
         padding="max_length",
-        max_length=args.max_seq_len,
+        max_length=max_seq_len,
         truncation=True,
         return_tensors="pt",
     )
@@ -83,7 +84,7 @@ def generate_new_token(shark_model, tokenizer, new_text, args):
         model_inputs["attention_mask"],
     )
     sum_attentionmask = torch.sum(model_inputs.attention_mask)
-    output = shark_model("forward", inputs)
+    output = shark_module("forward", inputs)
     output = torch.FloatTensor(output[0])
     next_toks = torch.topk(output, 1)
     stop_generation = False
@@ -135,6 +136,34 @@ def parse_args():
     return args
 
 
+def generate_tokens(
+    opt_shark_module: "SharkInference",
+    tokenizer,
+    input_text: str,
+    max_output_len: int,
+    print_intermediate_results: True,
+) -> Iterable[str]:
+    words_list = []
+    new_text = input_text
+    try:
+        for _ in range(max_output_len):
+            generated_token_op = generate_new_token(
+                opt_shark_module, tokenizer, new_text, max_output_len
+            )
+            detok = generated_token_op["detok"]
+            if generated_token_op["stop_generation"]:
+                break
+            if print_intermediate_results:
+                print(detok, end="", flush=True)
+            words_list.append(detok)
+            if detok == "":
+                break
+            new_text += detok
+    except KeyboardInterrupt as e:
+        print("Exiting token generation.")
+    return words_list
+
+
 if __name__ == "__main__":
     args = parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=False)
@@ -155,25 +184,7 @@ if __name__ == "__main__":
         vmfb_path = create_module(args.model_name, tokenizer, "cpu-task", args)
         opt_shark_module.load_module(vmfb_path)
     while True:
-        try:
-            new_text = input("Give me a sentence to complete:")
-            new_text_init = new_text
-            words_list = []
-
-            for i in range(args.max_seq_len):
-                generated_token_op = generate_new_token(
-                    opt_shark_module, tokenizer, new_text, args
-                )
-                detok = generated_token_op["detok"]
-                stop_generation = generated_token_op["stop_generation"]
-                if stop_generation:
-                    break
-                print(detok, end="", flush=True)
-                words_list.append(detok)
-                if detok == "":
-                    break
-                new_text = new_text + detok
-
-        except KeyboardInterrupt:
-            print("Exiting program.")
-            break
+        input_text = input("Give me a sentence to complete:")
+        generate_tokens(
+            opt_shark_module, tokenizer, input_text, args.max_seq_len
+        )

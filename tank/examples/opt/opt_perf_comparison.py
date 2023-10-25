@@ -22,6 +22,7 @@ import time
 import numpy as np
 from typing import Tuple
 
+from opt_util import PROMPTS
 from shark.shark_inference import SharkInference
 from shark.shark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM
@@ -43,19 +44,6 @@ REPORT_LOAD_PHYSICAL_MEMORY_MB = "load_physical_MB"
 REPORT_LOAD_VIRTUAL_MEMORY_MB = "load_virtual_MB"
 REPORT_RUN_PHYSICAL_MEMORY_MB = "run_physical_MB"
 REPORT_RUN_VIRTUAL_MEMORY_MB = "run_virtual_MB"
-
-PROMPTS = [
-    "What is the meaning of life?",
-    "Tell me something you don't know.",
-    "What does Xilinx do?",
-    "What is the mass of earth?",
-    "What is a poem?",
-    "What is recursion?",
-    "Tell me a one line joke.",
-    "Who is Gilgamesh?",
-    "Tell me something about cryptocurrency.",
-    "How did it all begin?",
-]
 
 ModelWrapper = collections.namedtuple("ModelWrapper", ["model", "tokenizer"])
 
