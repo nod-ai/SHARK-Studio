@@ -85,9 +85,15 @@ class DecoderLayer(torch.nn.Module):
 
 
 class CompiledDecoderLayer(torch.nn.Module):
-    def __init__(self, shark_decoder_layer_module):
+    def __init__(
+        self, layer_id, device_idx, falcon_variant, device, precision
+    ):
         super().__init__()
-        self.model = shark_decoder_layer_module
+        self.layer_id = layer_id
+        self.device_index = device_idx
+        self.falcon_variant = falcon_variant
+        self.device = device
+        self.precision = precision
 
     def forward(
         self,
@@ -99,6 +105,26 @@ class CompiledDecoderLayer(torch.nn.Module):
         use_cache: bool = False,
         output_attentions: bool = False,
     ):
+        import gc
+
+        torch.cuda.empty_cache()
+        gc.collect()
+        from pathlib import Path
+        from apps.language_models.utils import get_vmfb_from_path
+
+        self.falcon_vmfb_path = Path(
+            f"falcon_{self.falcon_variant}_layer_{self.layer_id}_{self.precision}_{self.device}.vmfb"
+        )
+        print("vmfb path for layer: ", self.falcon_vmfb_path)
+        self.model = get_vmfb_from_path(
+            self.falcon_vmfb_path,
+            self.device,
+            "linalg",
+            device_id=self.device_index,
+        )
+        if self.model is None:
+            raise ValueError("Layer vmfb not found")
+
         hidden_states = hidden_states.to(torch.float32).detach().numpy()
         attention_mask = attention_mask.detach().numpy()
 
@@ -112,6 +138,8 @@ class CompiledDecoderLayer(torch.nn.Module):
                     attention_mask,
                 ),
             )
+            del self.model
+
             return tuple(
                 [
                     torch.tensor(new_hidden_states),

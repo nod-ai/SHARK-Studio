@@ -392,6 +392,9 @@ def load_vmfb_using_mmap(
             )
             dl.log(f"ireert.create_device()")
             config = ireert.Config(device=haldevice)
+            config.id = haldriver.query_available_devices()[device_idx][
+                "device_id"
+            ]
             dl.log(f"ireert.Config()")
         else:
             config = get_iree_runtime_config(device)
@@ -574,10 +577,17 @@ def get_results(
     frontend="torch",
     send_to_host=True,
     debug_timeout: float = 5.0,
+    device: str = None,
 ):
     """Runs a .vmfb file given inputs and config and returns output."""
     with DetailLogger(debug_timeout) as dl:
         device_inputs = []
+        if device == "rocm":
+            haldriver = ireert.get_driver("rocm")
+            haldevice = haldriver.create_device(
+                config.id,
+                allocators=shark_args.device_allocator,
+            )
         for input_array in input:
             dl.log(f"Load to device: {input_array.shape}")
             device_inputs.append(
