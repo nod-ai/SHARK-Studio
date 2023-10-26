@@ -150,11 +150,15 @@ class SharkInference:
 
     # inputs are considered to be tuple of np.array.
     def __call__(self, function_name: str, inputs: tuple, send_to_host=True):
-        return self.shark_runner.run(function_name, inputs, send_to_host)
+        return self.shark_runner.run(
+            function_name, inputs, send_to_host, device=self.device
+        )
 
     # forward function.
     def forward(self, inputs: tuple, send_to_host=True):
-        return self.shark_runner.run("forward", inputs, send_to_host)
+        return self.shark_runner.run(
+            "forward", inputs, send_to_host, device=self.device
+        )
 
     # Get all function names defined within the compiled module.
     def get_functions_in_module(self):
