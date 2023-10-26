@@ -75,7 +75,7 @@ def get_iree_device_args(device, extra_args=[]):
     if device_uri[0] == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
-        return get_iree_rocm_args()
+        return get_iree_rocm_args(extra_args=extra_args)
     return []
 
 
