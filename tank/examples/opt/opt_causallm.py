@@ -10,7 +10,9 @@ from typing import Iterable
 
 
 def create_module(model_name, tokenizer, device, args):
-    opt_base_model = OPTForCausalLM.from_pretrained(model_name)
+    opt_base_model = OPTForCausalLM.from_pretrained(
+        model_name, allow_mismatched_sizes=True
+    )
     opt_base_model.eval()
     opt_model = OPTForCausalLMModel(opt_base_model)
     encoded_inputs = tokenizer(
@@ -112,6 +114,11 @@ def parse_args():
             "facebook/opt-350m",
             "facebook/opt-1.3b",
             "facebook/opt-6.7b",
+            "mit-han-lab/opt-125m-smoothquant",
+            "mit-han-lab/opt-1.3b-smoothquant",
+            "mit-han-lab/opt-2.7b-smoothquant",
+            "mit-han-lab/opt-6.7b-smoothquant",
+            "mit-han-lab/opt-13b-smoothquant",
         ],
         default="facebook/opt-1.3b",
     )
@@ -162,7 +169,11 @@ def generate_tokens(
 
 if __name__ == "__main__":
     args = parse_args()
-    tokenizer = AutoTokenizer.from_pretrained(args.model_name, use_fast=False)
+    if "smoothquant" in args.model_name:
+        token_model_name = f"facebook/opt-{args.model_name.split('-')[3]}"
+    else:
+        token_model_name = args.model_name
+    tokenizer = AutoTokenizer.from_pretrained(token_model_name, use_fast=False)
     opt_fs_name = "-".join(
         "_".join(args.model_name.split("/")[1].split("-")).split(".")
     )
