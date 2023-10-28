@@ -40,7 +40,6 @@ def get_iree_gpu_args():
 
 
 # Get the default gpu args given the architecture.
-@functools.cache
 def get_iree_rocm_args(extra_args=[]):
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
     rocm_flags = ["--iree-rocm-link-bc=true"]
