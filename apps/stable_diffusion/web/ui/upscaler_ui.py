@@ -3,9 +3,6 @@ import torch
 import time
 import gradio as gr
 from PIL import Image
-import base64
-from io import BytesIO
-from fastapi.exceptions import HTTPException
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -245,82 +242,6 @@ def upscaler_inf(
             )
 
     yield generated_imgs, text_output, ""
-
-
-def decode_base64_to_image(encoding):
-    if encoding.startswith("data:image/"):
-        encoding = encoding.split(";", 1)[1].split(",", 1)[1]
-    try:
-        image = Image.open(BytesIO(base64.b64decode(encoding)))
-        return image
-    except Exception as err:
-        print(err)
-        raise HTTPException(status_code=500, detail="Invalid encoded image")
-
-
-def encode_pil_to_base64(images):
-    encoded_imgs = []
-    for image in images:
-        with BytesIO() as output_bytes:
-            if args.output_img_format.lower() == "png":
-                image.save(output_bytes, format="PNG")
-
-            elif args.output_img_format.lower() in ("jpg", "jpeg"):
-                image.save(output_bytes, format="JPEG")
-            else:
-                raise HTTPException(
-                    status_code=500, detail="Invalid image format"
-                )
-            bytes_data = output_bytes.getvalue()
-            encoded_imgs.append(base64.b64encode(bytes_data))
-    return encoded_imgs
-
-
-# Upscaler Rest API.
-def upscaler_api(
-    InputData: dict,
-):
-    print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"]}'
-    )
-    init_image = decode_base64_to_image(InputData["init_images"][0])
-    res = upscaler_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
-        init_image,
-        InputData["height"],
-        InputData["width"],
-        InputData["steps"],
-        InputData["noise_level"],
-        InputData["cfg_scale"],
-        InputData["seed"],
-        batch_count=1,
-        batch_size=1,
-        scheduler="EulerDiscrete",
-        model_id=InputData["hf_model_id"]
-        if "hf_model_id" in InputData.keys()
-        else "stabilityai/stable-diffusion-2-1-base",
-        custom_vae="None",
-        precision="fp16",
-        device=available_devices[0],
-        max_length=64,
-        save_metadata_to_json=False,
-        save_metadata_to_png=False,
-        lora_weights="None",
-        lora_hf_id="",
-        ondemand=False,
-        repeatable_seeds=False,
-    )
-    # Converts generator type to subscriptable
-    res = next(res)
-
-    return {
-        "images": encode_pil_to_base64(res[0]),
-        "parameters": {},
-        "info": res[1],
-    }
 
 
 with gr.Blocks(title="Upscaler") as upscaler_web:

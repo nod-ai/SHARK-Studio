@@ -48,15 +48,20 @@ if __name__ == "__main__":
     freeze_support()
     if args.api or "api" in args.ui.split(","):
         from apps.stable_diffusion.web.ui import (
+            llm_chat_api,
+        )
+        from apps.stable_diffusion.web.api import (
             txt2img_api,
             img2img_api,
-            upscaler_api,
             inpaint_api,
             outpaint_api,
-            llm_chat_api,
+            upscaler_api,
+            options_api,
+            sd_models_api,
         )
 
         from fastapi import FastAPI, APIRouter
+        from fastapi.middleware.cors import CORSMiddleware
         import uvicorn
 
         # init global sd pipeline and config
@@ -68,6 +73,10 @@ if __name__ == "__main__":
         app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
         app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
         app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
+        app.add_api_route("/sdapi/v1/options", options_api, methods=["get"])
+        app.add_api_route(
+            "/sdapi/v1/sd-models", sd_models_api, methods=["get"]
+        )
 
         # chat APIs needed for compatibility with multiple extensions using OpenAI API
         app.add_api_route(
@@ -80,6 +89,21 @@ if __name__ == "__main__":
             "/v1/engines/codegen/completions", llm_chat_api, methods=["post"]
         )
         app.include_router(APIRouter())
+
+        # deal with CORS requests if CORS accept origins are set
+        if args.api_accept_origin:
+            print(
+                f"API Configured for CORS. Accepting origins: { args.api_accept_origin }"
+            )
+            app.add_middleware(
+                CORSMiddleware,
+                allow_origins=args.api_accept_origin,
+                allow_methods=["GET", "POST"],
+                allow_headers=["*"],
+            )
+        else:
+            print("API not configured for CORS")
+
         uvicorn.run(app, host="0.0.0.0", port=args.server_port)
         sys.exit(0)
 

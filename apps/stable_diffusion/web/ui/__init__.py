@@ -1,6 +1,5 @@
 from apps.stable_diffusion.web.ui.txt2img_ui import (
     txt2img_inf,
-    txt2img_api,
     txt2img_web,
     txt2img_custom_model,
     txt2img_gallery,
@@ -13,7 +12,6 @@ from apps.stable_diffusion.web.ui.txt2img_ui import (
 )
 from apps.stable_diffusion.web.ui.img2img_ui import (
     img2img_inf,
-    img2img_api,
     img2img_web,
     img2img_custom_model,
     img2img_gallery,
@@ -25,7 +23,6 @@ from apps.stable_diffusion.web.ui.img2img_ui import (
 )
 from apps.stable_diffusion.web.ui.inpaint_ui import (
     inpaint_inf,
-    inpaint_api,
     inpaint_web,
     inpaint_custom_model,
     inpaint_gallery,
@@ -37,7 +34,6 @@ from apps.stable_diffusion.web.ui.inpaint_ui import (
 )
 from apps.stable_diffusion.web.ui.outpaint_ui import (
     outpaint_inf,
-    outpaint_api,
     outpaint_web,
     outpaint_custom_model,
     outpaint_gallery,
@@ -49,7 +45,6 @@ from apps.stable_diffusion.web.ui.outpaint_ui import (
 )
 from apps.stable_diffusion.web.ui.upscaler_ui import (
     upscaler_inf,
-    upscaler_api,
     upscaler_web,
     upscaler_custom_model,
     upscaler_gallery,
