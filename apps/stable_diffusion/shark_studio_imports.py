@@ -53,6 +53,7 @@ datas += collect_data_files("jsonschema_specifications")
 datas += collect_data_files("cpuinfo")
 datas += collect_data_files("langchain")
 datas += collect_data_files("cv2")
+datas += collect_data_files("einops")
 datas += [
     ("src/utils/resources/prompts.json", "resources"),
     ("src/utils/resources/model_db.json", "resources"),
