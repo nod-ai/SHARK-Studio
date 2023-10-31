@@ -7,7 +7,9 @@ from apps.language_models.src.model_wrappers.falcon_sharded_model import (
     LMHeadEmbeddingLayer,
     CompiledLMHeadEmbeddingLayer,
     DecoderLayer,
+    EightDecoderLayer,
     CompiledDecoderLayer,
+    CompiledEightDecoderLayer,
     ShardedFalconModel,
 )
 from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
@@ -27,12 +29,13 @@ from transformers.generation import (
     StoppingCriteriaList,
 )
 import copy
-
+import time
 import re
 import torch
 import torch_mlir
 import os
 import argparse
+import gc
 
 parser = argparse.ArgumentParser(
     prog="falcon runner",
@@ -41,6 +44,12 @@ parser = argparse.ArgumentParser(
 
 parser.add_argument(
     "--falcon_variant_to_use", default="7b", help="7b, 40b, 180b"
+)
+parser.add_argument(
+    "--compressed",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Do the compression of sharded layers",
 )
 parser.add_argument(
     "--precision", "-p", default="fp16", choices=["fp32", "fp16", "int4"]
@@ -127,7 +136,7 @@ class ShardedFalcon(SharkLLMBase):
         self.debug = debug
         self.tokenizer = self.get_tokenizer()
         self.src_model = self.get_src_model()
-        self.shark_model = self.compile()
+        self.shark_model = self.compile(compressed=args.compressed)
 
     def get_tokenizer(self):
         tokenizer = AutoTokenizer.from_pretrained(
@@ -158,26 +167,9 @@ class ShardedFalcon(SharkLLMBase):
             falcon_model = falcon_model.to(torch.float32)
         return falcon_model
 
-    def compile_layer(self, layer, falconCompileInput, layer_id):
-        # Determine number of available devices
-        import iree.runtime as ireert
-
-        haldriver = ireert.get_driver(self.device)
-        num_devices = len(haldriver.query_available_devices())
-
-        if layer_id == "word_embeddings":
-            device_idx = 0 % num_devices
-        elif layer_id == "ln_f":
-            device_idx = 1 % num_devices
-        elif layer_id == "lm_head":
-            device_idx = 2 % num_devices
-        elif type(layer_id) == int:
-            device_idx = layer_id % num_devices
-        else:
-            raise ValueError("Falcon: Unknow layer encountered")
-
-        device_idx = device_idx if self.device == "rocm" else None
-
+    def compile_layer(
+        self, layer, falconCompileInput, layer_id, device_idx=None
+    ):
         self.falcon_mlir_path = Path(
             f"falcon_{args.falcon_variant_to_use}_layer_{layer_id}_{self.precision}.mlir"
         )
@@ -237,7 +229,7 @@ class ShardedFalcon(SharkLLMBase):
                     f16_input_mask = [False]
                 elif layer_id in ["ln_f", "lm_head"]:
                     f16_input_mask = [True]
-                elif type(layer_id) == int:
+                elif "_" in layer_id or type(layer_id) == int:
                     f16_input_mask = [True, False]
                 else:
                     raise ValueError("Unsupported layer: ", layer_id)
@@ -301,25 +293,41 @@ class ShardedFalcon(SharkLLMBase):
 
         return shark_module, device_idx
 
-    def compile(self):
+    def compile(self, compressed=False):
         sample_input_ids = torch.zeros([100], dtype=torch.int64)
         sample_attention_mask = torch.zeros(
             [1, 1, 100, 100], dtype=torch.float32
         )
+        num_group_layers = 1
         if "7b" in self.model_name:
             num_in_features = 4544
+            if compressed:
+                num_group_layers = 8
         else:
             num_in_features = 14848
             sample_attention_mask = sample_attention_mask.to(dtype=torch.bool)
+            if compressed:
+                num_group_layers = 20
 
         sample_hidden_states = torch.zeros(
             [1, 100, num_in_features], dtype=torch.float32
         )
 
+        # Determine number of available devices
+        num_devices = 1
+        if self.device == "rocm":
+            import iree.runtime as ireert
+
+            haldriver = ireert.get_driver(self.device)
+            num_devices = len(haldriver.query_available_devices())
+
         lm_head = LMHeadEmbeddingLayer(self.src_model.lm_head)
         print("Compiling Layer lm_head")
         shark_lm_head, _ = self.compile_layer(
-            lm_head, [sample_hidden_states], "lm_head"
+            lm_head,
+            [sample_hidden_states],
+            "lm_head",
+            device_idx=0 % num_devices if self.device == "rocm" else None,
         )
         shark_lm_head = CompiledLMHeadEmbeddingLayer(shark_lm_head)
 
@@ -328,7 +336,10 @@ class ShardedFalcon(SharkLLMBase):
         )
         print("Compiling Layer word_embeddings")
         shark_word_embedding, _ = self.compile_layer(
-            word_embedding, [sample_input_ids], "word_embeddings"
+            word_embedding,
+            [sample_input_ids],
+            "word_embeddings",
+            device_idx=1 % num_devices if self.device == "rocm" else None,
         )
         shark_word_embedding = CompiledWordEmbeddingsLayer(
             shark_word_embedding
@@ -337,23 +348,50 @@ class ShardedFalcon(SharkLLMBase):
         ln_f = LNFEmbeddingLayer(self.src_model.transformer.ln_f)
         print("Compiling Layer ln_f")
         shark_ln_f, _ = self.compile_layer(
-            ln_f, [sample_hidden_states], "ln_f"
+            ln_f,
+            [sample_hidden_states],
+            "ln_f",
+            device_idx=2 % num_devices if self.device == "rocm" else None,
         )
         shark_ln_f = CompiledLNFEmbeddingLayer(shark_ln_f)
 
         shark_layers = []
-        for i in range(len(self.src_model.transformer.h)):
-            print("Compiling Layer {}".format(i))
-            layer_i = self.src_model.transformer.h[i]
-            pytorch_layer_i = DecoderLayer(layer_i)
+        for i in range(
+            int(len(self.src_model.transformer.h) / num_group_layers)
+        ):
+            device_idx = i % num_devices if self.device == "rocm" else None
+            layer_id = i
+            pytorch_class = DecoderLayer
+            compiled_class = CompiledDecoderLayer
+            if compressed:
+                layer_id = (
+                    str(i * num_group_layers)
+                    + "_"
+                    + str((i + 1) * num_group_layers)
+                )
+                pytorch_class = EightDecoderLayer
+                compiled_class = CompiledEightDecoderLayer
+
+            print("Compiling Layer {}".format(layer_id))
+            if compressed:
+                layer_i = self.src_model.transformer.h[
+                    i * num_group_layers : (i + 1) * num_group_layers
+                ]
+            else:
+                layer_i = self.src_model.transformer.h[i]
+
+            pytorch_layer_i = pytorch_class(
+                layer_i, args.falcon_variant_to_use
+            )
             shark_module, device_idx = self.compile_layer(
                 pytorch_layer_i,
                 [sample_hidden_states, sample_attention_mask],
-                i,
+                layer_id,
+                device_idx=device_idx,
             )
             del shark_module
-            shark_layer_i = CompiledDecoderLayer(
-                i,
+            shark_layer_i = compiled_class(
+                layer_id,
                 device_idx,
                 args.falcon_variant_to_use,
                 self.device,
@@ -387,9 +425,6 @@ class ShardedFalcon(SharkLLMBase):
         if input_ids.shape[1] == 0:
             input_ids = None
             attention_mask = None
-            in_b = 1
-        else:
-            in_b = input_ids.shape[0]
 
         generate_kwargs = {
             "max_length": self.max_num_tokens,
@@ -419,7 +454,6 @@ class ShardedFalcon(SharkLLMBase):
         ) = self.src_model._prepare_model_inputs(
             None, generation_config.bos_token_id, model_kwargs
         )
-        batch_size = inputs_tensor.shape[0]
 
         model_kwargs["output_attentions"] = generation_config.output_attentions
         model_kwargs[
@@ -470,8 +504,6 @@ class ShardedFalcon(SharkLLMBase):
         self.eos_token_id = eos_token_id
 
         output_scores = generation_config.output_scores  # False
-        output_attentions = generation_config.output_attentions  # False
-        output_hidden_states = generation_config.output_hidden_states  # False
         return_dict_in_generate = (
             generation_config.return_dict_in_generate  # False
         )
@@ -479,15 +511,6 @@ class ShardedFalcon(SharkLLMBase):
         # init attention / hidden states / scores tuples
         self.scores = (
             () if (return_dict_in_generate and output_scores) else None
-        )
-        decoder_attentions = (
-            () if (return_dict_in_generate and output_attentions) else None
-        )
-        cross_attentions = (
-            () if (return_dict_in_generate and output_attentions) else None
-        )
-        decoder_hidden_states = (
-            () if (return_dict_in_generate and output_hidden_states) else None
         )
 
         # keep track of which sequences are already finished
@@ -497,7 +520,11 @@ class ShardedFalcon(SharkLLMBase):
 
         all_text = prompt
 
+        start = time.time()
+        count = 0
         for i in range(self.max_num_tokens - 1):
+            count = count + 1
+
             next_token = self.generate_new_token()
             new_word = self.tokenizer.decode(
                 next_token.cpu().numpy(),
@@ -509,6 +536,7 @@ class ShardedFalcon(SharkLLMBase):
             all_text = all_text + new_word
 
             print(f"{new_word}", end="", flush=True)
+            print(f"{all_text}", end="", flush=True)
 
             # if eos_token was found in one sentence, set sentence to finished
             if self.eos_token_id_tensor is not None:
@@ -523,6 +551,13 @@ class ShardedFalcon(SharkLLMBase):
                     or self.stopping_criteria(input_ids, self.scores)
                 ):
                     break
+
+        end = time.time()
+        print(
+            "\n\nTime taken is {:.2f} seconds/token\n".format(
+                (end - start) / count
+            )
+        )
 
         torch.cuda.empty_cache()
         gc.collect()
@@ -1054,8 +1089,6 @@ if __name__ == "__main__":
             device=args.device,
             precision=args.precision,
         )
-
-    import gc
 
     default_prompt_text = "Girafatron is obsessed with giraffes, the most glorious animal on the face of this Earth. Giraftron believes all other animals are irrelevant when compared to the glorious majesty of the giraffe.\nDaniel: Hello, Girafatron!\nGirafatron:"
     continue_execution = True
