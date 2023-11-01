@@ -68,6 +68,8 @@ def get_vulkan_target_triple(device_name):
     Returns:
         str or None: target triple or None if no match found for given name
     """
+
+    # TODO: Replace this with a dict or something smarter.
     system_os = get_os_name()
     # Apple Targets
     if all(x in device_name for x in ("Apple", "M1")):
@@ -117,6 +119,8 @@ def get_vulkan_target_triple(device_name):
     # Amd Targets
     # Linux: Radeon RX 7900 XTX
     # Windows: AMD Radeon RX 7900 XTX
+    elif all(x in device_name for x in ("RX", "7800")):
+        triple = f"rdna3-7800-{system_os}"
     elif all(x in device_name for x in ("RX", "7900")):
         triple = f"rdna3-7900-{system_os}"
     elif all(x in device_name for x in ("Radeon", "780M")):
