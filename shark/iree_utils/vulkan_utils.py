@@ -68,8 +68,8 @@ def get_vulkan_target_triple(device_name):
     Returns:
         str or None: target triple or None if no match found for given name
     """
-    
-    #TODO: Replace this with a dict or something smarter.
+
+    # TODO: Replace this with a dict or something smarter.
     system_os = get_os_name()
     # Apple Targets
     if all(x in device_name for x in ("Apple", "M1")):
