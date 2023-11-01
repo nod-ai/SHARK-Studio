@@ -65,7 +65,6 @@ class SharkStableLM(SharkLLMBase):
             f"stableLM_linalg_{self.precision}_seqLen{self.max_sequence_len}"
         )
 
-        # device = "cuda"  # "cpu"
         # TODO: vmfb and mlir name should include precision and device
         model_vmfb_name = None
         vmfb_path = (
@@ -122,7 +121,6 @@ class SharkStableLM(SharkLLMBase):
     def get_tokenizer(self):
         tok = AutoTokenizer.from_pretrained(self.hf_model_path)
         tok.add_special_tokens({"pad_token": "<PAD>"})
-        # print("[DEBUG] Sucessfully loaded the tokenizer to the memory")
         return tok
 
     def generate(self, prompt):
