@@ -70,7 +70,7 @@ class CompiledLMHeadEmbeddingLayer(torch.nn.Module):
 
 
 class DecoderLayer(torch.nn.Module):
-    def __init__(self, decoder_layer_model):
+    def __init__(self, decoder_layer_model, falcon_variant):
         super().__init__()
         self.model = decoder_layer_model
 
