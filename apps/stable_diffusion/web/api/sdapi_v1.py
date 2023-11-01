@@ -33,7 +33,7 @@ frozen_args = Namespace(**(pickle.loads(pickle.dumps(vars(args)))))
 
 
 # helper functions
-def encode_pil_to_base64(images):
+def encode_pil_to_base64(images: list[Image.Image]):
     encoded_imgs = []
     for image in images:
         with BytesIO() as output_bytes:
@@ -51,7 +51,7 @@ def encode_pil_to_base64(images):
     return encoded_imgs
 
 
-def decode_base64_to_image(encoding):
+def decode_base64_to_image(encoding: str):
     if encoding.startswith("data:image/"):
         encoding = encoding.split(";", 1)[1].split(",", 1)[1]
     try:
@@ -62,7 +62,7 @@ def decode_base64_to_image(encoding):
         raise HTTPException(status_code=400, detail="Invalid encoded image")
 
 
-def get_predefined_models(custom_checkpoint_type):
+def get_predefined_models(custom_checkpoint_type: str):
     match custom_checkpoint_type:
         case "inpainting":
             return predefined_paint_models
@@ -73,7 +73,7 @@ def get_predefined_models(custom_checkpoint_type):
 
 
 def get_model_from_request(
-    request_json, checkpoint_type="", fallback_model=""
+    request_json: dict, checkpoint_type: str = "", fallback_model: str = ""
 ):
     # extract a model name from the request if available
     request_model = request_json.get(
@@ -96,7 +96,9 @@ def get_model_from_request(
         return fallback_model
 
 
-def get_scheduler_from_request(request_json, fallback_scheduler=None):
+def get_scheduler_from_request(
+    request_json: dict, fallback_scheduler: str = None
+):
     if request_json.get("sampler_name", None) in scheduler_list:
         result = request_json["sampler_name"]
     else:
@@ -108,7 +110,27 @@ def get_scheduler_from_request(request_json, fallback_scheduler=None):
         return result
 
 
-def bad_request_for_missing(input_data, required: list):
+def get_lora_params(use_lora: str):
+    # TODO: since the inference functions in the webui, which we are
+    # calling into for the api, jam these back together again before
+    # handing them off to the pipeline, we should remove this nonsense
+    # and unify their selection in the UI proper
+    if use_lora in get_custom_model_files("lora"):
+        return (use_lora, "")
+
+    return ("None", use_lora)
+
+
+def get_device(device_str: str):
+    # first substring match in the list available devices, with first
+    # device when none are matched
+    return next(
+        (device for device in available_devices if device_str in device),
+        available_devices[0],
+    )
+
+
+def bad_request_for_missing(input_data: dict, required: list):
     missing = [key for key in required if key not in input_data.keys()]
     if len(missing) > 0:
         raise HTTPException(
@@ -165,6 +187,7 @@ def txt2img_api(
     scheduler = get_scheduler_from_request(
         InputData, "DEISMultistep" if frozen_args.use_hiresfix else None
     )
+    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
     print(
         f'Prompt: {InputData["prompt"]}, '
@@ -188,12 +211,12 @@ def txt2img_api(
         model_id=model_id,
         custom_vae=frozen_args.custom_vae or "None",
         precision="fp16",
-        device=available_devices[0],
+        device=get_device(frozen_args.device),
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights="None",
-        lora_hf_id="",
+        lora_weights=lora_weights,
+        lora_hf_id=lora_hf_id,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
         use_hiresfix=frozen_args.use_hiresfix,
@@ -225,8 +248,10 @@ def img2img_api(
         InputData,
         fallback_model="stabilityai/stable-diffusion-2-1-base",
     )
-    init_image = decode_base64_to_image(InputData["init_images"][0])
     scheduler = get_scheduler_from_request(InputData, "EulerDiscrete")
+    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
+
+    init_image = decode_base64_to_image(InputData["init_images"][0])
 
     print(
         f'Prompt: {InputData["prompt"]}, '
@@ -252,13 +277,13 @@ def img2img_api(
         model_id=model_id,
         custom_vae=frozen_args.custom_vae or "None",
         precision="fp16",
-        device=available_devices[0],
+        device=get_device(frozen_args.device),
         max_length=frozen_args.max_length,
         use_stencil=InputData.get("use_stencil", frozen_args.use_stencil),
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights="None",
-        lora_hf_id="",
+        lora_weights=lora_weights,
+        lora_hf_id=lora_hf_id,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
         resample_type=frozen_args.resample_type,
@@ -296,6 +321,8 @@ def inpaint_api(
         fallback_model="stabilityai/stable-diffusion-2-inpainting",
     )
     scheduler = get_scheduler_from_request(InputData, "EulerDiscrete")
+    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
+
     init_image = decode_base64_to_image(InputData["image"])
     mask = decode_base64_to_image(InputData["mask"])
 
@@ -324,12 +351,12 @@ def inpaint_api(
         model_id=model_id,
         custom_vae=frozen_args.custom_vae or "None",
         precision="fp16",
-        device=available_devices[0],
+        device=get_device(frozen_args.device),
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights="None",
-        lora_hf_id="",
+        lora_weights=lora_weights,
+        lora_hf_id=lora_hf_id,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
     )
@@ -360,6 +387,8 @@ def outpaint_api(
     # Tested as working fallback CPU scheduler with the fallback model, many
     # other schedulers aren't currently working either here or in the webui
     scheduler = get_scheduler_from_request(InputData, "DDIM")
+    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
+
     init_image = decode_base64_to_image(InputData["init_images"][0])
 
     print(
@@ -390,12 +419,12 @@ def outpaint_api(
         model_id=model_id,
         custom_vae=frozen_args.custom_vae or "None",
         precision="fp16",
-        device=available_devices[0],
+        device=get_device(frozen_args.device),
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights="None",
-        lora_hf_id="",
+        lora_weights=lora_weights,
+        lora_hf_id=lora_hf_id,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
     )
@@ -423,8 +452,10 @@ def upscaler_api(
         checkpoint_type="upscaler",
         fallback_model="stabilityai/stable-diffusion-x4-upscaler",
     )
-    init_image = decode_base64_to_image(InputData["init_images"][0])
     scheduler = get_scheduler_from_request(InputData, "EulerDiscrete")
+    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
+
+    init_image = decode_base64_to_image(InputData["init_images"][0])
 
     print(
         f'Prompt: {InputData["prompt"]}, '
@@ -450,12 +481,12 @@ def upscaler_api(
         model_id=model_id,
         custom_vae=frozen_args.custom_vae or "None",
         precision="fp16",
-        device=available_devices[0],
+        device=get_device(frozen_args.device),
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights="None",
-        lora_hf_id="",
+        lora_weights=lora_weights,
+        lora_hf_id=lora_hf_id,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
     )
