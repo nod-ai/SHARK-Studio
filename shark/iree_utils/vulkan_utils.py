@@ -29,7 +29,6 @@ def get_all_vulkan_devices():
 
     driver = get_driver("vulkan")
     device_list_src = driver.query_available_devices()
-    device_list_src.sort(key=lambda d: d["path"])
     return [d["name"] for d in device_list_src]
 
 

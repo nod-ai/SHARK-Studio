@@ -39,7 +39,15 @@ def get_iree_device_args(device, extra_args=[]):
                 f"Specific device selection only supported for vulkan now."
                 f"Proceeding with {device} as device."
             )
-        device_num = device_uri[1]
+        # device_uri can be device_num or device_path.
+        # assuming number of devices for a single driver will be not be >99
+        if len(device_uri[1]) <= 2:
+            # expected to be device index in range 0 - 99
+            device_num = int(device_uri[1])
+        else:
+            # expected to be device path
+            device_num = device_uri[1]
+
     else:
         device_num = 0
 

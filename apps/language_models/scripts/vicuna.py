@@ -1303,6 +1303,7 @@ class UnshardedVicuna(VicunaBase):
 
     def get_model_path(self, suffix="mlir"):
         safe_device = self.device.split("-")[0]
+        safe_device = safe_device.split("://")[0]
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
 
@@ -1966,6 +1967,7 @@ if __name__ == "__main__":
             max_num_tokens=max_tokens,
             min_num_tokens=min_tokens,
             device=args.device,
+            vulkan_target_triple=vulkan_target_triple,
             precision=args.precision,
             vicuna_mlir_path=vic_mlir_path,
             vicuna_vmfb_path=vic_vmfb_path,
