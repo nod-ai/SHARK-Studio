@@ -253,28 +253,30 @@ p.add_argument(
     "--left",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend left for outpainting.",
+    help="If extend left for outpainting.",
 )
 
 p.add_argument(
     "--right",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend right for outpainting.",
+    help="If extend right for outpainting.",
 )
 
 p.add_argument(
+    "--up",
     "--top",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend top for outpainting.",
+    help="If extend top for outpainting.",
 )
 
 p.add_argument(
+    "--down",
     "--bottom",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend bottom for outpainting.",
+    help="If extend bottom for outpainting.",
 )
 
 p.add_argument(

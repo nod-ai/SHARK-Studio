@@ -50,15 +50,7 @@ if __name__ == "__main__":
         from apps.stable_diffusion.web.ui import (
             llm_chat_api,
         )
-        from apps.stable_diffusion.web.api import (
-            txt2img_api,
-            img2img_api,
-            inpaint_api,
-            outpaint_api,
-            upscaler_api,
-            options_api,
-            sd_models_api,
-        )
+        from apps.stable_diffusion.web.api import sdapi
 
         from fastapi import FastAPI, APIRouter
         from fastapi.middleware.cors import CORSMiddleware
@@ -68,15 +60,22 @@ if __name__ == "__main__":
         global_obj._init()
 
         app = FastAPI()
-        app.add_api_route("/sdapi/v1/txt2img", txt2img_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/img2img", img2img_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/options", options_api, methods=["get"])
-        app.add_api_route(
-            "/sdapi/v1/sd-models", sd_models_api, methods=["get"]
-        )
+        app.mount("/sdapi/", sdapi)
+        # app.add_api_route("/sdapi/v1/txt2img", txt2img_api, methods=["post"])
+        # app.add_api_route("/sdapi/v1/img2img", img2img_api, methods=["post"])
+        # app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
+        # app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
+        # app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
+        # app.add_api_route(
+        #     "/sdapi/v1/cmd-flags", cmd_flags_api, methods=["get"]
+        # )
+        # app.add_api_route("/sdapi/v1/options", options_api, methods=["get"])
+        # app.add_api_route(
+        #     "/sdapi/v1/sd-models", sd_models_api, methods=["get"]
+        # )
+        # app.add_api_route(
+        #     "/sdapi/v1/sd-samplers", sd_samplers_api, methods=["get"]
+        # )
 
         # chat APIs needed for compatibility with multiple extensions using OpenAI API
         app.add_api_route(

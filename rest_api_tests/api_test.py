@@ -48,7 +48,7 @@ def upscaler_test(verbose=False):
         f"[upscaler] response from server was : {res.status_code} {res.reason}"
     )
 
-    if verbose:
+    if verbose or res.status_code != 200:
         print(
             f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
         )
@@ -100,7 +100,7 @@ def img2img_test(verbose=False):
         f"[img2img] response from server was : {res.status_code} {res.reason}"
     )
 
-    if verbose:
+    if verbose or res.status_code != 200:
         print(
             f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
         )
@@ -170,7 +170,7 @@ def inpainting_test(verbose=False):
         f"[inpaint] response from server was : {res.status_code} {res.reason}"
     )
 
-    if verbose:
+    if verbose or res.status_code != 200:
         print(
             f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
         )
@@ -227,7 +227,7 @@ def outpainting_test(verbose=False):
         f"[outpaint] response from server was : {res.status_code} {res.reason}"
     )
 
-    if verbose:
+    if verbose or res.status_code != 200:
         print(
             f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
         )
@@ -266,7 +266,7 @@ def txt2img_test(verbose=False):
         f"[txt2img] response from server was : {res.status_code} {res.reason}"
     )
 
-    if verbose:
+    if verbose or res.status_code != 200:
         print(
             f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
         )
@@ -287,7 +287,26 @@ def sd_models_test(verbose=False):
         f"[sd_models] response from server was : {res.status_code} {res.reason}"
     )
 
-    if verbose:
+    if verbose or res.status_code != 200:
+        print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
+
+
+def sd_samplers_test(verbose=False):
+    url = "http://127.0.0.1:8080/sdapi/v1/samplers"
+
+    headers = {
+        "User-Agent": "PythonTest",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
+
+    res = requests.get(url=url, headers=headers, timeout=1000)
+
+    print(
+        f"[sd_samplers] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
         print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
 
 
@@ -306,7 +325,26 @@ def options_test(verbose=False):
         f"[options] response from server was : {res.status_code} {res.reason}"
     )
 
-    if verbose:
+    if verbose or res.status_code != 200:
+        print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
+
+
+def cmd_flags_test(verbose=False):
+    url = "http://127.0.0.1:8080/sdapi/v1/cmd-flags"
+
+    headers = {
+        "User-Agent": "PythonTest",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
+
+    res = requests.get(url=url, headers=headers, timeout=1000)
+
+    print(
+        f"[cmd-flags] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
         print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
 
 
@@ -326,14 +364,15 @@ if __name__ == "__main__":
         action="store_true",
         help=(
             "also display selected info from the JSON response for "
-            "successful requests, and the full response content of failing "
-            "ones"
+            "successful requests"
         ),
     )
     args = parser.parse_args()
 
     sd_models_test(args.verbose)
+    sd_samplers_test(args.verbose)
     options_test(args.verbose)
+    cmd_flags_test(args.verbose)
     txt2img_test(args.verbose)
     img2img_test(args.verbose)
     upscaler_test(args.verbose)

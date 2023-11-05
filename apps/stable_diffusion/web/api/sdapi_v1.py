@@ -1,15 +1,24 @@
-import base64
 import os
-import pickle
 
-from argparse import Namespace
-from fastapi.exceptions import HTTPException
-from io import BytesIO
-from PIL import Image
+from collections import defaultdict
+from enum import Enum
+from fastapi import FastAPI
+from pydantic import BaseModel, Field
 
-from apps.stable_diffusion.src import args
+from apps.stable_diffusion.web.api.utils import (
+    frozen_args,
+    sampler_aliases,
+    encode_pil_to_base64,
+    decode_base64_to_image,
+    get_model_from_request,
+    get_scheduler_from_request,
+    get_lora_params,
+    get_device,
+    GenerationInputData,
+    GenerationResponseData,
+)
+
 from apps.stable_diffusion.web.ui.utils import (
-    available_devices,
     get_custom_model_files,
     get_custom_model_pathfile,
     predefined_models,
@@ -23,123 +32,39 @@ from apps.stable_diffusion.web.ui.inpaint_ui import inpaint_inf
 from apps.stable_diffusion.web.ui.outpaint_ui import outpaint_inf
 from apps.stable_diffusion.web.ui.upscaler_ui import upscaler_inf
 
-# Probably overly cautious, but try to ensure we only use the starting
-# args in each api call, as the code does `args.<whatever> = <changed_value>`
-# in lots of places and in testing it seemed to me these changes leaked
-# into subsequent api calls.
-
-# Roundtripping through pickle for deepcopy, there is probably a better way
-frozen_args = Namespace(**(pickle.loads(pickle.dumps(vars(args)))))
-
-
-# helper functions
-def encode_pil_to_base64(images: list[Image.Image]):
-    encoded_imgs = []
-    for image in images:
-        with BytesIO() as output_bytes:
-            if frozen_args.output_img_format.lower() == "png":
-                image.save(output_bytes, format="PNG")
-
-            elif frozen_args.output_img_format.lower() in ("jpg", "jpeg"):
-                image.save(output_bytes, format="JPEG")
-            else:
-                raise HTTPException(
-                    status_code=500, detail="Invalid image format"
-                )
-            bytes_data = output_bytes.getvalue()
-            encoded_imgs.append(base64.b64encode(bytes_data))
-    return encoded_imgs
-
-
-def decode_base64_to_image(encoding: str):
-    if encoding.startswith("data:image/"):
-        encoding = encoding.split(";", 1)[1].split(",", 1)[1]
-    try:
-        image = Image.open(BytesIO(base64.b64decode(encoding)))
-        return image
-    except Exception as err:
-        print(err)
-        raise HTTPException(status_code=400, detail="Invalid encoded image")
-
-
-def get_predefined_models(custom_checkpoint_type: str):
-    match custom_checkpoint_type:
-        case "inpainting":
-            return predefined_paint_models
-        case "upscaler":
-            return predefined_upscaler_models
-        case _:
-            return predefined_models
-
-
-def get_model_from_request(
-    request_json: dict, checkpoint_type: str = "", fallback_model: str = ""
-):
-    # extract a model name from the request if available
-    request_model = request_json.get(
-        "hf_model_id",
-        request_json.get("override_settings", {}).get(
-            "sd_model_checkpoint", None
-        ),
-    )
-
-    # if the request didn't specify a model try the command line args
-    result = request_model or frozen_args.ckpt_loc or frozen_args.hf_model_id
-
-    # make sure whatever we have is a valid model for the checkpoint type
-    if result in get_custom_model_files(
-        custom_checkpoint_type=checkpoint_type
-    ) + get_predefined_models(checkpoint_type):
-        return result
-    # if not return what was specified as the fallback
-    else:
-        return fallback_model
-
-
-def get_scheduler_from_request(
-    request_json: dict, fallback_scheduler: str = None
-):
-    if request_json.get("sampler_name", None) in scheduler_list:
-        result = request_json["sampler_name"]
-    else:
-        result = frozen_args.scheduler
-
-    if result == "SharkEulerDiscrete" and fallback_scheduler:
-        return fallback_scheduler
-    else:
-        return result
-
-
-def get_lora_params(use_lora: str):
-    # TODO: since the inference functions in the webui, which we are
-    # calling into for the api, jam these back together again before
-    # handing them off to the pipeline, we should remove this nonsense
-    # and unify their selection in the UI proper
-    if use_lora in get_custom_model_files("lora"):
-        return (use_lora, "")
-
-    return ("None", use_lora)
-
-
-def get_device(device_str: str):
-    # first substring match in the list available devices, with first
-    # device when none are matched
-    return next(
-        (device for device in available_devices if device_str in device),
-        available_devices[0],
-    )
-
-
-def bad_request_for_missing(input_data: dict, required: list):
-    missing = [key for key in required if key not in input_data.keys()]
-    if len(missing) > 0:
-        raise HTTPException(
-            status_code=400, detail=f"Missing required parameters: {missing}"
-        )
+sdapi = FastAPI()
 
 
 # Rest API: /sdapi/v1/sd-models (lists available models)
-def sd_models_api():
+class AppParam(str, Enum):
+    txt2img = "txt2img"
+    img2img = "img2img"
+    inpaint = "inpaint"
+    outpaint = "outpaint"
+    upscaler = "upscaler"
+
+
+@sdapi.get(
+    "/v1/sd-models",
+    summary="lists available models",
+    description=(
+        "This is all the models that this server currently knows about.\n "
+        "Models listed may still have a compilation and build pending that "
+        "will be triggered the first time they are used."
+    ),
+)
+def sd_models_api(app: AppParam = frozen_args.app):
+    match app:
+        case "inpaint" | "outpaint":
+            checkpoint_type = "inpainting"
+            predefined = predefined_paint_models
+        case "upscaler":
+            checkpoint_type = "upscaler"
+            predefined = predefined_upscaler_models
+        case _:
+            checkpoint_type = ""
+            predefined = predefined_models
+
     return [
         {
             "title": model_file,
@@ -149,7 +74,9 @@ def sd_models_api():
             "filename": get_custom_model_pathfile(model_file),
             "config": None,
         }
-        for model_file in get_custom_model_files()
+        for model_file in get_custom_model_files(
+            custom_checkpoint_type=checkpoint_type
+        )
     ] + [
         {
             "title": model,
@@ -159,119 +86,121 @@ def sd_models_api():
             "filename": None,
             "config": None,
         }
-        for model in predefined_models
+        for model in predefined
     ]
 
 
+# Rest API: /sdapi/v1/samplers (lists schedulers)
+@sdapi.get(
+    "/v1/samplers",
+    summary="lists available schedulers/samplers",
+    description=(
+        "These are all the Schedulers defined and available. Not "
+        "every scheduler is compatible with all apis. Aliases are "
+        "equivalent samplers in A1111 if they are known."
+    ),
+)
+def sd_samplers_api():
+    reverse_sampler_aliases = defaultdict(list)
+    for key, value in sampler_aliases.items():
+        reverse_sampler_aliases[value].append(key)
+
+    return (
+        {
+            "name": scheduler,
+            "aliases": reverse_sampler_aliases.get(scheduler, []),
+            "options": {},
+        }
+        for scheduler in scheduler_list
+    )
+
+
 # Rest API: /sdapi/v1/options (lists application level options)
+@sdapi.get(
+    "/v1/options",
+    summary="lists current settings of application level options",
+    description=(
+        "A subset of the command line arguments set at startup renamed "
+        "to correspond to the A1111 naming. Only a small subset of A1111 "
+        "options are returned."
+    ),
+)
 def options_api():
-    # This is mostly just enough to support what Koboldcpp wants
+    # This is mostly just enough to support what Koboldcpp wants, with a
+    # few other things that seemed obvious
     return {
         "samples_save": True,
         "samples_format": frozen_args.output_img_format,
         "sd_model_checkpoint": os.path.basename(frozen_args.ckpt_loc)
         if frozen_args.ckpt_loc
         else frozen_args.hf_model_id,
+        "sd_lora": frozen_args.use_lora,
+        "sd_vae": frozen_args.custom_vae or "Automatic",
+        "enable_pnginfo": frozen_args.write_metadata_to_png,
     }
+
+
+# Rest API: /sdapi/v1/cmd-flags (lists command line argument settings)
+@sdapi.get(
+    "/v1/cmd-flags",
+    summary="lists the command line arguments value that were set on startup.",
+)
+def cmd_flags_api():
+    return vars(frozen_args)
 
 
 # Rest API: /sdapi/v1/txt2img (Text to image)
-def txt2img_api(
-    InputData: dict,
-):
-    bad_request_for_missing(InputData, ["prompt", "negative_prompt"])
-
-    model_id = get_model_from_request(
-        InputData, fallback_model="stabilityai/stable-diffusion-2-1-base"
-    )
-    scheduler = get_scheduler_from_request(
-        InputData, "DEISMultistep" if frozen_args.use_hiresfix else None
-    )
-    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
-
-    print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"] or -1},'
-        f"Model: {model_id}, "
-        f"Scheduler: {scheduler}. "
+class ModelOverrideSettings(BaseModel):
+    sd_model_checkpoint: str = get_model_from_request(
+        fallback_model="stabilityai/stable-diffusion-2-1-base"
     )
 
-    res = txt2img_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
-        InputData.get("height", frozen_args.height),
-        InputData.get("width", frozen_args.width),
-        InputData.get("steps", frozen_args.steps),
-        InputData.get("cfg_scale", frozen_args.guidance_scale),
-        InputData.get("seed", frozen_args.seed),
-        batch_count=1,
-        batch_size=1,
-        scheduler=scheduler,
-        model_id=model_id,
-        custom_vae=frozen_args.custom_vae or "None",
-        precision="fp16",
-        device=get_device(frozen_args.device),
-        max_length=frozen_args.max_length,
-        save_metadata_to_json=frozen_args.save_metadata_to_json,
-        save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights=lora_weights,
-        lora_hf_id=lora_hf_id,
-        ondemand=frozen_args.ondemand,
-        repeatable_seeds=False,
-        use_hiresfix=frozen_args.use_hiresfix,
-        hiresfix_height=frozen_args.hiresfix_height,
-        hiresfix_width=frozen_args.hiresfix_width,
-        hiresfix_strength=frozen_args.hiresfix_strength,
-        resample_type=frozen_args.resample_type,
+
+class Txt2ImgInputData(GenerationInputData):
+    enable_hr: bool = frozen_args.use_hiresfix
+    hr_resize_y: int = Field(
+        default=frozen_args.hiresfix_height, ge=128, le=768, multiple_of=8
     )
-
-    # Convert Generator to Subscriptable
-    res = next(res)
-
-    return {
-        "images": encode_pil_to_base64(res[0]),
-        "parameters": {},
-        "info": res[1],
-    }
-
-
-# Rest API: /sdapi/v1/txt2img (Image to image)
-def img2img_api(
-    InputData: dict,
-):
-    bad_request_for_missing(
-        InputData, ["prompt", "negative_prompt", "init_images"]
+    hr_resize_x: int = Field(
+        default=frozen_args.hiresfix_width, ge=128, le=768, multiple_of=8
     )
+    override_settings: ModelOverrideSettings = None
+
+
+@sdapi.post(
+    "/v1/txt2img",
+    summary="Does text to image generation",
+    response_model=GenerationResponseData,
+)
+def txt2img_api(InputData: Txt2ImgInputData):
+    # bad_request_for_missing(InputData, ["prompt", "negative_prompt"])
 
     model_id = get_model_from_request(
         InputData,
         fallback_model="stabilityai/stable-diffusion-2-1-base",
     )
-    scheduler = get_scheduler_from_request(InputData, "EulerDiscrete")
+    scheduler = get_scheduler_from_request(
+        InputData, "txt2img_hires" if InputData.enable_hr else "txt2img"
+    )
     (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
-    init_image = decode_base64_to_image(InputData["init_images"][0])
-
     print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"] or -1}, '
+        f"Prompt: {InputData.prompt}, "
+        f"Negative Prompt: {InputData.negative_prompt}, "
+        f"Seed: {InputData.seed},"
         f"Model: {model_id}, "
-        f"Scheduler: {scheduler}."
+        f"Scheduler: {scheduler}. "
     )
 
-    res = img2img_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
-        init_image,
-        InputData.get("height", frozen_args.height),
-        InputData.get("width", frozen_args.width),
-        InputData.get("steps", frozen_args.steps),
-        InputData.get("denoising_strength", frozen_args.strength),
-        InputData.get("cfg_scale", frozen_args.guidance_scale),
-        InputData.get("seed", frozen_args.seed),
-        batch_count=1,
+    res = txt2img_inf(
+        InputData.prompt,
+        InputData.negative_prompt,
+        InputData.height,
+        InputData.width,
+        InputData.steps,
+        InputData.cfg_scale,
+        InputData.seed,
+        batch_count=InputData.n_iter,
         batch_size=1,
         scheduler=scheduler,
         model_id=model_id,
@@ -279,7 +208,88 @@ def img2img_api(
         precision="fp16",
         device=get_device(frozen_args.device),
         max_length=frozen_args.max_length,
-        use_stencil=InputData.get("use_stencil", frozen_args.use_stencil),
+        save_metadata_to_json=frozen_args.save_metadata_to_json,
+        save_metadata_to_png=frozen_args.write_metadata_to_png,
+        lora_weights=lora_weights,
+        lora_hf_id=lora_hf_id,
+        ondemand=frozen_args.ondemand,
+        repeatable_seeds=False,
+        use_hiresfix=InputData.enable_hr,
+        hiresfix_height=InputData.hr_resize_y,
+        hiresfix_width=InputData.hr_resize_x,
+        hiresfix_strength=frozen_args.hiresfix_strength,
+        resample_type=frozen_args.resample_type,
+    )
+
+    # Since we're not streaming we just want the last generator result
+    for items_so_far in res:
+        items = items_so_far
+
+    return {
+        "images": encode_pil_to_base64(items[0]),
+        "parameters": {},
+        "info": items[1],
+    }
+
+
+# Rest API: /sdapi/v1/img2img (Image to image)
+class StencilParam(str, Enum):
+    canny = "canny"
+    openpose = "openpose"
+    scribble = "scribble"
+
+
+class Img2ImgInputData(GenerationInputData):
+    init_images: list[str]
+    denoising_strength: float = frozen_args.strength
+    use_stencil: StencilParam = frozen_args.use_stencil
+    override_settings: ModelOverrideSettings = None
+
+
+@sdapi.post(
+    "/v1/img2img",
+    summary="Does image to image generation",
+    response_model=GenerationResponseData,
+)
+def img2img_api(
+    InputData: Img2ImgInputData,
+):
+    model_id = get_model_from_request(
+        InputData,
+        fallback_model="stabilityai/stable-diffusion-2-1-base",
+    )
+    scheduler = get_scheduler_from_request(InputData, "img2img")
+    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
+
+    init_image = decode_base64_to_image(InputData.init_images[0])
+
+    print(
+        f"Prompt: {InputData.prompt}, "
+        f"Negative Prompt: {InputData.negative_prompt}, "
+        f"Seed: {InputData.seed}, "
+        f"Model: {model_id}, "
+        f"Scheduler: {scheduler}."
+    )
+
+    res = img2img_inf(
+        InputData.prompt,
+        InputData.negative_prompt,
+        init_image,
+        InputData.height,
+        InputData.width,
+        InputData.steps,
+        InputData.denoising_strength,
+        InputData.cfg_scale,
+        InputData.seed,
+        batch_count=InputData.n_iter,
+        batch_size=1,
+        scheduler=scheduler,
+        model_id=model_id,
+        custom_vae=frozen_args.custom_vae or "None",
+        precision="fp16",
+        device=get_device(frozen_args.device),
+        max_length=frozen_args.max_length,
+        use_stencil=InputData.use_stencil,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
         lora_weights=lora_weights,
@@ -289,63 +299,74 @@ def img2img_api(
         resample_type=frozen_args.resample_type,
     )
 
-    # Converts generator type to subscriptable
-    res = next(res)
+    # Since we're not streaming we just want the last generator result
+    for items_so_far in res:
+        items = items_so_far
 
     return {
-        "images": encode_pil_to_base64(res[0]),
+        "images": encode_pil_to_base64(items[0]),
         "parameters": {},
-        "info": res[1],
+        "info": items[1],
     }
 
 
 # Rest API: /sdapi/v1/inpaint (Inpainting)
-def inpaint_api(
-    InputData: dict,
-):
-    bad_request_for_missing(
-        InputData,
-        [
-            "prompt",
-            "negative_prompt",
-            "image",
-            "mask",
-            "is_full_res",
-            "full_res_padding",
-        ],
+class PaintModelOverideSettings(BaseModel):
+    sd_model_checkpoint: str = get_model_from_request(
+        checkpoint_type="inpainting",
+        fallback_model="stabilityai/stable-diffusion-2-inpainting",
     )
 
+
+class InpaintInputData(GenerationInputData):
+    image: str = Field(description="Base64 encoded input image")
+    mask: str = Field(description="Base64 encoded mask image")
+    is_full_res: bool = False  # Is this setting backwards in the UI?
+    full_res_padding: int = Field(default=32, ge=0, le=256, multiple_of=4)
+    denoising_strength: float = frozen_args.strength
+    use_stencil: StencilParam = frozen_args.use_stencil
+    override_settings: PaintModelOverideSettings = None
+
+
+@sdapi.post(
+    "/v1/inpaint",
+    summary="Does inpainting generation on an image",
+    response_model=GenerationResponseData,
+)
+def inpaint_api(
+    InputData: InpaintInputData,
+):
     model_id = get_model_from_request(
         InputData,
         checkpoint_type="inpainting",
         fallback_model="stabilityai/stable-diffusion-2-inpainting",
     )
-    scheduler = get_scheduler_from_request(InputData, "EulerDiscrete")
+    scheduler = get_scheduler_from_request(InputData, "inpaint")
     (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
-    init_image = decode_base64_to_image(InputData["image"])
-    mask = decode_base64_to_image(InputData["mask"])
+    init_image = decode_base64_to_image(InputData.image)
+    mask = decode_base64_to_image(InputData.mask)
 
     print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData.get("seed", frozen_args.seed)}, '
+        f"Prompt: {InputData.prompt}, "
+        f'Negative Prompt: {InputData.negative_prompt}", '
+        f'Seed: {InputData.seed}", '
         f"Model: {model_id}, "
         f"Scheduler: {scheduler}."
     )
 
     res = inpaint_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
+        InputData.prompt,
+        InputData.negative_prompt,
         {"image": init_image, "mask": mask},
-        InputData.get("height", frozen_args.height),
-        InputData.get("width", frozen_args.width),
-        InputData["is_full_res"],
-        InputData["full_res_padding"],
-        InputData.get("steps", frozen_args.steps),
-        InputData.get("cfg_scale", frozen_args.guidance_scale),
-        InputData.get("seed", frozen_args.seed),
-        batch_count=1,
+        InputData.height,
+        InputData.width,
+        InputData.is_full_res,
+        InputData.full_res_padding,
+        InputData.steps,
+        InputData.cfg_scale,
+        InputData.seed,
+        batch_count=InputData.n_iter,
         batch_size=1,
         scheduler=scheduler,
         model_id=model_id,
@@ -361,59 +382,82 @@ def inpaint_api(
         repeatable_seeds=False,
     )
 
-    # Converts generator type to subscriptable
-    res = next(res)
+    # Since we're not streaming we just want the last generator result
+    for items_so_far in res:
+        items = items_so_far
 
     return {
-        "images": encode_pil_to_base64(res[0]),
+        "images": encode_pil_to_base64(items[0]),
         "parameters": {},
-        "info": res[1],
+        "info": items[1],
     }
 
 
 # Rest API: /sdapi/v1/outpaint (Outpainting)
-def outpaint_api(
-    InputData: dict,
-):
-    bad_request_for_missing(
-        InputData, ["prompt", "negative_prompt", "init_images", "directions"]
-    )
+class DirectionParam(str, Enum):
+    left = "left"
+    right = "right"
+    up = "up"
+    down = "down"
 
+
+class OutpaintInputData(GenerationInputData):
+    init_images: list[str]
+    pixels: int = Field(
+        default=frozen_args.pixels, ge=8, le=256, multiple_of=8
+    )
+    mask_blur: int = Field(default=frozen_args.mask_blur, ge=0, le=64)
+    directions: set[DirectionParam] = [
+        direction
+        for direction in ["left", "right", "up", "down"]
+        if vars(frozen_args)[direction]
+    ]
+    noise_q: float = frozen_args.noise_q
+    color_variation: float = frozen_args.color_variation
+    override_settings: PaintModelOverideSettings = None
+
+
+@sdapi.post(
+    "/v1/outpaint",
+    summary="Does outpainting generation on an image",
+    response_model=GenerationResponseData,
+)
+def outpaint_api(
+    InputData: OutpaintInputData,
+):
     model_id = get_model_from_request(
         InputData,
         checkpoint_type="inpainting",
         fallback_model="stabilityai/stable-diffusion-2-inpainting",
     )
-    # Tested as working fallback CPU scheduler with the fallback model, many
-    # other schedulers aren't currently working either here or in the webui
-    scheduler = get_scheduler_from_request(InputData, "DDIM")
+    scheduler = get_scheduler_from_request(InputData, "outpaint")
     (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
-    init_image = decode_base64_to_image(InputData["init_images"][0])
+    init_image = decode_base64_to_image(InputData.init_images[0])
 
     print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"]}'
+        f"Prompt: {InputData.prompt}, "
+        f"Negative Prompt: {InputData.negative_prompt}, "
+        f"Seed: {InputData.seed}, "
         f"Model: {model_id}, "
         f"Scheduler: {scheduler}."
     )
 
     res = outpaint_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
+        InputData.prompt,
+        InputData.negative_prompt,
         init_image,
-        InputData.get("pixels", frozen_args.pixels),
-        InputData.get("mask_blur", frozen_args.mask_blur),
-        InputData["directions"],  # TODO: 4 args to become 1
-        InputData.get("noise_q", frozen_args.noise_q),
-        InputData.get("color_variation", frozen_args.color_variation),
-        InputData.get("height", frozen_args.height),
-        InputData.get("width", frozen_args.width),
-        InputData.get("steps", frozen_args.steps),
-        InputData.get("cfg_scale", frozen_args.guidance_scale),
-        InputData.get("seed", frozen_args.seed),
-        batch_count=1,
+        InputData.pixels,
+        InputData.mask_blur,
+        InputData.directions,
+        InputData.noise_q,
+        InputData.color_variation,
+        InputData.height,
+        InputData.width,
+        InputData.steps,
+        InputData.cfg_scale,
+        InputData.seed,
+        batch_count=InputData.n_iter,
         batch_size=1,
         scheduler=scheduler,
         model_id=model_id,
@@ -429,53 +473,70 @@ def outpaint_api(
         repeatable_seeds=False,
     )
 
-    # Convert Generator to Subscriptable
-    res = next(res)
+    # Since we're not streaming we just want the last generator result
+    for items_so_far in res:
+        items = items_so_far
 
     return {
-        "images": encode_pil_to_base64(res[0]),
+        "images": encode_pil_to_base64(items[0]),
         "parameters": {},
-        "info": res[1],
+        "info": items[1],
     }
 
 
 # Rest API: /sdapi/v1/upscaler (Upscaling)
-def upscaler_api(
-    InputData: dict,
-):
-    bad_request_for_missing(
-        InputData, ["prompt", "negative_prompt", "init_images"]
+class UpscalerModelOverideSettings(BaseModel):
+    sd_model_checkpoint: str = get_model_from_request(
+        checkpoint_type="upscaler",
+        fallback_model="stabilityai/stable-diffusion-x4-upscaler",
     )
 
+
+class UpscalerInputData(GenerationInputData):
+    init_images: list[str] = Field(
+        description="Base64 encoded image to upscale"
+    )
+    noise_level: int = frozen_args.noise_level
+    override_settings: UpscalerModelOverideSettings = None
+
+
+@sdapi.post(
+    "/v1/upscaler",
+    summary="Does image upscaling",
+    response_model=GenerationResponseData,
+)
+def upscaler_api(
+    InputData: UpscalerInputData,
+):
     model_id = get_model_from_request(
         InputData,
         checkpoint_type="upscaler",
         fallback_model="stabilityai/stable-diffusion-x4-upscaler",
     )
-    scheduler = get_scheduler_from_request(InputData, "EulerDiscrete")
+    scheduler = get_scheduler_from_request(InputData, "upscaler")
     (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
-    init_image = decode_base64_to_image(InputData["init_images"][0])
+    init_image = decode_base64_to_image(InputData.init_images[0])
 
     print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"]}, '
+        f"Prompt: {InputData.prompt}, "
+        f"Negative Prompt: {InputData.negative_prompt}, "
+        f"Seed: {InputData.seed}, "
         f"Model: {model_id}, "
         f"Scheduler: {scheduler}."
     )
 
     res = upscaler_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
+        InputData.prompt,
+        InputData.negative_prompt,
         init_image,
-        InputData.get("height", frozen_args.height),
-        InputData.get("width", frozen_args.width),
-        InputData.get("steps", frozen_args.steps),
-        InputData.get("noise_level", frozen_args.noise_level),
-        InputData.get("cfg_scale", frozen_args.guidance_scale),
-        InputData.get("seed", frozen_args.seed),
-        batch_count=1,
+        InputData.height,
+        InputData.width,
+        InputData.steps,
+        InputData.noise_level,
+        InputData.cfg_scale,
+        InputData.seed,
+        batch_count=InputData.n_iter,
         batch_size=1,
         scheduler=scheduler,
         model_id=model_id,
@@ -490,11 +551,13 @@ def upscaler_api(
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
     )
-    # Converts generator type to subscriptable
-    res = next(res)
+
+    # Since we're not streaming we just want the last generator result
+    for items_so_far in res:
+        items = items_so_far
 
     return {
-        "images": encode_pil_to_base64(res[0]),
+        "images": encode_pil_to_base64(items[0]),
         "parameters": {},
-        "info": res[1],
+        "info": items[1],
     }
