@@ -173,8 +173,6 @@ class Txt2ImgInputData(GenerationInputData):
     response_model=GenerationResponseData,
 )
 def txt2img_api(InputData: Txt2ImgInputData):
-    # bad_request_for_missing(InputData, ["prompt", "negative_prompt"])
-
     model_id = get_model_from_request(
         InputData,
         fallback_model="stabilityai/stable-diffusion-2-1-base",
