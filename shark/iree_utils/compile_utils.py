@@ -582,7 +582,7 @@ def get_results(
     """Runs a .vmfb file given inputs and config and returns output."""
     with DetailLogger(debug_timeout) as dl:
         device_inputs = []
-        if device == "rocm":
+        if device == "rocm" and hasattr(config, "id"):
             haldriver = ireert.get_driver("rocm")
             haldevice = haldriver.create_device(
                 config.id,
