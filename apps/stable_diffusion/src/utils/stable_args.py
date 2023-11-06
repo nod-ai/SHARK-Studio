@@ -253,28 +253,30 @@ p.add_argument(
     "--left",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend left for outpainting.",
+    help="If extend left for outpainting.",
 )
 
 p.add_argument(
     "--right",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend right for outpainting.",
+    help="If extend right for outpainting.",
 )
 
 p.add_argument(
+    "--up",
     "--top",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend top for outpainting.",
+    help="If extend top for outpainting.",
 )
 
 p.add_argument(
+    "--down",
     "--bottom",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend bottom for outpainting.",
+    help="If extend bottom for outpainting.",
 )
 
 p.add_argument(
@@ -639,6 +641,18 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for enabling rest API.",
+)
+
+p.add_argument(
+    "--api_accept_origin",
+    action="append",
+    type=str,
+    help="An origin to be accepted by the REST api for Cross Origin"
+    "Resource Sharing (CORS). Use multiple times for multiple origins, "
+    'or use --api_accept_origin="*" to accept all origins. If no origins '
+    "are set no CORS headers will be returned by the api. Use, for "
+    "instance, if you need to access the REST api from Javascript running "
+    "in a web browser.",
 )
 
 p.add_argument(
