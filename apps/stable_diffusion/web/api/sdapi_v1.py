@@ -3,7 +3,7 @@ import os
 from collections import defaultdict
 from enum import Enum
 from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, conlist, model_validator
 
 from apps.stable_diffusion.web.api.utils import (
     frozen_args,
@@ -235,13 +235,26 @@ class StencilParam(str, Enum):
     canny = "canny"
     openpose = "openpose"
     scribble = "scribble"
+    zoedepth = "zoedepth"
 
 
 class Img2ImgInputData(GenerationInputData):
-    init_images: list[str]
+    init_images: conlist(str, min_length=1, max_length=2)
     denoising_strength: float = frozen_args.strength
     use_stencil: StencilParam = frozen_args.use_stencil
     override_settings: ModelOverrideSettings = None
+
+    @model_validator(mode="after")
+    def check_image_supplied_for_scribble_stencil(self) -> "Img2ImgInputData":
+        if (
+            self.use_stencil == StencilParam.scribble
+            and len(self.init_images) < 2
+        ):
+            raise ValueError(
+                "a second image must be supplied for the controlnet:scribble stencil"
+            )
+
+        return self
 
 
 @sdapi.post(
@@ -260,6 +273,11 @@ def img2img_api(
     (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
     init_image = decode_base64_to_image(InputData.init_images[0])
+    mask_image = (
+        decode_base64_to_image(InputData.init_images[1])
+        if len(InputData.init_images) > 1
+        else None
+    )
 
     print(
         f"Prompt: {InputData.prompt}, "
@@ -272,7 +290,7 @@ def img2img_api(
     res = img2img_inf(
         InputData.prompt,
         InputData.negative_prompt,
-        init_image,
+        {"image": init_image, "mask": mask_image},
         InputData.height,
         InputData.width,
         InputData.steps,
