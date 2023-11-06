@@ -205,6 +205,57 @@ class EightDecoderLayer(torch.nn.Module):
                 new_pkv70,
                 new_pkv71,
             )
+        elif self.falcon_variant == "40b":
+            (
+                (new_pkv00, new_pkv01),
+                (new_pkv10, new_pkv11),
+                (new_pkv20, new_pkv21),
+                (new_pkv30, new_pkv31),
+                (new_pkv40, new_pkv41),
+                (new_pkv50, new_pkv51),
+                (new_pkv60, new_pkv61),
+                (new_pkv70, new_pkv71),
+                (new_pkv80, new_pkv81),
+                (new_pkv90, new_pkv91),
+                (new_pkv100, new_pkv101),
+                (new_pkv110, new_pkv111),
+                (new_pkv120, new_pkv121),
+                (new_pkv130, new_pkv131),
+                (new_pkv140, new_pkv141),
+            ) = new_pkvs
+            result = (
+                hidden_states,
+                new_pkv00,
+                new_pkv01,
+                new_pkv10,
+                new_pkv11,
+                new_pkv20,
+                new_pkv21,
+                new_pkv30,
+                new_pkv31,
+                new_pkv40,
+                new_pkv41,
+                new_pkv50,
+                new_pkv51,
+                new_pkv60,
+                new_pkv61,
+                new_pkv70,
+                new_pkv71,
+                new_pkv80,
+                new_pkv81,
+                new_pkv90,
+                new_pkv91,
+                new_pkv100,
+                new_pkv101,
+                new_pkv110,
+                new_pkv111,
+                new_pkv120,
+                new_pkv121,
+                new_pkv130,
+                new_pkv131,
+                new_pkv140,
+                new_pkv141,
+            )
         elif self.falcon_variant == "180b":
             (
                 (new_pkv00, new_pkv01),
@@ -368,6 +419,70 @@ class CompiledEightDecoderLayer(torch.nn.Module):
                 (
                     torch.tensor(output[15]),
                     torch.tensor(output[16]),
+                ),
+            )
+        elif self.falcon_variant == "40b":
+            result = (
+                torch.tensor(output[0]),
+                (
+                    torch.tensor(output[1]),
+                    torch.tensor(output[2]),
+                ),
+                (
+                    torch.tensor(output[3]),
+                    torch.tensor(output[4]),
+                ),
+                (
+                    torch.tensor(output[5]),
+                    torch.tensor(output[6]),
+                ),
+                (
+                    torch.tensor(output[7]),
+                    torch.tensor(output[8]),
+                ),
+                (
+                    torch.tensor(output[9]),
+                    torch.tensor(output[10]),
+                ),
+                (
+                    torch.tensor(output[11]),
+                    torch.tensor(output[12]),
+                ),
+                (
+                    torch.tensor(output[13]),
+                    torch.tensor(output[14]),
+                ),
+                (
+                    torch.tensor(output[15]),
+                    torch.tensor(output[16]),
+                ),
+                (
+                    torch.tensor(output[17]),
+                    torch.tensor(output[18]),
+                ),
+                (
+                    torch.tensor(output[19]),
+                    torch.tensor(output[20]),
+                ),
+                (
+                    torch.tensor(output[21]),
+                    torch.tensor(output[22]),
+                ),
+                (
+                    torch.tensor(output[23]),
+                    torch.tensor(output[24]),
+                ),
+                (
+                    torch.tensor(output[25]),
+                    torch.tensor(output[26]),
+                ),
+                (
+                    torch.tensor(output[27]),
+                    torch.tensor(output[28]),
+                ),
+                (
+                    torch.tensor(output[29]),
+                    torch.tensor(output[30]),
                 ),
             )
         elif self.falcon_variant == "180b":
