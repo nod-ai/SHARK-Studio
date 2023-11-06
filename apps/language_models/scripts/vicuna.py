@@ -137,6 +137,12 @@ parser.add_argument(
     default="",
     help="Specify target triple for vulkan.",
 )
+parser.add_argument(
+    "--Xiree_compile",
+    action='append',
+    default=[],
+    help="Extra command line arguments passed to the IREE compiler. This can be specified multiple times to pass multiple arguments."
+)
 
 # Microbenchmarking options.
 parser.add_argument(
@@ -1910,7 +1916,8 @@ def create_prompt(model_name, history):
 if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
-    _extra_args = []
+    _extra_args = list(args.Xiree_compile)
+
     device_id = None
     # Process vulkan target triple.
     # TODO: This feature should just be in a common utils for other LLMs and in general
