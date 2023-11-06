@@ -112,11 +112,6 @@ class ShardedFalcon(SharkLLMBase):
         super().__init__(model_name, hf_model_path, max_num_tokens)
         print("hf_model_path: ", self.hf_model_path)
 
-        if "40b" in self.model_name:
-            raise NotImplementedError(
-                "Sharded Falcon not supported for 40b variant"
-            )
-
         if (
             "180b" in self.model_name
             and precision != "int4"
@@ -303,6 +298,10 @@ class ShardedFalcon(SharkLLMBase):
             num_in_features = 4544
             if compressed:
                 num_group_layers = 8
+        elif "40b" in self.model_name:
+            num_in_features = 8192
+            if compressed:
+                num_group_layers = 15
         else:
             num_in_features = 14848
             sample_attention_mask = sample_attention_mask.to(dtype=torch.bool)
@@ -677,7 +676,7 @@ class UnshardedFalcon(SharkLLMBase):
             quantization_config = GPTQConfig(bits=4, disable_exllama=True)
             kwargs["quantization_config"] = quantization_config
             kwargs["load_gptq_on_cpu"] = True
-            kwargs["device_map"] = "cpu" if self.device == "cpu" else "cuda:0"
+            kwargs["device_map"] = "cpu"
         falcon_model = AutoModelForCausalLM.from_pretrained(
             self.hf_model_path, **kwargs
         )
@@ -935,7 +934,11 @@ class UnshardedFalcon(SharkLLMBase):
 
         all_text = prompt
 
+        start = time.time()
+        count = 0
         for i in range(self.max_num_tokens - 1):
+            count = count + 1
+
             next_token = self.generate_new_token()
             new_word = self.tokenizer.decode(
                 next_token.cpu().numpy(),
@@ -961,6 +964,13 @@ class UnshardedFalcon(SharkLLMBase):
                     or self.stopping_criteria(input_ids, self.scores)
                 ):
                     break
+
+        end = time.time()
+        print(
+            "\n\nTime taken is {:.2f} seconds/token\n".format(
+                (end - start) / count
+            )
+        )
 
         torch.cuda.empty_cache()
         gc.collect()
