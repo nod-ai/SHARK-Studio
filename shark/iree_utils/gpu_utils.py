@@ -54,9 +54,9 @@ def get_iree_rocm_args(extra_args=[]):
             )
     if not flag_present:
         print(
-            "Failed to find ROCm architecture from hipinfo / rocminfo. Defaulting to gfx1100."
+            "Failed to find ROCm architecture from hipinfo / rocminfo. Defaulting to gfx90a."
         )
-        rocm_arch = "gfx1100"
+        rocm_arch = "gfx90a"
         rocm_flags.append(f"--iree-rocm-target-chip={rocm_arch}")
 
     return rocm_flags
