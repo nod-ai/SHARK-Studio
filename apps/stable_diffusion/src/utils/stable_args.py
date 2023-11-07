@@ -308,7 +308,7 @@ p.add_argument(
 
 p.add_argument(
     "--import_mlir",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Imports the model from torch module to shark_module otherwise "
     "downloads the model from shark_tank.",
