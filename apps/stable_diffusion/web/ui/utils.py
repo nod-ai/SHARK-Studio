@@ -170,4 +170,5 @@ def cancel_sd():
 
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
+nodicon_loc = resource_path("logos/nod-icon.png")
 available_devices = get_available_devices()
