@@ -18,7 +18,9 @@ import functools
 import iree.runtime as ireert
 import ctypes
 import sys
+from subprocess import CalledProcessError
 from shark.parser import shark_args
+from shark.iree_utils._common import run_cmd
 
 
 # Get the default gpu args given the architecture.
@@ -40,24 +42,72 @@ def get_iree_gpu_args():
 
 
 # Get the default gpu args given the architecture.
-def get_iree_rocm_args(extra_args=[]):
+def get_iree_rocm_args(device_num=0, extra_args=[]):
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
     rocm_flags = ["--iree-rocm-link-bc=true"]
 
-    # Add the target arch flag for rocm device
+    # ROCM Device Arch selection:
+    # 1 : User given device arch using `--iree-rocm-target-chip` flag
+    # 2 : Device arch from `iree-run-module --dump_devices=rocm` for device on index <device_num>
+    # 3 : default arch : gfx1100
+
+    default_rocm_arch = "gfx_1100"
+    # Check if the target arch flag for rocm device present in extra_flags
     flag_present = False
     for flag in extra_args:
         if "iree-rocm-target-chip" in flag:
             flag_present = True
             print(
-                f"found rocm target device arch from flag : {flag.split('=')[1]}"
+                f"User Specified rocm target device arch from flag : {flag.split('=')[1]} will be used"
             )
+
+    arch_in_device_dump = None
     if not flag_present:
+        # get rocm arch from iree dump devices
+        def get_devices_info_from_dump(dump):
+            from os import linesep
+
+            dump_clean = list(
+                filter(
+                    lambda s: "--device=rocm" in s or "gpu-arch-name:" in s,
+                    dump.split(linesep),
+                )
+            )
+            arch_pairs = [
+                (
+                    dump_clean[i].split("=")[1].strip(),
+                    dump_clean[i + 1].split(":")[1].strip(),
+                )
+                for i in range(0, len(dump_clean), 2)
+            ]
+            return arch_pairs
+
+        dump_device_info = None
+        try:
+            dump_device_info = run_cmd(
+                "iree-run-module --dump_devices=rocm", raise_err=True
+            )
+        except Exception as e:
+            print("could not execute `iree-run-module --dump_devices=rocm`")
+
+        if dump_device_info is not None:
+            device_arch_pairs = get_devices_info_from_dump(dump_device_info[0])
+            if (
+                len(device_arch_pairs) > device_num
+            ):  # can find arch in the list
+                arch_in_device_dump = device_arch_pairs[device_num][1]
+
+        if arch_in_device_dump is not None:
+            print(f"Found ROCm device arch : {arch_in_device_dump}")
+            rocm_flags.append(f"--iree-rocm-target-chip={arch_in_device_dump}")
+
+    if not flag_present and arch_in_device_dump is None:
         print(
-            "Failed to find ROCm architecture from hipinfo / rocminfo. Defaulting to gfx1100."
+            "Did not find ROCm architecture from `--iree-rocm-target-chip` flag"
+            "\n or from `iree-run-module --dump_devices=rocm` command."
+            f"\nUsing {default_rocm_arch} as ROCm arch for compilation."
         )
-        rocm_arch = "gfx1100"
-        rocm_flags.append(f"--iree-rocm-target-chip={rocm_arch}")
+        rocm_flags.append(f"--iree-rocm-target-chip={default_rocm_arch}")
 
     return rocm_flags
 
