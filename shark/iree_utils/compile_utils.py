@@ -632,7 +632,7 @@ def get_results(
 def get_iree_runtime_config(device):
     device = iree_device_map(device)
     haldriver = ireert.get_driver(device)
-    if device == "metal" and shark_args.device_allocator == "caching":
+    if "metal" in device and shark_args.device_allocator == "caching":
         print(
             "[WARNING] metal devices can not have a `caching` allocator."
             "\nUsing default allocator `None`"
@@ -640,7 +640,9 @@ def get_iree_runtime_config(device):
     haldevice = haldriver.create_device_by_uri(
         device,
         # metal devices have a failure with caching allocators atm. blcking this util it gets fixed upstream.
-        allocators=shark_args.device_allocator if device != "metal" else None,
+        allocators=shark_args.device_allocator
+        if "metal" not in device
+        else None,
     )
     config = ireert.Config(device=haldevice)
     return config
