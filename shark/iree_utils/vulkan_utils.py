@@ -27,9 +27,12 @@ from shark.parser import shark_args
 def get_all_vulkan_devices():
     from iree.runtime import get_driver
 
-    driver = get_driver("vulkan")
-    device_list_src = driver.query_available_devices()
-    device_list_src.sort(key=lambda d: d["path"])
+    try:
+        driver = get_driver("vulkan")
+        device_list_src = driver.query_available_devices()
+        device_list_src.sort(key=lambda d: d["path"])
+    except:
+        device_list_src = {}
     return [d["name"] for d in device_list_src]
 
 
