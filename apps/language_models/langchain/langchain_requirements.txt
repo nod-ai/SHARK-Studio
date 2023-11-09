@@ -66,7 +66,7 @@ openai==0.27.8
 
 # optional for chat with PDF
 langchain==0.0.202
-pypdf==3.12.2
+pypdf==3.17.0
 # avoid textract, requires old six
 #textract==1.6.5
 
