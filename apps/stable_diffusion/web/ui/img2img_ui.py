@@ -3,10 +3,8 @@ import torch
 import time
 import gradio as gr
 import PIL
+from math import ceil
 from PIL import Image
-import base64
-from io import BytesIO
-from fastapi.exceptions import HTTPException
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -54,8 +52,7 @@ def img2img_inf(
     batch_count: int,
     batch_size: int,
     scheduler: str,
-    custom_model: str,
-    hf_model_id: str,
+    model_id: str,
     custom_vae: str,
     precision: str,
     device: str,
@@ -67,6 +64,7 @@ def img2img_inf(
     lora_hf_id: str,
     ondemand: bool,
     repeatable_seeds: bool,
+    resample_type: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -101,21 +99,17 @@ def img2img_inf(
     args.ckpt_loc = ""
     args.hf_model_id = ""
     args.custom_vae = ""
-    if custom_model == "None":
-        if not hf_model_id:
-            return (
-                None,
-                "Please provide either custom model or huggingface model ID, "
-                "both must not be empty.",
-            )
-        if "civitai" in hf_model_id:
-            args.ckpt_loc = hf_model_id
-        else:
-            args.hf_model_id = hf_model_id
-    elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = get_custom_model_pathfile(custom_model)
+
+    # .safetensor or .chkpt on the custom model path
+    if model_id in get_custom_model_files():
+        args.ckpt_loc = get_custom_model_pathfile(model_id)
+    # civitai download
+    elif "civitai" in model_id:
+        args.ckpt_loc = model_id
+    # either predefined or huggingface
     else:
-        args.hf_model_id = custom_model
+        args.hf_model_id = model_id
+
     if custom_vae != "None":
         args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
@@ -245,7 +239,7 @@ def img2img_inf(
             batch_size,
             height,
             width,
-            steps,
+            ceil(steps / strength),
             strength,
             guidance_scale,
             seeds[current_batch],
@@ -255,6 +249,7 @@ def img2img_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
             use_stencil=use_stencil,
+            resample_type=resample_type,
         )
         total_time = time.time() - start_time
         text_output = get_generation_text_info(
@@ -279,87 +274,6 @@ def img2img_inf(
     return generated_imgs, text_output, ""
 
 
-def decode_base64_to_image(encoding):
-    if encoding.startswith("data:image/"):
-        encoding = encoding.split(";", 1)[1].split(",", 1)[1]
-    try:
-        image = Image.open(BytesIO(base64.b64decode(encoding)))
-        return image
-    except Exception as err:
-        print(err)
-        raise HTTPException(status_code=500, detail="Invalid encoded image")
-
-
-def encode_pil_to_base64(images):
-    encoded_imgs = []
-    for image in images:
-        with BytesIO() as output_bytes:
-            if args.output_img_format.lower() == "png":
-                image.save(output_bytes, format="PNG")
-
-            elif args.output_img_format.lower() in ("jpg", "jpeg"):
-                image.save(output_bytes, format="JPEG")
-            else:
-                raise HTTPException(
-                    status_code=500, detail="Invalid image format"
-                )
-            bytes_data = output_bytes.getvalue()
-            encoded_imgs.append(base64.b64encode(bytes_data))
-    return encoded_imgs
-
-
-# Img2Img Rest API.
-def img2img_api(
-    InputData: dict,
-):
-    print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"]}.'
-    )
-    init_image = decode_base64_to_image(InputData["init_images"][0])
-    res = img2img_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
-        init_image,
-        InputData["height"],
-        InputData["width"],
-        InputData["steps"],
-        InputData["denoising_strength"],
-        InputData["cfg_scale"],
-        InputData["seed"],
-        batch_count=1,
-        batch_size=1,
-        scheduler="EulerDiscrete",
-        custom_model="None",
-        hf_model_id=InputData["hf_model_id"]
-        if "hf_model_id" in InputData.keys()
-        else "stabilityai/stable-diffusion-2-1-base",
-        custom_vae="None",
-        precision="fp16",
-        device=available_devices[0],
-        max_length=64,
-        use_stencil=InputData["use_stencil"]
-        if "use_stencil" in InputData.keys()
-        else "None",
-        save_metadata_to_json=False,
-        save_metadata_to_png=False,
-        lora_weights="None",
-        lora_hf_id="",
-        ondemand=False,
-        repeatable_seeds=False,
-    )
-
-    # Converts generator type to subscriptable
-    res = next(res)
-
-    return {
-        "images": encode_pil_to_base64(res[0]),
-        "parameters": {},
-        "info": res[1],
-    }
-
-
 with gr.Blocks(title="Image-to-Image") as img2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
@@ -378,31 +292,19 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
                     # janky fix for overflowing text
-                    i2i_model_info = (str(get_custom_model_path())).replace(
-                        "\\", "\n\\"
+                    i2i_model_info = (
+                        f"Custom Model Path: {str(get_custom_model_path())}"
                     )
-                    i2i_model_info = f"Custom Model Path: {i2i_model_info}"
                     img2img_custom_model = gr.Dropdown(
                         label=f"Models",
-                        info=i2i_model_info,
+                        info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
                         else "stabilityai/stable-diffusion-2-1-base",
-                        choices=["None"]
-                        + get_custom_model_files()
-                        + predefined_models,
-                    )
-                    img2img_hf_model_id = gr.Textbox(
-                        elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown "
-                        "on the left and enter model ID here "
-                        "e.g: SG161222/Realistic_Vision_V1.3, "
-                        "https://civitai.com/api/download/models/15236",
-                        value="",
-                        label="HuggingFace Model ID or Civitai model "
-                        "download URL",
-                        lines=3,
+                        choices=get_custom_model_files() + predefined_models,
+                        allow_custom_value=True,
+                        scale=2,
                     )
                     # janky fix for overflowing text
                     i2i_vae_info = (str(get_custom_model_path("vae"))).replace(
@@ -417,6 +319,8 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         if args.custom_vae
                         else "None",
                         choices=["None"] + get_custom_model_files("vae"),
+                        allow_custom_value=True,
+                        scale=1,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -432,7 +336,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
-
+                # TODO: make this import image prompt info if it exists
                 img2img_init_image = gr.Image(
                     label="Input Image",
                     source="upload",
@@ -447,7 +351,13 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             elem_id="stencil_model",
                             label="Stencil model",
                             value="None",
-                            choices=["None", "canny", "openpose", "scribble"],
+                            choices=[
+                                "None",
+                                "canny",
+                                "openpose",
+                                "scribble",
+                                "zoedepth",
+                            ],
                         )
 
                     def show_canvas(choice):
@@ -508,6 +418,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         ).replace("\\", "\n\\")
                         i2i_lora_info = f"LoRA Path: {i2i_lora_info}"
                         lora_weights = gr.Dropdown(
+                            allow_custom_value=True,
                             label=f"Standalone LoRA Weights",
                             info=i2i_lora_info,
                             elem_id="lora_weights",
@@ -531,6 +442,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             label="Scheduler",
                             value="EulerDiscrete",
                             choices=scheduler_list_cpu_only,
+                            allow_custom_value=True,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -549,15 +461,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         )
                         width = gr.Slider(
                             384, 768, value=args.width, step=8, label="Width"
-                        )
-                        precision = gr.Radio(
-                            label="Precision",
-                            value=args.precision,
-                            choices=[
-                                "fp16",
-                                "fp32",
-                            ],
-                            visible=True,
                         )
                         max_length = gr.Radio(
                             label="Max Length",
@@ -581,10 +484,35 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 step=0.01,
                                 label="Denoising Strength",
                             )
+                            resample_type = gr.Dropdown(
+                                value=args.resample_type,
+                                choices=[
+                                    "Lanczos",
+                                    "Nearest Neighbor",
+                                    "Bilinear",
+                                    "Bicubic",
+                                    "Adaptive",
+                                    "Antialias",
+                                    "Box",
+                                    "Affine",
+                                    "Cubic",
+                                ],
+                                label="Resample Type",
+                                allow_custom_value=True,
+                            )
                         ondemand = gr.Checkbox(
                             value=args.ondemand,
                             label="Low VRAM",
                             interactive=True,
+                        )
+                        precision = gr.Radio(
+                            label="Precision",
+                            value=args.precision,
+                            choices=[
+                                "fp16",
+                                "fp32",
+                            ],
+                            visible=True,
                         )
                     with gr.Row():
                         with gr.Column(scale=3):
@@ -629,17 +557,8 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
+                        allow_custom_value=True,
                     )
-                with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        lambda: -1,
-                        inputs=[],
-                        outputs=[seed],
-                        queue=False,
-                    )
-                    stop_batch = gr.Button("Stop Batch")
-                    stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -651,13 +570,26 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         object_fit="contain",
                     )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at "
+                        value=f"{i2i_model_info}\n"
+                        f"Images will be saved at "
                         f"{get_generated_imgs_path()}",
-                        lines=1,
+                        lines=2,
                         elem_id="std_output",
                         show_label=False,
                     )
                     img2img_status = gr.Textbox(visible=False)
+                with gr.Row():
+                    stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                with gr.Row():
+                    blank_thing_for_row = None
                 with gr.Row():
                     img2img_sendto_inpaint = gr.Button(value="SendTo Inpaint")
                     img2img_sendto_outpaint = gr.Button(
@@ -683,7 +615,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 batch_size,
                 scheduler,
                 img2img_custom_model,
-                img2img_hf_model_id,
                 custom_vae,
                 precision,
                 device,
@@ -695,6 +626,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 lora_hf_id,
                 ondemand,
                 repeatable_seeds,
+                resample_type,
             ],
             outputs=[img2img_gallery, std_output, img2img_status],
             show_progress="minimal" if args.progress_bar else "none",

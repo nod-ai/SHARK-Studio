@@ -3,29 +3,19 @@
 
 numpy>1.22.4
 pytorch-triton
-torchvision==0.16.0.dev20230322 
+torchvision 
 tabulate
 
 tqdm
 
 #iree-compiler  | iree-runtime should already be installed
-iree-tools-tflite
 iree-tools-xla
-iree-tools-tf
 
-# TensorFlow and JAX.
+# Modelling and JAX.
 gin-config
-tensorflow>2.11
-keras
-#tf-models-nightly
-#tensorflow-text-nightly
 transformers
 diffusers
-#tensorflow-probability
 #jax[cpu]
-
-
-# tflitehub dependencies.
 Pillow
 
 # Testing and support.

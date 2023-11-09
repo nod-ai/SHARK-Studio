@@ -360,7 +360,7 @@ mlir_importer = SharkImporter(
 )
 
 shark_module = SharkInference(
-    dlrm_mlir, func_name, device="vulkan", mlir_dialect="linalg"
+    dlrm_mlir, device="vulkan", mlir_dialect="linalg"
 )
 shark_module.compile()
 result = shark_module.forward(input_dlrm)

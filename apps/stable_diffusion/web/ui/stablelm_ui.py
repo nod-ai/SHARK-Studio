@@ -8,6 +8,7 @@ from transformers import (
 from apps.stable_diffusion.web.ui.utils import available_devices
 from datetime import datetime as dt
 import json
+import sys
 
 
 def user(message, history):
@@ -23,88 +24,81 @@ past_key_values = None
 
 model_map = {
     "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
+    "llama2_13b": "meta-llama/Llama-2-13b-chat-hf",
     "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
-    "codegen": "Salesforce/codegen25-7b-multi",
-    "vicuna1p3": "lmsys/vicuna-7b-v1.3",
     "vicuna": "TheBloke/vicuna-7B-1.1-HF",
-    "vicuna4": "TheBloke/vicuna-7B-1.1-HF",
-    "StableLM": "stabilityai/stablelm-tuned-alpha-3b",
 }
 
 # NOTE: Each `model_name` should have its own start message
 start_message = {
     "llama2_7b": (
-        "System: You are a helpful, respectful and honest assistant. Always answer "
-        "as helpfully as possible, while being safe.  Your answers should not "
-        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
-        "content. Please ensure that your responses are socially unbiased and positive "
-        "in nature. If a question does not make any sense, or is not factually coherent, "
-        "explain why instead of answering something not correct. If you don't know the "
-        "answer to a question, please don't share false information."
+        "You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe. Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or "
+        "illegal content. Please ensure that your responses are socially "
+        "unbiased and positive in nature. If a question does not make any "
+        "sense, or is not factually coherent, explain why instead of "
+        "answering something not correct. If you don't know the answer "
+        "to a question, please don't share false information."
+    ),
+    "llama2_13b": (
+        "You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe. Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or "
+        "illegal content. Please ensure that your responses are socially "
+        "unbiased and positive in nature. If a question does not make any "
+        "sense, or is not factually coherent, explain why instead of "
+        "answering something not correct. If you don't know the answer "
+        "to a question, please don't share false information."
     ),
     "llama2_70b": (
-        "System: You are a helpful, respectful and honest assistant. Always answer "
-        "as helpfully as possible, while being safe.  Your answers should not "
-        "include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal "
-        "content. Please ensure that your responses are socially unbiased and positive "
-        "in nature. If a question does not make any sense, or is not factually coherent, "
-        "explain why instead of answering something not correct. If you don't know the "
-        "answer to a question, please don't share false information."
-    ),
-    "StableLM": (
-        "<|SYSTEM|># StableLM Tuned (Alpha version)"
-        "\n- StableLM is a helpful and harmless open-source AI language model "
-        "developed by StabilityAI."
-        "\n- StableLM is excited to be able to help the user, but will refuse "
-        "to do anything that could be considered harmful to the user."
-        "\n- StableLM is more than just an information source, StableLM is also "
-        "able to write poetry, short stories, and make jokes."
-        "\n- StableLM will refuse to participate in anything that "
-        "could harm a human."
+        "You are a helpful, respectful and honest assistant. Always answer "
+        "as helpfully as possible, while being safe. Your answers should not "
+        "include any harmful, unethical, racist, sexist, toxic, dangerous, or "
+        "illegal content. Please ensure that your responses are socially "
+        "unbiased and positive in nature. If a question does not make any "
+        "sense, or is not factually coherent, explain why instead of "
+        "answering something not correct. If you don't know the answer "
+        "to a question, please don't share false information."
     ),
     "vicuna": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
+        "A chat between a curious user and an artificial intelligence "
+        "assistant. The assistant gives helpful, detailed, and "
+        "polite answers to the user's questions.\n"
     ),
-    "vicuna4": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "vicuna1p3": (
-        "A chat between a curious user and an artificial intelligence assistant. "
-        "The assistant gives helpful, detailed, and polite answers to the user's "
-        "questions.\n"
-    ),
-    "codegen": "",
 }
 
 
-def create_prompt(model_name, history):
-    system_message = start_message[model_name]
+def create_prompt(model_name, history, prompt_prefix):
+    system_message = ""
+    if prompt_prefix:
+        system_message = start_message[model_name]
 
-    if model_name in [
-        "StableLM",
-        "vicuna",
-        "vicuna4",
-        "vicuna1p3",
-        "llama2_7b",
-        "llama2_70b",
-    ]:
+    if "llama2" in model_name:
+        B_INST, E_INST = "[INST]", "[/INST]"
+        B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
+        conversation = "".join(
+            [f"{B_INST} {item[0]} {E_INST} {item[1]} " for item in history[1:]]
+        )
+        if prompt_prefix:
+            msg = f"{B_INST} {B_SYS}{system_message}{E_SYS}{history[0][0]} {E_INST} {history[0][1]} {conversation}"
+        else:
+            msg = f"{B_INST} {history[0][0]} {E_INST} {history[0][1]} {conversation}"
+    elif model_name in ["vicuna"]:
         conversation = "".join(
             [
                 "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
                 for item in history
             ]
         )
+        msg = system_message + conversation
+        msg = msg.strip()
     else:
         conversation = "".join(
             ["".join([item[0], item[1]]) for item in history]
         )
-
-    msg = system_message + conversation
-    msg = msg.strip()
+        msg = system_message + conversation
+        msg = msg.strip()
     return msg
 
 
@@ -138,124 +132,162 @@ def get_default_config():
     c.split_into_layers()
 
 
+model_vmfb_key = ""
+
+
 # TODO: Make chat reusable for UI and API
 def chat(
-    curr_system_message,
+    prompt_prefix,
     history,
     model,
-    devices,
+    device,
     precision,
+    download_vmfb,
     config_file,
-    cli=True,
+    cli=False,
+    progress=gr.Progress(),
 ):
     global past_key_values
-
+    global model_vmfb_key
     global vicuna_model
-    model_name, model_path = list(map(str.strip, model.split("=>")))
 
-    if model_name in [
-        "vicuna",
-        "vicuna4",
-        "vicuna1p3",
-        "codegen",
-        "llama2_7b",
-        "llama2_70b",
-    ]:
+    device_id = None
+    model_name, model_path = list(map(str.strip, model.split("=>")))
+    device = device if "=>" not in device else device.split("=>")[1].strip()
+    if "cuda" in device:
+        device = "cuda"
+    elif "sync" in device:
+        device = "cpu-sync"
+    elif "task" in device:
+        device = "cpu-task"
+    elif "vulkan" in device:
+        device_id = int(device.split("://")[1])
+        device = "vulkan"
+    elif "rocm" in device:
+        device = "rocm"
+    elif "metal" in device:
+        device = "metal"
+    else:
+        print("unrecognized device")
+
+    from apps.language_models.scripts.vicuna import ShardedVicuna
+    from apps.language_models.scripts.vicuna import UnshardedVicuna
+    from apps.stable_diffusion.src import args
+
+    new_model_vmfb_key = f"{model_name}#{model_path}#{device}#{device_id}#{precision}#{download_vmfb}"
+    if vicuna_model is None or new_model_vmfb_key != model_vmfb_key:
+        model_vmfb_key = new_model_vmfb_key
+        max_toks = 128 if model_name == "codegen" else 512
+
+        # get iree flags that need to be overridden, from commandline args
+        _extra_args = []
+        # vulkan target triple
+        vulkan_target_triple = args.iree_vulkan_target_triple
+        from shark.iree_utils.vulkan_utils import (
+            get_all_vulkan_devices,
+            get_vulkan_target_triple,
+        )
+
+        if device == "vulkan":
+            vulkaninfo_list = get_all_vulkan_devices()
+            if vulkan_target_triple == "":
+                # We already have the device_id extracted via WebUI, so we directly use
+                # that to find the target triple.
+                vulkan_target_triple = get_vulkan_target_triple(
+                    vulkaninfo_list[device_id]
+                )
+            _extra_args.append(
+                f"-iree-vulkan-target-triple={vulkan_target_triple}"
+            )
+            if "rdna" in vulkan_target_triple:
+                flags_to_add = [
+                    "--iree-spirv-index-bits=64",
+                ]
+                _extra_args = _extra_args + flags_to_add
+
+            if device_id is None:
+                id = 0
+                for device in vulkaninfo_list:
+                    target_triple = get_vulkan_target_triple(
+                        vulkaninfo_list[id]
+                    )
+                    if target_triple == vulkan_target_triple:
+                        device_id = id
+                        break
+                    id += 1
+
+                assert (
+                    device_id
+                ), f"no vulkan hardware for target-triple '{vulkan_target_triple}' exists"
+            print(f"Will use vulkan target triple : {vulkan_target_triple}")
+
+        elif "rocm" in device:
+            # add iree rocm flags
+            _extra_args.append(
+                f"--iree-rocm-target-chip={args.iree_rocm_target_chip}"
+            )
+            print(f"extra args = {_extra_args}")
+
         if model_name == "vicuna4":
-            from apps.language_models.scripts.vicuna import (
-                ShardedVicuna as Vicuna,
+            vicuna_model = ShardedVicuna(
+                model_name,
+                hf_model_path=model_path,
+                device=device,
+                precision=precision,
+                max_num_tokens=max_toks,
+                compressed=True,
+                extra_args_cmd=_extra_args,
             )
         else:
-            from apps.language_models.scripts.vicuna import (
-                UnshardedVicuna as Vicuna,
+            #  if config_file is None:
+            vicuna_model = UnshardedVicuna(
+                model_name,
+                hf_model_path=model_path,
+                hf_auth_token=args.hf_auth_token,
+                device=device,
+                vulkan_target_triple=vulkan_target_triple,
+                precision=precision,
+                max_num_tokens=max_toks,
+                download_vmfb=download_vmfb,
+                load_mlir_from_shark_tank=True,
+                extra_args_cmd=_extra_args,
+                device_id=device_id,
             )
-        from apps.stable_diffusion.src import args
 
-        if vicuna_model == 0:
-            device = devices[0]
-            if "cuda" in device:
-                device = "cuda"
-            elif "sync" in device:
-                device = "cpu-sync"
-            elif "task" in device:
-                device = "cpu-task"
-            elif "vulkan" in device:
-                device = "vulkan"
-            else:
-                print("unrecognized device")
+    if vicuna_model is None:
+        sys.exit("Unable to instantiate the model object, exiting.")
 
-            max_toks = 128 if model_name == "codegen" else 512
-            if model_name == "vicuna4":
-                vicuna_model = Vicuna(
-                    model_name,
-                    hf_model_path=model_path,
-                    device=device,
-                    precision=precision,
-                    max_num_tokens=max_toks,
-                    compressed=True,
-                )
-            else:
-                if len(devices) == 1 and config_file is None:
-                    vicuna_model = Vicuna(
-                        model_name,
-                        hf_model_path=model_path,
-                        hf_auth_token=args.hf_auth_token,
-                        device=device,
-                        precision=precision,
-                        max_num_tokens=max_toks,
-                    )
-                else:
-                    if config_file is not None:
-                        config_file = open(config_file)
-                        config_json = json.load(config_file)
-                        config_file.close()
-                    else:
-                        config_json = get_default_config()
-                    vicuna_model = Vicuna(
-                        model_name,
-                        device=device,
-                        precision=precision,
-                        config_json=config_json,
-                    )
-
-        prompt = create_prompt(model_name, history)
-
-        for partial_text in vicuna_model.generate(prompt, cli=cli):
-            history[-1][1] = partial_text
-            yield history
-
-        return history
-
-    # else Model is StableLM
-    global sharkModel
-    from apps.language_models.src.pipelines.stablelm_pipeline import (
-        SharkStableLM,
-    )
-
-    if sharkModel == 0:
-        # max_new_tokens=512
-        shark_slm = SharkStableLM(
-            model_name
-        )  # pass elements from UI as required
-
-    # Construct the input message string for the model by concatenating the
-    # current system message and conversation history
-    if len(curr_system_message.split()) > 160:
-        print("clearing context")
-    prompt = create_prompt(model_name, history)
-    generate_kwargs = dict(prompt=prompt)
-
-    words_list = shark_slm.generate(**generate_kwargs)
+    prompt = create_prompt(model_name, history, prompt_prefix)
 
     partial_text = ""
-    for new_text in words_list:
-        print(new_text)
-        partial_text += new_text
-        history[-1][1] = partial_text
-        # Yield an empty string to clean up the message textbox and the updated
-        # conversation history
-        yield history
-    return words_list
+    token_count = 0
+    total_time_ms = 0.001  # In order to avoid divide by zero error
+    prefill_time = 0
+    is_first = True
+    for text, msg, exec_time in progress.tqdm(
+        vicuna_model.generate(prompt, cli=cli),
+        desc="generating response",
+    ):
+        if msg is None:
+            if is_first:
+                prefill_time = exec_time
+                is_first = False
+            else:
+                total_time_ms += exec_time
+                token_count += 1
+            partial_text += text + " "
+            history[-1][1] = partial_text
+            yield history, f"Prefill: {prefill_time:.2f}"
+        elif "formatted" in msg:
+            history[-1][1] = text
+            tokens_per_sec = (token_count / total_time_ms) * 1000
+            yield history, f"Prefill: {prefill_time:.2f} seconds\n Decode: {tokens_per_sec:.2f} tokens/sec"
+        else:
+            sys.exit(
+                "unexpected message from the vicuna generate call, exiting."
+            )
+
+    return history, ""
 
 
 def llm_chat_api(InputData: dict):
@@ -291,6 +323,7 @@ def llm_chat_api(InputData: dict):
         UnshardedVicuna,
     )
 
+    device_id = None
     if vicuna_model == 0:
         if "cuda" in device:
             device = "cuda"
@@ -299,7 +332,10 @@ def llm_chat_api(InputData: dict):
         elif "task" in device:
             device = "cpu-task"
         elif "vulkan" in device:
+            device_id = int(device.split("://")[1])
             device = "vulkan"
+        elif "metal" in device:
+            device = "metal"
         else:
             print("unrecognized device")
 
@@ -309,6 +345,9 @@ def llm_chat_api(InputData: dict):
             device=device,
             precision=precision,
             max_num_tokens=max_toks,
+            download_vmfb=True,
+            load_mlir_from_shark_tank=True,
+            device_id=device_id,
         )
 
     # TODO: add role dict for different models
@@ -373,38 +412,53 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             label="Select Model",
             value=model_choices[0],
             choices=model_choices,
+            allow_custom_value=True,
         )
         supported_devices = available_devices
         enabled = len(supported_devices) > 0
         # show cpu-task device first in list for chatbot
         supported_devices = supported_devices[-1:] + supported_devices[:-1]
         supported_devices = [x for x in supported_devices if "sync" not in x]
-        print(supported_devices)
-        devices = gr.Dropdown(
+        device = gr.Dropdown(
             label="Device",
             value=supported_devices[0]
             if enabled
             else "Only CUDA Supported for now",
             choices=supported_devices,
             interactive=enabled,
-            multiselect=True,
+            allow_custom_value=True,
+            # multiselect=True,
         )
         precision = gr.Radio(
             label="Precision",
-            value="fp16",
+            value="int4",
             choices=[
                 "int4",
                 "int8",
                 "fp16",
-                "fp32",
             ],
-            visible=True,
+            visible=False,
         )
-    with gr.Row():
+        tokens_time = gr.Textbox(label="Tokens generated per second")
+        with gr.Column():
+            download_vmfb = gr.Checkbox(
+                label="Download vmfb from Shark tank if available",
+                value=True,
+                interactive=True,
+            )
+            prompt_prefix = gr.Checkbox(
+                label="Add System Prompt",
+                value=False,
+                interactive=True,
+            )
+
+    with gr.Row(visible=False):
         with gr.Group():
-            config_file = gr.File(label="Upload sharding configuration")
-            json_view_button = gr.Button("View as JSON")
-        json_view = gr.JSON(interactive=True)
+            config_file = gr.File(
+                label="Upload sharding configuration", visible=False
+            )
+            json_view_button = gr.Button(label="View as JSON", visible=False)
+        json_view = gr.JSON(interactive=True, visible=False)
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
@@ -423,24 +477,47 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 submit = gr.Button("Submit", interactive=enabled)
                 stop = gr.Button("Stop", interactive=enabled)
                 clear = gr.Button("Clear", interactive=enabled)
-    system_msg = gr.Textbox(
-        start_message, label="System Message", interactive=False, visible=False
-    )
 
     submit_event = msg.submit(
-        fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
+        fn=user,
+        inputs=[msg, chatbot],
+        outputs=[msg, chatbot],
+        show_progress=False,
+        queue=False,
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, devices, precision, config_file],
-        outputs=[chatbot],
+        inputs=[
+            prompt_prefix,
+            chatbot,
+            model,
+            device,
+            precision,
+            download_vmfb,
+            config_file,
+        ],
+        outputs=[chatbot, tokens_time],
+        show_progress=False,
         queue=True,
     )
     submit_click_event = submit.click(
-        fn=user, inputs=[msg, chatbot], outputs=[msg, chatbot], queue=False
+        fn=user,
+        inputs=[msg, chatbot],
+        outputs=[msg, chatbot],
+        show_progress=False,
+        queue=False,
     ).then(
         fn=chat,
-        inputs=[system_msg, chatbot, model, devices, precision, config_file],
-        outputs=[chatbot],
+        inputs=[
+            prompt_prefix,
+            chatbot,
+            model,
+            device,
+            precision,
+            download_vmfb,
+            config_file,
+        ],
+        outputs=[chatbot, tokens_time],
+        show_progress=False,
         queue=True,
     )
     stop.click(

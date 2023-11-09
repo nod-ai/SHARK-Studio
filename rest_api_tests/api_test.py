@@ -4,7 +4,7 @@ import base64
 from io import BytesIO
 
 
-def upscaler_test():
+def upscaler_test(verbose=False):
     # Define values here
     prompt = ""
     negative_prompt = ""
@@ -44,10 +44,17 @@ def upscaler_test():
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(f"response from server was : {res.status_code}")
+    print(
+        f"[upscaler] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(
+            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
+        )
 
 
-def img2img_test():
+def img2img_test(verbose=False):
     # Define values here
     prompt = "Paint a rabbit riding on the dog"
     negative_prompt = "ugly, bad art, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, blurry, bad anatomy, blurred, watermark, grainy, tiling, signature, cut off, draft"
@@ -87,7 +94,16 @@ def img2img_test():
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(f"response from server was : {res.status_code}")
+    res = requests.post(url=url, json=data, headers=headers, timeout=1000)
+
+    print(
+        f"[img2img] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(
+            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
+        )
 
     # NOTE Uncomment below to save the picture
 
@@ -103,7 +119,7 @@ def img2img_test():
     # response_img.save(r"rest_api_tests/response_img.png")
 
 
-def inpainting_test():
+def inpainting_test(verbose=False):
     prompt = "Paint a rabbit riding on the dog"
     negative_prompt = "ugly, bad art, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, blurry, bad anatomy, blurred, watermark, grainy, tiling, signature, cut off, draft"
     seed = 2121991605
@@ -150,10 +166,17 @@ def inpainting_test():
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(f"[Inpainting] response from server was : {res.status_code}")
+    print(
+        f"[inpaint] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(
+            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
+        )
 
 
-def outpainting_test():
+def outpainting_test(verbose=False):
     prompt = "Paint a rabbit riding on the dog"
     negative_prompt = "ugly, bad art, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, blurry, bad anatomy, blurred, watermark, grainy, tiling, signature, cut off, draft"
     seed = 2121991605
@@ -200,10 +223,17 @@ def outpainting_test():
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(f"[Outpaint] response from server was : {res.status_code}")
+    print(
+        f"[outpaint] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(
+            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
+        )
 
 
-def txt2img_test():
+def txt2img_test(verbose=False):
     prompt = "Paint a rabbit in a top hate"
     negative_prompt = "ugly, bad art, poorly drawn hands, poorly drawn feet, poorly drawn face, out of frame, extra limbs, disfigured, deformed, body out of frame, blurry, bad anatomy, blurred, watermark, grainy, tiling, signature, cut off, draft"
     seed = 2121991605
@@ -232,12 +262,119 @@ def txt2img_test():
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(f"[txt2img] response from server was : {res.status_code}")
+    print(
+        f"[txt2img] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(
+            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
+        )
+
+
+def sd_models_test(verbose=False):
+    url = "http://127.0.0.1:8080/sdapi/v1/sd-models"
+
+    headers = {
+        "User-Agent": "PythonTest",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
+
+    res = requests.get(url=url, headers=headers, timeout=1000)
+
+    print(
+        f"[sd_models] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
+
+
+def sd_samplers_test(verbose=False):
+    url = "http://127.0.0.1:8080/sdapi/v1/samplers"
+
+    headers = {
+        "User-Agent": "PythonTest",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
+
+    res = requests.get(url=url, headers=headers, timeout=1000)
+
+    print(
+        f"[sd_samplers] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
+
+
+def options_test(verbose=False):
+    url = "http://127.0.0.1:8080/sdapi/v1/options"
+
+    headers = {
+        "User-Agent": "PythonTest",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
+
+    res = requests.get(url=url, headers=headers, timeout=1000)
+
+    print(
+        f"[options] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
+
+
+def cmd_flags_test(verbose=False):
+    url = "http://127.0.0.1:8080/sdapi/v1/cmd-flags"
+
+    headers = {
+        "User-Agent": "PythonTest",
+        "Accept": "*/*",
+        "Accept-Encoding": "gzip, deflate, br",
+    }
+
+    res = requests.get(url=url, headers=headers, timeout=1000)
+
+    print(
+        f"[cmd-flags] response from server was : {res.status_code} {res.reason}"
+    )
+
+    if verbose or res.status_code != 200:
+        print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
 
 
 if __name__ == "__main__":
-    txt2img_test()
-    img2img_test()
-    upscaler_test()
-    inpainting_test()
-    outpainting_test()
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Exercises the Stable Diffusion REST API of Shark. Make sure "
+            "Shark is running in API mode on 127.0.0.1:8080 before running"
+            "this script."
+        ),
+    )
+    parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help=(
+            "also display selected info from the JSON response for "
+            "successful requests"
+        ),
+    )
+    args = parser.parse_args()
+
+    sd_models_test(args.verbose)
+    sd_samplers_test(args.verbose)
+    options_test(args.verbose)
+    cmd_flags_test(args.verbose)
+    txt2img_test(args.verbose)
+    img2img_test(args.verbose)
+    upscaler_test(args.verbose)
+    inpainting_test(args.verbose)
+    outpainting_test(args.verbose)

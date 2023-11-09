@@ -109,7 +109,7 @@ with gr.Blocks() as minigpt4_web:
     gr.Markdown(description)
 
     with gr.Row():
-        with gr.Column(scale=0.5):
+        with gr.Column():
             image = gr.Image(type="pil")
             upload_button = gr.Button(
                 value="Upload & Start Chat",
@@ -143,6 +143,7 @@ with gr.Blocks() as minigpt4_web:
                 # else "Only CUDA Supported for now",
                 choices=["cuda"],
                 interactive=False,
+                allow_custom_value=True,
             )
 
         with gr.Column():

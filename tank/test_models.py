@@ -145,6 +145,7 @@ class SharkModuleTester:
         shark_args.shark_prefix = self.shark_tank_prefix
         shark_args.local_tank_cache = self.local_tank_cache
         shark_args.dispatch_benchmarks = self.benchmark_dispatches
+        shark_args.enable_tf32 = self.tf32
 
         if self.benchmark_dispatches is not None:
             _m = self.config["model_name"].split("/")
@@ -216,10 +217,12 @@ class SharkModuleTester:
 
         result = shark_module(func_name, inputs)
         golden_out, result = self.postprocess_outputs(golden_out, result)
-        if self.tf32 == "true":
-            print("Validating with relaxed tolerances.")
-            atol = 1e-02
-            rtol = 1e-03
+        if self.tf32 == True:
+            print(
+                "Validating with relaxed tolerances for TensorFloat32 calculations."
+            )
+            self.config["atol"] = 1e-01
+            self.config["rtol"] = 1e-02
         try:
             np.testing.assert_allclose(
                 golden_out,
@@ -254,9 +257,6 @@ class SharkModuleTester:
         model_config = {
             "batch_size": self.batch_size,
         }
-        shark_args.enable_tf32 = self.tf32
-        if shark_args.enable_tf32 == True:
-            shark_module.compile()
 
         shark_args.onnx_bench = self.onnx_bench
         shark_module.shark_runner.benchmark_all_csv(
@@ -287,6 +287,9 @@ class SharkModuleTester:
         repro_path = os.path.join("reproducers", self.tmp_prefix, "*")
 
         bashCommand = f"gsutil cp -r {repro_path} gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
+        print(
+            f"Uploading reproducer {repro_path} to gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
+        )
         process = subprocess.run(bashCommand.split())
 
     def postprocess_outputs(self, golden_out, result):

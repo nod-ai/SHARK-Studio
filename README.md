@@ -10,7 +10,7 @@ High Performance Machine Learning Distribution
   <summary>Prerequisites - Drivers </summary>
   
 #### Install your Windows hardware drivers
-* [AMD RDNA Users] Download the latest driver [here](https://www.amd.com/en/support/kb/release-notes/rn-rad-win-23-2-1).
+* [AMD RDNA Users] Download the latest driver (23.2.1 is the oldest supported) [here](https://www.amd.com/en/support).
 * [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work. 
 * [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
   
@@ -170,7 +170,7 @@ python -m pip install --upgrade pip
 This step pip installs SHARK and related packages on Linux Python 3.8, 3.10 and 3.11 and macOS / Windows Python 3.11
 
 ```shell
-pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SRT/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 
 ### Run shark tank model tests.
@@ -254,7 +254,6 @@ if you want to instead incorporate this into a python script, you can pass the `
 ```
 shark_module = SharkInference(
         mlir_model,
-        func_name,
         device=args.device,
         mlir_dialect="tm_tensor",
         dispatch_benchmarks="all",
@@ -297,7 +296,7 @@ torch_mlir, func_name = mlir_importer.import_mlir(tracing_required=True)
 # SharkInference accepts mlir in linalg, mhlo, and tosa dialect.
 
 from shark.shark_inference import SharkInference
-shark_module = SharkInference(torch_mlir, func_name, device="cpu", mlir_dialect="linalg")
+shark_module = SharkInference(torch_mlir, device="cpu", mlir_dialect="linalg")
 shark_module.compile()
 result = shark_module.forward((input))
 
@@ -320,11 +319,16 @@ mhlo_ir = r"""builtin.module  {
 
 arg0 = np.ones((1, 4)).astype(np.float32)
 arg1 = np.ones((4, 1)).astype(np.float32)
-shark_module = SharkInference(mhlo_ir, func_name="forward", device="cpu", mlir_dialect="mhlo")
+shark_module = SharkInference(mhlo_ir, device="cpu", mlir_dialect="mhlo")
 shark_module.compile()
 result = shark_module.forward((arg0, arg1))
 ```
 </details>
+
+## Examples Using the REST API
+
+* [Setting up SHARK for use with Blender](./docs/shark_sd_blender.md)
+* [Setting up SHARK for use with Koboldcpp](./docs/shark_sd_koboldcpp.md)
 
 ## Supported and Validated Models
 

@@ -294,7 +294,7 @@ def test_dlrm() -> None:
     )
 
     shark_module = SharkInference(
-        dlrm_mlir, func_name, device="cpu", mlir_dialect="linalg"
+        dlrm_mlir, device="cpu", mlir_dialect="linalg"
     )
     shark_module.compile()
     result = shark_module.forward(inputs)

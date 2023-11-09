@@ -1,4 +1,3 @@
-from shark.iree_utils._common import check_device_drivers, device_driver_info
 from shark.shark_inference import SharkInference
 from shark.shark_downloader import download_model
 from shark.parser import shark_args

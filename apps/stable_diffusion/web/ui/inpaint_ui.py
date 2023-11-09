@@ -4,9 +4,6 @@ import time
 import sys
 import gradio as gr
 from PIL import Image
-import base64
-from io import BytesIO
-from fastapi.exceptions import HTTPException
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -53,8 +50,7 @@ def inpaint_inf(
     batch_count: int,
     batch_size: int,
     scheduler: str,
-    custom_model: str,
-    hf_model_id: str,
+    model_id: str,
     custom_vae: str,
     precision: str,
     device: str,
@@ -89,21 +85,17 @@ def inpaint_inf(
     args.ckpt_loc = ""
     args.hf_model_id = ""
     args.custom_vae = ""
-    if custom_model == "None":
-        if not hf_model_id:
-            return (
-                None,
-                "Please provide either custom model or huggingface model ID, "
-                "both must not be empty.",
-            )
-        if "civitai" in hf_model_id:
-            args.ckpt_loc = hf_model_id
-        else:
-            args.hf_model_id = hf_model_id
-    elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = get_custom_model_pathfile(custom_model)
+
+    # .safetensor or .chkpt on the custom model path
+    if model_id in get_custom_model_files(custom_checkpoint_type="inpainting"):
+        args.ckpt_loc = get_custom_model_pathfile(model_id)
+    # civitai download
+    elif "civitai" in model_id:
+        args.ckpt_loc = model_id
+    # either predefined or huggingface
     else:
-        args.hf_model_id = custom_model
+        args.hf_model_id = model_id
+
     if custom_vae != "None":
         args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
@@ -228,86 +220,6 @@ def inpaint_inf(
     return generated_imgs, text_output
 
 
-def decode_base64_to_image(encoding):
-    if encoding.startswith("data:image/"):
-        encoding = encoding.split(";", 1)[1].split(",", 1)[1]
-    try:
-        image = Image.open(BytesIO(base64.b64decode(encoding)))
-        return image
-    except Exception as err:
-        print(err)
-        raise HTTPException(status_code=500, detail="Invalid encoded image")
-
-
-def encode_pil_to_base64(images):
-    encoded_imgs = []
-    for image in images:
-        with BytesIO() as output_bytes:
-            if args.output_img_format.lower() == "png":
-                image.save(output_bytes, format="PNG")
-
-            elif args.output_img_format.lower() in ("jpg", "jpeg"):
-                image.save(output_bytes, format="JPEG")
-            else:
-                raise HTTPException(
-                    status_code=500, detail="Invalid image format"
-                )
-            bytes_data = output_bytes.getvalue()
-            encoded_imgs.append(base64.b64encode(bytes_data))
-    return encoded_imgs
-
-
-# Inpaint Rest API.
-def inpaint_api(
-    InputData: dict,
-):
-    print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"]}.'
-    )
-    init_image = decode_base64_to_image(InputData["image"])
-    mask = decode_base64_to_image(InputData["mask"])
-    res = inpaint_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
-        {"image": init_image, "mask": mask},
-        InputData["height"],
-        InputData["width"],
-        InputData["is_full_res"],
-        InputData["full_res_padding"],
-        InputData["steps"],
-        InputData["cfg_scale"],
-        InputData["seed"],
-        batch_count=1,
-        batch_size=1,
-        scheduler="EulerDiscrete",
-        custom_model="None",
-        hf_model_id=InputData["hf_model_id"]
-        if "hf_model_id" in InputData.keys()
-        else "stabilityai/stable-diffusion-2-inpainting",
-        custom_vae="None",
-        precision="fp16",
-        device=available_devices[0],
-        max_length=64,
-        save_metadata_to_json=False,
-        save_metadata_to_png=False,
-        lora_weights="None",
-        lora_hf_id="",
-        ondemand=False,
-        repeatable_seeds=False,
-    )
-
-    # Converts generator type to subscriptable
-    res = next(res)
-
-    return {
-        "images": encode_pil_to_base64(res[0]),
-        "parameters": {},
-        "info": res[1],
-    }
-
-
 with gr.Blocks(title="Inpainting") as inpaint_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
@@ -327,34 +239,21 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 with gr.Row():
                     # janky fix for overflowing text
                     inpaint_model_info = (
-                        str(get_custom_model_path())
-                    ).replace("\\", "\n\\")
-                    inpaint_model_info = (
-                        f"Custom Model Path: {inpaint_model_info}"
+                        f"Custom Model Path: {str(get_custom_model_path())}"
                     )
                     inpaint_custom_model = gr.Dropdown(
                         label=f"Models",
-                        info=inpaint_model_info,
+                        info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                         elem_id="custom_model",
                         value=os.path.basename(args.ckpt_loc)
                         if args.ckpt_loc
                         else "stabilityai/stable-diffusion-2-inpainting",
-                        choices=["None"]
-                        + get_custom_model_files(
+                        choices=get_custom_model_files(
                             custom_checkpoint_type="inpainting"
                         )
                         + predefined_paint_models,
-                    )
-                    inpaint_hf_model_id = gr.Textbox(
-                        elem_id="hf_model_id",
-                        placeholder="Select 'None' in the Models dropdown "
-                        "on the left and enter model ID here "
-                        "e.g: ghunkins/stable-diffusion-liberty-inpainting, "
-                        "https://civitai.com/api/download/models/3433",
-                        value="",
-                        label="HuggingFace Model ID or Civitai model "
-                        "download URL",
-                        lines=3,
+                        allow_custom_value=True,
+                        scale=2,
                     )
                     # janky fix for overflowing text
                     inpaint_vae_info = (
@@ -369,6 +268,8 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         if args.custom_vae
                         else "None",
                         choices=["None"] + get_custom_model_files("vae"),
+                        allow_custom_value=True,
+                        scale=1,
                     )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -406,6 +307,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                             elem_id="lora_weights",
                             value="None",
                             choices=["None"] + get_custom_model_files("lora"),
+                            allow_custom_value=True,
                         )
                         lora_hf_id = gr.Textbox(
                             elem_id="lora_hf_id",
@@ -424,6 +326,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                             label="Scheduler",
                             value="EulerDiscrete",
                             choices=scheduler_list_cpu_only,
+                            allow_custom_value=True,
                         )
                         with gr.Group():
                             save_metadata_to_png = gr.Checkbox(
@@ -527,17 +430,8 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         label="Device",
                         value=available_devices[0],
                         choices=available_devices,
+                        allow_custom_value=True,
                     )
-                with gr.Row():
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        lambda: -1,
-                        inputs=[],
-                        outputs=[seed],
-                        queue=False,
-                    )
-                    stop_batch = gr.Button("Stop Batch")
-                    stable_diffusion = gr.Button("Generate Image(s)")
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -549,14 +443,26 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         object_fit="contain",
                     )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at "
+                        value=f"{inpaint_model_info}\n"
+                        "Images will be saved at "
                         f"{get_generated_imgs_path()}",
-                        lines=1,
+                        lines=2,
                         elem_id="std_output",
                         show_label=False,
                     )
                     inpaint_status = gr.Textbox(visible=False)
-
+                with gr.Row():
+                    stable_diffusion = gr.Button("Generate Image(s)")
+                    random_seed = gr.Button("Randomize Seed")
+                    random_seed.click(
+                        lambda: -1,
+                        inputs=[],
+                        outputs=[seed],
+                        queue=False,
+                    )
+                    stop_batch = gr.Button("Stop Batch")
+                with gr.Row():
+                    blank_thing_for_row = None
                 with gr.Row():
                     inpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
                     inpaint_sendto_outpaint = gr.Button(
@@ -583,7 +489,6 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 batch_size,
                 scheduler,
                 inpaint_custom_model,
-                inpaint_hf_model_id,
                 custom_vae,
                 precision,
                 device,

@@ -15,7 +15,7 @@
 from shark.parser import shark_args
 from shark.shark_runner import SharkRunner
 from shark.backward_makefx import MakeFxModule
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 import numpy as np
 from tqdm import tqdm
 import sys
@@ -69,7 +69,7 @@ class SharkTrainer:
             self.frontend = frontend
 
     # Training function is needed in the case of torch_fn.
-    def compile(self, training_fn=None, extra_args=[]):
+    def compile(self, training_fn=None, mlir_type="linalg", extra_args=[]):
         if self.frontend in ["torch", "pytorch"]:
             packed_inputs = (
                 dict(self.model.named_parameters()),
@@ -77,7 +77,18 @@ class SharkTrainer:
                 tuple(self.input),
             )
             mlir_module, func_name = import_with_fx(
-                training_fn, packed_inputs, False, [], training=True
+                training_fn,
+                packed_inputs,
+                False,
+                [],
+                training=True,
+                mlir_type=mlir_type,
+            )
+            mlir_module = save_mlir(
+                mlir_module,
+                model_name="shark_model",
+                frontend="torch",
+                mlir_dialect=mlir_type,
             )
             self.shark_runner = SharkRunner(
                 mlir_module,

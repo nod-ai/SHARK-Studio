@@ -39,7 +39,7 @@ class SharkInference:
     Attributes
     ----------
     mlir_module : str
-        mlir_module represented in string; modules from torch-mlir are serialized in bytecode format.
+        mlir_module or path represented in string; modules from torch-mlir are serialized in bytecode format.
     device : str
         device to execute the mlir_module on.
         currently supports cpu, cuda, vulkan, and metal backends.
@@ -65,7 +65,7 @@ class SharkInference:
 
     def __init__(
         self,
-        mlir_module: bytes,
+        mlir_module,
         device: str = "none",
         mlir_dialect: str = "linalg",
         is_benchmark: bool = False,
@@ -73,8 +73,17 @@ class SharkInference:
         dispatch_benchmark_dir: str = "temp_dispatch_benchmarks",
         device_idx: int = None,
         mmap: bool = True,
+        rt_flags: list = [],
     ):
         self.mlir_module = mlir_module
+        if mlir_module is not None:
+            if mlir_module and not os.path.isfile(mlir_module):
+                print(
+                    "Warning: Initializing SharkInference with a mlir string/bytecode object will duplicate the model in RAM at compile time. To avoid this, initialize SharkInference with a path to a MLIR module on your hard disk instead."
+                )
+                self.compile_str = True
+            else:
+                self.compile_str = False
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.is_benchmark = is_benchmark
@@ -92,6 +101,7 @@ class SharkInference:
 
         self.shark_runner = None
         self.mmap = mmap
+        self.rt_flags = rt_flags
 
     def compile(self, extra_args=[]):
         if self.dispatch_benchmarks is not None:
@@ -126,6 +136,7 @@ class SharkInference:
                 self.mlir_dialect,
                 extra_args=extra_args,
                 device_idx=self.device_idx,
+                rt_flags=self.rt_flags,
             )
 
         if self.dispatch_benchmarks is not None:
@@ -139,7 +150,15 @@ class SharkInference:
 
     # inputs are considered to be tuple of np.array.
     def __call__(self, function_name: str, inputs: tuple, send_to_host=True):
-        return self.shark_runner.run(function_name, inputs, send_to_host)
+        return self.shark_runner.run(
+            function_name, inputs, send_to_host, device=self.device
+        )
+
+    # forward function.
+    def forward(self, inputs: tuple, send_to_host=True):
+        return self.shark_runner.run(
+            "forward", inputs, send_to_host, device=self.device
+        )
 
     # Get all function names defined within the compiled module.
     def get_functions_in_module(self):
@@ -188,7 +207,9 @@ class SharkInference:
 
     # TODO: Instead of passing directory and having names decided by the module
     # , user may want to save the module with manual names.
-    def save_module(self, dir=os.getcwd(), module_name=None, extra_args=[]):
+    def save_module(
+        self, dir=os.getcwd(), module_name=None, extra_args=[], debug=False
+    ):
         return export_iree_module_to_vmfb(
             self.mlir_module,
             self.device,
@@ -196,6 +217,8 @@ class SharkInference:
             self.mlir_dialect,
             module_name=module_name,
             extra_args=extra_args,
+            debug=debug,
+            compile_str=self.compile_str,
         )
 
     # load and return the module.
@@ -204,12 +227,14 @@ class SharkInference:
             device=self.device,
             compile_vmfb=False,
             extra_args=extra_args,
+            rt_flags=self.rt_flags,
         )
         params = load_flatbuffer(
             path,
             self.device,
             self.device_idx,
             mmap=self.mmap,
+            rt_flags=self.rt_flags,
         )
         self.shark_runner.iree_compilation_module = params["vmfb"]
         self.shark_runner.iree_config = params["config"]

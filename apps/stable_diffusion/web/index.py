@@ -1,6 +1,8 @@
-from multiprocessing import Process, freeze_support
+from multiprocessing import freeze_support
 import os
 import sys
+import logging
+import apps.stable_diffusion.web.utils.app as app
 
 if sys.platform == "darwin":
     # import before IREE to avoid torch-MLIR library issues
@@ -20,64 +22,54 @@ if args.clear_all:
     clear_all()
 
 
-def launch_app(address):
-    from tkinter import Tk
-    import webview
-
-    window = Tk()
-
-    # get screen width and height of display and make it more reasonably
-    # sized as we aren't making it full-screen or maximized
-    width = int(window.winfo_screenwidth() * 0.81)
-    height = int(window.winfo_screenheight() * 0.91)
-    webview.create_window(
-        "SHARK AI Studio",
-        url=address,
-        width=width,
-        height=height,
-        text_select=True,
-    )
-    webview.start(private_mode=False)
-
-
 if __name__ == "__main__":
+    if args.debug:
+        logging.basicConfig(level=logging.DEBUG)
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
     if args.api or "api" in args.ui.split(","):
         from apps.stable_diffusion.web.ui import (
-            txt2img_api,
-            img2img_api,
-            upscaler_api,
-            inpaint_api,
-            outpaint_api,
             llm_chat_api,
         )
+        from apps.stable_diffusion.web.api import sdapi
 
         from fastapi import FastAPI, APIRouter
+        from fastapi.middleware.cors import CORSMiddleware
         import uvicorn
 
         # init global sd pipeline and config
         global_obj._init()
 
-        app = FastAPI()
-        app.add_api_route("/sdapi/v1/txt2img", txt2img_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/img2img", img2img_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
-        app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
+        api = FastAPI()
+        api.mount("/sdapi/", sdapi)
 
         # chat APIs needed for compatibility with multiple extensions using OpenAI API
-        app.add_api_route(
+        api.add_api_route(
             "/v1/chat/completions", llm_chat_api, methods=["post"]
         )
-        app.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
-        app.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
-        app.add_api_route("/completions", llm_chat_api, methods=["post"])
-        app.add_api_route(
+        api.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
+        api.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
+        api.add_api_route("/completions", llm_chat_api, methods=["post"])
+        api.add_api_route(
             "/v1/engines/codegen/completions", llm_chat_api, methods=["post"]
         )
-        app.include_router(APIRouter())
-        uvicorn.run(app, host="0.0.0.0", port=args.server_port)
+        api.include_router(APIRouter())
+
+        # deal with CORS requests if CORS accept origins are set
+        if args.api_accept_origin:
+            print(
+                f"API Configured for CORS. Accepting origins: { args.api_accept_origin }"
+            )
+            api.add_middleware(
+                CORSMiddleware,
+                allow_origins=args.api_accept_origin,
+                allow_methods=["GET", "POST"],
+                allow_headers=["*"],
+            )
+        else:
+            print("API not configured for CORS")
+
+        uvicorn.run(api, host="0.0.0.0", port=args.server_port)
         sys.exit(0)
 
     # Setup to use shark_tmp for gradio's temporary image files and clear any
@@ -91,7 +83,10 @@ if __name__ == "__main__":
     import gradio as gr
 
     # Create custom models folders if they don't exist
-    from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
+    from apps.stable_diffusion.web.ui.utils import (
+        create_custom_models_folders,
+        nodicon_loc,
+    )
 
     create_custom_models_folders()
 
@@ -107,7 +102,6 @@ if __name__ == "__main__":
     from apps.stable_diffusion.web.ui import (
         txt2img_web,
         txt2img_custom_model,
-        txt2img_hf_model_id,
         txt2img_gallery,
         txt2img_png_info_img,
         txt2img_status,
@@ -119,7 +113,6 @@ if __name__ == "__main__":
         # h2ogpt_web,
         img2img_web,
         img2img_custom_model,
-        img2img_hf_model_id,
         img2img_gallery,
         img2img_init_image,
         img2img_status,
@@ -128,7 +121,6 @@ if __name__ == "__main__":
         img2img_sendto_upscaler,
         inpaint_web,
         inpaint_custom_model,
-        inpaint_hf_model_id,
         inpaint_gallery,
         inpaint_init_image,
         inpaint_status,
@@ -137,7 +129,6 @@ if __name__ == "__main__":
         inpaint_sendto_upscaler,
         outpaint_web,
         outpaint_custom_model,
-        outpaint_hf_model_id,
         outpaint_gallery,
         outpaint_init_image,
         outpaint_status,
@@ -146,16 +137,15 @@ if __name__ == "__main__":
         outpaint_sendto_upscaler,
         upscaler_web,
         upscaler_custom_model,
-        upscaler_hf_model_id,
         upscaler_gallery,
         upscaler_init_image,
         upscaler_status,
         upscaler_sendto_img2img,
         upscaler_sendto_inpaint,
         upscaler_sendto_outpaint,
-        lora_train_web,
-        model_web,
-        model_config_web,
+        #  lora_train_web,
+        #  model_web,
+        #  model_config_web,
         hf_models,
         modelmanager_sendto_txt2img,
         modelmanager_sendto_img2img,
@@ -210,9 +200,18 @@ if __name__ == "__main__":
         )
 
     with gr.Blocks(
-        css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
+        css=dark_theme, analytics_enabled=False, title="SHARK AI Studio"
     ) as sd_web:
         with gr.Tabs() as tabs:
+            # NOTE: If adding, removing, or re-ordering tabs, make sure that they
+            # have a unique id that doesn't clash with any of the other tabs,
+            # and that the order in the code here is the order they should
+            # appear in the ui, as the id value doesn't determine the order.
+
+            # Where possible, avoid changing the id of any tab that is the
+            # destination of one of the 'send to' buttons. If you do have to change
+            # that id, make sure you update the relevant register_button_click calls
+            # further down with the new id.
             with gr.TabItem(label="Text-to-Image", id=0):
                 txt2img_web.render()
             with gr.TabItem(label="Image-to-Image", id=1):
@@ -223,16 +222,6 @@ if __name__ == "__main__":
                 outpaint_web.render()
             with gr.TabItem(label="Upscaler", id=4):
                 upscaler_web.render()
-            with gr.TabItem(label="Model Manager", id=6):
-                model_web.render()
-            with gr.TabItem(label="Chat Bot(Experimental)", id=7):
-                stablelm_chat.render()
-            with gr.TabItem(label="Generate Sharding Config", id=8):
-                model_config_web.render()
-            with gr.TabItem(label="LoRA Training(Experimental)", id=9):
-                lora_train_web.render()
-            with gr.TabItem(label="MultiModal (Experimental)", id=10):
-                minigpt4_web.render()
             if args.output_gallery:
                 with gr.TabItem(label="Output Gallery", id=5) as og_tab:
                     outputgallery_web.render()
@@ -248,10 +237,31 @@ if __name__ == "__main__":
                         upscaler_status,
                     ]
                 )
+            #  with gr.TabItem(label="Model Manager", id=6):
+            #      model_web.render()
+            #  with gr.TabItem(label="LoRA Training (Experimental)", id=7):
+            #      lora_train_web.render()
+            with gr.TabItem(label="Chat Bot", id=8):
+                stablelm_chat.render()
+            #  with gr.TabItem(
+            #      label="Generate Sharding Config (Experimental)", id=9
+            #  ):
+            #      model_config_web.render()
+            with gr.TabItem(label="MultiModal (Experimental)", id=10):
+                minigpt4_web.render()
             # with gr.TabItem(label="DocuChat Upload", id=11):
             #     h2ogpt_upload.render()
             # with gr.TabItem(label="DocuChat(Experimental)", id=12):
             #     h2ogpt_web.render()
+
+            actual_port = app.usable_port()
+            if actual_port != args.server_port:
+                sd_web.load(
+                    fn=lambda: gr.Info(
+                        f"Port {args.server_port} is in use by another application. "
+                        f"Shark is running on port {actual_port} instead."
+                    )
+                )
 
         # send to buttons
         register_button_click(
@@ -385,42 +395,38 @@ if __name__ == "__main__":
             modelmanager_sendto_txt2img,
             0,
             [hf_models],
-            [txt2img_custom_model, txt2img_hf_model_id, tabs],
+            [txt2img_custom_model, tabs],
         )
         register_modelmanager_button(
             modelmanager_sendto_img2img,
             1,
             [hf_models],
-            [img2img_custom_model, img2img_hf_model_id, tabs],
+            [img2img_custom_model, tabs],
         )
         register_modelmanager_button(
             modelmanager_sendto_inpaint,
             2,
             [hf_models],
-            [inpaint_custom_model, inpaint_hf_model_id, tabs],
+            [inpaint_custom_model, tabs],
         )
         register_modelmanager_button(
             modelmanager_sendto_outpaint,
             3,
             [hf_models],
-            [outpaint_custom_model, outpaint_hf_model_id, tabs],
+            [outpaint_custom_model, tabs],
         )
         register_modelmanager_button(
             modelmanager_sendto_upscaler,
             4,
             [hf_models],
-            [upscaler_custom_model, upscaler_hf_model_id, tabs],
+            [upscaler_custom_model, tabs],
         )
 
     sd_web.queue()
-    if args.ui == "app":
-        t = Process(
-            target=launch_app, args=[f"http://localhost:{args.server_port}"]
-        )
-        t.start()
     sd_web.launch(
         share=args.share,
-        inbrowser=args.ui == "web",
+        inbrowser=not app.launch(actual_port),
         server_name="0.0.0.0",
-        server_port=args.server_port,
+        server_port=actual_port,
+        favicon_path=nodicon_loc,
     )

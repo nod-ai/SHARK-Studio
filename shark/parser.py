@@ -14,7 +14,20 @@
 
 import argparse
 import os
+import shlex
 import subprocess
+
+
+class SplitStrToListAction(argparse.Action):
+    def __init__(self, option_strings, dest, *args, **kwargs):
+        super(SplitStrToListAction, self).__init__(
+            option_strings=option_strings, dest=dest, *args, **kwargs
+        )
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        del parser, option_string
+        setattr(namespace, self.dest, shlex.split(" "))
+
 
 parser = argparse.ArgumentParser(description="SHARK runner.")
 
@@ -23,6 +36,20 @@ parser.add_argument(
     type=str,
     default="cpu",
     help="Device on which shark_runner runs. options are cpu, cuda, and vulkan",
+)
+parser.add_argument(
+    "--additional_compile_args",
+    default=list(),
+    nargs=1,
+    action=SplitStrToListAction,
+    help="Additional arguments to pass to the compiler. These are appended as the last arguments.",
+)
+parser.add_argument(
+    "--additional_runtime_args",
+    default=list(),
+    nargs=1,
+    action=SplitStrToListAction,
+    help="Additional arguments to pass to the IREE runtime. These are appended as the last arguments.",
 )
 parser.add_argument(
     "--enable_tf32",
@@ -114,7 +141,7 @@ parser.add_argument(
     "--device_allocator",
     type=str,
     nargs="*",
-    default=[],
+    default=["caching"],
     help="Specifies one or more HAL device allocator specs "
     "to augment the base device allocator",
     choices=["debug", "caching"],
@@ -134,24 +161,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--vulkan_large_heap_block_size",
-    default="2073741824",
-    help="Flag for setting VMA preferredLargeHeapBlockSize for "
-    "vulkan device, default is 4G.",
-)
-
-parser.add_argument(
     "--vulkan_validation_layers",
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for disabling vulkan validation layers when benchmarking.",
-)
-
-parser.add_argument(
-    "--vulkan_vma_allocator",
-    default=True,
-    action=argparse.BooleanOptionalAction,
-    help="Flag for enabling / disabling Vulkan VMA Allocator.",
 )
 
 shark_args, unknown = parser.parse_known_args()

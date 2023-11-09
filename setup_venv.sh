@@ -86,6 +86,7 @@ $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
 if [ "$torch_mlir_bin" = true ]; then
   if [[ $(uname -s) = 'Darwin' ]]; then
     echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
+    $PYTHON -m pip uninstall -y timm #TEMP FIX FOR MAC
     $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
   else
     $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
@@ -103,7 +104,7 @@ else
 fi
 if [[ -z "${USE_IREE}" ]]; then
   rm .use-iree
-  RUNTIME="https://nod-ai.github.io/SHARK-Runtime/pip-release-links.html"
+  RUNTIME="https://nod-ai.github.io/SRT/pip-release-links.html"
 else
   touch ./.use-iree
   RUNTIME="https://openxla.github.io/iree/pip-release-links.html"
@@ -128,16 +129,21 @@ if [[ ! -z "${IMPORTER}" ]]; then
   fi
 fi
 
-$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f https://download.pytorch.org/whl/nightly/torch/
+if [[ $(uname -s) = 'Darwin' ]]; then
+  PYTORCH_URL=https://download.pytorch.org/whl/nightly/torch/
+else
+  PYTORCH_URL=https://download.pytorch.org/whl/nightly/cpu/
+fi
 
-if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
+$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f ${PYTORCH_URL}
+
+if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   T_VER=$($PYTHON -m pip show torch | grep Version)
-  TORCH_VERSION=${T_VER:9:17}
+  T_VER_MIN=${T_VER:14:12}
   TV_VER=$($PYTHON -m pip show torchvision | grep Version)
-  TV_VERSION=${TV_VER:9:18}
-  $PYTHON -m pip uninstall -y torch torchvision
-  $PYTHON -m pip install -U --pre --no-warn-conflicts triton
-  $PYTHON -m pip install --no-deps https://download.pytorch.org/whl/nightly/cu118/torch-${TORCH_VERSION}%2Bcu118-cp311-cp311-linux_x86_64.whl https://download.pytorch.org/whl/nightly/cu118/torchvision-${TV_VERSION}%2Bcu118-cp311-cp311-linux_x86_64.whl
+  TV_VER_MAJ=${TV_VER:9:6}
+  $PYTHON -m pip uninstall -y torchvision
+  $PYTHON -m pip install torchvision==${TV_VER_MAJ}${T_VER_MIN} --no-deps -f https://download.pytorch.org/whl/nightly/cpu/torchvision/
   if [ $? -eq 0 ];then
     echo "Successfully Installed torch + cu118."
   else
@@ -145,14 +151,8 @@ if [[ $(uname -s) = 'Linux' && ! -z "${BENCHMARK}" ]]; then
   fi
 fi
 
-if [[ ! -z "${ONNX}" ]]; then
-  echo "${Yellow}Installing ONNX and onnxruntime for benchmarks..."
-  $PYTHON -m pip install onnx onnxruntime psutil
-  if [ $? -eq 0 ];then
-    echo "Successfully installed ONNX and ONNX runtime."
-  else
-    echo "Could not install ONNX." >&2
-  fi
+if [[ -z "${NO_BREVITAS}" ]]; then
+  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
 fi
 
 if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then

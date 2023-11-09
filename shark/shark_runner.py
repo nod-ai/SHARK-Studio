@@ -45,7 +45,7 @@ class SharkRunner:
     Attributes
     ----------
     mlir_module : str
-        mlir_module represented in string.
+        mlir_module path, string, or bytecode.
     device : str
         device to execute the mlir_module on.
         currently supports cpu, cuda, vulkan, and metal backends.
@@ -72,12 +72,22 @@ class SharkRunner:
         extra_args: list = [],
         compile_vmfb: bool = True,
         device_idx: int = None,
+        rt_flags: list = [],
     ):
         self.mlir_module = mlir_module
+        if self.mlir_module is not None:
+            if not os.path.isfile(mlir_module):
+                print(
+                    "Warning: Initializing SharkRunner with a mlir string/bytecode object will duplicate the model in RAM at compile time. To avoid this, initialize SharkInference with a path to a MLIR module on your hard disk instead."
+                )
+                self.compile_str = True
+            else:
+                self.compile_str = False
         self.device = shark_args.device if device == "none" else device
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
         self.device_idx = device_idx
+        self.rt_flags = rt_flags
 
         if check_device_drivers(self.device):
             print(device_driver_info(self.device))
@@ -91,13 +101,17 @@ class SharkRunner:
                 self.mlir_dialect,
                 extra_args=self.extra_args,
                 device_idx=self.device_idx,
+                rt_flags=self.rt_flags,
+                compile_str=self.compile_str,
             )
             self.iree_compilation_module = params["vmfb"]
             self.iree_config = params["config"]
             self.temp_file_to_unlink = params["temp_file_to_unlink"]
             del params
 
-    def run(self, function_name, inputs: tuple, send_to_host=False):
+    def run(
+        self, function_name, inputs: tuple, send_to_host=False, device=None
+    ):
         return get_results(
             self.iree_compilation_module,
             function_name,
@@ -105,6 +119,7 @@ class SharkRunner:
             self.iree_config,
             self.mlir_dialect,
             send_to_host,
+            device=device,
         )
 
     # Get all function names defined within the compiled module.

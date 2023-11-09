@@ -1,7 +1,7 @@
 import os
 import tempfile
 from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 import torch
 import torch_mlir
 from torch_mlir.compiler_utils import run_pipeline_with_repro_report
@@ -11,14 +11,8 @@ from brevitas_examples.llm.llm_quant.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
-def brevitas〇matmul_rhs_group_quant〡shape(
-    lhs: List[int],
-    rhs: List[int],
-    rhs_scale: List[int],
-    rhs_zero_point: List[int],
-    rhs_bit_width: int,
-    rhs_group_size: int,
-) -> List[int]:
+# fmt: off
+def quant〇matmul_rhs_group_quant〡shape(lhs: List[int], rhs: List[int], rhs_scale: List[int], rhs_zero_point: List[int], rhs_bit_width: int, rhs_group_size: int) -> List[int]:
     if len(lhs) == 3 and len(rhs) == 2:
         return [lhs[0], lhs[1], rhs[0]]
     elif len(lhs) == 2 and len(rhs) == 2:
@@ -27,30 +21,21 @@ def brevitas〇matmul_rhs_group_quant〡shape(
         raise ValueError("Input shapes not supported.")
 
 
-def brevitas〇matmul_rhs_group_quant〡dtype(
-    lhs_rank_dtype: Tuple[int, int],
-    rhs_rank_dtype: Tuple[int, int],
-    rhs_scale_rank_dtype: Tuple[int, int],
-    rhs_zero_point_rank_dtype: Tuple[int, int],
-    rhs_bit_width: int,
-    rhs_group_size: int,
-) -> int:
+def quant〇matmul_rhs_group_quant〡dtype(lhs_rank_dtype: Tuple[int, int], rhs_rank_dtype: Tuple[int, int], rhs_scale_rank_dtype: Tuple[int, int], rhs_zero_point_rank_dtype: Tuple[int, int], rhs_bit_width: int, rhs_group_size: int) -> int:
     # output dtype is the dtype of the lhs float input
     lhs_rank, lhs_dtype = lhs_rank_dtype
     return lhs_dtype
 
 
-def brevitas〇matmul_rhs_group_quant〡has_value_semantics(
-    lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size
-) -> None:
+def quant〇matmul_rhs_group_quant〡has_value_semantics(lhs, rhs, rhs_scale, rhs_zero_point, rhs_bit_width, rhs_group_size) -> None:
     return
 
 
 brevitas_matmul_rhs_group_quant_library = [
-    brevitas〇matmul_rhs_group_quant〡shape,
-    brevitas〇matmul_rhs_group_quant〡dtype,
-    brevitas〇matmul_rhs_group_quant〡has_value_semantics,
-]
+    quant〇matmul_rhs_group_quant〡shape,
+    quant〇matmul_rhs_group_quant〡dtype,
+    quant〇matmul_rhs_group_quant〡has_value_semantics]
+# fmt: on
 
 
 def load_vmfb(extended_model_name, device, mlir_dialect, extra_args=[]):
@@ -122,7 +107,7 @@ def compile_int_precision(
         torchscript_module,
         inputs,
         output_type="torch",
-        backend_legal_ops=["brevitas.matmul_rhs_group_quant"],
+        backend_legal_ops=["quant.matmul_rhs_group_quant"],
         extra_library=brevitas_matmul_rhs_group_quant_library,
         use_tracing=False,
         verbose=False,
@@ -130,7 +115,7 @@ def compile_int_precision(
     print(f"[DEBUG] converting torch to linalg")
     run_pipeline_with_repro_report(
         mlir_module,
-        "builtin.module(func.func(torch-unpack-torch-tensor),torch-backend-to-linalg-on-tensors-backend-pipeline)",
+        "builtin.module(func.func(torch-unpack-quant-tensor),func.func(torch-convert-custom-quant-op),torch-backend-to-linalg-on-tensors-backend-pipeline)",
         description="Lowering Torch Backend IR -> Linalg-on-Tensors Backend IR",
     )
     from contextlib import redirect_stdout
@@ -145,10 +130,17 @@ def compile_int_precision(
     mlir_module = mlir_module.encode("UTF-8")
     mlir_module = BytesIO(mlir_module)
     bytecode = mlir_module.read()
+    bytecode_path = os.path.join(
+        os.getcwd(), f"{extended_model_name}_linalg.mlirbc"
+    )
+    with open(bytecode_path, "wb") as f:
+        f.write(bytecode)
+    del bytecode
+    del mlir_module
     print(f"Elided IR written for {extended_model_name}")
-    return bytecode
+    return bytecode_path
     shark_module = SharkInference(
-        mlir_module=bytecode, device=device, mlir_dialect="tm_tensor"
+        mlir_module=bytecode_path, device=device, mlir_dialect="tm_tensor"
     )
     extra_args = [
         "--iree-hal-dump-executable-sources-to=ies",
@@ -163,7 +155,7 @@ def compile_int_precision(
             generate_vmfb=generate_vmfb,
             extra_args=extra_args,
         ),
-        bytecode,
+        bytecode_path,
     )
 
 
@@ -216,7 +208,7 @@ def shark_compile_through_fx(
         ]
     else:
         (
-            mlir_module,
+            bytecode,
             _,
         ) = import_with_fx(
             model=model,
@@ -226,6 +218,11 @@ def shark_compile_through_fx(
             debug=debug,
             model_name=extended_model_name,
             save_dir=save_dir,
+        )
+        mlir_module = save_mlir(
+            mlir_module=bytecode,
+            model_name=extended_model_name,
+            mlir_dialect=mlir_dialect,
         )
 
     shark_module = SharkInference(

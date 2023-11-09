@@ -3,8 +3,8 @@ import json
 import numpy as np
 
 import torch_mlir
-from iree.compiler import compile_str
-from shark.shark_importer import import_with_fx, get_f16_inputs
+from iree.compiler import compile_file
+from shark.shark_importer import import_with_fx, get_f16_inputs, save_mlir
 
 
 class GenerateConfigFile:
@@ -54,9 +54,15 @@ class GenerateConfigFile:
             verbose=False,
         )
         module = module.operation.get_asm(large_elements_limit=4)
+        module_file = save_mlir(
+            module,
+            model_name="module_pre_split",
+            frontend="torch",
+            mlir_dialect="linalg",
+        )
         compiled_module_str = str(
-            compile_str(
-                str(module),
+            compile_file(
+                module_file,
                 target_backends=[backend],
                 extra_args=[
                     "--compile-to=flow",
@@ -108,7 +114,7 @@ class GenerateConfigFile:
                 self.track_loop % self.units_in_each_stage
             )
             layer_dict = {
-                n: int(increasing_wraparound_idx_list[idx])
+                n: int(increasing_wraparound_idx_list[idx][0][0])
                 for idx, n in enumerate(self.sharding_stages_id)
             }
             self.track_loop += 1
@@ -138,7 +144,7 @@ if __name__ == "__main__":
     firstVicunaCompileInput = (compilation_input_ids,)
     from apps.language_models.src.model_wrappers.vicuna_model import (
         FirstVicuna,
-        SecondVicuna,
+        SecondVicuna7B,
         CombinedModel,
     )
 

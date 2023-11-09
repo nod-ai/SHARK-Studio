@@ -98,6 +98,7 @@ with gr.Blocks() as model_web:
         choices=None,
         value=None,
         visible=False,
+        allow_custom_value=True,
     )
     # TODO: select and SendTo
     civit_models = gr.Gallery(

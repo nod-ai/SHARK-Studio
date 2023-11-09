@@ -182,7 +182,7 @@ generated_imgs/
 
 # Custom model related artefacts
 variants.json
-models/
+/models/
 
 # models folder
 apps/stable_diffusion/web/models/
@@ -193,3 +193,12 @@ stencil_annotator/
 # For DocuChat
 apps/language_models/langchain/user_path/
 db_dir_UserData
+
+# Embeded browser cache and other
+apps/stable_diffusion/web/EBWebView/
+
+# Llama2 tokenizer configs
+llama2_tokenizer_configs/
+
+# Webview2 runtime artefacts
+EBWebView/

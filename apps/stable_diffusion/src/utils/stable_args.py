@@ -132,6 +132,57 @@ p.add_argument(
     "img2img.",
 )
 
+p.add_argument(
+    "--use_hiresfix",
+    type=bool,
+    default=False,
+    help="Use Hires Fix to do higher resolution images, while trying to "
+    "avoid the issues that come with it. This is accomplished by first "
+    "generating an image using txt2img, then running it through img2img.",
+)
+
+p.add_argument(
+    "--hiresfix_height",
+    type=int,
+    default=768,
+    choices=range(128, 769, 8),
+    help="The height of the Hires Fix image.",
+)
+
+p.add_argument(
+    "--hiresfix_width",
+    type=int,
+    default=768,
+    choices=range(128, 769, 8),
+    help="The width of the Hires Fix image.",
+)
+
+p.add_argument(
+    "--hiresfix_strength",
+    type=float,
+    default=0.6,
+    help="The denoising strength to apply for the Hires Fix.",
+)
+
+p.add_argument(
+    "--resample_type",
+    type=str,
+    default="Nearest Neighbor",
+    choices=[
+        "Lanczos",
+        "Nearest Neighbor",
+        "Bilinear",
+        "Bicubic",
+        "Adaptive",
+        "Antialias",
+        "Box",
+        "Affine",
+        "Cubic",
+    ],
+    help="The resample type to use when resizing an image before being run "
+    "through stable diffusion.",
+)
+
 ##############################################################################
 # Stable Diffusion Training Params
 ##############################################################################
@@ -202,28 +253,30 @@ p.add_argument(
     "--left",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend left for outpainting.",
+    help="If extend left for outpainting.",
 )
 
 p.add_argument(
     "--right",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend right for outpainting.",
+    help="If extend right for outpainting.",
 )
 
 p.add_argument(
+    "--up",
     "--top",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend top for outpainting.",
+    help="If extend top for outpainting.",
 )
 
 p.add_argument(
+    "--down",
     "--bottom",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend bottom for outpainting.",
+    help="If extend bottom for outpainting.",
 )
 
 p.add_argument(
@@ -255,7 +308,7 @@ p.add_argument(
 
 p.add_argument(
     "--import_mlir",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Imports the model from torch module to shark_module otherwise "
     "downloads the model from shark_tank.",
@@ -278,7 +331,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available.",
 )
@@ -371,7 +424,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_stencil",
-    choices=["canny", "openpose", "scribble"],
+    choices=["canny", "openpose", "scribble", "zoedepth"],
     help="Enable the stencil feature.",
 )
 
@@ -407,6 +460,14 @@ p.add_argument(
     help="Specify your own huggingface authentication tokens for models like Llama2.",
 )
 
+p.add_argument(
+    "--device_allocator_heap_key",
+    type=str,
+    default="",
+    help="Specify heap key for device caching allocator."
+    "Expected form: max_allocation_size;max_allocation_capacity;max_free_allocation_count"
+    "Example: --device_allocator_heap_key='*;1gib' (will limit caching on device to 1 gigabyte)",
+)
 ##############################################################################
 # IREE - Vulkan supported flags
 ##############################################################################
@@ -520,6 +581,14 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--compile_debug",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Flag to toggle debug assert/verify flags for imported IR in the"
+    "iree-compiler. Default to false.",
+)
+
+p.add_argument(
     "--iree_constant_folding",
     default=True,
     action=argparse.BooleanOptionalAction,
@@ -572,6 +641,25 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Flag for enabling rest API.",
+)
+
+p.add_argument(
+    "--api_accept_origin",
+    action="append",
+    type=str,
+    help="An origin to be accepted by the REST api for Cross Origin"
+    "Resource Sharing (CORS). Use multiple times for multiple origins, "
+    'or use --api_accept_origin="*" to accept all origins. If no origins '
+    "are set no CORS headers will be returned by the api. Use, for "
+    "instance, if you need to access the REST api from Javascript running "
+    "in a web browser.",
+)
+
+p.add_argument(
+    "--debug",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Flag for enabling debugging log in WebUI.",
 )
 
 p.add_argument(
@@ -649,6 +737,17 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Specifies whether the docuchat's web version is running or not.",
+)
+
+##############################################################################
+# rocm Flags
+##############################################################################
+
+p.add_argument(
+    "--iree_rocm_target_chip",
+    type=str,
+    default="gfx1100",
+    help="Add the rocm device architecture ex gfx1100, gfx90a, etc. Default gfx1100",
 )
 
 args, unknown = p.parse_known_args()

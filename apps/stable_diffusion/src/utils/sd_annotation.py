@@ -109,7 +109,7 @@ def load_lower_configs(base_model_id=None):
             spec = spec.split("-")[0]
 
     if args.annotation_model == "vae":
-        if not spec or spec in ["rdna3", "sm_80"]:
+        if not spec or spec in ["sm_80"]:
             config_name = (
                 f"{args.annotation_model}_{args.precision}_{device}.json"
             )
@@ -158,9 +158,9 @@ def load_lower_configs(base_model_id=None):
                 f"{spec}.json"
             )
 
-    full_gs_url = config_bucket + config_name
     lowering_config_dir = os.path.join(WORKDIR, "configs", config_name)
     print("Loading lowering config file from ", lowering_config_dir)
+    full_gs_url = config_bucket + config_name
     download_public_file(full_gs_url, lowering_config_dir, True)
     return lowering_config_dir
 
@@ -203,8 +203,8 @@ def dump_after_mlir(input_mlir, use_winograd):
     if use_winograd:
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline=builtin.module"
-            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
-            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "(func.func(iree-global-opt-detach-elementwise-from-named-ops,"
+            "iree-global-opt-convert-1x1-filter-conv2d-to-matmul,"
             "iree-preprocessing-convert-conv2d-to-img2col,"
             "iree-preprocessing-pad-linalg-ops{pad-size=32},"
             "iree-linalg-ext-convert-conv2d-to-winograd))"
@@ -212,8 +212,8 @@ def dump_after_mlir(input_mlir, use_winograd):
     else:
         preprocess_flag = (
             "--iree-preprocessing-pass-pipeline=builtin.module"
-            "(func.func(iree-flow-detach-elementwise-from-named-ops,"
-            "iree-flow-convert-1x1-filter-conv2d-to-matmul,"
+            "(func.func(iree-global-opt-detach-elementwise-from-named-ops,"
+            "iree-global-opt-convert-1x1-filter-conv2d-to-matmul,"
             "iree-preprocessing-convert-conv2d-to-img2col,"
             "iree-preprocessing-pad-linalg-ops{pad-size=32}))"
         )

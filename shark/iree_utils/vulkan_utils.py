@@ -24,10 +24,17 @@ from shark.parser import shark_args
 
 
 @functools.cache
+def get_all_vulkan_devices():
+    from iree.runtime import get_driver
+
+    driver = get_driver("vulkan")
+    device_list_src = driver.query_available_devices()
+    return [d["name"] for d in device_list_src]
+
+
+@functools.cache
 def get_vulkan_device_name(device_num=0):
-    vulkaninfo_dump, _ = run_cmd("vulkaninfo")
-    vulkaninfo_dump = vulkaninfo_dump.split(linesep)
-    vulkaninfo_list = [s.strip() for s in vulkaninfo_dump if "deviceName" in s]
+    vulkaninfo_list = get_all_vulkan_devices()
     if len(vulkaninfo_list) == 0:
         raise ValueError("No device name found in VulkanInfo!")
     if len(vulkaninfo_list) > 1:
@@ -60,6 +67,8 @@ def get_vulkan_target_triple(device_name):
     Returns:
         str or None: target triple or None if no match found for given name
     """
+
+    # TODO: Replace this with a dict or something smarter.
     system_os = get_os_name()
     # Apple Targets
     if all(x in device_name for x in ("Apple", "M1")):
@@ -109,8 +118,12 @@ def get_vulkan_target_triple(device_name):
     # Amd Targets
     # Linux: Radeon RX 7900 XTX
     # Windows: AMD Radeon RX 7900 XTX
+    elif all(x in device_name for x in ("RX", "7800")):
+        triple = f"rdna3-7800-{system_os}"
     elif all(x in device_name for x in ("RX", "7900")):
         triple = f"rdna3-7900-{system_os}"
+    elif all(x in device_name for x in ("Radeon", "780M")):
+        triple = f"rdna3-780m-{system_os}"
     elif all(x in device_name for x in ("AMD", "PRO", "W7900")):
         triple = f"rdna3-w7900-{system_os}"
     elif any(x in device_name for x in ("AMD", "Radeon")):
@@ -178,9 +191,7 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
 @functools.cache
 def get_iree_vulkan_runtime_flags():
     vulkan_runtime_flags = [
-        f"--vulkan_large_heap_block_size={shark_args.vulkan_large_heap_block_size}",
         f"--vulkan_validation_layers={'true' if shark_args.vulkan_validation_layers else 'false'}",
-        f"--vulkan_vma_allocator={'true' if shark_args.vulkan_vma_allocator else 'false'}",
     ]
     return vulkan_runtime_flags
 

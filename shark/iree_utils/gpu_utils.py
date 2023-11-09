@@ -17,6 +17,7 @@
 import functools
 import iree.runtime as ireert
 import ctypes
+import sys
 from shark.parser import shark_args
 
 
@@ -39,25 +40,26 @@ def get_iree_gpu_args():
 
 
 # Get the default gpu args given the architecture.
-@functools.cache
-def get_iree_rocm_args():
+def get_iree_rocm_args(extra_args=[]):
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
-    # get arch from rocminfo.
-    import re
-    import subprocess
+    rocm_flags = ["--iree-rocm-link-bc=true"]
 
-    rocm_arch = re.match(
-        r".*(gfx\w+)",
-        subprocess.check_output(
-            "rocminfo | grep -i 'gfx'", shell=True, text=True
-        ),
-    ).group(1)
-    print(f"Found rocm arch {rocm_arch}...")
-    return [
-        f"--iree-rocm-target-chip={rocm_arch}",
-        "--iree-rocm-link-bc=true",
-        "--iree-rocm-bc-dir=/opt/rocm/amdgcn/bitcode",
-    ]
+    # Add the target arch flag for rocm device
+    flag_present = False
+    for flag in extra_args:
+        if "iree-rocm-target-chip" in flag:
+            flag_present = True
+            print(
+                f"found rocm target device arch from flag : {flag.split('=')[1]}"
+            )
+    if not flag_present:
+        print(
+            "Failed to find ROCm architecture from hipinfo / rocminfo. Defaulting to gfx1100."
+        )
+        rocm_arch = "gfx1100"
+        rocm_flags.append(f"--iree-rocm-target-chip={rocm_arch}")
+
+    return rocm_flags
 
 
 # Some constants taken from cuda.h

@@ -39,14 +39,22 @@ def get_iree_device_args(device, extra_args=[]):
                 f"Specific device selection only supported for vulkan now."
                 f"Proceeding with {device} as device."
             )
-        device_num = device_uri[1]
+        # device_uri can be device_num or device_path.
+        # assuming number of devices for a single driver will be not be >99
+        if len(device_uri[1]) <= 2:
+            # expected to be device index in range 0 - 99
+            device_num = int(device_uri[1])
+        else:
+            # expected to be device path
+            device_num = device_uri[1]
+
     else:
         device_num = 0
 
-    if device_uri[0] == "cpu":
+    if "cpu" in device:
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
-        data_tiling_flag = ["--iree-flow-enable-data-tiling"]
+        data_tiling_flag = ["--iree-opt-data-tiling"]
         u_kernel_flag = ["--iree-llvmcpu-enable-microkernels"]
         stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=256000"]
 
@@ -55,6 +63,8 @@ def get_iree_device_args(device, extra_args=[]):
             + data_tiling_flag
             + u_kernel_flag
             + stack_size_flag
+            + ["--iree-flow-enable-quantized-matmul-reassociation"]
+            + ["--iree-llvmcpu-enable-quantized-matmul-reassociation"]
         )
     if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
@@ -73,7 +83,7 @@ def get_iree_device_args(device, extra_args=[]):
     if device_uri[0] == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
-        return get_iree_rocm_args()
+        return get_iree_rocm_args(extra_args=extra_args)
     return []
 
 
@@ -84,7 +94,7 @@ def get_iree_frontend_args(frontend):
     elif frontend in ["tensorflow", "tf", "mhlo", "stablehlo"]:
         return [
             "--iree-llvmcpu-target-cpu-features=host",
-            "--iree-flow-demote-i64-to-i32",
+            "--iree-input-demote-i64-to-i32",
         ]
     else:
         # Frontend not found.
@@ -92,13 +102,27 @@ def get_iree_frontend_args(frontend):
 
 
 # Common args to be used given any frontend or device.
-def get_iree_common_args():
-    return [
-        "--iree-stream-resource-index-bits=64",
-        "--iree-vm-target-index-bits=64",
+def get_iree_common_args(debug=False):
+    common_args = [
+        "--iree-stream-resource-max-allocation-size=4294967295",
         "--iree-vm-bytecode-module-strip-source-map=true",
         "--iree-util-zero-fill-elided-attrs",
     ]
+    if debug == True:
+        common_args.extend(
+            [
+                "--iree-opt-strip-assertions=false",
+                "--verify=true",
+            ]
+        )
+    else:
+        common_args.extend(
+            [
+                "--iree-opt-strip-assertions=true",
+                "--verify=false",
+            ]
+        )
+    return common_args
 
 
 # Args that are suitable only for certain models or groups of models.
@@ -277,14 +301,17 @@ def compile_module_to_flatbuffer(
     model_config_path,
     extra_args,
     model_name="None",
+    debug=False,
+    compile_str=False,
 ):
     # Setup Compile arguments wrt to frontends.
-    input_type = ""
+    input_type = "auto"
     args = get_iree_frontend_args(frontend)
     args += get_iree_device_args(device, extra_args)
-    args += get_iree_common_args()
+    args += get_iree_common_args(debug=debug)
     args += get_model_specific_args()
     args += extra_args
+    args += shark_args.additional_compile_args
 
     if frontend in ["tensorflow", "tf"]:
         input_type = "auto"
@@ -295,10 +322,7 @@ def compile_module_to_flatbuffer(
     elif frontend in ["tm_tensor"]:
         input_type = ireec.InputType.TM_TENSOR
 
-    # TODO: make it simpler.
-    # Compile according to the input type, else just try compiling.
-    if input_type != "":
-        # Currently for MHLO/TOSA.
+    if compile_str:
         flatbuffer_blob = ireec.compile_str(
             module,
             target_backends=[iree_target_map(device)],
@@ -306,9 +330,10 @@ def compile_module_to_flatbuffer(
             input_type=input_type,
         )
     else:
-        # Currently for Torch.
-        flatbuffer_blob = ireec.compile_str(
-            module,
+        assert os.path.isfile(module)
+        flatbuffer_blob = ireec.compile_file(
+            str(module),
+            input_type=input_type,
             target_backends=[iree_target_map(device)],
             extra_args=args,
         )
@@ -316,8 +341,12 @@ def compile_module_to_flatbuffer(
     return flatbuffer_blob
 
 
-def get_iree_module(flatbuffer_blob, device, device_idx=None):
+def get_iree_module(
+    flatbuffer_blob, device, device_idx=None, rt_flags: list = []
+):
     # Returns the compiled module and the configs.
+    for flag in rt_flags:
+        ireert.flags.parse_flag(flag)
     if device_idx is not None:
         device = iree_device_map(device)
         print("registering device id: ", device_idx)
@@ -339,10 +368,24 @@ def get_iree_module(flatbuffer_blob, device, device_idx=None):
 
 
 def load_vmfb_using_mmap(
-    flatbuffer_blob_or_path, device: str, device_idx: int = None
+    flatbuffer_blob_or_path,
+    device: str,
+    device_idx: int = None,
+    rt_flags: list = [],
 ):
     print(f"Loading module {flatbuffer_blob_or_path}...")
+    if "task" in device:
+        print(
+            f"[DEBUG] setting iree runtime flags for cpu:\n{' '.join(get_iree_cpu_rt_args())}"
+        )
+        for flag in get_iree_cpu_rt_args():
+            rt_flags.append(flag)
+    for flag in rt_flags:
+        print(flag)
+        ireert.flags.parse_flags(flag)
 
+    if "rocm" in device:
+        device = "rocm"
     with DetailLogger(timeout=2.5) as dl:
         # First get configs.
         if device_idx is not None:
@@ -357,6 +400,9 @@ def load_vmfb_using_mmap(
             )
             dl.log(f"ireert.create_device()")
             config = ireert.Config(device=haldevice)
+            config.id = haldriver.query_available_devices()[device_idx][
+                "device_id"
+            ]
             dl.log(f"ireert.Config()")
         else:
             config = get_iree_runtime_config(device)
@@ -367,6 +413,7 @@ def load_vmfb_using_mmap(
             )
             for flag in get_iree_cpu_rt_args():
                 ireert.flags.parse_flags(flag)
+
         # Now load vmfb.
         # Two scenarios we have here :-
         #      1. We either have the vmfb already saved and therefore pass the path of it.
@@ -386,7 +433,14 @@ def load_vmfb_using_mmap(
             )
             dl.log(f"mmap {flatbuffer_blob_or_path}")
             ctx = ireert.SystemContext(config=config)
+            for flag in shark_args.additional_runtime_args:
+                ireert.flags.parse_flags(flag)
             dl.log(f"ireert.SystemContext created")
+            if "vulkan" in device:
+                # Vulkan pipeline creation consumes significant amount of time.
+                print(
+                    "\tCompiling Vulkan shaders. This may take a few minutes."
+                )
             ctx.add_vm_module(mmaped_vmfb)
             dl.log(f"module initialized")
             mmaped_vmfb = getattr(ctx.modules, mmaped_vmfb.name)
@@ -407,12 +461,21 @@ def get_iree_compiled_module(
     frontend: str = "torch",
     model_config_path: str = None,
     extra_args: list = [],
+    rt_flags: list = [],
     device_idx: int = None,
     mmap: bool = False,
+    debug: bool = False,
+    compile_str: bool = False,
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, frontend, model_config_path, extra_args
+        module=module,
+        device=device,
+        frontend=frontend,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     temp_file_to_unlink = None
     # TODO: Currently mmap=True control flow path has been switched off for mmap.
@@ -421,11 +484,14 @@ def get_iree_compiled_module(
     #       I'm getting hold of the name of the temporary file in `temp_file_to_unlink`.
     if mmap:
         vmfb, config, temp_file_to_unlink = load_vmfb_using_mmap(
-            flatbuffer_blob, device, device_idx
+            flatbuffer_blob, device, device_idx, rt_flags
         )
     else:
         vmfb, config = get_iree_module(
-            flatbuffer_blob, device, device_idx=device_idx
+            flatbuffer_blob,
+            device,
+            device_idx=device_idx,
+            rt_flags=rt_flags,
         )
     ret_params = {
         "vmfb": vmfb,
@@ -440,17 +506,21 @@ def load_flatbuffer(
     device: str,
     device_idx: int = None,
     mmap: bool = False,
+    rt_flags: list = [],
 ):
     temp_file_to_unlink = None
     if mmap:
         vmfb, config, temp_file_to_unlink = load_vmfb_using_mmap(
-            flatbuffer_path, device, device_idx
+            flatbuffer_path, device, device_idx, rt_flags
         )
     else:
         with open(os.path.join(flatbuffer_path), "rb") as f:
             flatbuffer_blob = f.read()
         vmfb, config = get_iree_module(
-            flatbuffer_blob, device, device_idx=device_idx
+            flatbuffer_blob,
+            device,
+            device_idx=device_idx,
+            rt_flags=rt_flags,
         )
     ret_params = {
         "vmfb": vmfb,
@@ -468,10 +538,18 @@ def export_iree_module_to_vmfb(
     model_config_path: str = None,
     module_name: str = None,
     extra_args: list = [],
+    debug: bool = False,
+    compile_str: bool = False,
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module, device, mlir_dialect, model_config_path, extra_args
+        module=module,
+        device=device,
+        frontend=mlir_dialect,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     if module_name is None:
         device_name = (
@@ -479,9 +557,9 @@ def export_iree_module_to_vmfb(
         )
         module_name = f"{mlir_dialect}_{device_name}"
     filename = os.path.join(directory, module_name + ".vmfb")
-    print(f"Saved vmfb in {filename}.")
     with open(filename, "wb") as f:
         f.write(flatbuffer_blob)
+    print(f"Saved vmfb in {filename}.")
     return filename
 
 
@@ -507,10 +585,17 @@ def get_results(
     frontend="torch",
     send_to_host=True,
     debug_timeout: float = 5.0,
+    device: str = None,
 ):
     """Runs a .vmfb file given inputs and config and returns output."""
     with DetailLogger(debug_timeout) as dl:
         device_inputs = []
+        if device == "rocm" and hasattr(config, "id"):
+            haldriver = ireert.get_driver("rocm")
+            haldevice = haldriver.create_device(
+                config.id,
+                allocators=shark_args.device_allocator,
+            )
         for input_array in input:
             dl.log(f"Load to device: {input_array.shape}")
             device_inputs.append(
@@ -547,9 +632,17 @@ def get_results(
 def get_iree_runtime_config(device):
     device = iree_device_map(device)
     haldriver = ireert.get_driver(device)
+    if "metal" in device and shark_args.device_allocator == "caching":
+        print(
+            "[WARNING] metal devices can not have a `caching` allocator."
+            "\nUsing default allocator `None`"
+        )
     haldevice = haldriver.create_device_by_uri(
         device,
-        allocators=shark_args.device_allocator,
+        # metal devices have a failure with caching allocators atm. blcking this util it gets fixed upstream.
+        allocators=shark_args.device_allocator
+        if "metal" not in device
+        else None,
     )
     config = ireert.Config(device=haldevice)
     return config

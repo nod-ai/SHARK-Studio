@@ -8,6 +8,7 @@ import traceback
 import subprocess
 import sys
 import os
+import requests
 from apps.stable_diffusion.src.utils import (
     compile_through_fx,
     get_opt_flags,
@@ -16,6 +17,7 @@ from apps.stable_diffusion.src.utils import (
     preprocessCKPT,
     convert_original_vae,
     get_path_to_diffusers_checkpoint,
+    get_civitai_checkpoint,
     fetch_and_update_base_model_id,
     get_path_stem,
     get_extended_name,
@@ -94,21 +96,19 @@ class SharkifyStableDiffusionModel:
         self.height = height // 8
         self.width = width // 8
         self.batch_size = batch_size
-        self.custom_weights = custom_weights
+        self.custom_weights = custom_weights.strip()
         self.use_quantize = use_quantize
         if custom_weights != "":
-            if "civitai" in custom_weights:
-                weights_id = custom_weights.split("/")[-1]
-                # TODO: use model name and identify file type by civitai rest api
-                weights_path = (
-                    str(Path.cwd()) + "/models/" + weights_id + ".safetensors"
-                )
-                if not os.path.isfile(weights_path):
-                    subprocess.run(
-                        ["wget", custom_weights, "-O", weights_path]
-                    )
+            if custom_weights.startswith("https://civitai.com/api/"):
+                # download the checkpoint from civitai if we don't already have it
+                weights_path = get_civitai_checkpoint(custom_weights)
+
+                # act as if we were given the local file as custom_weights originally
                 custom_weights = get_path_to_diffusers_checkpoint(weights_path)
                 self.custom_weights = weights_path
+
+                # needed to ensure webui sets the correct model name metadata
+                args.ckpt_loc = weights_path
             else:
                 assert custom_weights.lower().endswith(
                     (".ckpt", ".safetensors")
@@ -116,6 +116,7 @@ class SharkifyStableDiffusionModel:
                 custom_weights = get_path_to_diffusers_checkpoint(
                     custom_weights
                 )
+
         self.model_id = model_id if custom_weights == "" else custom_weights
         # TODO: remove the following line when stable-diffusion-2-1 works
         if self.model_id == "stabilityai/stable-diffusion-2-1":
@@ -177,9 +178,11 @@ class SharkifyStableDiffusionModel:
             "unet",
             "unet512",
             "stencil_unet",
+            "stencil_unet_512",
             "vae",
             "vae_encode",
             "stencil_adaptor",
+            "stencil_adaptor_512",
         ]
         index = 0
         for model in sub_model_list:
@@ -339,7 +342,7 @@ class SharkifyStableDiffusionModel:
         )
         return shark_vae, vae_mlir
 
-    def get_controlled_unet(self):
+    def get_controlled_unet(self, use_large=False):
         class ControlledUnetModel(torch.nn.Module):
             def __init__(
                 self,
@@ -415,6 +418,16 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
 
         inputs = tuple(self.inputs["unet"])
+        model_name = "stencil_unet"
+        if use_large:
+            pad = (0, 0) * (len(inputs[2].shape) - 2)
+            pad = pad + (0, 512 - inputs[2].shape[1])
+            inputs = (
+                inputs[:2]
+                + (torch.nn.functional.pad(inputs[2], pad),)
+                + inputs[3:]
+            )
+            model_name = "stencil_unet_512"
         input_mask = [
             True,
             True,
@@ -437,19 +450,19 @@ class SharkifyStableDiffusionModel:
         shark_controlled_unet, controlled_unet_mlir = compile_through_fx(
             unet,
             inputs,
-            extended_model_name=self.model_name["stencil_unet"],
+            extended_model_name=self.model_name[model_name],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
-            model_name="stencil_unet",
+            model_name=model_name,
             precision=self.precision,
             return_mlir=self.return_mlir,
         )
         return shark_controlled_unet, controlled_unet_mlir
 
-    def get_control_net(self):
+    def get_control_net(self, use_large=False):
         class StencilControlNetModel(torch.nn.Module):
             def __init__(
                 self, model_id=self.use_stencil, low_cpu_mem_usage=False
@@ -497,17 +510,34 @@ class SharkifyStableDiffusionModel:
         is_f16 = True if self.precision == "fp16" else False
 
         inputs = tuple(self.inputs["stencil_adaptor"])
+        if use_large:
+            pad = (0, 0) * (len(inputs[2].shape) - 2)
+            pad = pad + (0, 512 - inputs[2].shape[1])
+            inputs = (
+                inputs[0],
+                inputs[1],
+                torch.nn.functional.pad(inputs[2], pad),
+                inputs[3],
+            )
+            save_dir = os.path.join(
+                self.sharktank_dir, self.model_name["stencil_adaptor_512"]
+            )
+        else:
+            save_dir = os.path.join(
+                self.sharktank_dir, self.model_name["stencil_adaptor"]
+            )
         input_mask = [True, True, True, True]
+        model_name = "stencil_adaptor" if use_large else "stencil_adaptor_512"
         shark_cnet, cnet_mlir = compile_through_fx(
             scnet,
             inputs,
-            extended_model_name=self.model_name["stencil_adaptor"],
+            extended_model_name=self.model_name[model_name],
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
             extra_args=get_opt_flags("unet", precision=self.precision),
             base_model_id=self.base_model_id,
-            model_name="stencil_adaptor",
+            model_name=model_name,
             precision=self.precision,
             return_mlir=self.return_mlir,
         )
@@ -681,8 +711,11 @@ class SharkifyStableDiffusionModel:
                 return self.text_encoder(input)[0]
 
         clip_model = CLIPText(low_cpu_mem_usage=self.low_cpu_mem_usage)
-        save_dir = os.path.join(self.sharktank_dir, self.model_name["clip"])
+        save_dir = ""
         if self.debug:
+            save_dir = os.path.join(
+                self.sharktank_dir, self.model_name["clip"]
+            )
             os.makedirs(
                 save_dir,
                 exist_ok=True,
@@ -748,7 +781,7 @@ class SharkifyStableDiffusionModel:
             else:
                 return self.get_unet(use_large=use_large)
         else:
-            return self.get_controlled_unet()
+            return self.get_controlled_unet(use_large=use_large)
 
     def vae_encode(self):
         try:
@@ -847,12 +880,14 @@ class SharkifyStableDiffusionModel:
         except Exception as e:
             sys.exit(e)
 
-    def controlnet(self):
+    def controlnet(self, use_large=False):
         try:
             self.inputs["stencil_adaptor"] = self.get_input_info_for(
                 base_models["stencil_adaptor"]
             )
-            compiled_stencil_adaptor, controlnet_mlir = self.get_control_net()
+            compiled_stencil_adaptor, controlnet_mlir = self.get_control_net(
+                use_large=use_large
+            )
 
             check_compilation(compiled_stencil_adaptor, "Stencil")
             if self.return_mlir:

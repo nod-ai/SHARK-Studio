@@ -47,18 +47,15 @@ from apps.language_models.src.model_wrappers.vicuna_sharded_model import (
 )
 from apps.language_models.src.model_wrappers.vicuna_model import (
     FirstVicuna,
-    SecondVicuna,
+    SecondVicuna7B,
 )
 from apps.language_models.utils import (
     get_vmfb_from_path,
 )
 from shark.shark_downloader import download_public_file
 from shark.shark_importer import get_f16_inputs
-from shark.shark_importer import import_with_fx
 from shark.shark_inference import SharkInference
 
-from brevitas_examples.llm.llm_quant.quantize import quantize_model
-from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 from transformers.models.llama.configuration_llama import LlamaConfig
 from transformers.models.llama.modeling_llama import (
     LlamaDecoderLayer,

@@ -13,7 +13,11 @@
 # limitations under the License.
 
 from shark.shark_runner import SharkRunner
-from shark.iree_utils.compile_utils import export_iree_module_to_vmfb
+from shark.iree_utils.compile_utils import (
+    export_iree_module_to_vmfb,
+    load_flatbuffer,
+    get_iree_runtime_config,
+)
 from shark.iree_utils.benchmark_utils import (
     build_benchmark_args,
     run_benchmark_module,
@@ -79,22 +83,39 @@ class SharkBenchmarkRunner(SharkRunner):
         self.mlir_dialect = mlir_dialect
         self.extra_args = extra_args
         self.import_args = {}
+        self.temp_file_to_unlink = None
+        if not os.path.isfile(mlir_module):
+            print(
+                "Warning: Initializing SharkRunner with a mlir string/bytecode object will duplicate the model in RAM at compile time. To avoid this, initialize SharkInference with a path to a MLIR module on your hard disk instead."
+            )
+            self.compile_str = True
+        else:
+            self.compile_str = False
         SharkRunner.__init__(
             self,
             mlir_module,
             device,
             self.mlir_dialect,
             self.extra_args,
-            compile_vmfb=True,
+            compile_vmfb=False,
         )
-        if self.vmfb_file == None:
-            self.vmfb_file = export_iree_module_to_vmfb(
-                mlir_module,
-                device,
-                ".",
-                self.mlir_dialect,
-                extra_args=self.extra_args,
-            )
+        self.vmfb_file = export_iree_module_to_vmfb(
+            mlir_module,
+            device,
+            ".",
+            self.mlir_dialect,
+            extra_args=self.extra_args,
+            compile_str=self.compile_str,
+        )
+        params = load_flatbuffer(
+            self.vmfb_file,
+            device,
+            mmap=True,
+        )
+        self.iree_compilation_module = params["vmfb"]
+        self.iree_config = params["config"]
+        self.temp_file_to_unlink = params["temp_file_to_unlink"]
+        del params
 
     def setup_cl(self, input_tensors):
         self.benchmark_cl = build_benchmark_args(
@@ -111,42 +132,41 @@ class SharkBenchmarkRunner(SharkRunner):
         elif self.mlir_dialect in ["mhlo", "tf"]:
             return self.benchmark_tf(modelname)
 
-    def benchmark_torch(self, modelname):
+    def benchmark_torch(self, modelname, device="cpu"):
         import torch
         from tank.model_utils import get_torch_model
 
-        if self.device == "cuda":
-            torch.set_default_tensor_type(torch.cuda.FloatTensor)
-            if self.enable_tf32:
-                torch.backends.cuda.matmul.allow_tf32 = True
+        # TODO: Pass this as an arg. currently the best way is to setup with BENCHMARK=1 if we want to use torch+cuda, else use cpu.
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        if device == "cuda":
+            torch.set_default_device("cuda:0")
+            # if self.enable_tf32:
+            #    torch.backends.cuda.matmul.allow_tf32 = True
         else:
-            torch.set_default_tensor_type(torch.FloatTensor)
-        torch_device = torch.device(
-            "cuda:0" if self.device == "cuda" else "cpu"
-        )
+            torch.set_default_dtype(torch.float32)
+            torch.set_default_device("cpu")
+        torch_device = torch.device("cuda:0" if device == "cuda" else "cpu")
         HFmodel, input = get_torch_model(modelname, self.import_args)[:2]
         frontend_model = HFmodel.model
         frontend_model.to(torch_device)
-        input.to(torch_device)
-
-        # TODO: re-enable as soon as pytorch CUDA context issues are resolved
-        try:
-            frontend_model = torch.compile(
-                frontend_model, mode="max-autotune", backend="inductor"
-            )
-        except RuntimeError:
-            frontend_model = HFmodel.model
+        if device == "cuda":
+            frontend_model.cuda()
+            input.to(torch.device("cuda:0"))
+            print(input)
+        else:
+            frontend_model.cpu()
+            input.cpu()
 
         for i in range(shark_args.num_warmup_iterations):
             frontend_model.forward(input)
 
-        if self.device == "cuda":
+        if device == "cuda":
             torch.cuda.reset_peak_memory_stats()
         begin = time.time()
         for i in range(shark_args.num_iterations):
             out = frontend_model.forward(input)
         end = time.time()
-        if self.device == "cuda":
+        if device == "cuda":
             stats = torch.cuda.memory_stats()
             device_peak_b = stats["allocated_bytes.all.peak"]
             frontend_model.to(torch.device("cpu"))
@@ -158,7 +178,7 @@ class SharkBenchmarkRunner(SharkRunner):
         print(
             f"Torch benchmark:{shark_args.num_iterations/(end-begin)} iter/second, Total Iterations:{shark_args.num_iterations}"
         )
-        if self.device == "cuda":
+        if device == "cuda":
             # Set device to CPU so we don't run into segfaults exiting pytest subprocesses.
             torch_device = torch.device("cpu")
         return [

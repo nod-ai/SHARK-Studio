@@ -18,14 +18,14 @@ import tempfile
 import torch
 from safetensors.torch import load_file
 from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from shark.shark_importer import import_with_fx, save_mlir
 from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
     get_iree_vulkan_runtime_flags,
 )
 from shark.iree_utils.metal_utils import get_metal_target_triple
-from shark.iree_utils.gpu_utils import get_cuda_sm_cc
+from shark.iree_utils.gpu_utils import get_cuda_sm_cc, get_iree_rocm_args
 from apps.stable_diffusion.src.utils.stable_args import args
 from apps.stable_diffusion.src.utils.resources import opt_flags
 from apps.stable_diffusion.src.utils.sd_annotation import sd_model_annotation
@@ -78,7 +78,7 @@ def _compile_module(shark_module, model_name, extra_args=[]):
                     )
                 )
             path = shark_module.save_module(
-                os.getcwd(), model_name, extra_args
+                os.getcwd(), model_name, extra_args, debug=args.compile_debug
             )
             shark_module.load_module(path, extra_args=extra_args)
     else:
@@ -154,8 +154,8 @@ def compile_through_fx(
         f16_input_mask=f16_input_mask,
         debug=debug,
         model_name=extended_model_name,
-        save_dir=save_dir,
     )
+
     if use_tuned:
         if "vae" in extended_model_name.split("_")[0]:
             args.annotation_model = "vae"
@@ -168,6 +168,14 @@ def compile_through_fx(
             mlir_module, extended_model_name, base_model_id
         )
 
+    if not os.path.isdir(save_dir):
+        save_dir = ""
+
+    mlir_module = save_mlir(
+        mlir_module,
+        model_name=extended_model_name,
+        dir=save_dir,
+    )
     shark_module = SharkInference(
         mlir_module,
         device=args.device if device is None else device,
@@ -179,16 +187,21 @@ def compile_through_fx(
             mlir_module,
         )
 
-    del mlir_module
     gc.collect()
 
 
 def set_iree_runtime_flags():
+    # TODO: This function should be device-agnostic and piped properly
+    # to general runtime driver init.
     vulkan_runtime_flags = get_iree_vulkan_runtime_flags()
     if args.enable_rgp:
         vulkan_runtime_flags += [
             f"--enable_rgp=true",
             f"--vulkan_debug_utils=true",
+        ]
+    if args.device_allocator_heap_key:
+        vulkan_runtime_flags += [
+            f"--device_allocator=caching:device_local={args.device_allocator_heap_key}",
         ]
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
@@ -464,18 +477,38 @@ def get_available_devices():
                         f"{device_name} => {driver_name.replace('local', 'cpu')}"
                     )
                 else:
-                    device_list.append(f"{device_name} => {driver_name}://{i}")
+                    # for drivers with single devices
+                    # let the default device be selected without any indexing
+                    if len(device_list_dict) == 1:
+                        device_list.append(f"{device_name} => {driver_name}")
+                    else:
+                        device_list.append(
+                            f"{device_name} => {driver_name}://{i}"
+                        )
         return device_list
 
     set_iree_runtime_flags()
 
     available_devices = []
-    vulkan_devices = get_devices_by_name("vulkan")
+    from shark.iree_utils.vulkan_utils import (
+        get_all_vulkan_devices,
+    )
+
+    vulkaninfo_list = get_all_vulkan_devices()
+    vulkan_devices = []
+    id = 0
+    for device in vulkaninfo_list:
+        vulkan_devices.append(f"{device.strip()} => vulkan://{id}")
+        id += 1
+    if id != 0:
+        print(f"vulkan devices are available.")
     available_devices.extend(vulkan_devices)
     metal_devices = get_devices_by_name("metal")
     available_devices.extend(metal_devices)
     cuda_devices = get_devices_by_name("cuda")
     available_devices.extend(cuda_devices)
+    rocm_devices = get_devices_by_name("rocm")
+    available_devices.extend(rocm_devices)
     cpu_device = get_devices_by_name("cpu-sync")
     available_devices.extend(cpu_device)
     cpu_device = get_devices_by_name("cpu-task")
@@ -499,16 +532,15 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags.append(
             f"-iree-vulkan-target-triple={args.iree_vulkan_target_triple}"
         )
-
+    if "rocm" in args.device:
+        rocm_args = get_iree_rocm_args()
+        iree_flags.extend(rocm_args)
+        print(iree_flags)
     if args.iree_constant_folding == False:
         iree_flags.append("--iree-opt-const-expr-hoisting=False")
         iree_flags.append(
             "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
         )
-
-    # Disable bindings fusion to work with moltenVK.
-    if sys.platform == "darwin":
-        iree_flags.append("-iree-stream-fuse-binding=false")
 
     if "default_compilation_flags" in opt_flags[model][is_tuned][precision]:
         iree_flags += opt_flags[model][is_tuned][precision][
@@ -572,7 +604,7 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     )
     num_in_channels = 9 if is_inpaint else 4
     pipe = download_from_original_stable_diffusion_ckpt(
-        checkpoint_path=custom_weights,
+        checkpoint_path_or_dict=custom_weights,
         extract_ema=extract_ema,
         from_safetensors=from_safetensors,
         num_in_channels=num_in_channels,
@@ -779,11 +811,12 @@ def batch_seeds(
     seeds = seeds[:batch_count] + [-1] * (batch_count - len(seeds))
 
     if repeatable:
-        # set seed for the rng based on what we have so far
-        saved_random_state = random_getstate()
         if all(seed < 0 for seed in seeds):
             seeds[0] = sanitize_seed(seeds[0])
-        seed_random(str(seeds))
+
+        # set seed for the rng based on what we have so far
+        saved_random_state = random_getstate()
+        seed_random(str([n for n in seeds if n > -1]))
 
     # generate any seeds that are unspecified
     seeds = [sanitize_seed(seed) for seed in seeds]
@@ -822,6 +855,8 @@ def clear_all():
     elif os.name == "unix":
         shutil.rmtree(os.path.join(home, ".cache/AMD/VkCache"))
         shutil.rmtree(os.path.join(home, ".local/shark_tank"))
+    if args.local_tank_cache != "":
+        shutil.rmtree(args.local_tank_cache)
 
 
 def get_generated_imgs_path() -> Path:
@@ -867,6 +902,13 @@ def save_output_img(output_img, img_seed, extra_info=None):
         pngInfo = PngImagePlugin.PngInfo()
 
         if args.write_metadata_to_png:
+            # Using a conditional expression caused problems, so setting a new
+            # variable for now.
+            if args.use_hiresfix:
+                png_size_text = f"{args.hiresfix_width}x{args.hiresfix_height}"
+            else:
+                png_size_text = f"{args.width}x{args.height}"
+
             pngInfo.add_text(
                 "parameters",
                 f"{args.prompts[0]}"
@@ -875,7 +917,7 @@ def save_output_img(output_img, img_seed, extra_info=None):
                 f"Sampler: {args.scheduler}, "
                 f"CFG scale: {args.guidance_scale}, "
                 f"Seed: {img_seed},"
-                f"Size: {args.width}x{args.height}, "
+                f"Size: {png_size_text}, "
                 f"Model: {img_model}, "
                 f"VAE: {img_vae}, "
                 f"LoRA: {img_lora}",
@@ -902,8 +944,10 @@ def save_output_img(output_img, img_seed, extra_info=None):
         "CFG_SCALE": args.guidance_scale,
         "PRECISION": args.precision,
         "STEPS": args.steps,
-        "HEIGHT": args.height,
-        "WIDTH": args.width,
+        "HEIGHT": args.height
+        if not args.use_hiresfix
+        else args.hiresfix_height,
+        "WIDTH": args.width if not args.use_hiresfix else args.hiresfix_width,
         "MAX_LENGTH": args.max_length,
         "OUTPUT": out_img_path,
         "VAE": img_vae,
@@ -941,6 +985,10 @@ def get_generation_text_info(seeds, device):
     )
     text_output += (
         f"\nsize={args.height}x{args.width}, "
+        if not args.use_hiresfix
+        else f"\nsize={args.hiresfix_height}x{args.hiresfix_width}, "
+    )
+    text_output += (
         f"batch_count={args.batch_count}, "
         f"batch_size={args.batch_size}, "
         f"max_length={args.max_length}"

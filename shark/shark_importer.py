@@ -451,6 +451,108 @@ def transform_fx(fx_g, quantized=False):
     fx_g.graph.lint()
 
 
+def gptq_transforms(fx_g):
+    import torch
+
+    for node in fx_g.graph.nodes:
+        if node.op == "call_function":
+            if node.target in [
+                torch.ops.aten.arange,
+                torch.ops.aten.empty,
+                torch.ops.aten.ones,
+                torch.ops.aten._to_copy,
+            ]:
+                if node.kwargs.get("device") == torch.device(device="cuda:0"):
+                    updated_kwargs = node.kwargs.copy()
+                    updated_kwargs["device"] = torch.device(device="cpu")
+                    node.kwargs = updated_kwargs
+
+            if node.target in [
+                torch.ops.aten._to_copy,
+            ]:
+                if node.kwargs.get("dtype") == torch.bfloat16:
+                    updated_kwargs = node.kwargs.copy()
+                    updated_kwargs["dtype"] = torch.float16
+                    node.kwargs = updated_kwargs
+
+            # Inputs of aten.native_layer_norm should be upcasted to fp32.
+            if node.target in [torch.ops.aten.native_layer_norm]:
+                with fx_g.graph.inserting_before(node):
+                    new_node_arg0 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[0], torch.float32),
+                        kwargs={},
+                    )
+                    node.args = (
+                        new_node_arg0,
+                        node.args[1],
+                        node.args[2],
+                        node.args[3],
+                        node.args[4],
+                    )
+
+            # Inputs of aten.mm should be upcasted to fp32.
+            if node.target in [torch.ops.aten.mm]:
+                with fx_g.graph.inserting_before(node):
+                    new_node_arg0 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[0], torch.float32),
+                        kwargs={},
+                    )
+                    new_node_arg1 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[1], torch.float32),
+                        kwargs={},
+                    )
+                    node.args = (new_node_arg0, new_node_arg1)
+
+            # Outputs of aten.mm should be downcasted to fp16.
+            if type(node.args[0]) == torch.fx.node.Node and node.args[
+                0
+            ].target in [torch.ops.aten.mm]:
+                with fx_g.graph.inserting_before(node):
+                    tmp = node.args[0]
+                    new_node = fx_g.graph.call_function(
+                        torch.ops.aten._to_copy,
+                        args=(node.args[0],),
+                        kwargs={"dtype": torch.float16},
+                    )
+                    node.args[0].append(new_node)
+                    node.args[0].replace_all_uses_with(new_node)
+                    new_node.args = (tmp,)
+                    new_node.kwargs = {"dtype": torch.float16}
+
+            # Inputs of aten._softmax should be upcasted to fp32.
+            if node.target in [torch.ops.aten._softmax]:
+                with fx_g.graph.inserting_before(node):
+                    new_node_arg0 = fx_g.graph.call_function(
+                        torch.ops.prims.convert_element_type,
+                        args=(node.args[0], torch.float32),
+                        kwargs={},
+                    )
+                    node.args = (new_node_arg0, node.args[1], node.args[2])
+
+            # Outputs of aten._softmax should be downcasted to fp16.
+            if (
+                type(node.args[0]) == torch.fx.node.Node
+                and node.args[0].target in [torch.ops.aten._softmax]
+                and node.target in [torch.ops.aten.expand]
+            ):
+                with fx_g.graph.inserting_before(node):
+                    tmp = node.args[0]
+                    new_node = fx_g.graph.call_function(
+                        torch.ops.aten._to_copy,
+                        args=(node.args[0],),
+                        kwargs={"dtype": torch.float16},
+                    )
+                    node.args[0].append(new_node)
+                    node.args[0].replace_all_uses_with(new_node)
+                    new_node.args = (tmp,)
+                    new_node.kwargs = {"dtype": torch.float16}
+
+    fx_g.graph.lint()
+
+
 # Doesn't replace the None type.
 def change_fx_graph_return_to_tuple(fx_g):
     for node in fx_g.graph.nodes:
@@ -504,27 +606,12 @@ def import_with_fx(
     is_dynamic=False,
     tracing_required=False,
     precision="fp32",
+    is_gptq=False,
 ):
     import torch
     from torch.fx.experimental.proxy_tensor import make_fx
     from torch._decomp import get_decompositions
     from typing import List
-    from brevitas_examples.llm.llm_quant.export import (
-        block_quant_layer_level_manager,
-    )
-    from brevitas_examples.llm.llm_quant.export import (
-        brevitas_layer_export_mode,
-    )
-    from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
-        LinearWeightBlockQuantHandlerFwd,
-    )
-    from brevitas_examples.llm.llm_quant.export import replace_call_fn_target
-    from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
-        matmul_rhs_group_quant_placeholder,
-    )
-    from brevitas.backport.fx.experimental.proxy_tensor import (
-        make_fx as brevitas_make_fx,
-    )
 
     golden_values = None
     if debug:
@@ -596,8 +683,30 @@ def import_with_fx(
         torch.ops.aten.native_layer_norm,
         torch.ops.aten.masked_fill.Tensor,
         torch.ops.aten.masked_fill.Scalar,
+        torch.ops.aten._scaled_dot_product_flash_attention.default,
+        torch.ops.aten.index_add,
+        torch.ops.aten.index_add_,
     ]
-    if precision in ["int4", "int8"]:
+    if precision in ["int4", "int8"] and not is_gptq:
+        from brevitas_examples.llm.llm_quant.export import (
+            block_quant_layer_level_manager,
+        )
+        from brevitas_examples.llm.llm_quant.export import (
+            brevitas_layer_export_mode,
+        )
+        from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
+            LinearWeightBlockQuantHandlerFwd,
+        )
+        from brevitas_examples.llm.llm_quant.export import (
+            replace_call_fn_target,
+        )
+        from brevitas_examples.llm.llm_quant.sharded_mlir_group_export import (
+            matmul_rhs_group_quant_placeholder,
+        )
+        from brevitas.backport.fx.experimental.proxy_tensor import (
+            make_fx as brevitas_make_fx,
+        )
+
         export_context_manager = brevitas_layer_export_mode
         export_class = block_quant_layer_level_manager(
             export_handlers=[LinearWeightBlockQuantHandlerFwd]
@@ -612,7 +721,7 @@ def import_with_fx(
         replace_call_fn_target(
             fx_g,
             src=matmul_rhs_group_quant_placeholder,
-            target=torch.ops.brevitas.matmul_rhs_group_quant,
+            target=torch.ops.quant.matmul_rhs_group_quant,
         )
 
         fx_g.recompile()
@@ -647,6 +756,10 @@ def import_with_fx(
         add_upcast(fx_g)
         fx_g.recompile()
 
+    if is_gptq:
+        gptq_transforms(fx_g)
+        fx_g.recompile()
+
     if mlir_type == "fx":
         return fx_g
 
@@ -677,5 +790,27 @@ def import_with_fx(
         )
         return mlir_module, func_name
 
-    mlir_module, func_name = mlir_importer.import_mlir()
+    mlir_module, func_name = mlir_importer.import_mlir(mlir_type=mlir_type)
     return mlir_module, func_name
+
+
+# Saves a .mlir module python object to the directory 'dir' with 'model_name' and returns a path to the saved file.
+def save_mlir(
+    mlir_module,
+    model_name,
+    mlir_dialect="linalg",
+    frontend="torch",
+    dir=tempfile.gettempdir(),
+):
+    model_name_mlir = (
+        model_name + "_" + frontend + "_" + mlir_dialect + ".mlir"
+    )
+    if dir == "":
+        dir = tempfile.gettempdir()
+    mlir_path = os.path.join(dir, model_name_mlir)
+    print(f"saving {model_name_mlir} to {dir}")
+    if frontend == "torch":
+        with open(mlir_path, "wb") as mlir_file:
+            mlir_file.write(mlir_module)
+
+    return mlir_path
