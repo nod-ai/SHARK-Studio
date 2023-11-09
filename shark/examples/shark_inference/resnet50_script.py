@@ -70,7 +70,8 @@ mlir_model, func_name, inputs, golden_out = download_model(
     "resnet50", frontend="torch"
 )
 
-shark_module = SharkInference(mlir_model, mlir_dialect="linalg")
+from shark.parser import shark_args
+shark_module = SharkInference(mlir_model, mlir_dialect="linalg", device=shark_args.device)
 shark_module.compile()
 path = shark_module.save_module()
 shark_module.load_module(path)
