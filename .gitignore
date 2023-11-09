@@ -199,3 +199,6 @@ apps/stable_diffusion/web/EBWebView/
 
 # Llama2 tokenizer configs
 llama2_tokenizer_configs/
+
+# Webview2 runtime artefacts
+EBWebView/

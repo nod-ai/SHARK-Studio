@@ -39,7 +39,15 @@ def get_iree_device_args(device, extra_args=[]):
                 f"Specific device selection only supported for vulkan now."
                 f"Proceeding with {device} as device."
             )
-        device_num = device_uri[1]
+        # device_uri can be device_num or device_path.
+        # assuming number of devices for a single driver will be not be >99
+        if len(device_uri[1]) <= 2:
+            # expected to be device index in range 0 - 99
+            device_num = int(device_uri[1])
+        else:
+            # expected to be device path
+            device_num = device_uri[1]
+
     else:
         device_num = 0
 
@@ -461,13 +469,13 @@ def get_iree_compiled_module(
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module,
-        device,
-        frontend,
-        model_config_path,
-        extra_args,
-        debug,
-        compile_str,
+        module=module,
+        device=device,
+        frontend=frontend,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     temp_file_to_unlink = None
     # TODO: Currently mmap=True control flow path has been switched off for mmap.
@@ -535,13 +543,13 @@ def export_iree_module_to_vmfb(
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module,
-        device,
-        mlir_dialect,
-        model_config_path,
-        extra_args,
-        debug,
-        compile_str,
+        module=module,
+        device=device,
+        frontend=mlir_dialect,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     if module_name is None:
         device_name = (
@@ -624,7 +632,7 @@ def get_results(
 def get_iree_runtime_config(device):
     device = iree_device_map(device)
     haldriver = ireert.get_driver(device)
-    if device == "metal" and shark_args.device_allocator == "caching":
+    if "metal" in device and shark_args.device_allocator == "caching":
         print(
             "[WARNING] metal devices can not have a `caching` allocator."
             "\nUsing default allocator `None`"
@@ -632,7 +640,9 @@ def get_iree_runtime_config(device):
     haldevice = haldriver.create_device_by_uri(
         device,
         # metal devices have a failure with caching allocators atm. blcking this util it gets fixed upstream.
-        allocators=shark_args.device_allocator if device != "metal" else None,
+        allocators=shark_args.device_allocator
+        if "metal" not in device
+        else None,
     )
     config = ireert.Config(device=haldevice)
     return config

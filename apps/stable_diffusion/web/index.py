@@ -1,7 +1,8 @@
-from multiprocessing import Process, freeze_support
+from multiprocessing import freeze_support
 import os
 import sys
 import logging
+import apps.stable_diffusion.web.utils.app as app
 
 if sys.platform == "darwin":
     # import before IREE to avoid torch-MLIR library issues
@@ -19,26 +20,6 @@ if sys.platform == "darwin":
 
 if args.clear_all:
     clear_all()
-
-
-def launch_app(address):
-    from tkinter import Tk
-    import webview
-
-    window = Tk()
-
-    # get screen width and height of display and make it more reasonably
-    # sized as we aren't making it full-screen or maximized
-    width = int(window.winfo_screenwidth() * 0.81)
-    height = int(window.winfo_screenheight() * 0.91)
-    webview.create_window(
-        "SHARK AI Studio",
-        url=address,
-        width=width,
-        height=height,
-        text_select=True,
-    )
-    webview.start(private_mode=False, storage_path=os.getcwd())
 
 
 if __name__ == "__main__":
@@ -59,27 +40,27 @@ if __name__ == "__main__":
         # init global sd pipeline and config
         global_obj._init()
 
-        app = FastAPI()
-        app.mount("/sdapi/", sdapi)
+        api = FastAPI()
+        api.mount("/sdapi/", sdapi)
 
         # chat APIs needed for compatibility with multiple extensions using OpenAI API
-        app.add_api_route(
+        api.add_api_route(
             "/v1/chat/completions", llm_chat_api, methods=["post"]
         )
-        app.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
-        app.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
-        app.add_api_route("/completions", llm_chat_api, methods=["post"])
-        app.add_api_route(
+        api.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
+        api.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
+        api.add_api_route("/completions", llm_chat_api, methods=["post"])
+        api.add_api_route(
             "/v1/engines/codegen/completions", llm_chat_api, methods=["post"]
         )
-        app.include_router(APIRouter())
+        api.include_router(APIRouter())
 
         # deal with CORS requests if CORS accept origins are set
         if args.api_accept_origin:
             print(
                 f"API Configured for CORS. Accepting origins: { args.api_accept_origin }"
             )
-            app.add_middleware(
+            api.add_middleware(
                 CORSMiddleware,
                 allow_origins=args.api_accept_origin,
                 allow_methods=["GET", "POST"],
@@ -88,7 +69,7 @@ if __name__ == "__main__":
         else:
             print("API not configured for CORS")
 
-        uvicorn.run(app, host="0.0.0.0", port=args.server_port)
+        uvicorn.run(api, host="0.0.0.0", port=args.server_port)
         sys.exit(0)
 
     # Setup to use shark_tmp for gradio's temporary image files and clear any
@@ -102,7 +83,10 @@ if __name__ == "__main__":
     import gradio as gr
 
     # Create custom models folders if they don't exist
-    from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
+    from apps.stable_diffusion.web.ui.utils import (
+        create_custom_models_folders,
+        nodicon_loc,
+    )
 
     create_custom_models_folders()
 
@@ -216,7 +200,7 @@ if __name__ == "__main__":
         )
 
     with gr.Blocks(
-        css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
+        css=dark_theme, analytics_enabled=False, title="SHARK AI Studio"
     ) as sd_web:
         with gr.Tabs() as tabs:
             # NOTE: If adding, removing, or re-ordering tabs, make sure that they
@@ -269,6 +253,15 @@ if __name__ == "__main__":
             #     h2ogpt_upload.render()
             # with gr.TabItem(label="DocuChat(Experimental)", id=12):
             #     h2ogpt_web.render()
+
+            actual_port = app.usable_port()
+            if actual_port != args.server_port:
+                sd_web.load(
+                    fn=lambda: gr.Info(
+                        f"Port {args.server_port} is in use by another application. "
+                        f"Shark is running on port {actual_port} instead."
+                    )
+                )
 
         # send to buttons
         register_button_click(
@@ -430,14 +423,10 @@ if __name__ == "__main__":
         )
 
     sd_web.queue()
-    if args.ui == "app":
-        t = Process(
-            target=launch_app, args=[f"http://localhost:{args.server_port}"]
-        )
-        t.start()
     sd_web.launch(
         share=args.share,
-        inbrowser=args.ui == "web",
+        inbrowser=not app.launch(actual_port),
         server_name="0.0.0.0",
-        server_port=args.server_port,
+        server_port=actual_port,
+        favicon_path=nodicon_loc,
     )
