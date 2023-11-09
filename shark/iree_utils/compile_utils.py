@@ -469,13 +469,13 @@ def get_iree_compiled_module(
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module,
-        device,
-        frontend,
-        model_config_path,
-        extra_args,
-        debug,
-        compile_str,
+        module=module,
+        device=device,
+        frontend=frontend,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     temp_file_to_unlink = None
     # TODO: Currently mmap=True control flow path has been switched off for mmap.
@@ -543,13 +543,13 @@ def export_iree_module_to_vmfb(
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module,
-        device,
-        mlir_dialect,
-        model_config_path,
-        extra_args,
-        debug,
-        compile_str,
+        module=module,
+        device=device,
+        frontend=mlir_dialect,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     if module_name is None:
         device_name = (
