@@ -27,6 +27,7 @@ from apps.stable_diffusion.src import (
 from apps.stable_diffusion.src.utils import (
     get_generated_imgs_path,
     get_generation_text_info,
+    resampler_list,
 )
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 import numpy as np
@@ -486,17 +487,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             )
                             resample_type = gr.Dropdown(
                                 value=args.resample_type,
-                                choices=[
-                                    "Lanczos",
-                                    "Nearest Neighbor",
-                                    "Bilinear",
-                                    "Bicubic",
-                                    "Adaptive",
-                                    "Antialias",
-                                    "Box",
-                                    "Affine",
-                                    "Cubic",
-                                ],
+                                choices=resampler_list,
                                 label="Resample Type",
                                 allow_custom_value=True,
                             )
