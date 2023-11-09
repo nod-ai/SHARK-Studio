@@ -83,11 +83,11 @@ SHARK should start in server mode, and you should see something like this:
 
 * There is one final piece of image generation configuration within Koboldcpp you might want to do. This is also in the generate images section of advanced settings. Here there is, not very obviously, a 'style' button:
 
-  ![Selecting the 'styles' button](https://user-images.githubusercontent.com/121311569/280556172-4aab9794-7a77-46d7-bdda-43df570ad19a.png)
+  ![Selecting the 'styles' button](https://user-images.githubusercontent.com/121311569/280556694-55cd1c55-a059-4b54-9293-63d66a32368e.png)
 
   This will bring up a dialog box where you can enter a short text that will sent as a prefix to the Prompt sent to SHARK:
 
-  ![Entering extra image styles](https://github.com/one-lithe-rune/SHARK/assets/121311569/4aab9794-7a77-46d7-bdda-43df570ad19a)
+  ![Entering extra image styles](https://user-images.githubusercontent.com/121311569/280556172-4aab9794-7a77-46d7-bdda-43df570ad19a.png)
 
 
 ## Connecting to SHARK on a different address or port
