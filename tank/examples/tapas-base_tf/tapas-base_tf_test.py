@@ -44,7 +44,7 @@ class TapasBaseModuleTest(unittest.TestCase):
         self.module_tester.create_and_check_module(dynamic, device)
 
     @pytest.mark.skipif(
-        check_device_drivers("cuda"), reason=device_driver_info("gpu")
+        check_device_drivers("cuda"), reason=device_driver_info("cuda")
     )
     def test_module_static_cuda(self):
         dynamic = False

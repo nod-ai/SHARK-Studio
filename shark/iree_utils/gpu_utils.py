@@ -40,55 +40,26 @@ def get_iree_gpu_args():
 
 
 # Get the default gpu args given the architecture.
-@functools.cache
-def get_iree_rocm_args():
+def get_iree_rocm_args(extra_args=[]):
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
-    # get arch from hipinfo.
-    import os
-    import re
-    import subprocess
+    rocm_flags = ["--iree-rocm-link-bc=true"]
 
-    if sys.platform == "win32":
-        if "HIP_PATH" in os.environ:
-            rocm_path = os.environ["HIP_PATH"]
-            print(f"Found a ROCm installation at {rocm_path}.")
-        else:
-            print("Failed to find ROCM_PATH. Defaulting to C:\\AMD\\ROCM\\5.5")
-            rocm_path = "C:\\AMD\\ROCM\\5.5"
-    else:
-        if "ROCM_PATH" in os.environ:
-            rocm_path = os.environ["ROCM_PATH"]
-            print(f"Found a ROCm installation at {rocm_path}.")
-        else:
-            print("Failed to find ROCM_PATH. Defaulting to /opt/rocm")
-            rocm_path = "/opt/rocm/"
-
-    try:
-        if sys.platform == "win32":
-            rocm_arch = re.search(
-                r"gfx\d{3,}",
-                subprocess.check_output("hipinfo", shell=True, text=True),
-            ).group(0)
-        else:
-            rocm_arch = re.match(
-                r".*(gfx\w+)",
-                subprocess.check_output(
-                    "rocminfo | grep -i 'gfx'", shell=True, text=True
-                ),
-            ).group(1)
-        print(f"Found rocm arch {rocm_arch}...")
-    except:
+    # Add the target arch flag for rocm device
+    flag_present = False
+    for flag in extra_args:
+        if "iree-rocm-target-chip" in flag:
+            flag_present = True
+            print(
+                f"found rocm target device arch from flag : {flag.split('=')[1]}"
+            )
+    if not flag_present:
         print(
             "Failed to find ROCm architecture from hipinfo / rocminfo. Defaulting to gfx1100."
         )
         rocm_arch = "gfx1100"
+        rocm_flags.append(f"--iree-rocm-target-chip={rocm_arch}")
 
-    bc_path = os.path.join(rocm_path, "amdgcn", "bitcode")
-    return [
-        f"--iree-rocm-target-chip={rocm_arch}",
-        "--iree-rocm-link-bc=true",
-        f"--iree-rocm-bc-dir={bc_path}",
-    ]
+    return rocm_flags
 
 
 # Some constants taken from cuda.h

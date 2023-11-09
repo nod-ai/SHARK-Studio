@@ -253,28 +253,30 @@ p.add_argument(
     "--left",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend left for outpainting.",
+    help="If extend left for outpainting.",
 )
 
 p.add_argument(
     "--right",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend right for outpainting.",
+    help="If extend right for outpainting.",
 )
 
 p.add_argument(
+    "--up",
     "--top",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend top for outpainting.",
+    help="If extend top for outpainting.",
 )
 
 p.add_argument(
+    "--down",
     "--bottom",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="If expend bottom for outpainting.",
+    help="If extend bottom for outpainting.",
 )
 
 p.add_argument(
@@ -306,7 +308,7 @@ p.add_argument(
 
 p.add_argument(
     "--import_mlir",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Imports the model from torch module to shark_module otherwise "
     "downloads the model from shark_tank.",
@@ -329,7 +331,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_tuned",
-    default=True,
+    default=False,
     action=argparse.BooleanOptionalAction,
     help="Download and use the tuned version of the model if available.",
 )
@@ -422,7 +424,7 @@ p.add_argument(
 
 p.add_argument(
     "--use_stencil",
-    choices=["canny", "openpose", "scribble"],
+    choices=["canny", "openpose", "scribble", "zoedepth"],
     help="Enable the stencil feature.",
 )
 
@@ -642,6 +644,18 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--api_accept_origin",
+    action="append",
+    type=str,
+    help="An origin to be accepted by the REST api for Cross Origin"
+    "Resource Sharing (CORS). Use multiple times for multiple origins, "
+    'or use --api_accept_origin="*" to accept all origins. If no origins '
+    "are set no CORS headers will be returned by the api. Use, for "
+    "instance, if you need to access the REST api from Javascript running "
+    "in a web browser.",
+)
+
+p.add_argument(
     "--debug",
     default=False,
     action=argparse.BooleanOptionalAction,
@@ -723,6 +737,17 @@ p.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Specifies whether the docuchat's web version is running or not.",
+)
+
+##############################################################################
+# rocm Flags
+##############################################################################
+
+p.add_argument(
+    "--iree_rocm_target_chip",
+    type=str,
+    default="gfx1100",
+    help="Add the rocm device architecture ex gfx1100, gfx90a, etc. Default gfx1100",
 )
 
 args, unknown = p.parse_known_args()

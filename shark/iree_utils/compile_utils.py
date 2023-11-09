@@ -39,7 +39,15 @@ def get_iree_device_args(device, extra_args=[]):
                 f"Specific device selection only supported for vulkan now."
                 f"Proceeding with {device} as device."
             )
-        device_num = device_uri[1]
+        # device_uri can be device_num or device_path.
+        # assuming number of devices for a single driver will be not be >99
+        if len(device_uri[1]) <= 2:
+            # expected to be device index in range 0 - 99
+            device_num = int(device_uri[1])
+        else:
+            # expected to be device path
+            device_num = device_uri[1]
+
     else:
         device_num = 0
 
@@ -75,7 +83,7 @@ def get_iree_device_args(device, extra_args=[]):
     if device_uri[0] == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
-        return get_iree_rocm_args()
+        return get_iree_rocm_args(extra_args=extra_args)
     return []
 
 
@@ -392,6 +400,9 @@ def load_vmfb_using_mmap(
             )
             dl.log(f"ireert.create_device()")
             config = ireert.Config(device=haldevice)
+            config.id = haldriver.query_available_devices()[device_idx][
+                "device_id"
+            ]
             dl.log(f"ireert.Config()")
         else:
             config = get_iree_runtime_config(device)
@@ -458,13 +469,13 @@ def get_iree_compiled_module(
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module,
-        device,
-        frontend,
-        model_config_path,
-        extra_args,
-        debug,
-        compile_str,
+        module=module,
+        device=device,
+        frontend=frontend,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     temp_file_to_unlink = None
     # TODO: Currently mmap=True control flow path has been switched off for mmap.
@@ -532,13 +543,13 @@ def export_iree_module_to_vmfb(
 ):
     # Compiles the module given specs and saves it as .vmfb file.
     flatbuffer_blob = compile_module_to_flatbuffer(
-        module,
-        device,
-        mlir_dialect,
-        model_config_path,
-        extra_args,
-        debug,
-        compile_str,
+        module=module,
+        device=device,
+        frontend=mlir_dialect,
+        model_config_path=model_config_path,
+        extra_args=extra_args,
+        debug=debug,
+        compile_str=compile_str,
     )
     if module_name is None:
         device_name = (
@@ -574,10 +585,17 @@ def get_results(
     frontend="torch",
     send_to_host=True,
     debug_timeout: float = 5.0,
+    device: str = None,
 ):
     """Runs a .vmfb file given inputs and config and returns output."""
     with DetailLogger(debug_timeout) as dl:
         device_inputs = []
+        if device == "rocm" and hasattr(config, "id"):
+            haldriver = ireert.get_driver("rocm")
+            haldevice = haldriver.create_device(
+                config.id,
+                allocators=shark_args.device_allocator,
+            )
         for input_array in input:
             dl.log(f"Load to device: {input_array.shape}")
             device_inputs.append(

@@ -895,6 +895,13 @@ def save_output_img(output_img, img_seed, extra_info=None):
         pngInfo = PngImagePlugin.PngInfo()
 
         if args.write_metadata_to_png:
+            # Using a conditional expression caused problems, so setting a new
+            # variable for now.
+            if args.use_hiresfix:
+                png_size_text = f"{args.hiresfix_width}x{args.hiresfix_height}"
+            else:
+                png_size_text = f"{args.width}x{args.height}"
+
             pngInfo.add_text(
                 "parameters",
                 f"{args.prompts[0]}"
@@ -903,7 +910,7 @@ def save_output_img(output_img, img_seed, extra_info=None):
                 f"Sampler: {args.scheduler}, "
                 f"CFG scale: {args.guidance_scale}, "
                 f"Seed: {img_seed},"
-                f"Size: {args.width}x{args.height}, "
+                f"Size: {png_size_text}, "
                 f"Model: {img_model}, "
                 f"VAE: {img_vae}, "
                 f"LoRA: {img_lora}",
@@ -930,8 +937,10 @@ def save_output_img(output_img, img_seed, extra_info=None):
         "CFG_SCALE": args.guidance_scale,
         "PRECISION": args.precision,
         "STEPS": args.steps,
-        "HEIGHT": args.height,
-        "WIDTH": args.width,
+        "HEIGHT": args.height
+        if not args.use_hiresfix
+        else args.hiresfix_height,
+        "WIDTH": args.width if not args.use_hiresfix else args.hiresfix_width,
         "MAX_LENGTH": args.max_length,
         "OUTPUT": out_img_path,
         "VAE": img_vae,
@@ -969,6 +978,10 @@ def get_generation_text_info(seeds, device):
     )
     text_output += (
         f"\nsize={args.height}x{args.width}, "
+        if not args.use_hiresfix
+        else f"\nsize={args.hiresfix_height}x{args.hiresfix_width}, "
+    )
+    text_output += (
         f"batch_count={args.batch_count}, "
         f"batch_size={args.batch_size}, "
         f"max_length={args.max_length}"

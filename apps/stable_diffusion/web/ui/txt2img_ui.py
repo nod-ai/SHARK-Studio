@@ -5,9 +5,6 @@ import sys
 import gradio as gr
 from PIL import Image
 from math import ceil
-import base64
-from io import BytesIO
-from fastapi.exceptions import HTTPException
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -52,8 +49,7 @@ def txt2img_inf(
     batch_count: int,
     batch_size: int,
     scheduler: str,
-    custom_model: str,
-    hf_model_id: str,
+    model_id: str,
     custom_vae: str,
     precision: str,
     device: str,
@@ -91,21 +87,17 @@ def txt2img_inf(
     args.ckpt_loc = ""
     args.hf_model_id = ""
     args.custom_vae = ""
-    if custom_model == "None":
-        if not hf_model_id:
-            return (
-                None,
-                "Please provide either custom model or huggingface model ID, "
-                "both must not be empty",
-            )
-        if "civitai" in hf_model_id:
-            args.ckpt_loc = hf_model_id
-        else:
-            args.hf_model_id = hf_model_id
-    elif ".ckpt" in custom_model or ".safetensors" in custom_model:
-        args.ckpt_loc = get_custom_model_pathfile(custom_model)
+
+    # .safetensor or .chkpt on the custom model path
+    if model_id in get_custom_model_files():
+        args.ckpt_loc = get_custom_model_pathfile(model_id)
+    # civitai download
+    elif "civitai" in model_id:
+        args.ckpt_loc = model_id
+    # either predefined or huggingface
     else:
-        args.hf_model_id = custom_model
+        args.hf_model_id = model_id
+
     if custom_vae != "None":
         args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
@@ -145,6 +137,11 @@ def txt2img_inf(
         args.max_length = max_length
         args.height = height
         args.width = width
+        args.use_hiresfix = use_hiresfix
+        args.hiresfix_height = hiresfix_height
+        args.hiresfix_width = hiresfix_width
+        args.hiresfix_strength = hiresfix_strength
+        args.resample_type = resample_type
         args.device = device.split("=>", 1)[1].strip()
         args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
         args.iree_metal_target_platform = init_iree_metal_target_platform
@@ -301,75 +298,6 @@ def txt2img_inf(
     return generated_imgs, text_output, ""
 
 
-def encode_pil_to_base64(images):
-    encoded_imgs = []
-    for image in images:
-        with BytesIO() as output_bytes:
-            if args.output_img_format.lower() == "png":
-                image.save(output_bytes, format="PNG")
-
-            elif args.output_img_format.lower() in ("jpg", "jpeg"):
-                image.save(output_bytes, format="JPEG")
-            else:
-                raise HTTPException(
-                    status_code=500, detail="Invalid image format"
-                )
-            bytes_data = output_bytes.getvalue()
-            encoded_imgs.append(base64.b64encode(bytes_data))
-    return encoded_imgs
-
-
-# Text2Img Rest API.
-def txt2img_api(
-    InputData: dict,
-):
-    print(
-        f'Prompt: {InputData["prompt"]}, '
-        f'Negative Prompt: {InputData["negative_prompt"]}, '
-        f'Seed: {InputData["seed"]}.'
-    )
-    res = txt2img_inf(
-        InputData["prompt"],
-        InputData["negative_prompt"],
-        InputData["height"],
-        InputData["width"],
-        InputData["steps"],
-        InputData["cfg_scale"],
-        InputData["seed"],
-        batch_count=1,
-        batch_size=1,
-        scheduler="EulerDiscrete",
-        custom_model="None",
-        hf_model_id=InputData["hf_model_id"]
-        if "hf_model_id" in InputData.keys()
-        else "stabilityai/stable-diffusion-2-1-base",
-        custom_vae="None",
-        precision="fp16",
-        device=available_devices[0],
-        max_length=64,
-        save_metadata_to_json=False,
-        save_metadata_to_png=False,
-        lora_weights="None",
-        lora_hf_id="",
-        ondemand=False,
-        repeatable_seeds=False,
-        use_hiresfix=False,
-        hiresfix_height=512,
-        hiresfix_width=512,
-        hiresfix_strength=0.6,
-        resample_type="Nearest Neighbor",
-    )
-
-    # Convert Generator to Subscriptable
-    res = next(res)
-
-    return {
-        "images": encode_pil_to_base64(res[0]),
-        "parameters": {},
-        "info": res[1],
-    }
-
-
 with gr.Blocks(title="Text-to-Image") as txt2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
@@ -389,33 +317,18 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 with gr.Row():
                     with gr.Column(scale=10):
                         with gr.Row():
-                            # janky fix for overflowing text
-                            t2i_model_info = (
-                                str(get_custom_model_path())
-                            ).replace("\\", "\n\\")
-                            t2i_model_info = (
-                                f"Custom Model Path: {t2i_model_info}"
-                            )
+                            t2i_model_info = f"Custom Model Path: {str(get_custom_model_path())}"
                             txt2img_custom_model = gr.Dropdown(
                                 label=f"Models",
-                                info=t2i_model_info,
+                                info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                                 elem_id="custom_model",
                                 value=os.path.basename(args.ckpt_loc)
                                 if args.ckpt_loc
                                 else "stabilityai/stable-diffusion-2-1-base",
-                                choices=["None"]
-                                + get_custom_model_files()
+                                choices=get_custom_model_files()
                                 + predefined_models,
                                 allow_custom_value=True,
-                            )
-                            txt2img_hf_model_id = gr.Textbox(
-                                elem_id="hf_model_id",
-                                placeholder="Select 'None' in the dropdown "
-                                "on the left and enter model ID here.",
-                                value="",
-                                label="HuggingFace Model ID or Civitai model "
-                                "download URL.",
-                                lines=3,
+                                scale=2,
                             )
                             # janky fix for overflowing text
                             t2i_vae_info = (
@@ -432,6 +345,7 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                                 choices=["None"]
                                 + get_custom_model_files("vae"),
                                 allow_custom_value=True,
+                                scale=1,
                             )
                     with gr.Column(scale=1, min_width=170):
                         txt2img_png_info_img = gr.Image(
@@ -649,7 +563,8 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         object_fit="contain",
                     )
                     std_output = gr.Textbox(
-                        value=f"Images will be saved at "
+                        value=f"{t2i_model_info}\n"
+                        f"Images will be saved at "
                         f"{get_generated_imgs_path()}",
                         lines=1,
                         elem_id="std_output",
@@ -692,7 +607,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 batch_size,
                 scheduler,
                 txt2img_custom_model,
-                txt2img_hf_model_id,
                 custom_vae,
                 precision,
                 device,
@@ -742,7 +656,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 width,
                 height,
                 txt2img_custom_model,
-                txt2img_hf_model_id,
                 lora_weights,
                 lora_hf_id,
                 custom_vae,
@@ -758,7 +671,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 width,
                 height,
                 txt2img_custom_model,
-                txt2img_hf_model_id,
                 lora_weights,
                 lora_hf_id,
                 custom_vae,

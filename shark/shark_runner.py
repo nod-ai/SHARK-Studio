@@ -109,7 +109,9 @@ class SharkRunner:
             self.temp_file_to_unlink = params["temp_file_to_unlink"]
             del params
 
-    def run(self, function_name, inputs: tuple, send_to_host=False):
+    def run(
+        self, function_name, inputs: tuple, send_to_host=False, device=None
+    ):
         return get_results(
             self.iree_compilation_module,
             function_name,
@@ -117,6 +119,7 @@ class SharkRunner:
             self.iree_config,
             self.mlir_dialect,
             send_to_host,
+            device=device,
         )
 
     # Get all function names defined within the compiled module.

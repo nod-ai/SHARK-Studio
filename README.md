@@ -325,6 +325,11 @@ result = shark_module.forward((arg0, arg1))
 ```
 </details>
 
+## Examples Using the REST API
+
+* [Setting up SHARK for use with Blender](./docs/shark_sd_blender.md)
+* [Setting up SHARK for use with Koboldcpp](./docs/shark_sd_koboldcpp.md)
+
 ## Supported and Validated Models
 
 SHARK is maintained to support the latest innovations in ML Models: 

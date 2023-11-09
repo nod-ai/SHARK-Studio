@@ -137,6 +137,12 @@ parser.add_argument(
     default="",
     help="Specify target triple for vulkan.",
 )
+parser.add_argument(
+    "--Xiree_compile",
+    action='append',
+    default=[],
+    help="Extra command line arguments passed to the IREE compiler. This can be specified multiple times to pass multiple arguments."
+)
 
 # Microbenchmarking options.
 parser.add_argument(
@@ -1303,6 +1309,7 @@ class UnshardedVicuna(VicunaBase):
 
     def get_model_path(self, suffix="mlir"):
         safe_device = self.device.split("-")[0]
+        safe_device = safe_device.split("://")[0]
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
 
@@ -1910,7 +1917,8 @@ def create_prompt(model_name, history):
 if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
-    _extra_args = []
+    _extra_args = list(args.Xiree_compile)
+
     device_id = None
     # Process vulkan target triple.
     # TODO: This feature should just be in a common utils for other LLMs and in general
@@ -1966,6 +1974,7 @@ if __name__ == "__main__":
             max_num_tokens=max_tokens,
             min_num_tokens=min_tokens,
             device=args.device,
+            vulkan_target_triple=vulkan_target_triple,
             precision=args.precision,
             vicuna_mlir_path=vic_mlir_path,
             vicuna_vmfb_path=vic_vmfb_path,
