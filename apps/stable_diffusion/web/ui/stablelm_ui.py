@@ -132,6 +132,27 @@ def get_default_config():
     c.split_into_layers()
 
 
+def clean_device_info(raw_device):
+    # return appropriate device and device_id for consumption by LLM pipeline
+    # Multiple devices only supported for vulkan and rocm (as of now).
+    # default device must be selected for all others
+
+    device_id = None
+    device = (
+        raw_device
+        if "=>" not in raw_device
+        else raw_device.split("=>")[1].strip()
+    )
+    if "://" in device:
+        device, device_id = device.split("://")
+        device_id = int(device_id)  # using device index in webui
+
+    if device not in ["rocm", "vulkan"]:
+        device_id = None
+
+    return device, device_id
+
+
 model_vmfb_key = ""
 
 
@@ -151,24 +172,8 @@ def chat(
     global model_vmfb_key
     global vicuna_model
 
-    device_id = None
     model_name, model_path = list(map(str.strip, model.split("=>")))
-    device = device if "=>" not in device else device.split("=>")[1].strip()
-    if "cuda" in device:
-        device = "cuda"
-    elif "sync" in device:
-        device = "cpu-sync"
-    elif "task" in device:
-        device = "cpu-task"
-    elif "vulkan" in device:
-        device_id = int(device.split("://")[1])
-        device = "vulkan"
-    elif "rocm" in device:
-        device = "rocm"
-    elif "metal" in device:
-        device = "metal"
-    else:
-        print("unrecognized device")
+    device, device_id = clean_device_info(device)
 
     from apps.language_models.scripts.vicuna import ShardedVicuna
     from apps.language_models.scripts.vicuna import UnshardedVicuna
@@ -325,19 +330,7 @@ def llm_chat_api(InputData: dict):
 
     device_id = None
     if vicuna_model == 0:
-        if "cuda" in device:
-            device = "cuda"
-        elif "sync" in device:
-            device = "cpu-sync"
-        elif "task" in device:
-            device = "cpu-task"
-        elif "vulkan" in device:
-            device_id = int(device.split("://")[1])
-            device = "vulkan"
-        elif "metal" in device:
-            device = "metal"
-        else:
-            print("unrecognized device")
+        device, device_id = clean_device_info(device)
 
         vicuna_model = UnshardedVicuna(
             model_name,
