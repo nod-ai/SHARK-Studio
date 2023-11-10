@@ -247,9 +247,14 @@ footer {
 }
 
 /* output gallery tab */
+.output_parameters_dataframe table.table {
+    /* works around a gradio bug that always shows scrollbars */
+    overflow: clip auto;
+}
+
 .output_parameters_dataframe tbody td {
     font-size: small;
-    line-height: var(--line-xs)
+    line-height: var(--line-xs);
 }
 
 .output_icon_button {
