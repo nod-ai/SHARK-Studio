@@ -34,9 +34,9 @@ def get_iree_device_args(device, extra_args=[]):
     print("Configuring for device:" + device)
     device_uri = device.split("://")
     if len(device_uri) > 1:
-        if device_uri[0] not in ["vulkan"]:
+        if device_uri[0] not in ["vulkan", "rocm"]:
             print(
-                f"Specific device selection only supported for vulkan now."
+                f"Specific device selection only supported for vulkan and rocm."
                 f"Proceeding with {device} as device."
             )
         # device_uri can be device_num or device_path.
@@ -83,7 +83,7 @@ def get_iree_device_args(device, extra_args=[]):
     if device_uri[0] == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
-        return get_iree_rocm_args(extra_args=extra_args)
+        return get_iree_rocm_args(device_num=device_num, extra_args=extra_args)
     return []
 
 

@@ -1259,6 +1259,7 @@ class UnshardedVicuna(VicunaBase):
         max_num_tokens=512,
         min_num_tokens=0,
         device="cpu",
+        device_id=None,
         vulkan_target_triple="",
         precision="int8",
         vicuna_mlir_path=None,
@@ -1269,7 +1270,6 @@ class UnshardedVicuna(VicunaBase):
         download_vmfb=False,
         cache_vicunas=False,
         extra_args_cmd=[],
-        device_id=None,
         debug=False,
     ) -> None:
         super().__init__(
@@ -1288,9 +1288,7 @@ class UnshardedVicuna(VicunaBase):
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.min_num_tokens = min_num_tokens
-        self.device = device
         self.vulkan_target_triple = vulkan_target_triple
-        self.device_id = device_id
         self.precision = precision
         self.download_vmfb = download_vmfb
         self.vicuna_vmfb_path = vicuna_vmfb_path
@@ -1299,12 +1297,22 @@ class UnshardedVicuna(VicunaBase):
         self.low_device_memory = low_device_memory
         self.weight_group_size = weight_group_size
         self.debug = debug
+        # Sanity check for device, device_id pair
+        if "://" in device:
+            if device_id is not None:
+                print("[ERR] can't have both full device path and a device id.\n"
+                      f"Device : {device} | device_id : {device_id}\n"
+                      "proceeding with given Device ignoring device_id")
+            self.device, self.device_id = device.split("://")
+        else:
+            self.device, self.device_id = device, device_id
         if self.vicuna_mlir_path == None:
             self.vicuna_mlir_path = self.get_model_path()
         if self.vicuna_vmfb_path == None:
             self.vicuna_vmfb_path = self.get_model_path(suffix="vmfb")
         self.tokenizer = self.get_tokenizer()
         self.cache_vicunas = cache_vicunas
+
         self.compile()
 
     def get_model_path(self, suffix="mlir"):
@@ -1752,9 +1760,8 @@ class UnshardedVicuna(VicunaBase):
             )
             del first_module, second_module
 
-        print(self.device)
-        if "rocm" in self.device:
-            self.device = "rocm"
+        print(f"Compiling for device : {self.device}"
+              f"{'://' + str(self.device_id) if self.device_id is not None else ''}")
         shark_module = SharkInference(
             mlir_module=combined_module,
             device=self.device,
