@@ -1304,6 +1304,8 @@ class UnshardedVicuna(VicunaBase):
                       f"Device : {device} | device_id : {device_id}\n"
                       "proceeding with given Device ignoring device_id")
             self.device, self.device_id = device.split("://")
+            if len(self.device_id) < 2:
+                self.device_id = int(self.device_id)
         else:
             self.device, self.device_id = device, device_id
         if self.vicuna_mlir_path == None:
