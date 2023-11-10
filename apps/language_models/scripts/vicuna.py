@@ -1321,13 +1321,27 @@ class UnshardedVicuna(VicunaBase):
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
 
-        target_triple = ""
-        if self.vulkan_target_triple != "":
-            target_triple = "_"
-            target_triple += "_".join(self.vulkan_target_triple.split("-")[:-1])
-            
+        # Need to distinguish between multiple vmfbs of the same model
+        # compiled for different devices of the same driver
+        # Driver  -  Differentiator
+        # Vulkan  -  target_triple
+        # ROCm    -  device_arch
+
+        differentiator = ""
+        if "vulkan" == self.device:
+            target_triple = ""
+            if self.vulkan_target_triple != "":
+                target_triple = "_"
+                target_triple += "_".join(self.vulkan_target_triple.split("-")[:-1])
+                differentiator = target_triple
+
+        elif "rocm" == self.device:
+            from shark.iree_utils.gpu_utils import get_rocm_device_arch
+            device_arch = get_rocm_device_arch(self.device_id if self.device_id is not None else 0, self.extra_args)
+            differentiator = '_' + device_arch
+
         return Path(
-            f"{self.model_name}_{self.precision}_{safe_device}{target_triple}.{suffix}"
+            f"{self.model_name}_{self.precision}_{safe_device}{differentiator}.{suffix}"
         )
 
     def get_tokenizer(self):
