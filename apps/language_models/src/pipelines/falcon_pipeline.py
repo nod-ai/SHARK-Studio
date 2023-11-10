@@ -8,8 +8,10 @@ from apps.language_models.src.model_wrappers.falcon_sharded_model import (
     CompiledLMHeadEmbeddingLayer,
     DecoderLayer,
     EightDecoderLayer,
+    EightDecoderLayer2,
     CompiledDecoderLayer,
     CompiledEightDecoderLayer,
+    CompiledEightDecoderLayer2,
     ShardedFalconModel,
 )
 from apps.language_models.src.pipelines.SharkLLMBase import SharkLLMBase
@@ -93,6 +95,12 @@ parser.add_argument(
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Run model as sharded",
+)
+parser.add_argument(
+    "--num-shards",
+    type=int,
+    default=4,
+    help="Number of shards.",
 )
 
 
@@ -306,7 +314,9 @@ class ShardedFalcon(SharkLLMBase):
             num_in_features = 14848
             sample_attention_mask = sample_attention_mask.to(dtype=torch.bool)
             if compressed:
-                num_group_layers = 20
+                num_group_layers = int(
+                    20 * (4 / args.num_shards)
+                )  # 4 is the number of default shards
 
         sample_hidden_states = torch.zeros(
             [1, 100, num_in_features], dtype=torch.float32
@@ -326,7 +336,9 @@ class ShardedFalcon(SharkLLMBase):
             lm_head,
             [sample_hidden_states],
             "lm_head",
-            device_idx=0 % num_devices if self.device == "rocm" else None,
+            device_idx=(0 % num_devices) % args.num_shards
+            if self.device == "rocm"
+            else None,
         )
         shark_lm_head = CompiledLMHeadEmbeddingLayer(shark_lm_head)
 
@@ -338,7 +350,9 @@ class ShardedFalcon(SharkLLMBase):
             word_embedding,
             [sample_input_ids],
             "word_embeddings",
-            device_idx=1 % num_devices if self.device == "rocm" else None,
+            device_idx=(1 % num_devices) % args.num_shards
+            if self.device == "rocm"
+            else None,
         )
         shark_word_embedding = CompiledWordEmbeddingsLayer(
             shark_word_embedding
@@ -350,7 +364,9 @@ class ShardedFalcon(SharkLLMBase):
             ln_f,
             [sample_hidden_states],
             "ln_f",
-            device_idx=2 % num_devices if self.device == "rocm" else None,
+            device_idx=(2 % num_devices) % args.num_shards
+            if self.device == "rocm"
+            else None,
         )
         shark_ln_f = CompiledLNFEmbeddingLayer(shark_ln_f)
 
@@ -370,6 +386,9 @@ class ShardedFalcon(SharkLLMBase):
                 )
                 pytorch_class = EightDecoderLayer
                 compiled_class = CompiledEightDecoderLayer
+                if args.num_shards == 2:
+                    pytorch_class = EightDecoderLayer2
+                    compiled_class = CompiledEightDecoderLayer2
 
             print("Compiling Layer {}".format(layer_id))
             if compressed:
