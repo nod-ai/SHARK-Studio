@@ -746,8 +746,9 @@ p.add_argument(
 p.add_argument(
     "--iree_rocm_target_chip",
     type=str,
-    default="gfx1100",
-    help="Add the rocm device architecture ex gfx1100, gfx90a, etc. Default gfx1100",
+    default="",
+    help="Add the rocm device architecture ex gfx1100, gfx90a, etc. Use `hipinfo` "
+    "or `iree-run-module --dump_devices=rocm` or `hipinfo` to get desired arch name",
 )
 
 args, unknown = p.parse_known_args()
