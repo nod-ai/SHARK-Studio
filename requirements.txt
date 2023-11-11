@@ -42,6 +42,7 @@ joblib # for langchain
 timm # for MiniGPT4
 langchain
 einops # for zoedepth
+pydantic==2.4.1 # pin until pyinstaller-hooks-contrib works with beta versions
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
