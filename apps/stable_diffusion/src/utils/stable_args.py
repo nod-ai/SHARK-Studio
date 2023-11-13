@@ -2,6 +2,8 @@ import argparse
 import os
 from pathlib import Path
 
+from apps.stable_diffusion.src.utils.resamplers import resampler_list
+
 
 def path_expand(s):
     return Path(s).expanduser().resolve()
@@ -168,17 +170,7 @@ p.add_argument(
     "--resample_type",
     type=str,
     default="Nearest Neighbor",
-    choices=[
-        "Lanczos",
-        "Nearest Neighbor",
-        "Bilinear",
-        "Bicubic",
-        "Adaptive",
-        "Antialias",
-        "Box",
-        "Affine",
-        "Cubic",
-    ],
+    choices=resampler_list,
     help="The resample type to use when resizing an image before being run "
     "through stable diffusion.",
 )
