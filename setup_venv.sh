@@ -111,7 +111,7 @@ else
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
-  $PYTHON -m pip install --pre --upgrade --find-links ${RUNTIME} iree-compiler iree-runtime
+  $PYTHON -m pip install --pre --upgrade --no-index --find-links ${RUNTIME} iree-compiler iree-runtime
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
@@ -135,7 +135,7 @@ else
   PYTORCH_URL=https://download.pytorch.org/whl/nightly/cpu/
 fi
 
-$PYTHON -m pip install --no-warn-conflicts -e . --no-index -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f ${PYTORCH_URL}
+$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f ${PYTORCH_URL}
 
 if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   T_VER=$($PYTHON -m pip show torch | grep Version)
