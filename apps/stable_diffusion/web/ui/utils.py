@@ -1,10 +1,16 @@
 import os
 import sys
-from apps.stable_diffusion.src import get_available_devices
 import glob
+import math
+import json
+import safetensors
+
 from pathlib import Path
 from apps.stable_diffusion.src import args
 from dataclasses import dataclass
+from enum import IntEnum
+
+from apps.stable_diffusion.src import get_available_devices
 import apps.stable_diffusion.web.utils.global_obj as global_obj
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     SD_STATE_CANCEL,
@@ -26,6 +32,15 @@ class Config:
     use_lora: str
     use_stencil: str
     ondemand: str  # should this be expecting a bool instead?
+
+
+class HSLHue(IntEnum):
+    RED = 0
+    YELLOW = 60
+    GREEN = 120
+    CYAN = 180
+    BLUE = 240
+    MAGENTA = 300
 
 
 custom_model_filetypes = (
@@ -159,6 +174,69 @@ def get_custom_vae_or_lora_weights(weights, hf_id, model):
     else:
         use_weight = hf_id
     return use_weight
+
+
+def hsl_color(alpha: float, start, end):
+    b = (end - start) * (alpha if alpha > 0 else 0)
+    result = b + start
+
+    # Return a CSS HSL string
+    return f"hsl({math.floor(result)}, 80%, 35%)"
+
+
+def get_lora_metadata(lora_filename):
+    # get the metadata from the file
+    filename = get_custom_model_pathfile(lora_filename, "lora")
+    with safetensors.safe_open(filename, framework="pt", device="cpu") as f:
+        metadata = f.metadata()
+
+    # guard clause for if there isn't any metadata
+    if not metadata:
+        return None
+
+    # metadata is a dictionary of strings, the values of the keys we're
+    # interested in are actually json, and need to be loaded as such
+    tag_frequencies = json.loads(metadata.get("ss_tag_frequency", str("{}")))
+    dataset_dirs = json.loads(metadata.get("ss_dataset_dirs", str("{}")))
+    tag_dirs = [dir for dir in tag_frequencies.keys()]
+
+    # gather the tag frequency information for all the datasets trained
+    all_frequencies = {}
+    for dataset in tag_dirs:
+        frequencies = sorted(
+            [entry for entry in tag_frequencies[dataset].items()],
+            reverse=True,
+            key=lambda x: x[1],
+        )
+
+        # get a figure for the total number of images processed for this dataset
+        # either then number actually listed or in its dataset_dir entry or
+        # the highest frequency's number if that doesn't exist
+        img_count = dataset_dirs.get(dir, {}).get(
+            "img_count", frequencies[0][1]
+        )
+
+        # add the dataset frequencies to the overall frequencies replacing the
+        # frequency counts on the tags with a percentage/ratio
+        all_frequencies.update(
+            [(entry[0], entry[1] / img_count) for entry in frequencies]
+        )
+
+    trained_model_id = " ".join(
+        [
+            metadata.get("ss_sd_model_hash", ""),
+            metadata.get("ss_sd_model_name", ""),
+            metadata.get("ss_base_model_version", ""),
+        ]
+    ).strip()
+
+    # return the topmost <count> of all frequencies in all datasets
+    return {
+        "model": trained_model_id,
+        "frequencies": sorted(
+            all_frequencies.items(), reverse=True, key=lambda x: x[1]
+        ),
+    }
 
 
 def cancel_sd():
