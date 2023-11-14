@@ -16,7 +16,6 @@ import numpy as np
 import os
 import re
 import tempfile
-import time
 from pathlib import Path
 
 import iree.runtime as ireert
@@ -63,8 +62,7 @@ def get_iree_device_args(device, extra_args=[]):
             + data_tiling_flag
             + u_kernel_flag
             + stack_size_flag
-            + ["--iree-flow-enable-quantized-matmul-reassociation"]
-            + ["--iree-llvmcpu-enable-quantized-matmul-reassociation"]
+            + ["--iree-global-opt-enable-quantized-matmul-reassociation"]
         )
     if device_uri[0] == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
@@ -321,6 +319,8 @@ def compile_module_to_flatbuffer(
         input_type = "tosa"
     elif frontend in ["tm_tensor"]:
         input_type = ireec.InputType.TM_TENSOR
+    elif frontend in ["torch", "pytorch"]:
+        input_type = "torch"
 
     if compile_str:
         flatbuffer_blob = ireec.compile_str(
