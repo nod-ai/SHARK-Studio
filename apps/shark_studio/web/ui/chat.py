@@ -10,7 +10,6 @@ from apps.shark_studio.api.utils import (
 from apps.shark_studio.api.llm import (
     llm_model_map,
     LanguageModel,
-
 )
 
 
@@ -62,7 +61,6 @@ start_message = {
 }
 
 
-
 def create_prompt(model_name, history, prompt_prefix):
     return ""
     system_message = ""
@@ -97,7 +95,6 @@ def create_prompt(model_name, history, prompt_prefix):
     return msg
 
 
-
 def get_default_config():
     return False
     import torch
@@ -124,7 +121,7 @@ def get_default_config():
     c.split_into_layers()
 
 
-#model_vmfb_key = ""
+# model_vmfb_key = ""
 
 
 def chat_fn(
@@ -303,7 +300,7 @@ def llm_chat_api(InputData: dict):
     model_name = (
         InputData["model"] if "model" in InputData.keys() else "codegen"
     )
-    model_path = model_map[model_name]
+    model_path = llm_model_map[model_name]
     device = "cpu-task"
     precision = "fp16"
     max_toks = (
@@ -399,9 +396,7 @@ def view_json_file(file_obj):
 
 with gr.Blocks(title="Chat") as chat_element:
     with gr.Row():
-        model_choices = list(
-           llm_model_map.keys() 
-        )
+        model_choices = list(llm_model_map.keys())
         model = gr.Dropdown(
             label="Select Model",
             value=model_choices[0],
@@ -424,9 +419,9 @@ with gr.Blocks(title="Chat") as chat_element:
             label="Precision",
             value="int4",
             choices=[
-                #"int4",
-                #"int8",
-                #"fp16",
+                # "int4",
+                # "int8",
+                # "fp16",
                 "fp32",
             ],
             visible=False,

@@ -478,7 +478,7 @@ def get_iree_compiled_module(
         compile_str=compile_str,
     )
     temp_file_to_unlink = None
-    #TODO: Currently mmap=True control flow path has been switched off for mmap.
+    # TODO: Currently mmap=True control flow path has been switched off for mmap.
     #       Got to find a cleaner way to unlink/delete the temporary file since
     #       we're setting delete=False when creating NamedTemporaryFile. That's why
     #       I'm getting hold of the name of the temporary file in `temp_file_to_unlink`.
