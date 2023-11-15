@@ -117,7 +117,7 @@ def walk_children(
             "mhlo.dot",
             "mhlo.dot_general",
             "mhlo.convolution",
-            "linalg.matmul",
+            # "linalg.matmul",
             "linalg.batch_matmul",
             "linalg.conv_2d_nhwc_hwcf",
             "linalg.generic",
@@ -181,7 +181,7 @@ def get_op_shape(op: ir.Operation, search_op: str):
             n = input2.split("tensor<")[1].split("x")[2]
             shape_list = [1, int(b), int(m), int(n), int(k)]
 
-    if search_op in ["matmul", "all"]:
+    if search_op in ["matmul"]:
         if op.name in ["mhlo.dot"]:
             op_result = str(op.results[0])
             m = op_result.split("tensor<")[1].split("x")[0]
