@@ -5,7 +5,7 @@ from typing import List, Any
 from transformers import StoppingCriteria
 
 
-from brevitas_examples.llm.llm_quant.quantize import quantize_model
+from brevitas_examples.common.generative.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
@@ -37,7 +37,7 @@ class VisionModel(torch.nn.Module):
                 dtype=torch.float32,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
@@ -52,7 +52,7 @@ class VisionModel(torch.nn.Module):
                 dtype=torch.float32,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
@@ -93,7 +93,7 @@ class FirstLlamaModel(torch.nn.Module):
                 dtype=torch.float32,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
@@ -157,7 +157,7 @@ class SecondLlamaModel(torch.nn.Module):
                 dtype=torch.float32,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,

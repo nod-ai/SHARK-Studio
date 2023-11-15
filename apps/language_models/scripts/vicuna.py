@@ -868,7 +868,7 @@ class ShardedVicuna(VicunaBase):
                     layer0, inputs0[0], inputs0[1], inputs0[2]
                 )
                 if self.precision in ["int4", "int8"]:
-                    from brevitas_examples.llm.llm_quant.quantize import quantize_model
+                    from brevitas_examples.common.generative.quantize import quantize_model
                     from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
                     module0 = torch_mlir.compile(
                         ts_g,
@@ -1069,7 +1069,7 @@ class ShardedVicuna(VicunaBase):
             )
 
         if self.precision in ["int4", "int8"]:
-            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.common.generative.quantize import quantize_model
             from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
             print("Applying weight quantization..")
             weight_bit_width = 4 if self.precision == "int4" else 8
@@ -1079,7 +1079,7 @@ class ShardedVicuna(VicunaBase):
                 weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_granularity="per_group",
                 weight_group_size=self.weight_group_size,
                 quantize_weight_zero_point=False,
