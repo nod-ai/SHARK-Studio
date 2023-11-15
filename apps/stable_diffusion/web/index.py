@@ -2,6 +2,7 @@ from multiprocessing import freeze_support
 import os
 import sys
 import logging
+import warnings
 import apps.stable_diffusion.web.utils.app as app
 
 if sys.platform == "darwin":
@@ -20,6 +21,32 @@ if sys.platform == "darwin":
 
 if args.clear_all:
     clear_all()
+
+
+# This function is intended to clean up MEI folders
+def cleanup_mei_folders():
+
+    # Determine the operating system
+    if sys.platform.startswith('win'):
+        temp_dir = os.path.join(os.environ['LOCALAPPDATA'], 'Temp')
+
+    # For potential extension to support Linux or macOS systems:
+    # NOTE: Before enabling, ensure compatibility and testing.
+    # elif sys.platform.startswith('linux') or sys.platform == 'darwin':
+    #    temp_dir = '/tmp'
+
+    else:
+        warnings.warn("Temporary files weren't deleted due to an unsupported OS; program functionality is unaffected.")
+        return
+
+    prefix = '_MEI'
+
+    # Iterate through the items in the temporary directory
+    for item in os.listdir(temp_dir):
+        if item.startswith(prefix):
+            path = os.path.join(temp_dir, item)
+            if os.path.isdir(path):
+                shutil.rmtree(path, ignore_errors=True)
 
 
 if __name__ == "__main__":
@@ -430,3 +457,4 @@ if __name__ == "__main__":
         server_port=actual_port,
         favicon_path=nodicon_loc,
     )
+    cleanup_mei_folders()
