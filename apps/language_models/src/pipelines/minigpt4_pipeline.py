@@ -132,7 +132,7 @@ import torch_mlir
 from torch_mlir.compiler_utils import run_pipeline_with_repro_report
 from typing import List, Tuple
 from io import BytesIO
-from brevitas_examples.llm.llm_quant.quantize import quantize_model
+from brevitas_examples.common.generative.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
