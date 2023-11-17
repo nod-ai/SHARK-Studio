@@ -67,6 +67,7 @@ def get_iree_device_args(device, extra_args=[]):
         return get_iree_rocm_args(device_num=device_num, extra_args=extra_args)
     return []
 
+
 def clean_device_info(raw_device):
     # return appropriate device and device_id for consumption by Studio pipeline
     # Multiple devices only supported for vulkan and rocm (as of now).
@@ -86,7 +87,8 @@ def clean_device_info(raw_device):
         device_id = None
 
     return device, device_id
-    
+
+
 # Get the iree-compiler arguments given frontend.
 def get_iree_frontend_args(frontend):
     if frontend in ["torch", "pytorch", "linalg", "tm_tensor"]:

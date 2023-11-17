@@ -132,6 +132,7 @@ def get_default_config():
     c = GenerateConfigFile(model, 1, ["gpu_id"], firstVicunaCompileInput)
     c.split_into_layers()
 
+
 model_vmfb_key = ""
 
 
