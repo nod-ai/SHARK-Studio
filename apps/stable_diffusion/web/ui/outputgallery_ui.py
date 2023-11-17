@@ -91,7 +91,7 @@ with gr.Blocks() as outputgallery_web:
                 value=gallery_files.value,
                 visible=False,
                 show_label=True,
-                columns=2,
+                columns=4,
             )
 
         with gr.Column(scale=4):
@@ -203,6 +203,9 @@ with gr.Blocks() as outputgallery_web:
                 visible=True,
             ),
         ]
+
+    def on_image_columns_change(columns):
+        return gr.Gallery.update(columns=columns)
 
     def on_select_subdir(subdir) -> list:
         # evt.value is the subdirectory name
@@ -365,53 +368,6 @@ with gr.Blocks() as outputgallery_web:
                 gr.update(),
             )
 
-    # Unfortunately as of gradio 3.34.0 gr.update against Galleries doesn't
-    # support things set with .style, nor the elem_classes kwarg, so we have
-    # to directly set things up via JavaScript if we want the client to take
-    # notice of our changes to the number of columns after it decides to put
-    # them back to the original number when we change something
-    def js_set_columns_in_browser(timeout_length):
-        return f"""
-            (new_cols) => {{
-                setTimeout(() => {{
-                    required_style = "auto ".repeat(new_cols).trim();
-                    gallery = document.querySelector('#outputgallery_gallery .grid-container');
-                    if (gallery) {{
-                        gallery.style.gridTemplateColumns = required_style
-                    }}
-                }}, {timeout_length});
-                return [];      // prevents console error from gradio
-            }}
-        """
-
-    # --- Wire handlers up to the actions
-
-    # Many actions reset the number of columns shown in the gallery on the
-    # browser end, so we have to set them back to what we think they should
-    # be after the initial action.
-    #
-    # None of the actions on this tab trigger inference, and we want the
-    # user to be able to do them whilst other tabs have ongoing inference
-    # running. Waiting in the queue behind inference jobs would mean the UI
-    # can't fully respond until the inference tasks complete,
-    # hence queue=False on all of these.
-    set_gallery_columns_immediate = dict(
-        fn=None,
-        inputs=[image_columns],
-        # gradio blanks the UI on Chrome on Linux on gallery select if
-        # I don't put an output here
-        outputs=[dev_null],
-        _js=js_set_columns_in_browser(0),
-        queue=False,
-    )
-
-    # setting columns after selecting a gallery item needs a real
-    # timeout length for the number of columns to actually be applied.
-    # Not really sure why, maybe something has to finish animating?
-    set_gallery_columns_delayed = dict(
-        set_gallery_columns_immediate, _js=js_set_columns_in_browser(250)
-    )
-
     # clearing images when we need to completely change what's in the
     # gallery avoids current images being shown replacing piecemeal and
     # prevents weirdness and errors if the user selects an image during the
@@ -423,32 +379,35 @@ with gr.Blocks() as outputgallery_web:
         queue=False,
     )
 
-    image_columns.change(**set_gallery_columns_immediate)
-
     subdirectories.select(**clear_gallery).then(
         on_select_subdir,
         [subdirectories],
         [gallery_files, gallery, logo],
         queue=False,
-    ).then(**set_gallery_columns_immediate)
+    )
 
-    open_subdir.click(
-        on_open_subdir, inputs=[subdirectories], queue=False
-    ).then(**set_gallery_columns_immediate)
+    open_subdir.click(on_open_subdir, inputs=[subdirectories], queue=False)
 
     refresh.click(**clear_gallery).then(
         on_refresh,
         [subdirectories],
         [subdirectories, subdirectory_paths, gallery_files, gallery, logo],
         queue=False,
-    ).then(**set_gallery_columns_immediate)
+    )
+
+    image_columns.change(
+        fn=on_image_columns_change,
+        inputs=[image_columns],
+        outputs=[gallery],
+        queue=False,
+    )
 
     gallery.select(
         on_select_image,
         [gallery_files],
         [outputgallery_filename, image_parameters],
         queue=False,
-    ).then(**set_gallery_columns_delayed)
+    )
 
     outputgallery_filename.change(
         on_outputgallery_filename_change,
@@ -477,7 +436,7 @@ with gr.Blocks() as outputgallery_web:
                 open_subdir,
             ],
             queue=False,
-        ).then(**set_gallery_columns_immediate)
+        )
 
     # We should have been passed a list of components on other tabs that update
     # when a new image has generated on that tab, so set things up so the user
@@ -489,4 +448,4 @@ with gr.Blocks() as outputgallery_web:
                 inputs=[subdirectories, subdirectory_paths, component],
                 outputs=[gallery_files, gallery, logo],
                 queue=False,
-            ).then(**set_gallery_columns_immediate)
+            )

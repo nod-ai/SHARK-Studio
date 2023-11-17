@@ -7,7 +7,7 @@ import torch_mlir
 from torch_mlir.compiler_utils import run_pipeline_with_repro_report
 from typing import List, Tuple
 from io import BytesIO
-from brevitas_examples.llm.llm_quant.quantize import quantize_model
+from brevitas_examples.common.generative.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
@@ -84,7 +84,7 @@ def compile_int_precision(
         weight_quant_type="asym",
         weight_bit_width=weight_bit_width,
         weight_param_method="stats",
-        weight_scale_precision="float",
+        weight_scale_precision="float_scale",
         weight_quant_granularity="per_group",
         weight_group_size=weight_group_size,
         quantize_weight_zero_point=False,

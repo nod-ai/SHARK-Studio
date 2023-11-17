@@ -22,33 +22,33 @@ This does mean however, that on a brand new fresh install of SHARK that has not 
 
  * Make sure you have suitable drivers for your graphics card installed. See the prerequisties section of the [README](https://github.com/nod-ai/SHARK#readme).
  * Download the latest SHARK studio .exe from [here](https://github.com/nod-ai/SHARK/releases) or follow the instructions in the [README](https://github.com/nod-ai/SHARK#readme) for an advanced, Linux or Mac install.
- * Run SHARK from terminal/PowerShell with the `--api` flag. Since koboldcpp also expects both CORS support and the image generator to be running on port `7860` rather than SHARK default of `8080`, also include both the `--api_cors_origin` flag with a suitable origin (use `="*"` to enable all origins) and `--server_port=7860` on the command line. (See the if you want to run SHARK on a different port)
+ * Run SHARK from terminal/PowerShell with the `--api` flag. Since koboldcpp also expects both CORS support and the image generator to be running on port `7860` rather than SHARK default of `8080`, also include both the `--api_accept_origin` flag with a suitable origin (use `="*"` to enable all origins) and `--server_port=7860` on the command line. (See the if you want to run SHARK on a different port)
 
 ```powershell
 ## Run the .exe in API mode, with CORS support, on the A1111 endpoint port:
-.\node_ai_shark_studio_<date>_<ver>.exe --api --api_cors_origin="*"  --server_port=7860
+.\node_ai_shark_studio_<date>_<ver>.exe --api --api_accept_origin="*"  --server_port=7860
 
 ## Run trom the base directory of a source clone of SHARK on Windows:
 .\setup_venv.ps1
-python .\apps\stable_diffusion\web\index.py --api --api_cors_origin="*"  --server_port=7860
+python .\apps\stable_diffusion\web\index.py --api --api_accept_origin="*"  --server_port=7860
 
 ## Run a the base directory of a source clone of SHARK on Linux:
 ./setup_venv.sh
 source shark.venv/bin/activate
-python ./apps/stable_diffusion/web/index.py --api --api_cors_origin="*"  --server_port=7860
+python ./apps/stable_diffusion/web/index.py --api --api_accept_origin="*"  --server_port=7860
 
 ## An example giving improved performance on AMD cards using vulkan, that runs on the same port as A1111
-.\node_ai_shark_studio_20320901_2525.exe --api --api_cors_origin="*" --device_allocator="caching" --server_port=7860
+.\node_ai_shark_studio_20320901_2525.exe --api --api_accept_origin="*" --device_allocator="caching" --server_port=7860
 
 ## Since the api respects most applicable SHARK command line arguments for options not specified,
 ## or currently unimplemented by API, there might be some you want to set, as listed in `--help`
 .\node_ai_shark_studio_20320901_2525.exe --help
 
 ## For instance, the example above, but with a a custom VAE specified
-.\node_ai_shark_studio_20320901_2525.exe --api --api_cors_origin="*" --device_allocator="caching" --server_port=7860 --custom_vae="clearvae_v23.safetensors"
+.\node_ai_shark_studio_20320901_2525.exe --api --api_accept_origin="*" --device_allocator="caching" --server_port=7860 --custom_vae="clearvae_v23.safetensors"
 
 ## An example with multiple specific CORS origins
-python apps/stable_diffusion/web/index.py --api --api_cors_origin="koboldcpp.example.com:7001" --api_cors_origin="koboldcpp.example.com:7002" --server_port=7860
+python apps/stable_diffusion/web/index.py --api --api_accept_origin="koboldcpp.example.com:7001" --api_accept_origin="koboldcpp.example.com:7002" --server_port=7860
 ```
 
 SHARK should start in server mode, and you should see something like this:
@@ -83,11 +83,11 @@ SHARK should start in server mode, and you should see something like this:
 
 * There is one final piece of image generation configuration within Koboldcpp you might want to do. This is also in the generate images section of advanced settings. Here there is, not very obviously, a 'style' button:
 
-  ![Selecting the 'styles' button](https://user-images.githubusercontent.com/121311569/280556172-4aab9794-7a77-46d7-bdda-43df570ad19a.png)
+  ![Selecting the 'styles' button](https://user-images.githubusercontent.com/121311569/280556694-55cd1c55-a059-4b54-9293-63d66a32368e.png)
 
   This will bring up a dialog box where you can enter a short text that will sent as a prefix to the Prompt sent to SHARK:
 
-  ![Entering extra image styles](https://github.com/one-lithe-rune/SHARK/assets/121311569/4aab9794-7a77-46d7-bdda-43df570ad19a)
+  ![Entering extra image styles](https://user-images.githubusercontent.com/121311569/280556172-4aab9794-7a77-46d7-bdda-43df570ad19a.png)
 
 
 ## Connecting to SHARK on a different address or port

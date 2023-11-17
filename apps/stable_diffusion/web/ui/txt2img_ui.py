@@ -5,15 +5,18 @@ import sys
 import gradio as gr
 from PIL import Image
 from math import ceil
+
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
     get_custom_model_path,
     get_custom_model_files,
     scheduler_list,
+    scheduler_list_cpu_only,
     predefined_models,
     cancel_sd,
 )
+from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
 from apps.stable_diffusion.web.utils.metadata import import_png_metadata
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
@@ -29,6 +32,7 @@ from apps.stable_diffusion.src import (
 from apps.stable_diffusion.src.utils import (
     get_generated_imgs_path,
     get_generation_text_info,
+    resampler_list,
 )
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
@@ -394,6 +398,11 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="HuggingFace Model ID",
                             lines=3,
                         )
+                    with gr.Row():
+                        lora_tags = gr.HTML(
+                            value="<div><i>No LoRA selected</i></div>",
+                            elem_classes="lora-tags",
+                        )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
@@ -465,50 +474,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="Low VRAM",
                             interactive=True,
                         )
-                    with gr.Group():
-                        with gr.Row():
-                            use_hiresfix = gr.Checkbox(
-                                value=args.use_hiresfix,
-                                label="Use Hires Fix",
-                                interactive=True,
-                            )
-                            resample_type = gr.Dropdown(
-                                value=args.resample_type,
-                                choices=[
-                                    "Lanczos",
-                                    "Nearest Neighbor",
-                                    "Bilinear",
-                                    "Bicubic",
-                                    "Adaptive",
-                                    "Antialias",
-                                    "Box",
-                                    "Affine",
-                                    "Cubic",
-                                ],
-                                label="Resample Type",
-                                allow_custom_value=True,
-                            )
-                        hiresfix_height = gr.Slider(
-                            384,
-                            768,
-                            value=args.hiresfix_height,
-                            step=8,
-                            label="Hires Fix Height",
-                        )
-                        hiresfix_width = gr.Slider(
-                            384,
-                            768,
-                            value=args.hiresfix_width,
-                            step=8,
-                            label="Hires Fix Width",
-                        )
-                        hiresfix_strength = gr.Slider(
-                            0,
-                            1,
-                            value=args.hiresfix_strength,
-                            step=0.01,
-                            label="Hires Fix Denoising Strength",
-                        )
                     with gr.Row():
                         with gr.Column(scale=3):
                             batch_count = gr.Slider(
@@ -531,6 +496,41 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         repeatable_seeds = gr.Checkbox(
                             args.repeatable_seeds,
                             label="Repeatable Seeds",
+                        )
+                with gr.Accordion(label="Hires Fix Options", open=False):
+                    with gr.Group():
+                        with gr.Row():
+                            use_hiresfix = gr.Checkbox(
+                                value=args.use_hiresfix,
+                                label="Use Hires Fix",
+                                interactive=True,
+                            )
+                            resample_type = gr.Dropdown(
+                                value=args.resample_type,
+                                choices=resampler_list,
+                                label="Resample Type",
+                                allow_custom_value=False,
+                            )
+                        hiresfix_height = gr.Slider(
+                            384,
+                            768,
+                            value=args.hiresfix_height,
+                            step=8,
+                            label="Hires Fix Height",
+                        )
+                        hiresfix_width = gr.Slider(
+                            384,
+                            768,
+                            value=args.hiresfix_width,
+                            step=8,
+                            label="Hires Fix Width",
+                        )
+                        hiresfix_strength = gr.Slider(
+                            0,
+                            1,
+                            value=args.hiresfix_strength,
+                            step=0.01,
+                            label="Hires Fix Denoising Strength",
                         )
                 with gr.Row():
                     seed = gr.Textbox(
@@ -675,4 +675,31 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                 lora_hf_id,
                 custom_vae,
             ],
+        )
+
+        # SharkEulerDiscrete doesn't work with img2img which hires_fix uses
+        def set_compatible_schedulers(hires_fix_selected):
+            if hires_fix_selected:
+                return gr.Dropdown.update(
+                    choices=scheduler_list_cpu_only,
+                    value="DEISMultistep",
+                )
+            else:
+                return gr.Dropdown.update(
+                    choices=scheduler_list,
+                    value="SharkEulerDiscrete",
+                )
+
+        use_hiresfix.change(
+            fn=set_compatible_schedulers,
+            inputs=[use_hiresfix],
+            outputs=[scheduler],
+            queue=False,
+        )
+
+        lora_weights.change(
+            fn=lora_changed,
+            inputs=[lora_weights],
+            outputs=[lora_tags],
+            queue=True,
         )

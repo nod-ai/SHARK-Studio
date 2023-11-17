@@ -42,3 +42,7 @@ from apps.stable_diffusion.src.utils.utils import (
     _compile_module,
 )
 from apps.stable_diffusion.src.utils.civitai import get_civitai_checkpoint
+from apps.stable_diffusion.src.utils.resamplers import (
+    resamplers,
+    resampler_list,
+)

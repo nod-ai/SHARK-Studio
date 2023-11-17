@@ -2,6 +2,8 @@ import argparse
 import os
 from pathlib import Path
 
+from apps.stable_diffusion.src.utils.resamplers import resampler_list
+
 
 def path_expand(s):
     return Path(s).expanduser().resolve()
@@ -168,17 +170,7 @@ p.add_argument(
     "--resample_type",
     type=str,
     default="Nearest Neighbor",
-    choices=[
-        "Lanczos",
-        "Nearest Neighbor",
-        "Bilinear",
-        "Bicubic",
-        "Adaptive",
-        "Antialias",
-        "Box",
-        "Affine",
-        "Cubic",
-    ],
+    choices=resampler_list,
     help="The resample type to use when resizing an image before being run "
     "through stable diffusion.",
 )
@@ -746,8 +738,9 @@ p.add_argument(
 p.add_argument(
     "--iree_rocm_target_chip",
     type=str,
-    default="gfx1100",
-    help="Add the rocm device architecture ex gfx1100, gfx90a, etc. Default gfx1100",
+    default="",
+    help="Add the rocm device architecture ex gfx1100, gfx90a, etc. Use `hipinfo` "
+    "or `iree-run-module --dump_devices=rocm` or `hipinfo` to get desired arch name",
 )
 
 args, unknown = p.parse_known_args()

@@ -5,6 +5,7 @@ import gradio as gr
 import PIL
 from math import ceil
 from PIL import Image
+
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -14,6 +15,7 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
+from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
 from apps.stable_diffusion.src import (
     args,
     Image2ImagePipeline,
@@ -27,6 +29,7 @@ from apps.stable_diffusion.src import (
 from apps.stable_diffusion.src.utils import (
     get_generated_imgs_path,
     get_generation_text_info,
+    resampler_list,
 )
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 import numpy as np
@@ -435,6 +438,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             label="HuggingFace Model ID",
                             lines=3,
                         )
+                    with gr.Row():
+                        lora_tags = gr.HTML(
+                            value="<div><i>No LoRA selected</i></div>",
+                            elem_classes="lora-tags",
+                        )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
@@ -486,17 +494,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             )
                             resample_type = gr.Dropdown(
                                 value=args.resample_type,
-                                choices=[
-                                    "Lanczos",
-                                    "Nearest Neighbor",
-                                    "Bilinear",
-                                    "Bicubic",
-                                    "Adaptive",
-                                    "Antialias",
-                                    "Box",
-                                    "Affine",
-                                    "Cubic",
-                                ],
+                                choices=resampler_list,
                                 label="Resample Type",
                                 allow_custom_value=True,
                             )
@@ -646,4 +644,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
+        )
+
+        lora_weights.change(
+            fn=lora_changed,
+            inputs=[lora_weights],
+            outputs=[lora_tags],
+            queue=True,
         )

@@ -19,9 +19,12 @@ import sys
 import subprocess
 
 
-def run_cmd(cmd, debug=False):
+def run_cmd(cmd, debug=False, raise_err=False):
     """
-    Inputs: cli command string.
+    Inputs:
+      cmd : cli command string.
+      debug : if True, prints debug info
+      raise_err : if True, raise exception to caller
     """
     if debug:
         print("IREE run command: \n\n")
@@ -39,8 +42,11 @@ def run_cmd(cmd, debug=False):
         stderr = result.stderr.decode()
         return stdout, stderr
     except subprocess.CalledProcessError as e:
-        print(e.output)
-        sys.exit(f"Exiting program due to error running {cmd}")
+        if raise_err:
+            raise Exception from e
+        else:
+            print(e.output)
+            sys.exit(f"Exiting program due to error running {cmd}")
 
 
 def iree_device_map(device):
