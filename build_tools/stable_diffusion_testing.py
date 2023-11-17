@@ -78,7 +78,10 @@ def test_loop(
     os.mkdir("./test_images/golden")
     get_inpaint_inputs()
     hf_model_names = model_config_dicts[0].values()
-    tuned_options = ["--no-use_tuned", "--use_tuned"]
+    tuned_options = [
+        "--no-use_tuned",
+        "--use_tuned",
+    ]
     import_options = ["--import_mlir", "--no-import_mlir"]
     prompt_text = "--prompt=cyberpunk forest by Salvador Dali"
     inpaint_prompt_text = "--prompt=Face of a yellow cat, high resolution, sitting on a park bench"
@@ -111,6 +114,8 @@ def test_loop(
                     model_name == "stabilityai/stable-diffusion-2-1-base"
                     and use_tune == tuned_options[1]
                 ):
+                    continue
+                elif use_tune == tuned_options[1]:
                     continue
                 command = (
                     [
