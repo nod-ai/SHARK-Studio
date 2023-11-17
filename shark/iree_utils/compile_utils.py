@@ -31,24 +31,7 @@ from .benchmark_utils import *
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
     print("Configuring for device:" + device)
-    device_uri = device.split("://")
-    if len(device_uri) > 1:
-        if device_uri[0] not in ["vulkan", "rocm"]:
-            print(
-                f"Specific device selection only supported for vulkan and rocm."
-                f"Proceeding with {device} as device."
-            )
-        # device_uri can be device_num or device_path.
-        # assuming number of devices for a single driver will be not be >99
-        if len(device_uri[1]) <= 2:
-            # expected to be device index in range 0 - 99
-            device_num = int(device_uri[1])
-        else:
-            # expected to be device path
-            device_num = device_uri[1]
-
-    else:
-        device_num = 0
+    device, device_num = clean_device_info(device)
 
     if "cpu" in device:
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
@@ -84,7 +67,26 @@ def get_iree_device_args(device, extra_args=[]):
         return get_iree_rocm_args(device_num=device_num, extra_args=extra_args)
     return []
 
+def clean_device_info(raw_device):
+    # return appropriate device and device_id for consumption by Studio pipeline
+    # Multiple devices only supported for vulkan and rocm (as of now).
+    # default device must be selected for all others
 
+    device_id = None
+    device = (
+        raw_device
+        if "=>" not in raw_device
+        else raw_device.split("=>")[1].strip()
+    )
+    if "://" in device:
+        device, device_id = device.split("://")
+        device_id = int(device_id)  # using device index in webui
+
+    if device not in ["rocm", "vulkan"]:
+        device_id = None
+
+    return device, device_id
+    
 # Get the iree-compiler arguments given frontend.
 def get_iree_frontend_args(frontend):
     if frontend in ["torch", "pytorch", "linalg", "tm_tensor"]:
