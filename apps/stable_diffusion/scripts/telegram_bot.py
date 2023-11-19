@@ -1,7 +1,10 @@
 import logging
+import traceback
 import os
-from models.stable_diffusion.main import stable_diff_inf
-from models.stable_diffusion.utils import get_available_devices
+import sys
+from apps.stable_diffusion.src import get_available_devices
+from apps.stable_diffusion.scripts import txt2img_inf
+from apps.stable_diffusion.scripts import img2img_inf
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import BotCommand
@@ -10,15 +13,40 @@ from telegram.ext import ContextTypes, MessageHandler, CommandHandler, filters
 from io import BytesIO
 import random
 
+if sys.platform == "darwin":
+    os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
+
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
+    return os.path.join(base_path, relative_path)
+
+
 log = logging.getLogger("TG.Bot")
 logging.basicConfig()
 log.warning("Start")
 load_dotenv()
-os.environ["AMD_ENABLE_LLPC"] = "0"
+if "AMD_ENABLE_LLPC" not in os.environ:
+    os.environ["AMD_ENABLE_LLPC"] = "1"
+
+if sys.platform == "darwin":
+    os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
 TG_TOKEN = os.getenv("TG_TOKEN")
-SELECTED_MODEL = "stablediffusion"
+SELECTED_MODEL = "stabilityai/stable-diffusion-2-1-base"
 SELECTED_SCHEDULER = "EulerAncestralDiscrete"
 STEPS = 30
+HEIGHT = 512
+WIDTH = 512
+BATCH_SIZE = 1
+HF_MODEL_ID = ""
+CKPT_LOC = ""
+PRECISION = "fp16"
+MAX_LENGTH = 64
+SAVE_METADATA_TO_JSON = False
+SAVE_METADATA_TO_PNG = False
 NEGATIVE_PROMPT = (
     "Ugly,Morbid,Extra fingers,Poorly drawn hands,Mutation,Blurry,Extra"
     " limbs,Gross proportions,Missing arms,Mutated hands,Long"
@@ -33,11 +61,12 @@ NEGATIVE_PROMPT = (
 GUIDANCE_SCALE = 6
 available_devices = get_available_devices()
 models_list = [
-    "stablediffusion",
-    "anythingv3",
-    "analogdiffusion",
-    "openjourney",
-    "dreamlike",
+    "Linaqruf/anything-v3.0",
+    "prompthero/openjourney",
+    "wavymulder/Analog-Diffusion",
+    "stabilityai/stable-diffusion-2-1",
+    "stabilityai/stable-diffusion-2-1-base",
+    "CompVis/stable-diffusion-v1-4",
 ]
 sheds_list = [
     "DDIM",
@@ -64,21 +93,54 @@ def get_try_again_markup():
     return reply_markup
 
 
-def generate_image(prompt):
+def generate_image(prompt, input_image):
     seed = random.randint(1, 10000)
     log.warning(SELECTED_MODEL)
     log.warning(STEPS)
-    image, text = stable_diff_inf(
+    log.warning(HF_MODEL_ID)
+    if input_image is not None:
+        image, text = img2img_inf(
+            prompt=prompt,
+            negative_prompt=NEGATIVE_PROMPT,
+            init_image=input_image,
+            steps=STEPS,
+            guidance_scale=GUIDANCE_SCALE,
+            seed=seed,
+            scheduler=SELECTED_SCHEDULER,
+            hf_model_id=HF_MODEL_ID,
+            device=available_devices[0],
+            height=HEIGHT,
+            width=WIDTH,
+            batch_size=BATCH_SIZE,
+            batch_count=1,
+            custom_model=SELECTED_MODEL,
+            # ckpt_loc = CKPT_LOC,
+            precision=PRECISION,
+            max_length=MAX_LENGTH,
+            save_metadata_to_json=SAVE_METADATA_TO_JSON,
+            save_metadata_to_png=SAVE_METADATA_TO_PNG,
+        )
+        return image, seed
+    image, text = txt2img_inf(
         prompt=prompt,
         negative_prompt=NEGATIVE_PROMPT,
         steps=STEPS,
         guidance_scale=GUIDANCE_SCALE,
         seed=seed,
-        scheduler_key=SELECTED_SCHEDULER,
-        variant=SELECTED_MODEL,
-        device_key=available_devices[0],
+        scheduler=SELECTED_SCHEDULER,
+        hf_model_id=HF_MODEL_ID,
+        device=available_devices[0],
+        height=HEIGHT,
+        width=WIDTH,
+        batch_size=BATCH_SIZE,
+        batch_count=1,
+        custom_model=SELECTED_MODEL,
+        # ckpt_loc = CKPT_LOC,
+        precision=PRECISION,
+        max_length=MAX_LENGTH,
+        save_metadata_to_json=SAVE_METADATA_TO_JSON,
+        save_metadata_to_png=SAVE_METADATA_TO_PNG,
     )
-
     return image, seed
 
 
@@ -88,14 +150,67 @@ async def generate_and_send_photo(
     progress_msg = await update.message.reply_text(
         "Generating image...", reply_to_message_id=update.message.message_id
     )
-    im, seed = generate_image(prompt=update.message.text)
-    await context.bot.delete_message(
-        chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
-    )
+    try:
+        im, seed = generate_image(prompt=update.message.text, input_image=None)
+        await context.bot.delete_message(
+            chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
+        )
+    except Exception:
+        log.exception("Exception")
+        # await update.message.reply_text(traceback.format_exc()[:4096])
+        await context.bot.send_document(
+            update.effective_user.id,
+            str.encode(traceback.format_exc()),
+            filename="exception.txt",
+            reply_to_message_id=update.message.message_id,
+        )
+        os.execl(sys.executable, sys.executable, *sys.argv)
+        return
     await context.bot.send_photo(
         update.effective_user.id,
-        image_to_bytes(im),
+        image_to_bytes(im[0]),
         caption=f'"{update.message.text}" (Seed: {seed})',
+        reply_markup=get_try_again_markup(),
+        reply_to_message_id=update.message.message_id,
+    )
+
+
+async def generate_and_send_photo_from_photo(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    if update.message.caption is None:
+        await update.message.reply_text(
+            "The photo must contain a text in the caption",
+            reply_to_message_id=update.message.message_id,
+        )
+        return
+    progress_msg = await update.message.reply_text(
+        "Generating image...", reply_to_message_id=update.message.message_id
+    )
+    try:
+        photo_file = await update.message.photo[-1].get_file()
+        photo = await photo_file.download_as_bytearray()
+        im, seed = generate_image(
+            prompt=update.message.caption, input_image=BytesIO(photo)
+        )
+        await context.bot.delete_message(
+            chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
+        )
+    except Exception:
+        log.exception("Exception")
+        # await update.message.reply_text(traceback.format_exc()[:4096])
+        await context.bot.send_document(
+            update.effective_user.id,
+            str.encode(traceback.format_exc()),
+            filename="exception.txt",
+            reply_to_message_id=update.message.message_id,
+        )
+        os.execl(sys.executable, sys.executable, *sys.argv)
+        return
+    await context.bot.send_photo(
+        update.effective_user.id,
+        image_to_bytes(im[0]),
+        caption=f'"{update.message.caption}" (Seed: {seed})',
         reply_markup=get_try_again_markup(),
         reply_to_message_id=update.message.message_id,
     )
@@ -106,6 +221,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if query.data in models_list:
         global SELECTED_MODEL
         SELECTED_MODEL = query.data
+        global HF_MODEL_ID
+        HF_MODEL_ID = "None"
         await query.answer()
         await query.edit_message_text(text=f"Selected model: {query.data}")
         return
@@ -123,14 +240,24 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     if query.data == "TRYAGAIN":
         prompt = replied_message.text
-        im, seed = generate_image(prompt)
-
+        try:
+            im, seed = generate_image(prompt, None)
+        except Exception:
+            log.exception("Exception")
+            # await update.message.reply_text(traceback.format_exc()[:4096])
+            await context.bot.send_document(
+                update.effective_user.id,
+                str.encode(traceback.format_exc()),
+                filename="exception.txt",
+                reply_to_message_id=replied_message.message_id,
+            )
+            return
     await context.bot.delete_message(
         chat_id=progress_msg.chat_id, message_id=progress_msg.message_id
     )
     await context.bot.send_photo(
         update.effective_user.id,
-        image_to_bytes(im),
+        image_to_bytes(im[0]),
         caption=f'"{prompt}" (Seed: {seed})',
         reply_markup=get_try_again_markup(),
         reply_to_message_id=replied_message.message_id,
@@ -138,6 +265,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def select_model_handler(update, context):
+    input_mex = update.message.text
+    log.warning(input_mex)
+    try:
+        input_args = input_mex.split("/select_model ")[1]
+        global SELECTED_MODEL
+        SELECTED_MODEL = "None"
+        global HF_MODEL_ID
+        HF_MODEL_ID = input_args
+        await update.message.reply_text(input_args)
+        return
+    except Exception:
+        pass
     text = "Select model"
     keyboard = []
     for model in models_list:
@@ -234,6 +373,9 @@ app.add_handler(
 )
 app.add_handler(
     MessageHandler(filters.TEXT & ~filters.COMMAND, generate_and_send_photo)
+)
+app.add_handler(
+    MessageHandler(filters.PHOTO, generate_and_send_photo_from_photo)
 )
 app.add_handler(CallbackQueryHandler(button))
 log.warning("Start bot")
