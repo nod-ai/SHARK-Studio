@@ -456,7 +456,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
-    chatbot = gr.Chatbot(height=500)
+    chatbot = gr.Chatbot(height=500, show_progress="minimal")
     with gr.Row():
         with gr.Column():
             msg = gr.Textbox(
