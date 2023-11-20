@@ -800,13 +800,13 @@ def save_mlir(
     model_name,
     mlir_dialect="linalg",
     frontend="torch",
-    dir=tempfile.gettempdir(),
+    dir="",
 ):
     model_name_mlir = (
         model_name + "_" + frontend + "_" + mlir_dialect + ".mlir"
     )
     if dir == "":
-        dir = tempfile.gettempdir()
+        dir = os.path.join(".", "shark_tmp")
     mlir_path = os.path.join(dir, model_name_mlir)
     print(f"saving {model_name_mlir} to {dir}")
     if frontend == "torch":
