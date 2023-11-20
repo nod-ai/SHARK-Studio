@@ -81,7 +81,8 @@ def clean_device_info(raw_device):
     )
     if "://" in device:
         device, device_id = device.split("://")
-        device_id = int(device_id[0])  # using device index in webui
+        if len(device_id) <= 2:
+            device_id = int(device_id)
 
     if device not in ["rocm", "vulkan"]:
         device_id = None

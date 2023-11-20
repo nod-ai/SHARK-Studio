@@ -45,7 +45,7 @@ def get_vulkan_device_name(device_num=0):
         print("Following devices found:")
         for i, dname in enumerate(vulkaninfo_list):
             print(f"{i}. {dname}")
-        print(f"Choosing device: {vulkaninfo_list[device_num]}")
+        print(f"Choosing device: vulkan://{device_num}")
     return vulkaninfo_list[device_num]
 
 
