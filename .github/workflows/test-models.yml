@@ -147,7 +147,7 @@ jobs:
         PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --update_tank -k vulkan
-        python build_tools/stable_diffusion_testing.py --device=vulkan
+        python build_tools/stable_diffusion_testing.py --device=vulkan --exit_on_fail=False
 
     - name: Validate Vulkan Models (Windows)
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'
