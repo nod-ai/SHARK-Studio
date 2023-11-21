@@ -118,7 +118,7 @@ def compile_through_fx(
     is_f16=False,
     f16_input_mask=None,
     use_tuned=False,
-    save_dir=tempfile.gettempdir(),
+    save_dir="",
     debug=False,
     generate_vmfb=True,
     extra_args=None,

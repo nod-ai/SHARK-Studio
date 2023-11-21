@@ -105,6 +105,18 @@ body {
     background-color: var(--background-fill-primary);
 }
 
+.generating.svelte-zlszon.svelte-zlszon {
+    border: none;
+}
+
+.generating {
+    border: none !important;
+}
+
+#chatbot {
+    height: 100% !important;
+}
+
 /* display in full width for desktop devices */
 @media (min-width: 1536px)
 {
