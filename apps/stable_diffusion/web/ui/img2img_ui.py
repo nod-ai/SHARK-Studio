@@ -68,6 +68,7 @@ def img2img_inf(
     ondemand: bool,
     repeatable_seeds: bool,
     resample_type: str,
+    control_mode: str,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -253,6 +254,7 @@ def img2img_inf(
             args.max_embeddings_multiples,
             use_stencil=use_stencil,
             resample_type=resample_type,
+            control_mode=control_mode,
         )
         total_time = time.time() - start_time
         text_output = get_generation_text_info(
@@ -411,6 +413,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         fn=show_canvas,
                         inputs=use_stencil,
                         outputs=[canvas_width, canvas_height, create_button],
+                    )
+                    control_mode = gr.Radio(
+                        choices=["Prompt", "Balanced", "Controlnet"],
+                        value="Balanced",
+                        label="Control Mode",
                     )
 
                 with gr.Accordion(label="LoRA Options", open=False):
@@ -625,6 +632,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 ondemand,
                 repeatable_seeds,
                 resample_type,
+                control_mode,
             ],
             outputs=[img2img_gallery, std_output, img2img_status],
             show_progress="minimal" if args.progress_bar else "none",
