@@ -2121,7 +2121,7 @@ if __name__ == "__main__":
             prompt = args.system_prompt + user_prompt
             history = [[user_prompt, ""]]
 
-        prompt_token_count = 1 # TODO
+        prompt_token_count = len(vic.tokenizer(prompt).input_ids)
         total_time_ms = 0.0  # In order to avoid divide by zero error
         prefill_time_ms = 0
         is_first = True
