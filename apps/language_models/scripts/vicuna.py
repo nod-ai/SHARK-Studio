@@ -1984,7 +1984,7 @@ def print_aggregate_stats(run_infos: list[BenchmarkRunInfo]) -> None:
         return
 
     if len(run_infos) == 1:
-        print(run_infos[0])
+        run_infos[0].print()
         return
 
     total_tokens = run_infos[0].num_prompt_tokens + run_infos[0].num_generated_tokens()
