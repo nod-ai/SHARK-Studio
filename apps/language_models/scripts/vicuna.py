@@ -2127,13 +2127,14 @@ if __name__ == "__main__":
         is_first = True
         token_times_ms = []
 
-        for text, msg, exec_time_ms in vic.generate(prompt, cli=True):
+        for text, msg, exec_time in vic.generate(prompt, cli=True):
             if msg is None:
                 if is_first:
-                    prefill_time_ms = exec_time_ms
+                    # Note that the prefill time is in seconds, and all the decoded tokens in ms.
+                    prefill_time_ms = exec_time * 1000
                     is_first = False
                 else:
-                    token_times_ms.append(exec_time_ms)
+                    token_times_ms.append(exec_time)
             elif "formatted" in msg:
                 history[-1][1] = text
                 print(f"\nResponse:\n{text.strip()}\n")
