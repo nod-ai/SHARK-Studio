@@ -1999,7 +1999,7 @@ def print_aggregate_stats(run_infos: list[BenchmarkRunInfo]) -> None:
     print(f"Prefill: avg. {avg_prefill_ms:.2f} ms (stdev {stdev_prefill:.2f}), avg. {avg_prefill_speed:.2f} tokens/s")
 
     avg_decode_ms, stdev_decode = avg_and_stdev(x.get_decode_time_ms() for x in run_infos)
-    avg_decode_speed = mean(x.get_prefill_speed() for x in run_infos)
+    avg_decode_speed = mean(x.get_decode_speed() for x in run_infos)
     print(f"Decode: avg. {avg_decode_ms:.2f} ms (stdev {stdev_decode:.2f}), avg. {avg_decode_speed:.2f} tokens/s")
 
     avg_e2e_decode_speed = mean(x.get_e2e_decode_speed() for x in run_infos)
