@@ -809,6 +809,8 @@ def save_mlir(
         dir = os.path.join(".", "shark_tmp")
     mlir_path = os.path.join(dir, model_name_mlir)
     print(f"saving {model_name_mlir} to {dir}")
+    if not os.path.exists(dir):
+        os.makedirs(dir)
     if frontend == "torch":
         with open(mlir_path, "wb") as mlir_file:
             mlir_file.write(mlir_module)

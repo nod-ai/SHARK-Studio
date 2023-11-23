@@ -38,15 +38,24 @@ def get_all_vulkan_devices():
 
 @functools.cache
 def get_vulkan_device_name(device_num=0):
-    vulkaninfo_list = get_all_vulkan_devices()
-    if len(vulkaninfo_list) == 0:
-        raise ValueError("No device name found in VulkanInfo!")
-    if len(vulkaninfo_list) > 1:
-        print("Following devices found:")
-        for i, dname in enumerate(vulkaninfo_list):
-            print(f"{i}. {dname}")
-        print(f"Choosing device: vulkan://{device_num}")
-    return vulkaninfo_list[device_num]
+    if isinstance(device_num, int):
+        vulkaninfo_list = get_all_vulkan_devices()
+
+        if len(vulkaninfo_list) == 0:
+            raise ValueError("No device name found in VulkanInfo!")
+        if len(vulkaninfo_list) > 1:
+            print("Following devices found:")
+            for i, dname in enumerate(vulkaninfo_list):
+                print(f"{i}. {dname}")
+            print(f"Choosing device: vulkan://{device_num}")
+        vulkan_device_name = vulkaninfo_list[device_num]
+    else:
+        from iree.runtime import get_driver
+
+        vulkan_device_driver = get_driver(device_num)
+        vulkan_device_name = vulkan_device_driver.query_available_devices()[0]
+        print(vulkan_device_name)
+    return vulkan_device_name
 
 
 def get_os_name():
