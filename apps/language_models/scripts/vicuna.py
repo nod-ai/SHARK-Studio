@@ -1949,7 +1949,10 @@ class BenchmarkRunInfo:
     token_times_ms : list[float]
 
     def get_prefill_speed(self) -> float:
-        return self.num_prompt_tokens / miliseconds_to_seconds(self.prefill_time_ms)
+        seconds = miliseconds_to_seconds(self.prefill_time_ms)
+        if seconds == 0.0:
+            return float('inf')
+        return self.num_prompt_tokens / seconds
 
     def num_generated_tokens(self) -> int:
         return len(self.token_times_ms)
@@ -1958,16 +1961,25 @@ class BenchmarkRunInfo:
         return sum(self.token_times_ms)
 
     def get_decode_speed(self) -> float:
-        return self.num_generated_tokens() / miliseconds_to_seconds(self.get_decode_time_ms())
+        seconds = miliseconds_to_seconds(self.get_decode_time_ms())
+        if seconds == 0.0:
+            return float('inf')
+        return self.num_generated_tokens() / seconds
 
     def get_e2e_time_ms(self) -> float:
         return self.prefill_time_ms + self.get_decode_time_ms()
 
     def get_e2e_decode_speed(self) -> float:
-        return self.num_generated_tokens() / miliseconds_to_seconds(self.get_e2e_time_ms())
+        seconds = miliseconds_to_seconds(self.get_e2e_time_ms())
+        if seconds == 0.0:
+            return float('inf')
+        return self.num_generated_tokens() / seconds
 
     def get_e2e_token_processing_speed(self) -> float:
-        return (self.num_prompt_tokens + self.num_generated_tokens()) / miliseconds_to_seconds(self.get_e2e_time_ms())
+        seconds = miliseconds_to_seconds(self.get_e2e_time_ms())
+        if seconds == 0.0:
+            return float('inf')
+        return (self.num_prompt_tokens + self.num_generated_tokens()) / seconds
 
     def print(self) -> None:
         total_tokens = self.num_prompt_tokens + self.num_generated_tokens()
