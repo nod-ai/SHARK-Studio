@@ -201,7 +201,7 @@ if __name__ == "__main__":
         )
 
     with gr.Blocks(
-        css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
+        css=dark_theme, analytics_enabled=False, title="Shark Studio 2.0 Beta"
     ) as sd_web:
         with gr.Tabs() as tabs:
             # NOTE: If adding, removing, or re-ordering tabs, make sure that they
