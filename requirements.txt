@@ -4,7 +4,10 @@
 setuptools
 wheel
 
+# TURBINE
+-f https://openxla.github.io/iree/pip-release-links.html
 shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@main
+turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#egg=turbine-models&subdirectory=python/turbine_models
 
 # SHARK Runner
 tqdm
@@ -19,9 +22,9 @@ pytest-forked
 Pillow
 parameterized
 
-#shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@main
 # Add transformers, diffusers and scipy since it most commonly used
-tokenizers==0.13.3
+tokenizers
+transformers
 diffusers
 #accelerate is now required for diffusers import from ckpt.
 accelerate
@@ -50,5 +53,6 @@ pydantic==2.4.1 # pin until pyinstaller-hooks-contrib works with beta versions
 pefile
 pyinstaller
 
-# vicuna quantization
-brevitas @ git+https://github.com/Xilinx/brevitas.git@56edf56a3115d5ac04f19837b388fd7d3b1ff7ea
+# For quantized GPTQ models
+optimum
+auto_gptq

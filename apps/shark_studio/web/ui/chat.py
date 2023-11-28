@@ -25,9 +25,6 @@ language_model = None
 def create_prompt(model_name, history, prompt_prefix):
     return ""
     system_message = ""
-    if prompt_prefix:
-        system_message = start_message[model_name]
-
     if "llama2" in model_name:
         B_INST, E_INST = "[INST]", "[/INST]"
         B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
@@ -104,7 +101,6 @@ def chat_fn(
             device=device,
             precision=precision,
             external_weights="safetensors",
-            external_weight_file="llama2_7b.safetensors",
             use_system_prompt=prompt_prefix,
         )
         history[-1][-1] = "Getting the model ready... Done"

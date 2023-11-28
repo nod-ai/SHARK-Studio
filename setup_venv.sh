@@ -151,10 +151,6 @@ if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   fi
 fi
 
-if [[ -z "${NO_BREVITAS}" ]]; then
-  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
-fi
-
 if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
   echo "${Green}Before running examples activate venv with:"
   echo "  ${Green}source $VENV_DIR/bin/activate"
