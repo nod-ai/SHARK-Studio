@@ -669,20 +669,17 @@ class UnshardedFalcon(SharkLLMBase):
     def get_src_model(self):
         print("Loading src model: ", self.model_name)
         kwargs = {
-            "torch_dtype": torch.float,
+            "torch_dtype": torch.float32,
             "trust_remote_code": True,
             "token": self.hf_auth_token,
         }
         if self.precision == "int4":
             quantization_config = GPTQConfig(bits=4, disable_exllama=True)
             kwargs["quantization_config"] = quantization_config
-            kwargs["load_gptq_on_cpu"] = True
             kwargs["device_map"] = "cpu"
         falcon_model = AutoModelForCausalLM.from_pretrained(
             self.hf_model_path, **kwargs
         )
-        if self.precision == "int4":
-            falcon_model = falcon_model.to(torch.float32)
         return falcon_model
 
     def compile(self):
