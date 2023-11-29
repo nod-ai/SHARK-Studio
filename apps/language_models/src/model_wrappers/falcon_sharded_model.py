@@ -175,8 +175,9 @@ class CompiledFourWayShardingDecoderLayer(torch.nn.Module):
     def forward(
         self,
         hidden_states: torch.Tensor,
+        alibi: Optional[torch.Tensor],
         attention_mask: torch.Tensor,
-        alibi: torch.Tensor = None,
+        position_ids: Optional[torch.LongTensor] = None,
         layer_past: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         head_mask: Optional[torch.Tensor] = None,
         use_cache: bool = False,
@@ -191,7 +192,7 @@ class CompiledFourWayShardingDecoderLayer(torch.nn.Module):
             raise ValueError("Layer vmfb not found")
 
         hidden_states = hidden_states.to(torch.float32).detach().numpy()
-        attention_mask = attention_mask.detach().numpy()
+        attention_mask = attention_mask.to(torch.float32).detach().numpy()
 
         if alibi is not None or layer_past is not None:
             raise ValueError("Past Key Values and alibi should be None")
@@ -456,8 +457,9 @@ class CompiledTwoWayShardingDecoderLayer(torch.nn.Module):
     def forward(
         self,
         hidden_states: torch.Tensor,
+        alibi: Optional[torch.Tensor],
         attention_mask: torch.Tensor,
-        alibi: torch.Tensor = None,
+        position_ids: Optional[torch.LongTensor] = None,
         layer_past: Optional[Tuple[torch.Tensor, torch.Tensor]] = None,
         head_mask: Optional[torch.Tensor] = None,
         use_cache: bool = False,
@@ -472,7 +474,7 @@ class CompiledTwoWayShardingDecoderLayer(torch.nn.Module):
             raise ValueError("Layer vmfb not found")
 
         hidden_states = hidden_states.to(torch.float32).detach().numpy()
-        attention_mask = attention_mask.detach().numpy()
+        attention_mask = attention_mask.to(torch.float32).detach().numpy()
 
         if alibi is not None or layer_past is not None:
             raise ValueError("Past Key Values and alibi should be None")
