@@ -27,7 +27,7 @@ sacremoses
 sentencepiece
 
 # web dependecies.
-gradio
+gradio==3.44.3
 altair
 scipy
 

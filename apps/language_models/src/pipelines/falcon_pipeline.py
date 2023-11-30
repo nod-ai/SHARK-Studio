@@ -233,7 +233,7 @@ class ShardedFalcon(SharkLLMBase):
                 elif layer_id in ["ln_f", "lm_head"]:
                     f16_input_mask = [True]
                 elif "_" in layer_id or type(layer_id) == int:
-                    f16_input_mask = [True, False]
+                    f16_input_mask = [True, True]
                 else:
                     raise ValueError("Unsupported layer: ", layer_id)
 
@@ -298,7 +298,9 @@ class ShardedFalcon(SharkLLMBase):
 
     def compile(self):
         sample_input_ids = torch.zeros([100], dtype=torch.int64)
-        sample_attention_mask = torch.zeros([1, 1, 100, 100], dtype=torch.bool)
+        sample_attention_mask = torch.zeros(
+            [1, 1, 100, 100], dtype=torch.float32
+        )
         num_group_layers = int(
             20 * (4 / args.num_shards)
         )  # 4 is the number of default shards
@@ -669,20 +671,17 @@ class UnshardedFalcon(SharkLLMBase):
     def get_src_model(self):
         print("Loading src model: ", self.model_name)
         kwargs = {
-            "torch_dtype": torch.float,
+            "torch_dtype": torch.float32,
             "trust_remote_code": True,
             "token": self.hf_auth_token,
         }
         if self.precision == "int4":
             quantization_config = GPTQConfig(bits=4, disable_exllama=True)
             kwargs["quantization_config"] = quantization_config
-            kwargs["load_gptq_on_cpu"] = True
             kwargs["device_map"] = "cpu"
         falcon_model = AutoModelForCausalLM.from_pretrained(
             self.hf_model_path, **kwargs
         )
-        if self.precision == "int4":
-            falcon_model = falcon_model.to(torch.float32)
         return falcon_model
 
     def compile(self):
