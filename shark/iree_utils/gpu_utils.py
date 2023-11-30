@@ -104,7 +104,7 @@ def get_rocm_device_arch(device_num=0, extra_args=[]):
         print(f"Found ROCm device arch : {arch_in_device_dump}")
         return arch_in_device_dump
 
-    default_rocm_arch = "gfx_1100"
+    default_rocm_arch = "gfx1100"
     print(
         "Did not find ROCm architecture from `--iree-rocm-target-chip` flag"
         "\n or from `iree-run-module --dump_devices=rocm` command."
