@@ -66,7 +66,7 @@ def pytest_addoption(parser):
         "--tank_url",
         type=str,
         default="gs://shark_tank/nightly",
-        help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/latest",
+        help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/nightly",
     )
     parser.addoption(
         "--tank_prefix",

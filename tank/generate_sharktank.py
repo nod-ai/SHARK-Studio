@@ -41,6 +41,8 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
         torch_reader = csv.reader(csvfile, delimiter=",")
         fields = next(torch_reader)
         for row in torch_reader:
+            if len(row) < 6:
+                continue
             torch_model_name = row[0]
             dict_inputs = row[1]
             model_type = row[2]
@@ -88,7 +90,9 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                     local_tank_cache, str(torch_model_name) + "_torch"
                 )
             os.makedirs(torch_model_dir, exist_ok=True)
-            file_path = os.path.join(torch_model_dir, torch_model_name)
+            file_path = os.path.join(
+                torch_model_dir, f"{torch_model_name}_torch.mlir"
+            )
             if dict_inputs == "True":
                 from shark.shark_importer import import_with_fx
 
@@ -108,7 +112,29 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
             else:
                 exported_model = aot.export(model, input)
                 exported_model.save_mlir(file_path=file_path)
-                np.save(os.path.join(torch_model_dir, "inputs.npz"), (input,))
+                golden_out = model.forward(input).detach().numpy()
+                function_name = "main"
+                hash_gen_attempts = 2
+                for i in range(hash_gen_attempts):
+                    try:
+                        mlir_hash = create_hash(file_path)
+                    except FileNotFoundError as err:
+                        if i < hash_gen_attempts:
+                            continue
+                        else:
+                            raise err
+
+                np.save(
+                    os.path.join(torch_model_dir, "hash"), np.array(mlir_hash)
+                )
+                np.savez(os.path.join(torch_model_dir, "inputs"), input)
+                np.savez(
+                    os.path.join(torch_model_dir, "golden_out"), *golden_out
+                )
+                np.save(
+                    os.path.join(torch_model_dir, "function_name"),
+                    np.array(function_name),
+                )
 
             print(f"Finished saving artifacts for {torch_model_name}!")
 
@@ -139,21 +165,21 @@ def gen_shark_files(modelname, frontend, tank_dir, importer_args):
         torch_model_csv = os.path.join(
             os.path.dirname(__file__), "torch_model_list.csv"
         )
-        custom_model_csv = tempfile.NamedTemporaryFile(
-            dir=os.path.dirname(__file__),
-            delete=True,
+        custom_model_csv = os.path.join(
+            os.path.dirname(__file__), "custom_model_list.csv"
         )
         if frontend == "torch":
             with open(torch_model_csv, mode="r") as src:
                 reader = csv.reader(src)
                 for row in reader:
-                    if row[0] == modelname:
+                    if "_".join(row[0].split("/")) == modelname:
                         target = row
-            with open(custom_model_csv.name, mode="w") as trg:
+                        break
+            with open(custom_model_csv, mode="w") as trg:
                 writer = csv.writer(trg)
                 writer.writerow(["modelname", "src"])
                 writer.writerow(target)
-            save_torch_model(custom_model_csv.name, tank_dir, import_args)
+            save_torch_model(custom_model_csv, tank_dir, import_args)
     else:
         raise NoImportException
 

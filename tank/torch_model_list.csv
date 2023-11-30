@@ -19,3 +19,7 @@ google/vit-base-patch16-224,False,hf_img_cls,False,linalg,False,86M,"image-class
 microsoft/resnet-50,False,hf_img_cls,False,linalg,False,23M,"image-classification,cnn,residuals,resnet-variant","Bottlenecks with only conv2d (1x1 conv -> 3x3 conv -> 1x1 conv blocks)"
 facebook/deit-small-distilled-patch16-224,False,hf_img_cls,False,linalg,False,22M,"image-classification,vision-transformer,cnn",N/A
 microsoft/beit-base-patch16-224-pt22k-ft22k,False,hf_img_cls,False,linalg,False,86M,"image-classification,transformer-encoder,bert-variant,vision-transformer",N/A
+efficientnet_b0,False,vision,False,linalg,False,5.3M,"image-classification;cnn;conv2d;depthwise-conv","Smallest EfficientNet variant with 224x224 input"
+efficientnet_b7,False,vision,False,linalg,False,66M,"image-classification;cnn;conv2d;depthwise-conv","Largest EfficientNet variant with 600x600 input"
+t5-base,True,hf_seq2seq,True,linalg,True,220M,"nlp;transformer-encoder;transformer-decoder","Text-to-Text Transfer Transformer"
+t5-large,True,hf_seq2seq,True,linalg,True,770M,"nlp;transformer-encoder;transformer-decoder","Text-to-Text Transfer Transformer"

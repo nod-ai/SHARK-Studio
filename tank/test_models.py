@@ -178,26 +178,12 @@ class SharkModuleTester:
         from shark.shark_inference import SharkInference
         from tank.generate_sharktank import NoImportException
 
-        dl_gen_attempts = 2
-        for i in range(dl_gen_attempts):
-            try:
-                model, func_name, inputs, golden_out = download_model(
-                    self.config["model_name"],
-                    frontend=self.config["framework"],
-                    import_args=import_config,
-                )
-            except NoImportException as err:
-                pytest.xfail(
-                    reason=f"Artifacts for this model/config must be generated locally. Please make sure {self.config['framework']} is installed."
-                )
-            except AssertionError as err:
-                if i < dl_gen_attempts - 1:
-                    continue
-                else:
-                    pytest.xfail(
-                        "Generating OTF may require exiting the subprocess for files to be available."
-                    )
-            break
+        model, func_name, inputs, golden_out = download_model(
+            self.config["model_name"],
+            frontend=self.config["framework"],
+            import_args=import_config,
+            tank_url=self.shark_tank_prefix,
+        )
         is_bench = True if self.benchmark is not None else False
         shark_module = SharkInference(
             model,
@@ -353,26 +339,6 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.dispatch_benchmarks_dir = (
             self.pytestconfig.getoption("dispatch_benchmarks_dir")
         )
-
-        if config["xfail_cpu"] == "True" and device in [
-            "cpu",
-            "cpu-sync",
-            "cpu-task",
-        ]:
-            pytest.xfail(reason=config["xfail_reason"])
-
-        if config["xfail_cuda"] == "True" and device == "cuda":
-            pytest.xfail(reason=config["xfail_reason"])
-
-        if config["xfail_vkm"] == "True" and device in ["metal", "vulkan"]:
-            pytest.xfail(reason=config["xfail_reason"])
-
-        if (
-            self.pytestconfig.getoption("ci") == True
-            and os.name == "nt"
-            and "enabled_windows" not in config["xfail_other"]
-        ):
-            pytest.xfail(reason="this model skipped on windows")
 
         # Special cases that need to be marked.
         if (

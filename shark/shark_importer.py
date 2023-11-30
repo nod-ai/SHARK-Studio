@@ -162,9 +162,7 @@ class SharkImporter:
         inputs_name = "inputs.npz"
         outputs_name = "golden_out.npz"
         func_file_name = "function_name"
-        model_name_mlir = (
-            model_name + "_" + self.frontend + "_" + mlir_type + ".mlir"
-        )
+        model_name_mlir = model_name + "_" + self.frontend + ".mlir"
         print(f"saving {model_name_mlir} to {dir}")
         try:
             inputs = [x.cpu().detach() for x in inputs]
@@ -207,9 +205,7 @@ class SharkImporter:
                 f"There is no input provided: {self.inputs}, please provide inputs or simply run import_mlir."
             )
             sys.exit(1)
-        model_name_mlir = (
-            model_name + "_" + self.frontend + "_" + mlir_type + ".mlir"
-        )
+        model_name_mlir = model_name + "_" + self.frontend + ".mlir"
         artifact_path = os.path.join(dir, model_name_mlir)
         imported_mlir = self.import_mlir(
             is_dynamic,
