@@ -1,15 +1,16 @@
 import gradio as gr
-import torch
 import os
 from pathlib import Path
-from transformers import (
-    AutoModelForCausalLM,
-)
-from apps.stable_diffusion.web.ui.utils import available_devices
-from shark.iree_utils.compile_utils import clean_device_info
 from datetime import datetime as dt
 import json
 import sys
+from apps.shark_studio.api.utils import (
+    get_available_devices,
+)
+from apps.shark_studio.api.llm import (
+    llm_model_map,
+    LanguageModel,
+)
 
 
 def user(message, history):
@@ -17,18 +18,8 @@ def user(message, history):
     return "", history + [[message, ""]]
 
 
-sharkModel = 0
-sharded_model = 0
-vicuna_model = 0
+language_model = None
 
-past_key_values = None
-
-model_map = {
-    "llama2_7b": "meta-llama/Llama-2-7b-chat-hf",
-    "llama2_13b": "meta-llama/Llama-2-13b-chat-hf",
-    "llama2_70b": "meta-llama/Llama-2-70b-chat-hf",
-    "vicuna": "TheBloke/vicuna-7B-1.1-HF",
-}
 
 # NOTE: Each `model_name` should have its own start message
 start_message = {
@@ -71,6 +62,7 @@ start_message = {
 
 
 def create_prompt(model_name, history, prompt_prefix):
+    return ""
     system_message = ""
     if prompt_prefix:
         system_message = start_message[model_name]
@@ -103,12 +95,8 @@ def create_prompt(model_name, history, prompt_prefix):
     return msg
 
 
-def set_vicuna_model(model):
-    global vicuna_model
-    vicuna_model = model
-
-
 def get_default_config():
+    return False
     import torch
     from transformers import AutoTokenizer
 
@@ -133,11 +121,10 @@ def get_default_config():
     c.split_into_layers()
 
 
-model_vmfb_key = ""
+# model_vmfb_key = ""
 
 
-# TODO: Make chat reusable for UI and API
-def chat(
+def chat_fn(
     prompt_prefix,
     history,
     model,
@@ -148,12 +135,32 @@ def chat(
     cli=False,
     progress=gr.Progress(),
 ):
+    global language_model
+    if language_model is None:
+        language_model = LanguageModel(
+            model, device=device, precision=precision
+        )
+
+    language_model.chat(prompt_prefix)
+    return "", ""
     global past_key_values
     global model_vmfb_key
-    global vicuna_model
 
+    device_id = None
     model_name, model_path = list(map(str.strip, model.split("=>")))
-    device, device_id = clean_device_info(device)
+    if "cuda" in device:
+        device = "cuda"
+    elif "sync" in device:
+        device = "cpu-sync"
+    elif "task" in device:
+        device = "cpu-task"
+    elif "vulkan" in device:
+        device_id = int(device.split("://")[1])
+        device = "vulkan"
+    elif "rocm" in device:
+        device = "rocm"
+    else:
+        print("unrecognized device")
 
     from apps.language_models.scripts.vicuna import ShardedVicuna
     from apps.language_models.scripts.vicuna import UnshardedVicuna
@@ -208,11 +215,10 @@ def chat(
 
         elif "rocm" in device:
             # add iree rocm flags
-            if args.iree_rocm_target_chip != "":
-                _extra_args.append(
-                    f"--iree-rocm-target-chip={args.iree_rocm_target_chip}"
-                )
-                print(f"extra args = {_extra_args}")
+            _extra_args.append(
+                f"--iree-rocm-target-chip={args.iree_rocm_target_chip}"
+            )
+            print(f"extra args = {_extra_args}")
 
         if model_name == "vicuna4":
             vicuna_model = ShardedVicuna(
@@ -277,6 +283,7 @@ def chat(
 
 
 def llm_chat_api(InputData: dict):
+    return None
     print(f"Input keys : {InputData.keys()}")
     # print(f"model : {InputData['model']}")
     is_chat_completion_api = (
@@ -293,7 +300,7 @@ def llm_chat_api(InputData: dict):
     model_name = (
         InputData["model"] if "model" in InputData.keys() else "codegen"
     )
-    model_path = model_map[model_name]
+    model_path = llm_model_map[model_name]
     device = "cpu-task"
     precision = "fp16"
     max_toks = (
@@ -311,7 +318,17 @@ def llm_chat_api(InputData: dict):
 
     device_id = None
     if vicuna_model == 0:
-        device, device_id = clean_device_info(device)
+        if "cuda" in device:
+            device = "cuda"
+        elif "sync" in device:
+            device = "cpu-sync"
+        elif "task" in device:
+            device = "cpu-task"
+        elif "vulkan" in device:
+            device_id = int(device.split("://")[1])
+            device = "vulkan"
+        else:
+            print("unrecognized device")
 
         vicuna_model = UnshardedVicuna(
             model_name,
@@ -377,39 +394,35 @@ def view_json_file(file_obj):
     return content
 
 
-with gr.Blocks(title="Chatbot") as stablelm_chat:
+with gr.Blocks(title="Chat") as chat_element:
     with gr.Row():
-        model_choices = list(
-            map(lambda x: f"{x[0]: <10} => {x[1]}", model_map.items())
-        )
+        model_choices = list(llm_model_map.keys())
         model = gr.Dropdown(
             label="Select Model",
             value=model_choices[0],
             choices=model_choices,
             allow_custom_value=True,
         )
-        supported_devices = available_devices
-        enabled = len(supported_devices) > 0
-        # show cpu-task device first in list for chatbot
-        supported_devices = supported_devices[-1:] + supported_devices[:-1]
+        supported_devices = get_available_devices()
+        enabled = True
+        if len(supported_devices) == 0:
+            supported_devices = ["cpu-task"]
         supported_devices = [x for x in supported_devices if "sync" not in x]
         device = gr.Dropdown(
             label="Device",
-            value=supported_devices[0]
-            if enabled
-            else "Only CUDA Supported for now",
+            value=supported_devices[0],
             choices=supported_devices,
             interactive=enabled,
             allow_custom_value=True,
-            # multiselect=True,
         )
         precision = gr.Radio(
             label="Precision",
             value="int4",
             choices=[
-                "int4",
-                "int8",
-                "fp16",
+                # "int4",
+                # "int8",
+                # "fp16",
+                "fp32",
             ],
             visible=False,
         )
@@ -426,17 +439,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 interactive=True,
             )
 
-    with gr.Row(visible=False):
-        with gr.Group():
-            config_file = gr.File(
-                label="Upload sharding configuration", visible=False
-            )
-            json_view_button = gr.Button(label="View as JSON", visible=False)
-        json_view = gr.JSON(interactive=True, visible=False)
-        json_view_button.click(
-            fn=view_json_file, inputs=[config_file], outputs=[json_view]
-        )
-    chatbot = gr.Chatbot(elem_id="chatbot")
+    chatbot = gr.Chatbot(height=500)
     with gr.Row():
         with gr.Column():
             msg = gr.Textbox(
@@ -452,6 +455,16 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 stop = gr.Button("Stop", interactive=enabled)
                 clear = gr.Button("Clear", interactive=enabled)
 
+    with gr.Row(visible=False):
+        with gr.Group():
+            config_file = gr.File(
+                label="Upload sharding configuration", visible=False
+            )
+            json_view_button = gr.Button(label="View as JSON", visible=False)
+        json_view = gr.JSON(interactive=True, visible=False)
+        json_view_button.click(
+            fn=view_json_file, inputs=[config_file], outputs=[json_view]
+        )
     submit_event = msg.submit(
         fn=user,
         inputs=[msg, chatbot],
@@ -459,7 +472,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         show_progress=False,
         queue=False,
     ).then(
-        fn=chat,
+        fn=chat_fn,
         inputs=[
             prompt_prefix,
             chatbot,
@@ -480,7 +493,7 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         show_progress=False,
         queue=False,
     ).then(
-        fn=chat,
+        fn=chat_fn,
         inputs=[
             prompt_prefix,
             chatbot,

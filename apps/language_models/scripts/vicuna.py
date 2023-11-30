@@ -1,8 +1,10 @@
 import argparse
+from dataclasses import dataclass
 import json
 import re
 import gc
 from io import BytesIO
+from os import environ
 from pathlib import Path
 from statistics import mean, stdev
 from tqdm import tqdm
@@ -142,6 +144,12 @@ parser.add_argument(
     action='append',
     default=[],
     help="Extra command line arguments passed to the IREE compiler. This can be specified multiple times to pass multiple arguments."
+)
+parser.add_argument(
+    "--enable_tracing",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Enable profiling with Tracy. The script will wait for Tracy to connect and flush the profiling data after each token."
 )
 
 # Microbenchmarking options.
@@ -868,7 +876,7 @@ class ShardedVicuna(VicunaBase):
                     layer0, inputs0[0], inputs0[1], inputs0[2]
                 )
                 if self.precision in ["int4", "int8"]:
-                    from brevitas_examples.llm.llm_quant.quantize import quantize_model
+                    from brevitas_examples.common.generative.quantize import quantize_model
                     from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
                     module0 = torch_mlir.compile(
                         ts_g,
@@ -1069,7 +1077,7 @@ class ShardedVicuna(VicunaBase):
             )
 
         if self.precision in ["int4", "int8"]:
-            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.common.generative.quantize import quantize_model
             from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
             print("Applying weight quantization..")
             weight_bit_width = 4 if self.precision == "int4" else 8
@@ -1079,7 +1087,7 @@ class ShardedVicuna(VicunaBase):
                 weight_quant_type="asym",
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_granularity="per_group",
                 weight_group_size=self.weight_group_size,
                 quantize_weight_zero_point=False,
@@ -1259,6 +1267,7 @@ class UnshardedVicuna(VicunaBase):
         max_num_tokens=512,
         min_num_tokens=0,
         device="cpu",
+        device_id=None,
         vulkan_target_triple="",
         precision="int8",
         vicuna_mlir_path=None,
@@ -1269,7 +1278,6 @@ class UnshardedVicuna(VicunaBase):
         download_vmfb=False,
         cache_vicunas=False,
         extra_args_cmd=[],
-        device_id=None,
         debug=False,
     ) -> None:
         super().__init__(
@@ -1288,9 +1296,7 @@ class UnshardedVicuna(VicunaBase):
         print(f"[DEBUG] hf model name: {self.hf_model_path}")
         self.max_sequence_length = 256
         self.min_num_tokens = min_num_tokens
-        self.device = device
         self.vulkan_target_triple = vulkan_target_triple
-        self.device_id = device_id
         self.precision = precision
         self.download_vmfb = download_vmfb
         self.vicuna_vmfb_path = vicuna_vmfb_path
@@ -1299,12 +1305,24 @@ class UnshardedVicuna(VicunaBase):
         self.low_device_memory = low_device_memory
         self.weight_group_size = weight_group_size
         self.debug = debug
+        # Sanity check for device, device_id pair
+        if "://" in device:
+            if device_id is not None:
+                print("[ERR] can't have both full device path and a device id.\n"
+                      f"Device : {device} | device_id : {device_id}\n"
+                      "proceeding with given Device ignoring device_id")
+            self.device, self.device_id = device.split("://")
+            if len(self.device_id) < 2:
+                self.device_id = int(self.device_id)
+        else:
+            self.device, self.device_id = device, device_id
         if self.vicuna_mlir_path == None:
             self.vicuna_mlir_path = self.get_model_path()
         if self.vicuna_vmfb_path == None:
             self.vicuna_vmfb_path = self.get_model_path(suffix="vmfb")
         self.tokenizer = self.get_tokenizer()
         self.cache_vicunas = cache_vicunas
+
         self.compile()
 
     def get_model_path(self, suffix="mlir"):
@@ -1313,13 +1331,27 @@ class UnshardedVicuna(VicunaBase):
         if suffix in ["mlirbc", "mlir"]:
             return Path(f"{self.model_name}_{self.precision}.{suffix}")
 
-        target_triple = ""
-        if self.vulkan_target_triple != "":
-            target_triple = "_"
-            target_triple += "_".join(self.vulkan_target_triple.split("-")[:-1])
-            
+        # Need to distinguish between multiple vmfbs of the same model
+        # compiled for different devices of the same driver
+        # Driver  -  Differentiator
+        # Vulkan  -  target_triple
+        # ROCm    -  device_arch
+
+        differentiator = ""
+        if "vulkan" == self.device:
+            target_triple = ""
+            if self.vulkan_target_triple != "":
+                target_triple = "_"
+                target_triple += "_".join(self.vulkan_target_triple.split("-")[:-1])
+                differentiator = target_triple
+
+        elif "rocm" == self.device:
+            from shark.iree_utils.gpu_utils import get_rocm_device_arch
+            device_arch = get_rocm_device_arch(self.device_id if self.device_id is not None else 0, self.extra_args)
+            differentiator = '_' + device_arch
+
         return Path(
-            f"{self.model_name}_{self.precision}_{safe_device}{target_triple}.{suffix}"
+            f"{self.model_name}_{self.precision}_{safe_device}{differentiator}.{suffix}"
         )
 
     def get_tokenizer(self):
@@ -1752,9 +1784,8 @@ class UnshardedVicuna(VicunaBase):
             )
             del first_module, second_module
 
-        print(self.device)
-        if "rocm" in self.device:
-            self.device = "rocm"
+        print(f"Compiling for device : {self.device}"
+              f"{'://' + str(self.device_id) if self.device_id is not None else ''}")
         shark_module = SharkInference(
             mlir_module=combined_module,
             device=self.device,
@@ -1914,12 +1945,107 @@ def create_prompt(model_name, history):
     return msg
 
 
+def miliseconds_to_seconds(ms: float) -> float:
+    return ms / 1000.0
+
+
+@dataclass
+class BenchmarkRunInfo:
+    num_prompt_tokens : int
+    prefill_time_ms : float
+    token_times_ms : list[float]
+
+    def get_prefill_speed(self) -> float:
+        seconds = miliseconds_to_seconds(self.prefill_time_ms)
+        if seconds == 0.0:
+            return float('inf')
+        return self.num_prompt_tokens / seconds
+
+    def num_generated_tokens(self) -> int:
+        return len(self.token_times_ms)
+
+    def get_decode_time_ms(self) -> float:
+        return sum(self.token_times_ms)
+
+    def get_decode_speed(self) -> float:
+        seconds = miliseconds_to_seconds(self.get_decode_time_ms())
+        if seconds == 0.0:
+            return float('inf')
+        return self.num_generated_tokens() / seconds
+
+    def get_e2e_time_ms(self) -> float:
+        return self.prefill_time_ms + self.get_decode_time_ms()
+
+    def get_e2e_decode_speed(self) -> float:
+        seconds = miliseconds_to_seconds(self.get_e2e_time_ms())
+        if seconds == 0.0:
+            return float('inf')
+        return self.num_generated_tokens() / seconds
+
+    def get_e2e_token_processing_speed(self) -> float:
+        seconds = miliseconds_to_seconds(self.get_e2e_time_ms())
+        if seconds == 0.0:
+            return float('inf')
+        return (self.num_prompt_tokens + self.num_generated_tokens()) / seconds
+
+    def print(self) -> None:
+        total_tokens = self.num_prompt_tokens + self.num_generated_tokens()
+        print(f"Num tokens: {self.num_prompt_tokens:} (prompt), {self.num_generated_tokens()} (generated), {total_tokens} (total)")
+        print(f"Prefill: {self.prefill_time_ms:.2f} ms, {self.get_prefill_speed():.2f} tokens/s")
+        print(f"Decode: {self.get_decode_time_ms():.2f} ms, {self.get_decode_speed():.2f} tokens/s")
+        print(f"Decode end-2-end: {self.get_e2e_decode_speed():.2f} tokens/s (w/o prompt), {self.get_e2e_token_processing_speed():.2f} tokens/s (w/ prompt)")
+
+
+def print_aggregate_stats(run_infos: list[BenchmarkRunInfo]) -> None:
+    num_iterations = len(run_infos)
+    print(f'Number of iterations: {num_iterations}')
+    if num_iterations == 0:
+        return
+
+    if len(run_infos) == 1:
+        run_infos[0].print()
+        return
+
+    total_tokens = run_infos[0].num_prompt_tokens + run_infos[0].num_generated_tokens()
+    print(f"Num tokens: {run_infos[0].num_prompt_tokens} (prompt), {run_infos[0].num_generated_tokens()} (generated), {total_tokens} (total)")
+
+    def avg_and_stdev(data):
+        x = list(data)
+        return mean(x), stdev(x)
+
+    avg_prefill_ms, stdev_prefill = avg_and_stdev(x.prefill_time_ms for x in run_infos)
+    avg_prefill_speed = mean(x.get_prefill_speed() for x in run_infos)
+    print(f"Prefill: avg. {avg_prefill_ms:.2f} ms (stdev {stdev_prefill:.2f}), avg. {avg_prefill_speed:.2f} tokens/s")
+
+    avg_decode_ms, stdev_decode = avg_and_stdev(x.get_decode_time_ms() for x in run_infos)
+    avg_decode_speed = mean(x.get_decode_speed() for x in run_infos)
+    print(f"Decode: avg. {avg_decode_ms:.2f} ms (stdev {stdev_decode:.2f}), avg. {avg_decode_speed:.2f} tokens/s")
+
+    avg_e2e_decode_speed = mean(x.get_e2e_decode_speed() for x in run_infos)
+    avg_e2e_processing_speed = mean(x.get_e2e_token_processing_speed() for x in run_infos)
+    print(f"Decode end-2-end: avg. {avg_e2e_decode_speed:.2f} tokens/s (w/o prompt), avg. {avg_e2e_processing_speed:.2f} (w/ prompt)")
+
+
+def enable_tracy_tracing():
+    # Make tracy wait for a caputre to be collected before exiting.
+    environ["TRACY_NO_EXIT"] = "1"
+
+    if "IREE_PY_RUNTIME" not in environ or environ["IREE_PY_RUNTIME"] != "tracy":
+        print("ERROR: Tracing enabled but tracy iree runtime not used.", file=sys.stderr)
+        print("Set the IREE_PY_RUNTIME=tracy environment variable.", file=sys.stderr)
+        sys.exit(1)
+
+
 if __name__ == "__main__":
     args, unknown = parser.parse_known_args()
 
     _extra_args = list(args.Xiree_compile)
 
     device_id = None
+
+    if args.enable_tracing:
+        enable_tracy_tracing()
+
     # Process vulkan target triple.
     # TODO: This feature should just be in a common utils for other LLMs and in general
     #       any model run via SHARK for Vulkan backend.
@@ -2012,8 +2138,7 @@ if __name__ == "__main__":
 
     iteration = 0
 
-    prefill_times = []
-    avg_decode_speed = []
+    benchmark_run_infos = []
 
     while True:
         # TODO: Add break condition from user input
@@ -2029,28 +2154,30 @@ if __name__ == "__main__":
             prompt = args.system_prompt + user_prompt
             history = [[user_prompt, ""]]
 
-        token_count = 0
-        total_time_ms = 0.001  # In order to avoid divide by zero error
-        prefill_time = 0
+        prompt_token_count = len(vic.tokenizer(prompt).input_ids)
+        total_time_ms = 0.0  # In order to avoid divide by zero error
+        prefill_time_ms = 0
         is_first = True
+        token_times_ms = []
+
         for text, msg, exec_time in vic.generate(prompt, cli=True):
+            if args.enable_tracing:
+                vic.shark_model.shark_runner.iree_config.device.flush_profiling()
+
             if msg is None:
                 if is_first:
-                    prefill_time = exec_time
+                    # Note that the prefill time is in seconds, and all the decoded tokens in ms.
+                    prefill_time_ms = exec_time * 1000
                     is_first = False
                 else:
-                    total_time_ms += exec_time
-                    token_count += 1
+                    token_times_ms.append(exec_time)
             elif "formatted" in msg:
                 history[-1][1] = text
-                tokens_per_sec = (token_count / total_time_ms) * 1000
-                prefill_times.append(prefill_time)
-                avg_decode_speed.append(tokens_per_sec)
+                print(f"\nResponse:\n{text.strip()}\n")
+                run_info = BenchmarkRunInfo(prompt_token_count, prefill_time_ms, token_times_ms)
+                run_info.print()
+                benchmark_run_infos.append(run_info)
 
-                print("\nResponse:", text.strip())
-                print(f"\nNum tokens: {token_count}")
-                print(f"Prefill: {prefill_time:.2f} seconds")
-                print(f"Decode: {tokens_per_sec:.2f} tokens/s")
             else:
                 sys.exit(
                     "unexpected message from the vicuna generate call, exiting."
@@ -2058,6 +2185,4 @@ if __name__ == "__main__":
 
     if args.enable_microbenchmark:
         print("\n### Final Statistics ###")
-        print("Number of iterations:", iteration - 1)
-        print(f"Prefill: avg. {mean(prefill_times):.2f} s, stdev {stdev(prefill_times):.2f}")
-        print(f"Decode: avg. {mean(avg_decode_speed):.2f} tokens/s, stdev {stdev(avg_decode_speed):.2f}")
+        print_aggregate_stats(benchmark_run_infos)

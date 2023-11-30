@@ -24,7 +24,9 @@ class FirstVicuna(torch.nn.Module):
         )
         print(f"[DEBUG] model_path : {model_path}")
         if precision in ["int4", "int8"]:
-            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.common.generative.quantize import (
+                quantize_model,
+            )
             from brevitas_examples.llm.llm_quant.run_utils import (
                 get_model_impl,
             )
@@ -36,7 +38,7 @@ class FirstVicuna(torch.nn.Module):
                 dtype=self.accumulates,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
@@ -79,7 +81,9 @@ class SecondVicuna7B(torch.nn.Module):
         )
         print(f"[DEBUG] model_path : {model_path}")
         if precision in ["int4", "int8"]:
-            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.common.generative.quantize import (
+                quantize_model,
+            )
             from brevitas_examples.llm.llm_quant.run_utils import (
                 get_model_impl,
             )
@@ -91,7 +95,7 @@ class SecondVicuna7B(torch.nn.Module):
                 dtype=self.accumulates,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
@@ -329,7 +333,9 @@ class SecondVicuna13B(torch.nn.Module):
             torch.float32 if accumulates == "fp32" else torch.float16
         )
         if precision in ["int4", "int8"]:
-            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.common.generative.quantize import (
+                quantize_model,
+            )
             from brevitas_examples.llm.llm_quant.run_utils import (
                 get_model_impl,
             )
@@ -341,7 +347,7 @@ class SecondVicuna13B(torch.nn.Module):
                 dtype=self.accumulates,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,
@@ -627,7 +633,9 @@ class SecondVicuna70B(torch.nn.Module):
         )
         print(f"[DEBUG] model_path : {model_path}")
         if precision in ["int4", "int8"]:
-            from brevitas_examples.llm.llm_quant.quantize import quantize_model
+            from brevitas_examples.common.generative.quantize import (
+                quantize_model,
+            )
             from brevitas_examples.llm.llm_quant.run_utils import (
                 get_model_impl,
             )
@@ -639,7 +647,7 @@ class SecondVicuna70B(torch.nn.Module):
                 dtype=self.accumulates,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=weight_group_size,

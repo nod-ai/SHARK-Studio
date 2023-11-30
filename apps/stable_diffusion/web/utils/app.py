@@ -2,26 +2,25 @@ import os
 import sys
 import webview
 import webview.util
-import winreg
 import socket
 
 from contextlib import closing
 from multiprocessing import Process
-from tkinter import Tk
 
 from apps.stable_diffusion.src import args
 
 
 def webview2_installed():
+    if sys.platform != "win32":
+        return False
+
     # On windows we want to ensure we have MS webview2 available so we don't fall back
     # to MSHTML (aka ye olde Internet Explorer) which is deprecated by pywebview, and
     # apparently causes SHARK not to load in properly.
 
     # Checking these registry entries is how Microsoft says to detect a webview2 installation:
     # https://learn.microsoft.com/en-us/microsoft-edge/webview2/concepts/distribution
-
-    if sys.platform != "win32":
-        return False
+    import winreg
 
     path = r"SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
 
@@ -54,6 +53,8 @@ def webview2_installed():
 
 
 def window(address):
+    from tkinter import Tk
+
     window = Tk()
 
     # get screen width and height of display and make it more reasonably

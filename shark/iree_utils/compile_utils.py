@@ -16,7 +16,6 @@ import numpy as np
 import os
 import re
 import tempfile
-import time
 from pathlib import Path
 
 import iree.runtime as ireert
@@ -32,24 +31,7 @@ from .benchmark_utils import *
 # Get the iree-compile arguments given device.
 def get_iree_device_args(device, extra_args=[]):
     print("Configuring for device:" + device)
-    device_uri = device.split("://")
-    if len(device_uri) > 1:
-        if device_uri[0] not in ["vulkan"]:
-            print(
-                f"Specific device selection only supported for vulkan now."
-                f"Proceeding with {device} as device."
-            )
-        # device_uri can be device_num or device_path.
-        # assuming number of devices for a single driver will be not be >99
-        if len(device_uri[1]) <= 2:
-            # expected to be device index in range 0 - 99
-            device_num = int(device_uri[1])
-        else:
-            # expected to be device path
-            device_num = device_uri[1]
-
-    else:
-        device_num = 0
+    device, device_num = clean_device_info(device)
 
     if "cpu" in device:
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
@@ -63,28 +45,50 @@ def get_iree_device_args(device, extra_args=[]):
             + data_tiling_flag
             + u_kernel_flag
             + stack_size_flag
-            + ["--iree-flow-enable-quantized-matmul-reassociation"]
-            + ["--iree-llvmcpu-enable-quantized-matmul-reassociation"]
+            + ["--iree-global-opt-enable-quantized-matmul-reassociation"]
         )
-    if device_uri[0] == "cuda":
+    if device == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
         return get_iree_gpu_args()
-    if device_uri[0] == "vulkan":
+    if device == "vulkan":
         from shark.iree_utils.vulkan_utils import get_iree_vulkan_args
 
         return get_iree_vulkan_args(
             device_num=device_num, extra_args=extra_args
         )
-    if device_uri[0] == "metal":
+    if device == "metal":
         from shark.iree_utils.metal_utils import get_iree_metal_args
 
         return get_iree_metal_args(extra_args=extra_args)
-    if device_uri[0] == "rocm":
+    if device == "rocm":
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
-        return get_iree_rocm_args(extra_args=extra_args)
+        return get_iree_rocm_args(device_num=device_num, extra_args=extra_args)
     return []
+
+
+def clean_device_info(raw_device):
+    # return appropriate device and device_id for consumption by Studio pipeline
+    # Multiple devices only supported for vulkan and rocm (as of now).
+    # default device must be selected for all others
+
+    device_id = None
+    device = (
+        raw_device
+        if "=>" not in raw_device
+        else raw_device.split("=>")[1].strip()
+    )
+    if "://" in device:
+        device, device_id = device.split("://")
+        if len(device_id) <= 2:
+            device_id = int(device_id)
+
+    if device not in ["rocm", "vulkan"]:
+        device_id = ""
+    if device in ["rocm", "vulkan"] and device_id == None:
+        device_id = 0
+    return device, device_id
 
 
 # Get the iree-compiler arguments given frontend.
@@ -321,6 +325,8 @@ def compile_module_to_flatbuffer(
         input_type = "tosa"
     elif frontend in ["tm_tensor"]:
         input_type = ireec.InputType.TM_TENSOR
+    elif frontend in ["torch", "pytorch"]:
+        input_type = "torch"
 
     if compile_str:
         flatbuffer_blob = ireec.compile_str(
@@ -632,7 +638,7 @@ def get_results(
 def get_iree_runtime_config(device):
     device = iree_device_map(device)
     haldriver = ireert.get_driver(device)
-    if device == "metal" and shark_args.device_allocator == "caching":
+    if "metal" in device and shark_args.device_allocator == "caching":
         print(
             "[WARNING] metal devices can not have a `caching` allocator."
             "\nUsing default allocator `None`"
@@ -640,7 +646,9 @@ def get_iree_runtime_config(device):
     haldevice = haldriver.create_device_by_uri(
         device,
         # metal devices have a failure with caching allocators atm. blcking this util it gets fixed upstream.
-        allocators=shark_args.device_allocator if device != "metal" else None,
+        allocators=shark_args.device_allocator
+        if "metal" not in device
+        else None,
     )
     config = ireert.Config(device=haldevice)
     return config

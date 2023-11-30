@@ -17,6 +17,7 @@ pytest-forked
 Pillow
 parameterized
 
+#shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@main
 # Add transformers, diffusers and scipy since it most commonly used
 tokenizers==0.13.3
 transformers
@@ -42,6 +43,7 @@ joblib # for langchain
 timm # for MiniGPT4
 langchain
 einops # for zoedepth
+pydantic==2.4.1 # pin until pyinstaller-hooks-contrib works with beta versions
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
@@ -49,3 +51,7 @@ pyinstaller
 
 # vicuna quantization
 brevitas @ git+https://github.com/Xilinx/brevitas.git@56edf56a3115d5ac04f19837b388fd7d3b1ff7ea
+
+# For quantized GPTQ models
+optimum
+auto_gptq

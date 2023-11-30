@@ -118,7 +118,7 @@ def compile_through_fx(
     is_f16=False,
     f16_input_mask=None,
     use_tuned=False,
-    save_dir=tempfile.gettempdir(),
+    save_dir="",
     debug=False,
     generate_vmfb=True,
     extra_args=None,
@@ -477,7 +477,14 @@ def get_available_devices():
                         f"{device_name} => {driver_name.replace('local', 'cpu')}"
                     )
                 else:
-                    device_list.append(f"{device_name} => {driver_name}://{i}")
+                    # for drivers with single devices
+                    # let the default device be selected without any indexing
+                    if len(device_list_dict) == 1:
+                        device_list.append(f"{device_name} => {driver_name}")
+                    else:
+                        device_list.append(
+                            f"{device_name} => {driver_name}://{i}"
+                        )
         return device_list
 
     set_iree_runtime_flags()
@@ -556,6 +563,9 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags += opt_flags[model][is_tuned][precision][
             "specified_compilation_flags"
         ][device]
+    # Due to lack of support for multi-reduce, we always collapse reduction
+    # dims before dispatch formation right now.
+    iree_flags += ["--iree-flow-collapse-reduction-dims"]
     return iree_flags
 
 

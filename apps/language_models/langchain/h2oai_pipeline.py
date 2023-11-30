@@ -25,7 +25,7 @@ from apps.stable_diffusion.src import args
 
 # Brevitas
 from typing import List, Tuple
-from brevitas_examples.llm.llm_quant.quantize import quantize_model
+from brevitas_examples.common.generative.quantize import quantize_model
 from brevitas_examples.llm.llm_quant.run_utils import get_model_impl
 
 
@@ -101,7 +101,7 @@ class H2OGPTModel(torch.nn.Module):
                 dtype=torch.float32,
                 weight_bit_width=weight_bit_width,
                 weight_param_method="stats",
-                weight_scale_precision="float",
+                weight_scale_precision="float_scale",
                 weight_quant_type="asym",
                 weight_quant_granularity="per_group",
                 weight_group_size=128,

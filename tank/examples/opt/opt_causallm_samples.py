@@ -71,4 +71,4 @@ if __name__ == "__main__":
             args.max_seq_len,
             print_intermediate_results=False,
         )
-        print("reponse: {}".format("".join(response)))
+        print("response: {}".format("".join(response)))

@@ -47,9 +47,8 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
             is_dynamic = row[3]
             mlir_type = row[4]
             is_decompose = row[5]
-
-            tracing_required = True
-            is_dynamic = False if is_dynamic == "False" else True
+            tracing_required = False if tracing_required == "False" else True
+            is_dynamic = False
             print("generating artifacts for: " + torch_model_name)
             model = None
             input = None

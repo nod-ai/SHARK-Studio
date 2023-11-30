@@ -5,11 +5,25 @@ from time import time
 shark_tmp = os.path.join(os.getcwd(), "shark_tmp/")
 
 
-def config_gradio_tmp_imgs_folder():
-    # create shark_tmp if it does not exist
-    if not os.path.exists(shark_tmp):
-        os.mkdir(shark_tmp)
+def clear_tmp_mlir():
+    cleanup_start = time()
+    print(
+        "Clearing .mlir temporary files from a prior run. This may take some time..."
+    )
+    mlir_files = [
+        filename
+        for filename in os.listdir(shark_tmp)
+        if os.path.isfile(os.path.join(shark_tmp, filename))
+        and filename.endswith(".mlir")
+    ]
+    for filename in mlir_files:
+        os.remove(shark_tmp + filename)
+    print(
+        f"Clearing .mlir temporary files took {time() - cleanup_start:.4f} seconds."
+    )
 
+
+def clear_tmp_imgs():
     # tell gradio to use a directory under shark_tmp for its temporary
     # image files unless somewhere else has been set
     if "GRADIO_TEMP_DIR" not in os.environ:
@@ -52,3 +66,12 @@ def config_gradio_tmp_imgs_folder():
             )
         else:
             print("No temporary images files to clear.")
+
+
+def config_tmp():
+    # create shark_tmp if it does not exist
+    if not os.path.exists(shark_tmp):
+        os.mkdir(shark_tmp)
+
+    clear_tmp_mlir()
+    clear_tmp_imgs()

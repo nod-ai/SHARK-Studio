@@ -27,22 +27,35 @@ from shark.parser import shark_args
 def get_all_vulkan_devices():
     from iree.runtime import get_driver
 
-    driver = get_driver("vulkan")
-    device_list_src = driver.query_available_devices()
+    try:
+        driver = get_driver("vulkan")
+        device_list_src = driver.query_available_devices()
+    except:
+        device_list_src = {}
+
     return [d["name"] for d in device_list_src]
 
 
 @functools.cache
 def get_vulkan_device_name(device_num=0):
-    vulkaninfo_list = get_all_vulkan_devices()
-    if len(vulkaninfo_list) == 0:
-        raise ValueError("No device name found in VulkanInfo!")
-    if len(vulkaninfo_list) > 1:
-        print("Following devices found:")
-        for i, dname in enumerate(vulkaninfo_list):
-            print(f"{i}. {dname}")
-        print(f"Choosing device: {vulkaninfo_list[device_num]}")
-    return vulkaninfo_list[device_num]
+    if isinstance(device_num, int):
+        vulkaninfo_list = get_all_vulkan_devices()
+
+        if len(vulkaninfo_list) == 0:
+            raise ValueError("No device name found in VulkanInfo!")
+        if len(vulkaninfo_list) > 1:
+            print("Following devices found:")
+            for i, dname in enumerate(vulkaninfo_list):
+                print(f"{i}. {dname}")
+            print(f"Choosing device: vulkan://{device_num}")
+        vulkan_device_name = vulkaninfo_list[device_num]
+    else:
+        from iree.runtime import get_driver
+
+        vulkan_device_driver = get_driver(device_num)
+        vulkan_device_name = vulkan_device_driver.query_available_devices()[0]
+        print(vulkan_device_name)
+    return vulkan_device_name
 
 
 def get_os_name():
