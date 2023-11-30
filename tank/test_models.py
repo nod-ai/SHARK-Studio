@@ -339,7 +339,25 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.dispatch_benchmarks_dir = (
             self.pytestconfig.getoption("dispatch_benchmarks_dir")
         )
+        if config["xfail_cpu"] == "True" and device in [
+            "cpu",
+            "cpu-sync",
+            "cpu-task",
+        ]:
+            pytest.xfail(reason=config["xfail_reason"])
 
+        if config["xfail_cuda"] == "True" and device == "cuda":
+            pytest.xfail(reason=config["xfail_reason"])
+
+        if config["xfail_vkm"] == "True" and device in ["metal", "vulkan"]:
+            pytest.xfail(reason=config["xfail_reason"])
+
+        if (
+            self.pytestconfig.getoption("ci") == True
+            and os.name == "nt"
+            and "enabled_windows" not in config["xfail_other"]
+        ):
+            pytest.xfail(reason="this model skipped on windows")
         # Special cases that need to be marked.
         if (
             "macos" in config["xfail_other"]
