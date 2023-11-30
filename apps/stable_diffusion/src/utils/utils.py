@@ -563,6 +563,7 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags += opt_flags[model][is_tuned][precision][
             "specified_compilation_flags"
         ][device]
+    iree_flags += ["--iree-flow-collapse-reduction-dims"]
     return iree_flags
 
 
