@@ -41,7 +41,6 @@ def get_iree_device_args(device, extra_args=[]):
 
         return (
             get_iree_cpu_args()
-            + data_tiling_flag
             + u_kernel_flag
             + stack_size_flag
             + ["--iree-global-opt-enable-quantized-matmul-reassociation"]
