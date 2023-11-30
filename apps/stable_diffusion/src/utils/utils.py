@@ -541,6 +541,8 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags.append(
             "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
         )
+    if args.data_tiling == False:
+        iree_flags.append("--iree-opt-data-tiling=False")
 
     if "default_compilation_flags" in opt_flags[model][is_tuned][precision]:
         iree_flags += opt_flags[model][is_tuned][precision][

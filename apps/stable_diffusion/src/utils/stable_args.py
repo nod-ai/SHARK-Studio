@@ -587,6 +587,13 @@ p.add_argument(
     help="Controls constant folding in iree-compile for all SD models.",
 )
 
+p.add_argument(
+    "--data_tiling",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Controls data tiling in iree-compile for all SD models.",
+)
+
 ##############################################################################
 # Web UI flags
 ##############################################################################
