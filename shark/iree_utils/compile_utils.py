@@ -36,8 +36,7 @@ def get_iree_device_args(device, extra_args=[]):
     if "cpu" in device:
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
-        data_tiling_flag = ["--iree-opt-data-tiling"]
-        u_kernel_flag = ["--iree-llvmcpu-enable-microkernels"]
+        u_kernel_flag = ["--iree-llvmcpu-enable-ukernels"]
         stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=256000"]
 
         return (
