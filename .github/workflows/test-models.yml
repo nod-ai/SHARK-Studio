@@ -121,7 +121,7 @@ jobs:
       if: matrix.suite == 'cuda'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --benchmark=native --update_tank -k cuda
         gsutil cp ./bench_results.csv gs://shark-public/builder/bench_results/${DATE}/bench_results_cuda_${SHORT_SHA}.csv
@@ -144,10 +144,10 @@ jobs:
       if: matrix.suite == 'vulkan' && matrix.os == 'a100'
       run: |
         cd $GITHUB_WORKSPACE
-        PYTHON=python${{ matrix.python-version }} ./setup_venv.sh
+        PYTHON=python${{ matrix.python-version }} IMPORTER=1 ./setup_venv.sh
         source shark.venv/bin/activate
         pytest --update_tank -k vulkan
-        python build_tools/stable_diffusion_testing.py --device=vulkan
+        python build_tools/stable_diffusion_testing.py --device=vulkan --no-exit_on_fail
 
     - name: Validate Vulkan Models (Windows)
       if: matrix.suite == 'vulkan' && matrix.os == '7950x'

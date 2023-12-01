@@ -36,13 +36,11 @@ def get_iree_device_args(device, extra_args=[]):
     if "cpu" in device:
         from shark.iree_utils.cpu_utils import get_iree_cpu_args
 
-        data_tiling_flag = ["--iree-opt-data-tiling"]
-        u_kernel_flag = ["--iree-llvmcpu-enable-microkernels"]
+        u_kernel_flag = ["--iree-llvmcpu-enable-ukernels"]
         stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=256000"]
 
         return (
             get_iree_cpu_args()
-            + data_tiling_flag
             + u_kernel_flag
             + stack_size_flag
             + ["--iree-global-opt-enable-quantized-matmul-reassociation"]
@@ -85,8 +83,9 @@ def clean_device_info(raw_device):
             device_id = int(device_id)
 
     if device not in ["rocm", "vulkan"]:
-        device_id = None
-
+        device_id = ""
+    if device in ["rocm", "vulkan"] and device_id == None:
+        device_id = 0
     return device, device_id
 
 

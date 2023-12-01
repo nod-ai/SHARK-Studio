@@ -75,11 +75,11 @@ if __name__ == "__main__":
     # Setup to use shark_tmp for gradio's temporary image files and clear any
     # existing temporary images there if they exist. Then we can import gradio.
     # It has to be in this order or gradio ignores what we've set up.
-    from apps.stable_diffusion.web.utils.gradio_configs import (
-        config_gradio_tmp_imgs_folder,
+    from apps.stable_diffusion.web.utils.tmp_configs import (
+        config_tmp,
     )
 
-    config_gradio_tmp_imgs_folder()
+    config_tmp()
     import gradio as gr
 
     # Create custom models folders if they don't exist
