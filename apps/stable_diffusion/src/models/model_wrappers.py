@@ -165,13 +165,8 @@ class SharkifyStableDiffusionModel:
         self.check_params(max_len, width, height)
         self.max_len = max_len
         self.is_sdxl = is_sdxl
-        self.height = height
-        self.width = width
-        if is_sdxl:
-            # We need to scale down the height/width by vae_scale_factor, which
-            # happens to be 8 in this case.
-            self.height = height // 8
-            self.width = width // 8
+        self.height = height // 8
+        self.width = width // 8
         self.batch_size = batch_size
         self.custom_weights = custom_weights.strip()
         self.use_quantize = use_quantize

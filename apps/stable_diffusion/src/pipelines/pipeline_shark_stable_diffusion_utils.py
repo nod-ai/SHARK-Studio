@@ -33,6 +33,7 @@ from apps.stable_diffusion.src.utils import (
     end_profiling,
 )
 import sys
+import gc
 from typing import List, Optional
 
 SD_STATE_IDLE = "idle"
@@ -189,6 +190,7 @@ class StableDiffusionPipeline:
     def unload_vae(self):
         del self.vae
         self.vae = None
+        gc.collect()
 
     def encode_prompt_sdxl(
         self,
@@ -327,6 +329,7 @@ class StableDiffusionPipeline:
 
         if self.ondemand:
             self.unload_clip_sdxl()
+            gc.collect()
 
         # TODO: Look into dtype for text_encoder_2!
         prompt_embeds = prompt_embeds.to(dtype=torch.float32)
@@ -387,6 +390,7 @@ class StableDiffusionPipeline:
         clip_inf_time = (time.time() - clip_inf_start) * 1000
         if self.ondemand:
             self.unload_clip()
+            gc.collect()
         self.log += f"\nClip Inference time (ms) = {clip_inf_time:.3f}"
 
         return text_embeddings
@@ -499,6 +503,8 @@ class StableDiffusionPipeline:
         if self.ondemand:
             self.unload_unet()
             self.unload_unet_512()
+            gc.collect()
+
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -556,6 +562,8 @@ class StableDiffusionPipeline:
                 break
         if self.ondemand:
             self.unload_unet()
+            gc.collect()
+
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -652,7 +660,6 @@ class StableDiffusionPipeline:
                 use_lora,
                 ondemand,
             )
-
         return cls(scheduler, sd_model, import_mlir, use_lora, ondemand)
 
     # #####################################################
@@ -765,6 +772,7 @@ class StableDiffusionPipeline:
         clip_inf_time = (time.time() - clip_inf_start) * 1000
         if self.ondemand:
             self.unload_clip()
+            gc.collect()
         self.log += f"\nClip Inference time (ms) = {clip_inf_time:.3f}"
 
         return text_embeddings.numpy()
