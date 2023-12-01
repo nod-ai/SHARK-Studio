@@ -290,6 +290,58 @@
             "control13": {
                 "shape": [2, 1280, "height/8", "width/8"],
                 "dtype": "f32"
+            },
+            "scale1": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale2": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale3": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale4": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale5": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale6": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale7": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale8": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale9": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale10": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale11": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale12": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale13": {
+                "shape": 1,
+                "dtype": "f32"
             }
         }
     }
