@@ -147,6 +147,8 @@ def txt2img_sdxl_inf(
         # For SDXL we set max_length as 77.
         print("Setting max_length = 77")
         max_length = 77
+        if global_obj.get_cfg_obj().ondemand:
+            print("Running txt2img in memory efficient mode.")
         txt2img_sdxl_obj = Text2ImageSDXLPipeline.from_pretrained(
             scheduler=scheduler_obj,
             import_mlir=args.import_mlir,
@@ -164,7 +166,7 @@ def txt2img_sdxl_inf(
             debug=args.import_debug if args.import_mlir else False,
             use_lora=args.use_lora,
             use_quantize=args.use_quantize,
-            ondemand=args.ondemand,
+            ondemand=global_obj.get_cfg_obj().ondemand,
         )
         global_obj.set_sd_obj(txt2img_sdxl_obj)
 
