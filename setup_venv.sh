@@ -136,18 +136,21 @@ else
 fi
 
 $PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f ${PYTORCH_URL}
+T_VER=$($PYTHON -m pip show torch | grep Version)
+T_VER_MIN=${T_VER:14:12}
+TV_VER=$($PYTHON -m pip show torchvision | grep Version)
+TV_VER_MAJ=${TV_VER:9:6}
+$PYTHON -m pip uninstall -y torchvision
+$PYTHON -m pip install torchvision==${TV_VER_MAJ}${T_VER_MIN} --no-deps -f https://download.pytorch.org/whl/nightly/cpu/torchvision/
 
 if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
-  T_VER=$($PYTHON -m pip show torch | grep Version)
-  T_VER_MIN=${T_VER:14:12}
-  TV_VER=$($PYTHON -m pip show torchvision | grep Version)
-  TV_VER_MAJ=${TV_VER:9:6}
-  $PYTHON -m pip uninstall -y torchvision
-  $PYTHON -m pip install torchvision==${TV_VER_MAJ}${T_VER_MIN} --no-deps -f https://download.pytorch.org/whl/nightly/cpu/torchvision/
+
+  $PYTHON -m pip uninstall -y torch torchvision
+  $PYTHON -m pip install torch==2.1.0 torchvision
   if [ $? -eq 0 ];then
-    echo "Successfully Installed torch + cu118."
+    echo "Installed torch/torchvision for turbine importer requirements."
   else
-    echo "Could not install torch + cu118." >&2
+    echo "Could not install torch version to satisfy shark-turbine requirement." >&2
   fi
 fi
 
