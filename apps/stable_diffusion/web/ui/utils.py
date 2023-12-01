@@ -30,7 +30,7 @@ class Config:
     width: int
     device: str
     use_lora: str
-    use_stencil: str
+    stencils: list[str]
     ondemand: str  # should this be expecting a bool instead?
 
 
