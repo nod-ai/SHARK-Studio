@@ -113,6 +113,7 @@ class StencilPipeline(StableDiffusionPipeline):
         cpu_scheduling,
         controlnet_hint=None,
         controlnet_conditioning_scale: float = 1.0,
+        control_mode="Balanced",  # Prompt, Balanced, or Controlnet
         mask=None,
         masked_image_latents=None,
         return_all_latents=False,
@@ -121,6 +122,7 @@ class StencilPipeline(StableDiffusionPipeline):
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
+        assert control_mode in ["Prompt", "Balanced", "Controlnet"]
         if text_embeddings.shape[1] <= self.model_max_length:
             self.load_unet()
             self.load_controlnet()
@@ -176,6 +178,22 @@ class StencilPipeline(StableDiffusionPipeline):
             profile_device = start_profiling(file_path="unet.rdc")
             # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.
 
+            dtype = latents.dtype
+            if control_mode == "Balanced":
+                control_scale = [
+                    torch.tensor(1.0, dtype=dtype) for _ in range(len(control))
+                ]
+            elif control_mode == "Prompt":
+                control_scale = [
+                    torch.tensor(0.825**x, dtype=dtype)
+                    for x in range(len(control))
+                ]
+            elif control_mode == "Controlnet":
+                control_scale = [
+                    torch.tensor(float(guidance_scale), dtype=dtype)
+                    for _ in range(len(control))
+                ]
+
             if text_embeddings.shape[1] <= self.model_max_length:
                 noise_pred = self.unet(
                     "forward",
@@ -197,6 +215,19 @@ class StencilPipeline(StableDiffusionPipeline):
                         control[10],
                         control[11],
                         control[12],
+                        control_scale[0],
+                        control_scale[1],
+                        control_scale[2],
+                        control_scale[3],
+                        control_scale[4],
+                        control_scale[5],
+                        control_scale[6],
+                        control_scale[7],
+                        control_scale[8],
+                        control_scale[9],
+                        control_scale[10],
+                        control_scale[11],
+                        control_scale[12],
                     ),
                     send_to_host=False,
                 )
@@ -222,6 +253,19 @@ class StencilPipeline(StableDiffusionPipeline):
                         control[10],
                         control[11],
                         control[12],
+                        control_scale[0],
+                        control_scale[1],
+                        control_scale[2],
+                        control_scale[3],
+                        control_scale[4],
+                        control_scale[5],
+                        control_scale[6],
+                        control_scale[7],
+                        control_scale[8],
+                        control_scale[9],
+                        control_scale[10],
+                        control_scale[11],
+                        control_scale[12],
                     ),
                     send_to_host=False,
                 )
@@ -274,6 +318,7 @@ class StencilPipeline(StableDiffusionPipeline):
         max_embeddings_multiples,
         use_stencil,
         resample_type,
+        control_mode,
     ):
         # Control Embedding check & conversion
         # TODO: 1. Change `num_images_per_prompt`.
@@ -328,6 +373,7 @@ class StencilPipeline(StableDiffusionPipeline):
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
             controlnet_hint=controlnet_hint,
+            control_mode=control_mode,
         )
 
         # Img latents -> PIL images

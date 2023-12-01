@@ -105,6 +105,7 @@ def main():
         cpu_scheduling,
         args.max_embeddings_multiples,
         use_stencil=use_stencil,
+        control_mode=args.control_mode,
     )
     total_time = time.time() - start_time
     text_output = f"prompt={args.prompts}"
