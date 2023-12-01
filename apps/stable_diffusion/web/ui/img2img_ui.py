@@ -31,6 +31,10 @@ from apps.stable_diffusion.src.utils import (
     get_generation_text_info,
     resampler_list,
 )
+from apps.stable_diffusion.src.utils.stencils import (
+    CannyDetector,
+    OpenposeDetector,
+)
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 import numpy as np
 
@@ -60,7 +64,6 @@ def img2img_inf(
     precision: str,
     device: str,
     max_length: int,
-    use_stencil: str,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
     lora_weights: str,
@@ -69,6 +72,8 @@ def img2img_inf(
     repeatable_seeds: bool,
     resample_type: str,
     control_mode: str,
+    stencils: list,
+    images: list,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -90,11 +95,17 @@ def img2img_inf(
     args.img_path = "not none"
     args.ondemand = ondemand
 
+    for i, stencil in enumerate(stencils):
+        if images[i] is None and stencil is not None:
+            return None, "A stencil must have an Image input"
+        if images[i] is not None:
+            images[i] = images[i].convert("RGB")
+
     if image_dict is None:
         return None, "An Initial Image is required"
-    if use_stencil == "scribble":
-        image = image_dict["mask"].convert("RGB")
-    elif isinstance(image_dict, PIL.Image.Image):
+    # if use_stencil == "scribble":
+    #     image = image_dict["mask"].convert("RGB")
+    if isinstance(image_dict, PIL.Image.Image):
         image = image_dict.convert("RGB")
     else:
         image = image_dict["image"].convert("RGB")
@@ -124,12 +135,14 @@ def img2img_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
-    use_stencil = None if use_stencil == "None" else use_stencil
-    args.use_stencil = use_stencil
-    if use_stencil is not None:
+    stencil_count = 0
+    for stencil in stencils:
+        if stencil is not None:
+            stencil_count += 1
+    if stencil_count > 0:
         args.scheduler = "DDIM"
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
-        image, width, height = resize_stencil(image)
+        # image, width, height = resize_stencil(image)
     elif "Shark" in args.scheduler:
         print(
             f"Shark schedulers are not supported. Switching to EulerDiscrete "
@@ -151,7 +164,7 @@ def img2img_inf(
         width,
         device,
         use_lora=args.use_lora,
-        use_stencil=use_stencil,
+        stencils=stencils,
         ondemand=ondemand,
     )
     if (
@@ -178,7 +191,7 @@ def img2img_inf(
         global_obj.set_schedulers(get_schedulers(model_id))
         scheduler_obj = global_obj.get_scheduler(args.scheduler)
 
-        if use_stencil is not None:
+        if stencil_count > 0:
             args.use_tuned = False
             global_obj.set_sd_obj(
                 StencilPipeline.from_pretrained(
@@ -195,7 +208,7 @@ def img2img_inf(
                     args.use_base_vae,
                     args.use_tuned,
                     low_cpu_mem_usage=args.low_cpu_mem_usage,
-                    use_stencil=use_stencil,
+                    stencils=stencils,
                     debug=args.import_debug if args.import_mlir else False,
                     use_lora=args.use_lora,
                     ondemand=args.ondemand,
@@ -252,7 +265,8 @@ def img2img_inf(
             args.use_base_vae,
             cpu_scheduling,
             args.max_embeddings_multiples,
-            use_stencil=use_stencil,
+            stencils,
+            images,
             resample_type=resample_type,
             control_mode=control_mode,
         )
@@ -274,12 +288,17 @@ def img2img_inf(
             generated_imgs.extend(out_imgs)
             yield generated_imgs, text_output, status_label(
                 "Image-to-Image", current_batch + 1, batch_count, batch_size
-            )
+            ), stencils, images
 
-    return generated_imgs, text_output, ""
+    return generated_imgs, text_output, "", stencils, images
 
 
 with gr.Blocks(title="Image-to-Image") as img2img_web:
+    # Stencils
+    # TODO: Add more stencils here
+    STENCIL_COUNT = 2
+    stencils = gr.State([None] * STENCIL_COUNT)
+    images = gr.State([None] * STENCIL_COUNT)
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -350,70 +369,105 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     height=300,
                 )
 
-                with gr.Accordion(label="Stencil Options", open=False):
+                with gr.Accordion(label="Multistencil Options", open=False):
+                    choices = ["None", "canny", "openpose", "scribble"]
+
+                    def cnet_preview(
+                        checked, model, input_image, index, stencils, images
+                    ):
+                        if not checked:
+                            stencils[index] = None
+                            images[index] = None
+                            return (None, stencils, images)
+                        images[index] = input_image
+                        stencils[index] = model
+                        match model:
+                            case "canny":
+                                canny = CannyDetector()
+                                result = canny(np.array(input_image), 100, 200)
+                                return (
+                                    [Image.fromarray(result), result],
+                                    stencils,
+                                    images,
+                                )
+                            case "openpose":
+                                openpose = OpenposeDetector()
+                                result = openpose(np.array(input_image))
+                                # TODO: This is just an empty canvas, need to draw the candidates (which are in result[1])
+                                return (
+                                    [Image.fromarray(result[0]), result],
+                                    stencils,
+                                    images,
+                                )
+                            case _:
+                                return (None, stencils, images)
+
                     with gr.Row():
-                        use_stencil = gr.Dropdown(
-                            elem_id="stencil_model",
-                            label="Stencil model",
+                        cnet_1 = gr.Checkbox(show_label=False)
+                        cnet_1_model = gr.Dropdown(
+                            label="Controlnet 1",
                             value="None",
-                            choices=[
-                                "None",
-                                "canny",
-                                "openpose",
-                                "scribble",
-                                "zoedepth",
+                            choices=choices,
+                        )
+                        cnet_1_image = gr.Image(
+                            source="upload",
+                            tool=None,
+                            type="pil",
+                        )
+                        cnet_1_output = gr.Gallery(
+                            show_label=False,
+                            object_fit="scale-down",
+                            rows=1,
+                            columns=1,
+                        )
+                        cnet_1.change(
+                            fn=(
+                                lambda a, b, c, s, i: cnet_preview(
+                                    a, b, c, 0, s, i
+                                )
+                            ),
+                            inputs=[
+                                cnet_1,
+                                cnet_1_model,
+                                cnet_1_image,
+                                stencils,
+                                images,
                             ],
+                            outputs=[cnet_1_output, stencils, images],
                         )
-
-                    def show_canvas(choice):
-                        if choice == "scribble":
-                            return (
-                                gr.Slider.update(visible=True),
-                                gr.Slider.update(visible=True),
-                                gr.Button.update(visible=True),
-                            )
-                        else:
-                            return (
-                                gr.Slider.update(visible=False),
-                                gr.Slider.update(visible=False),
-                                gr.Button.update(visible=False),
-                            )
-
-                    def create_canvas(w, h):
-                        return np.zeros(shape=(h, w, 3), dtype=np.uint8) + 255
-
                     with gr.Row():
-                        canvas_width = gr.Slider(
-                            label="Canvas Width",
-                            minimum=256,
-                            maximum=1024,
-                            value=512,
-                            step=1,
-                            visible=False,
+                        cnet_2 = gr.Checkbox(show_label=False)
+                        cnet_2_model = gr.Dropdown(
+                            label="Controlnet 2",
+                            value="None",
+                            choices=choices,
                         )
-                        canvas_height = gr.Slider(
-                            label="Canvas Height",
-                            minimum=256,
-                            maximum=1024,
-                            value=512,
-                            step=1,
-                            visible=False,
+                        cnet_2_image = gr.Image(
+                            source="upload",
+                            tool=None,
+                            type="pil",
                         )
-                    create_button = gr.Button(
-                        label="Start",
-                        value="Open drawing canvas!",
-                        visible=False,
-                    )
-                    create_button.click(
-                        fn=create_canvas,
-                        inputs=[canvas_width, canvas_height],
-                        outputs=[img2img_init_image],
-                    )
-                    use_stencil.change(
-                        fn=show_canvas,
-                        inputs=use_stencil,
-                        outputs=[canvas_width, canvas_height, create_button],
-                    )
+                        cnet_2_output = gr.Gallery(
+                            show_label=False,
+                            object_fit="scale-down",
+                            rows=1,
+                            columns=1,
+                        )
+                        cnet_2.change(
+                            fn=(
+                                lambda a, b, c, s, i: cnet_preview(
+                                    a, b, c, 1, s, i
+                                )
+                            ),
+                            inputs=[
+                                cnet_2,
+                                cnet_2_model,
+                                cnet_2_image,
+                                stencils,
+                                images,
+                            ],
+                            outputs=[cnet_2_output, stencils, images],
+                        )
                     control_mode = gr.Radio(
                         choices=["Prompt", "Balanced", "Controlnet"],
                         value="Balanced",
@@ -624,7 +678,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 precision,
                 device,
                 max_length,
-                use_stencil,
                 save_metadata_to_json,
                 save_metadata_to_png,
                 lora_weights,
@@ -633,8 +686,16 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 repeatable_seeds,
                 resample_type,
                 control_mode,
+                stencils,
+                images,
             ],
-            outputs=[img2img_gallery, std_output, img2img_status],
+            outputs=[
+                img2img_gallery,
+                std_output,
+                img2img_status,
+                stencils,
+                images,
+            ],
             show_progress="minimal" if args.progress_bar else "none",
         )
 

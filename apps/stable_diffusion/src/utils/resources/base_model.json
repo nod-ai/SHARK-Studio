@@ -208,6 +208,58 @@
         "controlnet_hint": {
             "shape": [1, 3, "8*height", "8*width"],
             "dtype": "f32"
+        },
+        "acc1": {
+            "shape": [2, 320, "height", "width"],
+            "dtype": "f32"
+        },
+        "acc2": {
+            "shape": [2, 320, "height", "width"],
+            "dtype": "f32"
+        },
+        "acc3": {
+            "shape": [2, 320, "height", "width"],
+            "dtype": "f32"
+        },
+        "acc4": {
+            "shape": [2, 320, "height/2", "width/2"],
+            "dtype": "f32"
+        },
+        "acc5": {
+            "shape": [2, 640, "height/2", "width/2"],
+            "dtype": "f32"
+        },
+        "acc6": {
+            "shape": [2, 640, "height/2", "width/2"],
+            "dtype": "f32"
+        },
+        "acc7": {
+            "shape": [2, 640, "height/4", "width/4"],
+            "dtype": "f32"
+        },
+        "acc8": {
+            "shape": [2, 1280, "height/4", "width/4"],
+            "dtype": "f32"
+        },
+        "acc9": {
+            "shape": [2, 1280, "height/4", "width/4"],
+            "dtype": "f32"
+        },
+        "acc10": {
+            "shape": [2, 1280, "height/8", "width/8"],
+            "dtype": "f32"
+        },
+        "acc11": {
+            "shape": [2, 1280, "height/8", "width/8"],
+            "dtype": "f32"
+        },
+        "acc12": {
+            "shape": [2, 1280, "height/8", "width/8"],
+            "dtype": "f32"
+        },
+        "acc13": {
+            "shape": [2, 1280, "height/8", "width/8"],
+            "dtype": "f32"
         }
     },
     "stencil_unet": {

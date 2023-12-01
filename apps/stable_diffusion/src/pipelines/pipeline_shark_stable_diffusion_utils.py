@@ -338,7 +338,8 @@ class StableDiffusionPipeline:
         ondemand: bool,
         low_cpu_mem_usage: bool = False,
         debug: bool = False,
-        use_stencil: str = None,
+        stencils: list[str] = [],
+        # stencil_images: list[Image] = []
         use_lora: str = "",
         ddpm_scheduler: DDPMScheduler = None,
         use_quantize=None,
@@ -371,7 +372,7 @@ class StableDiffusionPipeline:
             debug=debug,
             is_inpaint=is_inpaint,
             is_upscaler=is_upscaler,
-            use_stencil=use_stencil,
+            stencils=stencils,
             use_lora=use_lora,
             use_quantize=use_quantize,
         )
@@ -386,6 +387,10 @@ class StableDiffusionPipeline:
                 ondemand,
             )
 
+        if cls.__name__ == "StencilPipeline":
+            return cls(
+                scheduler, sd_model, import_mlir, use_lora, ondemand, stencils
+            )
         return cls(scheduler, sd_model, import_mlir, use_lora, ondemand)
 
     # #####################################################
