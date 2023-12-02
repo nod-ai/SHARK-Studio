@@ -160,6 +160,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         max_embeddings_multiples,
         resample_type,
         control_mode,
+        stencils,
     ):
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):

@@ -178,7 +178,7 @@ if __name__ == "__main__":
         button.click(
             lambda x: (
                 x[0]["name"] if len(x) != 0 else None,
-                gr.Tabs.update(selected=selectedid),
+                gr.Tabs(selected=selectedid),
             ),
             inputs,
             outputs,
@@ -189,7 +189,7 @@ if __name__ == "__main__":
             lambda x: (
                 "None",
                 x,
-                gr.Tabs.update(selected=selectedid),
+                gr.Tabs(selected=selectedid),
             ),
             inputs,
             outputs,
@@ -199,7 +199,7 @@ if __name__ == "__main__":
         button.click(
             lambda x: (
                 x,
-                gr.Tabs.update(selected=selectedid),
+                gr.Tabs(selected=selectedid),
             ),
             inputs,
             outputs,
