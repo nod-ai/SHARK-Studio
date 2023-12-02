@@ -421,6 +421,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--control_mode",
+    choices=["Prompt", "Balanced", "Controlnet"],
+    default="Balanced",
+    help="How Controlnet injection should be prioritized.",
+)
+
+p.add_argument(
     "--use_lora",
     type=str,
     default="",

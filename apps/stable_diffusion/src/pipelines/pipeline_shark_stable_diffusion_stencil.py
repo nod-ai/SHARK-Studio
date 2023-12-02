@@ -55,28 +55,47 @@ class StencilPipeline(StableDiffusionPipeline):
         import_mlir: bool,
         use_lora: str,
         ondemand: bool,
+        controlnet_names: list[str],
     ):
         super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
-        self.controlnet = None
-        self.controlnet_512 = None
+        self.controlnet = [None] * len(controlnet_names)
+        self.controlnet_512 = [None] * len(controlnet_names)
+        self.controlnet_id = [str] * len(controlnet_names)
+        self.controlnet_512_id = [str] * len(controlnet_names)
+        self.controlnet_names = controlnet_names
 
-    def load_controlnet(self):
-        if self.controlnet is not None:
+    def load_controlnet(self, index, model_name):
+        if model_name is None:
             return
-        self.controlnet = self.sd_model.controlnet()
-
-    def unload_controlnet(self):
-        del self.controlnet
-        self.controlnet = None
-
-    def load_controlnet_512(self):
-        if self.controlnet_512 is not None:
+        if (
+            self.controlnet[index] is not None
+            and self.controlnet_id[index] is not None
+            and self.controlnet_id[index] == model_name
+        ):
             return
-        self.controlnet_512 = self.sd_model.controlnet(use_large=True)
+        self.controlnet_id[index] = model_name
+        self.controlnet[index] = self.sd_model.controlnet(model_name)
 
-    def unload_controlnet_512(self):
-        del self.controlnet_512
-        self.controlnet_512 = None
+    def unload_controlnet(self, index):
+        del self.controlnet[index]
+        self.controlnet_id[index] = None
+        self.controlnet[index] = None
+
+    def load_controlnet_512(self, index, model_name):
+        if (
+            self.controlnet_512[index] is not None
+            and self.controlnet_512_id[index] == model_name
+        ):
+            return
+        self.controlnet_512_id[index] = model_name
+        self.controlnet_512[index] = self.sd_model.controlnet(
+            model_name, use_large=True
+        )
+
+    def unload_controlnet_512(self, index):
+        del self.controlnet_512[index]
+        self.controlnet_512_id[index] = None
+        self.controlnet_512[index] = None
 
     def prepare_latents(
         self,
@@ -111,8 +130,9 @@ class StencilPipeline(StableDiffusionPipeline):
         total_timesteps,
         dtype,
         cpu_scheduling,
-        controlnet_hint=None,
+        stencil_hints=[None],
         controlnet_conditioning_scale: float = 1.0,
+        control_mode="Balanced",  # Prompt, Balanced, or Controlnet
         mask=None,
         masked_image_latents=None,
         return_all_latents=False,
@@ -121,12 +141,18 @@ class StencilPipeline(StableDiffusionPipeline):
         latent_history = [latents]
         text_embeddings = torch.from_numpy(text_embeddings).to(dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
+        assert control_mode in ["Prompt", "Balanced", "Controlnet"]
         if text_embeddings.shape[1] <= self.model_max_length:
             self.load_unet()
-            self.load_controlnet()
         else:
             self.load_unet_512()
-            self.load_controlnet_512()
+
+        for i, name in enumerate(self.controlnet_names):
+            if text_embeddings.shape[1] <= self.model_max_length:
+                self.load_controlnet(i, name)
+            else:
+                self.load_controlnet_512(i, name)
+
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(dtype)
@@ -149,32 +175,92 @@ class StencilPipeline(StableDiffusionPipeline):
                 ).to(dtype)
             else:
                 latent_model_input_1 = latent_model_input
-            if text_embeddings.shape[1] <= self.model_max_length:
-                control = self.controlnet(
-                    "forward",
-                    (
-                        latent_model_input_1,
-                        timestep,
-                        text_embeddings,
-                        controlnet_hint,
-                    ),
-                    send_to_host=False,
-                )
-            else:
-                control = self.controlnet_512(
-                    "forward",
-                    (
-                        latent_model_input_1,
-                        timestep,
-                        text_embeddings,
-                        controlnet_hint,
-                    ),
-                    send_to_host=False,
-                )
+
+            # Multicontrolnet
+            width = latent_model_input_1.shape[2]
+            height = latent_model_input_1.shape[3]
+            dtype = latent_model_input_1.dtype
+            control_acc = (
+                [torch.zeros((2, 320, height, width), dtype=dtype)] * 3
+                + [
+                    torch.zeros(
+                        (2, 320, int(height / 2), int(width / 2)), dtype=dtype
+                    )
+                ]
+                + [
+                    torch.zeros(
+                        (2, 640, int(height / 2), int(width / 2)), dtype=dtype
+                    )
+                ]
+                * 2
+                + [
+                    torch.zeros(
+                        (2, 640, int(height / 4), int(width / 4)), dtype=dtype
+                    )
+                ]
+                + [
+                    torch.zeros(
+                        (2, 1280, int(height / 4), int(width / 4)), dtype=dtype
+                    )
+                ]
+                * 2
+                + [
+                    torch.zeros(
+                        (2, 1280, int(height / 8), int(width / 8)), dtype=dtype
+                    )
+                ]
+                * 4
+            )
+            for i, controlnet_hint in enumerate(stencil_hints):
+                if controlnet_hint is None:
+                    continue
+                if text_embeddings.shape[1] <= self.model_max_length:
+                    control = self.controlnet[i](
+                        "forward",
+                        (
+                            latent_model_input_1,
+                            timestep,
+                            text_embeddings,
+                            controlnet_hint,
+                            *control_acc,
+                        ),
+                        send_to_host=False,
+                    )
+                else:
+                    control = self.controlnet_512[i](
+                        "forward",
+                        (
+                            latent_model_input_1,
+                            timestep,
+                            text_embeddings,
+                            controlnet_hint,
+                            *control_acc,
+                        ),
+                        send_to_host=False,
+                    )
+                control_acc = control[13:]
+                control = control[:13]
+
             timestep = timestep.detach().numpy()
             # Profiling Unet.
             profile_device = start_profiling(file_path="unet.rdc")
             # TODO: Pass `control` as it is to Unet. Same as TODO mentioned in model_wrappers.py.
+
+            dtype = latents.dtype
+            if control_mode == "Balanced":
+                control_scale = [
+                    torch.tensor(1.0, dtype=dtype) for _ in range(len(control))
+                ]
+            elif control_mode == "Prompt":
+                control_scale = [
+                    torch.tensor(0.825**x, dtype=dtype)
+                    for x in range(len(control))
+                ]
+            elif control_mode == "Controlnet":
+                control_scale = [
+                    torch.tensor(float(guidance_scale), dtype=dtype)
+                    for _ in range(len(control))
+                ]
 
             if text_embeddings.shape[1] <= self.model_max_length:
                 noise_pred = self.unet(
@@ -197,6 +283,19 @@ class StencilPipeline(StableDiffusionPipeline):
                         control[10],
                         control[11],
                         control[12],
+                        control_scale[0],
+                        control_scale[1],
+                        control_scale[2],
+                        control_scale[3],
+                        control_scale[4],
+                        control_scale[5],
+                        control_scale[6],
+                        control_scale[7],
+                        control_scale[8],
+                        control_scale[9],
+                        control_scale[10],
+                        control_scale[11],
+                        control_scale[12],
                     ),
                     send_to_host=False,
                 )
@@ -222,6 +321,19 @@ class StencilPipeline(StableDiffusionPipeline):
                         control[10],
                         control[11],
                         control[12],
+                        control_scale[0],
+                        control_scale[1],
+                        control_scale[2],
+                        control_scale[3],
+                        control_scale[4],
+                        control_scale[5],
+                        control_scale[6],
+                        control_scale[7],
+                        control_scale[8],
+                        control_scale[9],
+                        control_scale[10],
+                        control_scale[11],
+                        control_scale[12],
                     ),
                     send_to_host=False,
                 )
@@ -245,8 +357,9 @@ class StencilPipeline(StableDiffusionPipeline):
         if self.ondemand:
             self.unload_unet()
             self.unload_unet_512()
-            self.unload_controlnet()
-            self.unload_controlnet_512()
+            for i in range(len(self.controlnet_names)):
+                self.unload_controlnet(i)
+                self.unload_controlnet_512(i)
         avg_step_time = step_time_sum / len(total_timesteps)
         self.log += f"\nAverage step time: {avg_step_time}ms/it"
 
@@ -272,14 +385,30 @@ class StencilPipeline(StableDiffusionPipeline):
         use_base_vae,
         cpu_scheduling,
         max_embeddings_multiples,
-        use_stencil,
+        stencils,
+        stencil_images,
         resample_type,
+        control_mode,
     ):
         # Control Embedding check & conversion
         # TODO: 1. Change `num_images_per_prompt`.
-        controlnet_hint = controlnet_hint_conversion(
-            image, use_stencil, height, width, dtype, num_images_per_prompt=1
-        )
+        # controlnet_hint = controlnet_hint_conversion(
+        #     image, use_stencil, height, width, dtype, num_images_per_prompt=1
+        # )
+        stencil_hints = []
+        for i, stencil in enumerate(stencils):
+            image = stencil_images[i]
+            stencil_hints.append(
+                controlnet_hint_conversion(
+                    image,
+                    stencil,
+                    height,
+                    width,
+                    dtype,
+                    num_images_per_prompt=1,
+                )
+            )
+
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):
             prompts = [prompts]
@@ -327,7 +456,8 @@ class StencilPipeline(StableDiffusionPipeline):
             total_timesteps=final_timesteps,
             dtype=dtype,
             cpu_scheduling=cpu_scheduling,
-            controlnet_hint=controlnet_hint,
+            control_mode=control_mode,
+            stencil_hints=stencil_hints,
         )
 
         # Img latents -> PIL images
