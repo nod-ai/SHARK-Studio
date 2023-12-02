@@ -123,8 +123,8 @@ def get_clip():
     return get_shark_model(bucket, model_name, iree_flags)
 
 
-def get_tokenizer():
+def get_tokenizer(subfolder="tokenizer"):
     tokenizer = CLIPTokenizer.from_pretrained(
-        args.hf_model_id, subfolder="tokenizer"
+        args.hf_model_id, subfolder=subfolder
     )
     return tokenizer
