@@ -288,7 +288,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         elem_id="negative_prompt_box",
                     )
 
-                inpaint_init_image = gr.ImageEditor(
+                inpaint_init_image = gr.Image(
                     label="Masked Image",
                     sources="upload",
                     type="pil",
