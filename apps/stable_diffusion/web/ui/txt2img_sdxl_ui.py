@@ -57,6 +57,7 @@ def txt2img_sdxl_inf(
     save_metadata_to_png: bool,
     ondemand: bool,
     repeatable_seeds: bool,
+
 ):
     if precision != "fp16":
         print("currently we support fp16 for SDXL")
@@ -115,7 +116,7 @@ def txt2img_sdxl_inf(
         width,
         device,
         use_lora=args.use_lora,
-        use_stencil=None,
+        stencils=None,
         ondemand=ondemand,
     )
     if (
