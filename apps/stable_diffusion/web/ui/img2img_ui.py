@@ -34,6 +34,7 @@ from apps.stable_diffusion.src.utils import (
 from apps.stable_diffusion.src.utils.stencils import (
     CannyDetector,
     OpenposeDetector,
+    ZoeDetector,
 )
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 import numpy as np
@@ -99,6 +100,8 @@ def img2img_inf(
         if images[i] is None and stencil is not None:
             return None, "A stencil must have an Image input"
         if images[i] is not None:
+            if isinstance(images[i], dict):
+                images[i] = images[i]["layers"][0]
             images[i] = images[i].convert("RGB")
 
     if image_dict is None:
@@ -363,71 +366,187 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 # TODO: make this import image prompt info if it exists
                 img2img_init_image = gr.Image(
                     label="Input Image",
-                    source="upload",
-                    tool="sketch",
                     type="pil",
-                    height=300,
+                    height=512,
+                    interactive=True,
                 )
 
                 with gr.Accordion(label="Multistencil Options", open=False):
-                    choices = ["None", "canny", "openpose", "scribble"]
+                    choices = [
+                        "None",
+                        "canny",
+                        "openpose",
+                        "scribble",
+                        "zoedepth",
+                    ]
 
                     def cnet_preview(
-                        checked, model, input_image, index, stencils, images
+                        model, input_image, index, stencils, images
                     ):
-                        if not checked:
-                            stencils[index] = None
-                            images[index] = None
-                            return (None, stencils, images)
                         images[index] = input_image
                         stencils[index] = model
                         match model:
                             case "canny":
                                 canny = CannyDetector()
-                                result = canny(np.array(input_image), 100, 200)
+                                result = canny(
+                                    np.array(input_image["composite"]),
+                                    100,
+                                    200,
+                                )
                                 return (
-                                    [Image.fromarray(result), result],
+                                    Image.fromarray(result),
                                     stencils,
                                     images,
                                 )
                             case "openpose":
                                 openpose = OpenposeDetector()
-                                result = openpose(np.array(input_image))
+                                result = openpose(
+                                    np.array(input_image["composite"])
+                                )
                                 # TODO: This is just an empty canvas, need to draw the candidates (which are in result[1])
                                 return (
-                                    [Image.fromarray(result[0]), result],
+                                    Image.fromarray(result[0]),
                                     stencils,
                                     images,
                                 )
+                            case "zoedepth":
+                                zoedepth = ZoeDetector()
+                                result = zoedepth(
+                                    np.array(input_image["composite"])
+                                )
+                                return (
+                                    Image.fromarray(result[0]),
+                                    stencils,
+                                    images,
+                                )
+                            case "scribble":
+                                result = input_image["composite"].convert("L")
+                                return (result, stencils, images)
                             case _:
                                 return (None, stencils, images)
 
+                    def create_canvas(width, height):
+                        return {
+                            "background": None,
+                            "layers": [
+                                Image.fromarray(
+                                    np.zeros(
+                                        shape=(height, width, 3),
+                                        dtype=np.uint8,
+                                    )
+                                    + 255
+                                )
+                            ],
+                            "composite": None,
+                        }
+
+                    def update_cn_input(model, width, height):
+                        if model == "scribble":
+                            return [
+                                gr.ImageEditor(
+                                    visible=True,
+                                    image_mode="RGB",
+                                    interactive=True,
+                                    show_label=False,
+                                    type="pil",
+                                    value=create_canvas(width, height),
+                                    crop_size=(width, height),
+                                ),
+                                gr.Image(
+                                    visible=True,
+                                    show_label=False,
+                                    interactive=False,
+                                ),
+                                gr.Slider(visible=True),
+                                gr.Slider(visible=True),
+                                gr.Button(visible=True),
+                            ]
+                        else:
+                            return [
+                                gr.ImageEditor(
+                                    visible=True,
+                                    image_mode="RGB",
+                                    type="pil",
+                                    interactive=True,
+                                    value=None,
+                                ),
+                                gr.Image(
+                                    visible=True,
+                                    show_label=False,
+                                    interactive=True,
+                                ),
+                                gr.Slider(visible=False),
+                                gr.Slider(visible=False),
+                                gr.Button(visible=False),
+                            ]
+
                     with gr.Row():
-                        cnet_1 = gr.Checkbox(show_label=False)
-                        cnet_1_model = gr.Dropdown(
-                            label="Controlnet 1",
-                            value="None",
-                            choices=choices,
-                        )
-                        cnet_1_image = gr.Image(
-                            source="upload",
-                            tool=None,
+                        with gr.Column():
+                            cnet_1 = gr.Button(
+                                value="Generate controlnet input"
+                            )
+                            cnet_1_model = gr.Dropdown(
+                                label="Controlnet 1",
+                                value="None",
+                                choices=choices,
+                            )
+                            canvas_width = gr.Slider(
+                                label="Canvas Width",
+                                minimum=256,
+                                maximum=1024,
+                                value=512,
+                                step=1,
+                                visible=False,
+                            )
+                            canvas_height = gr.Slider(
+                                label="Canvas Height",
+                                minimum=256,
+                                maximum=1024,
+                                value=512,
+                                step=1,
+                                visible=False,
+                            )
+                            make_canvas = gr.Button(
+                                value="Make Canvas!",
+                                visible=False,
+                            )
+                        cnet_1_image = gr.ImageEditor(
+                            visible=False,
+                            image_mode="RGB",
+                            interactive=True,
+                            show_label=False,
                             type="pil",
                         )
-                        cnet_1_output = gr.Gallery(
-                            show_label=False,
-                            object_fit="scale-down",
-                            rows=1,
-                            columns=1,
+                        cnet_1_output = gr.Image(
+                            visible=True, show_label=False
                         )
-                        cnet_1.change(
+                        cnet_1_model.input(
+                            update_cn_input,
+                            [cnet_1_model, canvas_width, canvas_height],
+                            [
+                                cnet_1_image,
+                                cnet_1_output,
+                                canvas_width,
+                                canvas_height,
+                                make_canvas,
+                            ],
+                        )
+                        make_canvas.click(
+                            update_cn_input,
+                            [cnet_1_model, canvas_width, canvas_height],
+                            [
+                                cnet_1_image,
+                                cnet_1_output,
+                                canvas_width,
+                                canvas_height,
+                                make_canvas,
+                            ],
+                        )
+                        cnet_1.click(
                             fn=(
-                                lambda a, b, c, s, i: cnet_preview(
-                                    a, b, c, 0, s, i
-                                )
+                                lambda a, b, s, i: cnet_preview(a, b, 0, s, i)
                             ),
                             inputs=[
-                                cnet_1,
                                 cnet_1_model,
                                 cnet_1_image,
                                 stencils,
@@ -436,31 +555,72 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             outputs=[cnet_1_output, stencils, images],
                         )
                     with gr.Row():
-                        cnet_2 = gr.Checkbox(show_label=False)
-                        cnet_2_model = gr.Dropdown(
-                            label="Controlnet 2",
-                            value="None",
-                            choices=choices,
-                        )
-                        cnet_2_image = gr.Image(
-                            source="upload",
-                            tool=None,
+                        with gr.Column():
+                            cnet_2 = gr.Button(
+                                value="Generate controlnet input"
+                            )
+                            cnet_2_model = gr.Dropdown(
+                                label="Controlnet 2",
+                                value="None",
+                                choices=choices,
+                            )
+                            canvas_width = gr.Slider(
+                                label="Canvas Width",
+                                minimum=256,
+                                maximum=1024,
+                                value=512,
+                                step=1,
+                                visible=False,
+                            )
+                            canvas_height = gr.Slider(
+                                label="Canvas Height",
+                                minimum=256,
+                                maximum=1024,
+                                value=512,
+                                step=1,
+                                visible=False,
+                            )
+                            make_canvas = gr.Button(
+                                value="Make Canvas!",
+                                visible=False,
+                            )
+                        cnet_2_image = gr.ImageEditor(
+                            visible=False,
+                            image_mode="RGB",
+                            interactive=True,
+                            show_label=False,
                             type="pil",
                         )
-                        cnet_2_output = gr.Gallery(
-                            show_label=False,
-                            object_fit="scale-down",
-                            rows=1,
-                            columns=1,
+                        cnet_2_output = gr.Image(
+                            visible=True, show_label=False
                         )
-                        cnet_2.change(
+                        cnet_2_model.select(
+                            update_cn_input,
+                            [cnet_2_model, canvas_width, canvas_height],
+                            [
+                                cnet_2_image,
+                                cnet_2_output,
+                                canvas_width,
+                                canvas_height,
+                                make_canvas,
+                            ],
+                        )
+                        make_canvas.click(
+                            update_cn_input,
+                            [cnet_2_model, canvas_width, canvas_height],
+                            [
+                                cnet_2_image,
+                                cnet_2_output,
+                                canvas_width,
+                                canvas_height,
+                                make_canvas,
+                            ],
+                        )
+                        cnet_2.click(
                             fn=(
-                                lambda a, b, c, s, i: cnet_preview(
-                                    a, b, c, 1, s, i
-                                )
+                                lambda a, b, s, i: cnet_preview(a, b, 1, s, i)
                             ),
                             inputs=[
-                                cnet_2,
                                 cnet_2_model,
                                 cnet_2_image,
                                 stencils,

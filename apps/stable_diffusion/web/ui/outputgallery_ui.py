@@ -95,7 +95,7 @@ with gr.Blocks() as outputgallery_web:
             )
 
         with gr.Column(scale=4):
-            with gr.Box():
+            with gr.Group():
                 with gr.Row():
                     with gr.Column(
                         scale=15,
@@ -254,7 +254,7 @@ with gr.Blocks() as outputgallery_web:
         )
 
         return [
-            gr.Dropdown.update(
+            gr.Dropdown(
                 choices=refreshed_subdirs,
                 value=new_subdir,
             ),

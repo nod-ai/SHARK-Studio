@@ -356,7 +356,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="Import PNG info",
                             elem_id="txt2img_prompt_image",
                             type="pil",
-                            tool="None",
                             visible=True,
                         )
 

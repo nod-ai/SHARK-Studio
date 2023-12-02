@@ -311,7 +311,7 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         elem_id="negative_prompt_box",
                     )
 
-                upscaler_init_image = gr.Image(
+                upscaler_init_image = gr.ImageEditor(
                     label="Input Image",
                     type="pil",
                     height=300,

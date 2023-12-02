@@ -291,7 +291,7 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="negative_prompt_box",
                     )
 
-                outpaint_init_image = gr.Image(
+                outpaint_init_image = gr.ImageEditor(
                     label="Input Image",
                     type="pil",
                     height=300,
