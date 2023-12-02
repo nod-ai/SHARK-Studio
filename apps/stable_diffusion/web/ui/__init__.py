@@ -10,6 +10,13 @@ from apps.stable_diffusion.web.ui.txt2img_ui import (
     txt2img_sendto_outpaint,
     txt2img_sendto_upscaler,
 )
+from apps.stable_diffusion.web.ui.txt2img_sdxl_ui import (
+    txt2img_sdxl_inf,
+    txt2img_sdxl_web,
+    txt2img_sdxl_custom_model,
+    txt2img_sdxl_gallery,
+    txt2img_sdxl_status,
+)
 from apps.stable_diffusion.web.ui.img2img_ui import (
     img2img_inf,
     img2img_web,
