@@ -302,8 +302,19 @@ def txt2img_inf(
     return generated_imgs, text_output, ""
 
 
-with gr.Blocks(title="Text-to-Image") as txt2img_web:
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
+    return os.path.join(base_path, relative_path)
+
+
+dark_theme = resource_path("ui/css/sd_dark_theme.css")
+
+with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
     with gr.Row(elem_id="ui_title"):
+        breakpoint()
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
             with gr.Column(scale=1, elem_id="demo_title_outer"):

@@ -195,17 +195,17 @@ with gr.Blocks() as outputgallery_web:
 
     def on_clear_gallery():
         return [
-            gr.Gallery.update(
+            gr.Gallery(
                 value=[],
                 visible=False,
             ),
-            gr.Image.update(
+            gr.Image(
                 visible=True,
             ),
         ]
 
     def on_image_columns_change(columns):
-        return gr.Gallery.update(columns=columns)
+        return gr.Gallery(columns=columns)
 
     def on_select_subdir(subdir) -> list:
         # evt.value is the subdirectory name
@@ -215,12 +215,12 @@ with gr.Blocks() as outputgallery_web:
         )
         return [
             new_images,
-            gr.Gallery.update(
+            gr.Gallery(
                 value=new_images,
                 label=new_label,
                 visible=len(new_images) > 0,
             ),
-            gr.Image.update(
+            gr.Image(
                 label=new_label,
                 visible=len(new_images) == 0,
             ),
@@ -260,10 +260,10 @@ with gr.Blocks() as outputgallery_web:
             ),
             refreshed_subdirs,
             new_images,
-            gr.Gallery.update(
+            gr.Gallery(
                 value=new_images, label=new_label, visible=len(new_images) > 0
             ),
-            gr.Image.update(
+            gr.Image(
                 label=new_label,
                 visible=len(new_images) == 0,
             ),
@@ -289,12 +289,12 @@ with gr.Blocks() as outputgallery_web:
 
             return [
                 new_images,
-                gr.Gallery.update(
+                gr.Gallery(
                     value=new_images,
                     label=new_label,
                     visible=len(new_images) > 0,
                 ),
-                gr.Image.update(
+                gr.Image(
                     label=new_label,
                     visible=len(new_images) == 0,
                 ),
@@ -332,12 +332,12 @@ with gr.Blocks() as outputgallery_web:
         return [
             # disable or enable each of the sendto button based on whether
             # an image is selected
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
         ]
 
     # The time first our tab is selected we need to do an initial refresh
