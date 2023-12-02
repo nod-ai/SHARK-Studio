@@ -314,7 +314,6 @@ dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
 with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
     with gr.Row(elem_id="ui_title"):
-        breakpoint()
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
             with gr.Column(scale=1, elem_id="demo_title_outer"):
