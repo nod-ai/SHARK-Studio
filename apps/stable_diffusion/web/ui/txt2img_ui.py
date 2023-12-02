@@ -126,7 +126,7 @@ def txt2img_inf(
         width,
         device,
         use_lora=args.use_lora,
-        use_stencil=None,
+        stencils=[],
         ondemand=ondemand,
     )
     if (
@@ -226,7 +226,7 @@ def txt2img_inf(
                 width,
                 device,
                 use_lora=args.use_lora,
-                use_stencil="None",
+                stencils=[],
                 ondemand=ondemand,
             )
 
@@ -280,7 +280,7 @@ def txt2img_inf(
                 args.use_base_vae,
                 cpu_scheduling,
                 args.max_embeddings_multiples,
-                use_stencil="None",
+                stencils=[],
                 resample_type=resample_type,
             )
         total_time = time.time() - start_time

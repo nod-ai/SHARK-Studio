@@ -50,7 +50,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
             is_decompose = row[5]
 
             tracing_required = False if tracing_required == "False" else True
-            is_dynamic = False if is_dynamic == "False" else True
+            is_dynamic = False
             print("generating artifacts for: " + torch_model_name)
             model = None
             input = None
@@ -104,7 +104,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                     model_name=torch_model_name,
                     mlir_type=mlir_type,
                     is_dynamic=False,
-                    tracing_required=tracing_required,
+                    tracing_required=True,
                 )
             else:
                 mlir_importer = SharkImporter(
@@ -114,7 +114,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 )
                 mlir_importer.import_debug(
                     is_dynamic=False,
-                    tracing_required=tracing_required,
+                    tracing_required=True,
                     dir=torch_model_dir,
                     model_name=torch_model_name,
                     mlir_type=mlir_type,
@@ -123,7 +123,7 @@ def save_torch_model(torch_model_list, local_tank_cache, import_args):
                 if is_dynamic:
                     mlir_importer.import_debug(
                         is_dynamic=True,
-                        tracing_required=tracing_required,
+                        tracing_required=True,
                         dir=torch_model_dir,
                         model_name=torch_model_name + "_dynamic",
                         mlir_type=mlir_type,

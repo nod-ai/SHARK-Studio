@@ -541,6 +541,8 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags.append(
             "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
         )
+    if args.data_tiling == False:
+        iree_flags.append("--iree-opt-data-tiling=False")
 
     if "default_compilation_flags" in opt_flags[model][is_tuned][precision]:
         iree_flags += opt_flags[model][is_tuned][precision][
@@ -563,6 +565,9 @@ def get_opt_flags(model, precision="fp16"):
         iree_flags += opt_flags[model][is_tuned][precision][
             "specified_compilation_flags"
         ][device]
+    # Due to lack of support for multi-reduce, we always collapse reduction
+    # dims before dispatch formation right now.
+    iree_flags += ["--iree-flow-collapse-reduction-dims"]
     return iree_flags
 
 
