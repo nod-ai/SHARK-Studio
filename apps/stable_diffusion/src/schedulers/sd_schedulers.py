@@ -14,6 +14,7 @@ from diffusers import (
 )
 from apps.stable_diffusion.src.schedulers.shark_eulerdiscrete import (
     SharkEulerDiscreteScheduler,
+    SharkEulerAncestralDiscreteScheduler,
 )
 
 
@@ -85,6 +86,12 @@ def get_schedulers(model_id):
         subfolder="scheduler",
     )
     schedulers[
+        "SharkEulerAncestralDiscrete"
+    ] = SharkEulerAncestralDiscreteScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+    )
+    schedulers[
         "DPMSolverSinglestep"
     ] = DPMSolverSinglestepScheduler.from_pretrained(
         model_id,
@@ -101,4 +108,5 @@ def get_schedulers(model_id):
         subfolder="scheduler",
     )
     schedulers["SharkEulerDiscrete"].compile()
+    schedulers["SharkEulerAncestralDiscrete"].compile()
     return schedulers

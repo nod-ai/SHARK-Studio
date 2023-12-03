@@ -64,9 +64,11 @@ scheduler_list_cpu_only = [
     "DPMSolverSinglestep",
     "DDPM",
     "HeunDiscrete",
+    "LCMScheduler",
 ]
 scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
+    "SharkEulerAncestralDiscrete",
 ]
 
 predefined_models = [
@@ -86,6 +88,10 @@ predefined_paint_models = [
 ]
 predefined_upscaler_models = [
     "stabilityai/stable-diffusion-x4-upscaler",
+]
+predefined_sdxl_models = [
+    "stabilityai/sdxl-turbo",
+    "stabilityai/stable-diffusion-xl-base-1.0",
 ]
 
 
@@ -140,6 +146,12 @@ def get_custom_model_files(model="models", custom_checkpoint_type=""):
             )
         ]
         match custom_checkpoint_type:
+            case "sdxl":
+                files = [
+                    val
+                    for val in files
+                    if any(x in val for x in ["XL", "xl", "Xl"])
+                ]
             case "inpainting":
                 files = [
                     val
@@ -246,6 +258,63 @@ def cancel_sd():
     except Exception:
         pass
 
+
+def set_model_default_configs(model_ckpt_or_id, jsonconfig=None):
+    import gradio as gr
+
+    if jsonconfig:
+        return get_config_from_json(jsonconfig)
+    elif default_config_exists(model_ckpt_or_id):
+        return default_configs[model_ckpt_or_id]
+    # TODO: Use HF metadata to setup pipeline if available
+    # elif is_valid_hf_id(model_ckpt_or_id):
+    #     return get_HF_default_configs(model_ckpt_or_id)
+    else:
+        # We don't have default metadata to setup a good config. Do not change configs.
+        return [
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+        ]
+
+
+def get_config_from_json(model_ckpt_or_id, jsonconfig):
+    # TODO: make this work properly. It is currently not user-exposed.
+    cfgdata = json.load(jsonconfig)
+    return [
+        cfgdata["steps"],
+        cfgdata["scheduler"],
+        cfgdata["guidance_scale"],
+        cfgdata["width"],
+        cfgdata["height"],
+        cfgdata["custom_vae"],
+    ]
+
+
+def default_config_exists(model_ckpt_or_id):
+    if model_ckpt_or_id in [
+        "stabilityai/sdxl-turbo",
+        "stabilityai/stable_diffusion-xl-base-1.0",
+    ]:
+        return True
+    else:
+        return False
+
+
+default_configs = {
+    "stabilityai/sdxl-turbo": [1, "DDIM", 0, 512, 512, ""],
+    "stabilityai/stable-diffusion-xl-base-1.0": [
+        50,
+        "DDIM",
+        7.5,
+        512,
+        512,
+        "madebyollin/sdxl-vae-fp16-fix",
+    ],
+}
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
 nodicon_loc = resource_path("logos/nod-icon.png")

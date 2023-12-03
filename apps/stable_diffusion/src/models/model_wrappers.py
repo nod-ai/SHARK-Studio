@@ -436,24 +436,40 @@ class SharkifyStableDiffusionModel:
                 super().__init__()
                 self.vae = None
                 if custom_vae == "":
+                    print(f"Loading default vae, with target {model_id}")
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
                         low_cpu_mem_usage=low_cpu_mem_usage,
                     )
                 elif not isinstance(custom_vae, dict):
-                    self.vae = AutoencoderKL.from_pretrained(
-                        custom_vae,
-                        subfolder="vae",
-                        low_cpu_mem_usage=low_cpu_mem_usage,
-                    )
+                    print(f"Loading custom vae, with target {custom_vae}")
+                    if os.path.exists(custom_vae):
+                        self.vae = AutoencoderKL.from_pretrained(
+                            custom_vae,
+                            low_cpu_mem_usage=low_cpu_mem_usage,
+                        )
+                    else:
+                        custom_vae = "/".join(
+                            [
+                                custom_vae.split("/")[-2].split("\\")[-1],
+                                custom_vae.split("/")[-1],
+                            ]
+                        )
+                        print("Using hub to get custom vae")
+                        self.vae = AutoencoderKL.from_pretrained(
+                            custom_vae,
+                            low_cpu_mem_usage=low_cpu_mem_usage,
+                        )
                 else:
+                    print(f"Loading custom vae, with target {custom_vae}")
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
                         low_cpu_mem_usage=low_cpu_mem_usage,
                     )
                     self.vae.load_state_dict(custom_vae)
+                self.base_vae = base_vae
 
             def forward(self, latents):
                 image = self.vae.decode(latents / 0.13025, return_dict=False)[
@@ -465,7 +481,12 @@ class SharkifyStableDiffusionModel:
         inputs = tuple(self.inputs["vae"])
         # Make sure the VAE is in float32 mode, as it overflows in float16 as per SDXL
         # pipeline.
-        is_f16 = False
+        if not self.custom_vae:
+            is_f16 = False
+        elif "16" in self.custom_vae:
+            is_f16 = True
+        else:
+            is_f16 = False
         save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
         if self.debug:
             os.makedirs(save_dir, exist_ok=True)

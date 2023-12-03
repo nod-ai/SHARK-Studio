@@ -16,7 +16,10 @@ from diffusers import (
     KDPM2AncestralDiscreteScheduler,
     HeunDiscreteScheduler,
 )
-from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
+from apps.stable_diffusion.src.schedulers import (
+    SharkEulerDiscreteScheduler,
+    SharkEulerAncestralDiscreteScheduler,
+)
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
@@ -38,6 +41,7 @@ class Text2ImageSDXLPipeline(StableDiffusionPipeline):
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            SharkEulerAncestralDiscreteScheduler,
             DEISMultistepScheduler,
             DDPMScheduler,
             DPMSolverSinglestepScheduler,
@@ -48,8 +52,10 @@ class Text2ImageSDXLPipeline(StableDiffusionPipeline):
         import_mlir: bool,
         use_lora: str,
         ondemand: bool,
+        is_fp32_vae: bool,
     ):
         super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        self.is_fp32_vae = is_fp32_vae
 
     def prepare_latents(
         self,
@@ -206,7 +212,9 @@ class Text2ImageSDXLPipeline(StableDiffusionPipeline):
         # imgs = self.decode_latents_sdxl(None)
         # all_imgs.extend(imgs)
         for i in range(0, latents.shape[0], batch_size):
-            imgs = self.decode_latents_sdxl(latents[i : i + batch_size])
+            imgs = self.decode_latents_sdxl(
+                latents[i : i + batch_size], is_fp32_vae=self.is_fp32_vae
+            )
             all_imgs.extend(imgs)
         if self.ondemand:
             self.unload_vae()

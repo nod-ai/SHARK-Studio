@@ -62,6 +62,7 @@ class StableDiffusionPipeline:
         import_mlir: bool,
         use_lora: str,
         ondemand: bool,
+        is_f32_vae: bool = False,
     ):
         self.vae = None
         self.text_encoder = None
@@ -77,6 +78,7 @@ class StableDiffusionPipeline:
         self.import_mlir = import_mlir
         self.use_lora = use_lora
         self.ondemand = ondemand
+        self.is_f32_vae = is_f32_vae
         # TODO: Find a better workaround for fetching base_model_id early
         #  enough for CLIPTokenizer.
         try:
@@ -332,7 +334,7 @@ class StableDiffusionPipeline:
             gc.collect()
 
         # TODO: Look into dtype for text_encoder_2!
-        prompt_embeds = prompt_embeds.to(dtype=torch.float32)
+        prompt_embeds = prompt_embeds.to(dtype=torch.float16)
         bs_embed, seq_len, _ = prompt_embeds.shape
         # duplicate text embeddings for each generation per prompt, using mps friendly method
         prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
@@ -569,11 +571,15 @@ class StableDiffusionPipeline:
 
         return latents
 
-    def decode_latents_sdxl(self, latents):
-        latents = latents.to(torch.float32)
+    def decode_latents_sdxl(self, latents, is_fp32_vae):
+        # latents are in unet dtype here so switch if we want to use fp32
+        if is_fp32_vae:
+            print("Casting latents to float32 for VAE")
+            latents = latents.to(torch.float32)
         images = self.vae("forward", (latents,))
         images = (torch.from_numpy(images) / 2 + 0.5).clamp(0, 1)
         images = images.cpu().permute(0, 2, 3, 1).float().numpy()
+
         images = (images * 255).round().astype("uint8")
         pil_images = [Image.fromarray(image[:, :, :3]) for image in images]
 
@@ -666,6 +672,17 @@ class StableDiffusionPipeline:
             return cls(
                 scheduler, sd_model, import_mlir, use_lora, ondemand, stencils
             )
+        if cls.__name__ == "Text2ImageSDXLPipeline":
+            is_fp32_vae = True if "16" not in custom_vae else False
+            return cls(
+                scheduler,
+                sd_model,
+                import_mlir,
+                use_lora,
+                ondemand,
+                is_fp32_vae,
+            )
+
         return cls(scheduler, sd_model, import_mlir, use_lora, ondemand)
 
     # #####################################################
