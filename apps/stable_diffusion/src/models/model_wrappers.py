@@ -443,6 +443,7 @@ class SharkifyStableDiffusionModel:
                         low_cpu_mem_usage=low_cpu_mem_usage,
                     )
                 elif not isinstance(custom_vae, dict):
+                    precision = "fp16" if "fp16" in custom_vae else None
                     print(f"Loading custom vae, with target {custom_vae}")
                     if os.path.exists(custom_vae):
                         self.vae = AutoencoderKL.from_pretrained(
@@ -457,12 +458,19 @@ class SharkifyStableDiffusionModel:
                             ]
                         )
                         print("Using hub to get custom vae")
-                        self.vae = AutoencoderKL.from_pretrained(
-                            custom_vae,
-                            low_cpu_mem_usage=low_cpu_mem_usage,
-                        )
+                        try:
+                            self.vae = AutoencoderKL.from_pretrained(
+                                custom_vae,
+                                low_cpu_mem_usage=low_cpu_mem_usage,
+                                variant=precision,
+                            )
+                        except:
+                            self.vae = AutoencoderKL.from_pretrained(
+                                custom_vae,
+                                low_cpu_mem_usage=low_cpu_mem_usage,
+                            )
                 else:
-                    print(f"Loading custom vae, with target {custom_vae}")
+                    print(f"Loading custom vae, with state {custom_vae}")
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
@@ -938,11 +946,19 @@ class SharkifyStableDiffusionModel:
                 low_cpu_mem_usage=False,
             ):
                 super().__init__()
-                self.unet = UNet2DConditionModel.from_pretrained(
-                    model_id,
-                    subfolder="unet",
-                    low_cpu_mem_usage=low_cpu_mem_usage,
-                )
+                try:
+                    self.unet = UNet2DConditionModel.from_pretrained(
+                        model_id,
+                        subfolder="unet",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                        variant="fp16",
+                    )
+                except:
+                    self.unet = UNet2DConditionModel.from_pretrained(
+                        model_id,
+                        subfolder="unet",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
                 if (
                     args.attention_slicing is not None
                     and args.attention_slicing != "none"
@@ -1084,6 +1100,7 @@ class SharkifyStableDiffusionModel:
                         model_id,
                         subfolder="text_encoder",
                         low_cpu_mem_usage=low_cpu_mem_usage,
+                        variant="fp16",
                     )
                 else:
                     self.text_encoder = (
@@ -1091,6 +1108,7 @@ class SharkifyStableDiffusionModel:
                             model_id,
                             subfolder="text_encoder_2",
                             low_cpu_mem_usage=low_cpu_mem_usage,
+                            variant="fp16",
                         )
                     )
 

@@ -15,6 +15,7 @@ from apps.stable_diffusion.web.ui.utils import (
     cancel_sd,
     set_model_default_configs,
 )
+from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
 from apps.stable_diffusion.web.utils.metadata import import_png_metadata
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
@@ -271,7 +272,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                                 elem_id="custom_model",
                                 value="None",
                                 choices=[
-                                    "None",
+                                    None,
                                     "madebyollin/sdxl-vae-fp16-fix",
                                 ]
                                 + get_custom_model_files("vae"),
@@ -339,6 +340,8 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                                 "DDIM",
                                 "SharkEulerAncestralDiscrete",
                                 "SharkEulerDiscrete",
+                                "EulerAncestralDiscrete",
+                                "EulerDiscrete",
                             ],
                             allow_custom_value=False,
                             visible=True,
@@ -402,7 +405,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                                 50,
                                 value=args.guidance_scale,
                                 step=0.1,
-                                label="CFG Scale",
+                                label="Guidance Scale",
                             )
                         ondemand = gr.Checkbox(
                             value=args.ondemand,
@@ -562,12 +565,14 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                 custom_vae,
             ],
         )
-        txt2img_sdxl_custom_model.select(
+        txt2img_sdxl_custom_model.change(
             fn=set_model_default_configs,
             inputs=[
                 txt2img_sdxl_custom_model,
             ],
             outputs=[
+                prompt,
+                negative_prompt,
                 steps,
                 scheduler,
                 guidance_scale,
@@ -575,4 +580,10 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                 height,
                 custom_vae,
             ],
+        )
+        lora_weights.change(
+            fn=lora_changed,
+            inputs=[lora_weights],
+            outputs=[lora_tags],
+            queue=True,
         )

@@ -377,6 +377,11 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                         lines=2,
                         elem_id="prompt_box",
                     )
+                    # TODO: coming soon
+                    autogen = gr.Checkbox(
+                        label="Continuous Generation",
+                        visible=False,
+                    )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
                         value=args.negative_prompts[0],

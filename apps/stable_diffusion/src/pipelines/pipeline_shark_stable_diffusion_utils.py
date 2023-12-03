@@ -20,7 +20,10 @@ from diffusers import (
     HeunDiscreteScheduler,
 )
 from shark.shark_inference import SharkInference
-from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
+from apps.stable_diffusion.src.schedulers import (
+    SharkEulerDiscreteScheduler,
+    SharkEulerAncestralDiscreteScheduler,
+)
 from apps.stable_diffusion.src.models import (
     SharkifyStableDiffusionModel,
     get_vae,
@@ -52,6 +55,7 @@ class StableDiffusionPipeline:
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            SharkEulerAncestralDiscreteScheduler,
             DEISMultistepScheduler,
             DDPMScheduler,
             DPMSolverSinglestepScheduler,

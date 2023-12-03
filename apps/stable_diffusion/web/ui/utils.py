@@ -4,6 +4,7 @@ import glob
 import math
 import json
 import safetensors
+import gradio as gr
 
 from pathlib import Path
 from apps.stable_diffusion.src import args
@@ -272,6 +273,8 @@ def set_model_default_configs(model_ckpt_or_id, jsonconfig=None):
     else:
         # We don't have default metadata to setup a good config. Do not change configs.
         return [
+            gr.Textbox(label="Prompt", interactive=True, visible=True),
+            gr.update(),
             gr.update(),
             gr.update(),
             gr.update(),
@@ -285,6 +288,8 @@ def get_config_from_json(model_ckpt_or_id, jsonconfig):
     # TODO: make this work properly. It is currently not user-exposed.
     cfgdata = json.load(jsonconfig)
     return [
+        cfgdata["prompt_box_behavior"],
+        cfgdata["neg_prompt_box_behavior"],
         cfgdata["steps"],
         cfgdata["scheduler"],
         cfgdata["guidance_scale"],
@@ -305,13 +310,27 @@ def default_config_exists(model_ckpt_or_id):
 
 
 default_configs = {
-    "stabilityai/sdxl-turbo": [1, "DDIM", 0, 512, 512, ""],
+    "stabilityai/sdxl-turbo": [
+        gr.Textbox(label="", interactive=False, value=None, visible=False),
+        gr.Textbox(
+            label="Prompt",
+            value="A shark lady watching her friend build a snowman, deep orange sky, color block, high resolution, ((8k uhd, excellent artwork))",
+        ),
+        gr.Slider(0, 5, value=2),
+        gr.Dropdown(value="DDIM"),
+        gr.Slider(0, value=0),
+        512,
+        512,
+        "madebyollin/sdxl-vae-fp16-fix",
+    ],
     "stabilityai/stable-diffusion-xl-base-1.0": [
-        50,
+        gr.Textbox(label="Prompt", interactive=True, visible=True),
+        gr.Textbox(label="Negative Prompt", interactive=True),
+        40,
         "DDIM",
         7.5,
-        512,
-        512,
+        gr.Slider(value=1024, interactive=False),
+        gr.Slider(value=1024, interactive=False),
         "madebyollin/sdxl-vae-fp16-fix",
     ],
 }

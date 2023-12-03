@@ -209,8 +209,6 @@ class Text2ImageSDXLPipeline(StableDiffusionPipeline):
         # Img latents -> PIL images.
         all_imgs = []
         self.load_vae()
-        # imgs = self.decode_latents_sdxl(None)
-        # all_imgs.extend(imgs)
         for i in range(0, latents.shape[0], batch_size):
             imgs = self.decode_latents_sdxl(
                 latents[i : i + batch_size], is_fp32_vae=self.is_fp32_vae
