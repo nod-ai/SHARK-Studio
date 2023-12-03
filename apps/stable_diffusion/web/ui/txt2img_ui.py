@@ -5,6 +5,7 @@ import sys
 import gradio as gr
 from PIL import Image
 from math import ceil
+
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -15,6 +16,7 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
+from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
 from apps.stable_diffusion.web.utils.metadata import import_png_metadata
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
@@ -124,7 +126,7 @@ def txt2img_inf(
         width,
         device,
         use_lora=args.use_lora,
-        use_stencil=None,
+        stencils=[],
         ondemand=ondemand,
     )
     if (
@@ -224,7 +226,7 @@ def txt2img_inf(
                 width,
                 device,
                 use_lora=args.use_lora,
-                use_stencil="None",
+                stencils=[],
                 ondemand=ondemand,
             )
 
@@ -278,7 +280,7 @@ def txt2img_inf(
                 args.use_base_vae,
                 cpu_scheduling,
                 args.max_embeddings_multiples,
-                use_stencil="None",
+                stencils=[],
                 resample_type=resample_type,
             )
         total_time = time.time() - start_time
@@ -395,6 +397,11 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             value="",
                             label="HuggingFace Model ID",
                             lines=3,
+                        )
+                    with gr.Row():
+                        lora_tags = gr.HTML(
+                            value="<div><i>No LoRA selected</i></div>",
+                            elem_classes="lora-tags",
                         )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
@@ -688,4 +695,11 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
             inputs=[use_hiresfix],
             outputs=[scheduler],
             queue=False,
+        )
+
+        lora_weights.change(
+            fn=lora_changed,
+            inputs=[lora_weights],
+            outputs=[lora_tags],
+            queue=True,
         )

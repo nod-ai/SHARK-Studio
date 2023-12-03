@@ -158,7 +158,6 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         use_base_vae,
         cpu_scheduling,
         max_embeddings_multiples,
-        use_stencil,
         resample_type,
     ):
         # prompts and negative prompts must be a list.

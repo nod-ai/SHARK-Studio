@@ -1,69 +1,66 @@
 import os
 import torch
 import time
+import sys
 import gradio as gr
 from PIL import Image
-
-from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
+from math import ceil
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
     get_custom_model_path,
     get_custom_model_files,
-    scheduler_list_cpu_only,
-    predefined_paint_models,
+    scheduler_list,
+    predefined_models,
     cancel_sd,
 )
+from apps.stable_diffusion.web.utils.metadata import import_png_metadata
+from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
-    OutpaintPipeline,
+    Text2ImageSDXLPipeline,
     get_schedulers,
     set_init_device_flags,
     utils,
     save_output_img,
+    prompt_examples,
+    Image2ImagePipeline,
 )
 from apps.stable_diffusion.src.utils import (
     get_generated_imgs_path,
     get_generation_text_info,
 )
-from apps.stable_diffusion.web.utils.common_label_calc import status_label
 
 # set initial values of iree_vulkan_target_triple, use_tuned and import_mlir.
 init_iree_vulkan_target_triple = args.iree_vulkan_target_triple
+init_iree_metal_target_platform = args.iree_metal_target_platform
 init_use_tuned = args.use_tuned
 init_import_mlir = args.import_mlir
 
 
-# Exposed to UI.
-def outpaint_inf(
+def txt2img_sdxl_inf(
     prompt: str,
     negative_prompt: str,
-    init_image,
-    pixels: int,
-    mask_blur: int,
-    directions: list,
-    noise_q: float,
-    color_variation: float,
     height: int,
     width: int,
     steps: int,
     guidance_scale: float,
-    seed: str,
+    seed: str | int,
     batch_count: int,
     batch_size: int,
     scheduler: str,
     model_id: str,
-    custom_vae: str,
     precision: str,
     device: str,
     max_length: int,
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
-    lora_weights: str,
-    lora_hf_id: str,
     ondemand: bool,
     repeatable_seeds: bool,
 ):
+    if precision != "fp16":
+        print("currently we support fp16 for SDXL")
+        precision = "fp16"
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
         get_custom_vae_or_lora_weights,
@@ -79,7 +76,6 @@ def outpaint_inf(
     args.guidance_scale = guidance_scale
     args.steps = steps
     args.scheduler = scheduler
-    args.img_path = "not none"
     args.ondemand = ondemand
 
     # set ckpt_loc and hf_model_id.
@@ -88,7 +84,7 @@ def outpaint_inf(
     args.custom_vae = ""
 
     # .safetensor or .chkpt on the custom model path
-    if model_id in get_custom_model_files(custom_checkpoint_type="inpainting"):
+    if model_id in get_custom_model_files():
         args.ckpt_loc = get_custom_model_pathfile(model_id)
     # civitai download
     elif "civitai" in model_id:
@@ -97,20 +93,18 @@ def outpaint_inf(
     else:
         args.hf_model_id = model_id
 
-    if custom_vae != "None":
-        args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
-
-    args.use_lora = get_custom_vae_or_lora_weights(
-        lora_weights, lora_hf_id, "lora"
-    )
+    # if custom_vae != "None":
+    #     args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
+    args.use_lora = ""
+
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
     new_config_obj = Config(
-        "outpaint",
+        "txt2img_sdxl",
         args.hf_model_id,
         args.ckpt_loc,
         args.custom_vae,
@@ -121,7 +115,7 @@ def outpaint_inf(
         width,
         device,
         use_lora=args.use_lora,
-        stencils=[],
+        use_stencil=None,
         ondemand=ondemand,
     )
     if (
@@ -138,64 +132,59 @@ def outpaint_inf(
         args.width = width
         args.device = device.split("=>", 1)[1].strip()
         args.iree_vulkan_target_triple = init_iree_vulkan_target_triple
+        args.iree_metal_target_platform = init_iree_metal_target_platform
         args.use_tuned = init_use_tuned
         args.import_mlir = init_import_mlir
+        args.img_path = None
         set_init_device_flags()
         model_id = (
             args.hf_model_id
             if args.hf_model_id
-            else "stabilityai/stable-diffusion-2-inpainting"
+            else "stabilityai/stable-diffusion-xl-base-1.0"
         )
         global_obj.set_schedulers(get_schedulers(model_id))
         scheduler_obj = global_obj.get_scheduler(scheduler)
-        global_obj.set_sd_obj(
-            OutpaintPipeline.from_pretrained(
-                scheduler_obj,
-                args.import_mlir,
-                args.hf_model_id,
-                args.ckpt_loc,
-                args.custom_vae,
-                args.precision,
-                args.max_length,
-                args.batch_size,
-                args.height,
-                args.width,
-                args.use_base_vae,
-                args.use_tuned,
-                use_lora=args.use_lora,
-                ondemand=args.ondemand,
-            )
+        # For SDXL we set max_length as 77.
+        print("Setting max_length = 77")
+        max_length = 77
+        if global_obj.get_cfg_obj().ondemand:
+            print("Running txt2img in memory efficient mode.")
+        txt2img_sdxl_obj = Text2ImageSDXLPipeline.from_pretrained(
+            scheduler=scheduler_obj,
+            import_mlir=args.import_mlir,
+            model_id=args.hf_model_id,
+            ckpt_loc=args.ckpt_loc,
+            precision=precision,
+            max_length=max_length,
+            batch_size=batch_size,
+            height=height,
+            width=width,
+            use_base_vae=args.use_base_vae,
+            use_tuned=args.use_tuned,
+            custom_vae=args.custom_vae,
+            low_cpu_mem_usage=args.low_cpu_mem_usage,
+            debug=args.import_debug if args.import_mlir else False,
+            use_lora=args.use_lora,
+            use_quantize=args.use_quantize,
+            ondemand=global_obj.get_cfg_obj().ondemand,
         )
+        global_obj.set_sd_obj(txt2img_sdxl_obj)
 
     global_obj.set_sd_scheduler(scheduler)
 
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
+    text_output = ""
     try:
         seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
     except TypeError as error:
         raise gr.Error(str(error)) from None
 
-    left = True if "left" in directions else False
-    right = True if "right" in directions else False
-    top = True if "up" in directions else False
-    bottom = True if "down" in directions else False
-
-    text_output = ""
     for current_batch in range(batch_count):
         out_imgs = global_obj.get_sd_obj().generate_images(
             prompt,
             negative_prompt,
-            init_image,
-            pixels,
-            mask_blur,
-            left,
-            right,
-            top,
-            bottom,
-            noise_q,
-            color_variation,
             batch_size,
             height,
             width,
@@ -208,6 +197,7 @@ def outpaint_inf(
             cpu_scheduling,
             args.max_embeddings_multiples,
         )
+
         total_time = time.time() - start_time
         text_output = get_generation_text_info(
             seeds[: current_batch + 1], device
@@ -221,13 +211,16 @@ def outpaint_inf(
             save_output_img(out_imgs[0], seeds[current_batch])
             generated_imgs.extend(out_imgs)
             yield generated_imgs, text_output, status_label(
-                "Outpaint", current_batch + 1, batch_count, batch_size
+                "Text-to-Image-SDXL",
+                current_batch + 1,
+                batch_count,
+                batch_size,
             )
 
     return generated_imgs, text_output, ""
 
 
-with gr.Blocks(title="Outpainting") as outpaint_web:
+with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -244,39 +237,23 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    outpaint_model_info = (
-                        f"Custom Model Path: {str(get_custom_model_path())}"
-                    )
-                    outpaint_custom_model = gr.Dropdown(
-                        label=f"Models",
-                        info="Select, or enter HuggingFace Model ID or Civitai model download URL",
-                        elem_id="custom_model",
-                        value=os.path.basename(args.ckpt_loc)
-                        if args.ckpt_loc
-                        else "stabilityai/stable-diffusion-2-inpainting",
-                        choices=get_custom_model_files(
-                            custom_checkpoint_type="inpainting"
-                        )
-                        + predefined_paint_models,
-                        allow_custom_value=True,
-                        scale=2,
-                    )
-                    # janky fix for overflowing text
-                    outpaint_vae_info = (
-                        str(get_custom_model_path("vae"))
-                    ).replace("\\", "\n\\")
-                    outpaint_vae_info = f"VAE Path: {outpaint_vae_info}"
-                    custom_vae = gr.Dropdown(
-                        label=f"Custom VAE Models",
-                        info=outpaint_vae_info,
-                        elem_id="custom_model",
-                        value=os.path.basename(args.custom_vae)
-                        if args.custom_vae
-                        else "None",
-                        choices=["None"] + get_custom_model_files("vae"),
-                        allow_custom_value=True,
-                        scale=1,
-                    )
+                    with gr.Column(scale=10):
+                        with gr.Row():
+                            t2i_model_info = f"Custom Model Path: {str(get_custom_model_path())}"
+                            txt2img_sdxl_custom_model = gr.Dropdown(
+                                label=f"Models",
+                                info="Select, or enter HuggingFace Model ID or Civitai model download URL",
+                                elem_id="custom_model",
+                                value=os.path.basename(args.ckpt_loc)
+                                if args.ckpt_loc
+                                else "stabilityai/stable-diffusion-xl-base-1.0",
+                                choices=[
+                                    "stabilityai/stable-diffusion-xl-base-1.0"
+                                ],
+                                allow_custom_value=True,
+                                scale=2,
+                            )
+
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
                         label="Prompt",
@@ -291,52 +268,17 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="negative_prompt_box",
                     )
 
-                outpaint_init_image = gr.Image(
-                    label="Input Image",
-                    type="pil",
-                    height=300,
-                )
-
-                with gr.Accordion(label="LoRA Options", open=False):
-                    with gr.Row():
-                        # janky fix for overflowing text
-                        outpaint_lora_info = (
-                            str(get_custom_model_path("lora"))
-                        ).replace("\\", "\n\\")
-                        outpaint_lora_info = f"LoRA Path: {outpaint_lora_info}"
-                        lora_weights = gr.Dropdown(
-                            label=f"Standalone LoRA Weights",
-                            info=outpaint_lora_info,
-                            elem_id="lora_weights",
-                            value="None",
-                            choices=["None"] + get_custom_model_files("lora"),
-                            allow_custom_value=True,
-                        )
-                        lora_hf_id = gr.Textbox(
-                            elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standalone LoRA "
-                            "weights dropdown on the left if you want to use "
-                            "a standalone HuggingFace model ID for LoRA here "
-                            "e.g: sayakpaul/sd-model-finetuned-lora-t4",
-                            value="",
-                            label="HuggingFace Model ID",
-                            lines=3,
-                        )
-                    with gr.Row():
-                        lora_tags = gr.HTML(
-                            value="<div><i>No LoRA selected</i></div>",
-                            elem_classes="lora-tags",
-                        )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value="EulerDiscrete",
-                            choices=scheduler_list_cpu_only,
+                            value="DDIM",
+                            choices=["DDIM"],
                             allow_custom_value=True,
+                            visible=False,
                         )
-                        with gr.Group():
+                        with gr.Column():
                             save_metadata_to_png = gr.Checkbox(
                                 label="Save prompt information to PNG",
                                 value=args.write_metadata_to_png,
@@ -348,51 +290,23 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                                 interactive=True,
                             )
                     with gr.Row():
-                        pixels = gr.Slider(
-                            8,
-                            256,
-                            value=args.pixels,
-                            step=8,
-                            label="Pixels to expand",
-                        )
-                        mask_blur = gr.Slider(
-                            0,
-                            64,
-                            value=args.mask_blur,
-                            step=1,
-                            label="Mask blur",
-                        )
-                    with gr.Row():
-                        directions = gr.CheckboxGroup(
-                            label="Outpainting direction",
-                            choices=["left", "right", "up", "down"],
-                            value=["left", "right", "up", "down"],
-                        )
-                    with gr.Row():
-                        noise_q = gr.Slider(
-                            0.0,
-                            4.0,
-                            value=1.0,
-                            step=0.01,
-                            label="Fall-off exponent (lower=higher detail)",
-                        )
-                        color_variation = gr.Slider(
-                            0.0,
-                            1.0,
-                            value=0.05,
-                            step=0.01,
-                            label="Color variation",
-                        )
-                    with gr.Row():
                         height = gr.Slider(
-                            384, 768, value=args.height, step=8, label="Height"
+                            1024,
+                            value=1024,
+                            step=8,
+                            label="Height",
+                            visible=False,
                         )
                         width = gr.Slider(
-                            384, 768, value=args.width, step=8, label="Width"
+                            1024,
+                            value=1024,
+                            step=8,
+                            label="Width",
+                            visible=False,
                         )
                         precision = gr.Radio(
                             label="Precision",
-                            value=args.precision,
+                            value="fp16",
                             choices=[
                                 "fp16",
                                 "fp32",
@@ -409,15 +323,10 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                             visible=False,
                         )
                     with gr.Row():
-                        steps = gr.Slider(
-                            1, 100, value=20, step=1, label="Steps"
-                        )
-                        ondemand = gr.Checkbox(
-                            value=args.ondemand,
-                            label="Low VRAM",
-                            interactive=True,
-                        )
-                    with gr.Row():
+                        with gr.Column(scale=3):
+                            steps = gr.Slider(
+                                1, 100, value=args.steps, step=1, label="Steps"
+                            )
                         with gr.Column(scale=3):
                             guidance_scale = gr.Slider(
                                 0,
@@ -426,6 +335,12 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                                 step=0.1,
                                 label="CFG Scale",
                             )
+                        ondemand = gr.Checkbox(
+                            value=args.ondemand,
+                            label="Low VRAM",
+                            interactive=True,
+                        )
+                    with gr.Row():
                         with gr.Column(scale=3):
                             batch_count = gr.Slider(
                                 1,
@@ -435,20 +350,18 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                                 label="Batch Count",
                                 interactive=True,
                             )
+                        with gr.Column(scale=3):
+                            batch_size = gr.Slider(
+                                1,
+                                4,
+                                value=args.batch_size,
+                                step=1,
+                                label="Batch Size",
+                                interactive=True,
+                            )
                         repeatable_seeds = gr.Checkbox(
                             args.repeatable_seeds,
                             label="Repeatable Seeds",
-                        )
-
-                    with gr.Row():
-                        batch_size = gr.Slider(
-                            1,
-                            4,
-                            value=args.batch_size,
-                            step=1,
-                            label="Batch Size",
-                            interactive=False,
-                            visible=False,
                         )
                 with gr.Row():
                     seed = gr.Textbox(
@@ -463,10 +376,17 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         choices=available_devices,
                         allow_custom_value=True,
                     )
+                with gr.Accordion(label="Prompt Examples!", open=False):
+                    ex = gr.Examples(
+                        examples=prompt_examples,
+                        inputs=prompt,
+                        cache_examples=False,
+                        elem_id="prompt_examples",
+                    )
 
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
-                    outpaint_gallery = gr.Gallery(
+                    txt2img_sdxl_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
@@ -474,14 +394,14 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         object_fit="contain",
                     )
                     std_output = gr.Textbox(
-                        value=f"{outpaint_model_info}\n"
+                        value=f"{t2i_model_info}\n"
                         f"Images will be saved at "
                         f"{get_generated_imgs_path()}",
-                        lines=2,
+                        lines=1,
                         elem_id="std_output",
                         show_label=False,
                     )
-                    outpaint_status = gr.Textbox(visible=False)
+                    txt2img_sdxl_status = gr.Textbox(visible=False)
                 with gr.Row():
                     stable_diffusion = gr.Button("Generate Image(s)")
                     random_seed = gr.Button("Randomize Seed")
@@ -494,24 +414,12 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                     stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     blank_thing_for_row = None
-                with gr.Row():
-                    outpaint_sendto_img2img = gr.Button(value="SendTo Img2Img")
-                    outpaint_sendto_inpaint = gr.Button(value="SendTo Inpaint")
-                    outpaint_sendto_upscaler = gr.Button(
-                        value="SendTo Upscaler"
-                    )
 
         kwargs = dict(
-            fn=outpaint_inf,
+            fn=txt2img_sdxl_inf,
             inputs=[
                 prompt,
                 negative_prompt,
-                outpaint_init_image,
-                pixels,
-                mask_blur,
-                directions,
-                noise_q,
-                color_variation,
                 height,
                 width,
                 steps,
@@ -520,25 +428,23 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                 batch_count,
                 batch_size,
                 scheduler,
-                outpaint_custom_model,
-                custom_vae,
+                txt2img_sdxl_custom_model,
                 precision,
                 device,
                 max_length,
                 save_metadata_to_json,
                 save_metadata_to_png,
-                lora_weights,
-                lora_hf_id,
                 ondemand,
                 repeatable_seeds,
             ],
-            outputs=[outpaint_gallery, std_output, outpaint_status],
+            outputs=[txt2img_sdxl_gallery, std_output, txt2img_sdxl_status],
             show_progress="minimal" if args.progress_bar else "none",
         )
+
         status_kwargs = dict(
-            fn=lambda bc, bs: status_label("Outpaint", 0, bc, bs),
+            fn=lambda bc, bs: status_label("Text-to-Image-SDXL", 0, bc, bs),
             inputs=[batch_count, batch_size],
-            outputs=outpaint_status,
+            outputs=txt2img_sdxl_status,
         )
 
         prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
@@ -549,11 +455,4 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
-        )
-
-        lora_weights.change(
-            fn=lora_changed,
-            inputs=[lora_weights],
-            outputs=[lora_tags],
-            queue=True,
         )

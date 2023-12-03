@@ -105,6 +105,18 @@ body {
     background-color: var(--background-fill-primary);
 }
 
+.generating.svelte-zlszon.svelte-zlszon {
+    border: none;
+}
+
+.generating {
+    border: none !important;
+}
+
+#chatbot {
+    height: 100% !important;
+}
+
 /* display in full width for desktop devices */
 @media (min-width: 1536px)
 {
@@ -246,10 +258,39 @@ footer {
     background-color: var(--block-label-background-fill);
 }
 
+/* lora tag pills */
+.lora-tags {
+    border: 1px solid var(--border-color-primary);
+    color: var(--block-info-text-color) !important;
+    padding: var(--block-padding);
+}
+
+.lora-tag {
+    display: inline-block;
+    height: 2em;
+    color: rgb(212 212 212) !important;
+    margin-right: 5pt;
+    margin-bottom: 5pt;
+    padding: 2pt 5pt;
+    border-radius: 5pt;
+    white-space: nowrap;
+}
+
+.lora-model {
+    margin-bottom: var(--spacing-lg);
+    color: var(--block-info-text-color) !important;
+    line-height: var(--line-sm);
+}
+
 /* output gallery tab */
+.output_parameters_dataframe table.table {
+    /* works around a gradio bug that always shows scrollbars */
+    overflow: clip auto;
+}
+
 .output_parameters_dataframe tbody td {
     font-size: small;
-    line-height: var(--line-xs)
+    line-height: var(--line-xs);
 }
 
 .output_icon_button {

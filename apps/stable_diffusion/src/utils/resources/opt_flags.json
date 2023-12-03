@@ -59,24 +59,28 @@
     "tuned": {
       "fp16": {
         "default_compilation_flags": [
-          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
+          "--iree-opt-data-tiling=False"
         ]
       },
       "fp32": {
         "default_compilation_flags": [
-          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
+          "--iree-opt-data-tiling=False"
         ]
       }
     },
     "untuned": {
       "fp16": {
         "default_compilation_flags": [
-          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
+          "--iree-opt-data-tiling=False"
         ]
       },
       "fp32": {
         "default_compilation_flags": [
-          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))"
+          "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
+          "--iree-opt-data-tiling=False"
         ]
       }
     }

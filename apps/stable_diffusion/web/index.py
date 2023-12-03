@@ -75,11 +75,11 @@ if __name__ == "__main__":
     # Setup to use shark_tmp for gradio's temporary image files and clear any
     # existing temporary images there if they exist. Then we can import gradio.
     # It has to be in this order or gradio ignores what we've set up.
-    from apps.stable_diffusion.web.utils.gradio_configs import (
-        config_gradio_tmp_imgs_folder,
+    from apps.stable_diffusion.web.utils.tmp_configs import (
+        config_tmp,
     )
 
-    config_gradio_tmp_imgs_folder()
+    config_tmp()
     import gradio as gr
 
     # Create custom models folders if they don't exist
@@ -109,6 +109,12 @@ if __name__ == "__main__":
         txt2img_sendto_inpaint,
         txt2img_sendto_outpaint,
         txt2img_sendto_upscaler,
+        # SDXL
+        txt2img_sdxl_inf,
+        txt2img_sdxl_web,
+        txt2img_sdxl_custom_model,
+        txt2img_sdxl_gallery,
+        txt2img_sdxl_status,
         # h2ogpt_upload,
         # h2ogpt_web,
         img2img_web,
@@ -253,6 +259,8 @@ if __name__ == "__main__":
             #     h2ogpt_upload.render()
             # with gr.TabItem(label="DocuChat(Experimental)", id=12):
             #     h2ogpt_web.render()
+            with gr.TabItem(label="Text-to-Image-SDXL (Experimental)", id=13):
+                txt2img_sdxl_web.render()
 
             actual_port = app.usable_port()
             if actual_port != args.server_port:

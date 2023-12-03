@@ -85,7 +85,7 @@ p.add_argument(
     "--height",
     type=int,
     default=512,
-    choices=range(128, 769, 8),
+    choices=range(128, 1025, 8),
     help="The height of the output image.",
 )
 
@@ -93,7 +93,7 @@ p.add_argument(
     "--width",
     type=int,
     default=512,
-    choices=range(128, 769, 8),
+    choices=range(128, 1025, 8),
     help="The width of the output image.",
 )
 
@@ -421,6 +421,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--control_mode",
+    choices=["Prompt", "Balanced", "Controlnet"],
+    default="Balanced",
+    help="How Controlnet injection should be prioritized.",
+)
+
+p.add_argument(
     "--use_lora",
     type=str,
     default="",
@@ -585,6 +592,13 @@ p.add_argument(
     default=True,
     action=argparse.BooleanOptionalAction,
     help="Controls constant folding in iree-compile for all SD models.",
+)
+
+p.add_argument(
+    "--data_tiling",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Controls data tiling in iree-compile for all SD models.",
 )
 
 ##############################################################################

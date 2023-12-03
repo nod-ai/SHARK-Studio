@@ -3,6 +3,7 @@ import torch
 import time
 import gradio as gr
 from PIL import Image
+
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -12,6 +13,7 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_upscaler_models,
     cancel_sd,
 )
+from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
@@ -118,7 +120,7 @@ def upscaler_inf(
         args.width,
         device,
         use_lora=args.use_lora,
-        use_stencil=None,
+        stencils=[],
         ondemand=ondemand,
     )
     if (
@@ -340,6 +342,11 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                             label="HuggingFace Model ID",
                             lines=3,
                         )
+                    with gr.Row():
+                        lora_tags = gr.HTML(
+                            value="<div><i>No LoRA selected</i></div>",
+                            elem_classes="lora-tags",
+                        )
                 with gr.Accordion(label="Advanced Options", open=False):
                     with gr.Row():
                         scheduler = gr.Dropdown(
@@ -536,4 +543,11 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
+        )
+
+        lora_weights.change(
+            fn=lora_changed,
+            inputs=[lora_weights],
+            outputs=[lora_tags],
+            queue=True,
         )
