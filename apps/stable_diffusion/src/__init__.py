@@ -9,6 +9,7 @@ from apps.stable_diffusion.src.utils import (
 )
 from apps.stable_diffusion.src.pipelines import (
     Text2ImagePipeline,
+    Text2ImageSDXLPipeline,
     Image2ImagePipeline,
     InpaintPipeline,
     OutpaintPipeline,
