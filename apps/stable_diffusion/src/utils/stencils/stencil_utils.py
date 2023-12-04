@@ -154,6 +154,7 @@ def controlnet_hint_conversion(
             controlnet_hint = hint_zoedepth(image)
         case _:
             return None
+    print(f"Controlnet hint is type {image.dtype}")
     controlnet_hint = controlnet_hint_shaping(
         controlnet_hint, height, width, dtype, num_images_per_prompt
     )

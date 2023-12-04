@@ -211,6 +211,11 @@ class SharkEulerAncestralDiscreteScheduler(EulerAncestralDiscreteScheduler):
 
         sigma_from = self.sigmas[self.step_index]
         sigma_to = self.sigmas[self.step_index + 1]
+        noise_pred = (
+            torch.from_numpy(noise_pred)
+            if isinstance(noise_pred, np.ndarray)
+            else noise_pred
+        )
         noise = randn_tensor(
             torch.Size(noise_pred.shape),
             dtype=torch.float16,

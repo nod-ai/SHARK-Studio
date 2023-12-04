@@ -207,6 +207,11 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
 
         sigma_hat = sigma * (gamma + 1)
 
+        noise_pred = (
+            torch.from_numpy(noise_pred)
+            if isinstance(noise_pred, np.ndarray)
+            else noise_pred
+        )
         noise = randn_tensor(
             noise_pred.shape,
             dtype=noise_pred.dtype,
