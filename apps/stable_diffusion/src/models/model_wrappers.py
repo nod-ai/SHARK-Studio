@@ -1100,7 +1100,6 @@ class SharkifyStableDiffusionModel:
                         model_id,
                         subfolder="text_encoder",
                         low_cpu_mem_usage=low_cpu_mem_usage,
-                        variant="fp16",
                     )
                 else:
                     self.text_encoder = (
@@ -1108,7 +1107,6 @@ class SharkifyStableDiffusionModel:
                             model_id,
                             subfolder="text_encoder_2",
                             low_cpu_mem_usage=low_cpu_mem_usage,
-                            variant="fp16",
                         )
                     )
 

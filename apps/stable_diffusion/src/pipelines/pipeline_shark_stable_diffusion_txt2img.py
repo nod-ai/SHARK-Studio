@@ -18,7 +18,10 @@ from diffusers import (
     KDPM2AncestralDiscreteScheduler,
     HeunDiscreteScheduler,
 )
-from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
+from apps.stable_diffusion.src.schedulers import (
+    SharkEulerDiscreteScheduler,
+    SharkEulerAncestralDiscreteScheduler,
+)
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )

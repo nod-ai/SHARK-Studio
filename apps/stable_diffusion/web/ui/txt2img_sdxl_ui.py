@@ -338,8 +338,6 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                             value=args.scheduler,
                             choices=[
                                 "DDIM",
-                                "SharkEulerAncestralDiscrete",
-                                "SharkEulerDiscrete",
                                 "EulerAncestralDiscrete",
                                 "EulerDiscrete",
                             ],

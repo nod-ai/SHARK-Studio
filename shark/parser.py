@@ -155,7 +155,7 @@ parser.add_argument(
 
 parser.add_argument(
     "--vulkan_debug_utils",
-    default=False,
+    default=True,
     action=argparse.BooleanOptionalAction,
     help="Profiles vulkan device and collects the .rdc info.",
 )

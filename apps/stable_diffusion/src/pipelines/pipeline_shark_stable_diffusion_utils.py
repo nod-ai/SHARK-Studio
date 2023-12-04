@@ -74,11 +74,11 @@ class StableDiffusionPipeline:
         self.unet = None
         self.unet_512 = None
         self.model_max_length = 77
-        self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
         self.status = SD_STATE_IDLE
         self.sd_model = sd_model
+        self.scheduler = scheduler
         self.import_mlir = import_mlir
         self.use_lora = use_lora
         self.ondemand = ondemand
@@ -529,6 +529,9 @@ class StableDiffusionPipeline:
         cpu_scheduling,
         guidance_scale,
         dtype,
+        mask=None,
+        masked_image_latents=None,
+        return_all_latents=False,
     ):
         # return None
         self.status = SD_STATE_IDLE
@@ -539,11 +542,22 @@ class StableDiffusionPipeline:
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(dtype).detach().numpy()
             # expand the latents if we are doing classifier free guidance
+            if isinstance(latents, np.ndarray):
+                latents = torch.tensor(latents)
             latent_model_input = torch.cat([latents] * 2)
 
             latent_model_input = self.scheduler.scale_model_input(
                 latent_model_input, t
-            ).to(dtype)
+            )
+            if mask is not None and masked_image_latents is not None:
+                latent_model_input = torch.cat(
+                    [
+                        torch.from_numpy(np.asarray(latent_model_input)),
+                        mask,
+                        masked_image_latents,
+                    ],
+                    dim=1,
+                ).to(dtype)
 
             noise_pred = self.unet(
                 "forward",
@@ -555,11 +569,17 @@ class StableDiffusionPipeline:
                     add_time_ids,
                     guidance_scale,
                 ),
-                send_to_host=False,
+                send_to_host=True,
             )
+            if not isinstance(latents, torch.Tensor):
+                latents = torch.from_numpy(latents).to("cpu")
+            noise_pred = torch.from_numpy(noise_pred).to("cpu")
+
             latents = self.scheduler.step(
                 noise_pred, t, latents, **extra_step_kwargs, return_dict=False
             )[0]
+            latents = latents.detach().numpy()
+            noise_pred = noise_pred.detach().numpy()
 
             step_time = (time.time() - step_start_time) * 1000
             step_time_sum += step_time
