@@ -85,6 +85,7 @@ def img2img_inf(
     from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
         SD_STATE_CANCEL,
     )
+
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
     args.guidance_scale = guidance_scale
@@ -110,7 +111,7 @@ def img2img_inf(
     elif image_dict:
         image = image_dict["image"].convert("RGB")
     else:
-        #TODO: enable t2i + controlnets
+        # TODO: enable t2i + controlnets
         image = None
 
     # set ckpt_loc and hf_model_id.
