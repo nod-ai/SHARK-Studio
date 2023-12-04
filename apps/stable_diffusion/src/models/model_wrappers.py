@@ -679,6 +679,7 @@ class SharkifyStableDiffusionModel:
 
     def get_control_net(self, stencil_id, use_large=False):
         stencil_id = get_stencil_model_id(stencil_id)
+        breakpoint()
 
         class StencilControlNetModel(torch.nn.Module):
             def __init__(self, model_id=stencil_id, low_cpu_mem_usage=False):
@@ -687,7 +688,7 @@ class SharkifyStableDiffusionModel:
                     model_id,
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
-                self.in_channels = self.cnet.in_channels
+                self.in_channels = self.cnet.config.in_channels
                 self.train(False)
 
             def forward(
@@ -769,7 +770,7 @@ class SharkifyStableDiffusionModel:
                 self.sharktank_dir, self.model_name["stencil_adaptor"]
             )
         input_mask = [True, True, True, True] + ([True] * 13)
-        model_name = "stencil_adaptor" if use_large else "stencil_adaptor_512"
+        model_name = "stencil_adaptor_512" if use_large else "stencil_adaptor"
         shark_cnet, cnet_mlir = compile_through_fx(
             scnet,
             inputs,

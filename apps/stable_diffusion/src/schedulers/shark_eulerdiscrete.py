@@ -212,16 +212,17 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
             if isinstance(noise_pred, np.ndarray)
             else noise_pred
         )
-        noise = randn_tensor(
-            noise_pred.shape,
-            dtype=noise_pred.dtype,
-            device="cpu",
-            generator=generator,
-        )
 
-        eps = noise * s_noise
 
         if gamma > 0:
+            noise = randn_tensor(
+                torch.Size(noise_pred.shape),
+                dtype=torch.float16,
+                device="cpu",
+                generator=generator,
+            )
+            
+            eps = noise * s_noise
             latent = latent + eps * (sigma_hat**2 - sigma**2) ** 0.5
 
         if self.config.prediction_type == "v_prediction":
