@@ -109,7 +109,7 @@ def process_vmfb_ir_sdxl(extended_model_name, model_name, device, precision):
     if "vulkan" in device:
         _device = args.iree_vulkan_target_triple
         _device = _device.replace("-", "_")
-        vmfb_path = Path(extended_model_name_for_vmfb + f"_{_device}.vmfb")
+        vmfb_path = Path(extended_model_name_for_vmfb + f"_vulkan.vmfb")
     if vmfb_path.exists():
         shark_module = SharkInference(
             None,
@@ -436,24 +436,48 @@ class SharkifyStableDiffusionModel:
                 super().__init__()
                 self.vae = None
                 if custom_vae == "":
+                    print(f"Loading default vae, with target {model_id}")
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
                         low_cpu_mem_usage=low_cpu_mem_usage,
                     )
                 elif not isinstance(custom_vae, dict):
-                    self.vae = AutoencoderKL.from_pretrained(
-                        custom_vae,
-                        subfolder="vae",
-                        low_cpu_mem_usage=low_cpu_mem_usage,
-                    )
+                    precision = "fp16" if "fp16" in custom_vae else None
+                    print(f"Loading custom vae, with target {custom_vae}")
+                    if os.path.exists(custom_vae):
+                        self.vae = AutoencoderKL.from_pretrained(
+                            custom_vae,
+                            low_cpu_mem_usage=low_cpu_mem_usage,
+                        )
+                    else:
+                        custom_vae = "/".join(
+                            [
+                                custom_vae.split("/")[-2].split("\\")[-1],
+                                custom_vae.split("/")[-1],
+                            ]
+                        )
+                        print("Using hub to get custom vae")
+                        try:
+                            self.vae = AutoencoderKL.from_pretrained(
+                                custom_vae,
+                                low_cpu_mem_usage=low_cpu_mem_usage,
+                                variant=precision,
+                            )
+                        except:
+                            self.vae = AutoencoderKL.from_pretrained(
+                                custom_vae,
+                                low_cpu_mem_usage=low_cpu_mem_usage,
+                            )
                 else:
+                    print(f"Loading custom vae, with state {custom_vae}")
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
                         low_cpu_mem_usage=low_cpu_mem_usage,
                     )
                     self.vae.load_state_dict(custom_vae)
+                self.base_vae = base_vae
 
             def forward(self, latents):
                 image = self.vae.decode(latents / 0.13025, return_dict=False)[
@@ -465,7 +489,12 @@ class SharkifyStableDiffusionModel:
         inputs = tuple(self.inputs["vae"])
         # Make sure the VAE is in float32 mode, as it overflows in float16 as per SDXL
         # pipeline.
-        is_f16 = False
+        if not self.custom_vae:
+            is_f16 = False
+        elif "16" in self.custom_vae:
+            is_f16 = True
+        else:
+            is_f16 = False
         save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
         if self.debug:
             os.makedirs(save_dir, exist_ok=True)
@@ -917,11 +946,19 @@ class SharkifyStableDiffusionModel:
                 low_cpu_mem_usage=False,
             ):
                 super().__init__()
-                self.unet = UNet2DConditionModel.from_pretrained(
-                    model_id,
-                    subfolder="unet",
-                    low_cpu_mem_usage=low_cpu_mem_usage,
-                )
+                try:
+                    self.unet = UNet2DConditionModel.from_pretrained(
+                        model_id,
+                        subfolder="unet",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                        variant="fp16",
+                    )
+                except:
+                    self.unet = UNet2DConditionModel.from_pretrained(
+                        model_id,
+                        subfolder="unet",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
                 if (
                     args.attention_slicing is not None
                     and args.attention_slicing != "none"

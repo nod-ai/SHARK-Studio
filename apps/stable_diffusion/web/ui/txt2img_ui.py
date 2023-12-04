@@ -281,6 +281,7 @@ def txt2img_inf(
                 cpu_scheduling,
                 args.max_embeddings_multiples,
                 stencils=[],
+                control_mode=None,
                 resample_type=resample_type,
             )
         total_time = time.time() - start_time
@@ -302,7 +303,17 @@ def txt2img_inf(
     return generated_imgs, text_output, ""
 
 
-with gr.Blocks(title="Text-to-Image") as txt2img_web:
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller"""
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
+    return os.path.join(base_path, relative_path)
+
+
+dark_theme = resource_path("ui/css/sd_dark_theme.css")
+
+with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -356,7 +367,6 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                             label="Import PNG info",
                             elem_id="txt2img_prompt_image",
                             type="pil",
-                            tool="None",
                             visible=True,
                         )
 
@@ -366,6 +376,11 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
                         value=args.prompts[0],
                         lines=2,
                         elem_id="prompt_box",
+                    )
+                    # TODO: coming soon
+                    autogen = gr.Checkbox(
+                        label="Continuous Generation",
+                        visible=False,
                     )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
@@ -680,12 +695,12 @@ with gr.Blocks(title="Text-to-Image") as txt2img_web:
         # SharkEulerDiscrete doesn't work with img2img which hires_fix uses
         def set_compatible_schedulers(hires_fix_selected):
             if hires_fix_selected:
-                return gr.Dropdown.update(
+                return gr.Dropdown(
                     choices=scheduler_list_cpu_only,
                     value="DEISMultistep",
                 )
             else:
-                return gr.Dropdown.update(
+                return gr.Dropdown(
                     choices=scheduler_list,
                     value="SharkEulerDiscrete",
                 )

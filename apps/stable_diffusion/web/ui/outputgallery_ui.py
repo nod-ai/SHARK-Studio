@@ -95,7 +95,7 @@ with gr.Blocks() as outputgallery_web:
             )
 
         with gr.Column(scale=4):
-            with gr.Box():
+            with gr.Group():
                 with gr.Row():
                     with gr.Column(
                         scale=15,
@@ -152,12 +152,19 @@ with gr.Blocks() as outputgallery_web:
                     wrap=True,
                     elem_classes="output_parameters_dataframe",
                     value=[["Status", "No image selected"]],
+                    interactive=True,
                 )
 
             with gr.Accordion(label="Send To", open=True):
                 with gr.Row():
                     outputgallery_sendto_txt2img = gr.Button(
                         value="Txt2Img",
+                        interactive=False,
+                        elem_classes="outputgallery_sendto",
+                        size="sm",
+                    )
+                    outputgallery_sendto_txt2img_sdxl = gr.Button(
+                        value="Txt2Img XL",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
                         size="sm",
@@ -195,17 +202,17 @@ with gr.Blocks() as outputgallery_web:
 
     def on_clear_gallery():
         return [
-            gr.Gallery.update(
+            gr.Gallery(
                 value=[],
                 visible=False,
             ),
-            gr.Image.update(
+            gr.Image(
                 visible=True,
             ),
         ]
 
     def on_image_columns_change(columns):
-        return gr.Gallery.update(columns=columns)
+        return gr.Gallery(columns=columns)
 
     def on_select_subdir(subdir) -> list:
         # evt.value is the subdirectory name
@@ -215,12 +222,12 @@ with gr.Blocks() as outputgallery_web:
         )
         return [
             new_images,
-            gr.Gallery.update(
+            gr.Gallery(
                 value=new_images,
                 label=new_label,
                 visible=len(new_images) > 0,
             ),
-            gr.Image.update(
+            gr.Image(
                 label=new_label,
                 visible=len(new_images) == 0,
             ),
@@ -254,16 +261,16 @@ with gr.Blocks() as outputgallery_web:
         )
 
         return [
-            gr.Dropdown.update(
+            gr.Dropdown(
                 choices=refreshed_subdirs,
                 value=new_subdir,
             ),
             refreshed_subdirs,
             new_images,
-            gr.Gallery.update(
+            gr.Gallery(
                 value=new_images, label=new_label, visible=len(new_images) > 0
             ),
-            gr.Image.update(
+            gr.Image(
                 label=new_label,
                 visible=len(new_images) == 0,
             ),
@@ -289,12 +296,12 @@ with gr.Blocks() as outputgallery_web:
 
             return [
                 new_images,
-                gr.Gallery.update(
+                gr.Gallery(
                     value=new_images,
                     label=new_label,
                     visible=len(new_images) > 0,
                 ),
-                gr.Image.update(
+                gr.Image(
                     label=new_label,
                     visible=len(new_images) == 0,
                 ),
@@ -332,12 +339,12 @@ with gr.Blocks() as outputgallery_web:
         return [
             # disable or enable each of the sendto button based on whether
             # an image is selected
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
-            gr.Button.update(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
+            gr.Button(interactive=exists),
         ]
 
     # The time first our tab is selected we need to do an initial refresh
@@ -414,6 +421,7 @@ with gr.Blocks() as outputgallery_web:
         [outputgallery_filename],
         [
             outputgallery_sendto_txt2img,
+            outputgallery_sendto_txt2img_sdxl,
             outputgallery_sendto_img2img,
             outputgallery_sendto_inpaint,
             outputgallery_sendto_outpaint,
