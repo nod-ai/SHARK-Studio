@@ -169,7 +169,7 @@ class SharkEulerAncestralDiscreteScheduler(EulerAncestralDiscreteScheduler):
                 )
                 self.step_model = get_shark_model(
                     SCHEDULER_BUCKET,
-                    "euler_a_step_" + step_model_type + args.precision,
+                    "euler_a_step_" + self.config.prediction_type + args.precision,
                     iree_flags,
                 )
             except:

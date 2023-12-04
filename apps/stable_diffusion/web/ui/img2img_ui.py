@@ -85,7 +85,6 @@ def img2img_inf(
     from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
         SD_STATE_CANCEL,
     )
-
     args.prompts = [prompt]
     args.negative_prompts = [negative_prompt]
     args.guidance_scale = guidance_scale
@@ -98,20 +97,21 @@ def img2img_inf(
 
     for i, stencil in enumerate(stencils):
         if images[i] is None and stencil is not None:
-            return None, "A stencil must have an Image input"
+            return
         if images[i] is not None:
             if isinstance(images[i], dict):
-                images[i] = images[i]["layers"][0]
+                images[i] = images[i]["composite"]
             images[i] = images[i].convert("RGB")
 
-    if image_dict is None:
+    if image_dict is None and images[0] is None:
         return None, "An Initial Image is required"
-    # if use_stencil == "scribble":
-    #     image = image_dict["mask"].convert("RGB")
     if isinstance(image_dict, PIL.Image.Image):
         image = image_dict.convert("RGB")
-    else:
+    elif image_dict:
         image = image_dict["image"].convert("RGB")
+    else:
+        #TODO: enable t2i + controlnets
+        image = None
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -143,9 +143,8 @@ def img2img_inf(
         if stencil is not None:
             stencil_count += 1
     if stencil_count > 0:
-        args.scheduler = "DDIM"
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
-        # image, width, height = resize_stencil(image)
+        image, width, height = resize_stencil(image)
     elif "Shark" in args.scheduler:
         print(
             f"Shark schedulers are not supported. Switching to EulerDiscrete "

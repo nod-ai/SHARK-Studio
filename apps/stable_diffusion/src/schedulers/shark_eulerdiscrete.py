@@ -109,7 +109,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
                 pred_original_sample = noise_pred * (
                     -sigma / (sigma**2 + 1) ** 0.5
                 ) + (latent / (sigma**2 + 1))
-                derivative = (latent - pred_original_sample) / sigma_hat
+                derivative = (latent - pred_original_sample) / sigma
                 return latent + derivative * dt
 
         iree_flags = []
