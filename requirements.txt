@@ -30,7 +30,7 @@ diffusers
 accelerate
 scipy
 ftfy
-gradio==3.44.3
+gradio==4.7.1
 altair
 omegaconf
 # 0.3.2 doesn't have binaries for arm64

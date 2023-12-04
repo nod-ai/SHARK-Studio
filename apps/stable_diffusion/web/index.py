@@ -110,11 +110,15 @@ if __name__ == "__main__":
         txt2img_sendto_outpaint,
         txt2img_sendto_upscaler,
         # SDXL
-        txt2img_sdxl_inf,
         txt2img_sdxl_web,
         txt2img_sdxl_custom_model,
         txt2img_sdxl_gallery,
+        txt2img_sdxl_png_info_img,
         txt2img_sdxl_status,
+        txt2img_sdxl_sendto_img2img,
+        txt2img_sdxl_sendto_inpaint,
+        txt2img_sdxl_sendto_outpaint,
+        txt2img_sdxl_sendto_upscaler,
         # h2ogpt_upload,
         # h2ogpt_web,
         img2img_web,
@@ -151,7 +155,7 @@ if __name__ == "__main__":
         upscaler_sendto_outpaint,
         #  lora_train_web,
         #  model_web,
-        #  model_config_web,
+        model_config_web,
         hf_models,
         modelmanager_sendto_txt2img,
         modelmanager_sendto_img2img,
@@ -165,6 +169,7 @@ if __name__ == "__main__":
         outputgallery_watch,
         outputgallery_filename,
         outputgallery_sendto_txt2img,
+        outputgallery_sendto_txt2img_sdxl,
         outputgallery_sendto_img2img,
         outputgallery_sendto_inpaint,
         outputgallery_sendto_outpaint,
@@ -178,7 +183,7 @@ if __name__ == "__main__":
         button.click(
             lambda x: (
                 x[0]["name"] if len(x) != 0 else None,
-                gr.Tabs.update(selected=selectedid),
+                gr.Tabs(selected=selectedid),
             ),
             inputs,
             outputs,
@@ -189,7 +194,7 @@ if __name__ == "__main__":
             lambda x: (
                 "None",
                 x,
-                gr.Tabs.update(selected=selectedid),
+                gr.Tabs(selected=selectedid),
             ),
             inputs,
             outputs,
@@ -199,7 +204,7 @@ if __name__ == "__main__":
         button.click(
             lambda x: (
                 x,
-                gr.Tabs.update(selected=selectedid),
+                gr.Tabs(selected=selectedid),
             ),
             inputs,
             outputs,
@@ -241,6 +246,7 @@ if __name__ == "__main__":
                         inpaint_status,
                         outpaint_status,
                         upscaler_status,
+                        txt2img_sdxl_status,
                     ]
                 )
             #  with gr.TabItem(label="Model Manager", id=6):
@@ -249,17 +255,17 @@ if __name__ == "__main__":
             #      lora_train_web.render()
             with gr.TabItem(label="Chat Bot", id=8):
                 stablelm_chat.render()
-            #  with gr.TabItem(
-            #      label="Generate Sharding Config (Experimental)", id=9
-            #  ):
-            #      model_config_web.render()
-            with gr.TabItem(label="MultiModal (Experimental)", id=10):
-                minigpt4_web.render()
+            with gr.TabItem(
+                label="Generate Sharding Config (Experimental)", id=9
+            ):
+                model_config_web.render()
+            # with gr.TabItem(label="MultiModal (Experimental)", id=10):
+            #     minigpt4_web.render()
             # with gr.TabItem(label="DocuChat Upload", id=11):
             #     h2ogpt_upload.render()
             # with gr.TabItem(label="DocuChat(Experimental)", id=12):
             #     h2ogpt_web.render()
-            with gr.TabItem(label="Text-to-Image-SDXL (Experimental)", id=13):
+            with gr.TabItem(label="Text-to-Image (SDXL)", id=13):
                 txt2img_sdxl_web.render()
 
             actual_port = app.usable_port()
