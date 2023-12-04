@@ -208,6 +208,9 @@ class StableDiffusionPipeline:
         negative_prompt_embeds: Optional[torch.FloatTensor] = None,
         pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
         negative_pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
+        hf_model_id: Optional[
+            str
+        ] = "stabilityai/stable-diffusion-xl-base-1.0",
     ):
         if prompt is not None and isinstance(prompt, str):
             batch_size = 1
@@ -217,7 +220,7 @@ class StableDiffusionPipeline:
             batch_size = prompt_embeds.shape[0]
 
         # Define tokenizers and text encoders
-        self.tokenizer_2 = get_tokenizer("tokenizer_2")
+        self.tokenizer_2 = get_tokenizer("tokenizer_2", hf_model_id)
         self.load_clip_sdxl()
         tokenizers = (
             [self.tokenizer, self.tokenizer_2]

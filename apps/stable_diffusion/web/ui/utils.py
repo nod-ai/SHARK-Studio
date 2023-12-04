@@ -263,10 +263,11 @@ def cancel_sd():
 def set_model_default_configs(model_ckpt_or_id, jsonconfig=None):
     import gradio as gr
 
+    config_modelname = default_config_exists(model_ckpt_or_id)
     if jsonconfig:
         return get_config_from_json(jsonconfig)
-    elif default_config_exists(model_ckpt_or_id):
-        return default_configs[model_ckpt_or_id]
+    elif config_modelname:
+        return default_configs[config_modelname]
     # TODO: Use HF metadata to setup pipeline if available
     # elif is_valid_hf_id(model_ckpt_or_id):
     #     return get_HF_default_configs(model_ckpt_or_id)
@@ -274,7 +275,7 @@ def set_model_default_configs(model_ckpt_or_id, jsonconfig=None):
         # We don't have default metadata to setup a good config. Do not change configs.
         return [
             gr.Textbox(label="Prompt", interactive=True, visible=True),
-            gr.update(),
+            gr.Textbox(label="Negative Prompt", interactive=True),
             gr.update(),
             gr.update(),
             gr.update(),
@@ -304,9 +305,11 @@ def default_config_exists(model_ckpt_or_id):
         "stabilityai/sdxl-turbo",
         "stabilityai/stable_diffusion-xl-base-1.0",
     ]:
-        return True
+        return model_ckpt_or_id
+    elif "turbo" in model_ckpt_or_id.lower():
+        return "stabilityai/sdxl-turbo"
     else:
-        return False
+        return None
 
 
 default_configs = {
@@ -314,9 +317,9 @@ default_configs = {
         gr.Textbox(label="", interactive=False, value=None, visible=False),
         gr.Textbox(
             label="Prompt",
-            value="An anthropomorphic shark writing code on an old tube monitor, macro shot, in an office filled with water, stop-animation style, claymation",
+            value="role-playing game (RPG) style fantasy, An enchanting image featuring an adorable kitten mage wearing intricate ancient robes, holding an ancient staff, hard at work in her fantastical workshop, magic runes floating in the air",
         ),
-        gr.Slider(0, 5, value=2),
+        gr.Slider(0, 10, value=2),
         gr.Dropdown(value="EulerAncestralDiscrete"),
         gr.Slider(0, value=0),
         512,

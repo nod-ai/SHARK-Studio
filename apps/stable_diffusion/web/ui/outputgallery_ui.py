@@ -152,12 +152,19 @@ with gr.Blocks() as outputgallery_web:
                     wrap=True,
                     elem_classes="output_parameters_dataframe",
                     value=[["Status", "No image selected"]],
+                    interactive=True,
                 )
 
             with gr.Accordion(label="Send To", open=True):
                 with gr.Row():
                     outputgallery_sendto_txt2img = gr.Button(
                         value="Txt2Img",
+                        interactive=False,
+                        elem_classes="outputgallery_sendto",
+                        size="sm",
+                    )
+                    outputgallery_sendto_txt2img_sdxl = gr.Button(
+                        value="Txt2Img XL",
                         interactive=False,
                         elem_classes="outputgallery_sendto",
                         size="sm",
@@ -414,6 +421,7 @@ with gr.Blocks() as outputgallery_web:
         [outputgallery_filename],
         [
             outputgallery_sendto_txt2img,
+            outputgallery_sendto_txt2img_sdxl,
             outputgallery_sendto_img2img,
             outputgallery_sendto_inpaint,
             outputgallery_sendto_outpaint,

@@ -426,19 +426,14 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 return (None, stencils, images)
 
                     def create_canvas(width, height):
-                        return {
-                            "background": None,
-                            "layers": [
-                                Image.fromarray(
-                                    np.zeros(
-                                        shape=(height, width, 3),
-                                        dtype=np.uint8,
-                                    )
-                                    + 255
-                                )
-                            ],
-                            "composite": None,
-                        }
+                        data = (
+                            np.zeros(
+                                shape=(height, width, 3),
+                                dtype=np.uint8,
+                            )
+                            + 255
+                        )
+                        return data
 
                     def update_cn_input(model, width, height):
                         if model == "scribble":

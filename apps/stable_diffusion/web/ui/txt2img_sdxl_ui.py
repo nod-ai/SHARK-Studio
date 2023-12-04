@@ -461,7 +461,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                         show_label=False,
                         elem_id="gallery",
                         columns=[2],
-                        object_fit="contain",
+                        object_fit="scale_down",
                     )
                     std_output = gr.Textbox(
                         value=f"{t2i_sdxl_model_info}\n"
@@ -483,7 +483,18 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                     )
                     stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
-                    blank_thing_for_row = None
+                    txt2img_sdxl_sendto_img2img = gr.Button(
+                        value="Send To Img2Img"
+                    )
+                    txt2img_sdxl_sendto_inpaint = gr.Button(
+                        value="Send To Inpaint"
+                    )
+                    txt2img_sdxl_sendto_outpaint = gr.Button(
+                        value="Send To Outpaint"
+                    )
+                    txt2img_sdxl_sendto_upscaler = gr.Button(
+                        value="Send To Upscaler"
+                    )
 
         kwargs = dict(
             fn=txt2img_sdxl_inf,

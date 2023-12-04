@@ -109,7 +109,7 @@ def process_vmfb_ir_sdxl(extended_model_name, model_name, device, precision):
     if "vulkan" in device:
         _device = args.iree_vulkan_target_triple
         _device = _device.replace("-", "_")
-        vmfb_path = Path(extended_model_name_for_vmfb + f"_{_device}.vmfb")
+        vmfb_path = Path(extended_model_name_for_vmfb + f"_vulkan.vmfb")
     if vmfb_path.exists():
         shark_module = SharkInference(
             None,

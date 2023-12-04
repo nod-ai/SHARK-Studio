@@ -215,7 +215,6 @@ class SharkEulerAncestralDiscreteScheduler(EulerAncestralDiscreteScheduler):
             device="cpu",
             generator=generator,
         )
-        self._step_index += 1
         step_inputs = [
             noise_pred,
             latent,
@@ -224,9 +223,10 @@ class SharkEulerAncestralDiscreteScheduler(EulerAncestralDiscreteScheduler):
             sigma_to,
             noise,
         ]
-        print(step_inputs)
-        # TODO: Might not be proper behavior here... deal with dynamic inputs.
+        # TODO: deal with dynamic inputs in turbine flow.
         # update step index since we're done with the variable and will return with compiled module output.
+        self._step_index += 1
+
         if noise_pred.shape[0] < self.batch_size:
             for i in [0, 1, 5]:
                 try:
