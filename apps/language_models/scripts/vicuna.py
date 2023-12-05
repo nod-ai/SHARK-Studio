@@ -827,7 +827,7 @@ class ShardedVicuna(VicunaBase):
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
-            mmap=False,
+            mmap=True,
         )
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
@@ -915,7 +915,7 @@ class ShardedVicuna(VicunaBase):
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
-            mmap=False,
+            mmap=True,
         )
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
@@ -996,7 +996,7 @@ class ShardedVicuna(VicunaBase):
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
-            mmap=False,
+            mmap=True,
         )
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
@@ -1201,7 +1201,7 @@ class ShardedVicuna(VicunaBase):
                     device=device,
                     device_idx=device_idx,
                     mlir_dialect="tm_tensor",
-                    mmap=False,
+                    mmap=True,
                 )
                 module.load_module(vmfb_path)
             else:
@@ -1219,7 +1219,7 @@ class ShardedVicuna(VicunaBase):
                     device=device,
                     device_idx=device_idx,
                     mlir_dialect="tm_tensor",
-                    mmap=False,
+                    mmap=True,
                 )
                 module.save_module(
                     module_name=f"{self.dir_name}/{idx}_full",
