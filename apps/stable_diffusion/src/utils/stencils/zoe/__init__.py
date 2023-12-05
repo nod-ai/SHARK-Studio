@@ -30,9 +30,15 @@ class ZoeDetector:
             pretrained=False,
             force_reload=False,
         )
-        model.load_state_dict(
-            torch.load(modelpath, map_location=model.device)["model"]
-        )
+
+        # Hack to fix the ZoeDepth import issue
+        model_keys = model.state_dict().keys()
+        loaded_dict = torch.load(modelpath, map_location=model.device)["model"]
+        loaded_keys = loaded_dict.keys()
+        for key in loaded_keys - model_keys:
+            loaded_dict.pop(key)
+
+        model.load_state_dict(loaded_dict)
         model.eval()
         self.model = model
 
