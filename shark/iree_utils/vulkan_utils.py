@@ -183,6 +183,9 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
     # res_vulkan_flag = ["--iree-flow-demote-i64-to-i32"]
 
     res_vulkan_flag = []
+    res_vulkan_flag += [
+        "--iree-stream-resource-max-allocation-size=3221225472"
+    ]
     vulkan_triple_flag = None
     for arg in extra_args:
         if "-iree-vulkan-target-triple=" in arg:
@@ -204,7 +207,9 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
 @functools.cache
 def get_iree_vulkan_runtime_flags():
     vulkan_runtime_flags = [
-        f"--vulkan_validation_layers={'true' if shark_args.vulkan_validation_layers else 'false'}",
+        f"--vulkan_validation_layers={'true' if shark_args.vulkan_debug_utils else 'false'}",
+        f"--vulkan_debug_verbosity={'4' if shark_args.vulkan_debug_utils else '0'}"
+        f"--vulkan-robust-buffer-access={'true' if shark_args.vulkan_debug_utils else 'false'}",
     ]
     return vulkan_runtime_flags
 

@@ -109,7 +109,7 @@ def process_vmfb_ir_sdxl(extended_model_name, model_name, device, precision):
     if "vulkan" in device:
         _device = args.iree_vulkan_target_triple
         _device = _device.replace("-", "_")
-        vmfb_path = Path(extended_model_name_for_vmfb + f"_{_device}.vmfb")
+        vmfb_path = Path(extended_model_name_for_vmfb + f"_vulkan.vmfb")
     if vmfb_path.exists():
         shark_module = SharkInference(
             None,
@@ -254,8 +254,8 @@ class SharkifyStableDiffusionModel:
             "stencil_unet_512",
             "vae",
             "vae_encode",
-            "stencil_adaptor",
-            "stencil_adaptor_512",
+            "stencil_adapter",
+            "stencil_adapter_512",
         ]
         index = 0
         for model in sub_model_list:
@@ -268,11 +268,19 @@ class SharkifyStableDiffusionModel:
                     )
                 if self.base_vae:
                     sub_model = "base_vae"
-            # TODO: Fix this
-            # if "stencil_adaptor" == model and self.use_stencil is not None:
-            #     model_config = model_config + get_path_stem(self.use_stencil)
-            model_name[model] = get_extended_name(sub_model + model_config)
-            index += 1
+            if "stencil_adapter" in model:
+                stencil_names = []
+                for i, stencil in enumerate(self.stencils):
+                    if stencil is not None:
+                        cnet_config = model_config + stencil.split("_")[-1]
+                        stencil_names.append(
+                            get_extended_name(sub_model + cnet_config)
+                        )
+
+                model_name[model] = stencil_names
+            else:
+                model_name[model] = get_extended_name(sub_model + model_config)
+        index += 1
         return model_name
 
     def check_params(self, max_len, width, height):
@@ -436,24 +444,48 @@ class SharkifyStableDiffusionModel:
                 super().__init__()
                 self.vae = None
                 if custom_vae == "":
+                    print(f"Loading default vae, with target {model_id}")
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
                         low_cpu_mem_usage=low_cpu_mem_usage,
                     )
                 elif not isinstance(custom_vae, dict):
-                    self.vae = AutoencoderKL.from_pretrained(
-                        custom_vae,
-                        subfolder="vae",
-                        low_cpu_mem_usage=low_cpu_mem_usage,
-                    )
+                    precision = "fp16" if "fp16" in custom_vae else None
+                    print(f"Loading custom vae, with target {custom_vae}")
+                    if os.path.exists(custom_vae):
+                        self.vae = AutoencoderKL.from_pretrained(
+                            custom_vae,
+                            low_cpu_mem_usage=low_cpu_mem_usage,
+                        )
+                    else:
+                        custom_vae = "/".join(
+                            [
+                                custom_vae.split("/")[-2].split("\\")[-1],
+                                custom_vae.split("/")[-1],
+                            ]
+                        )
+                        print("Using hub to get custom vae")
+                        try:
+                            self.vae = AutoencoderKL.from_pretrained(
+                                custom_vae,
+                                low_cpu_mem_usage=low_cpu_mem_usage,
+                                variant=precision,
+                            )
+                        except:
+                            self.vae = AutoencoderKL.from_pretrained(
+                                custom_vae,
+                                low_cpu_mem_usage=low_cpu_mem_usage,
+                            )
                 else:
+                    print(f"Loading custom vae, with state {custom_vae}")
                     self.vae = AutoencoderKL.from_pretrained(
                         model_id,
                         subfolder="vae",
                         low_cpu_mem_usage=low_cpu_mem_usage,
                     )
                     self.vae.load_state_dict(custom_vae)
+                self.base_vae = base_vae
 
             def forward(self, latents):
                 image = self.vae.decode(latents / 0.13025, return_dict=False)[
@@ -465,7 +497,12 @@ class SharkifyStableDiffusionModel:
         inputs = tuple(self.inputs["vae"])
         # Make sure the VAE is in float32 mode, as it overflows in float16 as per SDXL
         # pipeline.
-        is_f16 = False
+        if not self.custom_vae:
+            is_f16 = False
+        elif "16" in self.custom_vae:
+            is_f16 = True
+        else:
+            is_f16 = False
         save_dir = os.path.join(self.sharktank_dir, self.model_name["vae"])
         if self.debug:
             os.makedirs(save_dir, exist_ok=True)
@@ -650,6 +687,8 @@ class SharkifyStableDiffusionModel:
 
     def get_control_net(self, stencil_id, use_large=False):
         stencil_id = get_stencil_model_id(stencil_id)
+        adapter_id, base_model_safe_id, ext_model_name = (None, None, None)
+        print(f"Importing ControlNet adapter from {stencil_id}")
 
         class StencilControlNetModel(torch.nn.Module):
             def __init__(self, model_id=stencil_id, low_cpu_mem_usage=False):
@@ -658,7 +697,7 @@ class SharkifyStableDiffusionModel:
                     model_id,
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
-                self.in_channels = self.cnet.in_channels
+                self.in_channels = self.cnet.config.in_channels
                 self.train(False)
 
             def forward(
@@ -722,7 +761,23 @@ class SharkifyStableDiffusionModel:
         )
         is_f16 = True if self.precision == "fp16" else False
 
-        inputs = tuple(self.inputs["stencil_adaptor"])
+        inputs = tuple(self.inputs["stencil_adapter"])
+        model_name = "stencil_adapter_512" if use_large else "stencil_adapter"
+        ext_model_name = self.model_name[model_name]
+        if isinstance(ext_model_name, list):
+            for i in ext_model_name:
+                if stencil_id.split("_")[-1] in i:
+                    desired_name = i
+                    print(f"Multi-CN: compiling model {i}")
+                else:
+                    continue
+            if desired_name:
+                ext_model_name = desired_name
+            else:
+                raise Exception(
+                    f"Could not find extended configuration for {stencil_id}"
+                )
+
         if use_large:
             pad = (0, 0) * (len(inputs[2].shape) - 2)
             pad = pad + (0, 512 - inputs[2].shape[1])
@@ -732,19 +787,13 @@ class SharkifyStableDiffusionModel:
                 torch.nn.functional.pad(inputs[2], pad),
                 *inputs[3:],
             )
-            save_dir = os.path.join(
-                self.sharktank_dir, self.model_name["stencil_adaptor_512"]
-            )
-        else:
-            save_dir = os.path.join(
-                self.sharktank_dir, self.model_name["stencil_adaptor"]
-            )
+        save_dir = os.path.join(self.sharktank_dir, ext_model_name)
         input_mask = [True, True, True, True] + ([True] * 13)
-        model_name = "stencil_adaptor" if use_large else "stencil_adaptor_512"
+
         shark_cnet, cnet_mlir = compile_through_fx(
             scnet,
             inputs,
-            extended_model_name=self.model_name[model_name],
+            extended_model_name=ext_model_name,
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
@@ -917,11 +966,19 @@ class SharkifyStableDiffusionModel:
                 low_cpu_mem_usage=False,
             ):
                 super().__init__()
-                self.unet = UNet2DConditionModel.from_pretrained(
-                    model_id,
-                    subfolder="unet",
-                    low_cpu_mem_usage=low_cpu_mem_usage,
-                )
+                try:
+                    self.unet = UNet2DConditionModel.from_pretrained(
+                        model_id,
+                        subfolder="unet",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                        variant="fp16",
+                    )
+                except:
+                    self.unet = UNet2DConditionModel.from_pretrained(
+                        model_id,
+                        subfolder="unet",
+                        low_cpu_mem_usage=low_cpu_mem_usage,
+                    )
                 if (
                     args.attention_slicing is not None
                     and args.attention_slicing != "none"
@@ -1278,16 +1335,16 @@ class SharkifyStableDiffusionModel:
 
     def controlnet(self, stencil_id, use_large=False):
         try:
-            self.inputs["stencil_adaptor"] = self.get_input_info_for(
-                base_models["stencil_adaptor"]
+            self.inputs["stencil_adapter"] = self.get_input_info_for(
+                base_models["stencil_adapter"]
             )
-            compiled_stencil_adaptor, controlnet_mlir = self.get_control_net(
+            compiled_stencil_adapter, controlnet_mlir = self.get_control_net(
                 stencil_id, use_large=use_large
             )
 
-            check_compilation(compiled_stencil_adaptor, "Stencil")
+            check_compilation(compiled_stencil_adapter, "Stencil")
             if self.return_mlir:
                 return controlnet_mlir
-            return compiled_stencil_adaptor
+            return compiled_stencil_adapter
         except Exception as e:
             sys.exit(e)

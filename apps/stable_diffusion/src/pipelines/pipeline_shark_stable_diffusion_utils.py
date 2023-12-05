@@ -20,7 +20,10 @@ from diffusers import (
     HeunDiscreteScheduler,
 )
 from shark.shark_inference import SharkInference
-from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
+from apps.stable_diffusion.src.schedulers import (
+    SharkEulerDiscreteScheduler,
+    SharkEulerAncestralDiscreteScheduler,
+)
 from apps.stable_diffusion.src.models import (
     SharkifyStableDiffusionModel,
     get_vae,
@@ -52,6 +55,7 @@ class StableDiffusionPipeline:
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            SharkEulerAncestralDiscreteScheduler,
             DEISMultistepScheduler,
             DDPMScheduler,
             DPMSolverSinglestepScheduler,
@@ -62,6 +66,7 @@ class StableDiffusionPipeline:
         import_mlir: bool,
         use_lora: str,
         ondemand: bool,
+        is_f32_vae: bool = False,
     ):
         self.vae = None
         self.text_encoder = None
@@ -69,14 +74,15 @@ class StableDiffusionPipeline:
         self.unet = None
         self.unet_512 = None
         self.model_max_length = 77
-        self.scheduler = scheduler
         # TODO: Implement using logging python utility.
         self.log = ""
         self.status = SD_STATE_IDLE
         self.sd_model = sd_model
+        self.scheduler = scheduler
         self.import_mlir = import_mlir
         self.use_lora = use_lora
         self.ondemand = ondemand
+        self.is_f32_vae = is_f32_vae
         # TODO: Find a better workaround for fetching base_model_id early
         #  enough for CLIPTokenizer.
         try:
@@ -202,6 +208,9 @@ class StableDiffusionPipeline:
         negative_prompt_embeds: Optional[torch.FloatTensor] = None,
         pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
         negative_pooled_prompt_embeds: Optional[torch.FloatTensor] = None,
+        hf_model_id: Optional[
+            str
+        ] = "stabilityai/stable-diffusion-xl-base-1.0",
     ):
         if prompt is not None and isinstance(prompt, str):
             batch_size = 1
@@ -211,7 +220,7 @@ class StableDiffusionPipeline:
             batch_size = prompt_embeds.shape[0]
 
         # Define tokenizers and text encoders
-        self.tokenizer_2 = get_tokenizer("tokenizer_2")
+        self.tokenizer_2 = get_tokenizer("tokenizer_2", hf_model_id)
         self.load_clip_sdxl()
         tokenizers = (
             [self.tokenizer, self.tokenizer_2]
@@ -332,7 +341,7 @@ class StableDiffusionPipeline:
             gc.collect()
 
         # TODO: Look into dtype for text_encoder_2!
-        prompt_embeds = prompt_embeds.to(dtype=torch.float32)
+        prompt_embeds = prompt_embeds.to(dtype=torch.float16)
         bs_embed, seq_len, _ = prompt_embeds.shape
         # duplicate text embeddings for each generation per prompt, using mps friendly method
         prompt_embeds = prompt_embeds.repeat(1, num_images_per_prompt, 1)
@@ -523,6 +532,9 @@ class StableDiffusionPipeline:
         cpu_scheduling,
         guidance_scale,
         dtype,
+        mask=None,
+        masked_image_latents=None,
+        return_all_latents=False,
     ):
         # return None
         self.status = SD_STATE_IDLE
@@ -533,11 +545,22 @@ class StableDiffusionPipeline:
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(dtype).detach().numpy()
             # expand the latents if we are doing classifier free guidance
+            if isinstance(latents, np.ndarray):
+                latents = torch.tensor(latents)
             latent_model_input = torch.cat([latents] * 2)
 
             latent_model_input = self.scheduler.scale_model_input(
                 latent_model_input, t
-            ).to(dtype)
+            )
+            if mask is not None and masked_image_latents is not None:
+                latent_model_input = torch.cat(
+                    [
+                        torch.from_numpy(np.asarray(latent_model_input)),
+                        mask,
+                        masked_image_latents,
+                    ],
+                    dim=1,
+                ).to(dtype)
 
             noise_pred = self.unet(
                 "forward",
@@ -549,11 +572,17 @@ class StableDiffusionPipeline:
                     add_time_ids,
                     guidance_scale,
                 ),
-                send_to_host=False,
+                send_to_host=True,
             )
+            if not isinstance(latents, torch.Tensor):
+                latents = torch.from_numpy(latents).to("cpu")
+            noise_pred = torch.from_numpy(noise_pred).to("cpu")
+
             latents = self.scheduler.step(
                 noise_pred, t, latents, **extra_step_kwargs, return_dict=False
             )[0]
+            latents = latents.detach().numpy()
+            noise_pred = noise_pred.detach().numpy()
 
             step_time = (time.time() - step_start_time) * 1000
             step_time_sum += step_time
@@ -569,11 +598,15 @@ class StableDiffusionPipeline:
 
         return latents
 
-    def decode_latents_sdxl(self, latents):
-        latents = latents.to(torch.float32)
+    def decode_latents_sdxl(self, latents, is_fp32_vae):
+        # latents are in unet dtype here so switch if we want to use fp32
+        if is_fp32_vae:
+            print("Casting latents to float32 for VAE")
+            latents = latents.to(torch.float32)
         images = self.vae("forward", (latents,))
         images = (torch.from_numpy(images) / 2 + 0.5).clamp(0, 1)
         images = images.cpu().permute(0, 2, 3, 1).float().numpy()
+
         images = (images * 255).round().astype("uint8")
         pil_images = [Image.fromarray(image[:, :, :3]) for image in images]
 
@@ -666,6 +699,17 @@ class StableDiffusionPipeline:
             return cls(
                 scheduler, sd_model, import_mlir, use_lora, ondemand, stencils
             )
+        if cls.__name__ == "Text2ImageSDXLPipeline":
+            is_fp32_vae = True if "16" not in custom_vae else False
+            return cls(
+                scheduler,
+                sd_model,
+                import_mlir,
+                use_lora,
+                ondemand,
+                is_fp32_vae,
+            )
+
         return cls(scheduler, sd_model, import_mlir, use_lora, ondemand)
 
     # #####################################################
@@ -781,7 +825,7 @@ class StableDiffusionPipeline:
             gc.collect()
         self.log += f"\nClip Inference time (ms) = {clip_inf_time:.3f}"
 
-        return text_embeddings.numpy()
+        return text_embeddings.numpy().astype(np.float16)
 
 
 from typing import List, Optional, Union

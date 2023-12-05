@@ -31,6 +31,7 @@ datas += copy_metadata("Pillow")
 datas += copy_metadata("sentencepiece")
 datas += copy_metadata("pyyaml")
 datas += copy_metadata("huggingface-hub")
+datas += copy_metadata("gradio")
 datas += collect_data_files("torch")
 datas += collect_data_files("tokenizers")
 datas += collect_data_files("tiktoken")
@@ -75,6 +76,7 @@ datas += [
 # hidden imports for pyinstaller
 hiddenimports = ["shark", "shark.shark_inference", "apps"]
 hiddenimports += [x for x in collect_submodules("skimage") if "tests" not in x]
+hiddenimports += [x for x in collect_submodules("gradio") if "tests" not in x]
 hiddenimports += [
     x for x in collect_submodules("diffusers") if "tests" not in x
 ]
@@ -85,4 +87,4 @@ hiddenimports += [
     if not any(kw in x for kw in blacklist)
 ]
 hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
-hiddenimports += ["iree._runtime", "iree.compiler._mlir_libs._mlir.ir"]
+hiddenimports += ["iree._runtime"]

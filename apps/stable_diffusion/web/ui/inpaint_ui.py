@@ -290,8 +290,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
 
                 inpaint_init_image = gr.Image(
                     label="Masked Image",
-                    source="upload",
-                    tool="sketch",
+                    sources="upload",
                     type="pil",
                     height=350,
                 )

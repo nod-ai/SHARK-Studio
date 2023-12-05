@@ -431,8 +431,8 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             config_file = gr.File(
                 label="Upload sharding configuration", visible=False
             )
-            json_view_button = gr.Button(label="View as JSON", visible=False)
-        json_view = gr.JSON(interactive=True, visible=False)
+            json_view_button = gr.Button(value="View as JSON", visible=False)
+        json_view = gr.JSON(visible=False)
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )

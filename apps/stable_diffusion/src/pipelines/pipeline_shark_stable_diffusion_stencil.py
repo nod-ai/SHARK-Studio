@@ -391,7 +391,6 @@ class StencilPipeline(StableDiffusionPipeline):
         control_mode,
     ):
         # Control Embedding check & conversion
-        # TODO: 1. Change `num_images_per_prompt`.
         # controlnet_hint = controlnet_hint_conversion(
         #     image, use_stencil, height, width, dtype, num_images_per_prompt=1
         # )
