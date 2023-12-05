@@ -83,7 +83,7 @@ def clean_device_info(raw_device):
             device_id = int(device_id)
 
     if device not in ["rocm", "vulkan"]:
-        device_id = ""
+        device_id = None
     if device in ["rocm", "vulkan"] and device_id == None:
         device_id = 0
     return device, device_id
