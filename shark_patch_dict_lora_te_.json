@@ -1,0 +1,434 @@
+{
+    "lora_te_text_model_encoder_layers_0_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_0_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_0_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_0_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_0_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_0_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_10_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_10_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_10_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_10_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_10_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_10_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_11_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_11_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_11_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_11_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_11_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_11_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_1_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_1_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_1_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_1_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_1_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_1_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_2_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_2_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_2_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_2_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_2_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_2_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_3_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_3_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_3_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_3_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_3_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_3_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_4_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_4_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_4_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_4_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_4_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_4_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_5_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_5_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_5_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_5_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_5_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_5_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_6_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_6_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_6_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_6_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_6_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_6_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_7_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_7_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_7_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_7_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_7_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_7_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_8_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_8_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_8_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_8_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_8_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_8_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_9_mlp_fc1": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_9_mlp_fc2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_9_self_attn_k_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_9_self_attn_out_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_9_self_attn_q_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_te_text_model_encoder_layers_9_self_attn_v_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    }
+}

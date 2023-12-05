@@ -59,7 +59,7 @@ def txt2img_sdxl_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
     lora_weights: str,
-    lora_hf_id: str,
+    lora_strength: float,
     ondemand: bool,
     repeatable_seeds: bool,
 ):
@@ -105,9 +105,8 @@ def txt2img_sdxl_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
-    args.use_lora = get_custom_vae_or_lora_weights(
-        lora_weights, lora_hf_id, "lora"
-    )
+    args.use_lora = get_custom_vae_or_lora_weights(lora_weights, "lora")
+    args.lora_strength = lora_strength
 
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
@@ -123,6 +122,7 @@ def txt2img_sdxl_inf(
         width,
         device,
         use_lora=args.use_lora,
+        lora_strength=args.lora_strength,
         stencils=None,
         ondemand=ondemand,
     )
@@ -171,6 +171,7 @@ def txt2img_sdxl_inf(
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
                 use_lora=args.use_lora,
+                lora_strength=args.lora_strength,
                 use_quantize=args.use_quantize,
                 ondemand=global_obj.get_cfg_obj().ondemand,
             )
@@ -316,28 +317,23 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                     )
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
-                        # janky fix for overflowing text
-                        t2i_sdxl_lora_info = (
-                            str(get_custom_model_path("lora"))
-                        ).replace("\\", "\n\\")
-                        t2i_sdxl_lora_info = f"LoRA Path: {t2i_sdxl_lora_info}"
                         lora_weights = gr.Dropdown(
-                            label=f"Standalone LoRA Weights",
-                            info=t2i_sdxl_lora_info,
+                            label=f"LoRA Weights",
+                            info=f"Select from LoRA in {str(get_custom_model_path('lora'))}, or enter HuggingFace Model ID",
                             elem_id="lora_weights",
                             value="None",
                             choices=["None"] + get_custom_model_files("lora"),
                             allow_custom_value=True,
+                            scale=3,
                         )
-                        lora_hf_id = gr.Textbox(
-                            elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standalone LoRA "
-                            "weights dropdown on the left if you want to use "
-                            "a standalone HuggingFace model ID for LoRA here "
-                            "e.g: sayakpaul/sd-model-finetuned-lora-t4",
-                            value="",
-                            label="HuggingFace Model ID",
-                            lines=3,
+                        lora_strength = gr.Number(
+                            label="LoRA Strength",
+                            info="Will be baked into the .vmfb",
+                            step=0.01,
+                            minimum=0.1,
+                            maximum=1.0,
+                            value=1.0,
+                            scale=1,
                         )
                     with gr.Row():
                         lora_tags = gr.HTML(
@@ -539,7 +535,7 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
                 lora_weights,
-                lora_hf_id,
+                lora_strength,
                 ondemand,
                 repeatable_seeds,
             ],
@@ -609,7 +605,6 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                 height,
                 txt2img_sdxl_custom_model,
                 lora_weights,
-                lora_hf_id,
                 custom_vae,
             ],
             outputs=[
@@ -624,7 +619,6 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                 height,
                 txt2img_sdxl_custom_model,
                 lora_weights,
-                lora_hf_id,
                 custom_vae,
             ],
         )

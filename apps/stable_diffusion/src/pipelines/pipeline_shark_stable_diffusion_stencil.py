@@ -64,10 +64,13 @@ class StencilPipeline(StableDiffusionPipeline):
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
         use_lora: str,
+        lora_strength: float,
         ondemand: bool,
         controlnet_names: list[str],
     ):
-        super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        super().__init__(
+            scheduler, sd_model, import_mlir, use_lora, lora_strength, ondemand
+        )
         self.controlnet = [None] * len(controlnet_names)
         self.controlnet_512 = [None] * len(controlnet_names)
         self.controlnet_id = [str] * len(controlnet_names)

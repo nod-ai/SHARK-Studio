@@ -1,0 +1,1154 @@
+{
+    "lora_unet_down_blocks_0_attentions_0_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_0_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_0_attentions_1_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_0_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_1_attentions_1_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_0_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_down_blocks_2_attentions_1_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_mid_block_attentions_0_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_0_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_1_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_1_attentions_2_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_0_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_1_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_2_attentions_2_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_0_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_1_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_proj_in": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_proj_out": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn1_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn1_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn1_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn1_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn2_to_k": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn2_to_out_0": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn2_to_q": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_attn2_to_v": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_ff_net_0_proj": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    },
+    "lora_unet_up_blocks_3_attentions_2_transformer_blocks_0_ff_net_2": {
+        "up": "<class 'torch.Tensor'>",
+        "down": "<class 'torch.Tensor'>",
+        "alpha": "0.015625",
+        "mid": "<class 'NoneType'>"
+    }
+}

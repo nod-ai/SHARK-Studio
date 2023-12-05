@@ -123,7 +123,6 @@ def find_vae_from_png_metadata(
 def find_lora_from_png_metadata(
     key: str, metadata: dict[str, str | int]
 ) -> tuple[str, str]:
-    lora_hf_id = ""
     lora_custom = ""
 
     if key in metadata:
@@ -131,11 +130,10 @@ def find_lora_from_png_metadata(
         lora_custom = try_find_model_base_from_png_metadata(lora_file, "lora")
         # If nothing had matched, check vendor/hf_model_id
         if not lora_custom and lora_file.count("/"):
-            lora_hf_id = lora_file
+            lora_custom = lora_file
 
     # LoRA input is optional, should not print or throw an error if missing
-
-    return lora_custom, lora_hf_id
+    return lora_custom
 
 
 def import_png_metadata(
@@ -150,7 +148,6 @@ def import_png_metadata(
     height,
     custom_model,
     custom_lora,
-    hf_lora_id,
     custom_vae,
 ):
     try:
@@ -160,9 +157,7 @@ def import_png_metadata(
         (png_custom_model, png_hf_model_id) = find_model_from_png_metadata(
             "Model", metadata
         )
-        (lora_custom_model, lora_hf_model_id) = find_lora_from_png_metadata(
-            "LoRA", metadata
-        )
+        lora_custom_model = find_lora_from_png_metadata("LoRA", metadata)
         vae_custom_model = find_vae_from_png_metadata("VAE", metadata)
 
         negative_prompt = metadata["Negative prompt"]
@@ -179,10 +174,8 @@ def import_png_metadata(
 
         if "LoRA" in metadata and lora_custom_model:
             custom_lora = lora_custom_model
-            hf_lora_id = ""
-        if "LoRA" in metadata and lora_hf_model_id:
+        else:
             custom_lora = "None"
-            hf_lora_id = lora_hf_model_id
 
         if "VAE" in metadata and vae_custom_model:
             custom_vae = vae_custom_model
@@ -215,6 +208,5 @@ def import_png_metadata(
         height,
         custom_model,
         custom_lora,
-        hf_lora_id,
         custom_vae,
     )
