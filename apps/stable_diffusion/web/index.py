@@ -25,10 +25,9 @@ if args.clear_all:
 
 # This function is intended to clean up MEI folders
 def cleanup_mei_folders():
-
     # Determine the operating system
-    if sys.platform.startswith('win'):
-        temp_dir = os.path.join(os.environ['LOCALAPPDATA'], 'Temp')
+    if sys.platform.startswith("win"):
+        temp_dir = os.path.join(os.environ["LOCALAPPDATA"], "Temp")
 
     # For potential extension to support Linux or macOS systems:
     # NOTE: Before enabling, ensure compatibility and testing.
@@ -36,10 +35,13 @@ def cleanup_mei_folders():
     #    temp_dir = '/tmp'
 
     else:
-        warnings.warn("Temporary files weren't deleted due to an unsupported OS; program functionality is unaffected.")
+        warnings.warn(
+            "Temporary files weren't deleted due to an unsupported OS;"
+            + " program functionality is unaffected."
+        )
         return
 
-    prefix = '_MEI'
+    prefix = "_MEI"
 
     # Iterate through the items in the temporary directory
     for item in os.listdir(temp_dir):
