@@ -126,8 +126,6 @@ if __name__ == "__main__":
         )
         return os.path.join(base_path, relative_path)
 
-    dark_theme = resource_path("ui/css/sd_dark_theme.css")
-
     from apps.stable_diffusion.web.ui import (
         txt2img_web,
         txt2img_custom_model,
@@ -239,6 +237,8 @@ if __name__ == "__main__":
             outputs,
         )
 
+    dark_theme = resource_path("ui/css/sd_dark_theme.css")
+
     with gr.Blocks(
         css=dark_theme, analytics_enabled=False, title="SHARK AI Studio"
     ) as sd_web:
@@ -284,10 +284,10 @@ if __name__ == "__main__":
             #      lora_train_web.render()
             with gr.TabItem(label="Chat Bot", id=8):
                 stablelm_chat.render()
-            with gr.TabItem(
-                label="Generate Sharding Config (Experimental)", id=9
-            ):
-                model_config_web.render()
+            # with gr.TabItem(
+            #    label="Generate Sharding Config (Experimental)", id=9
+            # ):
+            #    model_config_web.render()
             # with gr.TabItem(label="MultiModal (Experimental)", id=10):
             #     minigpt4_web.render()
             # with gr.TabItem(label="DocuChat Upload", id=11):
@@ -433,6 +433,12 @@ if __name__ == "__main__":
                 4,
                 [outputgallery_filename],
                 [upscaler_init_image, tabs],
+            )
+            register_outputgallery_button(
+                outputgallery_sendto_txt2img_sdxl,
+                0,
+                [outputgallery_filename],
+                [txt2img_sdxl_png_info_img, tabs],
             )
         register_modelmanager_button(
             modelmanager_sendto_txt2img,

@@ -173,6 +173,13 @@ def chat(
             get_vulkan_target_triple,
         )
 
+        _extra_args = _extra_args + [
+            "--iree-global-opt-enable-quantized-matmul-reassociation",
+            "--iree-llvmcpu-enable-quantized-matmul-reassociation",
+            "--iree-opt-const-eval=false",
+            "--iree-opt-data-tiling=false",
+        ]
+
         if device == "vulkan":
             vulkaninfo_list = get_all_vulkan_devices()
             if vulkan_target_triple == "":
@@ -250,10 +257,11 @@ def chat(
     total_time_ms = 0.001  # In order to avoid divide by zero error
     prefill_time = 0
     is_first = True
-    for text, msg, exec_time in progress.tqdm(
-        vicuna_model.generate(prompt, cli=cli),
-        desc="generating response",
-    ):
+    # for text, msg, exec_time in progress.tqdm(
+    #    vicuna_model.generate(prompt, cli=cli),
+    #    desc="generating response",
+    # ):
+    for text, msg, exec_time in vicuna_model.generate(prompt, cli=cli):
         if msg is None:
             if is_first:
                 prefill_time = exec_time
