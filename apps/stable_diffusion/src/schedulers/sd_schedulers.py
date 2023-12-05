@@ -1,4 +1,5 @@
 from diffusers import (
+    LCMScheduler,
     LMSDiscreteScheduler,
     PNDMScheduler,
     DDPMScheduler,
@@ -25,7 +26,6 @@ def get_schedulers(model_id):
     # set batch_size here, the SHARK schedulers will
     # compile with batch size = 1 regardless of whether the model
     # outputs latents of a larger batch size, e.g. SDXL.
-    # This also goes towards enabling batch size cfg for SD in general.
     # However, obviously, searching for whether the base model ID
     # contains "xl" is not very robust.
 
@@ -49,6 +49,10 @@ def get_schedulers(model_id):
         subfolder="scheduler",
     )
     schedulers["DDIM"] = DDIMScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+    )
+    schedulers["LCMScheduler"] = LCMScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
     )

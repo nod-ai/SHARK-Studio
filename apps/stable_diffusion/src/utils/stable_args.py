@@ -467,6 +467,13 @@ p.add_argument(
     "Expected form: max_allocation_size;max_allocation_capacity;max_free_allocation_count"
     "Example: --device_allocator_heap_key='*;1gib' (will limit caching on device to 1 gigabyte)",
 )
+
+p.add_argument(
+    "--autogen",
+    type=bool,
+    default="False",
+    help="Only used for a gradio workaround.",
+)
 ##############################################################################
 # IREE - Vulkan supported flags
 ##############################################################################
