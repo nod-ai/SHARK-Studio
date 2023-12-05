@@ -276,7 +276,7 @@
             }
         }
     },
-    "stencil_adaptor": {
+    "stencil_adapter": {
         "latents": {
             "shape": [
                 "1*batch_size",

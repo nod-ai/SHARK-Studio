@@ -6,6 +6,12 @@ import PIL
 from math import ceil
 from PIL import Image
 
+from gradio.components.image_editor import (
+    Brush,
+    Eraser,
+    EditorData,
+    EditorValue,
+)
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -189,7 +195,7 @@ def img2img_inf(
         model_id = (
             args.hf_model_id
             if args.hf_model_id
-            else "stabilityai/stable-diffusion-2-1-base"
+            else "stabilityai/stable-diffusion-1-5-base"
         )
         global_obj.set_schedulers(get_schedulers(model_id))
         scheduler_obj = global_obj.get_scheduler(args.scheduler)
@@ -403,6 +409,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 result = openpose(
                                     np.array(input_image["composite"])
                                 )
+                                print(result)
                                 # TODO: This is just an empty canvas, need to draw the candidates (which are in result[1])
                                 return (
                                     Image.fromarray(result[0]),
@@ -415,42 +422,53 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     np.array(input_image["composite"])
                                 )
                                 return (
-                                    Image.fromarray(result[0]),
+                                    Image.fromarray(result),
                                     stencils,
                                     images,
                                 )
                             case "scribble":
-                                result = input_image["composite"].convert("L")
-                                return (result, stencils, images)
+                                return (
+                                    input_image["composite"],
+                                    stencils,
+                                    images,
+                                )
                             case _:
                                 return (None, stencils, images)
 
                     def create_canvas(width, height):
-                        data = (
+                        data = Image.fromarray(
                             np.zeros(
                                 shape=(height, width, 3),
                                 dtype=np.uint8,
                             )
                             + 255
                         )
-                        return data
+                        img_dict = {
+                            "background": data,
+                            "layers": [data],
+                            "composite": None,
+                        }
+                        return EditorValue(img_dict)
 
                     def update_cn_input(model, width, height):
                         if model == "scribble":
                             return [
                                 gr.ImageEditor(
                                     visible=True,
-                                    image_mode="RGB",
                                     interactive=True,
                                     show_label=False,
+                                    image_mode="RGB",
                                     type="pil",
                                     value=create_canvas(width, height),
-                                    crop_size=(width, height),
+                                    brush=Brush(
+                                        colors=["#000000"], color_mode="fixed"
+                                    ),
                                 ),
                                 gr.Image(
                                     visible=True,
                                     show_label=False,
                                     interactive=False,
+                                    show_download_button=False,
                                 ),
                                 gr.Slider(visible=True),
                                 gr.Slider(visible=True),
@@ -469,6 +487,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     visible=True,
                                     show_label=False,
                                     interactive=True,
+                                    show_download_button=False,
                                 ),
                                 gr.Slider(visible=False),
                                 gr.Slider(visible=False),
@@ -505,6 +524,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 value="Make Canvas!",
                                 visible=False,
                             )
+
                         cnet_1_image = gr.ImageEditor(
                             visible=False,
                             image_mode="RGB",
@@ -515,6 +535,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         cnet_1_output = gr.Image(
                             visible=True, show_label=False
                         )
+
                         cnet_1_model.input(
                             update_cn_input,
                             [cnet_1_model, canvas_width, canvas_height],
