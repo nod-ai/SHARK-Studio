@@ -825,7 +825,7 @@ class StableDiffusionPipeline:
             gc.collect()
         self.log += f"\nClip Inference time (ms) = {clip_inf_time:.3f}"
 
-        return text_embeddings.numpy()
+        return text_embeddings.numpy().astype(np.float16)
 
 
 from typing import List, Optional, Union

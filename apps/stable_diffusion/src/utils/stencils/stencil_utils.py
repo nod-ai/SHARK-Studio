@@ -79,10 +79,12 @@ def controlnet_hint_shaping(
                 )
             return controlnet_hint
         else:
-            raise ValueError(
-                f"Acceptble shape of `stencil` are any of ({channels}, {height}, {width}),"
-                + f" (1, {channels}, {height}, {width}) or ({num_images_per_prompt}, "
-                + f"{channels}, {height}, {width}) but is {controlnet_hint.shape}"
+            return controlnet_hint_shaping(
+                Image.fromarray(controlnet_hint.detach().numpy()),
+                height,
+                width,
+                dtype,
+                num_images_per_prompt,
             )
     elif isinstance(controlnet_hint, np.ndarray):
         # np.ndarray: acceptable shape is any of hw, hwc, bhwc(b==1) or bhwc(b==num_images_per_promot)
@@ -109,29 +111,36 @@ def controlnet_hint_shaping(
             )  # b h w c -> b c h w
             return controlnet_hint
         else:
-            raise ValueError(
-                f"Acceptble shape of `stencil` are any of ({width}, {channels}), "
-                + f"({height}, {width}, {channels}), "
-                + f"(1, {height}, {width}, {channels}) or "
-                + f"({num_images_per_prompt}, {channels}, {height}, {width}) but is {controlnet_hint.shape}"
-            )
-    elif isinstance(controlnet_hint, Image.Image):
-        if controlnet_hint.size == (width, height):
-            controlnet_hint = controlnet_hint.convert(
-                "RGB"
-            )  # make sure 3 channel RGB format
-            controlnet_hint = np.array(controlnet_hint)  # to numpy
-            controlnet_hint = controlnet_hint[:, :, ::-1]  # RGB -> BGR
             return controlnet_hint_shaping(
-                controlnet_hint, height, width, num_images_per_prompt
+                Image.fromarray(controlnet_hint),
+                height,
+                width,
+                dtype,
+                num_images_per_prompt,
             )
+
+    elif isinstance(controlnet_hint, Image.Image):
+        controlnet_hint = controlnet_hint.convert(
+            "RGB"
+        )  # make sure 3 channel RGB format
+        if controlnet_hint.size == (width, height):
+            controlnet_hint = np.array(controlnet_hint).astype(
+                np.float16
+            )  # to numpy
+            controlnet_hint = controlnet_hint[:, :, ::-1]  # RGB -> BGR
+            return
         else:
-            raise ValueError(
-                f"Acceptable image size of `stencil` is ({width}, {height}) but is {controlnet_hint.size}"
-            )
+            (hint_w, hint_h) = controlnet_hint.size
+            left = int((hint_w - width) / 2)
+            right = left + height
+            controlnet_hint = controlnet_hint.crop((left, 0, right, hint_h))
+            controlnet_hint = controlnet_hint.resize((width, height))
+        return controlnet_hint_shaping(
+            controlnet_hint, height, width, dtype, num_images_per_prompt
+        )
     else:
         raise ValueError(
-            f"Acceptable type of `stencil` are any of torch.Tensor, np.ndarray, PIL.Image.Image but is {type(controlnet_hint)}"
+            f"Acceptible controlnet input types are any of torch.Tensor, np.ndarray, PIL.Image.Image but is {type(controlnet_hint)}"
         )
 
 
@@ -141,20 +150,25 @@ def controlnet_hint_conversion(
     controlnet_hint = None
     match use_stencil:
         case "canny":
-            print("Detecting edge with canny")
+            print(
+                "Converting controlnet hint to edge detection mask with canny preprocessor."
+            )
             controlnet_hint = hint_canny(image)
         case "openpose":
-            print("Detecting human pose")
+            print(
+                "Detecting human pose in controlnet hint with openpose preprocessor."
+            )
             controlnet_hint = hint_openpose(image)
         case "scribble":
-            print("Working with scribble")
+            print("Using your scribble as a controlnet hint.")
             controlnet_hint = hint_scribble(image)
         case "zoedepth":
-            print("Working with ZoeDepth")
+            print(
+                "Converting controlnet hint to a depth mapping with ZoeDepth."
+            )
             controlnet_hint = hint_zoedepth(image)
         case _:
             return None
-    print(f"Controlnet hint is type {image.dtype}")
     controlnet_hint = controlnet_hint_shaping(
         controlnet_hint, height, width, dtype, num_images_per_prompt
     )

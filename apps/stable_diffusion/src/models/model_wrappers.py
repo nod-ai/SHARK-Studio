@@ -254,8 +254,8 @@ class SharkifyStableDiffusionModel:
             "stencil_unet_512",
             "vae",
             "vae_encode",
-            "stencil_adaptor",
-            "stencil_adaptor_512",
+            "stencil_adapter",
+            "stencil_adapter_512",
         ]
         index = 0
         for model in sub_model_list:
@@ -268,11 +268,19 @@ class SharkifyStableDiffusionModel:
                     )
                 if self.base_vae:
                     sub_model = "base_vae"
-            # TODO: Fix this
-            # if "stencil_adaptor" == model and self.use_stencil is not None:
-            #     model_config = model_config + get_path_stem(self.use_stencil)
-            model_name[model] = get_extended_name(sub_model + model_config)
-            index += 1
+            if "stencil_adapter" in model:
+                stencil_names = []
+                for i, stencil in enumerate(self.stencils):
+                    if stencil is not None:
+                        cnet_config = model_config + stencil.split("_")[-1]
+                        stencil_names.append(
+                            get_extended_name(sub_model + cnet_config)
+                        )
+
+                model_name[model] = stencil_names
+            else:
+                model_name[model] = get_extended_name(sub_model + model_config)
+        index += 1
         return model_name
 
     def check_params(self, max_len, width, height):
@@ -679,7 +687,8 @@ class SharkifyStableDiffusionModel:
 
     def get_control_net(self, stencil_id, use_large=False):
         stencil_id = get_stencil_model_id(stencil_id)
-        breakpoint()
+        adapter_id, base_model_safe_id, ext_model_name = (None, None, None)
+        print(f"Importing ControlNet adapter from {stencil_id}")
 
         class StencilControlNetModel(torch.nn.Module):
             def __init__(self, model_id=stencil_id, low_cpu_mem_usage=False):
@@ -752,7 +761,23 @@ class SharkifyStableDiffusionModel:
         )
         is_f16 = True if self.precision == "fp16" else False
 
-        inputs = tuple(self.inputs["stencil_adaptor"])
+        inputs = tuple(self.inputs["stencil_adapter"])
+        model_name = "stencil_adapter_512" if use_large else "stencil_adapter"
+        ext_model_name = self.model_name[model_name]
+        if isinstance(ext_model_name, list):
+            for i in ext_model_name:
+                if stencil_id.split("_")[-1] in i:
+                    desired_name = i
+                    print(f"Multi-CN: compiling model {i}")
+                else:
+                    continue
+            if desired_name:
+                ext_model_name = desired_name
+            else:
+                raise Exception(
+                    f"Could not find extended configuration for {stencil_id}"
+                )
+
         if use_large:
             pad = (0, 0) * (len(inputs[2].shape) - 2)
             pad = pad + (0, 512 - inputs[2].shape[1])
@@ -762,19 +787,13 @@ class SharkifyStableDiffusionModel:
                 torch.nn.functional.pad(inputs[2], pad),
                 *inputs[3:],
             )
-            save_dir = os.path.join(
-                self.sharktank_dir, self.model_name["stencil_adaptor_512"]
-            )
-        else:
-            save_dir = os.path.join(
-                self.sharktank_dir, self.model_name["stencil_adaptor"]
-            )
+        save_dir = os.path.join(self.sharktank_dir, ext_model_name)
         input_mask = [True, True, True, True] + ([True] * 13)
-        model_name = "stencil_adaptor_512" if use_large else "stencil_adaptor"
+
         shark_cnet, cnet_mlir = compile_through_fx(
             scnet,
             inputs,
-            extended_model_name=self.model_name[model_name],
+            extended_model_name=ext_model_name,
             is_f16=is_f16,
             f16_input_mask=input_mask,
             use_tuned=self.use_tuned,
@@ -1316,16 +1335,16 @@ class SharkifyStableDiffusionModel:
 
     def controlnet(self, stencil_id, use_large=False):
         try:
-            self.inputs["stencil_adaptor"] = self.get_input_info_for(
-                base_models["stencil_adaptor"]
+            self.inputs["stencil_adapter"] = self.get_input_info_for(
+                base_models["stencil_adapter"]
             )
-            compiled_stencil_adaptor, controlnet_mlir = self.get_control_net(
+            compiled_stencil_adapter, controlnet_mlir = self.get_control_net(
                 stencil_id, use_large=use_large
             )
 
-            check_compilation(compiled_stencil_adaptor, "Stencil")
+            check_compilation(compiled_stencil_adapter, "Stencil")
             if self.return_mlir:
                 return controlnet_mlir
-            return compiled_stencil_adaptor
+            return compiled_stencil_adapter
         except Exception as e:
             sys.exit(e)

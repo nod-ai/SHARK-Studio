@@ -213,7 +213,6 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
             else noise_pred
         )
 
-
         if gamma > 0:
             noise = randn_tensor(
                 torch.Size(noise_pred.shape),
@@ -221,7 +220,7 @@ class SharkEulerDiscreteScheduler(EulerDiscreteScheduler):
                 device="cpu",
                 generator=generator,
             )
-            
+
             eps = noise * s_noise
             latent = latent + eps * (sigma_hat**2 - sigma**2) ** 0.5
 
