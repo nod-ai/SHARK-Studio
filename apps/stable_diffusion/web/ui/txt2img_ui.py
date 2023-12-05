@@ -18,7 +18,10 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
-from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
+from apps.stable_diffusion.web.ui.common_ui_events import (
+    lora_changed,
+    lora_strength_changed,
+)
 from apps.stable_diffusion.web.utils.metadata import import_png_metadata
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
@@ -44,7 +47,7 @@ all_gradio_labels = [
     "prompt",
     "negative_prompt",
     "lora_weights",
-    "lora_hf_id",
+    "lora_strength",
     "scheduler",
     "save_metadata_to_png",
     "save_metadata_to_json",
@@ -91,7 +94,7 @@ def txt2img_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
     lora_weights: str,
-    lora_hf_id: str,
+    lora_strength: float,
     ondemand: bool,
     repeatable_seeds: bool,
     use_hiresfix: bool,
@@ -138,9 +141,8 @@ def txt2img_inf(
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
 
-    args.use_lora = get_custom_vae_or_lora_weights(
-        lora_weights, lora_hf_id, "lora"
-    )
+    args.use_lora = get_custom_vae_or_lora_weights(lora_weights, "lora")
+    args.lora_strength = lora_strength
 
     dtype = torch.float32 if precision == "fp32" else torch.half
     cpu_scheduling = not scheduler.startswith("Shark")
@@ -156,6 +158,7 @@ def txt2img_inf(
         width,
         device,
         use_lora=args.use_lora,
+        lora_strength=args.lora_strength,
         stencils=[],
         ondemand=ondemand,
     )
@@ -207,6 +210,7 @@ def txt2img_inf(
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
                 use_lora=args.use_lora,
+                lora_strength=args.lora_strength,
                 ondemand=args.ondemand,
             )
         )
@@ -256,6 +260,7 @@ def txt2img_inf(
                 width,
                 device,
                 use_lora=args.use_lora,
+                lora_strength=args.lora_strength,
                 stencils=[],
                 ondemand=ondemand,
             )
@@ -288,6 +293,7 @@ def txt2img_inf(
                     low_cpu_mem_usage=args.low_cpu_mem_usage,
                     debug=args.import_debug if args.import_mlir else False,
                     use_lora=args.use_lora,
+                    lora_strength=args.lora_strength,
                     ondemand=args.ondemand,
                 )
             )
@@ -384,7 +390,7 @@ def load_settings():
         loaded_settings.get("prompt", args.prompts[0]),
         loaded_settings.get("negative_prompt", args.negative_prompts[0]),
         loaded_settings.get("lora_weights", "None"),
-        loaded_settings.get("lora_hf_id", ""),
+        loaded_settings.get("lora_strength", args.lora_strength),
         loaded_settings.get("scheduler", args.scheduler),
         loaded_settings.get(
             "save_metadata_to_png", args.write_metadata_to_png
@@ -494,28 +500,25 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                     )
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
-                        # janky fix for overflowing text
-                        t2i_lora_info = (
-                            str(get_custom_model_path("lora"))
-                        ).replace("\\", "\n\\")
-                        t2i_lora_info = f"LoRA Path: {t2i_lora_info}"
                         lora_weights = gr.Dropdown(
-                            label=f"Standalone LoRA Weights",
-                            info=t2i_lora_info,
+                            label=f"LoRA Weights",
+                            info=f"Select from LoRA in {str(get_custom_model_path('lora'))}, or enter HuggingFace Model ID",
                             elem_id="lora_weights",
                             value=default_settings.get("lora_weights"),
                             choices=["None"] + get_custom_model_files("lora"),
                             allow_custom_value=True,
+                            scale=3,
                         )
-                        lora_hf_id = gr.Textbox(
-                            elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standalone LoRA "
-                            "weights dropdown on the left if you want to use "
-                            "a standalone HuggingFace model ID for LoRA here "
-                            "e.g: sayakpaul/sd-model-finetuned-lora-t4",
-                            value=default_settings.get("lora_hf_id"),
-                            label="HuggingFace Model ID",
-                            lines=3,
+                        lora_strength = gr.Number(
+                            label="LoRA Strength",
+                            info="Will be baked into the .vmfb",
+                            step=0.01,
+                            # number is checked on change so to allow 0.n values
+                            # we have to allow 0 or you can't type 0.n in
+                            minimum=0.0,
+                            maximum=2.0,
+                            value=default_settings.get("lora_strength"),
+                            scale=1,
                         )
                     with gr.Row():
                         lora_tags = gr.HTML(
@@ -735,7 +738,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                                 prompt,
                                 negative_prompt,
                                 lora_weights,
-                                lora_hf_id,
+                                lora_strength,
                                 scheduler,
                                 save_metadata_to_png,
                                 save_metadata_to_json,
@@ -768,7 +771,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                                 prompt,
                                 negative_prompt,
                                 lora_weights,
-                                lora_hf_id,
+                                lora_strength,
                                 scheduler,
                                 save_metadata_to_png,
                                 save_metadata_to_json,
@@ -812,7 +815,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
                 lora_weights,
-                lora_hf_id,
+                lora_strength,
                 ondemand,
                 repeatable_seeds,
                 use_hiresfix,
@@ -855,7 +858,6 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                 height,
                 txt2img_custom_model,
                 lora_weights,
-                lora_hf_id,
                 custom_vae,
             ],
             outputs=[
@@ -870,7 +872,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                 height,
                 txt2img_custom_model,
                 lora_weights,
-                lora_hf_id,
+                lora_strength,
                 custom_vae,
             ],
         )
@@ -900,4 +902,12 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
             inputs=[lora_weights],
             outputs=[lora_tags],
             queue=True,
+        )
+
+        lora_strength.change(
+            fn=lora_strength_changed,
+            inputs=lora_strength,
+            outputs=lora_strength,
+            queue=False,
+            show_progress=False,
         )

@@ -21,7 +21,10 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_paint_models,
     cancel_sd,
 )
-from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
+from apps.stable_diffusion.web.ui.common_ui_events import (
+    lora_changed,
+    lora_strength_changed,
+)
 from apps.stable_diffusion.src import (
     args,
     InpaintPipeline,
@@ -109,7 +112,7 @@ def inpaint_inf(
     save_metadata_to_json: bool,
     save_metadata_to_png: bool,
     lora_weights: str,
-    lora_hf_id: str,
+    lora_strength: float,
     ondemand: bool,
     repeatable_seeds: int,
 ):
@@ -150,9 +153,8 @@ def inpaint_inf(
     if custom_vae != "None":
         args.custom_vae = get_custom_model_pathfile(custom_vae, model="vae")
 
-    args.use_lora = get_custom_vae_or_lora_weights(
-        lora_weights, lora_hf_id, "lora"
-    )
+    args.use_lora = get_custom_vae_or_lora_weights(lora_weights, "lora")
+    args.lora_strength = lora_strength
 
     args.save_metadata_to_json = save_metadata_to_json
     args.write_metadata_to_png = save_metadata_to_png
@@ -171,6 +173,7 @@ def inpaint_inf(
         width,
         device,
         use_lora=args.use_lora,
+        lora_strength=args.lora_strength,
         stencils=[],
         ondemand=ondemand,
     )
@@ -215,6 +218,7 @@ def inpaint_inf(
                 low_cpu_mem_usage=args.low_cpu_mem_usage,
                 debug=args.import_debug if args.import_mlir else False,
                 use_lora=args.use_lora,
+                lora_strength=args.lora_strength,
                 ondemand=args.ondemand,
             )
         )
@@ -350,28 +354,25 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     )
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
-                        # janky fix for overflowing text
-                        inpaint_lora_info = (
-                            str(get_custom_model_path("lora"))
-                        ).replace("\\", "\n\\")
-                        inpaint_lora_info = f"LoRA Path: {inpaint_lora_info}"
                         lora_weights = gr.Dropdown(
-                            label=f"Standalone LoRA Weights",
-                            info=inpaint_lora_info,
+                            label=f"LoRA Weights",
+                            info=f"Select from LoRA in {str(get_custom_model_path('lora'))}, or enter HuggingFace Model ID",
                             elem_id="lora_weights",
                             value="None",
                             choices=["None"] + get_custom_model_files("lora"),
                             allow_custom_value=True,
+                            scale=3,
                         )
-                        lora_hf_id = gr.Textbox(
-                            elem_id="lora_hf_id",
-                            placeholder="Select 'None' in the Standalone LoRA "
-                            "weights dropdown on the left if you want to use "
-                            "a standalone HuggingFace model ID for LoRA here "
-                            "e.g: sayakpaul/sd-model-finetuned-lora-t4",
-                            value="",
-                            label="HuggingFace Model ID",
-                            lines=3,
+                        lora_strength = gr.Number(
+                            label="LoRA Strength",
+                            info="Will be baked into the .vmfb",
+                            step=0.01,
+                            # number is checked on change so to allow 0.n values
+                            # we have to allow 0 or you can't type 0.n in
+                            minimum=0.0,
+                            maximum=2.0,
+                            value=args.lora_strength,
+                            scale=1,
                         )
                     with gr.Row():
                         lora_tags = gr.HTML(
@@ -558,7 +559,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                 save_metadata_to_json,
                 save_metadata_to_png,
                 lora_weights,
-                lora_hf_id,
+                lora_strength,
                 ondemand,
                 repeatable_seeds,
             ],
@@ -621,4 +622,12 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
             inputs=[lora_weights],
             outputs=[lora_tags],
             queue=True,
+        )
+
+        lora_strength.change(
+            fn=lora_strength_changed,
+            inputs=lora_strength,
+            outputs=lora_strength,
+            queue=False,
+            show_progress=False,
         )

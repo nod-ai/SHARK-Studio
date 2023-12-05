@@ -65,6 +65,7 @@ class StableDiffusionPipeline:
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
         use_lora: str,
+        lora_strength: float,
         ondemand: bool,
         is_f32_vae: bool = False,
     ):
@@ -81,6 +82,7 @@ class StableDiffusionPipeline:
         self.scheduler = scheduler
         self.import_mlir = import_mlir
         self.use_lora = use_lora
+        self.lora_strength = lora_strength
         self.ondemand = ondemand
         self.is_f32_vae = is_f32_vae
         # TODO: Find a better workaround for fetching base_model_id early
@@ -647,6 +649,7 @@ class StableDiffusionPipeline:
         stencils: list[str] = [],
         # stencil_images: list[Image] = []
         use_lora: str = "",
+        lora_strength: float = 0.75,
         ddpm_scheduler: DDPMScheduler = None,
         use_quantize=None,
     ):
@@ -682,6 +685,7 @@ class StableDiffusionPipeline:
             is_sdxl=is_sdxl,
             stencils=stencils,
             use_lora=use_lora,
+            lora_strength=lora_strength,
             use_quantize=use_quantize,
         )
 
@@ -692,12 +696,19 @@ class StableDiffusionPipeline:
                 sd_model,
                 import_mlir,
                 use_lora,
+                lora_strength,
                 ondemand,
             )
 
         if cls.__name__ == "StencilPipeline":
             return cls(
-                scheduler, sd_model, import_mlir, use_lora, ondemand, stencils
+                scheduler,
+                sd_model,
+                import_mlir,
+                use_lora,
+                lora_strength,
+                ondemand,
+                stencils,
             )
         if cls.__name__ == "Text2ImageSDXLPipeline":
             is_fp32_vae = True if "16" not in custom_vae else False
@@ -706,11 +717,14 @@ class StableDiffusionPipeline:
                 sd_model,
                 import_mlir,
                 use_lora,
+                lora_strength,
                 ondemand,
                 is_fp32_vae,
             )
 
-        return cls(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        return cls(
+            scheduler, sd_model, import_mlir, use_lora, lora_strength, ondemand
+        )
 
     # #####################################################
     # Implements text embeddings with weights from prompts
