@@ -332,7 +332,7 @@ default_configs = {
         512,
         "madebyollin/sdxl-vae-fp16-fix",
         gr.Checkbox(
-            label="Auto-Generate", visible=True, interactive=True, value=False
+            label="Auto-Generate", visible=False, interactive=True, value=False
         ),
     ],
     "stabilityai/stable-diffusion-xl-base-1.0": [
