@@ -415,7 +415,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     np.array(input_image["composite"])
                                 )
                                 return (
-                                    Image.fromarray(result[0]),
+                                    Image.fromarray(result),
                                     stencils,
                                     images,
                                 )
