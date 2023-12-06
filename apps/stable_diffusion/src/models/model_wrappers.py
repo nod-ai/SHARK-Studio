@@ -539,7 +539,7 @@ class SharkifyStableDiffusionModel:
                 )
                 if use_lora != "":
                     update_lora_weight(self.unet, use_lora, "unet")
-                self.in_channels = self.unet.in_channels
+                self.in_channels = self.unet.config.in_channels
                 self.train(False)
 
             def forward(
