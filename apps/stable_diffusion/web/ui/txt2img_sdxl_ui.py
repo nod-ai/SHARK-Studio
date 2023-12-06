@@ -238,6 +238,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                     elem_id="top_logo",
                     width=150,
                     height=50,
+                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():

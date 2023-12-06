@@ -26,6 +26,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                     elem_id="top_logo",
                     width=150,
                     height=50,
+                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
