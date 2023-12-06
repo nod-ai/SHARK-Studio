@@ -2277,14 +2277,14 @@ class BenchmarkRunInfo:
         print(f"Decode: {self.get_decode_time_ms():.2f} ms, {self.get_decode_speed():.2f} tokens/s")
         print(f"Decode end-2-end: {self.get_e2e_decode_speed():.2f} tokens/s (w/o prompt), {self.get_e2e_token_processing_speed():.2f} tokens/s (w/ prompt)")
     
-    def enable_tracy_tracing():
-        # Make tracy wait for a caputre to be collected before exiting.
-        environ["TRACY_NO_EXIT"] = "1"
+def enable_tracy_tracing():
+    # Make tracy wait for a caputre to be collected before exiting.
+    environ["TRACY_NO_EXIT"] = "1"
 
-        if "IREE_PY_RUNTIME" not in environ or environ["IREE_PY_RUNTIME"] != "tracy":
-            print("ERROR: Tracing enabled but tracy iree runtime not used.", file=sys.stderr)
-            print("Set the IREE_PY_RUNTIME=tracy environment variable.", file=sys.stderr)
-            sys.exit(1)
+    if "IREE_PY_RUNTIME" not in environ or environ["IREE_PY_RUNTIME"] != "tracy":
+        print("ERROR: Tracing enabled but tracy iree runtime not used.", file=sys.stderr)
+        print("Set the IREE_PY_RUNTIME=tracy environment variable.", file=sys.stderr)
+        sys.exit(1)
 
 
 def print_aggregate_stats(run_infos: list[BenchmarkRunInfo]) -> None:
