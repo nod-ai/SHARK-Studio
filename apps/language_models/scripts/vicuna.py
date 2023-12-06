@@ -12,6 +12,8 @@ import sys
 import time
 from dataclasses import dataclass
 from os import environ
+from dataclasses import dataclass
+from os import environ
 
 import torch
 import torch_mlir
@@ -510,6 +512,8 @@ class ShardedVicuna(VicunaBase):
         n_devices=None,
     ) -> None:
         self.hf_auth_token = hf_auth_token
+        self.hidden_state_size_dict = {"vicuna": 4096, "llama2_7b": 4096, "llama2_13b" : 5120, "llama2_70b" : 8192}
+        self.n_layers_dict = {"vicuna": 32, "llama2_7b": 32, "llama2_13b" : 40, "llama2_70b" : 80}
         super().__init__(
             model_name,
             hf_model_path,
@@ -530,6 +534,11 @@ class ShardedVicuna(VicunaBase):
         if not self.dir_path.is_dir():
             self.dir_path.mkdir(parents=True, exist_ok=True)
         self.shark_model = self.compile(device=device)
+
+    def check_all_artifacts_present(self):
+        file_list = [f"{i}_full" for i in range(self.n_layers_dict[self.model_name])] + ["norm", "embedding", "lmhead"]
+        file_exists_list = [Path(f"{self.dir_name}/{x}.vmfb").exists() or Path(f"{self.dir_name}/{x}.mlir").exists() for x in file_list]
+        return all(file_exists_list)
 
     def get_tokenizer(self):
         kwargs = {}
@@ -711,6 +720,27 @@ class ShardedVicuna(VicunaBase):
         device_idx = max(idx_votes, key=idx_votes.get)
         return device_idx
 
+
+    def write_dynamic_inputs_lmhead(self, ir, sample_input_length):
+        if self.precision in ["fp16", "int4"]:
+            precision_str = "f16"
+        else:
+            precision_str = "f32"
+        lines = ir.splitlines()
+        new_lines = []
+        for line in lines:
+            if f"%cst_0 =" in line:
+                new_lines.append(line)
+                new_lines.append("%c1 = arith.constant 1 : index")
+                new_lines.append(f"%dim = tensor.dim %arg0, %c1 : tensor<1x?x{self.hidden_state_size_dict[self.model_name]}x{precision_str}>")
+            else:
+                line = re.sub(f"{sample_input_length}x", "?x", line)
+                if "?x" in line:
+                    line = re.sub("tensor.empty\(\)", "tensor.empty(%dim)", line)
+                new_lines.append(line)
+
+        return "\n".join(new_lines)
+
     def compile_lmhead(
         self,
         lmh,
@@ -775,14 +805,21 @@ class ShardedVicuna(VicunaBase):
                     use_tracing=False,
                     verbose=False,
                 )
-
+            """
             bytecode_stream = BytesIO()
             module.operation.write_bytecode(bytecode_stream)
             bytecode = bytecode_stream.getvalue()
             f_ = open(mlir_path, "wb")
             f_.write(bytecode)
             f_.close()
+            """
+            module = str(module)
+            if self.precision in ["int4", "fp16"]:
+                module = self.write_dynamic_inputs_lmhead(module, 137)
             filepath = Path(f"{self.dir_name}/lmhead.mlir")
+            f_ = open(mlir_path, "w+")
+            f_.write(module)
+            f_.close()
             # download_public_file(
             #    "gs://shark_tank/elias/compressed_sv/lmhead.mlir",
             #    filepath.absolute(),
@@ -795,7 +832,7 @@ class ShardedVicuna(VicunaBase):
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
-            mmap=False,
+            mmap=True,
         )
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
@@ -883,7 +920,7 @@ class ShardedVicuna(VicunaBase):
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
-            mmap=False,
+            mmap=True,
         )
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
@@ -964,7 +1001,7 @@ class ShardedVicuna(VicunaBase):
             device=device,
             mlir_dialect="tm_tensor",
             device_idx=device_idx,
-            mmap=False,
+            mmap=True,
         )
         if vmfb_path.exists():
             shark_module.load_module(vmfb_path)
@@ -1160,7 +1197,7 @@ class ShardedVicuna(VicunaBase):
                 )
                 if device_idx is None:
                     if self.n_devices is not None:
-                        device_idx = idx % self.n_devices
+                        device_idx = (idx * self.n_devices) // self.n_layers_dict[self.model_name]
                     else:
                         device_idx = None
                 module = SharkInference(
@@ -1168,7 +1205,7 @@ class ShardedVicuna(VicunaBase):
                     device=device,
                     device_idx=device_idx,
                     mlir_dialect="tm_tensor",
-                    mmap=False,
+                    mmap=True,
                 )
                 module.load_module(vmfb_path)
             else:
@@ -1178,15 +1215,15 @@ class ShardedVicuna(VicunaBase):
                 )
                 if device_idx is None:
                     if self.n_devices is not None:
-                        device_idx = idx % self.n_devices
+                        device_idx = (idx * self.n_devices) // self.n_layers_dict[self.model_name]
                     else:
-                        device_idx = 0
+                        device_idx = None
                 module = SharkInference(
                     mlirs[idx],
                     device=device,
                     device_idx=device_idx,
                     mlir_dialect="tm_tensor",
-                    mmap=False,
+                    mmap=True,
                 )
                 module.save_module(
                     module_name=f"{self.dir_name}/{idx}_full",
@@ -1238,7 +1275,7 @@ class ShardedVicuna(VicunaBase):
                     if self.n_devices is not None:
                         device_idx = idx % self.n_devices
                     else:
-                        device_idx = 0
+                        device_idx = None
                 module = SharkInference(
                     None,
                     device=device,
@@ -1256,7 +1293,7 @@ class ShardedVicuna(VicunaBase):
                     if self.n_devices is not None:
                         device_idx = idx % self.n_devices
                     else:
-                        device_idx = 0
+                        device_idx = None
                 module = SharkInference(
                     mlirs[idx],
                     device=device,
@@ -1289,72 +1326,79 @@ class ShardedVicuna(VicunaBase):
             )
 
         if self.precision in ["int4", "int8"]:
-            from brevitas_examples.common.generative.quantize import (
-                quantize_model,
-            )
-            from brevitas_examples.llm.llm_quant.run_utils import (
-                get_model_impl,
-            )
 
-            print("Applying weight quantization..")
-            weight_bit_width = 4 if self.precision == "int4" else 8
-            quantize_model(
-                get_model_impl(vicuna_model).layers,
-                dtype=torch.float32,
-                weight_quant_type="asym",
-                weight_bit_width=weight_bit_width,
-                weight_param_method="stats",
-                weight_scale_precision="float_scale",
-                weight_quant_granularity="per_group",
-                weight_group_size=self.weight_group_size,
-                quantize_weight_zero_point=False,
-                input_bit_width=None,
-                input_scale_type="float",
-                input_param_method="stats",
-                input_quant_type="asym",
-                input_quant_granularity="per_tensor",
-                quantize_input_zero_point=False,
-                seqlen=2048,
-            )
-            print("Weight quantization applied.")
+            if not self.check_all_artifacts_present():
+                print("Applying weight quantization..")
+                from brevitas_examples.common.generative.quantize import (
+                    quantize_model,
+                )
+                from brevitas_examples.llm.llm_quant.run_utils import (
+                    get_model_impl,
+                )
+                weight_bit_width = 4 if self.precision == "int4" else 8
+
+                quantize_model(
+                    get_model_impl(vicuna_model).layers,
+                    dtype=torch.float32,
+                    weight_quant_type="asym",
+                    weight_bit_width=weight_bit_width,
+                    weight_param_method="stats",
+                    weight_scale_precision="float_scale",
+                    weight_quant_granularity="per_group",
+                    weight_group_size=self.weight_group_size,
+                    quantize_weight_zero_point=False,
+                    input_bit_width=None,
+                    input_scale_type="float",
+                    input_param_method="stats",
+                    input_quant_type="asym",
+                    input_quant_granularity="per_tensor",
+                    quantize_input_zero_point=False,
+                    seqlen=2048,
+                )
+
+                print("Weight quantization applied.")
+
+            else:
+                print("Skipping quantization, as all required artifacts are present")
 
         placeholder_pkv_segment = tuple(
             (
-                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
-                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, self.n_layers_dict[self.model_name], SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, self.n_layers_dict[self.model_name], SAMPLE_INPUT_LEN, 128]),
             )
             for _ in range(8)
         )
         placeholder_pkv_full = tuple(
             (
-                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
-                torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, self.n_layers_dict[self.model_name], SAMPLE_INPUT_LEN, 128]),
+                torch.zeros([1, self.n_layers_dict[self.model_name], SAMPLE_INPUT_LEN, 128]),
             )
-            for _ in range(32)
+            for _ in range(self.n_layers_dict[self.model_name])
         )
 
         placeholder_input0 = (
-            torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
+            torch.zeros([1, SAMPLE_INPUT_LEN, self.hidden_state_size_dict[self.model_name]]),
             torch.zeros([1, 1, SAMPLE_INPUT_LEN, SAMPLE_INPUT_LEN]),
             torch.zeros([1, SAMPLE_INPUT_LEN], dtype=torch.int64),
         )
 
         placeholder_input1 = (
-            torch.zeros([1, 1, 4096]),
+            torch.zeros([1, 1, self.hidden_state_size_dict[self.model_name]]),
             torch.zeros([1, 1, 1, SAMPLE_INPUT_LEN + 1]),
             torch.zeros([1, 1], dtype=torch.int64),
-            torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
-            torch.zeros([1, 32, SAMPLE_INPUT_LEN, 128]),
+            torch.zeros([1, self.n_layers_dict[self.model_name], SAMPLE_INPUT_LEN, 128]),
+            torch.zeros([1, self.n_layers_dict[self.model_name], SAMPLE_INPUT_LEN, 128]),
         )
 
         norm = VicunaNorm(vicuna_model.model.norm)
         device_idx = self.get_device_index(
             r"vicuna\.model\.model\.norm(?:\.|\s|$)"
         )
-        print(device_idx)
+        # HC device_idx for non-layer vmfbs
+        device_idx = 0
         norm = self.compile_norm(
             norm,
-            torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
+            torch.zeros([1, SAMPLE_INPUT_LEN, self.hidden_state_size_dict[self.model_name]]),
             device=self.device,
             device_idx=device_idx,
         )
@@ -1363,7 +1407,8 @@ class ShardedVicuna(VicunaBase):
         device_idx = self.get_device_index(
             r"vicuna\.model\.model\.embed_tokens(?:\.|\s|$)"
         )
-        print(device_idx)
+        # HC device_idx for non-layer vmfbs
+        device_idx = 0
         embeddings = self.compile_embedding(
             embeddings,
             (torch.zeros([1, SAMPLE_INPUT_LEN], dtype=torch.int64)),
@@ -1375,10 +1420,11 @@ class ShardedVicuna(VicunaBase):
         device_idx = self.get_device_index(
             r"vicuna\.model\.lm_head(?:\.|\s|$)"
         )
-        print(device_idx)
+        # HC device_idx for non-layer vmfbs
+        device_idx = 0
         lmhead = self.compile_lmhead(
             lmhead,
-            torch.zeros([1, SAMPLE_INPUT_LEN, 4096]),
+            torch.zeros([1, SAMPLE_INPUT_LEN, self.hidden_state_size_dict[self.model_name]]),
             device=self.device,
             device_idx=device_idx,
         )
@@ -1412,7 +1458,11 @@ class ShardedVicuna(VicunaBase):
         )
 
         if not compressed:
-            shark_layers = [CompiledVicunaLayer(m) for m in modules]
+            if self.n_devices is None:
+                breakpoints = None
+            else:
+                breakpoints = [x for x in range(0,len(modules),(self.n_devices % 2) + (len(modules)//(self.n_devices)))][1:] + [len(modules)]
+            shark_layers = [CompiledVicunaLayer(m, i, breakpoints) for (i, m) in enumerate(modules)]
         else:
             shark_layers = [CompiledEightLayerLayer(m) for m in modules]
             vicuna_model.model.compressedlayers = shark_layers
@@ -1452,13 +1502,13 @@ class ShardedVicuna(VicunaBase):
 
             generated_token_op = self.generate_new_token(params=params)
 
-            prefill_time = time.time() - decode_st_time
+            decode_time = (time.time() - decode_st_time) * 1000
 
             _token = generated_token_op["token"]
             _past_key_values = generated_token_op["past_key_values"]
             _detok = generated_token_op["detok"]
             history.append(_token)
-            yield self.tokenizer.decode(history), None, prefill_time
+            yield self.tokenizer.decode(history), None, decode_time
 
             if _token == 2:
                 break
@@ -1667,12 +1717,7 @@ class UnshardedVicuna(VicunaBase):
         new_lines = []
 
         # Using a while loop and the pop method to avoid creating a copy of module
-        if "llama2_13b" in self.model_name:
-            pkv_tensor_shape = "tensor<1x40x?x128x"
-        elif "llama2_70b" in self.model_name:
-            pkv_tensor_shape = "tensor<1x8x?x128x"
-        else:
-            pkv_tensor_shape = "tensor<1x32x?x128x"
+        pkv_tensor_shape = f"tensor<1x{self.n_layers_dict[self.model_name]}x?x128x"
         if self.precision in ["fp16", "int4", "int8"]:
             pkv_tensor_shape += "f16>"
         else:
@@ -2066,14 +2111,14 @@ class UnshardedVicuna(VicunaBase):
         generated_token_op = self.generate_new_token(
             params=params, sharded=False, cli=cli
         )
-        prefill_time = time.time() - prefill_st_time
+        prefill_time_ms = (time.time() - prefill_st_time) * 1000
 
         token = generated_token_op["token"]
         if "cpu" not in self.device:
             logits = generated_token_op["logits"]
         pkv = generated_token_op["past_key_values"]
         detok = generated_token_op["detok"]
-        yield detok, None, prefill_time
+        yield detok, None, prefill_time_ms
 
         res_tokens.append(token)
         if cli:
@@ -2408,8 +2453,7 @@ if __name__ == "__main__":
                 vic.shark_model.shark_runner.iree_config.device.flush_profiling()
             if msg is None:
                 if is_first:
-                    # Note that the prefill time is in seconds, and all the decoded tokens in ms.
-                    prefill_time_ms = exec_time * 1000
+                    prefill_time_ms = exec_time
                     is_first = False
                 else:
                     token_times_ms.append(exec_time)

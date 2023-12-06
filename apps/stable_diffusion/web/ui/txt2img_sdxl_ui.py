@@ -226,7 +226,12 @@ def txt2img_sdxl_inf(
     return generated_imgs, text_output, ""
 
 
-with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
+theme = gr.themes.Glass(
+    primary_hue="slate",
+    secondary_hue="gray",
+)
+
+with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -289,17 +294,24 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                         )
 
                 with gr.Group(elem_id="prompt_box_outer"):
+                    txt2img_sdxl_autogen = gr.Checkbox(
+                        label="Auto-Generate Images",
+                        value=False,
+                        visible=False,
+                    )
                     prompt = gr.Textbox(
                         label="Prompt",
                         value=args.prompts[0],
                         lines=2,
                         elem_id="prompt_box",
+                        show_copy_button=True,
                     )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
                         value=args.negative_prompts[0],
                         lines=2,
                         elem_id="negative_prompt_box",
+                        show_copy_button=True,
                     )
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
@@ -341,6 +353,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                                 "DDIM",
                                 "EulerAncestralDiscrete",
                                 "EulerDiscrete",
+                                "LCMScheduler",
                             ],
                             allow_custom_value=False,
                             visible=True,
@@ -361,7 +374,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                             512,
                             1024,
                             value=1024,
-                            step=512,
+                            step=256,
                             label="Height",
                             visible=True,
                             interactive=True,
@@ -370,7 +383,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                             512,
                             1024,
                             value=1024,
-                            step=512,
+                            step=256,
                             label="Width",
                             visible=True,
                             interactive=True,
@@ -380,7 +393,6 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                             value="fp16",
                             choices=[
                                 "fp16",
-                                "fp32",
                             ],
                             visible=False,
                         )
@@ -428,12 +440,14 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                                 value=args.batch_size,
                                 step=1,
                                 label="Batch Size",
-                                interactive=True,
+                                interactive=False,
+                                visible=False,
                             )
                         repeatable_seeds = gr.Checkbox(
                             args.repeatable_seeds,
                             label="Repeatable Seeds",
                         )
+
                 with gr.Row():
                     seed = gr.Textbox(
                         value=args.seed,
@@ -485,16 +499,20 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                     stop_batch = gr.Button("Stop Batch")
                 with gr.Row():
                     txt2img_sdxl_sendto_img2img = gr.Button(
-                        value="Send To Img2Img"
+                        value="Send To Img2Img",
+                        visible=False,
                     )
                     txt2img_sdxl_sendto_inpaint = gr.Button(
-                        value="Send To Inpaint"
+                        value="Send To Inpaint",
+                        visible=False,
                     )
                     txt2img_sdxl_sendto_outpaint = gr.Button(
-                        value="Send To Outpaint"
+                        value="Send To Outpaint",
+                        visible=False,
                     )
                     txt2img_sdxl_sendto_upscaler = gr.Button(
-                        value="Send To Upscaler"
+                        value="Send To Upscaler",
+                        visible=False,
                     )
 
         kwargs = dict(
@@ -524,14 +542,42 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
             ],
             outputs=[txt2img_sdxl_gallery, std_output, txt2img_sdxl_status],
             show_progress="minimal" if args.progress_bar else "none",
+            queue=True,
         )
 
         status_kwargs = dict(
             fn=lambda bc, bs: status_label("Text-to-Image-SDXL", 0, bc, bs),
             inputs=[batch_count, batch_size],
             outputs=txt2img_sdxl_status,
+            concurrency_limit=1,
         )
 
+        def autogen_changed(checked):
+            if checked:
+                args.autogen = True
+            else:
+                args.autogen = False
+
+        def check_last_input(prompt):
+            if not prompt.endswith(" "):
+                return True
+            elif not args.autogen:
+                return True
+            else:
+                return False
+
+        auto_gen_kwargs = dict(
+            fn=check_last_input,
+            inputs=[negative_prompt],
+            outputs=[txt2img_sdxl_status],
+            concurrency_limit=1,
+        )
+
+        txt2img_sdxl_autogen.change(
+            fn=autogen_changed,
+            inputs=[txt2img_sdxl_autogen],
+            outputs=None,
+        )
         prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
         neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
             **kwargs
@@ -539,7 +585,11 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
         generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
         stop_batch.click(
             fn=cancel_sd,
-            cancels=[prompt_submit, neg_prompt_submit, generate_click],
+            cancels=[
+                prompt_submit,
+                neg_prompt_submit,
+                generate_click,
+            ],
         )
 
         txt2img_sdxl_png_info_img.change(
@@ -589,6 +639,7 @@ with gr.Blocks(title="Text-to-Image-SDXL") as txt2img_sdxl_web:
                 width,
                 height,
                 custom_vae,
+                txt2img_sdxl_autogen,
             ],
         )
         lora_weights.change(
