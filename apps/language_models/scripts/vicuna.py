@@ -1192,10 +1192,9 @@ class ShardedVicuna(VicunaBase):
                 )
                 if device_idx is None:
                     if self.n_devices is not None:
-                        device_idx = idx % self.n_devices
+                        device_idx = (idx * self.n_devices) // self.n_layers_dict[self.model_name]
                     else:
                         device_idx = None
-                print(device_idx, self.n_devices)
                 module = SharkInference(
                     None,
                     device=device,
@@ -1211,7 +1210,7 @@ class ShardedVicuna(VicunaBase):
                 )
                 if device_idx is None:
                     if self.n_devices is not None:
-                        device_idx = idx % self.n_devices
+                        device_idx = (idx * self.n_devices) // self.n_layers_dict[self.model_name]
                     else:
                         device_idx = None
                 module = SharkInference(
@@ -1448,7 +1447,8 @@ class ShardedVicuna(VicunaBase):
         )
 
         if not compressed:
-            shark_layers = [CompiledVicunaLayer(m) for m in modules]
+            breakpoints = [x for x in range(0,len(modules),(self.n_devices % 2) + (len(modules)//(self.n_devices)))][1:] + [len(modules)]
+            shark_layers = [CompiledVicunaLayer(m, i, breakpoints) for (i, m) in enumerate(modules)]
         else:
             shark_layers = [CompiledEightLayerLayer(m) for m in modules]
             vicuna_model.model.compressedlayers = shark_layers
