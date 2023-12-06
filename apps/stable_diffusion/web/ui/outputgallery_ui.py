@@ -84,6 +84,7 @@ with gr.Blocks() as outputgallery_web:
                 show_label=True,
                 elem_id="top_logo",
                 elem_classes="logo_centered",
+                show_download_button=False,
             )
 
             gallery = gr.Gallery(

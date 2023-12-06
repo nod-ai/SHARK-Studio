@@ -129,15 +129,15 @@ body {
     padding: 0 var(--size-4) !important;
 }
 
-#ui_title {
-    padding: var(--size-2) 0 0 var(--size-1);
-}
-
 #top_logo {
     color: transparent;
     background-color: transparent;
     border-radius: 0 !important;
     border: 0;
+}
+
+#ui_title {
+    padding: var(--size-2) 0 0 var(--size-1);
 }
 
 #demo_title_outer {
@@ -232,11 +232,6 @@ footer {
 #device .options .item .inner-item,
 #stencil_model .options .item .inner-item {
     display:none;
-}
-
-/* Hide the download icon from the nod logo */
-#top_logo button {
-    display: none;
 }
 
 /* workarounds for container=false not currently working for dropdowns */

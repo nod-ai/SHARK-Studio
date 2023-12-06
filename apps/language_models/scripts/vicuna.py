@@ -512,8 +512,8 @@ class ShardedVicuna(VicunaBase):
         n_devices=None,
     ) -> None:
         self.hf_auth_token = hf_auth_token
-        self.hidden_state_size_dict = {"vicuna": 4096, "llama2_7b": 4096, "llama2_13b" : 5120}
-        self.n_layers_dict = {"vicuna": 32, "llama2_7b": 32, "llama2_13b" : 40}
+        self.hidden_state_size_dict = {"vicuna": 4096, "llama2_7b": 4096, "llama2_13b" : 5120, "llama2_70b" : 8192}
+        self.n_layers_dict = {"vicuna": 32, "llama2_7b": 32, "llama2_13b" : 40, "llama2_70b" : 80}
         super().__init__(
             model_name,
             hf_model_path,
@@ -534,6 +534,11 @@ class ShardedVicuna(VicunaBase):
         if not self.dir_path.is_dir():
             self.dir_path.mkdir(parents=True, exist_ok=True)
         self.shark_model = self.compile(device=device)
+
+    def check_all_artifacts_present(self):
+        file_list = [f"{i}_full" for i in range(self.n_layers_dict[self.model_name])] + ["norm", "embedding", "lmhead"]
+        file_exists_list = [Path(f"{self.dir_name}/{x}.vmfb").exists() or Path(f"{self.dir_name}/{x}.mlir").exists() for x in file_list]
+        return all(file_exists_list)
 
     def get_tokenizer(self):
         kwargs = {}
@@ -1192,10 +1197,9 @@ class ShardedVicuna(VicunaBase):
                 )
                 if device_idx is None:
                     if self.n_devices is not None:
-                        device_idx = idx % self.n_devices
+                        device_idx = (idx * self.n_devices) // self.n_layers_dict[self.model_name]
                     else:
                         device_idx = None
-                print(device_idx, self.n_devices)
                 module = SharkInference(
                     None,
                     device=device,
@@ -1211,7 +1215,7 @@ class ShardedVicuna(VicunaBase):
                 )
                 if device_idx is None:
                     if self.n_devices is not None:
-                        device_idx = idx % self.n_devices
+                        device_idx = (idx * self.n_devices) // self.n_layers_dict[self.model_name]
                     else:
                         device_idx = None
                 module = SharkInference(
@@ -1322,34 +1326,40 @@ class ShardedVicuna(VicunaBase):
             )
 
         if self.precision in ["int4", "int8"]:
-            from brevitas_examples.common.generative.quantize import (
-                quantize_model,
-            )
-            from brevitas_examples.llm.llm_quant.run_utils import (
-                get_model_impl,
-            )
 
-            print("Applying weight quantization..")
-            weight_bit_width = 4 if self.precision == "int4" else 8
-            quantize_model(
-                get_model_impl(vicuna_model).layers,
-                dtype=torch.float32,
-                weight_quant_type="asym",
-                weight_bit_width=weight_bit_width,
-                weight_param_method="stats",
-                weight_scale_precision="float_scale",
-                weight_quant_granularity="per_group",
-                weight_group_size=self.weight_group_size,
-                quantize_weight_zero_point=False,
-                input_bit_width=None,
-                input_scale_type="float",
-                input_param_method="stats",
-                input_quant_type="asym",
-                input_quant_granularity="per_tensor",
-                quantize_input_zero_point=False,
-                seqlen=2048,
-            )
-            print("Weight quantization applied.")
+            if not self.check_all_artifacts_present():
+                print("Applying weight quantization..")
+                from brevitas_examples.common.generative.quantize import (
+                    quantize_model,
+                )
+                from brevitas_examples.llm.llm_quant.run_utils import (
+                    get_model_impl,
+                )
+                weight_bit_width = 4 if self.precision == "int4" else 8
+
+                quantize_model(
+                    get_model_impl(vicuna_model).layers,
+                    dtype=torch.float32,
+                    weight_quant_type="asym",
+                    weight_bit_width=weight_bit_width,
+                    weight_param_method="stats",
+                    weight_scale_precision="float_scale",
+                    weight_quant_granularity="per_group",
+                    weight_group_size=self.weight_group_size,
+                    quantize_weight_zero_point=False,
+                    input_bit_width=None,
+                    input_scale_type="float",
+                    input_param_method="stats",
+                    input_quant_type="asym",
+                    input_quant_granularity="per_tensor",
+                    quantize_input_zero_point=False,
+                    seqlen=2048,
+                )
+
+                print("Weight quantization applied.")
+
+            else:
+                print("Skipping quantization, as all required artifacts are present")
 
         placeholder_pkv_segment = tuple(
             (
@@ -1448,7 +1458,11 @@ class ShardedVicuna(VicunaBase):
         )
 
         if not compressed:
-            shark_layers = [CompiledVicunaLayer(m) for m in modules]
+            if self.n_devices is None:
+                breakpoints = None
+            else:
+                breakpoints = [x for x in range(0,len(modules),(self.n_devices % 2) + (len(modules)//(self.n_devices)))][1:] + [len(modules)]
+            shark_layers = [CompiledVicunaLayer(m, i, breakpoints) for (i, m) in enumerate(modules)]
         else:
             shark_layers = [CompiledEightLayerLayer(m) for m in modules]
             vicuna_model.model.compressedlayers = shark_layers
@@ -2263,14 +2277,14 @@ class BenchmarkRunInfo:
         print(f"Decode: {self.get_decode_time_ms():.2f} ms, {self.get_decode_speed():.2f} tokens/s")
         print(f"Decode end-2-end: {self.get_e2e_decode_speed():.2f} tokens/s (w/o prompt), {self.get_e2e_token_processing_speed():.2f} tokens/s (w/ prompt)")
     
-    def enable_tracy_tracing():
-        # Make tracy wait for a caputre to be collected before exiting.
-        environ["TRACY_NO_EXIT"] = "1"
+def enable_tracy_tracing():
+    # Make tracy wait for a caputre to be collected before exiting.
+    environ["TRACY_NO_EXIT"] = "1"
 
-        if "IREE_PY_RUNTIME" not in environ or environ["IREE_PY_RUNTIME"] != "tracy":
-            print("ERROR: Tracing enabled but tracy iree runtime not used.", file=sys.stderr)
-            print("Set the IREE_PY_RUNTIME=tracy environment variable.", file=sys.stderr)
-            sys.exit(1)
+    if "IREE_PY_RUNTIME" not in environ or environ["IREE_PY_RUNTIME"] != "tracy":
+        print("ERROR: Tracing enabled but tracy iree runtime not used.", file=sys.stderr)
+        print("Set the IREE_PY_RUNTIME=tracy environment variable.", file=sys.stderr)
+        sys.exit(1)
 
 
 def print_aggregate_stats(run_infos: list[BenchmarkRunInfo]) -> None:
