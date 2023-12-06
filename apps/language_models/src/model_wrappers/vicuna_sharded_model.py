@@ -1,4 +1,5 @@
 import torch
+import time
 
 
 class FirstVicunaLayer(torch.nn.Module):
@@ -66,7 +67,6 @@ class ShardedVicunaModel(torch.nn.Module):
     def __init__(self, model, layers, lmhead, embedding, norm):
         super().__init__()
         self.model = model
-        # assert len(layers) == len(model.model.layers)
         self.model.model.config.use_cache = True
         self.model.model.config.output_attentions = False
         self.layers = layers
@@ -110,9 +110,11 @@ class LMHeadCompiled(torch.nn.Module):
         self.model = shark_module
 
     def forward(self, hidden_states):
-        hidden_states = hidden_states.detach()
+        hidden_states_sample = hidden_states.detach()
+
         output = self.model("forward", (hidden_states,))
         output = torch.tensor(output)
+
         return output
 
 
@@ -136,8 +138,9 @@ class VicunaNormCompiled(torch.nn.Module):
             hidden_states.detach()
         except:
             pass
-        output = self.model("forward", (hidden_states,))
+        output = self.model("forward", (hidden_states,), send_to_host=True)
         output = torch.tensor(output)
+
         return output
 
 
@@ -158,15 +161,18 @@ class VicunaEmbeddingCompiled(torch.nn.Module):
 
     def forward(self, input_ids):
         input_ids.detach()
-        output = self.model("forward", (input_ids,))
+        output = self.model("forward", (input_ids,), send_to_host=True)
         output = torch.tensor(output)
+
         return output
 
 
 class CompiledVicunaLayer(torch.nn.Module):
-    def __init__(self, shark_module):
+    def __init__(self, shark_module, idx, breakpoints):
         super().__init__()
         self.model = shark_module
+        self.idx = idx
+        self.breakpoints = breakpoints
 
     def forward(
         self,
@@ -177,10 +183,11 @@ class CompiledVicunaLayer(torch.nn.Module):
         output_attentions=False,
         use_cache=True,
     ):
+        if self.breakpoints is None:
+            is_breakpoint = False
+        else:
+            is_breakpoint = self.idx + 1 in self.breakpoints
         if past_key_value is None:
-            hidden_states = hidden_states.detach()
-            attention_mask = attention_mask.detach()
-            position_ids = position_ids.detach()
             output = self.model(
                 "first_vicuna_forward",
                 (
@@ -188,11 +195,17 @@ class CompiledVicunaLayer(torch.nn.Module):
                     attention_mask,
                     position_ids,
                 ),
+                send_to_host=is_breakpoint,
             )
 
-            output0 = torch.tensor(output[0])
-            output1 = torch.tensor(output[1])
-            output2 = torch.tensor(output[2])
+            if is_breakpoint:
+                output0 = torch.tensor(output[0])
+                output1 = torch.tensor(output[1])
+                output2 = torch.tensor(output[2])
+            else:
+                output0 = output[0]
+                output1 = output[1]
+                output2 = output[2]
 
             return (
                 output0,
@@ -202,11 +215,8 @@ class CompiledVicunaLayer(torch.nn.Module):
                 ),
             )
         else:
-            hidden_states = hidden_states.detach()
-            attention_mask = attention_mask.detach()
-            position_ids = position_ids.detach()
-            pkv0 = past_key_value[0].detach()
-            pkv1 = past_key_value[1].detach()
+            pkv0 = past_key_value[0]
+            pkv1 = past_key_value[1]
             output = self.model(
                 "second_vicuna_forward",
                 (
@@ -216,11 +226,17 @@ class CompiledVicunaLayer(torch.nn.Module):
                     pkv0,
                     pkv1,
                 ),
+                send_to_host=is_breakpoint,
             )
 
-            output0 = torch.tensor(output[0])
-            output1 = torch.tensor(output[1])
-            output2 = torch.tensor(output[2])
+            if is_breakpoint:
+                output0 = torch.tensor(output[0])
+                output1 = torch.tensor(output[1])
+                output2 = torch.tensor(output[2])
+            else:
+                output0 = output[0]
+                output1 = output[1]
+                output2 = output[2]
 
             return (
                 output0,
