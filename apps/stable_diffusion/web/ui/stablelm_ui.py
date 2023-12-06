@@ -264,7 +264,7 @@ def chat(
     for text, msg, exec_time in vicuna_model.generate(prompt, cli=cli):
         if msg is None:
             if is_first:
-                prefill_time = exec_time
+                prefill_time = exec_time / 1000
                 is_first = False
             else:
                 total_time_ms += exec_time
