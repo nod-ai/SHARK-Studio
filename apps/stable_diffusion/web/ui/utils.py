@@ -282,6 +282,12 @@ def set_model_default_configs(model_ckpt_or_id, jsonconfig=None):
             gr.update(),
             gr.update(),
             gr.update(),
+            gr.Checkbox(
+                label="Auto-Generate",
+                visible=False,
+                interactive=False,
+                value=False,
+            ),
         ]
 
 
@@ -317,7 +323,7 @@ default_configs = {
         gr.Textbox(label="", interactive=False, value=None, visible=False),
         gr.Textbox(
             label="Prompt",
-            value="role-playing game (RPG) style fantasy, An enchanting image featuring an adorable kitten mage wearing intricate ancient robes, holding an ancient staff, hard at work in her fantastical workshop, magic runes floating in the air",
+            value="masterpiece, a graceful shark leaping out of the water to catch a fish, eclipsing the sunset, epic, rays of light, silhouette",
         ),
         gr.Slider(0, 10, value=2),
         gr.Dropdown(value="EulerAncestralDiscrete"),
@@ -325,6 +331,9 @@ default_configs = {
         512,
         512,
         "madebyollin/sdxl-vae-fp16-fix",
+        gr.Checkbox(
+            label="Auto-Generate", visible=False, interactive=True, value=False
+        ),
     ],
     "stabilityai/stable-diffusion-xl-base-1.0": [
         gr.Textbox(label="Prompt", interactive=True, visible=True),
@@ -332,9 +341,15 @@ default_configs = {
         40,
         "EulerDiscrete",
         7.5,
-        gr.Slider(value=1024, interactive=False),
-        gr.Slider(value=1024, interactive=False),
+        gr.Slider(value=768, interactive=True),
+        gr.Slider(value=768, interactive=True),
         "madebyollin/sdxl-vae-fp16-fix",
+        gr.Checkbox(
+            label="Auto-Generate",
+            visible=False,
+            interactive=False,
+            value=False,
+        ),
     ],
 }
 
