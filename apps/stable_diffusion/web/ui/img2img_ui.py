@@ -326,14 +326,21 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     value=nod_logo,
                     show_label=False,
                     interactive=False,
+                    show_download_button=False,
                     elem_id="top_logo",
                     width=150,
                     height=50,
-                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
+                # TODO: make this import image prompt info if it exists
+                img2img_init_image = gr.Image(
+                    label="Input Image",
+                    type="pil",
+                    interactive=True,
+                    sources=["upload"],
+                )
                 with gr.Row():
                     # janky fix for overflowing text
                     i2i_model_info = (
@@ -380,14 +387,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
-                # TODO: make this import image prompt info if it exists
-                img2img_init_image = gr.Image(
-                    label="Input Image",
-                    type="pil",
-                    height=300,
-                    interactive=True,
-                )
-
                 with gr.Accordion(label="Multistencil Options", open=False):
                     choices = [
                         "None",
@@ -958,6 +957,8 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="gallery",
                         columns=2,
                         object_fit="contain",
+                        # TODO: Re-enable download when fixed in Gradio
+                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{i2i_model_info}\n"

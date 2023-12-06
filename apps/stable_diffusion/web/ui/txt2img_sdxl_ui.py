@@ -240,10 +240,10 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                     value=nod_logo,
                     show_label=False,
                     interactive=False,
+                    show_download_button=False,
                     elem_id="top_logo",
                     width=150,
                     height=50,
-                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
@@ -264,7 +264,7 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                                     custom_checkpoint_type="sdxl"
                                 ),
                                 allow_custom_value=True,
-                                scale=2,
+                                scale=11,
                             )
                             t2i_sdxl_vae_info = (
                                 str(get_custom_model_path("vae"))
@@ -283,15 +283,16 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                                 ]
                                 + get_custom_model_files("vae"),
                                 allow_custom_value=True,
-                                scale=1,
+                                scale=4,
                             )
-                    with gr.Column(scale=1, min_width=170):
-                        txt2img_sdxl_png_info_img = gr.Image(
-                            label="Import PNG info",
-                            elem_id="txt2img_prompt_image",
-                            type="pil",
-                            visible=True,
-                        )
+                            txt2img_sdxl_png_info_img = gr.Image(
+                                scale=1,
+                                label="Import PNG info",
+                                elem_id="txt2img_prompt_image",
+                                type="pil",
+                                visible=True,
+                                sources=["upload"],
+                            )
 
                 with gr.Group(elem_id="prompt_box_outer"):
                     txt2img_sdxl_autogen = gr.Checkbox(
@@ -477,6 +478,8 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="scale_down",
+                        # TODO: Re-enable download when fixed in Gradio
+                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{t2i_sdxl_model_info}\n"

@@ -80,28 +80,28 @@ with gr.Blocks() as outputgallery_web:
                 label="Getting subdirectories...",
                 value=nod_logo,
                 interactive=False,
+                show_download_button=False,
                 visible=True,
                 show_label=True,
                 elem_id="top_logo",
                 elem_classes="logo_centered",
-                show_download_button=False,
             )
-
             gallery = gr.Gallery(
                 label="",
                 value=gallery_files.value,
                 visible=False,
                 show_label=True,
                 columns=4,
+                # TODO: Re-enable download when fixed in Gradio
+                show_download_button=False,
             )
 
         with gr.Column(scale=4):
             with gr.Group():
-                with gr.Row():
+                with gr.Row(elem_id="output_subdir_container"):
                     with gr.Column(
                         scale=15,
                         min_width=160,
-                        elem_id="output_subdir_container",
                     ):
                         subdirectories = gr.Dropdown(
                             label=f"Subdirectories of {output_dir}",
@@ -109,7 +109,7 @@ with gr.Blocks() as outputgallery_web:
                             choices=subdirectory_paths.value,
                             value="",
                             interactive=True,
-                            elem_classes="dropdown_no_container",
+                            # elem_classes="dropdown_no_container",
                             allow_custom_value=True,
                         )
                     with gr.Column(
@@ -149,11 +149,12 @@ with gr.Blocks() as outputgallery_web:
             ) as parameters_accordian:
                 image_parameters = gr.DataFrame(
                     headers=["Parameter", "Value"],
-                    col_count=2,
+                    col_count=(2, "fixed"),
+                    row_count=(1, "fixed"),
                     wrap=True,
                     elem_classes="output_parameters_dataframe",
                     value=[["Status", "No image selected"]],
-                    interactive=True,
+                    interactive=False,
                 )
 
             with gr.Accordion(label="Send To", open=True):
@@ -327,12 +328,18 @@ with gr.Blocks() as outputgallery_web:
             else:
                 return [
                     filename,
-                    list(map(list, params["parameters"].items())),
+                    gr.DataFrame(
+                        value=list(map(list, params["parameters"].items())),
+                        row_count=(len(params["parameters"]), "fixed"),
+                    ),
                 ]
 
         return [
             filename,
-            [["Status", "No parameters found"]],
+            gr.DataFrame(
+                value=[["Status", "No parameters found"]],
+                row_count=(1, "fixed"),
+            ),
         ]
 
     def on_outputgallery_filename_change(filename: str) -> list:
@@ -450,11 +457,12 @@ with gr.Blocks() as outputgallery_web:
     # We should have been passed a list of components on other tabs that update
     # when a new image has generated on that tab, so set things up so the user
     # will see that new image if they are looking at today's subdirectory
-    def outputgallery_watch(components: gr.Textbox):
+    def outputgallery_watch(components: gr.Textbox, queued_components=[]):
         for component in components:
             component.change(
                 on_new_image,
                 inputs=[subdirectories, subdirectory_paths, component],
                 outputs=[gallery_files, gallery, logo],
-                queue=False,
+                queue=component in queued_components,
+                show_progress="none",
             )

@@ -3,8 +3,15 @@ import torch
 import time
 import sys
 import gradio as gr
+import PIL.ImageOps
 from PIL import Image
 
+from gradio.components.image_editor import (
+    Brush,
+    Eraser,
+    EditorData,
+    EditorValue,
+)
 from apps.stable_diffusion.web.ui.utils import (
     available_devices,
     nodlogo_loc,
@@ -37,11 +44,53 @@ init_use_tuned = args.use_tuned
 init_import_mlir = args.import_mlir
 
 
+def set_image_states(editor_data):
+    input_mask = editor_data["layers"][0]
+
+    # inpaint_inf wants white mask on black background (?), whilst ImageEditor
+    # delivers black mask on transparent (0 opacity) background
+    inference_mask = Image.new(
+        mode="RGB", size=input_mask.size, color=(255, 255, 255)
+    )
+    inference_mask.paste(input_mask, input_mask)
+    inference_mask = PIL.ImageOps.invert(inference_mask)
+
+    return (
+        # we set the ImageEditor data again, because it likes to clear
+        # the image layers (which include the mask) if the user hasn't
+        # used the upload button, and we sent it and image
+        # TODO: work out what is going wrong in that case so we don't have
+        # to do this
+        {
+            "background": editor_data["background"],
+            "layers": [input_mask],
+            "composite": None,
+        },
+        editor_data["background"],
+        input_mask,
+        inference_mask,
+    )
+
+
+def reload_image_editor(editor_image, editor_mask):
+    # we set the ImageEditor data again, because it likes to clear
+    # the image layers (which include the mask) if the user hasn't
+    # used the upload button, and we sent it the image
+    # TODO: work out what is going wrong in that case so we don't have
+    # to do this
+    return {
+        "background": editor_image,
+        "layers": [editor_mask],
+        "composite": None,
+    }
+
+
 # Exposed to UI.
 def inpaint_inf(
     prompt: str,
     negative_prompt: str,
-    image_dict,
+    image,
+    mask_image,
     height: int,
     width: int,
     inpaint_full_res: bool,
@@ -175,8 +224,6 @@ def inpaint_inf(
     start_time = time.time()
     global_obj.get_sd_obj().log = ""
     generated_imgs = []
-    image = image_dict["image"]
-    mask_image = image_dict["mask"]
     text_output = ""
     try:
         seeds = utils.batch_seeds(seed, batch_count, repeatable_seeds)
@@ -223,6 +270,9 @@ def inpaint_inf(
 
 
 with gr.Blocks(title="Inpainting") as inpaint_web:
+    editor_image = gr.State()
+    editor_mask = gr.State()
+    inference_mask = gr.State()
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -231,14 +281,24 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     value=nod_logo,
                     show_label=False,
                     interactive=False,
+                    show_download_button=False,
                     elem_id="top_logo",
                     width=150,
                     height=50,
-                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
+                inpaint_init_image = gr.Sketchpad(
+                    label="Masked Image",
+                    type="pil",
+                    sources=("clipboard", "upload"),
+                    interactive=True,
+                    brush=Brush(
+                        colors=["#000000"],
+                        color_mode="fixed",
+                    ),
+                )
                 with gr.Row():
                     # janky fix for overflowing text
                     inpaint_model_info = (
@@ -288,14 +348,6 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
-
-                inpaint_init_image = gr.Image(
-                    label="Masked Image",
-                    sources="upload",
-                    type="pil",
-                    height=350,
-                )
-
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         # janky fix for overflowing text
@@ -448,6 +500,8 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="contain",
+                        # TODO: Re-enable download when fixed in Gradio
+                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{inpaint_model_info}\n"
@@ -484,7 +538,8 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
             inputs=[
                 prompt,
                 negative_prompt,
-                inpaint_init_image,
+                editor_image,
+                inference_mask,
                 height,
                 width,
                 inpaint_full_res,
@@ -514,18 +569,53 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
             fn=lambda bc, bs: status_label("Inpaint", 0, bc, bs),
             inputs=[batch_count, batch_size],
             outputs=inpaint_status,
+            show_progress="none",
+        )
+        set_image_states_args = dict(
+            fn=set_image_states,
+            inputs=[inpaint_init_image],
+            outputs=[
+                inpaint_init_image,
+                editor_image,
+                editor_mask,
+                inference_mask,
+            ],
+            show_progress="none",
+        )
+        reload_image_editor_args = dict(
+            fn=reload_image_editor,
+            inputs=[editor_image, editor_mask],
+            outputs=[inpaint_init_image],
+            show_progress="none",
         )
 
-        prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
-            **kwargs
+        # all these trigger generation
+        prompt_submit = (
+            prompt.submit(**set_image_states_args)
+            .then(**status_kwargs)
+            .then(**kwargs)
+            .then(**reload_image_editor_args)
         )
-        generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
+        neg_prompt_submit = (
+            negative_prompt.submit(**set_image_states_args)
+            .then(**status_kwargs)
+            .then(**kwargs)
+            .then(**reload_image_editor_args)
+        )
+        generate_click = (
+            stable_diffusion.click(**set_image_states_args)
+            .then(**status_kwargs)
+            .then(**kwargs)
+            .then(**reload_image_editor_args)
+        )
+
+        # Attempts to cancel generation
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
         )
 
+        # Updates LoRA information when one is selected
         lora_weights.change(
             fn=lora_changed,
             inputs=[lora_weights],
