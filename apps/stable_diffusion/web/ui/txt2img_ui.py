@@ -325,6 +325,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                     elem_id="top_logo",
                     width=150,
                     height=50,
+                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
