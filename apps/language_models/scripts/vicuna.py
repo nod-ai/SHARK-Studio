@@ -512,8 +512,8 @@ class ShardedVicuna(VicunaBase):
         n_devices=None,
     ) -> None:
         self.hf_auth_token = hf_auth_token
-        self.hidden_state_size_dict = {"vicuna": 4096, "llama2_7b": 4096, "llama2_13b" : 5120}
-        self.n_layers_dict = {"vicuna": 32, "llama2_7b": 32, "llama2_13b" : 40}
+        self.hidden_state_size_dict = {"vicuna": 4096, "llama2_7b": 4096, "llama2_13b" : 5120, "llama2_70b" : 8192}
+        self.n_layers_dict = {"vicuna": 32, "llama2_7b": 32, "llama2_13b" : 40, "llama2_70b" : 80}
         super().__init__(
             model_name,
             hf_model_path,
