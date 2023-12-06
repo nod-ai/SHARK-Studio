@@ -412,9 +412,10 @@ class StencilPipeline(StableDiffusionPipeline):
         for i, stencil in enumerate(stencils):
             if stencil == None:
                 continue
-            if len(stencil_hints) >= i and stencil_hints[i] is not None:
-                print(f"Using preprocessed controlnet hint for {stencil}")
-                continue
+            if len(stencil_hints) >= i:
+                if stencil_hints[i] is not None:
+                    print(f"Using preprocessed controlnet hint for {stencil}")
+                    continue
             image = stencil_images[i]
             stencil_hints.append(
                 controlnet_hint_conversion(

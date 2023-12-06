@@ -190,9 +190,6 @@ class SharkifyStableDiffusionModel:
                 )
 
         self.model_id = model_id if custom_weights == "" else custom_weights
-        # TODO: remove the following line when stable-diffusion-2-1 works
-        if self.model_id == "stabilityai/stable-diffusion-2-1":
-            self.model_id = "stabilityai/stable-diffusion-2-1-base"
         self.custom_vae = custom_vae
         self.precision = precision
         self.base_vae = use_base_vae
@@ -208,6 +205,7 @@ class SharkifyStableDiffusionModel:
             + "_"
             + precision
         )
+        self.model_namedata = self.model_name
         print(f"use_tuned? sharkify: {use_tuned}")
         self.use_tuned = use_tuned
         if use_tuned:
@@ -272,7 +270,11 @@ class SharkifyStableDiffusionModel:
                 stencil_names = []
                 for i, stencil in enumerate(self.stencils):
                     if stencil is not None:
-                        cnet_config = model_config + stencil.split("_")[-1]
+                        cnet_config = (
+                            self.model_namedata
+                            + "_v1-5"
+                            + stencil.split("_")[-1]
+                        )
                         stencil_names.append(
                             get_extended_name(sub_model + cnet_config)
                         )
@@ -765,10 +767,11 @@ class SharkifyStableDiffusionModel:
         model_name = "stencil_adapter_512" if use_large else "stencil_adapter"
         ext_model_name = self.model_name[model_name]
         if isinstance(ext_model_name, list):
+            desired_name = None
+            print(ext_model_name)
             for i in ext_model_name:
                 if stencil_id.split("_")[-1] in i:
                     desired_name = i
-                    print(f"Multi-CN: compiling model {i}")
                 else:
                     continue
             if desired_name:
