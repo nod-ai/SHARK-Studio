@@ -284,7 +284,6 @@ class SharkifyStableDiffusionModel:
             else:
                 model_name[model] = get_extended_name(sub_model + model_config)
         index += 1
-        print(f"model name at {index} = {self.model_name}")
 
         return model_name
 
