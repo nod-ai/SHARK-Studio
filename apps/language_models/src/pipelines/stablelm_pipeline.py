@@ -73,6 +73,14 @@ class SharkStableLM(SharkLLMBase):
         super().__init__(model_name, hf_model_path, max_num_tokens)
         self.max_sequence_len = 256
         self.device = device
+        if precision != "int4" and args.hf_auth_token == None:
+            raise ValueError(
+                """ HF auth token required for StableLM-3B. Pass it using
+                --hf_auth_token flag. You can ask for the access to the model
+                here: https://huggingface.co/tiiuae/falcon-180B-chat."""
+            )
+        self.hf_auth_token = args.hf_auth_token
+
         self.precision = precision
         self.debug = debug
         self.tokenizer = self.get_tokenizer()
@@ -86,12 +94,23 @@ class SharkStableLM(SharkLLMBase):
         return False
 
     def get_src_model(self):
+        kwargs = {}
+        if self.precision == "int4":
+            self.hf_model_path = "TheBloke/stablelm-zephyr-3b-GPTQ"
+            from transformers import GPTQConfig
+
+            quantization_config = GPTQConfig(bits=4, disable_exllama=True)
+            kwargs["quantization_config"] = quantization_config
+            kwargs["device_map"] = "cpu"
+        print("[DEBUG] Loading Model")
         model = AutoModelForCausalLM.from_pretrained(
             self.hf_model_path,
             trust_remote_code=True,
             torch_dtype=torch.float32,
-            use_auth_token="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",
+            use_auth_token=self.hf_auth_token,
+            **kwargs,
         )
+        print("[DEBUG] Model loaded successfully")
         return model
 
     def get_model_inputs(self):
@@ -100,9 +119,7 @@ class SharkStableLM(SharkLLMBase):
         return input_ids, attention_mask
 
     def compile(self):
-        tmp_model_name = (
-            f"stableLM_linalg_{self.precision}_seqLen{self.max_sequence_len}"
-        )
+        tmp_model_name = f"{self.model_name}_linalg_{self.precision}_seqLen{self.max_sequence_len}"
 
         # device = "cuda"  # "cpu"
         # TODO: vmfb and mlir name should include precision and device
@@ -168,7 +185,7 @@ class SharkStableLM(SharkLLMBase):
     def get_tokenizer(self):
         tok = AutoTokenizer.from_pretrained(
             self.hf_model_path,
-            use_auth_token="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",
+            use_auth_token=self.hf_auth_token,
         )
         tok.add_special_tokens({"pad_token": "<PAD>"})
         # print("[DEBUG] Sucessfully loaded the tokenizer to the memory")
@@ -242,8 +259,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     stable_lm = SharkStableLM(
-        model_name="StableLM",
-        hf_model_path="stabilityai/stablelm-3b-4e1t",
+        model_name="stablelm_zephyr_3b",
+        hf_model_path="stabilityai/stablelm-zephyr-3b",
         device=args.device,
         precision=args.precision,
     )
