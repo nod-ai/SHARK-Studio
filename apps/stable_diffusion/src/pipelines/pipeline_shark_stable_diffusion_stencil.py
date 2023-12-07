@@ -461,6 +461,7 @@ class StencilPipeline(StableDiffusionPipeline):
         #     image, use_stencil, height, width, dtype, num_images_per_prompt=1
         # )
         stencil_hints = []
+        self.sd_model.stencils = stencils
         for i, hint in enumerate(preprocessed_hints):
             if hint is not None:
                 hint = controlnet_hint_reshaping(

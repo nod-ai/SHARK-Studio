@@ -254,8 +254,8 @@ class SharkifyStableDiffusionModel:
             "stencil_adapter",
             "stencil_adapter_512",
         ]
-        if model_list:
-            sub_model_list=model_list
+        if model_list is not None:
+            sub_model_list = model_list
         index = 0
         for model in sub_model_list:
             sub_model = model
@@ -273,7 +273,7 @@ class SharkifyStableDiffusionModel:
                     if stencil is not None:
                         cnet_config = (
                             self.model_namedata
-                            + "_v1-5"
+                            + "_sd15_"
                             + stencil.split("_")[-1]
                         )
                         stencil_names.append(
