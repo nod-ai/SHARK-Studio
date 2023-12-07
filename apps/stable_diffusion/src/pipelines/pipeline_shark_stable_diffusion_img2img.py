@@ -162,6 +162,7 @@ class Image2ImagePipeline(StableDiffusionPipeline):
         images,
         resample_type,
         control_mode,
+        preprocessed_hints=[],
     ):
         # prompts and negative prompts must be a list.
         if isinstance(prompts, str):

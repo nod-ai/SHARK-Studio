@@ -190,9 +190,6 @@ class SharkifyStableDiffusionModel:
                 )
 
         self.model_id = model_id if custom_weights == "" else custom_weights
-        # TODO: remove the following line when stable-diffusion-2-1 works
-        if self.model_id == "stabilityai/stable-diffusion-2-1":
-            self.model_id = "stabilityai/stable-diffusion-2-1-base"
         self.custom_vae = custom_vae
         self.precision = precision
         self.base_vae = use_base_vae
@@ -208,6 +205,7 @@ class SharkifyStableDiffusionModel:
             + "_"
             + precision
         )
+        self.model_namedata = self.model_name
         print(f"use_tuned? sharkify: {use_tuned}")
         self.use_tuned = use_tuned
         if use_tuned:
@@ -221,7 +219,6 @@ class SharkifyStableDiffusionModel:
             self.model_name = self.model_name + "_" + get_path_stem(use_lora)
         self.use_lora = use_lora
 
-        print(self.model_name)
         self.model_name = self.get_extended_name_for_all_model()
         self.debug = debug
         self.sharktank_dir = sharktank_dir
@@ -243,7 +240,7 @@ class SharkifyStableDiffusionModel:
             args.hf_model_id = self.base_model_id
         self.return_mlir = return_mlir
 
-    def get_extended_name_for_all_model(self):
+    def get_extended_name_for_all_model(self, model_list=None):
         model_name = {}
         sub_model_list = [
             "clip",
@@ -257,6 +254,8 @@ class SharkifyStableDiffusionModel:
             "stencil_adapter",
             "stencil_adapter_512",
         ]
+        if model_list is not None:
+            sub_model_list = model_list
         index = 0
         for model in sub_model_list:
             sub_model = model
@@ -272,7 +271,11 @@ class SharkifyStableDiffusionModel:
                 stencil_names = []
                 for i, stencil in enumerate(self.stencils):
                     if stencil is not None:
-                        cnet_config = model_config + stencil.split("_")[-1]
+                        cnet_config = (
+                            self.model_namedata
+                            + "_sd15_"
+                            + stencil.split("_")[-1]
+                        )
                         stencil_names.append(
                             get_extended_name(sub_model + cnet_config)
                         )
@@ -281,6 +284,7 @@ class SharkifyStableDiffusionModel:
             else:
                 model_name[model] = get_extended_name(sub_model + model_config)
         index += 1
+
         return model_name
 
     def check_params(self, max_len, width, height):
@@ -539,7 +543,7 @@ class SharkifyStableDiffusionModel:
                 )
                 if use_lora != "":
                     update_lora_weight(self.unet, use_lora, "unet")
-                self.in_channels = self.unet.in_channels
+                self.in_channels = self.unet.config.in_channels
                 self.train(False)
 
             def forward(
@@ -763,12 +767,14 @@ class SharkifyStableDiffusionModel:
 
         inputs = tuple(self.inputs["stencil_adapter"])
         model_name = "stencil_adapter_512" if use_large else "stencil_adapter"
-        ext_model_name = self.model_name[model_name]
+        stencil_names = self.get_extended_name_for_all_model([model_name])
+        ext_model_name = stencil_names[model_name]
         if isinstance(ext_model_name, list):
+            desired_name = None
+            print(ext_model_name)
             for i in ext_model_name:
                 if stencil_id.split("_")[-1] in i:
                     desired_name = i
-                    print(f"Multi-CN: compiling model {i}")
                 else:
                     continue
             if desired_name:

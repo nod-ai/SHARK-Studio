@@ -243,6 +243,7 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                     elem_id="top_logo",
                     width=150,
                     height=50,
+                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
@@ -347,14 +348,14 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value=args.scheduler,
+                            value="EulerDiscrete",
                             choices=[
                                 "DDIM",
                                 "EulerAncestralDiscrete",
                                 "EulerDiscrete",
                                 "LCMScheduler",
                             ],
-                            allow_custom_value=False,
+                            allow_custom_value=True,
                             visible=True,
                         )
                         with gr.Column():

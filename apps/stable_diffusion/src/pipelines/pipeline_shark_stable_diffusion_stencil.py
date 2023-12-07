@@ -25,12 +25,22 @@ from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
-from apps.stable_diffusion.src.utils import controlnet_hint_conversion
+from apps.stable_diffusion.src.utils import (
+    controlnet_hint_conversion,
+    controlnet_hint_reshaping,
+)
 from apps.stable_diffusion.src.utils import (
     start_profiling,
     end_profiling,
 )
-from apps.stable_diffusion.src.models import SharkifyStableDiffusionModel
+from apps.stable_diffusion.src.utils import (
+    resamplers,
+    resampler_list,
+)
+from apps.stable_diffusion.src.models import (
+    SharkifyStableDiffusionModel,
+    get_vae_encode,
+)
 
 
 class StencilPipeline(StableDiffusionPipeline):
@@ -63,6 +73,24 @@ class StencilPipeline(StableDiffusionPipeline):
         self.controlnet_id = [str] * len(controlnet_names)
         self.controlnet_512_id = [str] * len(controlnet_names)
         self.controlnet_names = controlnet_names
+        self.vae_encode = None
+
+    def load_vae_encode(self):
+        if self.vae_encode is not None:
+            return
+
+        if self.import_mlir or self.use_lora:
+            self.vae_encode = self.sd_model.vae_encode()
+        else:
+            try:
+                self.vae_encode = get_vae_encode()
+            except:
+                print("download pipeline failed, falling back to import_mlir")
+                self.vae_encode = self.sd_model.vae_encode()
+
+    def unload_vae_encode(self):
+        del self.vae_encode
+        self.vae_encode = None
 
     def load_controlnet(self, index, model_name):
         if model_name is None:
@@ -122,6 +150,58 @@ class StencilPipeline(StableDiffusionPipeline):
         latents = latents * self.scheduler.init_noise_sigma
         return latents
 
+    def prepare_image_latents(
+        self,
+        image,
+        batch_size,
+        height,
+        width,
+        generator,
+        num_inference_steps,
+        strength,
+        dtype,
+        resample_type,
+    ):
+        # Pre process image -> get image encoded -> process latents
+
+        # TODO: process with variable HxW combos
+
+        # Pre-process image
+        resample_type = (
+            resamplers[resample_type]
+            if resample_type in resampler_list
+            # Fallback to Lanczos
+            else Image.Resampling.LANCZOS
+        )
+
+        image = image.resize((width, height), resample=resample_type)
+        image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
+        image_arr = image_arr / 255.0
+        image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(dtype)
+        image_arr = 2 * (image_arr - 0.5)
+
+        # set scheduler steps
+        self.scheduler.set_timesteps(num_inference_steps)
+        init_timestep = min(
+            int(num_inference_steps * strength), num_inference_steps
+        )
+        t_start = max(num_inference_steps - init_timestep, 0)
+        # timesteps reduced as per strength
+        timesteps = self.scheduler.timesteps[t_start:]
+        # new number of steps to be used as per strength will be
+        # num_inference_steps = num_inference_steps - t_start
+
+        # image encode
+        latents = self.encode_image((image_arr,))
+        latents = torch.from_numpy(latents).to(dtype)
+        # add noise to data
+        noise = torch.randn(latents.shape, generator=generator, dtype=dtype)
+        latents = self.scheduler.add_noise(
+            latents, noise, timesteps[0].repeat(1)
+        )
+
+        return latents, timesteps
+
     def produce_stencil_latents(
         self,
         latents,
@@ -148,10 +228,16 @@ class StencilPipeline(StableDiffusionPipeline):
             self.load_unet_512()
 
         for i, name in enumerate(self.controlnet_names):
+            use_names = []
+            if name is not None:
+                use_names.append(name)
+            else:
+                continue
             if text_embeddings.shape[1] <= self.model_max_length:
                 self.load_controlnet(i, name)
             else:
                 self.load_controlnet_512(i, name)
+            self.controlnet_names = use_names
 
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
@@ -213,7 +299,7 @@ class StencilPipeline(StableDiffusionPipeline):
             )
             for i, controlnet_hint in enumerate(stencil_hints):
                 if controlnet_hint is None:
-                    continue
+                    pass
                 if text_embeddings.shape[1] <= self.model_max_length:
                     control = self.controlnet[i](
                         "forward",
@@ -300,7 +386,6 @@ class StencilPipeline(StableDiffusionPipeline):
                     send_to_host=False,
                 )
             else:
-                print(self.unet_512)
                 noise_pred = self.unet_512(
                     "forward",
                     (
@@ -368,6 +453,17 @@ class StencilPipeline(StableDiffusionPipeline):
         all_latents = torch.cat(latent_history, dim=0)
         return all_latents
 
+    def encode_image(self, input_image):
+        self.load_vae_encode()
+        vae_encode_start = time.time()
+        latents = self.vae_encode("forward", input_image)
+        vae_inf_time = (time.time() - vae_encode_start) * 1000
+        if self.ondemand:
+            self.unload_vae_encode()
+        self.log += f"\nVAE Encode Inference time (ms): {vae_inf_time:.3f}"
+
+        return latents
+
     def generate_images(
         self,
         prompts,
@@ -389,13 +485,32 @@ class StencilPipeline(StableDiffusionPipeline):
         stencil_images,
         resample_type,
         control_mode,
+        preprocessed_hints,
     ):
         # Control Embedding check & conversion
         # controlnet_hint = controlnet_hint_conversion(
         #     image, use_stencil, height, width, dtype, num_images_per_prompt=1
         # )
         stencil_hints = []
+        self.sd_model.stencils = stencils
+        for i, hint in enumerate(preprocessed_hints):
+            if hint is not None:
+                hint = controlnet_hint_reshaping(
+                    hint,
+                    height,
+                    width,
+                    dtype,
+                    num_images_per_prompt=1,
+                )
+                stencil_hints.append(hint)
+
         for i, stencil in enumerate(stencils):
+            if stencil == None:
+                continue
+            if len(stencil_hints) > i:
+                if stencil_hints[i] is not None:
+                    print(f"Using preprocessed controlnet hint for {stencil}")
+                    continue
             image = stencil_images[i]
             stencil_hints.append(
                 controlnet_hint_conversion(
@@ -435,17 +550,30 @@ class StencilPipeline(StableDiffusionPipeline):
 
         # guidance scale as a float32 tensor.
         guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
-
-        # Prepare initial latent.
-        init_latents = self.prepare_latents(
-            batch_size=batch_size,
-            height=height,
-            width=width,
-            generator=generator,
-            num_inference_steps=num_inference_steps,
-            dtype=dtype,
-        )
-        final_timesteps = self.scheduler.timesteps
+        if image is not None:
+            # Prepare input image latent
+            init_latents, final_timesteps = self.prepare_image_latents(
+                image=image,
+                batch_size=batch_size,
+                height=height,
+                width=width,
+                generator=generator,
+                num_inference_steps=num_inference_steps,
+                strength=strength,
+                dtype=dtype,
+                resample_type=resample_type,
+            )
+        else:
+            # Prepare initial latent.
+            init_latents = self.prepare_latents(
+                batch_size=batch_size,
+                height=height,
+                width=width,
+                generator=generator,
+                num_inference_steps=num_inference_steps,
+                dtype=dtype,
+            )
+            final_timesteps = self.scheduler.timesteps
 
         # Get Image latents
         latents = self.produce_stencil_latents(

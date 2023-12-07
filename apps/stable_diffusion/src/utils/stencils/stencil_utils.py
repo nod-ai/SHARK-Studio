@@ -20,9 +20,7 @@ def save_img(img):
         get_generated_imgs_todays_subdir,
     )
 
-    subdir = Path(
-        get_generated_imgs_path(), get_generated_imgs_todays_subdir()
-    )
+    subdir = Path(get_generated_imgs_path(), "preprocessed_control_hints")
     os.makedirs(subdir, exist_ok=True)
     if isinstance(img, Image.Image):
         img.save(
@@ -60,7 +58,7 @@ def HWC3(x):
         return y
 
 
-def controlnet_hint_shaping(
+def controlnet_hint_reshaping(
     controlnet_hint, height, width, dtype, num_images_per_prompt=1
 ):
     channels = 3
@@ -79,7 +77,7 @@ def controlnet_hint_shaping(
                 )
             return controlnet_hint
         else:
-            return controlnet_hint_shaping(
+            return controlnet_hint_reshaping(
                 Image.fromarray(controlnet_hint.detach().numpy()),
                 height,
                 width,
@@ -111,7 +109,7 @@ def controlnet_hint_shaping(
             )  # b h w c -> b c h w
             return controlnet_hint
         else:
-            return controlnet_hint_shaping(
+            return controlnet_hint_reshaping(
                 Image.fromarray(controlnet_hint),
                 height,
                 width,
@@ -128,14 +126,16 @@ def controlnet_hint_shaping(
                 np.float16
             )  # to numpy
             controlnet_hint = controlnet_hint[:, :, ::-1]  # RGB -> BGR
-            return
+            return controlnet_hint_reshaping(
+                controlnet_hint, height, width, dtype, num_images_per_prompt
+            )
         else:
             (hint_w, hint_h) = controlnet_hint.size
             left = int((hint_w - width) / 2)
             right = left + height
             controlnet_hint = controlnet_hint.crop((left, 0, right, hint_h))
             controlnet_hint = controlnet_hint.resize((width, height))
-        return controlnet_hint_shaping(
+        return controlnet_hint_reshaping(
             controlnet_hint, height, width, dtype, num_images_per_prompt
         )
     else:
@@ -169,7 +169,7 @@ def controlnet_hint_conversion(
             controlnet_hint = hint_zoedepth(image)
         case _:
             return None
-    controlnet_hint = controlnet_hint_shaping(
+    controlnet_hint = controlnet_hint_reshaping(
         controlnet_hint, height, width, dtype, num_images_per_prompt
     )
     return controlnet_hint

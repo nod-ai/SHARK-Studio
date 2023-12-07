@@ -1008,8 +1008,7 @@ def get_generation_text_info(seeds, device):
 #   Both width and height should be in the range of [128, 768] and multiple of 8.
 # This utility function performs the transformation on the input image while
 # also maintaining the aspect ratio before sending it to the stencil pipeline.
-def resize_stencil(image: Image.Image):
-    width, height = image.size
+def resize_stencil(image: Image.Image, width, height):
     aspect_ratio = width / height
     min_size = min(width, height)
     if min_size < 128:
