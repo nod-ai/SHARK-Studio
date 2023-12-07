@@ -81,6 +81,7 @@ def img2img_inf(
     control_mode: str,
     stencils: list,
     images: list,
+    preprocessed_hints: list,
 ):
     from apps.stable_diffusion.web.ui.utils import (
         get_custom_model_pathfile,
@@ -151,7 +152,7 @@ def img2img_inf(
             stencil_count += 1
     if stencil_count > 0:
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
-        image, width, height = resize_stencil(image)
+        image, _, _ = resize_stencil(image, width, height)
     elif "Shark" in args.scheduler:
         print(
             f"Shark schedulers are not supported. Switching to EulerDiscrete "
@@ -195,7 +196,7 @@ def img2img_inf(
         model_id = (
             args.hf_model_id
             if args.hf_model_id
-            else "stabilityai/stable-diffusion-1-5-base"
+            else "runwayml/stable-diffusion-v1-5"
         )
         global_obj.set_schedulers(get_schedulers(model_id))
         scheduler_obj = global_obj.get_scheduler(args.scheduler)
@@ -278,6 +279,7 @@ def img2img_inf(
             images,
             resample_type=resample_type,
             control_mode=control_mode,
+            preprocessed_hints=preprocessed_hints,
         )
         total_time = time.time() - start_time
         text_output = get_generation_text_info(
@@ -308,6 +310,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
     STENCIL_COUNT = 2
     stencils = gr.State([None] * STENCIL_COUNT)
     images = gr.State([None] * STENCIL_COUNT)
+    preprocessed_hints = gr.State([None] * STENCIL_COUNT)
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row():
@@ -374,7 +377,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 img2img_init_image = gr.Image(
                     label="Input Image",
                     type="pil",
-                    height=512,
+                    height=300,
                     interactive=True,
                 )
 
@@ -388,10 +391,23 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                     ]
 
                     def cnet_preview(
-                        model, input_image, index, stencils, images
+                        model,
+                        input_image,
+                        index,
+                        stencils,
+                        images,
+                        preprocessed_hints,
                     ):
+                        if isinstance(input_image, PIL.Image.Image):
+                            img_dict = {
+                                "background": None,
+                                "layers": [None],
+                                "composite": input_image,
+                            }
+                            input_image = EditorValue(img_dict)
                         images[index] = input_image
-                        stencils[index] = model
+                        if model:
+                            stencils[index] = model
                         match model:
                             case "canny":
                                 canny = CannyDetector()
@@ -400,41 +416,75 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     100,
                                     200,
                                 )
+                                preprocessed_hints[index] = Image.fromarray(
+                                    result
+                                )
                                 return (
                                     Image.fromarray(result),
                                     stencils,
                                     images,
+                                    preprocessed_hints,
                                 )
                             case "openpose":
                                 openpose = OpenposeDetector()
                                 result = openpose(
                                     np.array(input_image["composite"])
                                 )
-                                print(result)
-                                # TODO: This is just an empty canvas, need to draw the candidates (which are in result[1])
+                                preprocessed_hints[index] = Image.fromarray(
+                                    result[0]
+                                )
                                 return (
                                     Image.fromarray(result[0]),
                                     stencils,
                                     images,
+                                    preprocessed_hints,
                                 )
                             case "zoedepth":
                                 zoedepth = ZoeDetector()
                                 result = zoedepth(
                                     np.array(input_image["composite"])
                                 )
+                                preprocessed_hints[index] = Image.fromarray(
+                                    result
+                                )
                                 return (
                                     Image.fromarray(result),
                                     stencils,
                                     images,
+                                    preprocessed_hints,
                                 )
                             case "scribble":
+                                preprocessed_hints[index] = input_image[
+                                    "composite"
+                                ]
                                 return (
                                     input_image["composite"],
                                     stencils,
                                     images,
+                                    preprocessed_hints,
                                 )
                             case _:
-                                return (None, stencils, images)
+                                preprocessed_hints[index] = None
+                                return (
+                                    None,
+                                    stencils,
+                                    images,
+                                    preprocessed_hints,
+                                )
+
+                    def import_original(original_img, width, height):
+                        resized_img, _, _ = resize_stencil(
+                            original_img, width, height
+                        )
+                        img_dict = {
+                            "background": resized_img,
+                            "layers": [resized_img],
+                            "composite": None,
+                        }
+                        return gr.ImageEditor(
+                            value=EditorValue(img_dict),
+                            crop_size=(width, height),
+                        )
 
                     def create_canvas(width, height):
                         data = Image.fromarray(
@@ -451,8 +501,31 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         }
                         return EditorValue(img_dict)
 
-                    def update_cn_input(model, width, height):
-                        if model == "scribble":
+                    def update_cn_input(
+                        model,
+                        width,
+                        height,
+                        stencils,
+                        images,
+                        preprocessed_hints,
+                        index,
+                    ):
+                        if model == None:
+                            stencils[index] = None
+                            images[index] = None
+                            preprocessed_hints[index] = None
+                            return [
+                                gr.ImageEditor(value=None, visible=False),
+                                gr.Image(value=None),
+                                gr.Slider(visible=False),
+                                gr.Slider(visible=False),
+                                gr.Button(visible=False),
+                                gr.Button(visible=False),
+                                stencils,
+                                images,
+                                preprocessed_hints,
+                            ]
+                        elif model == "scribble":
                             return [
                                 gr.ImageEditor(
                                     visible=True,
@@ -460,20 +533,25 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     show_label=False,
                                     image_mode="RGB",
                                     type="pil",
-                                    value=create_canvas(width, height),
                                     brush=Brush(
-                                        colors=["#000000"], color_mode="fixed"
+                                        colors=["#000000"],
+                                        color_mode="fixed",
+                                        default_size=2,
                                     ),
                                 ),
                                 gr.Image(
                                     visible=True,
                                     show_label=False,
-                                    interactive=False,
+                                    interactive=True,
                                     show_download_button=False,
                                 ),
-                                gr.Slider(visible=True),
-                                gr.Slider(visible=True),
+                                gr.Slider(visible=True, label="Canvas Width"),
+                                gr.Slider(visible=True, label="Canvas Height"),
                                 gr.Button(visible=True),
+                                gr.Button(visible=False),
+                                stencils,
+                                images,
+                                preprocessed_hints,
                             ]
                         else:
                             return [
@@ -482,7 +560,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     image_mode="RGB",
                                     type="pil",
                                     interactive=True,
-                                    value=None,
                                 ),
                                 gr.Image(
                                     visible=True,
@@ -490,9 +567,13 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                     interactive=True,
                                     show_download_button=False,
                                 ),
-                                gr.Slider(visible=False),
-                                gr.Slider(visible=False),
+                                gr.Slider(visible=True, label="Input Width"),
+                                gr.Slider(visible=True, label="Input Height"),
                                 gr.Button(visible=False),
+                                gr.Button(visible=True),
+                                stencils,
+                                images,
+                                preprocessed_hints,
                             ]
 
                     with gr.Row():
@@ -525,51 +606,85 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 value="Make Canvas!",
                                 visible=False,
                             )
+                            use_input_img_1 = gr.Button(
+                                value="Use Original Image",
+                                visible=False,
+                            )
 
                         cnet_1_image = gr.ImageEditor(
                             visible=False,
                             image_mode="RGB",
                             interactive=True,
-                            show_label=False,
+                            show_label=True,
+                            label="Input Image",
                             type="pil",
                         )
                         cnet_1_output = gr.Image(
-                            visible=True, show_label=False
+                            value=None,
+                            visible=True,
+                            label="Preprocessed Hint",
+                            interactive=True,
+                        )
+
+                        use_input_img_1.click(
+                            import_original,
+                            [img2img_init_image, canvas_width, canvas_height],
+                            [cnet_1_image],
                         )
 
                         cnet_1_model.input(
-                            update_cn_input,
-                            [cnet_1_model, canvas_width, canvas_height],
-                            [
+                            fn=(
+                                lambda m, w, h, s, i, p: update_cn_input(
+                                    m, w, h, s, i, p, 0
+                                )
+                            ),
+                            inputs=[
+                                cnet_1_model,
+                                canvas_width,
+                                canvas_height,
+                                stencils,
+                                images,
+                                preprocessed_hints,
+                            ],
+                            outputs=[
                                 cnet_1_image,
                                 cnet_1_output,
                                 canvas_width,
                                 canvas_height,
                                 make_canvas,
+                                use_input_img_1,
+                                stencils,
+                                images,
+                                preprocessed_hints,
                             ],
                         )
                         make_canvas.click(
-                            update_cn_input,
-                            [cnet_1_model, canvas_width, canvas_height],
+                            create_canvas,
+                            [canvas_width, canvas_height],
                             [
                                 cnet_1_image,
-                                cnet_1_output,
-                                canvas_width,
-                                canvas_height,
-                                make_canvas,
                             ],
                         )
-                        cnet_1.click(
+                        gr.on(
+                            triggers=[cnet_1.click],
                             fn=(
-                                lambda a, b, s, i: cnet_preview(a, b, 0, s, i)
+                                lambda a, b, s, i, p: cnet_preview(
+                                    a, b, 0, s, i, p
+                                )
                             ),
                             inputs=[
                                 cnet_1_model,
                                 cnet_1_image,
                                 stencils,
                                 images,
+                                preprocessed_hints,
                             ],
-                            outputs=[cnet_1_output, stencils, images],
+                            outputs=[
+                                cnet_1_output,
+                                stencils,
+                                images,
+                                preprocessed_hints,
+                            ],
                         )
                     with gr.Row():
                         with gr.Column():
@@ -601,49 +716,81 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 value="Make Canvas!",
                                 visible=False,
                             )
+                            use_input_img_2 = gr.Button(
+                                value="Use Original Image",
+                                visible=False,
+                            )
                         cnet_2_image = gr.ImageEditor(
                             visible=False,
                             image_mode="RGB",
                             interactive=True,
-                            show_label=False,
                             type="pil",
+                            show_label=True,
+                            label="Input Image",
+                        )
+                        use_input_img_2.click(
+                            import_original,
+                            [img2img_init_image, canvas_width, canvas_height],
+                            [cnet_2_image],
                         )
                         cnet_2_output = gr.Image(
-                            visible=True, show_label=False
+                            value=None,
+                            visible=True,
+                            label="Preprocessed Hint",
+                            interactive=True,
                         )
                         cnet_2_model.select(
-                            update_cn_input,
-                            [cnet_2_model, canvas_width, canvas_height],
-                            [
+                            fn=(
+                                lambda m, w, h, s, i, p: update_cn_input(
+                                    m, w, h, s, i, p, 0
+                                )
+                            ),
+                            inputs=[
+                                cnet_2_model,
+                                canvas_width,
+                                canvas_height,
+                                stencils,
+                                images,
+                                preprocessed_hints,
+                            ],
+                            outputs=[
                                 cnet_2_image,
                                 cnet_2_output,
                                 canvas_width,
                                 canvas_height,
                                 make_canvas,
+                                use_input_img_2,
+                                stencils,
+                                images,
+                                preprocessed_hints,
                             ],
                         )
                         make_canvas.click(
-                            update_cn_input,
-                            [cnet_2_model, canvas_width, canvas_height],
+                            create_canvas,
+                            [canvas_width, canvas_height],
                             [
                                 cnet_2_image,
-                                cnet_2_output,
-                                canvas_width,
-                                canvas_height,
-                                make_canvas,
                             ],
                         )
                         cnet_2.click(
                             fn=(
-                                lambda a, b, s, i: cnet_preview(a, b, 1, s, i)
+                                lambda a, b, s, i, p: cnet_preview(
+                                    a, b, 1, s, i, p
+                                )
                             ),
                             inputs=[
                                 cnet_2_model,
                                 cnet_2_image,
                                 stencils,
                                 images,
+                                preprocessed_hints,
                             ],
-                            outputs=[cnet_2_output, stencils, images],
+                            outputs=[
+                                cnet_2_output,
+                                stencils,
+                                images,
+                                preprocessed_hints,
+                            ],
                         )
                     control_mode = gr.Radio(
                         choices=["Prompt", "Balanced", "Controlnet"],
@@ -865,6 +1012,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                 control_mode,
                 stencils,
                 images,
+                preprocessed_hints,
             ],
             outputs=[
                 img2img_gallery,

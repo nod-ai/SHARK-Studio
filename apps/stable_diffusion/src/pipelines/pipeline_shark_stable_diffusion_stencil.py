@@ -25,7 +25,10 @@ from apps.stable_diffusion.src.schedulers import SharkEulerDiscreteScheduler
 from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils import (
     StableDiffusionPipeline,
 )
-from apps.stable_diffusion.src.utils import controlnet_hint_conversion
+from apps.stable_diffusion.src.utils import (
+    controlnet_hint_conversion,
+    controlnet_hint_reshaping,
+)
 from apps.stable_diffusion.src.utils import (
     start_profiling,
     end_profiling,
@@ -213,7 +216,7 @@ class StencilPipeline(StableDiffusionPipeline):
             )
             for i, controlnet_hint in enumerate(stencil_hints):
                 if controlnet_hint is None:
-                    continue
+                    pass
                 if text_embeddings.shape[1] <= self.model_max_length:
                     control = self.controlnet[i](
                         "forward",
@@ -300,7 +303,6 @@ class StencilPipeline(StableDiffusionPipeline):
                     send_to_host=False,
                 )
             else:
-                print(self.unet_512)
                 noise_pred = self.unet_512(
                     "forward",
                     (
@@ -389,13 +391,31 @@ class StencilPipeline(StableDiffusionPipeline):
         stencil_images,
         resample_type,
         control_mode,
+        preprocessed_hints,
     ):
         # Control Embedding check & conversion
         # controlnet_hint = controlnet_hint_conversion(
         #     image, use_stencil, height, width, dtype, num_images_per_prompt=1
         # )
         stencil_hints = []
+        for i, hint in enumerate(preprocessed_hints):
+            if hint is not None:
+                hint = controlnet_hint_reshaping(
+                    hint,
+                    height,
+                    width,
+                    dtype,
+                    num_images_per_prompt=1,
+                )
+                stencil_hints.append(hint)
+
         for i, stencil in enumerate(stencils):
+            if stencil == None:
+                continue
+            if len(stencil_hints) >= i:
+                if stencil_hints[i] is not None:
+                    print(f"Using preprocessed controlnet hint for {stencil}")
+                    continue
             image = stencil_images[i]
             stencil_hints.append(
                 controlnet_hint_conversion(
