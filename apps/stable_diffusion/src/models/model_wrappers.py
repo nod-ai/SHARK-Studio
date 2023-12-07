@@ -219,7 +219,6 @@ class SharkifyStableDiffusionModel:
             self.model_name = self.model_name + "_" + get_path_stem(use_lora)
         self.use_lora = use_lora
 
-        print(self.model_name)
         self.model_name = self.get_extended_name_for_all_model()
         self.debug = debug
         self.sharktank_dir = sharktank_dir
@@ -241,7 +240,7 @@ class SharkifyStableDiffusionModel:
             args.hf_model_id = self.base_model_id
         self.return_mlir = return_mlir
 
-    def get_extended_name_for_all_model(self):
+    def get_extended_name_for_all_model(self, model_list=None):
         model_name = {}
         sub_model_list = [
             "clip",
@@ -255,6 +254,8 @@ class SharkifyStableDiffusionModel:
             "stencil_adapter",
             "stencil_adapter_512",
         ]
+        if model_list:
+            sub_model_list=model_list
         index = 0
         for model in sub_model_list:
             sub_model = model
@@ -283,6 +284,8 @@ class SharkifyStableDiffusionModel:
             else:
                 model_name[model] = get_extended_name(sub_model + model_config)
         index += 1
+        print(f"model name at {index} = {self.model_name}")
+
         return model_name
 
     def check_params(self, max_len, width, height):
@@ -765,7 +768,8 @@ class SharkifyStableDiffusionModel:
 
         inputs = tuple(self.inputs["stencil_adapter"])
         model_name = "stencil_adapter_512" if use_large else "stencil_adapter"
-        ext_model_name = self.model_name[model_name]
+        stencil_names = self.get_extended_name_for_all_model([model_name])
+        ext_model_name = stencil_names[model_name]
         if isinstance(ext_model_name, list):
             desired_name = None
             print(ext_model_name)
