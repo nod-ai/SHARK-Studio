@@ -307,10 +307,7 @@ def get_config_from_json(model_ckpt_or_id, jsonconfig):
 
 
 def default_config_exists(model_ckpt_or_id):
-    if model_ckpt_or_id in [
-        "stabilityai/sdxl-turbo",
-        "stabilityai/stable_diffusion-xl-base-1.0",
-    ]:
+    if model_ckpt_or_id in default_configs.keys():
         return model_ckpt_or_id
     elif "turbo" in model_ckpt_or_id.lower():
         return "stabilityai/sdxl-turbo"
@@ -326,7 +323,7 @@ default_configs = {
             value="masterpiece, a graceful shark leaping out of the water to catch a fish, eclipsing the sunset, epic, rays of light, silhouette",
         ),
         gr.Slider(0, 10, value=2),
-        gr.Dropdown(value="EulerAncestralDiscrete"),
+        "EulerAncestralDiscrete",
         gr.Slider(0, value=0),
         512,
         512,

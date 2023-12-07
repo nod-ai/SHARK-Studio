@@ -348,14 +348,14 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                         scheduler = gr.Dropdown(
                             elem_id="scheduler",
                             label="Scheduler",
-                            value=args.scheduler,
+                            value="EulerDiscrete",
                             choices=[
                                 "DDIM",
                                 "EulerAncestralDiscrete",
                                 "EulerDiscrete",
                                 "LCMScheduler",
                             ],
-                            allow_custom_value=False,
+                            allow_custom_value=True,
                             visible=True,
                         )
                         with gr.Column():
