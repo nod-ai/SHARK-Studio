@@ -122,7 +122,7 @@ def inpaint_inf(
         width,
         device,
         use_lora=args.use_lora,
-        use_stencil=None,
+        stencils=[],
         ondemand=ondemand,
     )
     if (
@@ -234,6 +234,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
                     elem_id="top_logo",
                     width=150,
                     height=50,
+                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
@@ -290,8 +291,7 @@ with gr.Blocks(title="Inpainting") as inpaint_web:
 
                 inpaint_init_image = gr.Image(
                     label="Masked Image",
-                    source="upload",
-                    tool="sketch",
+                    sources="upload",
                     type="pil",
                     height=350,
                 )

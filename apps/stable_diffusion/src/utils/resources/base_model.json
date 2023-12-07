@@ -8,6 +8,15 @@
             "dtype":"i64"
         }
     },
+    "sdxl_clip": {
+        "token" : {
+            "shape" : [
+                "1*batch_size",
+                "max_len"
+            ],
+            "dtype":"i64"
+        }
+    },
     "vae_encode": {
         "image" : {
             "shape" : [
@@ -179,9 +188,95 @@
                 "shape": [2],
                 "dtype": "i64"
             }
+        },
+        "stabilityai/sdxl-turbo": {
+            "latents": {
+                "shape": [
+                    "2*batch_size",
+                    4,
+                    "height",
+                    "width"
+                ],
+                "dtype": "f32"
+            },
+            "timesteps": {
+                "shape": [
+                    1
+                ],
+                "dtype": "f32"
+            },
+            "prompt_embeds": {
+                "shape": [
+                    "2*batch_size",
+                    "max_len",
+                    2048
+                ],
+                "dtype": "f32"
+            },
+            "text_embeds": {
+                "shape": [
+                    "2*batch_size",
+                    1280
+                ],
+                "dtype": "f32"
+            },
+            "time_ids": {
+                "shape": [
+                    "2*batch_size",
+                    6
+                ],
+                "dtype": "f32"
+            },
+            "guidance_scale": {
+                "shape": 1,
+                "dtype": "f32"
+            }
+        },
+        "stabilityai/stable-diffusion-xl-base-1.0": {
+            "latents": {
+                "shape": [
+                    "2*batch_size",
+                    4,
+                    "height",
+                    "width"
+                ],
+                "dtype": "f32"
+            },
+            "timesteps": {
+                "shape": [
+                    1
+                ],
+                "dtype": "f32"
+            },
+            "prompt_embeds": {
+                "shape": [
+                    "2*batch_size",
+                    "max_len",
+                    2048
+                ],
+                "dtype": "f32"
+            },
+            "text_embeds": {
+                "shape": [
+                    "2*batch_size",
+                    1280
+                ],
+                "dtype": "f32"
+            },
+            "time_ids": {
+                "shape": [
+                    "2*batch_size",
+                    6
+                ],
+                "dtype": "f32"
+            },
+            "guidance_scale": {
+                "shape": 1,
+                "dtype": "f32"
+            }
         }
     },
-    "stencil_adaptor": {
+    "stencil_adapter": {
         "latents": {
             "shape": [
                 "1*batch_size",
@@ -207,6 +302,58 @@
         },
         "controlnet_hint": {
             "shape": [1, 3, "8*height", "8*width"],
+            "dtype": "f32"
+        },
+        "acc1": {
+            "shape": [2, 320, "height", "width"],
+            "dtype": "f32"
+        },
+        "acc2": {
+            "shape": [2, 320, "height", "width"],
+            "dtype": "f32"
+        },
+        "acc3": {
+            "shape": [2, 320, "height", "width"],
+            "dtype": "f32"
+        },
+        "acc4": {
+            "shape": [2, 320, "height/2", "width/2"],
+            "dtype": "f32"
+        },
+        "acc5": {
+            "shape": [2, 640, "height/2", "width/2"],
+            "dtype": "f32"
+        },
+        "acc6": {
+            "shape": [2, 640, "height/2", "width/2"],
+            "dtype": "f32"
+        },
+        "acc7": {
+            "shape": [2, 640, "height/4", "width/4"],
+            "dtype": "f32"
+        },
+        "acc8": {
+            "shape": [2, 1280, "height/4", "width/4"],
+            "dtype": "f32"
+        },
+        "acc9": {
+            "shape": [2, 1280, "height/4", "width/4"],
+            "dtype": "f32"
+        },
+        "acc10": {
+            "shape": [2, 1280, "height/8", "width/8"],
+            "dtype": "f32"
+        },
+        "acc11": {
+            "shape": [2, 1280, "height/8", "width/8"],
+            "dtype": "f32"
+        },
+        "acc12": {
+            "shape": [2, 1280, "height/8", "width/8"],
+            "dtype": "f32"
+        },
+        "acc13": {
+            "shape": [2, 1280, "height/8", "width/8"],
             "dtype": "f32"
         }
     },
@@ -289,6 +436,58 @@
             },
             "control13": {
                 "shape": [2, 1280, "height/8", "width/8"],
+                "dtype": "f32"
+            },
+            "scale1": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale2": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale3": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale4": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale5": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale6": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale7": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale8": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale9": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale10": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale11": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale12": {
+                "shape": 1,
+                "dtype": "f32"
+            },
+            "scale13": {
+                "shape": 1,
                 "dtype": "f32"
             }
         }

@@ -104,7 +104,6 @@ with gr.Blocks() as model_web:
     civit_models = gr.Gallery(
         label="Civitai Model Gallery",
         value=None,
-        interactive=True,
         visible=False,
     )
 

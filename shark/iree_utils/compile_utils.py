@@ -83,7 +83,7 @@ def clean_device_info(raw_device):
             device_id = int(device_id)
 
     if device not in ["rocm", "vulkan"]:
-        device_id = ""
+        device_id = None
     if device in ["rocm", "vulkan"] and device_id == None:
         device_id = 0
     return device, device_id
@@ -355,11 +355,15 @@ def get_iree_module(
         device = iree_device_map(device)
         print("registering device id: ", device_idx)
         haldriver = ireert.get_driver(device)
+        hal_device_id = haldriver.query_available_devices()[device_idx][
+            "device_id"
+        ]
         haldevice = haldriver.create_device(
-            haldriver.query_available_devices()[device_idx]["device_id"],
+            hal_device_id,
             allocators=shark_args.device_allocator,
         )
         config = ireert.Config(device=haldevice)
+        config.id = hal_device_id
     else:
         config = get_iree_runtime_config(device)
     vm_module = ireert.VmModule.from_buffer(
@@ -398,15 +402,16 @@ def load_vmfb_using_mmap(
             haldriver = ireert.get_driver(device)
             dl.log(f"ireert.get_driver()")
 
+            hal_device_id = haldriver.query_available_devices()[device_idx][
+                "device_id"
+            ]
             haldevice = haldriver.create_device(
-                haldriver.query_available_devices()[device_idx]["device_id"],
+                hal_device_id,
                 allocators=shark_args.device_allocator,
             )
             dl.log(f"ireert.create_device()")
             config = ireert.Config(device=haldevice)
-            config.id = haldriver.query_available_devices()[device_idx][
-                "device_id"
-            ]
+            config.id = hal_device_id
             dl.log(f"ireert.Config()")
         else:
             config = get_iree_runtime_config(device)

@@ -141,7 +141,9 @@ def chat(
     prompt_prefix,
     history,
     model,
-    device,
+    backend,
+    devices,
+    sharded,
     precision,
     download_vmfb,
     config_file,
@@ -153,7 +155,8 @@ def chat(
     global vicuna_model
 
     model_name, model_path = list(map(str.strip, model.split("=>")))
-    device, device_id = clean_device_info(device)
+    device, device_id = clean_device_info(devices[0])
+    no_of_devices = len(devices)
 
     from apps.language_models.scripts.vicuna import ShardedVicuna
     from apps.language_models.scripts.vicuna import UnshardedVicuna
@@ -172,6 +175,13 @@ def chat(
             get_all_vulkan_devices,
             get_vulkan_target_triple,
         )
+
+        _extra_args = _extra_args + [
+            "--iree-global-opt-enable-quantized-matmul-reassociation",
+            "--iree-llvmcpu-enable-quantized-matmul-reassociation",
+            "--iree-opt-const-eval=false",
+            "--iree-opt-data-tiling=false",
+        ]
 
         if device == "vulkan":
             vulkaninfo_list = get_all_vulkan_devices()
@@ -214,7 +224,7 @@ def chat(
                 )
                 print(f"extra args = {_extra_args}")
 
-        if model_name == "vicuna4":
+        if sharded:
             vicuna_model = ShardedVicuna(
                 model_name,
                 hf_model_path=model_path,
@@ -223,6 +233,7 @@ def chat(
                 max_num_tokens=max_toks,
                 compressed=True,
                 extra_args_cmd=_extra_args,
+                n_devices=no_of_devices,
             )
         else:
             #  if config_file is None:
@@ -250,13 +261,14 @@ def chat(
     total_time_ms = 0.001  # In order to avoid divide by zero error
     prefill_time = 0
     is_first = True
-    for text, msg, exec_time in progress.tqdm(
-        vicuna_model.generate(prompt, cli=cli),
-        desc="generating response",
-    ):
+    # for text, msg, exec_time in progress.tqdm(
+    #    vicuna_model.generate(prompt, cli=cli),
+    #    desc="generating response",
+    # ):
+    for text, msg, exec_time in vicuna_model.generate(prompt, cli=cli):
         if msg is None:
             if is_first:
-                prefill_time = exec_time
+                prefill_time = exec_time / 1000
                 is_first = False
             else:
                 total_time_ms += exec_time
@@ -377,6 +389,16 @@ def view_json_file(file_obj):
     return content
 
 
+filtered_devices = dict()
+
+
+def change_backend(backend):
+    new_choices = gr.Dropdown(
+        choices=filtered_devices[backend], label=f"{backend} devices"
+    )
+    return new_choices
+
+
 with gr.Blocks(title="Chatbot") as stablelm_chat:
     with gr.Row():
         model_choices = list(
@@ -393,15 +415,22 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
         # show cpu-task device first in list for chatbot
         supported_devices = supported_devices[-1:] + supported_devices[:-1]
         supported_devices = [x for x in supported_devices if "sync" not in x]
+        backend_list = ["cpu", "cuda", "vulkan", "rocm"]
+        for x in backend_list:
+            filtered_devices[x] = [y for y in supported_devices if x in y]
+        print(filtered_devices)
+
+        backend = gr.Radio(
+            label="backend",
+            value="cpu",
+            choices=backend_list,
+        )
         device = gr.Dropdown(
-            label="Device",
-            value=supported_devices[0]
-            if enabled
-            else "Only CUDA Supported for now",
-            choices=supported_devices,
-            interactive=enabled,
+            label="cpu devices",
+            choices=filtered_devices["cpu"],
+            interactive=True,
             allow_custom_value=True,
-            # multiselect=True,
+            multiselect=True,
         )
         precision = gr.Radio(
             label="Precision",
@@ -425,14 +454,19 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 value=False,
                 interactive=True,
             )
+            sharded = gr.Checkbox(
+                label="Shard Model",
+                value=False,
+                interactive=True,
+            )
 
     with gr.Row(visible=False):
         with gr.Group():
             config_file = gr.File(
                 label="Upload sharding configuration", visible=False
             )
-            json_view_button = gr.Button(label="View as JSON", visible=False)
-        json_view = gr.JSON(interactive=True, visible=False)
+            json_view_button = gr.Button(value="View as JSON", visible=False)
+        json_view = gr.JSON(visible=False)
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
@@ -452,6 +486,13 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
                 stop = gr.Button("Stop", interactive=enabled)
                 clear = gr.Button("Clear", interactive=enabled)
 
+    backend.change(
+        fn=change_backend,
+        inputs=[backend],
+        outputs=[device],
+        show_progress=False,
+    )
+
     submit_event = msg.submit(
         fn=user,
         inputs=[msg, chatbot],
@@ -464,7 +505,9 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             prompt_prefix,
             chatbot,
             model,
+            backend,
             device,
+            sharded,
             precision,
             download_vmfb,
             config_file,
@@ -485,7 +528,9 @@ with gr.Blocks(title="Chatbot") as stablelm_chat:
             prompt_prefix,
             chatbot,
             model,
+            backend,
             device,
+            sharded,
             precision,
             download_vmfb,
             config_file,

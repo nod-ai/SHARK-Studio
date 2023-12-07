@@ -1,9 +1,7 @@
 import torch
 import numpy as np
 from random import randint
-from transformers import CLIPTokenizer
 from typing import Union
-from shark.shark_inference import SharkInference
 from diffusers import (
     DDIMScheduler,
     PNDMScheduler,
@@ -26,9 +24,12 @@ from apps.stable_diffusion.src.pipelines.pipeline_shark_stable_diffusion_utils i
     StableDiffusionPipeline,
 )
 from apps.stable_diffusion.src.models import SharkifyStableDiffusionModel
+from transformers.utils import logging
+
+logger = logging.get_logger(__name__)
 
 
-class Text2ImagePipeline(StableDiffusionPipeline):
+class Text2ImageSDXLPipeline(StableDiffusionPipeline):
     def __init__(
         self,
         scheduler: Union[
@@ -40,6 +41,7 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             EulerAncestralDiscreteScheduler,
             DPMSolverMultistepScheduler,
             SharkEulerDiscreteScheduler,
+            SharkEulerAncestralDiscreteScheduler,
             DEISMultistepScheduler,
             DDPMScheduler,
             DPMSolverSinglestepScheduler,
@@ -50,8 +52,10 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         import_mlir: bool,
         use_lora: str,
         ondemand: bool,
+        is_fp32_vae: bool,
     ):
         super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        self.is_fp32_vae = is_fp32_vae
 
     def prepare_latents(
         self,
@@ -77,6 +81,27 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         self.scheduler.is_scale_input_called = True
         latents = latents * self.scheduler.init_noise_sigma
         return latents
+
+    def _get_add_time_ids(
+        self, original_size, crops_coords_top_left, target_size, dtype
+    ):
+        add_time_ids = list(
+            original_size + crops_coords_top_left + target_size
+        )
+
+        # self.unet.config.addition_time_embed_dim IS 256.
+        # self.text_encoder_2.config.projection_dim IS 1280.
+        passed_add_embed_dim = 256 * len(add_time_ids) + 1280
+        expected_add_embed_dim = 2816
+        # self.unet.add_embedding.linear_1.in_features IS 2816.
+
+        if expected_add_embed_dim != passed_add_embed_dim:
+            raise ValueError(
+                f"Model expects an added time embedding vector of length {expected_add_embed_dim}, but a vector of {passed_add_embed_dim} was created. The model has an incorrect config. Please check `unet.config.time_embedding_type` and `text_encoder_2.config.projection_dim`."
+            )
+
+        add_time_ids = torch.tensor([add_time_ids], dtype=dtype)
+        return add_time_ids
 
     def generate_images(
         self,
@@ -112,7 +137,7 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             seed = randint(uint32_min, uint32_max)
         generator = torch.manual_seed(seed)
 
-        # Get initial latents
+        # Get initial latents.
         init_latents = self.prepare_latents(
             batch_size=batch_size,
             height=height,
@@ -122,35 +147,71 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             dtype=dtype,
         )
 
-        # Get text embeddings with weight emphasis from prompts
-        text_embeddings = self.encode_prompts_weight(
-            prompts,
-            neg_prompts,
-            max_length,
-            max_embeddings_multiples=max_embeddings_multiples,
+        # Get text embeddings.
+        (
+            prompt_embeds,
+            negative_prompt_embeds,
+            pooled_prompt_embeds,
+            negative_pooled_prompt_embeds,
+        ) = self.encode_prompt_sdxl(
+            prompt=prompts,
+            num_images_per_prompt=1,
+            do_classifier_free_guidance=True,
+            negative_prompt=neg_prompts,
         )
+
+        # Prepare timesteps.
+        self.scheduler.set_timesteps(num_inference_steps)
+
+        timesteps = self.scheduler.timesteps
+
+        # Prepare added time ids & embeddings.
+        original_size = (height, width)
+        target_size = (height, width)
+        crops_coords_top_left = (0, 0)
+        add_text_embeds = pooled_prompt_embeds
+        add_time_ids = self._get_add_time_ids(
+            original_size,
+            crops_coords_top_left,
+            target_size,
+            dtype=prompt_embeds.dtype,
+        )
+
+        prompt_embeds = torch.cat(
+            [negative_prompt_embeds, prompt_embeds], dim=0
+        )
+        add_text_embeds = torch.cat(
+            [negative_pooled_prompt_embeds, add_text_embeds], dim=0
+        )
+        add_time_ids = torch.cat([add_time_ids, add_time_ids], dim=0)
+
+        prompt_embeds = prompt_embeds
+        add_text_embeds = add_text_embeds.to(dtype)
+        add_time_ids = add_time_ids.repeat(batch_size * 1, 1)
 
         # guidance scale as a float32 tensor.
-        guidance_scale = torch.tensor(guidance_scale).to(torch.float32)
+        guidance_scale = torch.tensor(guidance_scale).to(dtype)
+        prompt_embeds = prompt_embeds.to(dtype)
+        add_time_ids = add_time_ids.to(dtype)
 
-        # Get Image latents
-        latents = self.produce_img_latents(
-            latents=init_latents,
-            text_embeddings=text_embeddings,
-            guidance_scale=guidance_scale,
-            total_timesteps=self.scheduler.timesteps,
-            dtype=dtype,
-            cpu_scheduling=cpu_scheduling,
+        # Get Image latents.
+        latents = self.produce_img_latents_sdxl(
+            init_latents,
+            timesteps,
+            add_text_embeds,
+            add_time_ids,
+            prompt_embeds,
+            cpu_scheduling,
+            guidance_scale,
+            dtype,
         )
 
-        # Img latents -> PIL images
+        # Img latents -> PIL images.
         all_imgs = []
         self.load_vae()
         for i in range(0, latents.shape[0], batch_size):
-            imgs = self.decode_latents(
-                latents=latents[i : i + batch_size],
-                use_base_vae=use_base_vae,
-                cpu_scheduling=cpu_scheduling,
+            imgs = self.decode_latents_sdxl(
+                latents[i : i + batch_size], is_fp32_vae=self.is_fp32_vae
             )
             all_imgs.extend(imgs)
         if self.ondemand:

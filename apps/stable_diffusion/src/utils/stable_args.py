@@ -85,7 +85,7 @@ p.add_argument(
     "--height",
     type=int,
     default=512,
-    choices=range(128, 769, 8),
+    choices=range(128, 1025, 8),
     help="The height of the output image.",
 )
 
@@ -93,7 +93,7 @@ p.add_argument(
     "--width",
     type=int,
     default=512,
-    choices=range(128, 769, 8),
+    choices=range(128, 1025, 8),
     help="The width of the output image.",
 )
 
@@ -421,6 +421,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--control_mode",
+    choices=["Prompt", "Balanced", "Controlnet"],
+    default="Balanced",
+    help="How Controlnet injection should be prioritized.",
+)
+
+p.add_argument(
     "--use_lora",
     type=str,
     default="",
@@ -459,6 +466,13 @@ p.add_argument(
     help="Specify heap key for device caching allocator."
     "Expected form: max_allocation_size;max_allocation_capacity;max_free_allocation_count"
     "Example: --device_allocator_heap_key='*;1gib' (will limit caching on device to 1 gigabyte)",
+)
+
+p.add_argument(
+    "--autogen",
+    type=bool,
+    default="False",
+    help="Only used for a gradio workaround.",
 )
 ##############################################################################
 # IREE - Vulkan supported flags

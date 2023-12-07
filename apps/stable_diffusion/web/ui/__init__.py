@@ -10,6 +10,18 @@ from apps.stable_diffusion.web.ui.txt2img_ui import (
     txt2img_sendto_outpaint,
     txt2img_sendto_upscaler,
 )
+from apps.stable_diffusion.web.ui.txt2img_sdxl_ui import (
+    txt2img_sdxl_inf,
+    txt2img_sdxl_web,
+    txt2img_sdxl_custom_model,
+    txt2img_sdxl_gallery,
+    txt2img_sdxl_status,
+    txt2img_sdxl_png_info_img,
+    txt2img_sdxl_sendto_img2img,
+    txt2img_sdxl_sendto_inpaint,
+    txt2img_sdxl_sendto_outpaint,
+    txt2img_sdxl_sendto_upscaler,
+)
 from apps.stable_diffusion.web.ui.img2img_ui import (
     img2img_inf,
     img2img_web,
@@ -76,6 +88,7 @@ from apps.stable_diffusion.web.ui.outputgallery_ui import (
     outputgallery_watch,
     outputgallery_filename,
     outputgallery_sendto_txt2img,
+    outputgallery_sendto_txt2img_sdxl,
     outputgallery_sendto_img2img,
     outputgallery_sendto_inpaint,
     outputgallery_sendto_outpaint,

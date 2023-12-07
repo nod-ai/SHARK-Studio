@@ -4,6 +4,7 @@ import glob
 import math
 import json
 import safetensors
+import gradio as gr
 
 from pathlib import Path
 from apps.stable_diffusion.src import args
@@ -30,7 +31,7 @@ class Config:
     width: int
     device: str
     use_lora: str
-    use_stencil: str
+    stencils: list[str]
     ondemand: str  # should this be expecting a bool instead?
 
 
@@ -64,9 +65,11 @@ scheduler_list_cpu_only = [
     "DPMSolverSinglestep",
     "DDPM",
     "HeunDiscrete",
+    "LCMScheduler",
 ]
 scheduler_list = scheduler_list_cpu_only + [
     "SharkEulerDiscrete",
+    "SharkEulerAncestralDiscrete",
 ]
 
 predefined_models = [
@@ -86,6 +89,10 @@ predefined_paint_models = [
 ]
 predefined_upscaler_models = [
     "stabilityai/stable-diffusion-x4-upscaler",
+]
+predefined_sdxl_models = [
+    "stabilityai/sdxl-turbo",
+    "stabilityai/stable-diffusion-xl-base-1.0",
 ]
 
 
@@ -140,6 +147,12 @@ def get_custom_model_files(model="models", custom_checkpoint_type=""):
             )
         ]
         match custom_checkpoint_type:
+            case "sdxl":
+                files = [
+                    val
+                    for val in files
+                    if any(x in val for x in ["XL", "xl", "Xl"])
+                ]
             case "inpainting":
                 files = [
                     val
@@ -246,6 +259,99 @@ def cancel_sd():
     except Exception:
         pass
 
+
+def set_model_default_configs(model_ckpt_or_id, jsonconfig=None):
+    import gradio as gr
+
+    config_modelname = default_config_exists(model_ckpt_or_id)
+    if jsonconfig:
+        return get_config_from_json(jsonconfig)
+    elif config_modelname:
+        return default_configs[config_modelname]
+    # TODO: Use HF metadata to setup pipeline if available
+    # elif is_valid_hf_id(model_ckpt_or_id):
+    #     return get_HF_default_configs(model_ckpt_or_id)
+    else:
+        # We don't have default metadata to setup a good config. Do not change configs.
+        return [
+            gr.Textbox(label="Prompt", interactive=True, visible=True),
+            gr.Textbox(label="Negative Prompt", interactive=True),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.update(),
+            gr.Checkbox(
+                label="Auto-Generate",
+                visible=False,
+                interactive=False,
+                value=False,
+            ),
+        ]
+
+
+def get_config_from_json(model_ckpt_or_id, jsonconfig):
+    # TODO: make this work properly. It is currently not user-exposed.
+    cfgdata = json.load(jsonconfig)
+    return [
+        cfgdata["prompt_box_behavior"],
+        cfgdata["neg_prompt_box_behavior"],
+        cfgdata["steps"],
+        cfgdata["scheduler"],
+        cfgdata["guidance_scale"],
+        cfgdata["width"],
+        cfgdata["height"],
+        cfgdata["custom_vae"],
+    ]
+
+
+def default_config_exists(model_ckpt_or_id):
+    if model_ckpt_or_id in [
+        "stabilityai/sdxl-turbo",
+        "stabilityai/stable_diffusion-xl-base-1.0",
+    ]:
+        return model_ckpt_or_id
+    elif "turbo" in model_ckpt_or_id.lower():
+        return "stabilityai/sdxl-turbo"
+    else:
+        return None
+
+
+default_configs = {
+    "stabilityai/sdxl-turbo": [
+        gr.Textbox(label="", interactive=False, value=None, visible=False),
+        gr.Textbox(
+            label="Prompt",
+            value="masterpiece, a graceful shark leaping out of the water to catch a fish, eclipsing the sunset, epic, rays of light, silhouette",
+        ),
+        gr.Slider(0, 10, value=2),
+        gr.Dropdown(value="EulerAncestralDiscrete"),
+        gr.Slider(0, value=0),
+        512,
+        512,
+        "madebyollin/sdxl-vae-fp16-fix",
+        gr.Checkbox(
+            label="Auto-Generate", visible=False, interactive=True, value=False
+        ),
+    ],
+    "stabilityai/stable-diffusion-xl-base-1.0": [
+        gr.Textbox(label="Prompt", interactive=True, visible=True),
+        gr.Textbox(label="Negative Prompt", interactive=True),
+        40,
+        "EulerDiscrete",
+        7.5,
+        gr.Slider(value=768, interactive=True),
+        gr.Slider(value=768, interactive=True),
+        "madebyollin/sdxl-vae-fp16-fix",
+        gr.Checkbox(
+            label="Auto-Generate",
+            visible=False,
+            interactive=False,
+            value=False,
+        ),
+    ],
+}
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
 nodicon_loc = resource_path("logos/nod-icon.png")
