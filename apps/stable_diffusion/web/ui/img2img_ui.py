@@ -105,7 +105,7 @@ def img2img_inf(
 
     for i, stencil in enumerate(stencils):
         if images[i] is None and stencil is not None:
-            return
+            continue
         if images[i] is not None:
             if isinstance(images[i], dict):
                 images[i] = images[i]["composite"]
@@ -120,6 +120,8 @@ def img2img_inf(
     else:
         # TODO: enable t2i + controlnets
         image = None
+    if image:
+        image, _, _ = resize_stencil(image, width, height)
 
     # set ckpt_loc and hf_model_id.
     args.ckpt_loc = ""
@@ -152,7 +154,6 @@ def img2img_inf(
             stencil_count += 1
     if stencil_count > 0:
         args.hf_model_id = "runwayml/stable-diffusion-v1-5"
-        image, _, _ = resize_stencil(image, width, height)
     elif "Shark" in args.scheduler:
         print(
             f"Shark schedulers are not supported. Switching to EulerDiscrete "
@@ -162,6 +163,7 @@ def img2img_inf(
     cpu_scheduling = not args.scheduler.startswith("Shark")
     args.precision = precision
     dtype = torch.float32 if precision == "fp32" else torch.half
+    print(stencils)
     new_config_obj = Config(
         "img2img",
         args.hf_model_id,
@@ -180,7 +182,12 @@ def img2img_inf(
     if (
         not global_obj.get_sd_obj()
         or global_obj.get_cfg_obj() != new_config_obj
+        or any(
+            global_obj.get_cfg_obj().stencils[idx] != stencil
+            for idx, stencil in enumerate(stencils)
+        )
     ):
+        print("clearing config because you changed something important")
         global_obj.clear_cache()
         global_obj.set_cfg_obj(new_config_obj)
         args.batch_count = batch_count
@@ -632,7 +639,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             [cnet_1_image],
                         )
 
-                        cnet_1_model.input(
+                        cnet_1_model.change(
                             fn=(
                                 lambda m, w, h, s, i, p: update_cn_input(
                                     m, w, h, s, i, p, 0
@@ -739,7 +746,7 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             label="Preprocessed Hint",
                             interactive=True,
                         )
-                        cnet_2_model.select(
+                        cnet_2_model.change(
                             fn=(
                                 lambda m, w, h, s, i, p: update_cn_input(
                                     m, w, h, s, i, p, 0
