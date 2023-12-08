@@ -240,9 +240,11 @@ with gr.Blocks(title="Chat") as chat_element:
 
     with gr.Row(visible=False):
         with gr.Group():
-            config_file = gr.File(label="Upload sharding configuration", visible=False)
-            json_view_button = gr.Button(label="View as JSON", visible=False)
-        json_view = gr.JSON(interactive=True, visible=False)
+            config_file = gr.File(
+                label="Upload sharding configuration", visible=False
+            )
+            json_view_button = gr.Button("View as JSON", visible=False)
+        json_view = gr.JSON(visible=False)
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
