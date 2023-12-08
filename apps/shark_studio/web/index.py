@@ -1,20 +1,54 @@
 from multiprocessing import Process, freeze_support
 import os
+import time
 import sys
 import logging
+
 from ui.chat import chat_element
+from ui.sd import sd_element
+
+from modules import timer, initialize
+
+startup_timer = timer.startup_timer
+startup_timer.record("launcher")
+
+initialize.imports()
 
 if sys.platform == "darwin":
     os.environ["DYLD_LIBRARY_PATH"] = "/usr/local/lib"
     # import before IREE to avoid MLIR library issues
     import torch_mlir
 
-# import PIL, transformers, sentencepiece  # ensures inclusion in pysintaller exe generation
-# from apps.stable_diffusion.src import args, clear_all
-# import apps.stable_diffusion.web.utils.global_obj as global_obj
+def create_api(app):
+    from apps.shark_studio.api.compat import ApiCompat
+    from modules.call_queue import queue_lock
 
+    api = ApiCompat(app, queue_lock)
+    return api
 
-def launch_app(address):
+def api_only():
+    from fastapi import FastAPI
+    from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+
+    initialize.initialize()
+
+    app = FastAPI()
+    initialize.setup_middleware(app)
+    api = create_api(app)
+
+    #from modules import script_callbacks
+    #script_callbacks.before_ui_callback()
+    #script_callbacks.app_started_callback(None, app)
+
+    print(f"Startup time: {startup_timer.summary()}.")
+    api.launch(
+        server_name="0.0.0.0" if cmd_opts.listen else "127.0.0.1",
+        port=cmd_opts.port if cmd_opts.port else 8080,
+        root_path=f"/{cmd_opts.subpath}" if cmd_opts.subpath else ""
+    )
+    
+
+def launch_webui(address):
     from tkinter import Tk
     import webview
 
@@ -33,63 +67,77 @@ def launch_app(address):
     )
     webview.start(private_mode=False, storage_path=os.getcwd())
 
+def webui():
+    from apps.shark_studio.shared_cmd_options import cmd_opts
 
-if __name__ == "__main__":
-    # if args.debug:
     logging.basicConfig(level=logging.DEBUG)
+    
+    launch_api = cmd_opts.api
+    initialize.initialize()
+
+    from modules import shared, ui_tempdir, script_callbacks, ui, progress
+
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
-    #    if args.api or "api" in args.ui.split(","):
-    #        from apps.stable_diffusion.web.ui import (
-    #            txt2img_api,
-    #            img2img_api,
-    #            upscaler_api,
-    #            inpaint_api,
-    #            outpaint_api,
-    #            llm_chat_api,
-    #        )
+
+
+    # if args.api or "api" in args.ui.split(","):
+    #     from apps.shark_studio.api.llm import (
+    #         chat,
+    #     )
+    #     from apps.shark_studio.web.api import sdapi
     #
-    #        from fastapi import FastAPI, APIRouter
-    #        import uvicorn
+    #     from fastapi import FastAPI, APIRouter
+    #     from fastapi.middleware.cors import CORSMiddleware
+    #     import uvicorn
     #
-    #        # init global sd pipeline and config
-    #        global_obj._init()
+    #     # init global sd pipeline and config
+    #     global_obj._init()
+    # 
+    #     api = FastAPI()
+    #     api.mount("/sdapi/", sdapi)
     #
-    #        app = FastAPI()
-    #        app.add_api_route("/sdapi/v1/txt2img", txt2img_api, methods=["post"])
-    #        app.add_api_route("/sdapi/v1/img2img", img2img_api, methods=["post"])
-    #        app.add_api_route("/sdapi/v1/inpaint", inpaint_api, methods=["post"])
-    #        app.add_api_route("/sdapi/v1/outpaint", outpaint_api, methods=["post"])
-    #        app.add_api_route("/sdapi/v1/upscaler", upscaler_api, methods=["post"])
+    #     # chat APIs needed for compatibility with multiple extensions using OpenAI API
+    #     api.add_api_route(
+    #         "/v1/chat/completions", llm_chat_api, methods=["post"]
+    #     )
+    #     api.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
+    #     api.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
+    #     api.add_api_route("/completions", llm_chat_api, methods=["post"])
+    #     api.add_api_route(
+    #         "/v1/engines/codegen/completions", llm_chat_api, methods=["post"]
+    #     )
+    #     api.include_router(APIRouter())
     #
-    #        # chat APIs needed for compatibility with multiple extensions using OpenAI API
-    #        app.add_api_route(
-    #            "/v1/chat/completions", llm_chat_api, methods=["post"]
-    #        )
-    #        app.add_api_route("/v1/completions", llm_chat_api, methods=["post"])
-    #        app.add_api_route("/chat/completions", llm_chat_api, methods=["post"])
-    #        app.add_api_route("/completions", llm_chat_api, methods=["post"])
-    #        app.add_api_route(
-    #            "/v1/engines/codegen/completions", llm_chat_api, methods=["post"]
-    #        )
-    #        app.include_router(APIRouter())
-    #        uvicorn.run(app, host="0.0.0.0", port=args.server_port)
-    #        sys.exit(0)
-    #
+    #     # deal with CORS requests if CORS accept origins are set
+    #     if args.api_accept_origin:
+    #         print(
+    #             f"API Configured for CORS. Accepting origins: { args.api_accept_origin }"
+    #         )
+    #         api.add_middleware(
+    #             CORSMiddleware,
+    #             allow_origins=args.api_accept_origin,
+    #             allow_methods=["GET", "POST"],
+    #             allow_headers=["*"],
+    #         )
+    #     else:
+    #         print("API not configured for CORS")
+    # 
+    #     uvicorn.run(api, host="0.0.0.0", port=args.server_port)
+    #     sys.exit(0)  
     # Setup to use shark_tmp for gradio's temporary image files and clear any
     # existing temporary images there if they exist. Then we can import gradio.
     # It has to be in this order or gradio ignores what we've set up.
-    # from apps.stable_diffusion.web.utils.gradio_configs import (
-    #    config_gradio_tmp_imgs_folder,
-    # )
+    from apps.shark_studio.web.initializers import (
+       config_gradio_tmp_imgs_folder,
+       create_custom_models_folders,
+    )
 
-    # config_gradio_tmp_imgs_folder()
+    config_gradio_tmp_imgs_folder()
     import gradio as gr
 
     # Create custom models folders if they don't exist
-    # from apps.stable_diffusion.web.ui.utils import create_custom_models_folders
-
-    # create_custom_models_folders()
+    create_custom_models_folders()
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -100,74 +148,10 @@ if __name__ == "__main__":
 
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
-    # from apps.stable_diffusion.web.ui import (
-    # txt2img_web,
-    # txt2img_custom_model,
-    # txt2img_gallery,
-    # txt2img_png_info_img,
-    # txt2img_status,
-    # txt2img_sendto_img2img,
-    # txt2img_sendto_inpaint,
-    # txt2img_sendto_outpaint,
-    # txt2img_sendto_upscaler,
-    ## h2ogpt_upload,
-    ## h2ogpt_web,
-    # img2img_web,
-    # img2img_custom_model,
-    # img2img_gallery,
-    # img2img_init_image,
-    # img2img_status,
-    # img2img_sendto_inpaint,
-    # img2img_sendto_outpaint,
-    # img2img_sendto_upscaler,
-    # inpaint_web,
-    # inpaint_custom_model,
-    # inpaint_gallery,
-    # inpaint_init_image,
-    # inpaint_status,
-    # inpaint_sendto_img2img,
-    # inpaint_sendto_outpaint,
-    # inpaint_sendto_upscaler,
-    # outpaint_web,
-    # outpaint_custom_model,
-    # outpaint_gallery,
-    # outpaint_init_image,
-    # outpaint_status,
-    # outpaint_sendto_img2img,
-    # outpaint_sendto_inpaint,
-    # outpaint_sendto_upscaler,
-    # upscaler_web,
-    # upscaler_custom_model,
-    # upscaler_gallery,
-    # upscaler_init_image,
-    # upscaler_status,
-    # upscaler_sendto_img2img,
-    # upscaler_sendto_inpaint,
-    # upscaler_sendto_outpaint,
-    ##  lora_train_web,
-    ##  model_web,
-    ##  model_config_web,
-    # hf_models,
-    # modelmanager_sendto_txt2img,
-    # modelmanager_sendto_img2img,
-    # modelmanager_sendto_inpaint,
-    # modelmanager_sendto_outpaint,
-    # modelmanager_sendto_upscaler,
-    # stablelm_chat,
-    # minigpt4_web,
-    # outputgallery_web,
-    # outputgallery_tab_select,
-    # outputgallery_watch,
-    # outputgallery_filename,
-    # outputgallery_sendto_txt2img,
-    # outputgallery_sendto_img2img,
-    # outputgallery_sendto_inpaint,
-    # outputgallery_sendto_outpaint,
-    # outputgallery_sendto_upscaler,
-    # )
+    from apps.shark_studio.web.ui import load_ui_from_script
 
     # init global sd pipeline and config
-    # global_obj._init()
+    studio.state._init()
 
     def register_button_click(button, selectedid, inputs, outputs):
         button.click(
@@ -178,18 +162,6 @@ if __name__ == "__main__":
             inputs,
             outputs,
         )
-
-    def register_modelmanager_button(button, selectedid, inputs, outputs):
-        button.click(
-            lambda x: (
-                "None",
-                x,
-                gr.Tabs.update(selected=selectedid),
-            ),
-            inputs,
-            outputs,
-        )
-
     def register_outputgallery_button(button, selectedid, inputs, outputs):
         button.click(
             lambda x: (
@@ -202,7 +174,7 @@ if __name__ == "__main__":
 
     with gr.Blocks(
         css=dark_theme, analytics_enabled=False, title="Shark Studio 2.0 Beta"
-    ) as sd_web:
+    ) as studio_web:
         with gr.Tabs() as tabs:
             # NOTE: If adding, removing, or re-ordering tabs, make sure that they
             # have a unique id that doesn't clash with any of the other tabs,
@@ -213,216 +185,29 @@ if __name__ == "__main__":
             # destination of one of the 'send to' buttons. If you do have to change
             # that id, make sure you update the relevant register_button_click calls
             # further down with the new id.
-            # with gr.TabItem(label="Text-to-Image", id=0):
-            #    txt2img_web.render()
-            # with gr.TabItem(label="Image-to-Image", id=1):
-            #    img2img_web.render()
-            # with gr.TabItem(label="Inpainting", id=2):
-            #    inpaint_web.render()
-            # with gr.TabItem(label="Outpainting", id=3):
-            #    outpaint_web.render()
-            # with gr.TabItem(label="Upscaler", id=4):
-            #    upscaler_web.render()
-            # if args.output_gallery:
-            #    with gr.TabItem(label="Output Gallery", id=5) as og_tab:
-            #        outputgallery_web.render()
-
-            #    # extra output gallery configuration
-            #    outputgallery_tab_select(og_tab.select)
-            #    outputgallery_watch(
-            #        [
-            #            txt2img_status,
-            #            img2img_status,
-            #            inpaint_status,
-            #            outpaint_status,
-            #            upscaler_status,
-            #        ]
-            #    )
-            ##  with gr.TabItem(label="Model Manager", id=6):
-            ##      model_web.render()
-            ##  with gr.TabItem(label="LoRA Training (Experimental)", id=7):
-            ##      lora_train_web.render()
-            with gr.TabItem(label="Chat Bot", id=0):
+            with gr.TabItem(label="Stable Diffusion", id=0):
+                sd_element.render()
+            #with gr.TabItem(label="Output Gallery", id=1):   
+            with gr.TabItem(label="Chat Bot", id=2):
                 chat_element.render()
-            ##  with gr.TabItem(
-            ##      label="Generate Sharding Config (Experimental)", id=9
-            ##  ):
-            ##      model_config_web.render()
-            # with gr.TabItem(label="MultiModal (Experimental)", id=10):
-            #    minigpt4_web.render()
-            # with gr.TabItem(label="DocuChat Upload", id=11):
-            #     h2ogpt_upload.render()
-            # with gr.TabItem(label="DocuChat(Experimental)", id=12):
-            #     h2ogpt_web.render()
 
-        # send to buttons
-        # register_button_click(
-        #    txt2img_sendto_img2img,
-        #    1,
-        #    [txt2img_gallery],
-        #    [img2img_init_image, tabs],
-        # )
-        # register_button_click(
-        #    txt2img_sendto_inpaint,
-        #    2,
-        #    [txt2img_gallery],
-        #    [inpaint_init_image, tabs],
-        # )
-        # register_button_click(
-        #    txt2img_sendto_outpaint,
-        #    3,
-        #    [txt2img_gallery],
-        #    [outpaint_init_image, tabs],
-        # )
-        # register_button_click(
-        #    txt2img_sendto_upscaler,
-        #    4,
-        #    [txt2img_gallery],
-        #    [upscaler_init_image, tabs],
-        # )
-        # register_button_click(
-        #    img2img_sendto_inpaint,
-        #    2,
-        #    [img2img_gallery],
-        #    [inpaint_init_image, tabs],
-        # )
-        # register_button_click(
-        #    img2img_sendto_outpaint,
-        #    3,
-        #    [img2img_gallery],
-        #    [outpaint_init_image, tabs],
-        # )
-        # register_button_click(
-        #    img2img_sendto_upscaler,
-        #    4,
-        #    [img2img_gallery],
-        #    [upscaler_init_image, tabs],
-        # )
-        # register_button_click(
-        #    inpaint_sendto_img2img,
-        #    1,
-        #    [inpaint_gallery],
-        #    [img2img_init_image, tabs],
-        # )
-        # register_button_click(
-        #    inpaint_sendto_outpaint,
-        #    3,
-        #    [inpaint_gallery],
-        #    [outpaint_init_image, tabs],
-        # )
-        # register_button_click(
-        #    inpaint_sendto_upscaler,
-        #    4,
-        #    [inpaint_gallery],
-        #    [upscaler_init_image, tabs],
-        # )
-        # register_button_click(
-        #    outpaint_sendto_img2img,
-        #    1,
-        #    [outpaint_gallery],
-        #    [img2img_init_image, tabs],
-        # )
-        # register_button_click(
-        #    outpaint_sendto_inpaint,
-        #    2,
-        #    [outpaint_gallery],
-        #    [inpaint_init_image, tabs],
-        # )
-        # register_button_click(
-        #    outpaint_sendto_upscaler,
-        #    4,
-        #    [outpaint_gallery],
-        #    [upscaler_init_image, tabs],
-        # )
-        # register_button_click(
-        #    upscaler_sendto_img2img,
-        #    1,
-        #    [upscaler_gallery],
-        #    [img2img_init_image, tabs],
-        # )
-        # register_button_click(
-        #    upscaler_sendto_inpaint,
-        #    2,
-        #    [upscaler_gallery],
-        #    [inpaint_init_image, tabs],
-        # )
-        # register_button_click(
-        #    upscaler_sendto_outpaint,
-        #    3,
-        #    [upscaler_gallery],
-        #    [outpaint_init_image, tabs],
-        # )
-        # if args.output_gallery:
-        #    register_outputgallery_button(
-        #        outputgallery_sendto_txt2img,
-        #        0,
-        #        [outputgallery_filename],
-        #        [txt2img_png_info_img, tabs],
-        #    )
-        #    register_outputgallery_button(
-        #        outputgallery_sendto_img2img,
-        #        1,
-        #        [outputgallery_filename],
-        #        [img2img_init_image, tabs],
-        #    )
-        #    register_outputgallery_button(
-        #        outputgallery_sendto_inpaint,
-        #        2,
-        #        [outputgallery_filename],
-        #        [inpaint_init_image, tabs],
-        #    )
-        #    register_outputgallery_button(
-        #        outputgallery_sendto_outpaint,
-        #        3,
-        #        [outputgallery_filename],
-        #        [outpaint_init_image, tabs],
-        #    )
-        #    register_outputgallery_button(
-        #        outputgallery_sendto_upscaler,
-        #        4,
-        #        [outputgallery_filename],
-        #        [upscaler_init_image, tabs],
-        #    )
-        # register_modelmanager_button(
-        #    modelmanager_sendto_txt2img,
-        #    0,
-        #    [hf_models],
-        #    [txt2img_custom_model, tabs],
-        # )
-        # register_modelmanager_button(
-        #    modelmanager_sendto_img2img,
-        #    1,
-        #    [hf_models],
-        #    [img2img_custom_model, tabs],
-        # )
-        # register_modelmanager_button(
-        #    modelmanager_sendto_inpaint,
-        #    2,
-        #    [hf_models],
-        #    [inpaint_custom_model, tabs],
-        # )
-        # register_modelmanager_button(
-        #    modelmanager_sendto_outpaint,
-        #    3,
-        #    [hf_models],
-        #    [outpaint_custom_model, tabs],
-        # )
-        # register_modelmanager_button(
-        #    modelmanager_sendto_upscaler,
-        #    4,
-        #    [hf_models],
-        #    [upscaler_custom_model, tabs],
-        # )
 
-    sd_web.queue()
+    studio_web.queue()
     # if args.ui == "app":
     #    t = Process(
     #        target=launch_app, args=[f"http://localhost:{args.server_port}"]
     #    )
     #    t.start()
-    sd_web.launch(
+    studio_web.launch(
         share=True,
         inbrowser=True,
         server_name="0.0.0.0",
         server_port=11911,  # args.server_port,
     )
+if __name__ == "__main__":
+    from apps.shark_studio.shared_cmd_options import cmd_opts
+
+    if cmd_opts.nowebui:
+        api_only()
+    else:
+        webui()
