@@ -1616,6 +1616,10 @@ class UnshardedVicuna(VicunaBase):
                     self.vulkan_target_triple.split("-")[:-1]
                 )
                 differentiator = target_triple
+            else:
+                from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
+                tt = get_vulkan_triple_flag(device_num=self.device_id)
+                differentiator = "_" + "_".join(tt.split("=")[1].split('-')[:-1])
 
         elif "rocm" == self.device:
             from shark.iree_utils.gpu_utils import get_rocm_device_arch
@@ -2354,6 +2358,10 @@ if __name__ == "__main__":
                 device_id = id
                 break
             id += 1
+
+        if "://" in device :
+            from shark.iree_utils.compile_utils import clean_device_info
+            _, device_id = clean_device_info(args.device)
 
         assert (
             device_id
