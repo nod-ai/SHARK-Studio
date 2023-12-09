@@ -6,6 +6,7 @@ import logging
 
 from ui.chat import chat_element
 from ui.sd import sd_element
+from ui.outputgallery import outputgallery_element
 
 from modules import timer, initialize
 
@@ -187,7 +188,8 @@ def webui():
             # further down with the new id.
             with gr.TabItem(label="Stable Diffusion", id=0):
                 sd_element.render()
-            #with gr.TabItem(label="Output Gallery", id=1):   
+            with gr.TabItem(label="Output Gallery", id=1):
+                outputgallery_element.render()
             with gr.TabItem(label="Chat Bot", id=2):
                 chat_element.render()
 
