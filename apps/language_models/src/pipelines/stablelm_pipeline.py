@@ -147,7 +147,7 @@ class SharkStableLM(SharkLLMBase):
             ts_graph = import_with_fx(
                 model,
                 model_inputs,
-                is_f16=True if self.precision in ["fp16", "int4"] else False,
+                is_f16=True if self.precision in ["fp16"] else False,
                 precision=self.precision,
                 f16_input_mask=[False, False],
                 mlir_type="torchscript",
