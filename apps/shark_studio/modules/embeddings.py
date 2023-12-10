@@ -1,6 +1,7 @@
 import torch
 from safetensors.torch import load_file
 
+
 def processLoRA(model, use_lora, splitting_prefix):
     state_dict = ""
     if ".safetensors" in use_lora:
@@ -108,4 +109,3 @@ def update_lora_weight(model, use_lora, model_name):
         return processLoRA(model, use_lora, "lora_te_")
     except:
         return None
-

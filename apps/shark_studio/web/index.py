@@ -20,12 +20,14 @@ if sys.platform == "darwin":
     # import before IREE to avoid MLIR library issues
     import torch_mlir
 
+
 def create_api(app):
     from apps.shark_studio.api.compat import ApiCompat
     from modules.call_queue import queue_lock
 
     api = ApiCompat(app, queue_lock)
     return api
+
 
 def api_only():
     from fastapi import FastAPI
@@ -37,17 +39,17 @@ def api_only():
     initialize.setup_middleware(app)
     api = create_api(app)
 
-    #from modules import script_callbacks
-    #script_callbacks.before_ui_callback()
-    #script_callbacks.app_started_callback(None, app)
+    # from modules import script_callbacks
+    # script_callbacks.before_ui_callback()
+    # script_callbacks.app_started_callback(None, app)
 
     print(f"Startup time: {startup_timer.summary()}.")
     api.launch(
         server_name="0.0.0.0" if cmd_opts.listen else "127.0.0.1",
         port=cmd_opts.port if cmd_opts.port else 8080,
-        root_path=f"/{cmd_opts.subpath}" if cmd_opts.subpath else ""
+        root_path=f"/{cmd_opts.subpath}" if cmd_opts.subpath else "",
     )
-    
+
 
 def launch_webui(address):
     from tkinter import Tk
@@ -68,11 +70,12 @@ def launch_webui(address):
     )
     webview.start(private_mode=False, storage_path=os.getcwd())
 
+
 def webui():
     from apps.shark_studio.shared_cmd_options import cmd_opts
 
     logging.basicConfig(level=logging.DEBUG)
-    
+
     launch_api = cmd_opts.api
     initialize.initialize()
 
@@ -80,7 +83,6 @@ def webui():
 
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
-
 
     # if args.api or "api" in args.ui.split(","):
     #     from apps.shark_studio.api.llm import (
@@ -94,7 +96,7 @@ def webui():
     #
     #     # init global sd pipeline and config
     #     global_obj._init()
-    # 
+    #
     #     api = FastAPI()
     #     api.mount("/sdapi/", sdapi)
     #
@@ -123,15 +125,15 @@ def webui():
     #         )
     #     else:
     #         print("API not configured for CORS")
-    # 
+    #
     #     uvicorn.run(api, host="0.0.0.0", port=args.server_port)
-    #     sys.exit(0)  
+    #     sys.exit(0)
     # Setup to use shark_tmp for gradio's temporary image files and clear any
     # existing temporary images there if they exist. Then we can import gradio.
     # It has to be in this order or gradio ignores what we've set up.
     from apps.shark_studio.web.initializers import (
-       config_gradio_tmp_imgs_folder,
-       create_custom_models_folders,
+        config_gradio_tmp_imgs_folder,
+        create_custom_models_folders,
     )
 
     config_gradio_tmp_imgs_folder()
@@ -163,6 +165,7 @@ def webui():
             inputs,
             outputs,
         )
+
     def register_outputgallery_button(button, selectedid, inputs, outputs):
         button.click(
             lambda x: (
@@ -193,7 +196,6 @@ def webui():
             with gr.TabItem(label="Chat Bot", id=2):
                 chat_element.render()
 
-
     studio_web.queue()
     # if args.ui == "app":
     #    t = Process(
@@ -206,6 +208,8 @@ def webui():
         server_name="0.0.0.0",
         server_port=11911,  # args.server_port,
     )
+
+
 if __name__ == "__main__":
     from apps.shark_studio.shared_cmd_options import cmd_opts
 
