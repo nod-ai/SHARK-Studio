@@ -6,97 +6,128 @@ import gc
 import torch
 
 sd_model_map = {
-    "sd15": {
-        "base_model_id": "runwayml/stable-diffusion-v1-5"
+    "CompVis/stable-diffusion-v1-4": {
         "clip": {
             "initializer": clip.export_clip_model,
-            "max_tokens": 77,
-        }
+            "max_tokens": 64,
+        },
+        "vae_encode": {
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
         "unet": {
             "initializer": unet.export_unet_model,
             "max_tokens": 512,
-        }
+        },
         "vae_decode": {
-            "initializer": vae.export_vae_model,,
-        }
-    }
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
+    },
+    "runwayml/stable-diffusion-v1-5": {
+        "clip": {
+            "initializer": clip.export_clip_model,
+            "max_tokens": 64,
+        },
+        "vae_encode": {
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
+        "unet": {
+            "initializer": unet.export_unet_model,
+            "max_tokens": 512,
+        },
+        "vae_decode": {
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
+    },
+    "stabilityai/stable-diffusion-2-1-base": {
+        "clip": {
+            "initializer": clip.export_clip_model,
+            "max_tokens": 64,
+        },
+        "vae_encode": {
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
+        "unet": {
+            "initializer": unet.export_unet_model,
+            "max_tokens": 512,
+        },
+        "vae_decode": {
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
+    },
+    "stabilityai/stable_diffusion-xl-1.0": {
+        "clip_1": {
+            "initializer": clip.export_clip_model,
+            "max_tokens": 64,
+        },
+        "clip_2": {
+            "initializer": clip.export_clip_model,
+            "max_tokens": 64,
+        },
+        "vae_encode": {
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
+        "unet": {
+            "initializer": unet.export_unet_model,
+            "max_tokens": 512,
+        },
+        "vae_decode": {
+            "initializer": vae.export_vae_model,
+            "max_tokens": 64,
+        },
+    },
 }
 
 
-class SharkStableDiffusionPipeline:
-    def __init__(
-        self, model_name, , device=None, precision="fp32"
-    ):
-        print(sd_model_map[model_name])
-        self.hf_model_name = llm_model_map[model_name]["hf_model_name"]
-        self.torch_ir, self.tokenizer = llm_model_map[model_name][
-            "initializer"
-        ](self.hf_model_name, hf_auth_token, compile_to="torch")
-        self.tempfile_name = get_resource_path("llm.torch.tempfile")
-        with open(self.tempfile_name, "w+") as f:
-            f.write(self.torch_ir)
-        del self.torch_ir
-        gc.collect()
+class StableDiffusion(SharkPipelineBase):
 
+    # This class is responsible for executing image generation and creating
+    # /managing a set of compiled modules to run Stable Diffusion. The init
+    # aims to be as general as possible, and the class will infer and compile
+    # a list of necessary modules or a combined "pipeline module" for a
+    # specified job based on the inference task.
+    # 
+    # custom_model_ids: a dict of submodel + HF ID pairs for custom submodels.
+    # e.g. {"vae_decode": "madebyollin/sdxl-vae-fp16-fix"}
+    # 
+    # embeddings: a dict of embedding checkpoints or model IDs to use when
+    # initializing the compiled modules.
+
+    def __init__(
+        self,
+        base_model_id: str = "runwayml/stable-diffusion-v1-5",
+        height: int = 512,
+        width: int = 512,
+        precision: str = "fp16",
+        device: str = None,
+        custom_model_map: dict = {},
+        custom_weights_map: dict = {},
+        embeddings: dict = {},
+        import_ir: bool = True,
+    ):
+        super().__init__(sd_model_map[base_model_id], device, import_ir)
+        self.base_model_id = base_model_id
         self.device = device
         self.precision = precision
-        self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
-        self.compile()
+        self.get_compiled_map()
 
-    def compile(self) -> None:
-        # this comes with keys: "vmfb", "config", and "temp_file_to_unlink".
-        self.iree_module_dict = get_iree_compiled_module(
-            self.tempfile_name, device=self.device, frontend="torch"
-        )
-        # TODO: delete the temp file
 
     def generate_images(
             self,
             prompt,
             ):
-        history = []
-        for iter in range(self.max_tokens):
-            input_tensor = self.tokenizer(
-                prompt, return_tensors="pt"
-            ).input_ids
-            device_inputs = [
-                ireert.asdevicearray(
-                    self.iree_module_dict["config"], input_tensor
-                )
-            ]
-            if iter == 0:
-                token = torch.tensor(
-                    self.iree_module_dict["vmfb"]["run_initialize"](
-                        *device_inputs
-                    ).to_host()[0][0]
-                )
-            else:
-                token = torch.tensor(
-                    self.iree_module_dict["vmfb"]["run_forward"](
-                        *device_inputs
-                    ).to_host()[0][0]
-                )
-
-            history.append(token)
-            yield self.tokenizer.decode(history)
-
-            if token == llm_model_map["llama2_7b"]["stop_token"]:
-                break
-
-        for i in range(len(history)):
-            if type(history[i]) != int:
-                history[i] = int(history[i])
-        result_output = self.tokenizer.decode(history)
-        yield result_output
-
+        return result_output,
 
 if __name__ == "__main__":
-    lm = LanguageModel(
-        "llama2_7b",
-        hf_auth_token="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",
-        device="cpu-task",
+    sd = StableDiffusion(
+        "runwayml/stable-diffusion-v1-5",
+        device="vulkan",
     )
     print("model loaded")
-    for i in lm.chat("Hello, I am a robot."):
-        print(i)

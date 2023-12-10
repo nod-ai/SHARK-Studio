@@ -24,13 +24,12 @@ from apps.shark_studio.api.utils import (
 )
 from apps.shark_studio.api.sd import (
     sd_model_map,
-    SharkStableDiffusionPipeline,
+    StableDiffusion,
 )
 from apps.shark_studio.api.schedulers import (
     scheduler_model_map,
 )
 from apps.shark_studio.api.controlnet import (
-    resampler_list,
     preprocessor_model_map,
     control_adapter_model_map,
     PreprocessorModel,
@@ -70,8 +69,8 @@ def shark_sd_fn(
     custom_vae: str,
     precision: str,
     device: str,
-    lora_weights: str,
-    lora_hf_id: str,
+    lora_weights: str | list,
+    lora_hf_ids: str | list,
     ondemand: bool,
     repeatable_seeds: bool,
     resample_type: str,
@@ -108,14 +107,22 @@ def shark_sd_fn(
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
     submit_pipe_kwargs = {
-        "base_model_id": base_model_id,
-        "custom_vae": custom_vae,
-        "import_mlir": cmd_opts.import_mlir,
-        "":
+        base_model_id: base_model_id,
+        height: height,
+        width: width,
+        precision: precision,
+        device: device,
+        extra_model_ids: extra_model_ids,
+        embeddings: lora_hf_ids,
+        import_ir: cmd_opts.import_ir,
+    }
+    submit_prep_kwargs = {
+
+
 
     global sd_pipe
     global sd_pipe_kwargs
-
+    
     for key in 
 
     if sd_pipe is None:
@@ -127,17 +134,10 @@ def shark_sd_fn(
         # which is currently MLIR in the torch dialect.
 
         sd_pipe = SharkStableDiffusionPipeline(
-            base_model_id = base_model_id,
-            custom_vae = custom_vae,
-            import_mlir = import_mlir,
-            device = device.split("=>", 1)[1].strip(),
-            precision = precision,
-            max_length = 512,
-            height = height,
-            width = width,
+            **submit_pipe_kwargs
         )
+        sd_pipe.queue_compile()
     
-    #
     for prompt, msg, exec_time in progress.tqdm(
         sd_pipe.generate_images(
             prompt,
