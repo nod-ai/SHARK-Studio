@@ -26,22 +26,21 @@ def imports():
 
     startup_timer.record("import gradio")
 
-    # from apps.shark_studio.modules import shared_init
-    # shared_init.initialize()
-    # startup_timer.record("initialize shared")
+    import apps.shark_studio.web.utils.globals as global_obj
+
+    global_obj._init()
+    startup_timer.record("initialize globals")
 
     from apps.shark_studio.modules import (
-        processing,
-        gradio_extensons,
-        ui,
+        img_processing,
     )  # noqa: F401
+    from apps.shark_studio.modules.schedulers import scheduler_model_map
 
     startup_timer.record("other imports")
 
 
 def initialize():
     configure_sigint_handler()
-    configure_opts_onchange()
 
     # from apps.shark_studio.modules import modelloader
     # modelloader.cleanup_models()

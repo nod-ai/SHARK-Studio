@@ -1,5 +1,10 @@
+import os
+import sys
 import torch
+import json
+import safetensors
 from safetensors.torch import load_file
+from apps.shark_studio.api.utils import get_checkpoint_pathfile
 
 
 def processLoRA(model, use_lora, splitting_prefix):
@@ -109,3 +114,58 @@ def update_lora_weight(model, use_lora, model_name):
         return processLoRA(model, use_lora, "lora_te_")
     except:
         return None
+
+
+def get_lora_metadata(lora_filename):
+    # get the metadata from the file
+    filename = get_checkpoint_pathfile(lora_filename, "lora")
+    with safetensors.safe_open(filename, framework="pt", device="cpu") as f:
+        metadata = f.metadata()
+
+    # guard clause for if there isn't any metadata
+    if not metadata:
+        return None
+
+    # metadata is a dictionary of strings, the values of the keys we're
+    # interested in are actually json, and need to be loaded as such
+    tag_frequencies = json.loads(metadata.get("ss_tag_frequency", str("{}")))
+    dataset_dirs = json.loads(metadata.get("ss_dataset_dirs", str("{}")))
+    tag_dirs = [dir for dir in tag_frequencies.keys()]
+
+    # gather the tag frequency information for all the datasets trained
+    all_frequencies = {}
+    for dataset in tag_dirs:
+        frequencies = sorted(
+            [entry for entry in tag_frequencies[dataset].items()],
+            reverse=True,
+            key=lambda x: x[1],
+        )
+
+        # get a figure for the total number of images processed for this dataset
+        # either then number actually listed or in its dataset_dir entry or
+        # the highest frequency's number if that doesn't exist
+        img_count = dataset_dirs.get(dir, {}).get(
+            "img_count", frequencies[0][1]
+        )
+
+        # add the dataset frequencies to the overall frequencies replacing the
+        # frequency counts on the tags with a percentage/ratio
+        all_frequencies.update(
+            [(entry[0], entry[1] / img_count) for entry in frequencies]
+        )
+
+    trained_model_id = " ".join(
+        [
+            metadata.get("ss_sd_model_hash", ""),
+            metadata.get("ss_sd_model_name", ""),
+            metadata.get("ss_base_model_version", ""),
+        ]
+    ).strip()
+
+    # return the topmost <count> of all frequencies in all datasets
+    return {
+        "model": trained_model_id,
+        "frequencies": sorted(
+            all_frequencies.items(), reverse=True, key=lambda x: x[1]
+        ),
+    }
