@@ -8,8 +8,7 @@ from pathlib import Path
 
 # Temporary workaround for transformers/__init__.py.
 path_to_transformers_hook = Path(
-    get_python_lib()
-    + "/_pyinstaller_hooks_contrib/hooks/stdhooks/hook-transformers.py"
+    get_python_lib() + "/_pyinstaller_hooks_contrib/hooks/stdhooks/hook-transformers.py"
 )
 if path_to_transformers_hook.is_file():
     pass
@@ -59,9 +58,7 @@ for line in fileinput.input(path_to_lazy_loader, inplace=True):
 
 # For getting around timm's packaging.
 # Refer: https://github.com/pyinstaller/pyinstaller/issues/5673#issuecomment-808731505
-path_to_timm_activations = Path(
-    get_python_lib() + "/timm/layers/activations_jit.py"
-)
+path_to_timm_activations = Path(get_python_lib() + "/timm/layers/activations_jit.py")
 for line in fileinput.input(path_to_timm_activations, inplace=True):
     if "@torch.jit.script" in line:
         print("@torch.jit._script_if_tracing", end="\n")

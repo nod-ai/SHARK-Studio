@@ -5,14 +5,25 @@ requires = [
     "packaging",
 
     "numpy>=1.22.4",
-    "torch-mlir>=20230620.875",
     "iree-compiler>=20221022.190",
     "iree-runtime>=20221022.190",
 ]
 build-backend = "setuptools.build_meta"
 
 [tool.black]
-line-length = 79
 include = '\.pyi?$'
-exclude = "apps/language_models/scripts/vicuna.py"
-extend-exclude = "apps/language_models/src/pipelines/minigpt4_pipeline.py"
+exclude = '''
+(
+  /(
+    | apps/stable_diffusion
+    | apps/language_models
+    | shark
+    | benchmarks
+    | tank
+    | build
+    | generated_imgs
+    | shark.venv
+  )/
+  | setup.py
+)
+'''

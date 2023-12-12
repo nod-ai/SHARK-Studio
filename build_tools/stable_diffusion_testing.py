@@ -36,9 +36,7 @@ def parse_sd_out(filename, command, device, use_tune, model_name, import_mlir):
                 metrics[val] = line.split(" ")[-1].strip("\n")
 
     metrics["Average step"] = metrics["Average step"].strip("ms/it")
-    metrics["Total image generation"] = metrics[
-        "Total image generation"
-    ].strip("sec")
+    metrics["Total image generation"] = metrics["Total image generation"].strip("sec")
     metrics["device"] = device
     metrics["use_tune"] = use_tune
     metrics["model_name"] = model_name
@@ -84,10 +82,14 @@ def test_loop(
     ]
     import_options = ["--import_mlir", "--no-import_mlir"]
     prompt_text = "--prompt=cyberpunk forest by Salvador Dali"
-    inpaint_prompt_text = "--prompt=Face of a yellow cat, high resolution, sitting on a park bench"
+    inpaint_prompt_text = (
+        "--prompt=Face of a yellow cat, high resolution, sitting on a park bench"
+    )
     if os.name == "nt":
         prompt_text = '--prompt="cyberpunk forest by Salvador Dali"'
-        inpaint_prompt_text = '--prompt="Face of a yellow cat, high resolution, sitting on a park bench"'
+        inpaint_prompt_text = (
+            '--prompt="Face of a yellow cat, high resolution, sitting on a park bench"'
+        )
     if beta:
         extra_flags.append("--beta_models=True")
     extra_flags.append("--no-progress_bar")
@@ -174,9 +176,7 @@ def test_loop(
                     )
                     print(command)
                     print("Successfully generated image")
-                    os.makedirs(
-                        "./test_images/golden/" + model_name, exist_ok=True
-                    )
+                    os.makedirs("./test_images/golden/" + model_name, exist_ok=True)
                     download_public_file(
                         "gs://shark_tank/testdata/golden/" + model_name,
                         "./test_images/golden/" + model_name,
@@ -191,14 +191,10 @@ def test_loop(
                     )
                     test_file = glob(test_file_path)[0]
 
-                    golden_path = (
-                        "./test_images/golden/" + model_name + "/*.png"
-                    )
+                    golden_path = "./test_images/golden/" + model_name + "/*.png"
                     golden_file = glob(golden_path)[0]
                     try:
-                        compare_images(
-                            test_file, golden_file, upload=upload_bool
-                        )
+                        compare_images(test_file, golden_file, upload=upload_bool)
                     except AssertionError as e:
                         print(e)
                         if exit_on_fail == True:
@@ -267,9 +263,7 @@ parser.add_argument(
 parser.add_argument(
     "-x", "--exit_on_fail", action=argparse.BooleanOptionalAction, default=True
 )
-parser.add_argument(
-    "-g", "--gen", action=argparse.BooleanOptionalAction, default=False
-)
+parser.add_argument("-g", "--gen", action=argparse.BooleanOptionalAction, default=False)
 
 if __name__ == "__main__":
     args = parser.parse_args()

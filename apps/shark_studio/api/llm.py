@@ -19,7 +19,14 @@ llm_model_map = {
         "stop_token": 2,
         "max_tokens": 4096,
         "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
-    }
+    },
+    "Trelis/Llama-2-7b-chat-hf-function-calling-v2": {
+        "initializer": stateless_llama.export_transformer_model,
+        "hf_model_name": "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+        "stop_token": 2,
+        "max_tokens": 4096,
+        "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
+    },
 }
 
 
@@ -31,7 +38,6 @@ class LanguageModel:
         device=None,
         precision="fp32",
         external_weights=None,
-        external_weight_file=None,
         use_system_prompt=True,
     ):
         print(llm_model_map[model_name])
@@ -40,12 +46,19 @@ class LanguageModel:
         self.vmfb_name = get_resource_path("llm.vmfb.tempfile")
         self.device = device
         self.precision = precision
+        self.safe_name = self.hf_model_name.strip("/").replace("/", "_")
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
-        self.external_weight_file = external_weight_file
+        self.external_weight_file = None
+        if external_weights is not None:
+            self.external_weight_file = get_resource_path(
+                self.safe_name + "." + external_weights
+            )
         self.use_system_prompt = use_system_prompt
         self.global_iter = 0
-        if os.path.exists(self.vmfb_name):
+        if os.path.exists(self.vmfb_name) and (
+            external_weights is None or os.path.exists(str(self.external_weight_file))
+        ):
             self.iree_module_dict = dict()
             (
                 self.iree_module_dict["vmfb"],
@@ -56,7 +69,7 @@ class LanguageModel:
                 device,
                 device_idx=0,
                 rt_flags=[],
-                external_weight_file=external_weight_file,
+                external_weight_file=self.external_weight_file,
             )
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.hf_model_name,
@@ -64,14 +77,12 @@ class LanguageModel:
                 use_auth_token=hf_auth_token,
             )
         elif not os.path.exists(self.tempfile_name):
-            self.torch_ir, self.tokenizer = llm_model_map[model_name][
-                "initializer"
-            ](
+            self.torch_ir, self.tokenizer = llm_model_map[model_name]["initializer"](
                 self.hf_model_name,
                 hf_auth_token,
                 compile_to="torch",
                 external_weights=external_weights,
-                external_weight_file=external_weight_file,
+                external_weight_file=self.external_weight_file,
             )
             with open(self.tempfile_name, "w+") as f:
                 f.write(self.torch_ir)
@@ -129,9 +140,7 @@ class LanguageModel:
                         self.iree_module_dict["config"].device, input_tensor
                     )
                 ]
-                token = self.iree_module_dict["vmfb"]["run_initialize"](
-                    *device_inputs
-                )
+                token = self.iree_module_dict["vmfb"]["run_initialize"](*device_inputs)
             else:
                 device_inputs = [
                     ireert.asdevicearray(
@@ -139,9 +148,7 @@ class LanguageModel:
                         token,
                     )
                 ]
-                token = self.iree_module_dict["vmfb"]["run_forward"](
-                    *device_inputs
-                )
+                token = self.iree_module_dict["vmfb"]["run_forward"](*device_inputs)
 
             total_time = time.time() - st_time
             history.append(format_out(token))
@@ -160,12 +167,12 @@ class LanguageModel:
 
 if __name__ == "__main__":
     lm = LanguageModel(
-        "llama2_7b",
-        hf_auth_token="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",
+        "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+        hf_auth_token=None,
         device="cpu-task",
         external_weights="safetensors",
-        external_weight_file="llama2_7b.safetensors",
     )
+
     print("model loaded")
     for i in lm.chat("hi, what are you?"):
         print(i)

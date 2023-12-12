@@ -24,62 +24,10 @@ language_model = None
 
 def create_prompt(model_name, history, prompt_prefix):
     return ""
-    system_message = ""
-    if prompt_prefix:
-        system_message = start_message[model_name]
-
-    if "llama2" in model_name:
-        B_INST, E_INST = "[INST]", "[/INST]"
-        B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-        conversation = "".join(
-            [f"{B_INST} {item[0]} {E_INST} {item[1]} " for item in history[1:]]
-        )
-        if prompt_prefix:
-            msg = f"{B_INST} {B_SYS}{system_message}{E_SYS}{history[0][0]} {E_INST} {history[0][1]} {conversation}"
-        else:
-            msg = f"{B_INST} {history[0][0]} {E_INST} {history[0][1]} {conversation}"
-    elif model_name in ["vicuna"]:
-        conversation = "".join(
-            [
-                "".join(["<|USER|>" + item[0], "<|ASSISTANT|>" + item[1]])
-                for item in history
-            ]
-        )
-        msg = system_message + conversation
-        msg = msg.strip()
-    else:
-        conversation = "".join(
-            ["".join([item[0], item[1]]) for item in history]
-        )
-        msg = system_message + conversation
-        msg = msg.strip()
-    return msg
 
 
 def get_default_config():
     return False
-    import torch
-    from transformers import AutoTokenizer
-
-    hf_model_path = "TheBloke/vicuna-7B-1.1-HF"
-    tokenizer = AutoTokenizer.from_pretrained(hf_model_path, use_fast=False)
-    compilation_prompt = "".join(["0" for _ in range(17)])
-    compilation_input_ids = tokenizer(
-        compilation_prompt,
-        return_tensors="pt",
-    ).input_ids
-    compilation_input_ids = torch.tensor(compilation_input_ids).reshape(
-        [1, 19]
-    )
-    firstVicunaCompileInput = (compilation_input_ids,)
-    from apps.language_models.src.model_wrappers.vicuna_model import (
-        CombinedModel,
-    )
-    from shark.shark_generate_model_config import GenerateConfigFile
-
-    model = CombinedModel()
-    c = GenerateConfigFile(model, 1, ["gpu_id"], firstVicunaCompileInput)
-    c.split_into_layers()
 
 
 # model_vmfb_key = ""
@@ -142,17 +90,11 @@ def llm_chat_api(InputData: dict):
     #     print(f"prompt : {InputData['prompt']}")
     # print(f"max_tokens : {InputData['max_tokens']}") # Default to 128 for now
     global vicuna_model
-    model_name = (
-        InputData["model"] if "model" in InputData.keys() else "codegen"
-    )
+    model_name = InputData["model"] if "model" in InputData.keys() else "codegen"
     model_path = llm_model_map[model_name]
     device = "cpu-task"
     precision = "fp16"
-    max_toks = (
-        None
-        if "max_tokens" not in InputData.keys()
-        else InputData["max_tokens"]
-    )
+    max_toks = None if "max_tokens" not in InputData.keys() else InputData["max_tokens"]
     if max_toks is None:
         max_toks = 128 if model_name == "codegen" else 512
 
@@ -189,9 +131,7 @@ def llm_chat_api(InputData: dict):
     # TODO: add role dict for different models
     if is_chat_completion_api:
         # TODO: add funtionality for multiple messages
-        prompt = create_prompt(
-            model_name, [(InputData["messages"][0]["content"], "")]
-        )
+        prompt = create_prompt(model_name, [(InputData["messages"][0]["content"], "")])
     else:
         prompt = InputData["prompt"]
     print("prompt = ", prompt)
@@ -224,9 +164,7 @@ def llm_chat_api(InputData: dict):
     end_time = dt.now().strftime("%Y%m%d%H%M%S%f")
     return {
         "id": end_time,
-        "object": "chat.completion"
-        if is_chat_completion_api
-        else "text_completion",
+        "object": "chat.completion" if is_chat_completion_api else "text_completion",
         "created": int(end_time),
         "choices": choices,
     }
@@ -302,9 +240,7 @@ with gr.Blocks(title="Chat") as chat_element:
 
     with gr.Row(visible=False):
         with gr.Group():
-            config_file = gr.File(
-                label="Upload sharding configuration", visible=False
-            )
+            config_file = gr.File(label="Upload sharding configuration", visible=False)
             json_view_button = gr.Button(label="View as JSON", visible=False)
         json_view = gr.JSON(interactive=True, visible=False)
         json_view_button.click(
