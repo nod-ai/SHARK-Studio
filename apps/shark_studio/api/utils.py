@@ -1,8 +1,8 @@
 import os
 import sys
-import os
 import numpy as np
 import glob
+import json
 from random import (
     randint,
     seed as seed_random,
@@ -352,28 +352,6 @@ def map_device_to_name_path(device, key_combination=3):
     cpu_device = get_devices_by_name("cpu-task")
     available_devices.extend(cpu_device)
     return available_devices
-
-
-# take a seed expression in an input format and convert it to
-# a list of integers, where possible
-def parse_seed_input(seed_input: str | list | int):
-    if isinstance(seed_input, str):
-        try:
-            seed_input = json.loads(seed_input)
-        except (ValueError, TypeError):
-            seed_input = None
-
-    if isinstance(seed_input, int):
-        return [seed_input]
-
-    if isinstance(seed_input, list) and all(
-        type(seed) is int for seed in seed_input
-    ):
-        return seed_input
-
-    raise TypeError(
-        "Seed input must be an integer or an array of integers in JSON format"
-    )
 
 
 # Generate and return a new seed if the provided one is not in the
