@@ -1,14 +1,17 @@
 import importlib
-import logging
 import os
 import signal
 import sys
-import re
 import warnings
 import json
 from threading import Thread
 
 from apps.shark_studio.modules.timer import startup_timer
+from apps.shark_studio.web.utils.tmp_configs import (
+    config_tmp,
+    clear_tmp_mlir,
+    clear_tmp_imgs,
+)
 
 
 def imports():
@@ -18,9 +21,8 @@ def imports():
     warnings.filterwarnings(
         action="ignore", category=DeprecationWarning, module="torch"
     )
-    warnings.filterwarnings(
-        action="ignore", category=UserWarning, module="torchvision"
-    )
+    warnings.filterwarnings(action="ignore", category=UserWarning, module="torchvision")
+    warnings.filterwarnings(action="ignore", category=UserWarning, module="torch")
 
     import gradio  # noqa: F401
 
@@ -34,20 +36,28 @@ def imports():
     from apps.shark_studio.modules import (
         img_processing,
     )  # noqa: F401
-    from apps.shark_studio.modules.schedulers import scheduler_model_map
 
     startup_timer.record("other imports")
 
 
 def initialize():
     configure_sigint_handler()
+    # Setup to use shark_tmp for gradio's temporary image files and clear any
+    # existing temporary images there if they exist. Then we can import gradio.
+    # It has to be in this order or gradio ignores what we've set up.
 
-    # from apps.shark_studio.modules import modelloader
-    # modelloader.cleanup_models()
+    config_tmp()
+    clear_tmp_mlir()
+    clear_tmp_imgs()
 
-    # from apps.shark_studio.modules import sd_models
-    # sd_models.setup_model()
-    # startup_timer.record("setup SD model")
+    from apps.shark_studio.web.utils.file_utils import (
+        create_checkpoint_folders,
+    )
+
+    # Create custom models folders if they don't exist
+    create_checkpoint_folders()
+
+    import gradio as gr
 
     # initialize_rest(reload_script_modules=False)
 

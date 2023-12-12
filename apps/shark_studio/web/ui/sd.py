@@ -1,35 +1,26 @@
 import os
-import time
-import gradio as gr
-import PIL
 import json
-import sys
-
-from math import ceil
+import gradio as gr
+import numpy as np
 from inspect import signature
 from PIL import Image
 from pathlib import Path
 from datetime import datetime as dt
 from gradio.components.image_editor import (
-    Brush,
-    Eraser,
     EditorValue,
 )
-
-from apps.shark_studio.api.utils import (
-    get_available_devices,
+from apps.shark_studio.web.utils.file_utils import (
     get_generated_imgs_path,
     get_checkpoints_path,
     get_checkpoints,
+    get_configs_path,
 )
 from apps.shark_studio.api.sd import (
     sd_model_map,
-    shark_sd_fn,
+    shark_sd_fn_dict_input,
     cancel_sd,
 )
 from apps.shark_studio.api.controlnet import (
-    preprocessor_model_map,
-    PreprocessorModel,
     cnet_preview,
 )
 from apps.shark_studio.modules.schedulers import (
@@ -44,44 +35,165 @@ from apps.shark_studio.web.ui.utils import (
     nodlogo_loc,
 )
 from apps.shark_studio.web.utils.state import (
-    get_generation_text_info,
     status_label,
 )
 from apps.shark_studio.web.ui.common_events import lora_changed
+from apps.shark_studio.modules import logger
+import apps.shark_studio.web.utils.globals as global_obj
+
+sd_default_models = [
+    "CompVis/stable-diffusion-v1-4",
+    "runwayml/stable-diffusion-v1-5",
+    "stabilityai/stable-diffusion-2-1-base",
+    "stabilityai/stable-diffusion-2-1",
+    "stabilityai/stable-diffusion-xl-1.0",
+    "stabilityai/sdxl-turbo",
+]
 
 
-def view_json_file(file_obj):
+def view_json_file(file_path):
     content = ""
-    with open(file_obj.name, "r") as fopen:
+    with open(file_path, "r") as fopen:
         content = fopen.read()
     return content
 
 
-max_controlnets = 3
-max_loras = 5
+def submit_to_cnet_config(
+    stencil: str,
+    preprocessed_hint: str,
+    cnet_strength: int,
+    control_mode: str,
+    curr_config: dict,
+):
+    if any(i in [None, ""] for i in [stencil, preprocessed_hint]):
+        return gr.update()
+    if curr_config is not None:
+        if "controlnets" in curr_config:
+            curr_config["controlnets"]["control_mode"] = control_mode
+            curr_config["controlnets"]["model"].append(stencil)
+            curr_config["controlnets"]["hint"].append(preprocessed_hint)
+            curr_config["controlnets"]["strength"].append(cnet_strength)
+            return curr_config
+
+    cnet_map = {}
+    cnet_map["controlnets"] = {
+        "control_mode": control_mode,
+        "model": [stencil],
+        "hint": [preprocessed_hint],
+        "strength": [cnet_strength],
+    }
+    return cnet_map
 
 
-def show_loras(k):
-    k = int(k)
-    return gr.State(
-        [gr.Dropdown(visible=True)] * k
-        + [gr.Dropdown(visible=False, value="None")] * (max_loras - k)
-    )
+def update_embeddings_json(embedding):
+    return {"embeddings": [embedding]}
 
 
-def show_controlnets(k):
-    k = int(k)
+def submit_to_main_config(input_cfg: dict, main_cfg: dict):
+    if main_cfg in [None, "", {}]:
+        return input_cfg
+
+    for base_key in input_cfg:
+        main_cfg[base_key] = input_cfg[base_key]
+    return main_cfg
+
+
+def pull_sd_configs(
+    prompt,
+    negative_prompt,
+    sd_init_image,
+    height,
+    width,
+    steps,
+    strength,
+    guidance_scale,
+    seed,
+    batch_count,
+    batch_size,
+    scheduler,
+    base_model_id,
+    custom_weights,
+    custom_vae,
+    precision,
+    device,
+    ondemand,
+    repeatable_seeds,
+    resample_type,
+    controlnets,
+    embeddings,
+):
+    sd_args = locals()
+    sd_cfg = {}
+    for arg in sd_args:
+        if arg in [
+            "prompt",
+            "negative_prompt",
+            "sd_init_image",
+        ]:
+            sd_cfg[arg] = [sd_args[arg]]
+        elif arg in ["controlnets", "embeddings"]:
+            if isinstance(arg, dict):
+                sd_cfg[arg] = json.loads(sd_args[arg])
+            else:
+                sd_cfg[arg] = {}
+        else:
+            sd_cfg[arg] = sd_args[arg]
+    return sd_cfg
+
+
+def load_sd_cfg(sd_json: dict, load_sd_config: str):
+    new_sd_config = json.loads(view_json_file(load_sd_config))
+    if sd_json:
+        for key in new_sd_config:
+            sd_json[key] = new_sd_config[key]
+    else:
+        sd_json = new_sd_config
+    for i in sd_json["sd_init_image"]:
+        if i is not None:
+            if os.path.isfile(i):
+                sd_image = [Image.open(i, mode="r")]
+    else:
+        sd_image = None
+
     return [
-        gr.State(
-            [
-                [gr.Row(visible=True, render=True)] * k
-                + [gr.Row(visible=False)] * (max_controlnets - k)
-            ]
-        ),
-        gr.State([None] * k),
-        gr.State([None] * k),
-        gr.State([None] * k),
+        sd_json["prompt"][0],
+        sd_json["negative_prompt"][0],
+        sd_image,
+        sd_json["height"],
+        sd_json["width"],
+        sd_json["steps"],
+        sd_json["strength"],
+        sd_json["guidance_scale"],
+        sd_json["seed"],
+        sd_json["batch_count"],
+        sd_json["batch_size"],
+        sd_json["scheduler"],
+        sd_json["base_model_id"],
+        sd_json["custom_weights"],
+        sd_json["custom_vae"],
+        sd_json["precision"],
+        sd_json["device"],
+        sd_json["ondemand"],
+        sd_json["repeatable_seeds"],
+        sd_json["resample_type"],
+        sd_json["controlnets"],
+        sd_json["embeddings"],
+        sd_json,
     ]
+
+
+def save_sd_cfg(config: dict, save_name: str):
+    if os.path.exists(save_name):
+        filepath = save_name
+    elif cmd_opts.configs_path:
+        filepath = os.path.join(cmd_opts.configs_path, save_name)
+    else:
+        filepath = os.path.join(get_configs_path(), save_name)
+    if ".json" not in filepath:
+        filepath += ".json"
+    with open(filepath, mode="w") as f:
+        f.write(json.dumps(config))
+    return "..."
 
 
 def create_canvas(width, height):
@@ -94,110 +206,27 @@ def create_canvas(width, height):
     )
     img_dict = {
         "background": data,
-        "layers": [data],
+        "layers": [],
         "composite": None,
     }
     return EditorValue(img_dict)
 
 
 def import_original(original_img, width, height):
-    resized_img, _, _ = resize_stencil(original_img, width, height)
-    img_dict = {
-        "background": resized_img,
-        "layers": [resized_img],
-        "composite": None,
-    }
-    return gr.ImageEditor(
-        value=EditorValue(img_dict),
-        crop_size=(width, height),
-    )
-
-
-def update_cn_input(
-    model,
-    width,
-    height,
-    stencils,
-    images,
-    preprocessed_hints,
-):
-    if model == None:
-        stencils[index] = None
-        images[index] = None
-        preprocessed_hints[index] = None
-        return [
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            gr.update(),
-            stencils,
-            images,
-            preprocessed_hints,
-        ]
-    elif model == "scribble":
-        return [
-            gr.ImageEditor(
-                visible=True,
-                interactive=True,
-                show_label=False,
-                image_mode="RGB",
-                type="pil",
-                brush=Brush(
-                    colors=["#000000"],
-                    color_mode="fixed",
-                    default_size=5,
-                ),
-            ),
-            gr.Image(
-                visible=True,
-                show_label=False,
-                interactive=True,
-                show_download_button=False,
-            ),
-            gr.Slider(visible=True, label="Canvas Width"),
-            gr.Slider(visible=True, label="Canvas Height"),
-            gr.Button(visible=True),
-            gr.Button(visible=False),
-            stencils,
-            images,
-            preprocessed_hints,
-        ]
+    if original_img is None:
+        resized_img = create_canvas(width, height)
+        return resized_img
     else:
-        return [
-            gr.ImageEditor(
-                visible=True,
-                interactive=True,
-                show_label=False,
-                image_mode="RGB",
-                type="pil",
-            ),
-            gr.Image(
-                visible=True,
-                show_label=False,
-                interactive=True,
-                show_download_button=False,
-            ),
-            gr.Slider(visible=True, label="Canvas Width"),
-            gr.Slider(visible=True, label="Canvas Height"),
-            gr.Button(visible=True),
-            gr.Button(visible=False),
-            stencils,
-            images,
-            preprocessed_hints,
-        ]
+        resized_img, _, _ = resize_stencil(original_img, width, height)
+        img_dict = {
+            "background": resized_img,
+            "layers": [],
+            "composite": None,
+        }
+        return EditorValue(img_dict)
 
-
-sd_fn_inputs = []
-sd_fn_sig = signature(shark_sd_fn).replace()
-for i in sd_fn_sig.parameters:
-    sd_fn_inputs.append(i)
 
 with gr.Blocks(title="Stable Diffusion") as sd_element:
-    # Get a list of arguments needed for the API call, then
-    # initialize an empty list that will manage the corresponding
-    # gradio values.
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row(variant="compact", equal_height=True):
@@ -216,33 +245,33 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 )
     with gr.Column(elem_id="ui_body"):
         with gr.Row():
-            with gr.Column(scale=1, min_width=600):
+            with gr.Column(scale=2, min_width=600):
                 with gr.Row(equal_height=True):
                     with gr.Column(scale=3):
                         sd_model_info = (
                             f"Checkpoint Path: {str(get_checkpoints_path())}"
                         )
-                        sd_base = gr.Dropdown(
+                        base_model_id = gr.Dropdown(
                             label="Base Model",
                             info="Select or enter HF model ID",
                             elem_id="custom_model",
                             value="stabilityai/stable-diffusion-2-1-base",
-                            choices=sd_model_map.keys(),
+                            choices=sd_default_models,
                         )  # base_model_id
-                        sd_custom_weights = gr.Dropdown(
-                            label="Weights (Optional)",
+                        custom_weights = gr.Dropdown(
+                            label="Custom Weights",
                             info="Select or enter HF model ID",
                             elem_id="custom_model",
                             value="None",
                             allow_custom_value=True,
-                            choices=get_checkpoints(sd_base),
+                            choices=["None"] + get_checkpoints(base_model_id),
                         )  #
                     with gr.Column(scale=2):
-                        sd_vae_info = (
-                            str(get_checkpoints_path("vae"))
-                        ).replace("\\", "\n\\")
+                        sd_vae_info = (str(get_checkpoints_path("vae"))).replace(
+                            "\\", "\n\\"
+                        )
                         sd_vae_info = f"VAE Path: {sd_vae_info}"
-                        sd_custom_vae = gr.Dropdown(
+                        custom_vae = gr.Dropdown(
                             label=f"Custom VAE Models",
                             info=sd_vae_info,
                             elem_id="custom_model",
@@ -253,28 +282,31 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             allow_custom_value=True,
                             scale=1,
                         )
-                    with gr.Column(scale=1):
-                        save_sd_config = gr.Button(
-                            value="Save Config", size="sm"
-                        )
-                        clear_sd_config = gr.ClearButton(
-                            value="Clear Config", size="sm"
-                        )
-                        load_sd_config = gr.FileExplorer(
-                            label="Load Config",
-                            root=os.path.basename("./configs"),
-                        )
-
+                        with gr.Row():
+                            ondemand = gr.Checkbox(
+                                value=cmd_opts.lowvram,
+                                label="Low VRAM",
+                                interactive=True,
+                            )
+                            precision = gr.Radio(
+                                label="Precision",
+                                value=cmd_opts.precision,
+                                choices=[
+                                    "fp16",
+                                    "fp32",
+                                ],
+                                visible=True,
+                            )
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
                         label="Prompt",
-                        value=cmd_opts.prompts[0],
+                        value=cmd_opts.prompt[0],
                         lines=2,
                         elem_id="prompt_box",
                     )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
-                        value=cmd_opts.negative_prompts[0],
+                        value=cmd_opts.negative_prompt[0],
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
@@ -287,41 +319,39 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         height=300,
                         interactive=True,
                     )
-                with gr.Accordion(
-                    label="Embeddings options", open=False, render=True
-                ):
-                    sd_lora_info = (
-                        str(get_checkpoints_path("loras"))
-                    ).replace("\\", "\n\\")
-                    num_loras = gr.Slider(
-                        1, max_loras, value=1, step=1, label="LoRA Count"
+                with gr.Accordion(label="Embeddings options", open=True, render=True):
+                    sd_lora_info = (str(get_checkpoints_path("loras"))).replace(
+                        "\\", "\n\\"
                     )
-                    loras = gr.State([])
-                    for i in range(max_loras):
-                        with gr.Row():
-                            lora_opt = gr.Dropdown(
-                                allow_custom_value=True,
-                                label=f"Standalone LoRA Weights",
-                                info=sd_lora_info,
-                                elem_id="lora_weights",
-                                value="None",
-                                choices=["None"] + get_checkpoints("lora"),
-                            )
-                            with gr.Row():
-                                lora_tags = gr.HTML(
-                                    value="<div><i>No LoRA selected</i></div>",
-                                    elem_classes="lora-tags",
-                                )
-                        gr.on(
-                            triggers=[lora_opt.change],
-                            fn=lora_changed,
-                            inputs=[lora_opt],
-                            outputs=[lora_tags],
-                            queue=True,
+                    with gr.Row():
+                        embeddings_config = gr.JSON(min_width=50, scale=1)
+                        lora_opt = gr.Dropdown(
+                            allow_custom_value=True,
+                            label=f"Standalone LoRA Weights",
+                            info=sd_lora_info,
+                            elem_id="lora_weights",
+                            value=None,
+                            multiselect=True,
+                            choices=[] + get_checkpoints("lora"),
+                            scale=2,
                         )
-                        loras.value.append(lora_opt)
-
-                    num_loras.change(show_loras, [num_loras], [loras])
+                        lora_tags = gr.HTML(
+                            value="<div><i>No LoRA selected</i></div>",
+                            elem_classes="lora-tags",
+                        )
+                    gr.on(
+                        triggers=[lora_opt.change],
+                        fn=lora_changed,
+                        inputs=[lora_opt],
+                        outputs=[lora_tags],
+                        queue=True,
+                        show_progress=False,
+                    ).then(
+                        fn=update_embeddings_json,
+                        inputs=[lora_opt],
+                        outputs=[embeddings_config],
+                        show_progress=False,
+                    )
                 with gr.Accordion(label="Advanced Options", open=True):
                     with gr.Row():
                         scheduler = gr.Dropdown(
@@ -331,7 +361,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             choices=scheduler_model_map.keys(),
                             allow_custom_value=False,
                         )
-                    with gr.Row():
                         height = gr.Slider(
                             384,
                             768,
@@ -397,20 +426,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 step=0.1,
                                 label="CFG Scale",
                             )
-                        ondemand = gr.Checkbox(
-                            value=cmd_opts.lowvram,
-                            label="Low VRAM",
-                            interactive=True,
-                        )
-                        precision = gr.Radio(
-                            label="Precision",
-                            value=cmd_opts.precision,
-                            choices=[
-                                "fp16",
-                                "fp32",
-                            ],
-                            visible=True,
-                        )
                 with gr.Row():
                     seed = gr.Textbox(
                         value=cmd_opts.seed,
@@ -420,159 +435,149 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     device = gr.Dropdown(
                         elem_id="device",
                         label="Device",
-                        value=get_available_devices()[0],
-                        choices=get_available_devices(),
+                        value=global_obj.get_device_list()[0],
+                        choices=global_obj.get_device_list(),
                         allow_custom_value=False,
                     )
                 with gr.Accordion(
-                    label="Controlnet Options", open=False, render=False
+                    label="Controlnet Options",
+                    open=False,
+                    visible=False,
                 ):
-                    sd_cnet_info = (
-                        str(get_checkpoints_path("controlnet"))
-                    ).replace("\\", "\n\\")
-                    num_cnets = gr.Slider(
-                        0,
-                        max_controlnets,
-                        value=0,
-                        step=1,
-                        label="Controlnet Count",
-                    )
-                    cnet_rows = []
-                    stencils = gr.State([])
-                    images = gr.State([])
                     preprocessed_hints = gr.State([])
-                    control_mode = gr.Radio(
-                        choices=["Prompt", "Balanced", "Controlnet"],
-                        value="Balanced",
-                        label="Control Mode",
-                    )
-
-                    for i in range(max_controlnets):
-                        with gr.Row(visible=False) as cnet_row:
-                            with gr.Column():
-                                cnet_gen = gr.Button(
-                                    value="Preprocess controlnet input",
-                                )
-                                cnet_model = gr.Dropdown(
-                                    allow_custom_value=True,
-                                    label=f"Controlnet Model",
-                                    info=sd_cnet_info,
-                                    elem_id="lora_weights",
-                                    value="None",
-                                    choices=[
-                                        "None",
-                                        "canny",
-                                        "openpose",
-                                        "scribble",
-                                        "zoedepth",
-                                    ]
-                                    + get_checkpoints("controlnet"),
-                                )
+                    with gr.Column():
+                        sd_cnet_info = (
+                            str(get_checkpoints_path("controlnet"))
+                        ).replace("\\", "\n\\")
+                    with gr.Row():
+                        cnet_config = gr.JSON()
+                        with gr.Column():
+                            clear_config = gr.ClearButton(
+                                value="Clear Controlnet Config",
+                                size="sm",
+                                components=cnet_config,
+                            )
+                            control_mode = gr.Radio(
+                                choices=["Prompt", "Balanced", "Controlnet"],
+                                value="Balanced",
+                                label="Control Mode",
+                            )
+                    with gr.Row():
+                        with gr.Column(scale=1):
+                            cnet_model = gr.Dropdown(
+                                allow_custom_value=True,
+                                label=f"Controlnet Model",
+                                info=sd_cnet_info,
+                                value="None",
+                                choices=[
+                                    "None",
+                                    "canny",
+                                    "openpose",
+                                    "scribble",
+                                    "zoedepth",
+                                ]
+                                + get_checkpoints("controlnet"),
+                            )
+                            cnet_strength = gr.Slider(
+                                label="Controlnet Strength",
+                                minimum=0,
+                                maximum=100,
+                                value=50,
+                                step=1,
+                            )
+                            with gr.Row():
                                 canvas_width = gr.Slider(
                                     label="Canvas Width",
                                     minimum=256,
                                     maximum=1024,
                                     value=512,
-                                    step=1,
-                                    visible=False,
+                                    step=8,
                                 )
                                 canvas_height = gr.Slider(
                                     label="Canvas Height",
                                     minimum=256,
                                     maximum=1024,
                                     value=512,
-                                    step=1,
-                                    visible=False,
+                                    step=8,
                                 )
-                                make_canvas = gr.Button(
-                                    value="Make Canvas!",
-                                    visible=False,
-                                )
-                                use_input_img = gr.Button(
-                                    value="Use Original Image",
-                                    visible=False,
-                                )
-                            cnet_input = gr.ImageEditor(
-                                visible=True,
-                                image_mode="RGB",
-                                interactive=True,
-                                show_label=True,
-                                label="Input Image",
-                                type="pil",
+                            make_canvas = gr.Button(
+                                value="Make Canvas!",
                             )
+                            use_input_img = gr.Button(
+                                value="Use Original Image",
+                                size="sm",
+                            )
+                        cnet_input = gr.Image(
+                            value=None,
+                            type="pil",
+                            image_mode="RGB",
+                            interactive=True,
+                        )
+                        with gr.Column(scale=1):
                             cnet_output = gr.Image(
                                 value=None,
                                 visible=True,
                                 label="Preprocessed Hint",
-                                interactive=True,
+                                interactive=False,
                                 show_label=True,
                             )
-                            use_input_img.click(
-                                import_original,
-                                [sd_init_image, canvas_width, canvas_height],
-                                [cnet_input],
+                            cnet_gen = gr.Button(
+                                value="Preprocess controlnet input",
                             )
-                            cnet_model.change(
-                                fn=update_cn_input,
-                                inputs=[
-                                    cnet_model,
-                                    canvas_width,
-                                    canvas_height,
-                                    stencils,
-                                    images,
-                                    preprocessed_hints,
-                                ],
-                                outputs=[
-                                    cnet_input,
-                                    cnet_output,
-                                    canvas_width,
-                                    canvas_height,
-                                    make_canvas,
-                                    use_input_img,
-                                    stencils,
-                                    images,
-                                    preprocessed_hints,
-                                ],
+                            use_result = gr.Button(
+                                "Submit",
+                                size="sm",
                             )
-                            make_canvas.click(
-                                create_canvas,
-                                [canvas_width, canvas_height],
-                                [
-                                    cnet_input,
-                                ],
-                            )
-                            gr.on(
-                                triggers=[cnet_gen.click],
-                                fn=cnet_preview,
-                                inputs=[
-                                    cnet_model,
-                                    cnet_input,
-                                    stencils,
-                                    images,
-                                    preprocessed_hints,
-                                ],
-                                outputs=[
-                                    cnet_output,
-                                    stencils,
-                                    images,
-                                    preprocessed_hints,
-                                ],
-                            )
-                            cnet_rows.value.append(cnet_row)
-
-                        num_cnets.change(
-                            show_controlnets,
-                            [num_cnets],
-                            [cnet_rows, stencils, images, preprocessed_hints],
+                        use_input_img.click(
+                            fn=import_original,
+                            inputs=[
+                                sd_init_image,
+                                canvas_width,
+                                canvas_height,
+                            ],
+                            outputs=[cnet_input],
+                            queue=False,
                         )
-            with gr.Column(scale=1, min_width=600):
+                        make_canvas.click(
+                            fn=create_canvas,
+                            inputs=[canvas_width, canvas_height],
+                            outputs=[cnet_input],
+                            queue=False,
+                        )
+                        cnet_gen.click(
+                            fn=cnet_preview,
+                            inputs=[
+                                cnet_model,
+                                cnet_input,
+                            ],
+                            outputs=[
+                                cnet_output,
+                                preprocessed_hints,
+                            ],
+                        )
+                        use_result.click(
+                            fn=submit_to_cnet_config,
+                            inputs=[
+                                cnet_model,
+                                cnet_output,
+                                cnet_strength,
+                                control_mode,
+                                cnet_config,
+                            ],
+                            outputs=[
+                                cnet_config,
+                            ],
+                            queue=False,
+                        )
+            with gr.Column(scale=3, min_width=600):
                 with gr.Group():
                     sd_gallery = gr.Gallery(
                         label="Generated images",
                         show_label=False,
                         elem_id="gallery",
                         columns=2,
-                        object_fit="contain",
+                        object_fit="fit",
+                        preview=True,
                     )
                     std_output = gr.Textbox(
                         value=f"{sd_model_info}\n"
@@ -582,6 +587,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         elem_id="std_output",
                         show_label=False,
                     )
+                    sd_element.load(logger.read_sd_logs, None, std_output, every=1)
                     sd_status = gr.Textbox(visible=False)
                 with gr.Row():
                     stable_diffusion = gr.Button("Generate Image(s)")
@@ -591,11 +597,75 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         inputs=[],
                         outputs=[seed],
                         queue=False,
+                        show_progress=False,
                     )
                     stop_batch = gr.Button("Stop Batch")
+                with gr.Group():
+                    with gr.Column(scale=3):
+                        sd_json = gr.JSON(
+                            value=view_json_file(
+                                os.path.join(
+                                    get_configs_path(),
+                                    "default_sd_config.json",
+                                )
+                            )
+                        )
+                    with gr.Column(scale=1):
+                        clear_sd_config = gr.ClearButton(
+                            value="Clear Config", size="sm", components=sd_json
+                        )
+                        with gr.Row():
+                            save_sd_config = gr.Button(value="Save Config", size="sm")
+                            sd_config_name = gr.Textbox(
+                                value="Config Name",
+                                info="Name of the file this config will be saved to.",
+                                interactive=True,
+                            )
+                        load_sd_config = gr.FileExplorer(
+                            label="Load Config",
+                            file_count="single",
+                            root=cmd_opts.configs_path
+                            if cmd_opts.configs_path
+                            else get_configs_path(),
+                            height=75,
+                        )
+                        load_sd_config.change(
+                            fn=load_sd_cfg,
+                            inputs=[sd_json, load_sd_config],
+                            outputs=[
+                                prompt,
+                                negative_prompt,
+                                sd_init_image,
+                                height,
+                                width,
+                                steps,
+                                strength,
+                                guidance_scale,
+                                seed,
+                                batch_count,
+                                batch_size,
+                                scheduler,
+                                base_model_id,
+                                custom_weights,
+                                custom_vae,
+                                precision,
+                                device,
+                                ondemand,
+                                repeatable_seeds,
+                                resample_type,
+                                cnet_config,
+                                embeddings_config,
+                                sd_json,
+                            ],
+                        )
+                        save_sd_config.click(
+                            fn=save_sd_cfg,
+                            inputs=[sd_json, sd_config_name],
+                            outputs=[sd_config_name],
+                        )
 
-        kwargs = dict(
-            fn=shark_sd_fn,
+        pull_kwargs = dict(
+            fn=pull_sd_configs,
             inputs=[
                 prompt,
                 negative_prompt,
@@ -609,28 +679,20 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 batch_count,
                 batch_size,
                 scheduler,
-                sd_base,
-                sd_custom_weights,
-                sd_custom_vae,
+                base_model_id,
+                custom_weights,
+                custom_vae,
                 precision,
                 device,
-                loras,
                 ondemand,
                 repeatable_seeds,
                 resample_type,
-                control_mode,
-                stencils,
-                images,
-                preprocessed_hints,
+                cnet_config,
+                embeddings_config,
             ],
             outputs=[
-                sd_gallery,
-                std_output,
-                sd_status,
-                stencils,
-                images,
+                sd_json,
             ],
-            show_progress="minimal",
         )
 
         status_kwargs = dict(
@@ -639,11 +701,22 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             outputs=sd_status,
         )
 
-        prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
-            **kwargs
+        gen_kwargs = dict(
+            fn=shark_sd_fn_dict_input,
+            inputs=[sd_json],
+            outputs=[
+                sd_gallery,
+                sd_status,
+            ],
         )
-        generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
+
+        prompt_submit = prompt.submit(**status_kwargs).then(**pull_kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**pull_kwargs)
+        generate_click = (
+            stable_diffusion.click(**status_kwargs)
+            .then(**pull_kwargs)
+            .then(**gen_kwargs)
+        )
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],

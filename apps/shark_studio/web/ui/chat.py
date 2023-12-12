@@ -5,13 +5,11 @@ from pathlib import Path
 from datetime import datetime as dt
 import json
 import sys
-from apps.shark_studio.api.utils import (
-    get_available_devices,
-)
 from apps.shark_studio.api.llm import (
     llm_model_map,
     LanguageModel,
 )
+import apps.shark_studio.web.utils.globals as global_obj
 
 
 def user(message, history):
@@ -186,7 +184,7 @@ with gr.Blocks(title="Chat") as chat_element:
             choices=model_choices,
             allow_custom_value=True,
         )
-        supported_devices = get_available_devices()
+        supported_devices = global_obj.get_device_list()
         enabled = True
         if len(supported_devices) == 0:
             supported_devices = ["cpu-task"]
@@ -240,9 +238,7 @@ with gr.Blocks(title="Chat") as chat_element:
 
     with gr.Row(visible=False):
         with gr.Group():
-            config_file = gr.File(
-                label="Upload sharding configuration", visible=False
-            )
+            config_file = gr.File(label="Upload sharding configuration", visible=False)
             json_view_button = gr.Button("View as JSON", visible=False)
         json_view = gr.JSON(visible=False)
         json_view_button.click(

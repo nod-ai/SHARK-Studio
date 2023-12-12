@@ -32,7 +32,7 @@ p.add_argument(
 )
 p.add_argument(
     "-p",
-    "--prompts",
+    "--prompt",
     nargs="+",
     default=[
         "a photo taken of the front of a super-car drifting on a road near "
@@ -44,7 +44,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--negative_prompts",
+    "--negative_prompt",
     nargs="+",
     default=[
         "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), "
@@ -54,7 +54,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--img_path",
+    "--sd_init_image",
     type=str,
     help="Path to the image input for img2img/inpainting.",
 )
@@ -130,8 +130,7 @@ p.add_argument(
     "--strength",
     type=float,
     default=0.8,
-    help="The strength of change applied on the given input image for "
-    "img2img.",
+    help="The strength of change applied on the given input image for " "img2img.",
 )
 
 p.add_argument(
@@ -290,9 +289,7 @@ p.add_argument(
 # Model Config and Usage Params
 ##############################################################################
 
-p.add_argument(
-    "--device", type=str, default="vulkan", help="Device to run the model."
-)
+p.add_argument("--device", type=str, default="vulkan", help="Device to run the model.")
 
 p.add_argument(
     "--precision", type=str, default="fp16", help="Precision to run the model."
@@ -323,7 +320,7 @@ p.add_argument(
 p.add_argument(
     "--scheduler",
     type=str,
-    default="SharkEulerDiscrete",
+    default="DDIM",
     help="Other supported schedulers are [DDIM, PNDM, LMSDiscrete, "
     "DPMSolverMultistep, DPMSolverMultistep++, DPMSolverMultistepKarras, "
     "DPMSolverMultistepKarras++, EulerDiscrete, EulerAncestralDiscrete, "
@@ -350,8 +347,7 @@ p.add_argument(
     "--batch_count",
     type=int,
     default=1,
-    help="Number of batches to be generated with random seeds in "
-    "single execution.",
+    help="Number of batches to be generated with random seeds in " "single execution.",
 )
 
 p.add_argument(
@@ -363,10 +359,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--ckpt_loc",
+    "--custom_weights",
     type=str,
     default="",
-    help="Path to SD's .ckpt file.",
+    help="Path to a .safetensors or .ckpt file for SD pipeline weights.",
 )
 
 p.add_argument(
@@ -378,7 +374,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--hf_model_id",
+    "--base_model_id",
     type=str,
     default="stabilityai/stable-diffusion-2-1-base",
     help="The repo-id of hugging face.",
@@ -416,8 +412,7 @@ p.add_argument(
     "--use_lora",
     type=str,
     default="",
-    help="Use standalone LoRA weight using a HF ID or a checkpoint "
-    "file (~3 MB).",
+    help="Use standalone LoRA weight using a HF ID or a checkpoint " "file (~3 MB).",
 )
 
 p.add_argument(
@@ -453,12 +448,6 @@ p.add_argument(
     "Example: --device_allocator_heap_key='*;1gib' (will limit caching on device to 1 gigabyte)",
 )
 
-p.add_argument(
-    "--custom_model_map",
-    type=str,
-    default="",
-    help="path to custom model map to import. This should be a .json file",
-)
 ##############################################################################
 # IREE - Vulkan supported flags
 ##############################################################################
@@ -499,8 +488,7 @@ p.add_argument(
     "--dump_isa",
     default=False,
     action="store_true",
-    help="When enabled call amdllpc to get ISA dumps. "
-    "Use with dispatch benchmarks.",
+    help="When enabled call amdllpc to get ISA dumps. " "Use with dispatch benchmarks.",
 )
 
 p.add_argument(
@@ -521,8 +509,7 @@ p.add_argument(
     "--enable_rgp",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Flag for inserting debug frames between iterations "
-    "for use with rgp.",
+    help="Flag for inserting debug frames between iterations " "for use with rgp.",
 )
 
 p.add_argument(
@@ -608,8 +595,7 @@ p.add_argument(
     "--progress_bar",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="Flag for removing the progress bar animation during "
-    "image generation.",
+    help="Flag for removing the progress bar animation during " "image generation.",
 )
 
 p.add_argument(
@@ -673,6 +659,13 @@ p.add_argument(
     action=argparse.BooleanOptionalAction,
     help="Flag for removing the output gallery tab, and avoid exposing "
     "images under --output_dir in the UI.",
+)
+
+p.add_argument(
+    "--configs_path",
+    default=None,
+    type=str,
+    help="Path to .json config directory.",
 )
 
 p.add_argument(

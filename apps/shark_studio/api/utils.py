@@ -1,8 +1,5 @@
-import os
-import sys
-import os
 import numpy as np
-import glob
+import json
 from random import (
     randint,
     seed as seed_random,
@@ -11,7 +8,6 @@ from random import (
 )
 
 from pathlib import Path
-from safetensors.torch import load_file
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from cpuinfo import get_cpu_info
 
@@ -20,11 +16,6 @@ from shark.iree_utils.vulkan_utils import (
     set_iree_vulkan_runtime_flags,
     get_vulkan_target_triple,
     get_iree_vulkan_runtime_flags,
-)
-
-checkpoints_filetypes = (
-    "*.ckpt",
-    "*.safetensors",
 )
 
 
@@ -55,9 +46,7 @@ def get_available_devices():
                     if len(device_list_dict) == 1:
                         device_list.append(f"{device_name} => {driver_name}")
                     else:
-                        device_list.append(
-                            f"{device_name} => {driver_name}://{i}"
-                        )
+                        device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
@@ -109,6 +98,8 @@ def set_init_device_flags():
     elif "metal" in cmd_opts.device:
         device_name, cmd_opts.device = map_device_to_name_path(cmd_opts.device)
         if not cmd_opts.iree_metal_target_platform:
+            from shark.iree_utils.metal_utils import get_metal_target_triple
+
             triple = get_metal_target_triple(device_name)
             if triple is not None:
                 cmd_opts.iree_metal_target_platform = triple.split("-")[-1]
@@ -148,60 +139,6 @@ def get_all_devices(driver_name):
     device_list_src = driver.query_available_devices()
     device_list_src.sort(key=lambda d: d["path"])
     return device_list_src
-
-
-def get_resource_path(relative_path):
-    """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
-    return os.path.join(base_path, relative_path)
-
-
-def get_generated_imgs_path() -> Path:
-    return Path(
-        cmd_opts.output_dir
-        if cmd_opts.output_dir
-        else get_resource_path("..\web\generated_imgs")
-    )
-
-
-def get_generated_imgs_todays_subdir() -> str:
-    return dt.now().strftime("%Y%m%d")
-
-
-def create_checkpoint_folders():
-    dir = ["vae", "lora"]
-    if not cmd_opts.ckpt_dir:
-        dir.insert(0, "models")
-    else:
-        if not os.path.isdir(cmd_opts.ckpt_dir):
-            sys.exit(
-                f"Invalid --ckpt_dir argument, "
-                f"{args.ckpt_dir} folder does not exists."
-            )
-    for root in dir:
-        Path(get_checkpoints_path(root)).mkdir(parents=True, exist_ok=True)
-
-
-def get_checkpoints_path(model=""):
-    return get_resource_path(f"..\web\models\{model}")
-
-
-def get_checkpoints(model="models"):
-    ckpt_files = []
-    file_types = checkpoints_filetypes
-    if model == "lora":
-        file_types = file_types + ("*.pt", "*.bin")
-    for extn in file_types:
-        files = [
-            os.path.basename(x)
-            for x in glob.glob(os.path.join(get_checkpoints_path(model), extn))
-        ]
-    ckpt_files.extend(files)
-    return sorted(ckpt_files, key=str.casefold)
-
-
-def get_checkpoint_pathfile(checkpoint_name, model="models"):
-    return os.path.join(get_checkpoints_path(model), checkpoint_name)
 
 
 def get_device_mapping(driver, key_combination=3):
@@ -250,6 +187,8 @@ def get_opt_flags(model, precision="fp16"):
             f"-iree-vulkan-target-triple={cmd_opts.iree_vulkan_target_triple}"
         )
     if "rocm" in cmd_opts.device:
+        from shark.iree_utils.gpu_utils import get_iree_rocm_args
+
         rocm_args = get_iree_rocm_args()
         iree_flags.extend(rocm_args)
     if cmd_opts.iree_constant_folding == False:
@@ -318,9 +257,7 @@ def map_device_to_name_path(device, key_combination=3):
                     if len(device_list_dict) == 1:
                         device_list.append(f"{device_name} => {driver_name}")
                     else:
-                        device_list.append(
-                            f"{device_name} => {driver_name}://{i}"
-                        )
+                        device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
@@ -352,28 +289,6 @@ def map_device_to_name_path(device, key_combination=3):
     return available_devices
 
 
-# take a seed expression in an input format and convert it to
-# a list of integers, where possible
-def parse_seed_input(seed_input: str | list | int):
-    if isinstance(seed_input, str):
-        try:
-            seed_input = json.loads(seed_input)
-        except (ValueError, TypeError):
-            seed_input = None
-
-    if isinstance(seed_input, int):
-        return [seed_input]
-
-    if isinstance(seed_input, list) and all(
-        type(seed) is int for seed in seed_input
-    ):
-        return seed_input
-
-    raise TypeError(
-        "Seed input must be an integer or an array of integers in JSON format"
-    )
-
-
 # Generate and return a new seed if the provided one is not in the
 # supported range (including -1)
 def sanitize_seed(seed: int | str):
@@ -397,9 +312,7 @@ def parse_seed_input(seed_input: str | list | int):
     if isinstance(seed_input, int):
         return [seed_input]
 
-    if isinstance(seed_input, list) and all(
-        type(seed) is int for seed in seed_input
-    ):
+    if isinstance(seed_input, list) and all(type(seed) is int for seed in seed_input):
         return seed_input
 
     raise TypeError(

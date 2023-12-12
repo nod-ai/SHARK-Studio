@@ -1,4 +1,15 @@
 # from turbine_models.custom_models.controlnet import control_adapter, preprocessors
+import os
+import PIL
+import numpy as np
+from apps.shark_studio.web.utils.file_utils import (
+    get_generated_imgs_path,
+)
+from datetime import datetime
+from PIL import Image
+from gradio.components.image_editor import (
+    EditorValue,
+)
 
 
 class control_adapter:
@@ -29,20 +40,12 @@ class preprocessors:
 control_adapter_map = {
     "sd15": {
         "canny": {"initializer": control_adapter.export_control_adapter_model},
-        "openpose": {
-            "initializer": control_adapter.export_control_adapter_model
-        },
-        "scribble": {
-            "initializer": control_adapter.export_control_adapter_model
-        },
-        "zoedepth": {
-            "initializer": control_adapter.export_control_adapter_model
-        },
+        "openpose": {"initializer": control_adapter.export_control_adapter_model},
+        "scribble": {"initializer": control_adapter.export_control_adapter_model},
+        "zoedepth": {"initializer": control_adapter.export_control_adapter_model},
     },
     "sdxl": {
-        "canny": {
-            "initializer": control_adapter.export_xl_control_adapter_model
-        },
+        "canny": {"initializer": control_adapter.export_xl_control_adapter_model},
     },
 }
 preprocessor_model_map = {
@@ -57,78 +60,48 @@ class PreprocessorModel:
     def __init__(
         self,
         hf_model_id,
-        device,
+        device="cpu",
     ):
-        self.model = None
+        self.model = hf_model_id
+        self.device = device
 
-    def compile(self, device):
+    def compile(self):
         print("compile not implemented for preprocessor.")
         return
 
     def run(self, inputs):
         print("run not implemented for preprocessor.")
-        return
+        return inputs
 
 
-def cnet_preview(model, input_img, stencils, images, preprocessed_hints):
-    if isinstance(input_image, PIL.Image.Image):
-        img_dict = {
-            "background": None,
-            "layers": [None],
-            "composite": input_image,
-        }
-        input_image = EditorValue(img_dict)
-    images[index] = input_image
-    if model:
-        stencils[index] = model
+def cnet_preview(model, input_image):
+    curr_datetime = datetime.now().strftime("%Y-%m-%d.%H-%M-%S")
+    control_imgs_path = os.path.join(get_generated_imgs_path(), "control_hints")
+    if not os.path.exists(control_imgs_path):
+        os.mkdir(control_imgs_path)
+    img_dest = os.path.join(control_imgs_path, model + curr_datetime + ".png")
     match model:
         case "canny":
-            canny = CannyDetector()
+            canny = PreprocessorModel("canny")
             result = canny(
-                np.array(input_image["composite"]),
+                np.array(input_image),
                 100,
                 200,
             )
-            preprocessed_hints[index] = Image.fromarray(result)
-            return (
-                Image.fromarray(result),
-                stencils,
-                images,
-                preprocessed_hints,
-            )
+            Image.fromarray(result).save(fp=img_dest)
+            return result, img_dest
         case "openpose":
-            openpose = OpenposeDetector()
-            result = openpose(np.array(input_image["composite"]))
-            preprocessed_hints[index] = Image.fromarray(result[0])
-            return (
-                Image.fromarray(result[0]),
-                stencils,
-                images,
-                preprocessed_hints,
-            )
+            openpose = PreprocessorModel("openpose")
+            result = openpose(np.array(input_image))
+            Image.fromarray(result[0]).save(fp=img_dest)
+            return result, img_dest
         case "zoedepth":
-            zoedepth = ZoeDetector()
-            result = zoedepth(np.array(input_image["composite"]))
-            preprocessed_hints[index] = Image.fromarray(result)
-            return (
-                Image.fromarray(result),
-                stencils,
-                images,
-                preprocessed_hints,
-            )
+            zoedepth = PreprocessorModel("ZoeDepth")
+            result = zoedepth(np.array(input_image))
+            Image.fromarray(result).save(fp=img_dest)
+            return result, img_dest
         case "scribble":
-            preprocessed_hints[index] = input_image["composite"]
-            return (
-                input_image["composite"],
-                stencils,
-                images,
-                preprocessed_hints,
-            )
+            input_image.save(fp=img_dest)
+            return input_image, img_dest
         case _:
-            preprocessed_hints[index] = None
-            return (
-                None,
-                stencils,
-                images,
-                preprocessed_hints,
-            )
+            return None, None

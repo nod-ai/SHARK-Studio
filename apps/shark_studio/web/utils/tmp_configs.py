@@ -7,9 +7,7 @@ shark_tmp = os.path.join(os.getcwd(), "shark_tmp/")
 
 def clear_tmp_mlir():
     cleanup_start = time()
-    print(
-        "Clearing .mlir temporary files from a prior run. This may take some time..."
-    )
+    print("Clearing .mlir temporary files from a prior run. This may take some time...")
     mlir_files = [
         filename
         for filename in os.listdir(shark_tmp)
@@ -18,9 +16,7 @@ def clear_tmp_mlir():
     ]
     for filename in mlir_files:
         os.remove(shark_tmp + filename)
-    print(
-        f"Clearing .mlir temporary files took {time() - cleanup_start:.4f} seconds."
-    )
+    print(f"Clearing .mlir temporary files took {time() - cleanup_start:.4f} seconds.")
 
 
 def clear_tmp_imgs():

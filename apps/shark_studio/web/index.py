@@ -5,9 +5,6 @@ import sys
 import logging
 import apps.shark_studio.api.initializers as initialize
 
-from ui.chat import chat_element
-from ui.sd import sd_element
-from ui.outputgallery import outputgallery_element
 
 from apps.shark_studio.modules import timer
 
@@ -75,10 +72,12 @@ def launch_webui(address):
 def webui():
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
-    logging.basicConfig(level=logging.DEBUG)
-
     launch_api = cmd_opts.api
     initialize.initialize()
+
+    from ui.chat import chat_element
+    from ui.sd import sd_element
+    from ui.outputgallery import outputgallery_element
 
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
@@ -127,26 +126,7 @@ def webui():
     #
     #     uvicorn.run(api, host="0.0.0.0", port=args.server_port)
     #     sys.exit(0)
-    # Setup to use shark_tmp for gradio's temporary image files and clear any
-    # existing temporary images there if they exist. Then we can import gradio.
-    # It has to be in this order or gradio ignores what we've set up.
-    from apps.shark_studio.web.utils.tmp_configs import (
-        config_tmp,
-        clear_tmp_mlir,
-        clear_tmp_imgs,
-    )
-    from apps.shark_studio.api.utils import (
-        create_checkpoint_folders,
-    )
-
     import gradio as gr
-
-    config_tmp()
-    clear_tmp_mlir()
-    clear_tmp_imgs()
-
-    # Create custom models folders if they don't exist
-    create_checkpoint_folders()
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -198,6 +178,7 @@ def webui():
                 chat_element.render()
 
     studio_web.queue()
+
     # if args.ui == "app":
     #    t = Process(
     #        target=launch_app, args=[f"http://localhost:{args.server_port}"]

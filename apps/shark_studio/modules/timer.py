@@ -11,9 +11,7 @@ class TimerSubcategory:
 
     def __enter__(self):
         self.start = time.time()
-        self.timer.base_category = (
-            self.original_base_category + self.category + "/"
-        )
+        self.timer.base_category = self.original_base_category + self.category + "/"
         self.timer.subcategory_level += 1
 
         if self.timer.print_log:
@@ -82,10 +80,7 @@ class Timer:
 
         res += " ("
         res += ", ".join(
-            [
-                f"{category}: {time_taken:.1f}s"
-                for category, time_taken in additions
-            ]
+            [f"{category}: {time_taken:.1f}s" for category, time_taken in additions]
         )
         res += ")"
 

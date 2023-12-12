@@ -29,9 +29,7 @@ def parse_csv(image_filename: str):
         has_header = csv.Sniffer().has_header(csv_file.read(2048))
         csv_file.seek(0)
 
-        reader = (
-            csv.DictReader(csv_file) if has_header else csv.reader(csv_file)
-        )
+        reader = csv.DictReader(csv_file) if has_header else csv.reader(csv_file)
 
         matches = [
             # we rely on humanize and humanizable to work out the parsing of the individual .csv rows
