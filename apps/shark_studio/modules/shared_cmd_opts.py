@@ -2,7 +2,7 @@ import argparse
 import os
 from pathlib import Path
 
-from apps.stable_diffusion.src.utils.resamplers import resampler_list
+from apps.shark_studio.modules.img_processing import resampler_list
 
 
 def path_expand(s):
@@ -36,7 +36,7 @@ p.add_argument(
     nargs="+",
     default=[
         "a photo taken of the front of a super-car drifting on a road near "
-        "mountains at high speeds with smokes coming off the tires, front "
+        "mountains at high speeds with smoke coming off the tires, front "
         "angle, front point of view, trees in the mountains of the "
         "background, ((sharp focus))"
     ],
@@ -307,21 +307,6 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--load_vmfb",
-    default=True,
-    action=argparse.BooleanOptionalAction,
-    help="Attempts to load the model from a precompiled flat-buffer "
-    "and compiles + saves it if not found.",
-)
-
-p.add_argument(
-    "--save_vmfb",
-    default=False,
-    action=argparse.BooleanOptionalAction,
-    help="Saves the compiled flat-buffer to the local directory.",
-)
-
-p.add_argument(
     "--use_tuned",
     default=False,
     action=argparse.BooleanOptionalAction,
@@ -446,7 +431,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--ondemand",
+    "--lowvram",
     default=False,
     action=argparse.BooleanOptionalAction,
     help="Load and unload models for low VRAM.",
@@ -469,10 +454,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--autogen",
-    type=bool,
-    default="False",
-    help="Only used for a gradio workaround.",
+    "--custom_model_map",
+    type=str,
+    default="",
+    help="path to custom model map to import. This should be a .json file",
 )
 ##############################################################################
 # IREE - Vulkan supported flags
@@ -611,6 +596,13 @@ p.add_argument(
 ##############################################################################
 # Web UI flags
 ##############################################################################
+
+p.add_argument(
+    "--webui",
+    default=True,
+    action=argparse.BooleanOptionalAction,
+    help="controls whether the webui is launched.",
+)
 
 p.add_argument(
     "--progress_bar",
@@ -764,8 +756,8 @@ p.add_argument(
     "or `iree-run-module --dump_devices=rocm` or `hipinfo` to get desired arch name",
 )
 
-args, unknown = p.parse_known_args()
-if args.import_debug:
+cmd_opts, unknown = p.parse_known_args()
+if cmd_opts.import_debug:
     os.environ["IREE_SAVE_TEMPS"] = os.path.join(
-        os.getcwd(), args.hf_model_id.replace("/", "_")
+        os.getcwd(), cmd_opts.hf_model_id.replace("/", "_")
     )

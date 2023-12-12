@@ -3,12 +3,13 @@ import os
 import time
 import sys
 import logging
+import apps.shark_studio.api.initializers as initialize
 
 from ui.chat import chat_element
 from ui.sd import sd_element
 from ui.outputgallery import outputgallery_element
 
-from modules import timer, initialize
+from apps.shark_studio.modules import timer
 
 startup_timer = timer.startup_timer
 startup_timer.record("launcher")
@@ -72,14 +73,12 @@ def launch_webui(address):
 
 
 def webui():
-    from apps.shark_studio.shared_cmd_options import cmd_opts
+    from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
     logging.basicConfig(level=logging.DEBUG)
 
     launch_api = cmd_opts.api
     initialize.initialize()
-
-    from modules import shared, ui_tempdir, script_callbacks, ui, progress
 
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
@@ -131,16 +130,23 @@ def webui():
     # Setup to use shark_tmp for gradio's temporary image files and clear any
     # existing temporary images there if they exist. Then we can import gradio.
     # It has to be in this order or gradio ignores what we've set up.
-    from apps.shark_studio.web.initializers import (
-        config_gradio_tmp_imgs_folder,
-        create_custom_models_folders,
+    from apps.shark_studio.web.utils.tmp_configs import (
+        config_tmp,
+        clear_tmp_mlir,
+        clear_tmp_imgs,
+    )
+    from apps.shark_studio.api.utils import (
+        create_checkpoint_folders,
     )
 
-    config_gradio_tmp_imgs_folder()
     import gradio as gr
 
+    config_tmp()
+    clear_tmp_mlir()
+    clear_tmp_imgs()
+
     # Create custom models folders if they don't exist
-    create_custom_models_folders()
+    create_checkpoint_folders()
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
@@ -151,10 +157,7 @@ def webui():
 
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
 
-    from apps.shark_studio.web.ui import load_ui_from_script
-
-    # init global sd pipeline and config
-    studio.state._init()
+    # from apps.shark_studio.web.ui import load_ui_from_script
 
     def register_button_click(button, selectedid, inputs, outputs):
         button.click(
@@ -211,9 +214,9 @@ def webui():
 
 
 if __name__ == "__main__":
-    from apps.shark_studio.shared_cmd_options import cmd_opts
+    from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
-    if cmd_opts.nowebui:
+    if cmd_opts.webui == False:
         api_only()
     else:
         webui()
