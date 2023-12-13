@@ -1,6 +1,6 @@
 import re
 from pathlib import Path
-from apps.shark_studio.api.utils import (
+from apps.shark_studio.web.utils.file_utils import (
     get_checkpoint_pathfile,
 )
 from apps.shark_studio.api.sd import (

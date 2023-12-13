@@ -135,7 +135,7 @@ def webui():
         clear_tmp_mlir,
         clear_tmp_imgs,
     )
-    from apps.shark_studio.api.utils import (
+    from apps.shark_studio.web.utils.file_utils import (
         create_checkpoint_folders,
     )
 

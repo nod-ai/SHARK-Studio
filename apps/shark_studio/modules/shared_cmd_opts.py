@@ -676,6 +676,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--configs_path",
+    default=None,
+    type=str,
+    help="Path to .json config directory."
+)
+
+p.add_argument(
     "--output_gallery_followlinks",
     default=False,
     action=argparse.BooleanOptionalAction,

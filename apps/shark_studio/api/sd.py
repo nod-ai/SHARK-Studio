@@ -1,13 +1,14 @@
 from turbine_models.custom_models.sd_inference import clip, unet, vae
-from shark.iree_utils.compile_utils import get_iree_compiled_module
-from apps.shark_studio.api.utils import get_resource_path
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.web.utils.state import status_label
 from apps.shark_studio.modules.pipeline import SharkPipelineBase
-import iree.runtime as ireert
+from apps.shark_studio.modules.img_processing import resize_stencil, save_output_img
+from math import ceil
 import gc
 import torch
 import gradio as gr
+import PIL
+import time
 
 sd_model_map = {
     "CompVis/stable-diffusion-v1-4": {
@@ -154,7 +155,7 @@ def shark_sd_fn(
     steps: int,
     strength: float,
     guidance_scale: float,
-    seed: str | int,
+    seeds: list,
     batch_count: int,
     batch_size: int,
     scheduler: str,
@@ -168,24 +169,13 @@ def shark_sd_fn(
     repeatable_seeds: bool,
     resample_type: str,
     control_mode: str,
-    stencils: list,
-    images: list,
-    preprocessed_hints: list,
+    sd_json: dict,
     progress=gr.Progress(),
 ):
     # Handling gradio ImageEditor datatypes so we have unified inputs to the SD API
-    for i, stencil in enumerate(stencils):
-        if images[i] is None and stencil is not None:
-            continue
-        elif stencil is None and any(
-            img is not None for img in [images[i], preprocessed_hints[i]]
-        ):
-            images[i] = None
-            preprocessed_hints[i] = None
-        elif images[i] is not None:
-            if isinstance(images[i], dict):
-                images[i] = images[i]["composite"]
-            images[i] = images[i].convert("RGB")
+    stencils=[]
+    preprocessed_hints=[]
+    cnet_strengths=[]
 
     if isinstance(image_dict, PIL.Image.Image):
         image = image_dict.convert("RGB")
@@ -203,8 +193,6 @@ def shark_sd_fn(
         is_img2img = True
     print("Performing Stable Diffusion Pipeline setup...")
 
-    device_id = None
-
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
     import apps.shark_studio.web.utils.globals as global_obj
 
@@ -216,11 +204,11 @@ def shark_sd_fn(
     if stencils:
         for i, stencil in enumerate(stencils):
             if "xl" not in base_model_id.lower():
-                custom_model_map[f"control_adapter_{i}"] = stencil_adapter_map[
+                custom_model_map[f"control_adapter_{i}"] = control_adapter_map[
                     "runwayml/stable-diffusion-v1-5"
                 ][stencil]
             else:
-                custom_model_map[f"control_adapter_{i}"] = stencil_adapter_map[
+                custom_model_map[f"control_adapter_{i}"] = control_adapter_map[
                     "stabilityai/stable-diffusion-xl-1.0"
                 ][stencil]
 
@@ -245,54 +233,70 @@ def shark_sd_fn(
         "steps": steps,
         "strength": strength,
         "guidance_scale": guidance_scale,
-        "seed": seed,
+        "seeds": seeds,
         "ondemand": ondemand,
         "repeatable_seeds": repeatable_seeds,
         "resample_type": resample_type,
         "control_mode": control_mode,
         "preprocessed_hints": preprocessed_hints,
     }
-
-    global sd_pipe
-    global sd_pipe_kwargs
-
-    if sd_pipe_kwargs and sd_pipe_kwargs != submit_pipe_kwargs:
-        sd_pipe = None
-        sd_pipe_kwargs = submit_pipe_kwargs
+    if (
+        not global_obj.get_sd_obj()
+        or global_obj.get_pipe_kwargs() != submit_pipe_kwargs
+    ):
+        print("Regenerating pipeline...")
+        global_obj.clear_cache()
         gc.collect()
-
-    if sd_pipe is None:
-        history[-1][-1] = "Getting the pipeline ready..."
-        yield history, ""
+        global_obj.set_pipe_kwargs(submit_pipe_kwargs)
 
         # Initializes the pipeline and retrieves IR based on all
         # parameters that are static in the turbine output format,
         # which is currently MLIR in the torch dialect.
 
-        sd_pipe = SharkStableDiffusionPipeline(
+        sd_pipe = StableDiffusion(
             **submit_pipe_kwargs,
         )
+        global_obj.set_sd_obj(sd_pipe)
 
     sd_pipe.prepare_pipe(**submit_prep_kwargs)
+    generated_imgs = []
 
-    for prompt, msg, exec_time in progress.tqdm(
-        out_imgs=sd_pipe.generate_images(**submit_run_kwargs),
-        desc="Generating Image...",
-    ):
-        text_output = get_generation_text_info(
-            seeds[: current_batch + 1], device
+    for current_batch in range(batch_count):
+        start_time = time.time()
+        out_imgs = global_obj.get_sd_obj().generate_images(
+            prompt,
+            negative_prompt,
+            image,
+            ceil(steps / strength),
+            strength,
+            guidance_scale,
+            seeds[current_batch],
+            stencils,
+            resample_type=resample_type,
+            control_mode=control_mode,
+            preprocessed_hints=preprocessed_hints,
         )
+        total_time = time.time() - start_time
+        text_output = []
+        text_output += "\n" + global_obj.get_sd_obj().log
+        text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
+
+        # if global_obj.get_sd_status() == SD_STATE_CANCEL:
+        #     break
+        # else:
         save_output_img(
             out_imgs[0],
             seeds[current_batch],
-            extra_info,
+            sd_json,
         )
         generated_imgs.extend(out_imgs)
         yield generated_imgs, text_output, status_label(
-            "Stable Diffusion", current_batch + 1, batch_count, batch_size
-        ), stencils, images
+            "Image-to-Image", current_batch + 1, batch_count, batch_size
+        ), stencils
 
-    return generated_imgs, text_output, "", stencils, images
+    return generated_imgs, text_output, "", stencil, image
+
+    return generated_imgs, text_output, "", stencil, image
 
 
 def cancel_sd():

@@ -4,7 +4,7 @@ from shark.iree_utils.compile_utils import (
     get_iree_compiled_module,
     load_vmfb_using_mmap,
 )
-from apps.shark_studio.api.utils import get_resource_path
+from apps.shark_studio.web.utils.file_utils import get_resource_path
 import iree.runtime as ireert
 from itertools import chain
 import gc

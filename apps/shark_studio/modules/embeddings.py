@@ -5,7 +5,7 @@ import json
 import safetensors
 from dataclasses import dataclass
 from safetensors.torch import load_file
-from apps.shark_studio.api.utils import get_checkpoint_pathfile
+from apps.shark_studio.web.utils.file_utils import get_checkpoint_pathfile, get_path_stem
 
 
 @dataclass

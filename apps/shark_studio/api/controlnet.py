@@ -1,5 +1,15 @@
 # from turbine_models.custom_models.controlnet import control_adapter, preprocessors
-
+import os
+import PIL
+import numpy as np
+from apps.shark_studio.web.utils.file_utils import (
+    get_generated_imgs_path,
+)
+from datetime import datetime
+from PIL import Image
+from gradio.components.image_editor import (
+    EditorValue,
+)
 
 class control_adapter:
     def __init__(
@@ -57,20 +67,26 @@ class PreprocessorModel:
     def __init__(
         self,
         hf_model_id,
-        device,
+        device = "cpu",
     ):
-        self.model = None
+        self.model = hf_model_id
+        self.device = device
 
-    def compile(self, device):
+    def compile(self):
         print("compile not implemented for preprocessor.")
         return
 
     def run(self, inputs):
         print("run not implemented for preprocessor.")
-        return
+        return inputs
 
 
-def cnet_preview(model, input_img, stencils, images, preprocessed_hints):
+def cnet_preview(model, input_image, stencil, preprocessed_hint):
+    curr_datetime = datetime.now().strftime('%Y-%m-%d.%H-%M-%S')
+    control_imgs_path = os.path.join(get_generated_imgs_path(), "control_hints")
+    if not os.path.exists(control_imgs_path):
+        os.mkdir(control_imgs_path)
+    img_dest = os.path.join(control_imgs_path, model + curr_datetime + ".png")
     if isinstance(input_image, PIL.Image.Image):
         img_dict = {
             "background": None,
@@ -78,57 +94,52 @@ def cnet_preview(model, input_img, stencils, images, preprocessed_hints):
             "composite": input_image,
         }
         input_image = EditorValue(img_dict)
-    images[index] = input_image
+    preprocessed_hint = img_dest
     if model:
-        stencils[index] = model
+        stencil = model
     match model:
         case "canny":
-            canny = CannyDetector()
+            canny = PreprocessorModel("canny")
             result = canny(
                 np.array(input_image["composite"]),
                 100,
                 200,
             )
-            preprocessed_hints[index] = Image.fromarray(result)
+            Image.fromarray(result).save(fp=img_dest)
             return (
                 Image.fromarray(result),
-                stencils,
-                images,
-                preprocessed_hints,
+                stencil,
+                preprocessed_hint,
             )
         case "openpose":
-            openpose = OpenposeDetector()
+            openpose = PreprocessorModel("openpose")
             result = openpose(np.array(input_image["composite"]))
-            preprocessed_hints[index] = Image.fromarray(result[0])
+            Image.fromarray(result[0]).save(fp=img_dest)
             return (
                 Image.fromarray(result[0]),
-                stencils,
-                images,
-                preprocessed_hints,
+                stencil,
+                preprocessed_hint,
             )
         case "zoedepth":
-            zoedepth = ZoeDetector()
+            zoedepth = PreprocessorModel("ZoeDepth")
             result = zoedepth(np.array(input_image["composite"]))
-            preprocessed_hints[index] = Image.fromarray(result)
+            Image.fromarray(result).save(fp=img_dest)
             return (
                 Image.fromarray(result),
-                stencils,
-                images,
-                preprocessed_hints,
+                stencil,
+                preprocessed_hint,
             )
         case "scribble":
-            preprocessed_hints[index] = input_image["composite"]
+            input_image["composite"].save(fp=img_dest)
             return (
                 input_image["composite"],
-                stencils,
-                images,
-                preprocessed_hints,
+                stencil,
+                preprocessed_hint,
             )
         case _:
-            preprocessed_hints[index] = None
+            preprocessed_hint = None
             return (
                 None,
-                stencils,
-                images,
-                preprocessed_hints,
+                stencil,
+                preprocessed_hint,
             )

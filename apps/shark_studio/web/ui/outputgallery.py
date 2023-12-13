@@ -6,7 +6,7 @@ import sys
 from PIL import Image
 
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
-from apps.shark_studio.api.utils import (
+from apps.shark_studio.web.utils.file_utils import (
     get_generated_imgs_path,
     get_generated_imgs_todays_subdir,
 )
