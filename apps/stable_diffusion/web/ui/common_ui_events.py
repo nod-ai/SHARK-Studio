@@ -1,3 +1,5 @@
+import gradio as gr
+
 from apps.stable_diffusion.web.ui.utils import (
     HSLHue,
     hsl_color,
