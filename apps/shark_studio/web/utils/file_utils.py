@@ -1,7 +1,7 @@
 import os
 import sys
 import glob
-import datetime as dt
+from datetime import datetime as dt
 from pathlib import Path
 
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
@@ -10,6 +10,9 @@ checkpoints_filetypes = (
     "*.ckpt",
     "*.safetensors",
 )
+
+def safe_name(name):
+    return name.replace("/", "_").replace("-", "_")
 
 def get_path_stem(path):
     path = Path(path)

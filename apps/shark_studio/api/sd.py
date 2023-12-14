@@ -1,6 +1,7 @@
 from turbine_models.custom_models.sd_inference import clip, unet, vae
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.web.utils.state import status_label
+from apps.shark_studio.web.utils.file_utils import safe_name, get_resource_path
 from apps.shark_studio.modules.pipeline import SharkPipelineBase
 from apps.shark_studio.modules.img_processing import resize_stencil, save_output_img
 from math import ceil
@@ -9,6 +10,8 @@ import torch
 import gradio as gr
 import PIL
 import time
+import os
+import json
 
 sd_model_map = {
     "CompVis/stable-diffusion-v1-4": {
@@ -90,6 +93,24 @@ sd_model_map = {
 }
 
 
+def get_spec(custom_sd_map: dict, sd_embeds: dict):
+    spec = []
+    for key in custom_sd_map:
+        if "control" in key.split("_"):
+            spec.append("controlled")
+        elif key == "custom_vae":
+            spec.append(custom_sd_map[key]["custom_weights"].split(".")[0])
+    num_embeds = 0
+    embeddings_spec = None
+    for embed in sd_embeds:
+        if embed is not None:
+            num_embeds += 1
+            embeddings_spec = num_embeds + "embeds"
+    if embeddings_spec:
+        spec.append(embeddings_spec)
+    return "_".join(spec)
+    
+
 class StableDiffusion(SharkPipelineBase):
     # This class is responsible for executing image generation and creating
     # /managing a set of compiled modules to run Stable Diffusion. The init
@@ -113,15 +134,17 @@ class StableDiffusion(SharkPipelineBase):
         custom_model_map: dict = {},
         embeddings: dict = {},
         import_ir: bool = True,
+        is_img2img: bool = False,
     ):
-        super().__init__(sd_model_map[base_model_id], device, import_ir)
-        self.base_model_id = base_model_id
-        self.device = device
+        super().__init__(sd_model_map[base_model_id], base_model_id, device, import_ir)
         self.precision = precision
-        self.iree_module_dict = None
-        self.get_compiled_map()
-
-    def prepare_pipeline(self, scheduler, custom_model_map):
+        self.is_img2img = is_img2img
+        self.pipe_id = safe_name(base_model_id) + str(height) + str(width) + precision + device + get_spec(custom_model_map, embeddings)
+            
+        
+    def prepare_pipe(self, scheduler, custom_model_map, embeddings):
+        print(f"Preparing pipeline with scheduler {scheduler}, custom map {json.dumps(custom_model_map)}, and embeddings {json.dumps(embeddings)}.")
+        self.get_compiled_map(device=self.device, pipe_id=self.pipe_id)
         return None
 
     def generate_images(
@@ -136,26 +159,38 @@ class StableDiffusion(SharkPipelineBase):
         repeatable_seeds,
         resample_type,
         control_mode,
-        preprocessed_hints,
+        hints,
     ):
-        return None, None, None, None, None
+        print("Generating Images...")
+        test_img = [PIL.Image.open(get_resource_path("../../tests/jupiter.png"), mode="r")]
+        return test_img#, "", ""
 
 
-# NOTE: Each `hf_model_id` should have its own starting configuration.
-
-# model_vmfb_key = ""
+def shark_sd_fn_dict_input(
+    sd_kwargs: dict,
+):  
+    input_imgs=[]
+    img_paths = sd_kwargs["sd_init_image"]
+    for img_path in img_paths:
+        if os.path.isfile(img_path):
+            input_imgs.append(PIL.Image.open(img_path, mode='r').convert("RGB"))
+    sd_kwargs["sd_init_image"] = input_imgs
+    generated_imgs = shark_sd_fn(
+        **sd_kwargs
+    )
+    return generated_imgs, "OK", "OK"
 
 
 def shark_sd_fn(
     prompt,
     negative_prompt,
-    image_dict,
+    sd_init_image,
     height: int,
     width: int,
     steps: int,
     strength: float,
     guidance_scale: float,
-    seeds: list,
+    seed: list,
     batch_count: int,
     batch_size: int,
     scheduler: str,
@@ -164,23 +199,17 @@ def shark_sd_fn(
     custom_vae: str,
     precision: str,
     device: str,
-    lora_weights: str | list,
     ondemand: bool,
     repeatable_seeds: bool,
     resample_type: str,
-    control_mode: str,
-    sd_json: dict,
-    progress=gr.Progress(),
+    controlnets: dict,
+    embeddings: dict,
 ):
-    # Handling gradio ImageEditor datatypes so we have unified inputs to the SD API
-    stencils=[]
-    preprocessed_hints=[]
-    cnet_strengths=[]
-
-    if isinstance(image_dict, PIL.Image.Image):
-        image = image_dict.convert("RGB")
-    elif image_dict:
-        image = image_dict["image"].convert("RGB")
+    sd_kwargs = locals()
+    if isinstance(sd_init_image, PIL.Image.Image):
+        image = sd_init_image.convert("RGB")
+    elif sd_init_image:
+        image = sd_init_image["image"].convert("RGB")
     else:
         image = None
         is_img2img = False
@@ -197,20 +226,33 @@ def shark_sd_fn(
     import apps.shark_studio.web.utils.globals as global_obj
 
     custom_model_map = {}
+    control_mode = None
+    hints = []
     if custom_weights != "None":
         custom_model_map["unet"] = {"custom_weights": custom_weights}
     if custom_vae != "None":
         custom_model_map["vae"] = {"custom_weights": custom_vae}
-    if stencils:
-        for i, stencil in enumerate(stencils):
+    if "model" in controlnets:
+        for i, model in enumerate(controlnets["model"]):
             if "xl" not in base_model_id.lower():
-                custom_model_map[f"control_adapter_{i}"] = control_adapter_map[
-                    "runwayml/stable-diffusion-v1-5"
-                ][stencil]
+                custom_model_map[f"control_adapter_{model}"] = {
+                    "hf_id": control_adapter_map[
+                        "runwayml/stable-diffusion-v1-5"
+                    ][model],
+                    "strength": controlnets["strength"][i],
+                }
             else:
-                custom_model_map[f"control_adapter_{i}"] = control_adapter_map[
-                    "stabilityai/stable-diffusion-xl-1.0"
-                ][stencil]
+                custom_model_map[f"control_adapter_{model}"] = {
+                    "hf_id": control_adapter_map[
+                        "stabilityai/stable-diffusion-xl-1.0"
+                    ][model],
+                    "strength": controlnets["strength"][i]
+                }
+        control_mode = controlnets["control_mode"]
+        for i in controlnets["hint"]:
+            hints.append[i]
+
+    print(json.dumps(custom_model_map))
 
     submit_pipe_kwargs = {
         "base_model_id": base_model_id,
@@ -219,13 +261,14 @@ def shark_sd_fn(
         "precision": precision,
         "device": device,
         "custom_model_map": custom_model_map,
+        "embeddings": embeddings,
         "import_ir": cmd_opts.import_mlir,
         "is_img2img": is_img2img,
     }
     submit_prep_kwargs = {
         "scheduler": scheduler,
         "custom_model_map": custom_model_map,
-        "embeddings": lora_weights,
+        "embeddings": embeddings,
     }
     submit_run_kwargs = {
         "prompt": prompt,
@@ -233,18 +276,18 @@ def shark_sd_fn(
         "steps": steps,
         "strength": strength,
         "guidance_scale": guidance_scale,
-        "seeds": seeds,
+        "seed": seed,
         "ondemand": ondemand,
         "repeatable_seeds": repeatable_seeds,
         "resample_type": resample_type,
         "control_mode": control_mode,
-        "preprocessed_hints": preprocessed_hints,
+        "hints": hints,
     }
     if (
         not global_obj.get_sd_obj()
         or global_obj.get_pipe_kwargs() != submit_pipe_kwargs
     ):
-        print("Regenerating pipeline...")
+        print("Initializing new pipeline...")
         global_obj.clear_cache()
         gc.collect()
         global_obj.set_pipe_kwargs(submit_pipe_kwargs)
@@ -258,27 +301,16 @@ def shark_sd_fn(
         )
         global_obj.set_sd_obj(sd_pipe)
 
-    sd_pipe.prepare_pipe(**submit_prep_kwargs)
+    global_obj.get_sd_obj().prepare_pipe(**submit_prep_kwargs)
     generated_imgs = []
-
     for current_batch in range(batch_count):
         start_time = time.time()
         out_imgs = global_obj.get_sd_obj().generate_images(
-            prompt,
-            negative_prompt,
-            image,
-            ceil(steps / strength),
-            strength,
-            guidance_scale,
-            seeds[current_batch],
-            stencils,
-            resample_type=resample_type,
-            control_mode=control_mode,
-            preprocessed_hints=preprocessed_hints,
+            **submit_run_kwargs
         )
         total_time = time.time() - start_time
         text_output = []
-        text_output += "\n" + global_obj.get_sd_obj().log
+        text_output += "\n" # + global_obj.get_sd_obj().log
         text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
 
         # if global_obj.get_sd_status() == SD_STATE_CANCEL:
@@ -286,17 +318,15 @@ def shark_sd_fn(
         # else:
         save_output_img(
             out_imgs[0],
-            seeds[current_batch],
-            sd_json,
+            seed[current_batch],
+            sd_kwargs,
         )
         generated_imgs.extend(out_imgs)
-        yield generated_imgs, text_output, status_label(
-            "Image-to-Image", current_batch + 1, batch_count, batch_size
-        ), stencils
+        yield generated_imgs#, text_output, status_label(
+            #"Stable Diffusion", current_batch + 1, batch_count, batch_size
+        #)
 
-    return generated_imgs, text_output, "", stencil, image
-
-    return generated_imgs, text_output, "", stencil, image
+    return generated_imgs#, text_output, ""
 
 
 def cancel_sd():

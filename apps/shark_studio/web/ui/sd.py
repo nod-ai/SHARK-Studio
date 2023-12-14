@@ -2,8 +2,6 @@ import os
 import json
 import gradio as gr
 import numpy as np
-
-from math import ceil
 from inspect import signature
 from PIL import Image
 from pathlib import Path
@@ -24,7 +22,7 @@ from apps.shark_studio.web.utils.file_utils import (
 )
 from apps.shark_studio.api.sd import (
     sd_model_map,
-    shark_sd_fn,
+    shark_sd_fn_dict_input,
     cancel_sd,
 )
 from apps.shark_studio.api.controlnet import (
@@ -47,18 +45,19 @@ from apps.shark_studio.web.utils.state import (
 from apps.shark_studio.web.ui.common_events import lora_changed
 
 
-def view_json_file(file_obj):
+def view_json_file(file_path):
     content = ""
-    with open(file_obj.name, "r") as fopen:
+    with open(file_path, "r") as fopen:
         content = fopen.read()
     return content
 
 
-def submit_to_cnet_config(stencil: str, preprocessed_hint: str, cnet_strength: int, curr_config: dict):
+def submit_to_cnet_config(stencil: str, preprocessed_hint: str, cnet_strength: int, control_mode: str, curr_config: dict):
     if any(i in [None, ""] for i in [stencil, preprocessed_hint]):
         return gr.update()
     if curr_config is not None:
-        if "controlnets" in curr_config:           
+        if "controlnets" in curr_config:
+            curr_config["controlnets"]["control_mode"] = control_mode
             curr_config["controlnets"]["model"].append(stencil)
             curr_config["controlnets"]["hint"].append(preprocessed_hint)
             curr_config["controlnets"]["strength"].append(cnet_strength)
@@ -66,6 +65,7 @@ def submit_to_cnet_config(stencil: str, preprocessed_hint: str, cnet_strength: i
 
     cnet_map = {}
     cnet_map["controlnets"] = {
+        "control_mode": control_mode,
         "model": [stencil],
         "hint": [preprocessed_hint],
         "strength": [cnet_strength],
@@ -85,13 +85,81 @@ def update_embeddings_json(embedding, curr_config: dict):
 
 
 def submit_to_main_config(input_cfg: dict, main_cfg: dict):
-    if main_cfg in [None, ""]:
-        # only time main_cfg should be a string is empty case.
+    if main_cfg in [None, "", {}]:
         return input_cfg
 
     for base_key in input_cfg:
         main_cfg[base_key] = input_cfg[base_key]
     return main_cfg
+
+
+def pull_sd_configs(
+    prompt,
+    negative_prompt,
+    sd_init_image,
+    height,
+    width,
+    steps,
+    strength,
+    guidance_scale,
+    seed,
+    batch_count,
+    batch_size,
+    scheduler,
+    base_model_id,
+    custom_weights,
+    custom_vae,
+    precision,
+    device,
+    ondemand,
+    repeatable_seeds,
+    resample_type,
+    sd_json,
+):
+    sd_args = locals()
+    for arg in sd_args:
+        sd_json[arg] = sd_args[arg]
+
+    return sd_json
+
+
+def load_sd_cfg(sd_json: dict, load_sd_config: str):
+    new_sd_config = json.loads(view_json_file(load_sd_config))
+    if sd_json:
+        for key in new_sd_config:
+            sd_json[key] = new_sd_config[key]
+    else: 
+        sd_json = new_sd_config
+    if os.path.isfile(sd_json["sd_init_image"][0]):
+       sd_image = Image.open(sd_json["sd_init_image"][0], mode='r')
+    else:
+       sd_image = None
+    
+    return [
+        sd_json["prompt"][0],
+        sd_json["negative_prompt"][0],
+        sd_image,
+        sd_json["height"],
+        sd_json["width"],
+        sd_json["steps"][0],
+        sd_json["strength"][0],
+        sd_json["guidance_scale"],
+        sd_json["seed"][0],
+        sd_json["batch_count"],
+        sd_json["batch_size"],
+        sd_json["scheduler"][0],
+        sd_json["base_model_id"],
+        sd_json["custom_weights"],
+        sd_json["custom_vae"],
+        sd_json["precision"],
+        sd_json["device"],
+        sd_json["ondemand"],
+        sd_json["repeatable_seeds"],
+        sd_json["resample_type"],
+        sd_json["controlnets"],
+        sd_json["embeddings"],
+        sd_json,
+    ]
 
 
 def save_sd_cfg(config: dict, save_name: str):
@@ -213,15 +281,7 @@ def update_cn_input(
         ]
 
 
-sd_fn_inputs = []
-sd_fn_sig = signature(shark_sd_fn).replace()
-for i in sd_fn_sig.parameters:
-    sd_fn_inputs.append(i)
-
 with gr.Blocks(title="Stable Diffusion") as sd_element:
-    # Get a list of arguments needed for the API call, then
-    # initialize an empty list that will manage the corresponding
-    # gradio values.
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Row(variant="compact", equal_height=True):
@@ -239,34 +299,34 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     show_download_button=False,
                 )
     with gr.Column(elem_id="ui_body"):
-        with gr.Row():
+        with gr.Row(variant="compact"):
             with gr.Column(scale=1, min_width=600):
                 with gr.Row(equal_height=True):
                     with gr.Column(scale=3):
                         sd_model_info = (
                             f"Checkpoint Path: {str(get_checkpoints_path())}"
                         )
-                        sd_base = gr.Dropdown(
+                        base_model_id = gr.Dropdown(
                             label="Base Model",
                             info="Select or enter HF model ID",
                             elem_id="custom_model",
                             value="stabilityai/stable-diffusion-2-1-base",
                             choices=sd_model_map.keys(),
                         )  # base_model_id
-                        sd_custom_weights = gr.Dropdown(
+                        custom_weights = gr.Dropdown(
                             label="Custom Weights",
                             info="Select or enter HF model ID",
                             elem_id="custom_model",
                             value="None",
                             allow_custom_value=True,
-                            choices=get_checkpoints(sd_base),
+                            choices=get_checkpoints(base_model_id),
                         )  #
                     with gr.Column(scale=2):
                         sd_vae_info = (
                             str(get_checkpoints_path("vae"))
                         ).replace("\\", "\n\\")
                         sd_vae_info = f"VAE Path: {sd_vae_info}"
-                        sd_custom_vae = gr.Dropdown(
+                        custom_vae = gr.Dropdown(
                             label=f"Custom VAE Models",
                             info=sd_vae_info,
                             elem_id="custom_model",
@@ -513,7 +573,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             visible=True,
                             image_mode="RGB",
                             interactive=True,
-                            show_label=True,
+                            show_label=False,
                             label="Input Image",
                             type="pil",
                         )
@@ -558,6 +618,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             [
                                 cnet_input,
                             ],
+                            queue=True,
+                            show_progress=False,
                         )
                         gr.on(
                             triggers=[cnet_gen.click],
@@ -573,6 +635,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 stencil,
                                 preprocessed_hint,
                             ],
+                            queue=True,
+                            show_progress=False,
                         )
                         use_result.click(
                             fn=submit_to_cnet_config,
@@ -580,11 +644,14 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 stencil,
                                 preprocessed_hint,
                                 cnet_strength,
+                                control_mode,
                                 cnet_config,
                             ],
                             outputs=[
                                 cnet_config,
-                            ]
+                            ],                            
+                            queue=True,
+                            show_progress=False,
                         )
             with gr.Column(scale=1, min_width=600):
                 with gr.Group():
@@ -615,32 +682,68 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     )
                     stop_batch = gr.Button("Stop Batch")
                 with gr.Group():
-                    sd_json = gr.JSON()
-                    with gr.Row():
+                    with gr.Column(scale=3):
+                        sd_json = gr.JSON(value=view_json_file(os.path.join(get_configs_path(), "default_sd_config.json")))
+                    with gr.Column(scale=1):
                         clear_sd_config = gr.ClearButton(
-                            value="Clear Config", size="sm"
+                            value="Clear Config", size="sm", components=sd_json                     
                         )
-                        save_sd_config = gr.Button(
-                            value="Save Config", size="sm"
-                        )
-                        sd_config_name = gr.Textbox(
-                            value="Config Name",
-                            info="Name of the file this config will be saved to.",
-                            interactive=True,
-                        )
+                        with gr.Row():
+                            save_sd_config = gr.Button(
+                                value="Save Config", size="sm"
+                            )
+                            sd_config_name = gr.Textbox(
+                                value="Config Name",
+                                info="Name of the file this config will be saved to.",
+                                interactive=True,
+                            )
                         load_sd_config = gr.FileExplorer(
                             label="Load Config",
+                            file_count="single",
                             root=cmd_opts.configs_path if cmd_opts.configs_path else get_configs_path(),
                             height=75,
+                        )
+                        load_sd_config.change(
+                            fn=load_sd_cfg,
+                            inputs=[sd_json, load_sd_config],
+                            outputs=[
+                                prompt,
+                                negative_prompt,
+                                sd_init_image,
+                                height,
+                                width,
+                                steps,
+                                strength,
+                                guidance_scale,
+                                seed,
+                                batch_count,
+                                batch_size,
+                                scheduler,
+                                base_model_id,
+                                custom_weights,
+                                custom_vae,
+                                precision,
+                                device,
+                                ondemand,
+                                repeatable_seeds,
+                                resample_type,
+                                cnet_config,
+                                embeddings_config,
+                                sd_json,
+                             ],
+                            queue=True,
+                            show_progress=False,
                         )
                         save_sd_config.click(
                             fn=save_sd_cfg,
                             inputs=[sd_json, sd_config_name],
                             outputs=[sd_config_name],
+                            queue=True,
+                            show_progress=False,
                         )
 
-        kwargs = dict(
-            fn=shark_sd_fn,
+        pull_kwargs = dict(
+            fn=pull_sd_configs,
             inputs=[
                 prompt,
                 negative_prompt,
@@ -654,23 +757,19 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 batch_count,
                 batch_size,
                 scheduler,
-                sd_base,
-                sd_custom_weights,
-                sd_custom_vae,
+                base_model_id,
+                custom_weights,
+                custom_vae,
                 precision,
                 device,
                 ondemand,
                 repeatable_seeds,
                 resample_type,
-                control_mode,
                 sd_json,
             ],
             outputs=[
-                sd_gallery,
-                std_output,
-                sd_status,
+                sd_json
             ],
-            show_progress="minimal",
         )
 
         status_kwargs = dict(
@@ -679,11 +778,23 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             outputs=sd_status,
         )
 
-        prompt_submit = prompt.submit(**status_kwargs).then(**kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
-            **kwargs
+        gen_kwargs = dict(
+            fn=shark_sd_fn_dict_input,
+            inputs=[sd_json],
+            outputs=[
+                sd_gallery,
+                std_output,
+                sd_status
+            ],
+            queue=True,
+            show_progress="minimal"
         )
-        generate_click = stable_diffusion.click(**status_kwargs).then(**kwargs)
+
+        prompt_submit = prompt.submit(**status_kwargs).then(**pull_kwargs)
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
+            **pull_kwargs
+        )
+        generate_click = stable_diffusion.click(**status_kwargs).then(**pull_kwargs).then(**gen_kwargs)
         stop_batch.click(
             fn=cancel_sd,
             cancels=[prompt_submit, neg_prompt_submit, generate_click],
