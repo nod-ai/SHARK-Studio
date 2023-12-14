@@ -925,7 +925,7 @@ def save_output_img(output_img, img_seed, extra_info=None):
 
     img_lora = None
     if args.use_lora:
-        img_lora = Path(os.path.basename(args.use_lora)).stem
+        img_lora = f"{Path(os.path.basename(args.use_lora)).stem}:{args.lora_strength}"
 
     if args.output_img_format == "jpg":
         out_img_path = Path(generated_imgs_path, f"{out_img_name}.jpg")

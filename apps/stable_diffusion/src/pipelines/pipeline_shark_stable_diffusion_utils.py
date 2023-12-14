@@ -722,6 +722,10 @@ class StableDiffusionPipeline:
                 is_fp32_vae,
             )
 
+        return cls(
+            scheduler, sd_model, import_mlir, use_lora, lora_strength, ondemand
+        )
+
     # #####################################################
     # Implements text embeddings with weights from prompts
     # https://huggingface.co/AlanB/lpw_stable_diffusion_mod

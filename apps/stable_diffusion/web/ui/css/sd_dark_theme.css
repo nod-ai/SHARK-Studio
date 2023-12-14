@@ -244,6 +244,11 @@ footer {
     padding-right: 8px;
 }
 
+/* number input value is out of range */
+.value-out-of-range input[type="number"] {
+    color: red !important;
+}
+
 /* reduced animation load when generating */
 .generating {
     animation-play-state: paused !important;

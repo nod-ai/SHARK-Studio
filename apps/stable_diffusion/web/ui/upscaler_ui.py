@@ -13,7 +13,10 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_upscaler_models,
     cancel_sd,
 )
-from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
+from apps.stable_diffusion.web.ui.common_ui_events import (
+    lora_changed,
+    lora_strength_changed,
+)
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
     args,
@@ -332,9 +335,11 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                             label="LoRA Strength",
                             info="Will be baked into the .vmfb",
                             step=0.01,
-                            minimum=0.1,
-                            maximum=1.0,
-                            value=1.0,
+                            # number is checked on change so to allow 0.n values
+                            # we have to allow 0 or you can't type 0.n in
+                            minimum=0.0,
+                            maximum=2.0,
+                            value=args.lora_strength,
                             scale=1,
                         )
                     with gr.Row():
@@ -547,4 +552,12 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
             inputs=[lora_weights],
             outputs=[lora_tags],
             queue=True,
+        )
+
+        lora_strength.change(
+            fn=lora_strength_changed,
+            inputs=lora_strength,
+            outputs=lora_strength,
+            queue=False,
+            show_progress=False,
         )

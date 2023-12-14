@@ -55,3 +55,10 @@ def lora_changed(lora_file):
             return [
                 "<div><i>This LoRA has empty tag frequency metadata, or we could not parse it</i></div>"
             ]
+
+
+def lora_strength_changed(strength):
+    if strength > 1.0:
+        return gr.Number(elem_classes="value-out-of-range")
+    else:
+        return gr.Number(elem_classes="")

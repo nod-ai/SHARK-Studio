@@ -18,7 +18,10 @@ from apps.stable_diffusion.web.ui.utils import (
     predefined_models,
     cancel_sd,
 )
-from apps.stable_diffusion.web.ui.common_ui_events import lora_changed
+from apps.stable_diffusion.web.ui.common_ui_events import (
+    lora_changed,
+    lora_strength_changed,
+)
 from apps.stable_diffusion.web.utils.metadata import import_png_metadata
 from apps.stable_diffusion.web.utils.common_label_calc import status_label
 from apps.stable_diffusion.src import (
@@ -387,7 +390,7 @@ def load_settings():
         loaded_settings.get("prompt", args.prompts[0]),
         loaded_settings.get("negative_prompt", args.negative_prompts[0]),
         loaded_settings.get("lora_weights", "None"),
-        loaded_settings.get("lora_strength", 1.0),
+        loaded_settings.get("lora_strength", args.lora_strength),
         loaded_settings.get("scheduler", args.scheduler),
         loaded_settings.get(
             "save_metadata_to_png", args.write_metadata_to_png
@@ -504,14 +507,17 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                             value=default_settings.get("lora_weights"),
                             choices=["None"] + get_custom_model_files("lora"),
                             allow_custom_value=True,
+                            scale=3,
                         )
                         lora_strength = gr.Number(
                             label="LoRA Strength",
                             info="Will be baked into the .vmfb",
                             step=0.01,
-                            minimum=0.1,
-                            maximum=1.0,
-                            value=default_settings.get("lora_strength")
+                            # number is checked on change so to allow 0.n values
+                            # we have to allow 0 or you can't type 0.n in
+                            minimum=0.0,
+                            maximum=2.0,
+                            value=default_settings.get("lora_strength"),
                             scale=1,
                         )
                     with gr.Row():
@@ -732,7 +738,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                                 prompt,
                                 negative_prompt,
                                 lora_weights,
-                                lora_f,
+                                lora_strength,
                                 scheduler,
                                 save_metadata_to_png,
                                 save_metadata_to_json,
@@ -765,7 +771,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                                 prompt,
                                 negative_prompt,
                                 lora_weights,
-                                lora_hf_id,
+                                lora_strength,
                                 scheduler,
                                 save_metadata_to_png,
                                 save_metadata_to_json,
@@ -866,6 +872,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                 height,
                 txt2img_custom_model,
                 lora_weights,
+                lora_strength,
                 custom_vae,
             ],
         )
@@ -895,4 +902,12 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
             inputs=[lora_weights],
             outputs=[lora_tags],
             queue=True,
+        )
+
+        lora_strength.change(
+            fn=lora_strength_changed,
+            inputs=lora_strength,
+            outputs=lora_strength,
+            queue=False,
+            show_progress=False,
         )
