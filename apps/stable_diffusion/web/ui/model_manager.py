@@ -105,6 +105,7 @@ with gr.Blocks() as model_web:
         label="Civitai Model Gallery",
         value=None,
         visible=False,
+        show_download_button=False,
     )
 
     with gr.Row(visible=False) as sendto_btns:

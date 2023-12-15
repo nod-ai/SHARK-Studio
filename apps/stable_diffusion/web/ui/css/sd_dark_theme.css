@@ -239,8 +239,9 @@ footer {
     padding: 0 !important;
 }
 
-#output_subdir_container :first-child {
-    border: none;
+#output_subdir_container {
+    background-color: var(--block-background-fill);
+    padding-right: 8px;
 }
 
 /* reduced animation load when generating */
@@ -279,8 +280,17 @@ footer {
 
 /* output gallery tab */
 .output_parameters_dataframe table.table {
-    /* works around a gradio bug that always shows scrollbars */
+/* works around a gradio bug that always shows scrollbars */
     overflow: clip auto;
+}
+
+.output_parameters_dataframe .cell-wrap span {
+    /* inadequate workaround for gradio issue #6086 */
+    user-select:text !important;
+    -moz-user-select:text !important;
+    -webkit-user-select:text !important;
+    -o-user-select:text !important;
+    -ms-user-select:text !important;
 }
 
 .output_parameters_dataframe tbody td {
@@ -291,7 +301,7 @@ footer {
 .output_icon_button {
     max-width: 30px;
     align-self: end;
-    padding-bottom: 8px;
+    padding-bottom: 16px !important;
 }
 
 .outputgallery_sendto {
@@ -306,6 +316,11 @@ footer {
 /* don't stretch non-square images to be square, breaking their aspect ratio */
 #outputgallery_gallery .thumbnail-item.thumbnail-lg > img {
     object-fit: contain !important;
+}
+
+/* use the whole gallery area for previeews */
+#outputgallery_gallery .preview {
+    width: inherit;
 }
 
 /* centered logo for when there are no images */

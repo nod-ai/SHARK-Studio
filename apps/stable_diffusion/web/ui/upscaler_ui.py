@@ -255,14 +255,19 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                     value=nod_logo,
                     show_label=False,
                     interactive=False,
+                    show_download_button=False,
                     elem_id="top_logo",
                     width=150,
                     height=50,
-                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
+                upscaler_init_image = gr.Image(
+                    label="Input Image",
+                    type="pil",
+                    sources=["upload"],
+                )
                 with gr.Row():
                     upscaler_model_info = (
                         f"Custom Model Path: {str(get_custom_model_path())}"
@@ -311,13 +316,6 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
-
-                upscaler_init_image = gr.Image(
-                    label="Input Image",
-                    type="pil",
-                    height=300,
-                )
-
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         # janky fix for overflowing text
@@ -471,6 +469,8 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="contain",
+                        # TODO: Re-enable download when fixed in Gradio
+                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{upscaler_model_info}\n"

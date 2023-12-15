@@ -5,11 +5,13 @@ import math
 import json
 import safetensors
 import gradio as gr
+import PIL.Image as Image
 
 from pathlib import Path
 from apps.stable_diffusion.src import args
 from dataclasses import dataclass
 from enum import IntEnum
+from gradio.components.image_editor import EditorValue
 
 from apps.stable_diffusion.src import get_available_devices
 import apps.stable_diffusion.web.utils.global_obj as global_obj
@@ -315,6 +317,25 @@ def default_config_exists(model_ckpt_or_id):
         return None
 
 
+def mask_editor_value_for_image_file(filepath):
+    image = Image.open(filepath)
+    mask = Image.new(mode="RGBA", size=image.size, color=(0, 0, 0, 0))
+    return {"background": image, "layers": [mask], "composite": image}
+
+
+def mask_editor_value_for_gallery_data(gallery_data):
+    filepath = (
+        gallery_data.root[0].image.path
+        if len(gallery_data.root) != 0
+        else None
+    )
+
+    if os.path.isfile(filepath):
+        return mask_editor_value_for_image_file(filepath)
+
+    return EditorValue()
+
+
 default_configs = {
     "stabilityai/sdxl-turbo": [
         gr.Textbox(label="", interactive=False, value=None, visible=False),
@@ -349,6 +370,7 @@ default_configs = {
         ),
     ],
 }
+
 
 nodlogo_loc = resource_path("logos/nod-logo.png")
 nodicon_loc = resource_path("logos/nod-icon.png")

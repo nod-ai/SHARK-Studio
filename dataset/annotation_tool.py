@@ -21,6 +21,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
                 value=nod_logo,
                 show_label=False,
                 interactive=False,
+                show_download_button=False,
                 elem_id="top_logo",
                 width=150,
                 height=100,
