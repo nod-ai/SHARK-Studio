@@ -236,14 +236,17 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                     value=nod_logo,
                     show_label=False,
                     interactive=False,
+                    show_download_button=False,
                     elem_id="top_logo",
                     width=150,
                     height=50,
-                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
+                outpaint_init_image = gr.Image(
+                    label="Input Image", type="pil", sources=["upload"]
+                )
                 with gr.Row():
                     outpaint_model_info = (
                         f"Custom Model Path: {str(get_custom_model_path())}"
@@ -291,13 +294,6 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         lines=2,
                         elem_id="negative_prompt_box",
                     )
-
-                outpaint_init_image = gr.Image(
-                    label="Input Image",
-                    type="pil",
-                    height=300,
-                )
-
                 with gr.Accordion(label="LoRA Options", open=False):
                     with gr.Row():
                         # janky fix for overflowing text
@@ -473,6 +469,8 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="contain",
+                        # TODO: Re-enable download when fixed in Gradio
+                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{outpaint_model_info}\n"

@@ -106,6 +106,7 @@ if __name__ == "__main__":
     # It has to be in this order or gradio ignores what we've set up.
     from apps.stable_diffusion.web.utils.tmp_configs import (
         config_tmp,
+        shark_tmp,
     )
 
     config_tmp()
@@ -115,6 +116,8 @@ if __name__ == "__main__":
     from apps.stable_diffusion.web.ui.utils import (
         create_custom_models_folders,
         nodicon_loc,
+        mask_editor_value_for_gallery_data,
+        mask_editor_value_for_image_file,
     )
 
     create_custom_models_folders()
@@ -206,10 +209,20 @@ if __name__ == "__main__":
     # init global sd pipeline and config
     global_obj._init()
 
-    def register_button_click(button, selectedid, inputs, outputs):
+    def register_sendto_click(button, selectedid, inputs, outputs):
         button.click(
             lambda x: (
-                x[0]["name"] if len(x) != 0 else None,
+                x.root[0].image.path if len(x.root) != 0 else None,
+                gr.Tabs(selected=selectedid),
+            ),
+            inputs,
+            outputs,
+        )
+
+    def register_sendto_editor_click(button, selectedid, inputs, outputs):
+        button.click(
+            lambda x: (
+                mask_editor_value_for_gallery_data(x),
                 gr.Tabs(selected=selectedid),
             ),
             inputs,
@@ -225,12 +238,27 @@ if __name__ == "__main__":
             ),
             inputs,
             outputs,
+            queue=False,
         )
 
-    def register_outputgallery_button(button, selectedid, inputs, outputs):
+    def register_outputgallery_sendto_button(
+        button, selectedid, inputs, outputs
+    ):
         button.click(
             lambda x: (
                 x,
+                gr.Tabs(selected=selectedid),
+            ),
+            inputs,
+            outputs,
+        )
+
+    def register_outputgallery_sendto_editor_button(
+        button, selectedid, inputs, outputs
+    ):
+        button.click(
+            lambda x: (
+                mask_editor_value_for_image_file(x),
                 gr.Tabs(selected=selectedid),
             ),
             inputs,
@@ -265,19 +293,6 @@ if __name__ == "__main__":
             if args.output_gallery:
                 with gr.TabItem(label="Output Gallery", id=5) as og_tab:
                     outputgallery_web.render()
-
-                # extra output gallery configuration
-                outputgallery_tab_select(og_tab.select)
-                outputgallery_watch(
-                    [
-                        txt2img_status,
-                        img2img_status,
-                        inpaint_status,
-                        outpaint_status,
-                        upscaler_status,
-                        txt2img_sdxl_status,
-                    ]
-                )
             #  with gr.TabItem(label="Model Manager", id=6):
             #      model_web.render()
             #  with gr.TabItem(label="LoRA Training (Experimental)", id=7):
@@ -297,6 +312,19 @@ if __name__ == "__main__":
             with gr.TabItem(label="Text-to-Image (SDXL)", id=13):
                 txt2img_sdxl_web.render()
 
+            # extra output gallery configuration
+            outputgallery_tab_select(og_tab.select)
+            outputgallery_watch(
+                [
+                    txt2img_status,
+                    img2img_status,
+                    inpaint_status,
+                    outpaint_status,
+                    upscaler_status,
+                    txt2img_sdxl_status,
+                ],
+            )
+
             actual_port = app.usable_port()
             if actual_port != args.server_port:
                 sd_web.load(
@@ -307,134 +335,134 @@ if __name__ == "__main__":
                 )
 
         # send to buttons
-        register_button_click(
+        register_sendto_click(
             txt2img_sendto_img2img,
             1,
             [txt2img_gallery],
             [img2img_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_editor_click(
             txt2img_sendto_inpaint,
             2,
             [txt2img_gallery],
             [inpaint_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             txt2img_sendto_outpaint,
             3,
             [txt2img_gallery],
             [outpaint_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             txt2img_sendto_upscaler,
             4,
             [txt2img_gallery],
             [upscaler_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_editor_click(
             img2img_sendto_inpaint,
             2,
             [img2img_gallery],
             [inpaint_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             img2img_sendto_outpaint,
             3,
             [img2img_gallery],
             [outpaint_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             img2img_sendto_upscaler,
             4,
             [img2img_gallery],
             [upscaler_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             inpaint_sendto_img2img,
             1,
             [inpaint_gallery],
             [img2img_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             inpaint_sendto_outpaint,
             3,
             [inpaint_gallery],
             [outpaint_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             inpaint_sendto_upscaler,
             4,
             [inpaint_gallery],
             [upscaler_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             outpaint_sendto_img2img,
             1,
             [outpaint_gallery],
             [img2img_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_editor_click(
             outpaint_sendto_inpaint,
             2,
             [outpaint_gallery],
             [inpaint_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             outpaint_sendto_upscaler,
             4,
             [outpaint_gallery],
             [upscaler_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             upscaler_sendto_img2img,
             1,
             [upscaler_gallery],
             [img2img_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_editor_click(
             upscaler_sendto_inpaint,
             2,
             [upscaler_gallery],
             [inpaint_init_image, tabs],
         )
-        register_button_click(
+        register_sendto_click(
             upscaler_sendto_outpaint,
             3,
             [upscaler_gallery],
             [outpaint_init_image, tabs],
         )
         if args.output_gallery:
-            register_outputgallery_button(
+            register_outputgallery_sendto_button(
                 outputgallery_sendto_txt2img,
                 0,
                 [outputgallery_filename],
                 [txt2img_png_info_img, tabs],
             )
-            register_outputgallery_button(
+            register_outputgallery_sendto_button(
                 outputgallery_sendto_img2img,
                 1,
                 [outputgallery_filename],
                 [img2img_init_image, tabs],
             )
-            register_outputgallery_button(
+            register_outputgallery_sendto_editor_button(
                 outputgallery_sendto_inpaint,
                 2,
                 [outputgallery_filename],
                 [inpaint_init_image, tabs],
             )
-            register_outputgallery_button(
+            register_outputgallery_sendto_button(
                 outputgallery_sendto_outpaint,
                 3,
                 [outputgallery_filename],
                 [outpaint_init_image, tabs],
             )
-            register_outputgallery_button(
+            register_outputgallery_sendto_button(
                 outputgallery_sendto_upscaler,
                 4,
                 [outputgallery_filename],
                 [upscaler_init_image, tabs],
             )
-            register_outputgallery_button(
+            register_outputgallery_sendto_button(
                 outputgallery_sendto_txt2img_sdxl,
                 0,
                 [outputgallery_filename],

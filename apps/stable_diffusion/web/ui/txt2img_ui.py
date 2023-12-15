@@ -427,16 +427,16 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                     value=nod_logo,
                     show_label=False,
                     interactive=False,
+                    show_download_button=False,
                     elem_id="top_logo",
                     width=150,
                     height=50,
-                    show_download_button=False,
                 )
     with gr.Row(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=1, min_width=600):
                 with gr.Row():
-                    with gr.Column(scale=10):
+                    with gr.Column():
                         with gr.Row():
                             t2i_model_info = f"Custom Model Path: {str(get_custom_model_path())}"
                             txt2img_custom_model = gr.Dropdown(
@@ -449,7 +449,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                                 choices=get_custom_model_files()
                                 + predefined_models,
                                 allow_custom_value=True,
-                                scale=2,
+                                scale=11,
                             )
                             # janky fix for overflowing text
                             t2i_vae_info = (
@@ -464,16 +464,16 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                                 choices=["None"]
                                 + get_custom_model_files("vae"),
                                 allow_custom_value=True,
+                                scale=4,
+                            )
+                            txt2img_png_info_img = gr.Image(
+                                label="Import PNG info",
+                                elem_id="txt2img_prompt_image",
+                                type="pil",
+                                visible=True,
+                                sources=["upload"],
                                 scale=1,
                             )
-                    with gr.Column(scale=1, min_width=170):
-                        txt2img_png_info_img = gr.Image(
-                            label="Import PNG info",
-                            elem_id="txt2img_prompt_image",
-                            type="pil",
-                            visible=True,
-                        )
-
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
                         label="Prompt",
@@ -688,6 +688,8 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="contain",
+                        # TODO: Re-enable download when fixed in Gradio
+                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{t2i_model_info}\n"

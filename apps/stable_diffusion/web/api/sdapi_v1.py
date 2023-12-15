@@ -374,7 +374,8 @@ def inpaint_api(
     res = inpaint_inf(
         InputData.prompt,
         InputData.negative_prompt,
-        {"image": init_image, "mask": mask},
+        init_image,
+        mask,
         InputData.height,
         InputData.width,
         InputData.is_full_res,

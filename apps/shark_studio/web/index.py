@@ -93,9 +93,7 @@ if __name__ == "__main__":
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
-        base_path = getattr(
-            sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
-        )
+        base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
         return os.path.join(base_path, relative_path)
 
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
@@ -201,7 +199,7 @@ if __name__ == "__main__":
         )
 
     with gr.Blocks(
-        css=dark_theme, analytics_enabled=False, title="Stable Diffusion"
+        css=dark_theme, analytics_enabled=False, title="Shark Studio 2.0 Beta"
     ) as sd_web:
         with gr.Tabs() as tabs:
             # NOTE: If adding, removing, or re-ordering tabs, make sure that they
