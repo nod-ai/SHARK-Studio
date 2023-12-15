@@ -1,4 +1,5 @@
 import gc
+from ...api.utils import get_available_devices
 
 """
 The global objects include SD pipeline and config.
@@ -9,18 +10,26 @@ Also we could avoid memory leak when switching models by clearing the cache.
 
 def _init():
     global _sd_obj
+    global _devices
     global _pipe_kwargs
     global _gen_kwargs
     global _schedulers
     _sd_obj = None
+    _devices = None
     _pipe_kwargs = None
     _gen_kwargs = None
     _schedulers = None
+    set_devices()
 
 
 def set_sd_obj(value):
     global _sd_obj
     _sd_obj = value
+
+
+def set_devices():
+    global _devices
+    _devices = get_available_devices()
 
 
 def set_sd_scheduler(key):
@@ -51,6 +60,11 @@ def set_schedulers(value):
 def get_sd_obj():
     global _sd_obj
     return _sd_obj
+
+
+def get_device_list():
+    global _devices
+    return _devices
 
 
 def get_sd_status():

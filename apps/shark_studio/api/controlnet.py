@@ -11,6 +11,7 @@ from gradio.components.image_editor import (
     EditorValue,
 )
 
+
 class control_adapter:
     def __init__(
         self,
@@ -67,7 +68,7 @@ class PreprocessorModel:
     def __init__(
         self,
         hf_model_id,
-        device = "cpu",
+        device="cpu",
     ):
         self.model = hf_model_id
         self.device = device
@@ -81,65 +82,36 @@ class PreprocessorModel:
         return inputs
 
 
-def cnet_preview(model, input_image, stencil, preprocessed_hint):
-    curr_datetime = datetime.now().strftime('%Y-%m-%d.%H-%M-%S')
-    control_imgs_path = os.path.join(get_generated_imgs_path(), "control_hints")
+def cnet_preview(model, input_image):
+    curr_datetime = datetime.now().strftime("%Y-%m-%d.%H-%M-%S")
+    control_imgs_path = os.path.join(
+        get_generated_imgs_path(), "control_hints"
+    )
     if not os.path.exists(control_imgs_path):
         os.mkdir(control_imgs_path)
     img_dest = os.path.join(control_imgs_path, model + curr_datetime + ".png")
-    if isinstance(input_image, PIL.Image.Image):
-        img_dict = {
-            "background": None,
-            "layers": [None],
-            "composite": input_image,
-        }
-        input_image = EditorValue(img_dict)
-    preprocessed_hint = img_dest
-    if model:
-        stencil = model
     match model:
         case "canny":
             canny = PreprocessorModel("canny")
             result = canny(
-                np.array(input_image["composite"]),
+                np.array(input_image),
                 100,
                 200,
             )
             Image.fromarray(result).save(fp=img_dest)
-            return (
-                Image.fromarray(result),
-                stencil,
-                preprocessed_hint,
-            )
+            return result, img_dest
         case "openpose":
             openpose = PreprocessorModel("openpose")
-            result = openpose(np.array(input_image["composite"]))
+            result = openpose(np.array(input_image))
             Image.fromarray(result[0]).save(fp=img_dest)
-            return (
-                Image.fromarray(result[0]),
-                stencil,
-                preprocessed_hint,
-            )
+            return result, img_dest
         case "zoedepth":
             zoedepth = PreprocessorModel("ZoeDepth")
-            result = zoedepth(np.array(input_image["composite"]))
+            result = zoedepth(np.array(input_image))
             Image.fromarray(result).save(fp=img_dest)
-            return (
-                Image.fromarray(result),
-                stencil,
-                preprocessed_hint,
-            )
+            return result, img_dest
         case "scribble":
-            input_image["composite"].save(fp=img_dest)
-            return (
-                input_image["composite"],
-                stencil,
-                preprocessed_hint,
-            )
+            input_image.save(fp=img_dest)
+            return input_image, img_dest
         case _:
-            preprocessed_hint = None
-            return (
-                None,
-                stencil,
-                preprocessed_hint,
-            )
+            return None, None

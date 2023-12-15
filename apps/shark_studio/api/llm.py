@@ -77,7 +77,9 @@ class LanguageModel:
                 use_auth_token=hf_auth_token,
             )
         elif not os.path.exists(self.tempfile_name):
-            self.torch_ir, self.tokenizer = llm_model_map[model_name]["initializer"](
+            self.torch_ir, self.tokenizer = llm_model_map[model_name][
+                "initializer"
+            ](
                 self.hf_model_name,
                 hf_auth_token,
                 compile_to="torch",
@@ -140,7 +142,9 @@ class LanguageModel:
                         self.iree_module_dict["config"].device, input_tensor
                     )
                 ]
-                token = self.iree_module_dict["vmfb"]["run_initialize"](*device_inputs)
+                token = self.iree_module_dict["vmfb"]["run_initialize"](
+                    *device_inputs
+                )
             else:
                 device_inputs = [
                     ireert.asdevicearray(
@@ -148,7 +152,9 @@ class LanguageModel:
                         token,
                     )
                 ]
-                token = self.iree_module_dict["vmfb"]["run_forward"](*device_inputs)
+                token = self.iree_module_dict["vmfb"]["run_forward"](
+                    *device_inputs
+                )
 
             total_time = time.time() - st_time
             history.append(format_out(token))

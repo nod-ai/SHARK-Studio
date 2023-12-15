@@ -11,26 +11,31 @@ checkpoints_filetypes = (
     "*.safetensors",
 )
 
+
 def safe_name(name):
     return name.replace("/", "_").replace("-", "_")
+
 
 def get_path_stem(path):
     path = Path(path)
     return path.stem
 
+
 def get_resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller"""
-    base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+    base_path = getattr(
+        sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+    )
     result = Path(os.path.join(base_path, relative_path)).resolve(strict=False)
     return result
+
 
 def get_configs_path() -> Path:
     configs = get_resource_path(os.path.join("..", "configs"))
     if not os.path.exists(configs):
         os.mkdir(configs)
-    return Path(
-        get_resource_path("../configs")
-    )
+    return Path(get_resource_path("../configs"))
+
 
 def get_generated_imgs_path() -> Path:
     return Path(

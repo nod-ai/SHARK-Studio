@@ -101,6 +101,7 @@ def set_init_device_flags():
         device_name, cmd_opts.device = map_device_to_name_path(cmd_opts.device)
         if not cmd_opts.iree_metal_target_platform:
             from shark.iree_utils.metal_utils import get_metal_target_triple
+
             triple = get_metal_target_triple(device_name)
             if triple is not None:
                 cmd_opts.iree_metal_target_platform = triple.split("-")[-1]
@@ -140,7 +141,6 @@ def get_all_devices(driver_name):
     device_list_src = driver.query_available_devices()
     device_list_src.sort(key=lambda d: d["path"])
     return device_list_src
-
 
 
 def get_device_mapping(driver, key_combination=3):
@@ -190,6 +190,7 @@ def get_opt_flags(model, precision="fp16"):
         )
     if "rocm" in cmd_opts.device:
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
+
         rocm_args = get_iree_rocm_args()
         iree_flags.extend(rocm_args)
     if cmd_opts.iree_constant_folding == False:

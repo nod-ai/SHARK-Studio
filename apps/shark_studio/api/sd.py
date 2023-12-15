@@ -1,17 +1,24 @@
+import gc
+from unittest import registerResult
+import torch
+import time
+import os
+import json
+
 from turbine_models.custom_models.sd_inference import clip, unet, vae
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.web.utils.state import status_label
 from apps.shark_studio.web.utils.file_utils import safe_name, get_resource_path
 from apps.shark_studio.modules.pipeline import SharkPipelineBase
-from apps.shark_studio.modules.img_processing import resize_stencil, save_output_img
+from apps.shark_studio.modules.img_processing import (
+    resize_stencil,
+    save_output_img,
+)
+from apps.shark_studio.modules.ckpt_processing import (
+    process_custom_pipe_weights,
+)
 from math import ceil
-import gc
-import torch
-import gradio as gr
-import PIL
-import time
-import os
-import json
+from PIL import Image
 
 sd_model_map = {
     "CompVis/stable-diffusion-v1-4": {
@@ -105,11 +112,11 @@ def get_spec(custom_sd_map: dict, sd_embeds: dict):
     for embed in sd_embeds:
         if embed is not None:
             num_embeds += 1
-            embeddings_spec = num_embeds + "embeds"
+            embeddings_spec = str(num_embeds) + "embeds"
     if embeddings_spec:
         spec.append(embeddings_spec)
     return "_".join(spec)
-    
+
 
 class StableDiffusion(SharkPipelineBase):
     # This class is responsible for executing image generation and creating
@@ -136,14 +143,25 @@ class StableDiffusion(SharkPipelineBase):
         import_ir: bool = True,
         is_img2img: bool = False,
     ):
-        super().__init__(sd_model_map[base_model_id], base_model_id, device, import_ir)
+        super().__init__(
+            sd_model_map[base_model_id], base_model_id, device, import_ir
+        )
         self.precision = precision
         self.is_img2img = is_img2img
-        self.pipe_id = safe_name(base_model_id) + str(height) + str(width) + precision + device + get_spec(custom_model_map, embeddings)
-            
-        
+        self.pipe_id = (
+            safe_name(base_model_id)
+            + str(height)
+            + str(width)
+            + precision
+            + device
+            + get_spec(custom_model_map, embeddings)
+        )
+        print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}")
+
     def prepare_pipe(self, scheduler, custom_model_map, embeddings):
-        print(f"Preparing pipeline with scheduler {scheduler}, custom map {json.dumps(custom_model_map)}, and embeddings {json.dumps(embeddings)}.")
+        print(
+            f"\n[LOG] Preparing pipeline with scheduler {scheduler}, custom map {json.dumps(custom_model_map)}, and embeddings {json.dumps(embeddings)}."
+        )
         self.get_compiled_map(device=self.device, pipe_id=self.pipe_id)
         return None
 
@@ -161,24 +179,37 @@ class StableDiffusion(SharkPipelineBase):
         control_mode,
         hints,
     ):
-        print("Generating Images...")
-        test_img = [PIL.Image.open(get_resource_path("../../tests/jupiter.png"), mode="r")]
-        return test_img#, "", ""
+        print("\n[LOG] Generating images...")
+        test_img = [
+            Image.open(
+                get_resource_path("../../tests/jupiter.png"), mode="r"
+            ).convert("RGB")
+        ]
+        return test_img
 
 
 def shark_sd_fn_dict_input(
     sd_kwargs: dict,
-):  
-    input_imgs=[]
+):
+    print("[LOG] Submitting Request...")
+    input_imgs = []
     img_paths = sd_kwargs["sd_init_image"]
+
     for img_path in img_paths:
-        if os.path.isfile(img_path):
-            input_imgs.append(PIL.Image.open(img_path, mode='r').convert("RGB"))
+        if img_path:
+            if os.path.isfile(img_path):
+                input_imgs.append(
+                    Image.open(img_path, mode="r").convert("RGB")
+                )
     sd_kwargs["sd_init_image"] = input_imgs
-    generated_imgs = shark_sd_fn(
-        **sd_kwargs
-    )
-    return generated_imgs, "OK", "OK"
+    # result = shark_sd_fn(**sd_kwargs)
+    # for i in range(sd_kwargs["batch_count"]):
+    #    yield from result
+    # return result
+    for i in range(1):
+        generated_imgs = yield from shark_sd_fn(**sd_kwargs)
+        yield generated_imgs
+    return generated_imgs
 
 
 def shark_sd_fn(
@@ -206,7 +237,7 @@ def shark_sd_fn(
     embeddings: dict,
 ):
     sd_kwargs = locals()
-    if isinstance(sd_init_image, PIL.Image.Image):
+    if isinstance(sd_init_image, Image.Image):
         image = sd_init_image.convert("RGB")
     elif sd_init_image:
         image = sd_init_image["image"].convert("RGB")
@@ -220,7 +251,7 @@ def shark_sd_fn(
             _,
         ) = resize_stencil(image, width, height)
         is_img2img = True
-    print("Performing Stable Diffusion Pipeline setup...")
+    print("\n[LOG] Performing Stable Diffusion Pipeline setup...")
 
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
     import apps.shark_studio.web.utils.globals as global_obj
@@ -246,13 +277,11 @@ def shark_sd_fn(
                     "hf_id": control_adapter_map[
                         "stabilityai/stable-diffusion-xl-1.0"
                     ][model],
-                    "strength": controlnets["strength"][i]
+                    "strength": controlnets["strength"][i],
                 }
         control_mode = controlnets["control_mode"]
         for i in controlnets["hint"]:
             hints.append[i]
-
-    print(json.dumps(custom_model_map))
 
     submit_pipe_kwargs = {
         "base_model_id": base_model_id,
@@ -287,7 +316,7 @@ def shark_sd_fn(
         not global_obj.get_sd_obj()
         or global_obj.get_pipe_kwargs() != submit_pipe_kwargs
     ):
-        print("Initializing new pipeline...")
+        print("\n[LOG] Initializing new pipeline...")
         global_obj.clear_cache()
         gc.collect()
         global_obj.set_pipe_kwargs(submit_pipe_kwargs)
@@ -305,28 +334,27 @@ def shark_sd_fn(
     generated_imgs = []
     for current_batch in range(batch_count):
         start_time = time.time()
-        out_imgs = global_obj.get_sd_obj().generate_images(
-            **submit_run_kwargs
-        )
+        out_imgs = global_obj.get_sd_obj().generate_images(**submit_run_kwargs)
         total_time = time.time() - start_time
-        text_output = []
-        text_output += "\n" # + global_obj.get_sd_obj().log
-        text_output += f"\nTotal image(s) generation time: {total_time:.4f}sec"
-
+        text_output = f"Total image(s) generation time: {total_time:.4f}sec"
+        print(f"\n[LOG] {text_output}")
         # if global_obj.get_sd_status() == SD_STATE_CANCEL:
         #     break
         # else:
+        try:
+            this_seed = seed[current_batch]
+        except:
+            this_seed = seed[0]
         save_output_img(
             out_imgs[0],
-            seed[current_batch],
+            this_seed,
             sd_kwargs,
         )
         generated_imgs.extend(out_imgs)
-        yield generated_imgs#, text_output, status_label(
-            #"Stable Diffusion", current_batch + 1, batch_count, batch_size
-        #)
-
-    return generated_imgs#, text_output, ""
+        yield generated_imgs, status_label(
+            "Stable Diffusion", current_batch + 1, batch_count, batch_size
+        )
+    return generated_imgs, ""
 
 
 def cancel_sd():

@@ -679,7 +679,7 @@ p.add_argument(
     "--configs_path",
     default=None,
     type=str,
-    help="Path to .json config directory."
+    help="Path to .json config directory.",
 )
 
 p.add_argument(

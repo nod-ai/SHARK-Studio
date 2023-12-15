@@ -5,13 +5,11 @@ from pathlib import Path
 from datetime import datetime as dt
 import json
 import sys
-from apps.shark_studio.api.utils import (
-    get_available_devices,
-)
 from apps.shark_studio.api.llm import (
     llm_model_map,
     LanguageModel,
 )
+import apps.shark_studio.web.utils.globals as global_obj
 
 
 def user(message, history):
@@ -90,11 +88,17 @@ def llm_chat_api(InputData: dict):
     #     print(f"prompt : {InputData['prompt']}")
     # print(f"max_tokens : {InputData['max_tokens']}") # Default to 128 for now
     global vicuna_model
-    model_name = InputData["model"] if "model" in InputData.keys() else "codegen"
+    model_name = (
+        InputData["model"] if "model" in InputData.keys() else "codegen"
+    )
     model_path = llm_model_map[model_name]
     device = "cpu-task"
     precision = "fp16"
-    max_toks = None if "max_tokens" not in InputData.keys() else InputData["max_tokens"]
+    max_toks = (
+        None
+        if "max_tokens" not in InputData.keys()
+        else InputData["max_tokens"]
+    )
     if max_toks is None:
         max_toks = 128 if model_name == "codegen" else 512
 
@@ -131,7 +135,9 @@ def llm_chat_api(InputData: dict):
     # TODO: add role dict for different models
     if is_chat_completion_api:
         # TODO: add funtionality for multiple messages
-        prompt = create_prompt(model_name, [(InputData["messages"][0]["content"], "")])
+        prompt = create_prompt(
+            model_name, [(InputData["messages"][0]["content"], "")]
+        )
     else:
         prompt = InputData["prompt"]
     print("prompt = ", prompt)
@@ -164,7 +170,9 @@ def llm_chat_api(InputData: dict):
     end_time = dt.now().strftime("%Y%m%d%H%M%S%f")
     return {
         "id": end_time,
-        "object": "chat.completion" if is_chat_completion_api else "text_completion",
+        "object": "chat.completion"
+        if is_chat_completion_api
+        else "text_completion",
         "created": int(end_time),
         "choices": choices,
     }
@@ -186,7 +194,7 @@ with gr.Blocks(title="Chat") as chat_element:
             choices=model_choices,
             allow_custom_value=True,
         )
-        supported_devices = get_available_devices()
+        supported_devices = global_obj.get_device_list()
         enabled = True
         if len(supported_devices) == 0:
             supported_devices = ["cpu-task"]

@@ -5,9 +5,6 @@ import sys
 import logging
 import apps.shark_studio.api.initializers as initialize
 
-from ui.chat import chat_element
-from ui.sd import sd_element
-from ui.outputgallery import outputgallery_element
 
 from apps.shark_studio.modules import timer
 
@@ -75,10 +72,12 @@ def launch_webui(address):
 def webui():
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
-    logging.basicConfig(level=logging.DEBUG)
-
     launch_api = cmd_opts.api
     initialize.initialize()
+
+    from ui.chat import chat_element
+    from ui.sd import sd_element
+    from ui.outputgallery import outputgallery_element
 
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
@@ -150,7 +149,9 @@ def webui():
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
-        base_path = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        base_path = getattr(
+            sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__))
+        )
         return os.path.join(base_path, relative_path)
 
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
@@ -198,6 +199,7 @@ def webui():
                 chat_element.render()
 
     studio_web.queue()
+
     # if args.ui == "app":
     #    t = Process(
     #        target=launch_app, args=[f"http://localhost:{args.server_port}"]

@@ -22,8 +22,10 @@ resampler_list = resamplers.keys()
 
 # save output images and the inputs corresponding to it.
 def save_output_img(output_img, img_seed, extra_info=None):
-
-    from apps.shark_studio.web.utils.file_utils import get_generated_imgs_path, get_generated_imgs_todays_subdir
+    from apps.shark_studio.web.utils.file_utils import (
+        get_generated_imgs_path,
+        get_generated_imgs_todays_subdir,
+    )
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
     if extra_info is None:
@@ -62,11 +64,11 @@ def save_output_img(output_img, img_seed, extra_info=None):
         if cmd_opts.write_metadata_to_png:
             # Using a conditional expression caused problems, so setting a new
             # variable for now.
-            #if cmd_opts.use_hiresfix:
+            # if cmd_opts.use_hiresfix:
             #    png_size_text = (
             #        f"{cmd_opts.hiresfix_width}x{cmd_opts.hiresfix_height}"
             #    )
-            #else:
+            # else:
             png_size_text = f"{extra_info['width']}x{extra_info['height']}"
 
             pngInfo.add_text(
@@ -95,8 +97,7 @@ def save_output_img(output_img, img_seed, extra_info=None):
     # To be as low-impact as possible to the existing CSV format, we append
     # "VAE" and "LORA" to the end. However, it does not fit the hierarchy of
     # importance for each data point. Something to consider.
-    new_entry = {
-    }
+    new_entry = {}
 
     new_entry.update(extra_info)
 
@@ -111,6 +112,7 @@ def save_output_img(output_img, img_seed, extra_info=None):
     json_path = Path(generated_imgs_path, f"{out_img_name}.json")
     with open(json_path, "w") as f:
         json.dump(new_entry, f, indent=4)
+
 
 # For stencil, the input image can be of any size, but we need to ensure that
 # it conforms with our model constraints :-
