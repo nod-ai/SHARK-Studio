@@ -87,6 +87,9 @@ def main():
             ondemand=args.ondemand,
         )
 
+    if args.height == 768 and args.width == 768:
+        args.use_tuned = False
+
     start_time = time.time()
     generated_imgs = img2img_obj.generate_images(
         args.prompts,
