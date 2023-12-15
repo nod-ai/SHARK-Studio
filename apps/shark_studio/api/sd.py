@@ -5,6 +5,7 @@ import time
 import os
 import json
 
+from pathlib import Path
 from turbine_models.custom_models.sd_inference import clip, unet, vae
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.web.utils.state import status_label
@@ -362,9 +363,19 @@ def cancel_sd():
     return
 
 
+def view_json_file(file_path):
+    content = ""
+    with open(file_path, "r") as fopen:
+        content = fopen.read()
+    return content
+
+
 if __name__ == "__main__":
-    sd = StableDiffusion(
-        "runwayml/stable-diffusion-v1-5",
-        device="vulkan",
-    )
-    print("model loaded")
+    from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+    import apps.shark_studio.web.utils.globals as global_obj 
+    global_obj._init()
+
+    sd_json = view_json_file(get_resource_path("../configs/default_sd_config.json"))
+    sd_kwargs = json.loads(sd_json)
+    for i in shark_sd_fn_dict_input(sd_kwargs):
+        print(i)
