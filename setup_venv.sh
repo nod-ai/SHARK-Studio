@@ -5,7 +5,7 @@
 # Environment variables used by the script.
 # PYTHON=$PYTHON3.10 ./setup_venv.sh  #pass a version of $PYTHON to use
 # VENV_DIR=myshark.venv #create a venv called myshark.venv
-# SKIP_VENV=1 #Don't create and activate a Python venv. Use the current environment. 
+# SKIP_VENV=1 #Don't create and activate a Python venv. Use the current environment.
 # USE_IREE=1 #use stock IREE instead of Nod.ai's SHARK build
 # IMPORTER=1 #Install importer deps
 # BENCHMARK=1 #Install benchmark deps
@@ -35,7 +35,7 @@ fi
 if [[ "$SKIP_VENV" != "1" ]]; then
   if [[ -z "${CONDA_PREFIX}" ]]; then
     # Not a conda env. So create a new VENV dir
-    VENV_DIR=${VENV_DIR:-shark.venv}
+    VENV_DIR=${VENV_DIR:-shark1.venv}
     echo "Using pip venv.. Setting up venv dir: $VENV_DIR"
     $PYTHON -m venv "$VENV_DIR" || die "Could not create venv."
     source "$VENV_DIR/bin/activate" || die "Could not activate venv"
