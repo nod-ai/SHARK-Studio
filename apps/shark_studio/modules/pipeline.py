@@ -32,7 +32,8 @@ class SharkPipelineBase:
         self.model_map = model_map
         self.static_kwargs = static_kwargs
         self.base_model_id = base_model_id
-        self.device = device
+        self.device_name = device
+        self.device = device.split("=>")[-1].strip(" ")
         self.import_mlir = import_mlir
         self.iree_module_dict = {}
         self.tempfiles = {}

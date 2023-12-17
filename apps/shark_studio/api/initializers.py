@@ -25,7 +25,7 @@ def imports():
         action="ignore", category=UserWarning, module="torchvision"
     )
     warnings.filterwarnings(
-        action="ignore", category=UserWarning, message='.*is deprecated, please use.*', module="*torch*"
+        action="ignore", category=UserWarning, module="torch"
     )
 
     import gradio  # noqa: F401

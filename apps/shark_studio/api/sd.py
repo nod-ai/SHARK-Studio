@@ -31,8 +31,6 @@ sd_model_map = {
         "initializer": clip.export_clip_model,
         "external_weight_file": None,
         "ireec_flags": ["--iree-flow-collapse-reduction-dims",
-                        "--iree-opt-const-expr-hoisting=False",
-                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
         ],
     },
     "vae_encode": {

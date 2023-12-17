@@ -126,6 +126,7 @@ def webui():
     #
     #     uvicorn.run(api, host="0.0.0.0", port=args.server_port)
     #     sys.exit(0)
+    import gradio as gr
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""
