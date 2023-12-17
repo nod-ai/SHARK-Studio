@@ -1,125 +1,61 @@
 import gc
-from unittest import registerResult
 import torch
 import time
 import os
 import json
+import numpy as np
 
 from pathlib import Path
 from turbine_models.custom_models.sd_inference import clip, unet, vae
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.web.utils.state import status_label
-from apps.shark_studio.web.utils.file_utils import safe_name, get_resource_path
+from apps.shark_studio.web.utils.file_utils import safe_name, get_resource_path, get_checkpoints_path
 from apps.shark_studio.modules.pipeline import SharkPipelineBase
+from apps.shark_studio.modules.schedulers import get_schedulers
+from apps.shark_studio.modules.prompt_encoding import get_weighted_text_embeddings
 from apps.shark_studio.modules.img_processing import (
     resize_stencil,
     save_output_img,
 )
+
 from apps.shark_studio.modules.ckpt_processing import (
+    preprocessCKPT,
     process_custom_pipe_weights,
 )
+from transformers import CLIPTokenizer
 from math import ceil
 from PIL import Image
 
 sd_model_map = {
-    "CompVis/stable-diffusion-v1-4": {
-        "clip": {
-            "initializer": clip.export_clip_model,
-            "max_tokens": 64,
-        },
-        "vae_encode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
-        "unet": {
-            "initializer": unet.export_unet_model,
-            "max_tokens": 512,
-        },
-        "vae_decode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
+    "clip": {
+        "initializer": clip.export_clip_model,
+        "external_weight_file": None,
+        "ireec_flags": ["--iree-flow-collapse-reduction-dims",
+                        "--iree-opt-const-expr-hoisting=False",
+                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
+        ],
     },
-    "runwayml/stable-diffusion-v1-5": {
-        "clip": {
-            "initializer": clip.export_clip_model,
-            "max_tokens": 64,
-        },
-        "vae_encode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
-        "unet": {
-            "initializer": unet.export_unet_model,
-            "max_tokens": 512,
-        },
-        "vae_decode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
+    "vae_encode": {
+        "initializer": vae.export_vae_model,
+        "external_weight_file": None,
     },
-    "stabilityai/stable-diffusion-2-1-base": {
-        "clip": {
-            "initializer": clip.export_clip_model,
-            "max_tokens": 64,
-        },
-        "vae_encode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
-        "unet": {
-            "initializer": unet.export_unet_model,
-            "max_tokens": 512,
-        },
-        "vae_decode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
+    "unet": {
+        "initializer": unet.export_unet_model,
+        "ireec_flags": ["--iree-flow-collapse-reduction-dims",
+                        "--iree-opt-const-expr-hoisting=False",
+                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
+        ],
+        "external_weight_file": None,
     },
-    "stabilityai/stable_diffusion-xl-1.0": {
-        "clip_1": {
-            "initializer": clip.export_clip_model,
-            "max_tokens": 64,
-        },
-        "clip_2": {
-            "initializer": clip.export_clip_model,
-            "max_tokens": 64,
-        },
-        "vae_encode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
-        "unet": {
-            "initializer": unet.export_unet_model,
-            "max_tokens": 512,
-        },
-        "vae_decode": {
-            "initializer": vae.export_vae_model,
-            "max_tokens": 64,
-        },
+    "vae_decode": {
+        "initializer": vae.export_vae_model,
+        "external_weight_file": None,
     },
 }
 
 
-def get_spec(custom_sd_map: dict, sd_embeds: dict):
-    spec = []
-    for key in custom_sd_map:
-        if "control" in key.split("_"):
-            spec.append("controlled")
-        elif key == "custom_vae":
-            spec.append(custom_sd_map[key]["custom_weights"].split(".")[0])
-    num_embeds = 0
-    embeddings_spec = None
-    for embed in sd_embeds:
-        if embed is not None:
-            num_embeds += 1
-            embeddings_spec = str(num_embeds) + "embeds"
-    if embeddings_spec:
-        spec.append(embeddings_spec)
-    return "_".join(spec)
-
-
 class StableDiffusion(SharkPipelineBase):
+
     # This class is responsible for executing image generation and creating
     # /managing a set of compiled modules to run Stable Diffusion. The init
     # aims to be as general as possible, and the class will infer and compile
@@ -132,39 +68,143 @@ class StableDiffusion(SharkPipelineBase):
     # embeddings: a dict of embedding checkpoints or model IDs to use when
     # initializing the compiled modules.
 
+
     def __init__(
         self,
-        base_model_id: str = "runwayml/stable-diffusion-v1-5",
-        height: int = 512,
-        width: int = 512,
-        precision: str = "fp16",
-        device: str = None,
-        custom_model_map: dict = {},
-        embeddings: dict = {},
+        base_model_id,
+        height: int,
+        width: int,
+        batch_size: int,
+        precision: str,
+        device: str,
+        custom_vae: str = None,
+        num_loras: int = 0,
         import_ir: bool = True,
         is_img2img: bool = False,
+        is_controlled: bool = False,
     ):
-        super().__init__(
-            sd_model_map[base_model_id], base_model_id, device, import_ir
-        )
+        self.model_max_length = 77
+        self.batch_size = batch_size
         self.precision = precision
         self.is_img2img = is_img2img
-        self.pipe_id = (
-            safe_name(base_model_id)
-            + str(height)
-            + str(width)
-            + precision
-            + device
-            + get_spec(custom_model_map, embeddings)
+        self.scheduler_obj = {}
+        self.precision = precision
+        static_kwargs = {
+            "pipe": {},
+            "clip": {"hf_model_name": base_model_id},
+            "unet": {
+                "hf_model_name": base_model_id,
+                "unet_model": unet.UnetModel(hf_model_name=base_model_id, hf_auth_token=None),
+                "batch_size": batch_size,
+                #"is_controlled": is_controlled,
+                #"num_loras": num_loras,
+                "height": height,
+                "width": width,
+            },
+            "vae_encode": {
+                "hf_model_name": custom_vae if custom_vae else base_model_id,
+                "vae_model": vae.VaeModel(hf_model_name=base_model_id, hf_auth_token=None),
+                "batch_size": batch_size,
+                "height": height,
+                "width": width,
+            },
+            "vae_decode": {
+                "hf_model_name": custom_vae,
+                "vae_model": vae.VaeModel(hf_model_name=base_model_id, hf_auth_token=None),
+                "batch_size": batch_size,
+                "height": height,
+                "width": width,
+            },
+        }
+        super().__init__(
+            sd_model_map, base_model_id, static_kwargs, device, import_ir
         )
-        print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}")
+        pipe_id_list = [
+            safe_name(base_model_id),
+            str(batch_size),
+            f"{str(height)}x{str(width)}",
+            precision,
+        ]
+        if num_loras > 0:
+            pipe_id_list.append(str(num_loras)+"lora")
+        if is_controlled:
+            pipe_id_list.append("controlled")
+        if custom_vae:
+            pipe_id_list.append(custom_vae)
+        self.pipe_id = "_".join(pipe_id_list)
+        print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
+        del static_kwargs
+        gc.collect()
 
-    def prepare_pipe(self, scheduler, custom_model_map, embeddings):
+
+    def prepare_pipe(self, scheduler, custom_weights, adapters, embeddings):
         print(
-            f"\n[LOG] Preparing pipeline with scheduler {scheduler}, custom map {json.dumps(custom_model_map)}, and embeddings {json.dumps(embeddings)}."
+            f"\n[LOG] Preparing pipeline with scheduler {scheduler}"
+            f"\n[LOG] Custom embeddings currently unsupported."
         )
-        self.get_compiled_map(device=self.device, pipe_id=self.pipe_id)
-        return None
+        schedulers = get_schedulers(self.base_model_id)
+        self.weights_path = get_checkpoints_path(self.pipe_id)
+        if not os.path.exists(self.weights_path):
+            os.mkdir(self.weights_path)
+        # accepting a list of schedulers in batched cases.
+        for i in scheduler:
+            self.scheduler_obj[i] = schedulers[i]
+            print(f"[LOG] Loaded scheduler: {i}")
+        for model in adapters:
+            self.model_map[model] = adapters[model]
+        if os.path.isfile(custom_weights):
+            for i in self.model_map:
+               self.model_map[i]["external_weights_file"] = None
+        elif custom_weights != "":
+            print(f"\n[LOG][WARNING] Custom weights were not found at {custom_weights}. Did you mean to pass a base model ID?")
+        self.static_kwargs["pipe"] = {
+        #    "external_weight_path": self.weights_path,
+#            "external_weights": "safetensors",
+        }
+        self.get_compiled_map(pipe_id=self.pipe_id)
+        print("\n[LOG] Pipeline successfully prepared for runtime.")
+        return
+
+
+    def encode_prompts_weight(
+        self,
+        prompt,
+        negative_prompt,
+        do_classifier_free_guidance=True,
+    ):
+        # Encodes the prompt into text encoder hidden states.
+        self.load_submodels(["clip"])
+        self.tokenizer = CLIPTokenizer.from_pretrained(
+            self.base_model_id,
+            subfolder="tokenizer",
+        )
+        clip_inf_start = time.time()
+
+
+        text_embeddings, uncond_embeddings = get_weighted_text_embeddings(
+            pipe=self,
+            prompt=prompt,
+            uncond_prompt=negative_prompt
+            if do_classifier_free_guidance
+            else None,
+        )
+
+        if do_classifier_free_guidance:
+            text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
+
+        pad = (0, 0) * (len(text_embeddings.shape) - 2)
+        pad = pad + (0, 512 - text_embeddings.shape[1])
+        text_embeddings = torch.nn.functional.pad(text_embeddings, pad)
+
+        # SHARK: Report clip inference time
+        clip_inf_time = (time.time() - clip_inf_start) * 1000
+        if self.ondemand:
+            self.unload_clip()
+            gc.collect()
+        print(f"\n[LOG] Clip Inference time (ms) = {clip_inf_time:.3f}")
+
+        return text_embeddings.numpy().astype(np.float16)
+        
 
     def generate_images(
         self,
@@ -181,11 +221,35 @@ class StableDiffusion(SharkPipelineBase):
         hints,
     ):
         print("\n[LOG] Generating images...")
+        batched_args=[
+            prompt,
+            negative_prompt,
+            steps,
+            strength,
+            guidance_scale,
+            seed,
+            resample_type,
+            control_mode,
+            hints,
+        ]
+        for arg in batched_args:
+            if not isinstance(arg, list):
+                arg = [arg] * self.batch_size
+            if len(arg) < self.batch_size:
+                arg = arg * self.batch_size
+            else:
+                arg = [arg[i] for i in range(self.batch_size)]
+
+        text_embeddings = self.encode_prompts_weight(
+            prompt,
+            negative_prompt,
+        )
+        print(text_embeddings)
         test_img = [
             Image.open(
                 get_resource_path("../../tests/jupiter.png"), mode="r"
             ).convert("RGB")
-        ]
+        ] * self.batch_size
         return test_img
 
 
@@ -257,29 +321,31 @@ def shark_sd_fn(
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
     import apps.shark_studio.web.utils.globals as global_obj
 
-    custom_model_map = {}
+    adapters = {}
+    is_controlled = False
     control_mode = None
     hints = []
-    if custom_weights != "None":
-        custom_model_map["unet"] = {"custom_weights": custom_weights}
-    if custom_vae != "None":
-        custom_model_map["vae"] = {"custom_weights": custom_vae}
+    num_loras = 0
+    for i in embeddings:
+        num_loras += 1 if embeddings[i] else 0
     if "model" in controlnets:
         for i, model in enumerate(controlnets["model"]):
             if "xl" not in base_model_id.lower():
-                custom_model_map[f"control_adapter_{model}"] = {
+                adapters[f"control_adapter_{model}"] = {
                     "hf_id": control_adapter_map[
                         "runwayml/stable-diffusion-v1-5"
                     ][model],
                     "strength": controlnets["strength"][i],
                 }
             else:
-                custom_model_map[f"control_adapter_{model}"] = {
+                adapters[f"control_adapter_{model}"] = {
                     "hf_id": control_adapter_map[
                         "stabilityai/stable-diffusion-xl-1.0"
                     ][model],
                     "strength": controlnets["strength"][i],
                 }
+            if model is not None:
+                is_controlled=True
         control_mode = controlnets["control_mode"]
         for i in controlnets["hint"]:
             hints.append[i]
@@ -288,16 +354,19 @@ def shark_sd_fn(
         "base_model_id": base_model_id,
         "height": height,
         "width": width,
+        "batch_size": batch_size,
         "precision": precision,
         "device": device,
-        "custom_model_map": custom_model_map,
-        "embeddings": embeddings,
+        "custom_vae": custom_vae,
+        "num_loras": num_loras,
         "import_ir": cmd_opts.import_mlir,
         "is_img2img": is_img2img,
+        "is_controlled": is_controlled,
     }
     submit_prep_kwargs = {
         "scheduler": scheduler,
-        "custom_model_map": custom_model_map,
+        "custom_weights": custom_weights,
+        "adapters": adapters,
         "embeddings": embeddings,
     }
     submit_run_kwargs = {
@@ -313,6 +382,7 @@ def shark_sd_fn(
         "control_mode": control_mode,
         "hints": hints,
     }
+    print(submit_pipe_kwargs)
     if (
         not global_obj.get_sd_obj()
         or global_obj.get_pipe_kwargs() != submit_pipe_kwargs

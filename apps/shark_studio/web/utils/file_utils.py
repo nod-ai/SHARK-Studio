@@ -50,7 +50,7 @@ def get_generated_imgs_todays_subdir() -> str:
 
 
 def create_checkpoint_folders():
-    dir = ["vae", "lora"]
+    dir = ["vae", "lora", "../vmfb"]
     if not cmd_opts.ckpt_dir:
         dir.insert(0, "models")
     else:

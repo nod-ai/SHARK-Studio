@@ -106,7 +106,6 @@ def get_iree_frontend_args(frontend):
 # Common args to be used given any frontend or device.
 def get_iree_common_args(debug=False):
     common_args = [
-        "--iree-stream-resource-max-allocation-size=4294967295",
         "--iree-vm-bytecode-module-strip-source-map=true",
         "--iree-util-zero-fill-elided-attrs",
     ]

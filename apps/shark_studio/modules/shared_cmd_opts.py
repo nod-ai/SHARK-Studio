@@ -453,12 +453,6 @@ p.add_argument(
     "Example: --device_allocator_heap_key='*;1gib' (will limit caching on device to 1 gigabyte)",
 )
 
-p.add_argument(
-    "--custom_model_map",
-    type=str,
-    default="",
-    help="path to custom model map to import. This should be a .json file",
-)
 ##############################################################################
 # IREE - Vulkan supported flags
 ##############################################################################

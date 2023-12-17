@@ -126,26 +126,6 @@ def webui():
     #
     #     uvicorn.run(api, host="0.0.0.0", port=args.server_port)
     #     sys.exit(0)
-    # Setup to use shark_tmp for gradio's temporary image files and clear any
-    # existing temporary images there if they exist. Then we can import gradio.
-    # It has to be in this order or gradio ignores what we've set up.
-    from apps.shark_studio.web.utils.tmp_configs import (
-        config_tmp,
-        clear_tmp_mlir,
-        clear_tmp_imgs,
-    )
-    from apps.shark_studio.web.utils.file_utils import (
-        create_checkpoint_folders,
-    )
-
-    import gradio as gr
-
-    config_tmp()
-    clear_tmp_mlir()
-    clear_tmp_imgs()
-
-    # Create custom models folders if they don't exist
-    create_checkpoint_folders()
 
     def resource_path(relative_path):
         """Get absolute path to resource, works for dev and for PyInstaller"""

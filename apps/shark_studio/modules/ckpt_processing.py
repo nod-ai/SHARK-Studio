@@ -92,6 +92,8 @@ def process_custom_pipe_weights(custom_weights):
             custom_weights_tgt = get_path_to_diffusers_checkpoint(
                 custom_weights
             )
+            custom_weights_params = custom_weights
+        return custom_weights_params, custom_weights_tgt
 
 
 def get_civitai_checkpoint(url: str):
