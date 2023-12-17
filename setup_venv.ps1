@@ -7,13 +7,13 @@
   It checks the Python version installed and installs any required build
   dependencies into a Python virtual environment.
   If that environment does not exist, it creates it.
-  
+
 .PARAMETER update-src
   git pulls latest version
 
 .PARAMETER force
   removes and recreates venv to force update of all dependencies
-  
+
 .EXAMPLE
   .\setup_venv.ps1 --force
 
@@ -39,11 +39,11 @@ if ($arguments -eq "--force"){
         Write-Host "deactivating..."
         Deactivate
     }
-    
-    if (Test-Path .\shark.venv\) {
+
+    if (Test-Path .\shark1.venv\) {
         Write-Host "removing and recreating venv..."
-        Remove-Item .\shark.venv -Force -Recurse
-        if (Test-Path .\shark.venv\) {
+        Remove-Item .\shark1.venv -Force -Recurse
+        if (Test-Path .\shark1.venv\) {
             Write-Host 'could not remove .\shark-venv - please try running ".\setup_venv.ps1 --force" again!'
             exit 1
         }
@@ -83,9 +83,9 @@ if (!($PyVer -like "*3.11*") -and !($p -like "*3.11*")) # if 3.11 is not in any 
 
 Write-Host "Installing Build Dependencies"
 # make sure we really use 3.11 from list, even if it's not the default.
-if ($NULL -ne $PyVer) {py -3.11 -m venv .\shark.venv\}
-else {python -m venv .\shark.venv\}
-.\shark.venv\Scripts\activate
+if ($NULL -ne $PyVer) {py -3.11 -m venv .\shark1.venv\}
+else {python -m venv .\shark1.venv\}
+.\shark1.venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install wheel
 pip install -r requirements.txt
@@ -94,4 +94,4 @@ pip install --upgrade -f https://nod-ai.github.io/SRT/pip-release-links.html ire
 Write-Host "Building SHARK..."
 pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
 Write-Host "Build and installation completed successfully"
-Write-Host "Source your venv with ./shark.venv/Scripts/activate"
+Write-Host "Source your venv with ./shark1.venv/Scripts/activate"
