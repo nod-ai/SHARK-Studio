@@ -114,7 +114,7 @@ class StableDiffusion(SharkPipelineBase):
                 "height": height,
                 "width": width,
                 "precision": precision,
-                "max_length": 77 * 8,
+                "max_length": 77,
             },
             "vae_encode": {
                 "hf_model_name": custom_vae if custom_vae else base_model_id,
@@ -141,6 +141,7 @@ class StableDiffusion(SharkPipelineBase):
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
+            str(static_kwargs["unet"]["max_length"]),
             f"{str(height)}x{str(width)}",
             precision,
         ]
@@ -294,7 +295,7 @@ class StableDiffusion(SharkPipelineBase):
             text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
 
         pad = (0, 0) * (len(text_embeddings.shape) - 2)
-        pad = pad + (0, 77 * 8 - text_embeddings.shape[1])
+        pad = pad + (0, self.static_kwargs["unet"]["max_length"] - text_embeddings.shape[1])
         text_embeddings = torch.nn.functional.pad(text_embeddings, pad)
 
         # SHARK: Report clip inference time
@@ -364,9 +365,9 @@ class StableDiffusion(SharkPipelineBase):
         # self.status = SD_STATE_IDLE
         step_time_sum = 0
         latent_history = [latents]
-        text_embeddings = torch.from_numpy(text_embeddings).to(torch.float16)
+        text_embeddings = torch.from_numpy(text_embeddings).to(self.dtype)
         text_embeddings_numpy = text_embeddings.detach().numpy()
-        guidance_scale = np.asarray([guidance_scale], dtype=np.float16)
+        guidance_scale = torch.Tensor([guidance_scale]).to(self.dtype)
         self.load_submodels(["unet"])
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
@@ -378,7 +379,7 @@ class StableDiffusion(SharkPipelineBase):
                 latent_model_input = torch.cat(
                     [
                         torch.from_numpy(np.asarray(latent_model_input)).to(
-                            torch.float16
+                            self.dtype
                         ),
                         mask,
                         masked_image_latents,

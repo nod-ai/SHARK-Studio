@@ -14,7 +14,7 @@
   "base_model_id": "runwayml/stable-diffusion-v1-5",
   "custom_weights": null,
   "custom_vae": null,
-  "use_base_vae": false,
+  "use_base_vae": true,
   "precision": "fp16",
   "device": "vulkan",
   "ondemand": false,
