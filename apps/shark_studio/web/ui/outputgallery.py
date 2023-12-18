@@ -22,8 +22,7 @@ def outputgallery_filenames(subdir) -> list[str]:
     new_dir_path = os.path.join(output_dir, subdir)
     if os.path.exists(new_dir_path):
         filenames = [
-            glob.glob(new_dir_path + "/" + ext)
-            for ext in ("*.png", "*.jpg", "*.jpeg")
+            glob.glob(new_dir_path + "/" + ext) for ext in ("*.png", "*.jpg", "*.jpeg")
         ]
 
         return sorted(sum(filenames, []), key=os.path.getmtime, reverse=True)
@@ -52,11 +51,7 @@ def output_subdirs() -> list[str]:
         [path for path in relative_paths if path.isnumeric()], reverse=True
     )
     result_paths = generated_paths + sorted(
-        [
-            path
-            for path in relative_paths
-            if (not path.isnumeric()) and path != "."
-        ]
+        [path for path in relative_paths if (not path.isnumeric()) and path != "."]
     )
 
     return result_paths
@@ -184,9 +179,7 @@ with gr.Blocks() as outputgallery_element:
     def on_select_subdir(subdir) -> list:
         # evt.value is the subdirectory name
         new_images = outputgallery_filenames(subdir)
-        new_label = (
-            f"{len(new_images)} images in {os.path.join(output_dir, subdir)}"
-        )
+        new_label = f"{len(new_images)} images in {os.path.join(output_dir, subdir)}"
         return [
             new_images,
             gr.Gallery(
@@ -223,8 +216,7 @@ with gr.Blocks() as outputgallery_element:
         )
         new_images = outputgallery_filenames(new_subdir)
         new_label = (
-            f"{len(new_images)} images in "
-            f"{os.path.join(output_dir, new_subdir)}"
+            f"{len(new_images)} images in " f"{os.path.join(output_dir, new_subdir)}"
         )
 
         return [
@@ -234,9 +226,7 @@ with gr.Blocks() as outputgallery_element:
             ),
             refreshed_subdirs,
             new_images,
-            gr.Gallery(
-                value=new_images, label=new_label, visible=len(new_images) > 0
-            ),
+            gr.Gallery(value=new_images, label=new_label, visible=len(new_images) > 0),
             gr.Image(
                 label=new_label,
                 visible=len(new_images) == 0,

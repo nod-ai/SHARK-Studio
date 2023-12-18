@@ -43,7 +43,6 @@ class SharkPipelineBase:
         self.iree_module_dict = {}
         self.tempfiles = {}
 
-
     def get_compiled_map(self, pipe_id, submodel="None", init_kwargs={}) -> None:
         # First checks whether we have .vmfbs precompiled, then populates the map
         # with the precompiled executables and fetches executables for the rest of the map.
@@ -52,13 +51,15 @@ class SharkPipelineBase:
         # and your model map is populated with any IR - unique model IDs and their static params,
         # call this method to get the artifacts associated with your map.
         self.pipe_id = self.safe_name(pipe_id)
-        self.pipe_vmfb_path = Path(os.path.join(get_checkpoints_path(".."), self.pipe_id))
+        self.pipe_vmfb_path = Path(
+            os.path.join(get_checkpoints_path(".."), self.pipe_id)
+        )
         self.pipe_vmfb_path.mkdir(parents=True, exist_ok=True)
         if submodel == "None":
             print("\n[LOG] Gathering any pre-compiled artifacts....")
             for key in self.model_map:
                 self.get_compiled_map(pipe_id, submodel=key)
-        else:  
+        else:
             self.get_precompiled(pipe_id, submodel)
             ireec_flags = []
             if submodel in self.iree_module_dict:
@@ -68,18 +69,22 @@ class SharkPipelineBase:
             elif "vmfb_path" in self.model_map[submodel]:
                 return
             elif submodel not in self.tempfiles:
-                print(f"\n[LOG] Tempfile for {submodel} not found. Fetching torch IR...")
+                print(
+                    f"\n[LOG] Tempfile for {submodel} not found. Fetching torch IR..."
+                )
                 if submodel in self.static_kwargs:
                     init_kwargs = self.static_kwargs[submodel]
                 for key in self.static_kwargs["pipe"]:
                     if key not in init_kwargs:
                         init_kwargs[key] = self.static_kwargs["pipe"][key]
-                self.import_torch_ir(
-                    submodel, init_kwargs
-                )
+                self.import_torch_ir(submodel, init_kwargs)
                 self.get_compiled_map(pipe_id, submodel)
-            else:            
-                ireec_flags = self.model_map[submodel]["ireec_flags"] if "ireec_flags" in self.model_map[submodel] else []
+            else:
+                ireec_flags = (
+                    self.model_map[submodel]["ireec_flags"]
+                    if "ireec_flags" in self.model_map[submodel]
+                    else []
+                )
 
                 if "external_weights_file" in self.model_map[submodel]:
                     weights_path = self.model_map[submodel]["external_weights_file"]
@@ -92,10 +97,9 @@ class SharkPipelineBase:
                     mmap=True,
                     external_weight_file=weights_path,
                     extra_args=ireec_flags,
-                    write_to=os.path.join(self.pipe_vmfb_path, submodel + ".vmfb")
+                    write_to=os.path.join(self.pipe_vmfb_path, submodel + ".vmfb"),
                 )
         return
-
 
     def get_precompiled(self, pipe_id, submodel="None"):
         if submodel == "None":
@@ -112,7 +116,6 @@ class SharkPipelineBase:
                 self.model_map[submodel]["vmfb_path"] = os.path.join(vmfbs_path, file)
         return
 
-
     def import_torch_ir(self, submodel, kwargs):
         torch_ir = self.model_map[submodel]["initializer"](
             **self.safe_dict(kwargs), compile_to="torch"
@@ -120,16 +123,15 @@ class SharkPipelineBase:
         if submodel == "clip":
             # clip.export_clip_model returns (torch_ir, tokenizer)
             torch_ir = torch_ir[0]
-        self.tempfiles[submodel] = get_resource_path(os.path.join(
-            "..", "shark_tmp", f"{submodel}.torch.tempfile"
-        ))
-        
+        self.tempfiles[submodel] = get_resource_path(
+            os.path.join("..", "shark_tmp", f"{submodel}.torch.tempfile")
+        )
+
         with open(self.tempfiles[submodel], "w+") as f:
             f.write(torch_ir)
         del torch_ir
         gc.collect()
         return
-
 
     def load_submodels(self, submodels: list):
         for submodel in submodels:
@@ -149,12 +151,13 @@ class SharkPipelineBase:
                     self.device,
                     device_idx=0,
                     rt_flags=[],
-                    external_weight_file=self.model_map[submodel]['external_weight_file'],
+                    external_weight_file=self.model_map[submodel][
+                        "external_weight_file"
+                    ],
                 )
             else:
                 self.get_compiled_map(self.pipe_id, submodel)
         return
-
 
     def unload_submodels(self, submodels: list):
         for submodel in submodels:
@@ -163,17 +166,19 @@ class SharkPipelineBase:
                 gc.collect()
         return
 
-
     def run(self, submodel, inputs):
         if not isinstance(inputs, list):
             inputs = [inputs]
-        inp = [ireert.asdevicearray(self.iree_module_dict[submodel]["config"].device, input) for input in inputs]
-        return self.iree_module_dict[submodel]['vmfb']['main'](*inp)
-
+        inp = [
+            ireert.asdevicearray(
+                self.iree_module_dict[submodel]["config"].device, input
+            )
+            for input in inputs
+        ]
+        return self.iree_module_dict[submodel]["vmfb"]["main"](*inp)
 
     def safe_name(self, name):
         return name.replace("/", "_").replace("-", "_").replace("\\", "_")
-
 
     def safe_dict(self, kwargs: dict):
         flat_args = {}
@@ -183,4 +188,4 @@ class SharkPipelineBase:
             else:
                 flat_args[i] = kwargs[i]
 
-        return flat_args   
+        return flat_args

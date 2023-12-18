@@ -1,4 +1,3 @@
-
 from typing import List, Optional, Union
 from iree import runtime as ireert
 import re
@@ -112,9 +111,7 @@ def parse_prompt_attention(text):
     return res
 
 
-def get_prompts_with_weights(
-    pipe, prompt: List[str], max_length: int
-):
+def get_prompts_with_weights(pipe, prompt: List[str], max_length: int):
     r"""
     Tokenize a list of prompts and return its tokens with weights of each token.
     No padding, starting or ending token is included.
@@ -164,18 +161,12 @@ def pad_tokens_and_weights(
     """
     max_embeddings_multiples = (max_length - 2) // (chunk_length - 2)
     weights_length = (
-        max_length
-        if no_boseos_middle
-        else max_embeddings_multiples * chunk_length
+        max_length if no_boseos_middle else max_embeddings_multiples * chunk_length
     )
     for i in range(len(tokens)):
-        tokens[i] = (
-            [bos] + tokens[i] + [eos] * (max_length - 1 - len(tokens[i]))
-        )
+        tokens[i] = [bos] + tokens[i] + [eos] * (max_length - 1 - len(tokens[i]))
         if no_boseos_middle:
-            weights[i] = (
-                [1.0] + weights[i] + [1.0] * (max_length - 1 - len(weights[i]))
-            )
+            weights[i] = [1.0] + weights[i] + [1.0] * (max_length - 1 - len(weights[i]))
         else:
             w = []
             if len(weights[i]) == 0:
@@ -194,6 +185,7 @@ def pad_tokens_and_weights(
             weights[i] = w[:]
 
     return tokens, weights
+
 
 def get_unweighted_text_embeddings(
     pipe,
@@ -240,7 +232,6 @@ def get_unweighted_text_embeddings(
         text_embeddings = pipe.run("clip", text_input)[0]
         text_embeddings = torch.from_numpy(text_embeddings.to_host())
     return text_embeddings
-
 
 
 # This function deals with NoneType values occuring in tokens after padding
@@ -290,9 +281,7 @@ def get_weighted_text_embeddings(
     # round up the longest length of tokens to a multiple of (model_max_length - 2)
     max_length = max([len(token) for token in prompt_tokens])
     if uncond_prompt is not None:
-        max_length = max(
-            max_length, max([len(token) for token in uncond_tokens])
-        )
+        max_length = max(max_length, max([len(token) for token in uncond_tokens]))
     max_embeddings_multiples = min(
         max_embeddings_multiples,
         (max_length - 1) // (pipe.model_max_length - 2) + 1,
@@ -334,9 +323,7 @@ def get_weighted_text_embeddings(
         uncond_tokens = filter_nonetype_tokens(uncond_tokens)
 
         # uncond_tokens = torch.tensor(uncond_tokens, dtype=torch.long, device=pipe.device)
-        uncond_tokens = torch.tensor(
-            uncond_tokens, dtype=torch.long, device="cpu"
-        )
+        uncond_tokens = torch.tensor(uncond_tokens, dtype=torch.long, device="cpu")
 
     # get the embeddings
     text_embeddings = get_unweighted_text_embeddings(
@@ -346,9 +333,7 @@ def get_weighted_text_embeddings(
         no_boseos_middle=no_boseos_middle,
     )
     # prompt_weights = torch.tensor(prompt_weights, dtype=text_embeddings.dtype, device=pipe.device)
-    prompt_weights = torch.tensor(
-        prompt_weights, dtype=torch.float, device="cpu"
-    )
+    prompt_weights = torch.tensor(prompt_weights, dtype=torch.float, device="cpu")
     if uncond_prompt is not None:
         uncond_embeddings = get_unweighted_text_embeddings(
             pipe,
@@ -357,27 +342,19 @@ def get_weighted_text_embeddings(
             no_boseos_middle=no_boseos_middle,
         )
         # uncond_weights = torch.tensor(uncond_weights, dtype=uncond_embeddings.dtype, device=pipe.device)
-        uncond_weights = torch.tensor(
-            uncond_weights, dtype=torch.float, device="cpu"
-        )
+        uncond_weights = torch.tensor(uncond_weights, dtype=torch.float, device="cpu")
 
     # assign weights to the prompts and normalize in the sense of mean
     # TODO: should we normalize by chunk or in a whole (current implementation)?
     if (not skip_parsing) and (not skip_weighting):
         previous_mean = (
-            text_embeddings.float()
-            .mean(axis=[-2, -1])
-            .to(text_embeddings.dtype)
+            text_embeddings.float().mean(axis=[-2, -1]).to(text_embeddings.dtype)
         )
         text_embeddings *= prompt_weights.unsqueeze(-1)
         current_mean = (
-            text_embeddings.float()
-            .mean(axis=[-2, -1])
-            .to(text_embeddings.dtype)
+            text_embeddings.float().mean(axis=[-2, -1]).to(text_embeddings.dtype)
         )
-        text_embeddings *= (
-            (previous_mean / current_mean).unsqueeze(-1).unsqueeze(-1)
-        )
+        text_embeddings *= (previous_mean / current_mean).unsqueeze(-1).unsqueeze(-1)
         if uncond_prompt is not None:
             previous_mean = (
                 uncond_embeddings.float()

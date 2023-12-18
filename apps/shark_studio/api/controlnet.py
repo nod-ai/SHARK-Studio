@@ -40,20 +40,12 @@ class preprocessors:
 control_adapter_map = {
     "sd15": {
         "canny": {"initializer": control_adapter.export_control_adapter_model},
-        "openpose": {
-            "initializer": control_adapter.export_control_adapter_model
-        },
-        "scribble": {
-            "initializer": control_adapter.export_control_adapter_model
-        },
-        "zoedepth": {
-            "initializer": control_adapter.export_control_adapter_model
-        },
+        "openpose": {"initializer": control_adapter.export_control_adapter_model},
+        "scribble": {"initializer": control_adapter.export_control_adapter_model},
+        "zoedepth": {"initializer": control_adapter.export_control_adapter_model},
     },
     "sdxl": {
-        "canny": {
-            "initializer": control_adapter.export_xl_control_adapter_model
-        },
+        "canny": {"initializer": control_adapter.export_xl_control_adapter_model},
     },
 }
 preprocessor_model_map = {
@@ -84,9 +76,7 @@ class PreprocessorModel:
 
 def cnet_preview(model, input_image):
     curr_datetime = datetime.now().strftime("%Y-%m-%d.%H-%M-%S")
-    control_imgs_path = os.path.join(
-        get_generated_imgs_path(), "control_hints"
-    )
+    control_imgs_path = os.path.join(get_generated_imgs_path(), "control_hints")
     if not os.path.exists(control_imgs_path):
         os.mkdir(control_imgs_path)
     img_dest = os.path.join(control_imgs_path, model + curr_datetime + ".png")

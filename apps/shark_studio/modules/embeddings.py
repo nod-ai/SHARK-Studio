@@ -76,22 +76,14 @@ def processLoRA(model, use_lora, splitting_prefix, lora_strength=0.75):
         scale = lora_weight.alpha * lora_strength
         if len(weight.size()) == 2:
             if len(lora_weight.up.shape) == 4:
-                weight_up = (
-                    lora_weight.up.squeeze(3).squeeze(2).to(torch.float32)
-                )
-                weight_down = (
-                    lora_weight.down.squeeze(3).squeeze(2).to(torch.float32)
-                )
-                change = (
-                    torch.mm(weight_up, weight_down).unsqueeze(2).unsqueeze(3)
-                )
+                weight_up = lora_weight.up.squeeze(3).squeeze(2).to(torch.float32)
+                weight_down = lora_weight.down.squeeze(3).squeeze(2).to(torch.float32)
+                change = torch.mm(weight_up, weight_down).unsqueeze(2).unsqueeze(3)
             else:
                 change = torch.mm(lora_weight.up, lora_weight.down)
         elif lora_weight.down.size()[2:4] == (1, 1):
             weight_up = lora_weight.up.squeeze(3).squeeze(2).to(torch.float32)
-            weight_down = (
-                lora_weight.down.squeeze(3).squeeze(2).to(torch.float32)
-            )
+            weight_down = lora_weight.down.squeeze(3).squeeze(2).to(torch.float32)
             change = torch.mm(weight_up, weight_down).unsqueeze(2).unsqueeze(3)
         else:
             change = torch.nn.functional.conv2d(
@@ -166,9 +158,7 @@ def get_lora_metadata(lora_filename):
         # get a figure for the total number of images processed for this dataset
         # either then number actually listed or in its dataset_dir entry or
         # the highest frequency's number if that doesn't exist
-        img_count = dataset_dirs.get(dir, {}).get(
-            "img_count", frequencies[0][1]
-        )
+        img_count = dataset_dirs.get(dir, {}).get("img_count", frequencies[0][1])
 
         # add the dataset frequencies to the overall frequencies replacing the
         # frequency counts on the tags with a percentage/ratio

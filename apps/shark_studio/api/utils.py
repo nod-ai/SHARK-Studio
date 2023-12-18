@@ -46,9 +46,7 @@ def get_available_devices():
                     if len(device_list_dict) == 1:
                         device_list.append(f"{device_name} => {driver_name}")
                     else:
-                        device_list.append(
-                            f"{device_name} => {driver_name}://{i}"
-                        )
+                        device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
@@ -259,9 +257,7 @@ def map_device_to_name_path(device, key_combination=3):
                     if len(device_list_dict) == 1:
                         device_list.append(f"{device_name} => {driver_name}")
                     else:
-                        device_list.append(
-                            f"{device_name} => {driver_name}://{i}"
-                        )
+                        device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
     set_iree_runtime_flags()
@@ -316,9 +312,7 @@ def parse_seed_input(seed_input: str | list | int):
     if isinstance(seed_input, int):
         return [seed_input]
 
-    if isinstance(seed_input, list) and all(
-        type(seed) is int for seed in seed_input
-    ):
+    if isinstance(seed_input, list) and all(type(seed) is int for seed in seed_input):
         return seed_input
 
     raise TypeError(

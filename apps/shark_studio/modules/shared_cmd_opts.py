@@ -130,8 +130,7 @@ p.add_argument(
     "--strength",
     type=float,
     default=0.8,
-    help="The strength of change applied on the given input image for "
-    "img2img.",
+    help="The strength of change applied on the given input image for " "img2img.",
 )
 
 p.add_argument(
@@ -290,9 +289,7 @@ p.add_argument(
 # Model Config and Usage Params
 ##############################################################################
 
-p.add_argument(
-    "--device", type=str, default="vulkan", help="Device to run the model."
-)
+p.add_argument("--device", type=str, default="vulkan", help="Device to run the model.")
 
 p.add_argument(
     "--precision", type=str, default="fp16", help="Precision to run the model."
@@ -350,8 +347,7 @@ p.add_argument(
     "--batch_count",
     type=int,
     default=1,
-    help="Number of batches to be generated with random seeds in "
-    "single execution.",
+    help="Number of batches to be generated with random seeds in " "single execution.",
 )
 
 p.add_argument(
@@ -416,8 +412,7 @@ p.add_argument(
     "--use_lora",
     type=str,
     default="",
-    help="Use standalone LoRA weight using a HF ID or a checkpoint "
-    "file (~3 MB).",
+    help="Use standalone LoRA weight using a HF ID or a checkpoint " "file (~3 MB).",
 )
 
 p.add_argument(
@@ -493,8 +488,7 @@ p.add_argument(
     "--dump_isa",
     default=False,
     action="store_true",
-    help="When enabled call amdllpc to get ISA dumps. "
-    "Use with dispatch benchmarks.",
+    help="When enabled call amdllpc to get ISA dumps. " "Use with dispatch benchmarks.",
 )
 
 p.add_argument(
@@ -515,8 +509,7 @@ p.add_argument(
     "--enable_rgp",
     default=False,
     action=argparse.BooleanOptionalAction,
-    help="Flag for inserting debug frames between iterations "
-    "for use with rgp.",
+    help="Flag for inserting debug frames between iterations " "for use with rgp.",
 )
 
 p.add_argument(
@@ -602,8 +595,7 @@ p.add_argument(
     "--progress_bar",
     default=True,
     action=argparse.BooleanOptionalAction,
-    help="Flag for removing the progress bar animation during "
-    "image generation.",
+    help="Flag for removing the progress bar animation during " "image generation.",
 )
 
 p.add_argument(

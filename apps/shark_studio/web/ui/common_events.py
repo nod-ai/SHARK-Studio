@@ -13,7 +13,9 @@ def lora_changed(lora_files):
     # tag frequency percentage, above which a tag is displayed
     TAG_DISPLAY_THRESHOLD = 0.65
     # template for the html used to display a tag
-    TAG_HTML_TEMPLATE = '<span class="lora-tag" style="border: 1px solid {color};">{tag}</span>'
+    TAG_HTML_TEMPLATE = (
+        '<span class="lora-tag" style="border: 1px solid {color};">{tag}</span>'
+    )
     output = []
     for lora_file in lora_files:
         if lora_file == "":

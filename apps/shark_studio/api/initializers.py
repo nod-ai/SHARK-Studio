@@ -8,10 +8,10 @@ from threading import Thread
 
 from apps.shark_studio.modules.timer import startup_timer
 from apps.shark_studio.web.utils.tmp_configs import (
-        config_tmp,
-        clear_tmp_mlir,
-        clear_tmp_imgs,
-    )
+    config_tmp,
+    clear_tmp_mlir,
+    clear_tmp_imgs,
+)
 
 
 def imports():
@@ -21,12 +21,8 @@ def imports():
     warnings.filterwarnings(
         action="ignore", category=DeprecationWarning, module="torch"
     )
-    warnings.filterwarnings(
-        action="ignore", category=UserWarning, module="torchvision"
-    )
-    warnings.filterwarnings(
-        action="ignore", category=UserWarning, module="torch"
-    )
+    warnings.filterwarnings(action="ignore", category=UserWarning, module="torchvision")
+    warnings.filterwarnings(action="ignore", category=UserWarning, module="torch")
 
     import gradio  # noqa: F401
 
@@ -57,6 +53,7 @@ def initialize():
     from apps.shark_studio.web.utils.file_utils import (
         create_checkpoint_folders,
     )
+
     # Create custom models folders if they don't exist
     create_checkpoint_folders()
 

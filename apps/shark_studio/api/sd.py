@@ -11,10 +11,16 @@ from random import randint
 from turbine_models.custom_models.sd_inference import clip, unet, vae
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.web.utils.state import status_label
-from apps.shark_studio.web.utils.file_utils import safe_name, get_resource_path, get_checkpoints_path
+from apps.shark_studio.web.utils.file_utils import (
+    safe_name,
+    get_resource_path,
+    get_checkpoints_path,
+)
 from apps.shark_studio.modules.pipeline import SharkPipelineBase
 from apps.shark_studio.modules.schedulers import get_schedulers
-from apps.shark_studio.modules.prompt_encoding import get_weighted_text_embeddings
+from apps.shark_studio.modules.prompt_encoding import (
+    get_weighted_text_embeddings,
+)
 from apps.shark_studio.modules.img_processing import (
     resize_stencil,
     save_output_img,
@@ -42,25 +48,26 @@ sd_model_map = {
     },
     "unet": {
         "initializer": unet.export_unet_model,
-        "ireec_flags": ["--iree-flow-collapse-reduction-dims",
-                        "--iree-opt-const-expr-hoisting=False",
-                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
+        "ireec_flags": [
+            "--iree-flow-collapse-reduction-dims",
+            "--iree-opt-const-expr-hoisting=False",
+            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
         ],
         "external_weight_file": None,
     },
     "vae_decode": {
         "initializer": vae.export_vae_model,
         "external_weight_file": None,
-        "ireec_flags": ["--iree-flow-collapse-reduction-dims",
-                        "--iree-opt-const-expr-hoisting=False",
-                        "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
+        "ireec_flags": [
+            "--iree-flow-collapse-reduction-dims",
+            "--iree-opt-const-expr-hoisting=False",
+            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
         ],
     },
 }
 
 
 class StableDiffusion(SharkPipelineBase):
-
     # This class is responsible for executing image generation and creating
     # /managing a set of compiled modules to run Stable Diffusion. The init
     # aims to be as general as possible, and the class will infer and compile
@@ -72,7 +79,6 @@ class StableDiffusion(SharkPipelineBase):
     #
     # embeddings: a dict of embedding checkpoints or model IDs to use when
     # initializing the compiled modules.
-
 
     def __init__(
         self,
@@ -99,10 +105,12 @@ class StableDiffusion(SharkPipelineBase):
             "clip": {"hf_model_name": base_model_id},
             "unet": {
                 "hf_model_name": base_model_id,
-                "unet_model": unet.UnetModel(hf_model_name=base_model_id, hf_auth_token=None),
+                "unet_model": unet.UnetModel(
+                    hf_model_name=base_model_id, hf_auth_token=None
+                ),
                 "batch_size": batch_size,
-                #"is_controlled": is_controlled,
-                #"num_loras": num_loras,
+                # "is_controlled": is_controlled,
+                # "num_loras": num_loras,
                 "height": height,
                 "width": width,
                 "precision": precision,
@@ -110,7 +118,9 @@ class StableDiffusion(SharkPipelineBase):
             },
             "vae_encode": {
                 "hf_model_name": custom_vae if custom_vae else base_model_id,
-                "vae_model": vae.VaeModel(hf_model_name=base_model_id, hf_auth_token=None),
+                "vae_model": vae.VaeModel(
+                    hf_model_name=base_model_id, hf_auth_token=None
+                ),
                 "batch_size": batch_size,
                 "height": height,
                 "width": width,
@@ -118,16 +128,16 @@ class StableDiffusion(SharkPipelineBase):
             },
             "vae_decode": {
                 "hf_model_name": custom_vae if custom_vae else base_model_id,
-                "vae_model": vae.VaeModel(hf_model_name=base_model_id, hf_auth_token=None),
+                "vae_model": vae.VaeModel(
+                    hf_model_name=base_model_id, hf_auth_token=None
+                ),
                 "batch_size": batch_size,
                 "height": height,
                 "width": width,
                 "precision": precision,
             },
         }
-        super().__init__(
-            sd_model_map, base_model_id, static_kwargs, device, import_ir
-        )
+        super().__init__(sd_model_map, base_model_id, static_kwargs, device, import_ir)
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
@@ -135,7 +145,7 @@ class StableDiffusion(SharkPipelineBase):
             precision,
         ]
         if num_loras > 0:
-            pipe_id_list.append(str(num_loras)+"lora")
+            pipe_id_list.append(str(num_loras) + "lora")
         if is_controlled:
             pipe_id_list.append("controlled")
         if custom_vae:
@@ -144,7 +154,6 @@ class StableDiffusion(SharkPipelineBase):
         print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
         del static_kwargs
         gc.collect()
-
 
     def prepare_pipe(self, scheduler, custom_weights, adapters, embeddings, is_img2img):
         print(
@@ -165,15 +174,16 @@ class StableDiffusion(SharkPipelineBase):
                 for i in self.model_map:
                     self.model_map[i]["external_weights_file"] = None
             elif custom_weights:
-                print(f"\n[LOG][WARNING] Custom weights were not found at {custom_weights}. Did you mean to pass a base model ID?")
+                print(
+                    f"\n[LOG][WARNING] Custom weights were not found at {custom_weights}. Did you mean to pass a base model ID?"
+                )
         self.static_kwargs["pipe"] = {
-        #    "external_weight_path": self.weights_path,
-#            "external_weights": "safetensors",
+            #    "external_weight_path": self.weights_path,
+            #            "external_weights": "safetensors",
         }
         self.get_compiled_map(pipe_id=self.pipe_id)
         print("\n[LOG] Pipeline successfully prepared for runtime.")
         return
-        
 
     def generate_images(
         self,
@@ -191,24 +201,24 @@ class StableDiffusion(SharkPipelineBase):
         control_mode,
         hints,
     ):
-        #TODO: Batched args
+        # TODO: Batched args
         self.ondemand = ondemand
         if self.is_img2img:
             image, _ = self.process_sd_init_image(image, resample_type)
-        else: 
+        else:
             image = None
 
         print("\n[LOG] Generating images...")
-        batched_args=[
+        batched_args = [
             prompt,
             negative_prompt,
-            #steps,
-            #strength,
-            #guidance_scale,
-            #seed,
-            #resample_type,
-            #control_mode,
-            #hints,
+            # steps,
+            # strength,
+            # guidance_scale,
+            # seed,
+            # resample_type,
+            # control_mode,
+            # hints,
         ]
         for arg in batched_args:
             if not isinstance(arg, list):
@@ -222,7 +232,7 @@ class StableDiffusion(SharkPipelineBase):
             prompt,
             negative_prompt,
         )
-        
+
         uint32_info = np.iinfo(np.uint32)
         uint32_min, uint32_max = uint32_info.min, uint32_info.max
         if seed < uint32_min or seed >= uint32_max:
@@ -242,7 +252,7 @@ class StableDiffusion(SharkPipelineBase):
             text_embeddings=text_embeddings,
             guidance_scale=guidance_scale,
             total_timesteps=final_timesteps,
-            cpu_scheduling=True, # until we have schedulers through Turbine
+            cpu_scheduling=True,  # until we have schedulers through Turbine
         )
 
         # Img latents -> PIL images
@@ -260,7 +270,6 @@ class StableDiffusion(SharkPipelineBase):
 
         return all_imgs
 
-
     def encode_prompts_weight(
         self,
         prompt,
@@ -275,13 +284,10 @@ class StableDiffusion(SharkPipelineBase):
         )
         clip_inf_start = time.time()
 
-
         text_embeddings, uncond_embeddings = get_weighted_text_embeddings(
             pipe=self,
             prompt=prompt,
-            uncond_prompt=negative_prompt
-            if do_classifier_free_guidance
-            else None,
+            uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
         )
 
         if do_classifier_free_guidance:
@@ -300,7 +306,6 @@ class StableDiffusion(SharkPipelineBase):
 
         return text_embeddings.numpy().astype(np.float16)
 
-
     def prepare_latents(
         self,
         generator,
@@ -318,7 +323,7 @@ class StableDiffusion(SharkPipelineBase):
             generator=generator,
             dtype=self.dtype,
         ).to("cpu")
-        
+
         self.scheduler.set_timesteps(num_inference_steps)
         if self.is_img2img:
             init_timestep = min(
@@ -327,15 +332,12 @@ class StableDiffusion(SharkPipelineBase):
             t_start = max(num_inference_steps - init_timestep, 0)
             timesteps = self.scheduler.timesteps[t_start:]
             latents = self.encode_image(image)
-            latents = self.scheduler.add_noise(
-                latents, noise, timesteps[0].repeat(1)
-            )
+            latents = self.scheduler.add_noise(latents, noise, timesteps[0].repeat(1))
             return latents, [timesteps]
         else:
             self.scheduler.is_scale_input_called = True
             latents = noise * self.scheduler.init_noise_sigma
             return latents, self.scheduler.timesteps
-
 
     def encode_image(self, input_image):
         self.load_submodels(["vae_encode"])
@@ -347,7 +349,6 @@ class StableDiffusion(SharkPipelineBase):
         print(f"\n[LOG] VAE Encode Inference time (ms): {vae_inf_time:.3f}")
 
         return latents
-
 
     def produce_img_latents(
         self,
@@ -370,11 +371,15 @@ class StableDiffusion(SharkPipelineBase):
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(self.dtype).detach().numpy()
-            latent_model_input = self.scheduler.scale_model_input(latents, t).to(self.dtype)
+            latent_model_input = self.scheduler.scale_model_input(latents, t).to(
+                self.dtype
+            )
             if mask is not None and masked_image_latents is not None:
                 latent_model_input = torch.cat(
                     [
-                        torch.from_numpy(np.asarray(latent_model_input)).to(torch.float16),
+                        torch.from_numpy(np.asarray(latent_model_input)).to(
+                            torch.float16
+                        ),
                         mask,
                         masked_image_latents,
                     ],
@@ -398,9 +403,7 @@ class StableDiffusion(SharkPipelineBase):
 
             if cpu_scheduling:
                 noise_pred = torch.from_numpy(noise_pred.to_host())
-                latents = self.scheduler.step(
-                    noise_pred, t, latents
-                ).prev_sample
+                latents = self.scheduler.step(noise_pred, t, latents).prev_sample
             else:
                 latents = self.run("scheduler_step", (noise_pred, t, latents))
 
@@ -411,7 +414,7 @@ class StableDiffusion(SharkPipelineBase):
             #  )
             step_time_sum += step_time
 
-            #if self.status == SD_STATE_CANCEL:
+            # if self.status == SD_STATE_CANCEL:
             #    break
 
         if self.ondemand:
@@ -426,7 +429,6 @@ class StableDiffusion(SharkPipelineBase):
         all_latents = torch.cat(latent_history, dim=0)
         return all_latents
 
-
     def decode_latents(self, latents, use_base_vae, cpu_scheduling):
         if use_base_vae:
             latents = 1 / 0.18215 * latents
@@ -435,11 +437,11 @@ class StableDiffusion(SharkPipelineBase):
         if cpu_scheduling:
             latents_numpy = latents.detach().numpy()
 
-        #profile_device = start_profiling(file_path="vae.rdc")
+        # profile_device = start_profiling(file_path="vae.rdc")
         vae_start = time.time()
         images = self.run("vae_decode", latents_numpy).to_host()
         vae_inf_time = (time.time() - vae_start) * 1000
-        #end_profiling(profile_device)
+        # end_profiling(profile_device)
         print(f"\n[LOG] VAE Inference time (ms): {vae_inf_time:.3f}")
 
         if use_base_vae:
@@ -450,7 +452,6 @@ class StableDiffusion(SharkPipelineBase):
         images = torch.from_numpy(images).to(torch.uint8).permute(0, 2, 3, 1)
         pil_images = [Image.fromarray(image) for image in images.numpy()]
         return pil_images
-
 
     def process_sd_init_image(self, sd_init_image, resample_type):
         if isinstance(sd_init_image, list):
@@ -463,7 +464,9 @@ class StableDiffusion(SharkPipelineBase):
         if isinstance(sd_init_image, str):
             if os.path.isfile(sd_init_image):
                 sd_init_image = Image.open(sd_init_image, mode="r").convert("RGB")
-                image, is_img2img = self.process_sd_init_image(sd_init_image, resample_type)
+                image, is_img2img = self.process_sd_init_image(
+                    sd_init_image, resample_type
+                )
             else:
                 image = None
                 is_img2img = False
@@ -536,7 +539,6 @@ def shark_sd_fn(
     sd_kwargs = locals()
     is_img2img = True if sd_init_image[0] is not None else False
 
-
     print("\n[LOG] Performing Stable Diffusion Pipeline setup...")
 
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
@@ -553,20 +555,20 @@ def shark_sd_fn(
         for i, model in enumerate(controlnets["model"]):
             if "xl" not in base_model_id.lower():
                 adapters[f"control_adapter_{model}"] = {
-                    "hf_id": control_adapter_map[
-                        "runwayml/stable-diffusion-v1-5"
-                    ][model],
+                    "hf_id": control_adapter_map["runwayml/stable-diffusion-v1-5"][
+                        model
+                    ],
                     "strength": controlnets["strength"][i],
                 }
             else:
                 adapters[f"control_adapter_{model}"] = {
-                    "hf_id": control_adapter_map[
-                        "stabilityai/stable-diffusion-xl-1.0"
-                    ][model],
+                    "hf_id": control_adapter_map["stabilityai/stable-diffusion-xl-1.0"][
+                        model
+                    ],
                     "strength": controlnets["strength"][i],
                 }
             if model is not None:
-                is_controlled=True
+                is_controlled = True
         control_mode = controlnets["control_mode"]
         for i in controlnets["hint"]:
             hints.append[i]
@@ -659,10 +661,10 @@ def view_json_file(file_path):
     return content
 
 
-
 if __name__ == "__main__":
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
-    import apps.shark_studio.web.utils.globals as global_obj 
+    import apps.shark_studio.web.utils.globals as global_obj
+
     global_obj._init()
 
     sd_json = view_json_file(get_resource_path("../configs/default_sd_config.json"))

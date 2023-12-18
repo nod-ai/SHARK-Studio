@@ -50,6 +50,7 @@ sd_default_models = [
     "stabilityai/sdxl-turbo",
 ]
 
+
 def view_json_file(file_path):
     content = ""
     with open(file_path, "r") as fopen:
@@ -149,7 +150,7 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
     else:
         sd_json = new_sd_config
     for i in sd_json["sd_init_image"]:
-        if i is not None: 
+        if i is not None:
             if os.path.isfile(i):
                 sd_image = [Image.open(i, mode="r")]
     else:
@@ -338,9 +339,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             choices=["None"] + get_checkpoints(base_model_id),
                         )  #
                     with gr.Column(scale=2):
-                        sd_vae_info = (
-                            str(get_checkpoints_path("vae"))
-                        ).replace("\\", "\n\\")
+                        sd_vae_info = (str(get_checkpoints_path("vae"))).replace(
+                            "\\", "\n\\"
+                        )
                         sd_vae_info = f"VAE Path: {sd_vae_info}"
                         custom_vae = gr.Dropdown(
                             label=f"Custom VAE Models",
@@ -396,12 +397,10 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         height=300,
                         interactive=True,
                     )
-                with gr.Accordion(
-                    label="Embeddings options", open=True, render=True
-                ):
-                    sd_lora_info = (
-                        str(get_checkpoints_path("loras"))
-                    ).replace("\\", "\n\\")
+                with gr.Accordion(label="Embeddings options", open=True, render=True):
+                    sd_lora_info = (str(get_checkpoints_path("loras"))).replace(
+                        "\\", "\n\\"
+                    )
                     with gr.Row():
                         embeddings_config = gr.JSON(min_width=50, scale=1)
                         lora_opt = gr.Dropdown(
@@ -651,7 +650,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             with gr.Column(scale=3, min_width=600):
                 with gr.Group():
                     sd_gallery = gr.Gallery(
-                        label="Generated images",      
+                        label="Generated images",
                         show_label=False,
                         elem_id="gallery",
                         columns=2,
@@ -666,9 +665,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         elem_id="std_output",
                         show_label=False,
                     )
-                    sd_element.load(
-                        logger.read_sd_logs, None, std_output, every=1
-                    )
+                    sd_element.load(logger.read_sd_logs, None, std_output, every=1)
                     sd_status = gr.Textbox(visible=False)
                 with gr.Row():
                     stable_diffusion = gr.Button("Generate Image(s)")
@@ -696,9 +693,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value="Clear Config", size="sm", components=sd_json
                         )
                         with gr.Row():
-                            save_sd_config = gr.Button(
-                                value="Save Config", size="sm"
-                            )
+                            save_sd_config = gr.Button(value="Save Config", size="sm")
                             sd_config_name = gr.Textbox(
                                 value="Config Name",
                                 info="Name of the file this config will be saved to.",
@@ -796,9 +791,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
         )
 
         prompt_submit = prompt.submit(**status_kwargs).then(**pull_kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(
-            **pull_kwargs
-        )
+        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**pull_kwargs)
         generate_click = (
             stable_diffusion.click(**status_kwargs)
             .then(**pull_kwargs)

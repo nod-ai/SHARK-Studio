@@ -42,9 +42,7 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     # TODO: Add an option `--ema` (`--no-ema`) for users to specify if
     #  they want to go for EMA weight extraction or not.
     extract_ema = False
-    print(
-        "Loading diffusers' pipeline from original stable diffusion checkpoint"
-    )
+    print("Loading diffusers' pipeline from original stable diffusion checkpoint")
     num_in_channels = 9 if is_inpaint else 4
     pipe = download_from_original_stable_diffusion_ckpt(
         checkpoint_path_or_dict=custom_weights,
@@ -69,9 +67,7 @@ def convert_original_vae(vae_checkpoint):
     original_config = OmegaConf.load(original_config_file)
     vae_config = create_vae_diffusers_config(original_config, image_size=512)
 
-    converted_vae_checkpoint = convert_ldm_vae_checkpoint(
-        vae_state_dict, vae_config
-    )
+    converted_vae_checkpoint = convert_ldm_vae_checkpoint(vae_state_dict, vae_config)
     return converted_vae_checkpoint
 
 
@@ -89,9 +85,7 @@ def process_custom_pipe_weights(custom_weights):
             assert custom_weights.lower().endswith(
                 (".ckpt", ".safetensors")
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
-            custom_weights_tgt = get_path_to_diffusers_checkpoint(
-                custom_weights
-            )
+            custom_weights_tgt = get_path_to_diffusers_checkpoint(custom_weights)
             custom_weights_params = custom_weights
         return custom_weights_params, custom_weights_tgt
 
@@ -104,15 +98,11 @@ def get_civitai_checkpoint(url: str):
         base_filename = re.findall(
             '"([^"]*)"', response.headers["Content-Disposition"]
         )[0]
-        destination_path = (
-            Path.cwd() / (cmd_opts.ckpt_dir or "models") / base_filename
-        )
+        destination_path = Path.cwd() / (cmd_opts.ckpt_dir or "models") / base_filename
 
         # we don't have this model downloaded yet
         if not destination_path.is_file():
-            print(
-                f"downloading civitai model from {url} to {destination_path}"
-            )
+            print(f"downloading civitai model from {url} to {destination_path}")
 
             size = int(response.headers["content-length"], 0)
             progress_bar = tqdm(total=size, unit="iB", unit_scale=True)

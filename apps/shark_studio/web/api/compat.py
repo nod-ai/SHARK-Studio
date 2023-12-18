@@ -30,17 +30,13 @@ def decode_base64_to_image(encoding):
                 status_code=500, detail="Request to local resource not allowed"
             )
 
-        headers = (
-            {"user-agent": opts.api_useragent} if opts.api_useragent else {}
-        )
+        headers = {"user-agent": opts.api_useragent} if opts.api_useragent else {}
         response = requests.get(encoding, timeout=30, headers=headers)
         try:
             image = Image.open(BytesIO(response.content))
             return image
         except Exception as e:
-            raise HTTPException(
-                status_code=500, detail="Invalid image url"
-            ) from e
+            raise HTTPException(status_code=500, detail="Invalid image url") from e
 
     if encoding.startswith("data:image/"):
         encoding = encoding.split(";")[1].split(",")[1]
@@ -48,9 +44,7 @@ def decode_base64_to_image(encoding):
         image = Image.open(BytesIO(base64.b64decode(encoding)))
         return image
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail="Invalid encoded image"
-        ) from e
+        raise HTTPException(status_code=500, detail="Invalid encoded image") from e
 
 
 def encode_pil_to_base64(image):

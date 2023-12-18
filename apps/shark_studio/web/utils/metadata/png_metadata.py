@@ -66,9 +66,7 @@ def parse_generation_parameters(x: str):
     return res
 
 
-def try_find_model_base_from_png_metadata(
-    file: str, folder: str = "models"
-) -> str:
+def try_find_model_base_from_png_metadata(file: str, folder: str = "models") -> str:
     custom = ""
 
     # Remove extension from file info
@@ -101,16 +99,13 @@ def find_model_from_png_metadata(
         # No matching model was found
         if not png_custom and not png_hf_id:
             print(
-                "Import PNG info: Unable to find a matching model for %s"
-                % model_file
+                "Import PNG info: Unable to find a matching model for %s" % model_file
             )
 
     return png_custom, png_hf_id
 
 
-def find_vae_from_png_metadata(
-    key: str, metadata: dict[str, str | int]
-) -> str:
+def find_vae_from_png_metadata(key: str, metadata: dict[str, str | int]) -> str:
     vae_custom = ""
 
     if key in metadata:
