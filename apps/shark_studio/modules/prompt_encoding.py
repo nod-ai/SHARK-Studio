@@ -3,6 +3,7 @@ from typing import List, Optional, Union
 from iree import runtime as ireert
 import re
 import torch
+import numpy as np
 
 re_attention = re.compile(
     r"""
@@ -161,7 +162,7 @@ def pad_tokens_and_weights(
     r"""
     Pad the tokens (with starting and ending tokens) and weights (with 1.0) to max_length.
     """
-    max_embeddings_multiples = 8
+    max_embeddings_multiples = (max_length - 2) // (chunk_length - 2)
     weights_length = (
         max_length
         if no_boseos_middle
@@ -194,13 +195,16 @@ def pad_tokens_and_weights(
 
     return tokens, weights
 
-
 def get_unweighted_text_embeddings(
     pipe,
-    text_input: torch.Tensor,
+    text_input,
     chunk_length: int,
     no_boseos_middle: Optional[bool] = True,
 ):
+    """
+    When the length of tokens is a multiple of the capacity of the text encoder,
+    it should be split into chunks and sent to the text encoder individually.
+    """
     max_embeddings_multiples = (text_input.shape[1] - 2) // (chunk_length - 2)
     if max_embeddings_multiples > 1:
         text_embeddings = []
@@ -214,7 +218,7 @@ def get_unweighted_text_embeddings(
             text_input_chunk[:, 0] = text_input[0, 0]
             text_input_chunk[:, -1] = text_input[0, -1]
 
-            text_embedding = pipe.run("clip", text_input_chunk)[0]
+            text_embedding = pipe.run("clip", text_input_chunk)[0].to_host()
 
             if no_boseos_middle:
                 if i == 0:
@@ -231,48 +235,12 @@ def get_unweighted_text_embeddings(
         # SHARK: Convert the result to tensor
         # text_embeddings = torch.concat(text_embeddings, axis=1)
         text_embeddings_np = np.concatenate(np.array(text_embeddings))
-        text_embeddings = torch.from_numpy(text_embeddings_np)[None, :]
+        text_embeddings = torch.from_numpy(text_embeddings_np)
     else:
         text_embeddings = pipe.run("clip", text_input)[0]
-       # text_embeddings = torch.from_numpy(text_embeddings)[None, :]
-    return torch.from_numpy(text_embeddings.to_host())
-    """
-    When the length of tokens is a multiple of the capacity of the text encoder,
-    it should be split into chunks and sent to the text encoder individually.
-    """
-    max_embeddings_multiples = 8
-    text_embeddings = []
-    for i in range(max_embeddings_multiples):
-        # extract the i-th chunk
-        text_input_chunk = text_input[
-            :, i * (chunk_length - 2) : (i + 1) * (chunk_length - 2) + 2
-        ].clone()
-
-        # cover the head and the tail by the starting and the ending tokens
-        text_input_chunk[:, 0] = text_input[0, 0]
-        text_input_chunk[:, -1] = text_input[0, -1]
-        # text_embedding = pipe.text_encoder(text_input_chunk)[0]
-
-        print(text_input_chunk)
-        breakpoint()
-        text_embedding = pipe.run("clip", text_input_chunk)
-        if no_boseos_middle:
-            if i == 0:
-                # discard the ending token
-                text_embedding = text_embedding[:, :-1]
-            elif i == max_embeddings_multiples - 1:
-                # discard the starting token
-                text_embedding = text_embedding[:, 1:]
-            else:
-                # discard both starting and ending tokens
-                text_embedding = text_embedding[:, 1:-1]
-
-        text_embeddings.append(text_embedding)
-    # SHARK: Convert the result to tensor
-    # text_embeddings = torch.concat(text_embeddings, axis=1)
-    text_embeddings_np = np.concatenate(np.array(text_embeddings))
-    text_embeddings = torch.from_numpy(text_embeddings_np)[None, :]
+        text_embeddings = torch.from_numpy(text_embeddings.to_host())
     return text_embeddings
+
 
 
 # This function deals with NoneType values occuring in tokens after padding
@@ -286,7 +254,7 @@ def get_weighted_text_embeddings(
     prompt: List[str],
     uncond_prompt: List[str] = None,
     max_embeddings_multiples: Optional[int] = 8,
-    no_boseos_middle: Optional[bool] = False,
+    no_boseos_middle: Optional[bool] = True,
     skip_parsing: Optional[bool] = False,
     skip_weighting: Optional[bool] = False,
 ):
@@ -325,12 +293,12 @@ def get_weighted_text_embeddings(
         max_length = max(
             max_length, max([len(token) for token in uncond_tokens])
         )
-
     max_embeddings_multiples = min(
         max_embeddings_multiples,
         (max_length - 1) // (pipe.model_max_length - 2) + 1,
     )
     max_embeddings_multiples = max(1, max_embeddings_multiples)
+
     max_length = (pipe.model_max_length - 2) * max_embeddings_multiples + 2
 
     # pad the length of tokens and weights

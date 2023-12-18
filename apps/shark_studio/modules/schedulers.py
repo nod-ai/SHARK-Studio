@@ -18,7 +18,7 @@ from diffusers import (
 
 def get_schedulers(model_id):
     #TODO: switch over to turbine and run all on GPU
-    print(f"[LOG] Initializing schedulers from model id: {model_id}")
+    print(f"\n[LOG] Initializing schedulers from model id: {model_id}")
     schedulers = dict()
     schedulers["PNDM"] = PNDMScheduler.from_pretrained(
         model_id,

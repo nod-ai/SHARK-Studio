@@ -1,5 +1,10 @@
 from msvcrt import kbhit
-from shark.iree_utils.compile_utils import get_iree_compiled_module, load_vmfb_using_mmap
+from shark.iree_utils.compile_utils import (
+    get_iree_compiled_module,
+    load_vmfb_using_mmap,
+    clean_device_info,
+    get_iree_target_triple,
+)
 from apps.shark_studio.web.utils.file_utils import (
     get_checkpoints_path,
     get_resource_path,
@@ -32,8 +37,8 @@ class SharkPipelineBase:
         self.model_map = model_map
         self.static_kwargs = static_kwargs
         self.base_model_id = base_model_id
-        self.device_name = device
-        self.device = device.split("=>")[-1].strip(" ")
+        self.triple = get_iree_target_triple(device)
+        self.device, self.device_id = clean_device_info(device)
         self.import_mlir = import_mlir
         self.iree_module_dict = {}
         self.tempfiles = {}
@@ -46,11 +51,11 @@ class SharkPipelineBase:
         # initialization. As soon as you have a pipeline ID unique to your static torch IR parameters,
         # and your model map is populated with any IR - unique model IDs and their static params,
         # call this method to get the artifacts associated with your map.
-        self.pipe_id = pipe_id
+        self.pipe_id = self.safe_name(pipe_id)
         self.pipe_vmfb_path = Path(os.path.join(get_checkpoints_path(".."), self.pipe_id))
         self.pipe_vmfb_path.mkdir(parents=True, exist_ok=True)
-        print("\n[LOG] Checking for pre-compiled artifacts.")
         if submodel == "None":
+            print("\n[LOG] Gathering any pre-compiled artifacts....")
             for key in self.model_map:
                 self.get_compiled_map(pipe_id, submodel=key)
         else:  
@@ -58,10 +63,12 @@ class SharkPipelineBase:
             ireec_flags = []
             if submodel in self.iree_module_dict:
                 if "vmfb" in self.iree_module_dict[submodel]:
-                    print(f"[LOG] Found executable for {submodel} at {self.iree_module_dict[submodel]['vmfb']}...")
+                    print(f"\n[LOG] Executable for {submodel} already loaded...")
                     return
+            elif "vmfb_path" in self.model_map[submodel]:
+                return
             elif submodel not in self.tempfiles:
-                print(f"[LOG] Tempfile for {submodel} not found. Fetching torch IR...")
+                print(f"\n[LOG] Tempfile for {submodel} not found. Fetching torch IR...")
                 if submodel in self.static_kwargs:
                     init_kwargs = self.static_kwargs[submodel]
                 for key in self.static_kwargs["pipe"]:
@@ -90,16 +97,6 @@ class SharkPipelineBase:
         return
 
 
-    def hijack_weights(self, weights_path, submodel="None"):
-        if submodel == "None":
-            for i in self.model_map:
-                self.hijack_weights(weights_path, i)
-        else:
-            if submodel in self.iree_module_dict:
-                self.model_map[submodel]["external_weights_file"] = weights_path
-        return
-
-
     def get_precompiled(self, pipe_id, submodel="None"):
         if submodel == "None":
             for model in self.model_map:
@@ -112,31 +109,8 @@ class SharkPipelineBase:
             break
         for file in vmfbs:
             if submodel in file:
-                print(f"Found existing .vmfb at {file}")
-                self.iree_module_dict[submodel] = {}
-                (
-                    self.iree_module_dict[submodel]["vmfb"],
-                    self.iree_module_dict[submodel]["config"],
-                    self.iree_module_dict[submodel]["temp_file_to_unlink"],
-                ) = load_vmfb_using_mmap(
-                    os.path.join(vmfbs_path, file),
-                    self.device,
-                    device_idx=0,
-                    rt_flags=[],
-                    external_weight_file=self.model_map[submodel]['external_weight_file'],
-                )
+                self.model_map[submodel]["vmfb_path"] = os.path.join(vmfbs_path, file)
         return
-
-
-    def safe_dict(self, kwargs: dict):
-        flat_args = {}
-        for i in kwargs:
-            if isinstance(kwargs[i], dict) and "pass_dict" not in kwargs[i]:
-                flat_args[i] = [kwargs[i][j] for j in kwargs[i]]
-            else:
-                flat_args[i] = kwargs[i]
-
-        return flat_args   
 
 
     def import_torch_ir(self, submodel, kwargs):
@@ -160,18 +134,53 @@ class SharkPipelineBase:
     def load_submodels(self, submodels: list):
         for submodel in submodels:
             if submodel in self.iree_module_dict:
+                print(f"\n[LOG] {submodel} is ready for inference.")
+            if "vmfb_path" in self.model_map[submodel]:
                 print(
-                    f"\n[LOG] Loading .vmfb for {submodel} from {self.iree_module_dict[submodel]['vmfb']}"
+                    f"\n[LOG] Loading .vmfb for {submodel} from {self.model_map[submodel]['vmfb_path']}"
+                )
+                self.iree_module_dict[submodel] = {}
+                (
+                    self.iree_module_dict[submodel]["vmfb"],
+                    self.iree_module_dict[submodel]["config"],
+                    self.iree_module_dict[submodel]["temp_file_to_unlink"],
+                ) = load_vmfb_using_mmap(
+                    self.model_map[submodel]["vmfb_path"],
+                    self.device,
+                    device_idx=0,
+                    rt_flags=[],
+                    external_weight_file=self.model_map[submodel]['external_weight_file'],
                 )
             else:
                 self.get_compiled_map(self.pipe_id, submodel)
         return
 
 
+    def unload_submodels(self, submodels: list):
+        for submodel in submodels:
+            if submodel in self.iree_module_dict:
+                del self.iree_module_dict[submodel]
+                gc.collect()
+        return
+
+
     def run(self, submodel, inputs):
-        inp = [ireert.asdevicearray(self.iree_module_dict[submodel]["config"].device, inputs)]
+        if not isinstance(inputs, list):
+            inputs = [inputs]
+        inp = [ireert.asdevicearray(self.iree_module_dict[submodel]["config"].device, input) for input in inputs]
         return self.iree_module_dict[submodel]['vmfb']['main'](*inp)
 
 
-    def safe_name(name):
-        return name.replace("/", "_").replace("-", "_")
+    def safe_name(self, name):
+        return name.replace("/", "_").replace("-", "_").replace("\\", "_")
+
+
+    def safe_dict(self, kwargs: dict):
+        flat_args = {}
+        for i in kwargs:
+            if isinstance(kwargs[i], dict) and "pass_dict" not in kwargs[i]:
+                flat_args[i] = [kwargs[i][j] for j in kwargs[i]]
+            else:
+                flat_args[i] = kwargs[i]
+
+        return flat_args   

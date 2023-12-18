@@ -75,9 +75,9 @@ def save_output_img(output_img, img_seed, extra_info=None):
                 "parameters",
                 f"{extra_info['prompt'][0]}"
                 f"\nNegative prompt: {extra_info['negative_prompt'][0]}"
-                f"\nSteps: {extra_info['steps'][0]},"
-                f"Sampler: {extra_info['scheduler'][0]}, "
-                f"CFG scale: {extra_info['guidance_scale'][0]}, "
+                f"\nSteps: {extra_info['steps']},"
+                f"Sampler: {extra_info['scheduler']}, "
+                f"CFG scale: {extra_info['guidance_scale']}, "
                 f"Seed: {img_seed},"
                 f"Size: {png_size_text}, "
                 f"Model: {img_model}, "

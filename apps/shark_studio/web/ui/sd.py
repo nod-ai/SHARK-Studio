@@ -41,6 +41,14 @@ from apps.shark_studio.web.ui.common_events import lora_changed
 from apps.shark_studio.modules import logger
 import apps.shark_studio.web.utils.globals as global_obj
 
+sd_default_models = [
+    "CompVis/stable-diffusion-v1-4",
+    "runwayml/stable-diffusion-v1-5",
+    "stabilityai/stable-diffusion-2-1-base",
+    "stabilityai/stable-diffusion-2-1",
+    "stabilityai/stable-diffusion-xl-1.0",
+    "stabilityai/sdxl-turbo",
+]
 
 def view_json_file(file_path):
     content = ""
@@ -105,6 +113,7 @@ def pull_sd_configs(
     base_model_id,
     custom_weights,
     custom_vae,
+    use_base_vae,
     precision,
     device,
     ondemand,
@@ -120,11 +129,6 @@ def pull_sd_configs(
             "prompt",
             "negative_prompt",
             "sd_init_image",
-            "steps",
-            "strength",
-            "guidance_scale",
-            "seed",
-            "scheduler",
         ]:
             sd_cfg[arg] = [sd_args[arg]]
         elif arg in ["controlnets", "embeddings"]:
@@ -144,8 +148,10 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
             sd_json[key] = new_sd_config[key]
     else:
         sd_json = new_sd_config
-    if os.path.isfile(sd_json["sd_init_image"][0]):
-        sd_image = Image.open(sd_json["sd_init_image"][0], mode="r")
+    for i in sd_json["sd_init_image"]:
+        if i is not None: 
+            if os.path.isfile(i):
+                sd_image = [Image.open(i, mode="r")]
     else:
         sd_image = None
 
@@ -155,16 +161,17 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
         sd_image,
         sd_json["height"],
         sd_json["width"],
-        sd_json["steps"][0],
-        sd_json["strength"][0],
+        sd_json["steps"],
+        sd_json["strength"],
         sd_json["guidance_scale"],
-        sd_json["seed"][0],
+        sd_json["seed"],
         sd_json["batch_count"],
         sd_json["batch_size"],
-        sd_json["scheduler"][0],
+        sd_json["scheduler"],
         sd_json["base_model_id"],
         sd_json["custom_weights"],
         sd_json["custom_vae"],
+        sd_json["use_base_vae"],
         sd_json["precision"],
         sd_json["device"],
         sd_json["ondemand"],
@@ -320,7 +327,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             info="Select or enter HF model ID",
                             elem_id="custom_model",
                             value="stabilityai/stable-diffusion-2-1-base",
-                            choices=sd_model_map.keys(),
+                            choices=sd_default_models,
                         )  # base_model_id
                         custom_weights = gr.Dropdown(
                             label="Custom Weights",
@@ -328,7 +335,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             elem_id="custom_model",
                             value="None",
                             allow_custom_value=True,
-                            choices=get_checkpoints(base_model_id),
+                            choices=["None"] + get_checkpoints(base_model_id),
                         )  #
                     with gr.Column(scale=2):
                         sd_vae_info = (
@@ -360,6 +367,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     "fp32",
                                 ],
                                 visible=True,
+                            )
+                            use_base_vae = gr.Checkbox(
+                                value=False,
+                                label="Baked VAE",
+                                interactive=True,
                             )
 
                 with gr.Group(elem_id="prompt_box_outer"):
@@ -639,7 +651,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             with gr.Column(scale=3, min_width=600):
                 with gr.Group():
                     sd_gallery = gr.Gallery(
-                        label="Generated images",
+                        label="Generated images",      
                         show_label=False,
                         elem_id="gallery",
                         columns=2,
@@ -719,6 +731,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 base_model_id,
                                 custom_weights,
                                 custom_vae,
+                                use_base_vae,
                                 precision,
                                 device,
                                 ondemand,
@@ -753,6 +766,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 base_model_id,
                 custom_weights,
                 custom_vae,
+                use_base_vae,
                 precision,
                 device,
                 ondemand,

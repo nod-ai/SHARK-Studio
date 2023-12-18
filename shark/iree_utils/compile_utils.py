@@ -65,6 +65,14 @@ def get_iree_device_args(device, extra_args=[]):
         return get_iree_rocm_args(device_num=device_num, extra_args=extra_args)
     return []
 
+def get_iree_target_triple(device):
+    args = get_iree_device_args(device)
+    for flag in args:
+        if "triple" in flag.split("-"):
+            triple = flag.split("=")
+            return triple
+    return ""
+
 
 def clean_device_info(raw_device):
     # return appropriate device and device_id for consumption by Studio pipeline
