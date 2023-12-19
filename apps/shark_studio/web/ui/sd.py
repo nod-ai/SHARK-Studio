@@ -114,7 +114,6 @@ def pull_sd_configs(
     base_model_id,
     custom_weights,
     custom_vae,
-    use_base_vae,
     precision,
     device,
     ondemand,
@@ -172,7 +171,6 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
         sd_json["base_model_id"],
         sd_json["custom_weights"],
         sd_json["custom_vae"],
-        sd_json["use_base_vae"],
         sd_json["precision"],
         sd_json["device"],
         sd_json["ondemand"],
@@ -316,7 +314,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     show_download_button=False,
                 )
     with gr.Column(elem_id="ui_body"):
-        with gr.Row(variant="compact"):
+        with gr.Row():
             with gr.Column(scale=2, min_width=600):
                 with gr.Row(equal_height=True):
                     with gr.Column(scale=3):
@@ -369,12 +367,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 ],
                                 visible=True,
                             )
-                            use_base_vae = gr.Checkbox(
-                                value=False,
-                                label="Baked VAE",
-                                interactive=True,
-                            )
-
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
                         label="Prompt",
@@ -726,7 +718,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 base_model_id,
                                 custom_weights,
                                 custom_vae,
-                                use_base_vae,
                                 precision,
                                 device,
                                 ondemand,
@@ -761,7 +752,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 base_model_id,
                 custom_weights,
                 custom_vae,
-                use_base_vae,
                 precision,
                 device,
                 ondemand,

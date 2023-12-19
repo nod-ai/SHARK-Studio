@@ -41,6 +41,9 @@ class SharkPipelineBase:
         self.device, self.device_id = clean_device_info(device)
         self.import_mlir = import_mlir
         self.iree_module_dict = {}
+        self.tmp_dir = get_resource_path(os.path.join("..", "shark_tmp"))
+        if not os.path.exists(self.tmp_dir):
+            os.mkdir(self.tmp_dir)
         self.tempfiles = {}
 
     def get_compiled_map(self, pipe_id, submodel="None", init_kwargs={}) -> None:
@@ -54,7 +57,7 @@ class SharkPipelineBase:
         self.pipe_vmfb_path = Path(
             os.path.join(get_checkpoints_path(".."), self.pipe_id)
         )
-        self.pipe_vmfb_path.mkdir(parents=True, exist_ok=True)
+        self.pipe_vmfb_path.mkdir(parents=False, exist_ok=True)
         if submodel == "None":
             print("\n[LOG] Gathering any pre-compiled artifacts....")
             for key in self.model_map:
@@ -63,9 +66,7 @@ class SharkPipelineBase:
             self.get_precompiled(pipe_id, submodel)
             ireec_flags = []
             if submodel in self.iree_module_dict:
-                if "vmfb" in self.iree_module_dict[submodel]:
-                    print(f"\n[LOG] Executable for {submodel} already loaded...")
-                    return
+                return
             elif "vmfb_path" in self.model_map[submodel]:
                 return
             elif submodel not in self.tempfiles:
@@ -123,8 +124,9 @@ class SharkPipelineBase:
         if submodel == "clip":
             # clip.export_clip_model returns (torch_ir, tokenizer)
             torch_ir = torch_ir[0]
-        self.tempfiles[submodel] = get_resource_path(
-            os.path.join("..", "shark_tmp", f"{submodel}.torch.tempfile")
+
+        self.tempfiles[submodel] = os.path.join(
+            self.tmp_dir, f"{submodel}.torch.tempfile"
         )
 
         with open(self.tempfiles[submodel], "w+") as f:

@@ -44,6 +44,7 @@ def set_sd_status(value):
 
 def set_pipe_kwargs(value):
     global _pipe_kwargs
+    print(value)
     _pipe_kwargs = value
 
 
@@ -74,6 +75,7 @@ def get_sd_status():
 
 def get_pipe_kwargs():
     global _pipe_kwargs
+    print(_pipe_kwargs)
     return _pipe_kwargs
 
 
