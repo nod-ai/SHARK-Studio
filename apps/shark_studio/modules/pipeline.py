@@ -102,7 +102,7 @@ class SharkPipelineBase:
                     write_to=os.path.join(self.pipe_vmfb_path, submodel + ".vmfb"),
                 )
         return
-    
+
     def get_io_params(self, submodel):
         if "external_weight_file" in self.static_kwargs[submodel]:
             # we are using custom weights
@@ -114,7 +114,7 @@ class SharkPipelineBase:
             # assume the torch IR contains the weights.
             weights_path = None
         return weights_path
-    
+
     def get_precompiled(self, pipe_id, submodel="None"):
         if submodel == "None":
             for model in self.model_map:
@@ -125,7 +125,9 @@ class SharkPipelineBase:
             break
         for file in vmfbs:
             if submodel in file:
-                self.pipe_map[submodel]["vmfb_path"] = os.path.join(self.pipe_vmfb_path, file)
+                self.pipe_map[submodel]["vmfb_path"] = os.path.join(
+                    self.pipe_vmfb_path, file
+                )
         return
 
     def import_torch_ir(self, submodel, kwargs):
@@ -153,9 +155,9 @@ class SharkPipelineBase:
                 continue
             if "vmfb_path" in self.pipe_map[submodel]:
                 weights_path = self.get_io_params(submodel)
-                print(
-                    f"\n[LOG] Loading .vmfb for {submodel} from {self.pipe_map[submodel]['vmfb_path']}"
-                )
+                # print(
+                #     f"\n[LOG] Loading .vmfb for {submodel} from {self.pipe_map[submodel]['vmfb_path']}"
+                # )
                 self.iree_module_dict[submodel] = {}
                 (
                     self.iree_module_dict[submodel]["vmfb"],

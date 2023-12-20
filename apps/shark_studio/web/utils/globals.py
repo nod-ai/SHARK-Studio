@@ -54,10 +54,10 @@ def set_prep_kwargs(value):
     _prep_kwargs = value
 
 
-
 def set_gen_kwargs(value):
     global _gen_kwargs
     _gen_kwargs = value
+
 
 def set_schedulers(value):
     global _schedulers

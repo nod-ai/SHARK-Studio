@@ -300,13 +300,13 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 with gr.Group(elem_id="prompt_box_outer"):
                     prompt = gr.Textbox(
                         label="Prompt",
-                        value=cmd_opts.prompts[0],
+                        value=cmd_opts.prompt[0],
                         lines=2,
                         elem_id="prompt_box",
                     )
                     negative_prompt = gr.Textbox(
                         label="Negative Prompt",
-                        value=cmd_opts.negative_prompts[0],
+                        value=cmd_opts.negative_prompt[0],
                         lines=2,
                         elem_id="negative_prompt_box",
                     )

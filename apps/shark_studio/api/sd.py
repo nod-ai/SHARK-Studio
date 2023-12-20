@@ -34,8 +34,6 @@ from apps.shark_studio.modules.ckpt_processing import (
 )
 from transformers import CLIPTokenizer
 from diffusers.image_processor import VaeImageProcessor
-from math import ceil
-from PIL import Image
 
 sd_model_map = {
     "clip": {
@@ -166,35 +164,40 @@ class StableDiffusion(SharkPipelineBase):
         del static_kwargs
         gc.collect()
 
-    def prepare_pipe(self, scheduler, custom_weights, adapters, embeddings, is_img2img):
-        print(
-            f"\n[LOG] Preparing pipeline with scheduler {scheduler}"
-            f"\n[LOG] Custom embeddings currently unsupported."
-        )
+    def prepare_pipe(self, custom_weights, adapters, embeddings, is_img2img):
+        print(f"\n[LOG] Preparing pipeline...")
         self.is_img2img = is_img2img
-        schedulers = get_schedulers(self.base_model_id)
-        self.scheduler = schedulers[scheduler]
-        self.image_processor = VaeImageProcessor()#do_convert_rgb=True)
-        self.weights_path = os.path.join(get_checkpoints_path(), self.safe_name(self.base_model_id))
+        self.schedulers = get_schedulers(self.base_model_id)
+
+        self.weights_path = os.path.join(
+            get_checkpoints_path(), self.safe_name(self.base_model_id)
+        )
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
-        print(f"[LOG] Loaded scheduler: {scheduler}")
+
         for model in adapters:
             self.model_map[model] = adapters[model]
 
         for submodel in self.static_kwargs:
             if custom_weights:
+                custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
                 if submodel not in ["clip", "clip2"]:
-                    self.static_kwargs[submodel]["external_weight_file"] = custom_weights
+                    self.static_kwargs[submodel][
+                        "external_weight_file"
+                    ] = custom_weights_params
                 else:
-                    self.static_kwargs[submodel]["external_weight_path"] = os.path.join(self.weights_path, submodel + ".safetensors")
+                    self.static_kwargs[submodel]["external_weight_path"] = os.path.join(
+                        self.weights_path, submodel + ".safetensors"
+                    )
             else:
-                self.static_kwargs[submodel]["external_weight_path"] = os.path.join(self.weights_path, submodel + ".safetensors")
+                self.static_kwargs[submodel]["external_weight_path"] = os.path.join(
+                    self.weights_path, submodel + ".safetensors"
+                )
+
         self.get_compiled_map(pipe_id=self.pipe_id)
         print("\n[LOG] Pipeline successfully prepared for runtime.")
         return
 
-    
     def encode_prompts_weight(
         self,
         prompt,
@@ -335,9 +338,9 @@ class StableDiffusion(SharkPipelineBase):
 
             latent_history.append(latents)
             step_time = (time.time() - step_start_time) * 1000
-            #  self.log += (
-            #      f"\nstep = {i} | timestep = {t} | time = {step_time:.2f}ms"
-            #  )
+            # print(
+            #     f"\n [LOG] step = {i} | timestep = {t} | time = {step_time:.2f}ms"
+            # )
             step_time_sum += step_time
 
             # if self.status == SD_STATE_CANCEL:
@@ -371,51 +374,52 @@ class StableDiffusion(SharkPipelineBase):
         pil_images = self.image_processor.numpy_to_pil(images)
         return pil_images
 
-    def process_sd_init_image(self, sd_init_image, resample_type):
-        if isinstance(sd_init_image, list):
-            images = []
-            for img in sd_init_image:
-                img, _ = self.process_sd_init_image(img, resample_type)
-                images.append(img)
-                is_img2img = True
-                return images, is_img2img
-        if isinstance(sd_init_image, str):
-            if os.path.isfile(sd_init_image):
-                sd_init_image = Image.open(sd_init_image, mode="r").convert("RGB")
-                image, is_img2img = self.process_sd_init_image(
-                    sd_init_image, resample_type
-                )
-            else:
-                image = None
-                is_img2img = False
-        elif isinstance(sd_init_image, Image.Image):
-            image = sd_init_image.convert("RGB")
-        elif sd_init_image:
-            image = sd_init_image["image"].convert("RGB")
-        else:
-            image = None
-            is_img2img = False
-        if image:
-            resample_type = (
-                resamplers[resample_type]
-                if resample_type in resampler_list
-                # Fallback to Lanczos
-                else Image.Resampling.LANCZOS
-            )
-            image = image.resize((self.width, self.height), resample=resample_type)
-            image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
-            image_arr = image_arr / 255.0
-            image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(self.dtype)
-            image_arr = 2 * (image_arr - 0.5)
-            is_img2img = True
-            image = image_arr
-        return image, is_img2img
-    
+    # def process_sd_init_image(self, sd_init_image, resample_type):
+    #     if isinstance(sd_init_image, list):
+    #         images = []
+    #         for img in sd_init_image:
+    #             img, _ = self.process_sd_init_image(img, resample_type)
+    #             images.append(img)
+    #             is_img2img = True
+    #             return images, is_img2img
+    #     if isinstance(sd_init_image, str):
+    #         if os.path.isfile(sd_init_image):
+    #             sd_init_image = Image.open(sd_init_image, mode="r").convert("RGB")
+    #             image, is_img2img = self.process_sd_init_image(
+    #                 sd_init_image, resample_type
+    #             )
+    #         else:
+    #             image = None
+    #             is_img2img = False
+    #     elif isinstance(sd_init_image, Image.Image):
+    #         image = sd_init_image.convert("RGB")
+    #     elif sd_init_image:
+    #         image = sd_init_image["image"].convert("RGB")
+    #     else:
+    #         image = None
+    #         is_img2img = False
+    #     if image:
+    #         resample_type = (
+    #             resamplers[resample_type]
+    #             if resample_type in resampler_list
+    #             # Fallback to Lanczos
+    #             else Image.Resampling.LANCZOS
+    #         )
+    #         image = image.resize((self.width, self.height), resample=resample_type)
+    #         image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
+    #         image_arr = image_arr / 255.0
+    #         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(self.dtype)
+    #         image_arr = 2 * (image_arr - 0.5)
+    #         is_img2img = True
+    #         image = image_arr
+    #     return image, is_img2img
+
     def generate_images(
         self,
         prompt,
         negative_prompt,
         image,
+        scheduler,
         steps,
         strength,
         guidance_scale,
@@ -427,9 +431,11 @@ class StableDiffusion(SharkPipelineBase):
         hints,
     ):
         # TODO: Batched args
+        self.image_processor = VaeImageProcessor(do_convert_rgb=True)
+        self.scheduler = self.schedulers[scheduler]
         self.ondemand = ondemand
         if self.is_img2img:
-            image, _ = self.process_sd_init_image(image, resample_type)
+            image, _ = self.image_processor.preprocess(image, resample_type)
         else:
             image = None
 
@@ -532,6 +538,8 @@ def shark_sd_fn(
     embeddings: dict,
 ):
     sd_kwargs = locals()
+    if not isinstance(sd_init_image, list):
+        sd_init_image = [sd_init_image]
     is_img2img = True if sd_init_image[0] is not None else False
 
     print("\n[LOG] Performing Stable Diffusion Pipeline setup...")
@@ -581,7 +589,6 @@ def shark_sd_fn(
         "is_controlled": is_controlled,
     }
     submit_prep_kwargs = {
-        "scheduler": scheduler,
         "custom_weights": custom_weights,
         "adapters": adapters,
         "embeddings": embeddings,
@@ -592,6 +599,7 @@ def shark_sd_fn(
         "negative_prompt": negative_prompt,
         "image": sd_init_image,
         "steps": steps,
+        "scheduler": scheduler,
         "strength": strength,
         "guidance_scale": guidance_scale,
         "seed": seed,
@@ -667,5 +675,8 @@ if __name__ == "__main__":
 
     sd_json = view_json_file(get_resource_path("../configs/default_sd_config.json"))
     sd_kwargs = json.loads(sd_json)
+    for arg in vars(cmd_opts):
+        if arg in sd_kwargs:
+            sd_kwargs[arg] = getattr(cmd_opts, arg)
     for i in shark_sd_fn_dict_input(sd_kwargs):
         print(i)

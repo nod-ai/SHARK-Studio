@@ -32,7 +32,7 @@ p.add_argument(
 )
 p.add_argument(
     "-p",
-    "--prompts",
+    "--prompt",
     nargs="+",
     default=[
         "a photo taken of the front of a super-car drifting on a road near "
@@ -44,7 +44,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--negative_prompts",
+    "--negative_prompt",
     nargs="+",
     default=[
         "watermark, signature, logo, text, lowres, ((monochrome, grayscale)), "
@@ -54,7 +54,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--img_path",
+    "--sd_init_image",
     type=str,
     help="Path to the image input for img2img/inpainting.",
 )
@@ -320,7 +320,7 @@ p.add_argument(
 p.add_argument(
     "--scheduler",
     type=str,
-    default="SharkEulerDiscrete",
+    default="DDIM",
     help="Other supported schedulers are [DDIM, PNDM, LMSDiscrete, "
     "DPMSolverMultistep, DPMSolverMultistep++, DPMSolverMultistepKarras, "
     "DPMSolverMultistepKarras++, EulerDiscrete, EulerAncestralDiscrete, "
@@ -359,10 +359,10 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--ckpt_loc",
+    "--custom_weights",
     type=str,
     default="",
-    help="Path to SD's .ckpt file.",
+    help="Path to a .safetensors or .ckpt file for SD pipeline weights.",
 )
 
 p.add_argument(
@@ -374,7 +374,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--hf_model_id",
+    "--base_model_id",
     type=str,
     default="stabilityai/stable-diffusion-2-1-base",
     help="The repo-id of hugging face.",
