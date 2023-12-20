@@ -106,7 +106,7 @@ class LanguageModel:
             frontend="torch",
             external_weight_file=self.external_weight_file,
             write_to=self.vmfb_name,
-            extra_args=["--iree-global-opt-enable-quantized-matmul-reassociation"]
+            extra_args=["--iree-global-opt-enable-quantized-matmul-reassociation"],
         )
         # TODO: delete the temp file
 
