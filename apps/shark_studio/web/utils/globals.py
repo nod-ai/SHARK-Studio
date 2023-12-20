@@ -12,11 +12,13 @@ def _init():
     global _sd_obj
     global _devices
     global _pipe_kwargs
+    global _prep_kwargs
     global _gen_kwargs
     global _schedulers
     _sd_obj = None
     _devices = None
     _pipe_kwargs = None
+    _prep_kwargs = None
     _gen_kwargs = None
     _schedulers = None
     set_devices()
@@ -44,14 +46,18 @@ def set_sd_status(value):
 
 def set_pipe_kwargs(value):
     global _pipe_kwargs
-    print(value)
     _pipe_kwargs = value
+
+
+def set_prep_kwargs(value):
+    global _prep_kwargs
+    _prep_kwargs = value
+
 
 
 def set_gen_kwargs(value):
     global _gen_kwargs
     _gen_kwargs = value
-
 
 def set_schedulers(value):
     global _schedulers
@@ -75,8 +81,12 @@ def get_sd_status():
 
 def get_pipe_kwargs():
     global _pipe_kwargs
-    print(_pipe_kwargs)
     return _pipe_kwargs
+
+
+def get_prep_kwargs():
+    global _prep_kwargs
+    return _prep_kwargs
 
 
 def get_gen_kwargs():
@@ -92,14 +102,14 @@ def get_scheduler(key):
 def clear_cache():
     global _sd_obj
     global _pipe_kwargs
+    global _prep_kwargs
     global _gen_kwargs
     global _schedulers
     del _sd_obj
-    del _pipe_kwargs
-    del _gen_kwargs
     del _schedulers
     gc.collect()
     _sd_obj = None
     _pipe_kwargs = None
+    _prep_kwargs = None
     _gen_kwargs = None
     _schedulers = None

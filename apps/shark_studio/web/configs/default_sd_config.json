@@ -10,7 +10,7 @@
   "seed": -1,
   "batch_count": 1,
   "batch_size": 1,
-  "scheduler": "DDIM",
+  "scheduler": "EulerDiscrete",
   "base_model_id": "runwayml/stable-diffusion-v1-5",
   "custom_weights": "",
   "custom_vae": "",

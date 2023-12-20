@@ -35,6 +35,7 @@ class SharkPipelineBase:
         import_mlir: bool = True,
     ):
         self.model_map = model_map
+        self.pipe_map = {}
         self.static_kwargs = static_kwargs
         self.base_model_id = base_model_id
         self.triple = get_iree_target_triple(device)
@@ -45,6 +46,7 @@ class SharkPipelineBase:
         if not os.path.exists(self.tmp_dir):
             os.mkdir(self.tmp_dir)
         self.tempfiles = {}
+        self.pipe_vmfb_path = ""
 
     def get_compiled_map(self, pipe_id, submodel="None", init_kwargs={}) -> None:
         # First checks whether we have .vmfbs precompiled, then populates the map
@@ -63,11 +65,12 @@ class SharkPipelineBase:
             for key in self.model_map:
                 self.get_compiled_map(pipe_id, submodel=key)
         else:
-            self.get_precompiled(pipe_id, submodel)
+            self.pipe_map[submodel] = {}
+            self.get_precompiled(self.pipe_id, submodel)
             ireec_flags = []
             if submodel in self.iree_module_dict:
                 return
-            elif "vmfb_path" in self.model_map[submodel]:
+            elif "vmfb_path" in self.pipe_map[submodel]:
                 return
             elif submodel not in self.tempfiles:
                 print(
@@ -87,10 +90,8 @@ class SharkPipelineBase:
                     else []
                 )
 
-                if "external_weights_file" in self.model_map[submodel]:
-                    weights_path = self.model_map[submodel]["external_weights_file"]
-                else:
-                    weights_path = None
+                weights_path = self.get_io_params(submodel)
+
                 self.iree_module_dict[submodel] = get_iree_compiled_module(
                     self.tempfiles[submodel],
                     device=self.device,
@@ -101,20 +102,30 @@ class SharkPipelineBase:
                     write_to=os.path.join(self.pipe_vmfb_path, submodel + ".vmfb"),
                 )
         return
-
+    
+    def get_io_params(self, submodel):
+        if "external_weight_file" in self.static_kwargs[submodel]:
+            # we are using custom weights
+            weights_path = self.static_kwargs[submodel]["external_weight_file"]
+        elif "external_weight_path" in self.static_kwargs[submodel]:
+            # we are using the default weights for the HF model
+            weights_path = self.static_kwargs[submodel]["external_weight_path"]
+        else:
+            # assume the torch IR contains the weights.
+            weights_path = None
+        return weights_path
+    
     def get_precompiled(self, pipe_id, submodel="None"):
         if submodel == "None":
             for model in self.model_map:
                 self.get_precompiled(pipe_id, model)
         vmfbs = []
-        vmfb_matches = {}
-        vmfbs_path = self.pipe_vmfb_path
-        for dirpath, dirnames, filenames in os.walk(vmfbs_path):
+        for dirpath, dirnames, filenames in os.walk(self.pipe_vmfb_path):
             vmfbs.extend(filenames)
             break
         for file in vmfbs:
             if submodel in file:
-                self.model_map[submodel]["vmfb_path"] = os.path.join(vmfbs_path, file)
+                self.pipe_map[submodel]["vmfb_path"] = os.path.join(self.pipe_vmfb_path, file)
         return
 
     def import_torch_ir(self, submodel, kwargs):
@@ -139,9 +150,11 @@ class SharkPipelineBase:
         for submodel in submodels:
             if submodel in self.iree_module_dict:
                 print(f"\n[LOG] {submodel} is ready for inference.")
-            if "vmfb_path" in self.model_map[submodel]:
+                continue
+            if "vmfb_path" in self.pipe_map[submodel]:
+                weights_path = self.get_io_params(submodel)
                 print(
-                    f"\n[LOG] Loading .vmfb for {submodel} from {self.model_map[submodel]['vmfb_path']}"
+                    f"\n[LOG] Loading .vmfb for {submodel} from {self.pipe_map[submodel]['vmfb_path']}"
                 )
                 self.iree_module_dict[submodel] = {}
                 (
@@ -149,13 +162,11 @@ class SharkPipelineBase:
                     self.iree_module_dict[submodel]["config"],
                     self.iree_module_dict[submodel]["temp_file_to_unlink"],
                 ) = load_vmfb_using_mmap(
-                    self.model_map[submodel]["vmfb_path"],
+                    self.pipe_map[submodel]["vmfb_path"],
                     self.device,
                     device_idx=0,
                     rt_flags=[],
-                    external_weight_file=self.model_map[submodel][
-                        "external_weight_file"
-                    ],
+                    external_weight_file=weights_path,
                 )
             else:
                 self.get_compiled_map(self.pipe_id, submodel)
