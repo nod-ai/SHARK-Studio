@@ -77,7 +77,7 @@ sd_model_map = {
 }
 
 
-class StableDiffusion(SharkPipelineBase):
+class SharkDiffusionPipeline(SharkPipelineBase):
     # This class is responsible for executing image generation and creating
     # /managing a set of compiled modules to run Stable Diffusion. The init
     # aims to be as general as possible, and the class will infer and compile
@@ -104,7 +104,7 @@ class StableDiffusion(SharkPipelineBase):
         self.height = height
         self.width = width
         self.scheduler_obj = {}
-        static_kwargs = {
+        compile_static_args = {
             "pipe": {
                 "external_weights": "safetensors",
             },
@@ -124,10 +124,7 @@ class StableDiffusion(SharkPipelineBase):
             },
             "vae_encode": {
                 "hf_model_name": base_model_id,
-                "vae_model": vae.VaeModel(
-                    hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
-                ),
+                "vae_model": self.vae_encode,
                 "batch_size": batch_size,
                 "height": height,
                 "width": width,
@@ -135,17 +132,14 @@ class StableDiffusion(SharkPipelineBase):
             },
             "vae_decode": {
                 "hf_model_name": base_model_id,
-                "vae_model": vae.VaeModel(
-                    hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
-                ),
+                "vae_model": self.vae_decode,
                 "batch_size": batch_size,
                 "height": height,
                 "width": width,
                 "precision": precision,
             },
         }
-        super().__init__(sd_model_map, base_model_id, static_kwargs, device, import_ir)
+        super().__init__(sd_model_map, base_model_id, compile_static_args, device, import_ir)
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
@@ -197,302 +191,6 @@ class StableDiffusion(SharkPipelineBase):
         self.get_compiled_map(pipe_id=self.pipe_id)
         print("\n[LOG] Pipeline successfully prepared for runtime.")
         return
-
-    def encode_prompts_weight(
-        self,
-        prompt,
-        negative_prompt,
-        do_classifier_free_guidance=True,
-    ):
-        # Encodes the prompt into text encoder hidden states.
-        self.load_submodels(["clip"])
-        self.tokenizer = CLIPTokenizer.from_pretrained(
-            self.base_model_id,
-            subfolder="tokenizer",
-        )
-        clip_inf_start = time.time()
-
-        text_embeddings, uncond_embeddings = get_weighted_text_embeddings(
-            pipe=self,
-            prompt=prompt,
-            uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
-        )
-
-        if do_classifier_free_guidance:
-            text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-
-        pad = (0, 0) * (len(text_embeddings.shape) - 2)
-        pad = pad + (
-            0,
-            self.static_kwargs["unet"]["max_length"] - text_embeddings.shape[1],
-        )
-        text_embeddings = torch.nn.functional.pad(text_embeddings, pad)
-
-        # SHARK: Report clip inference time
-        clip_inf_time = (time.time() - clip_inf_start) * 1000
-        if self.ondemand:
-            self.unload_submodels(["clip"])
-            gc.collect()
-        print(f"\n[LOG] Clip Inference time (ms) = {clip_inf_time:.3f}")
-
-        return text_embeddings.numpy().astype(np.float16)
-
-    def prepare_latents(
-        self,
-        generator,
-        num_inference_steps,
-        image,
-        strength,
-    ):
-        noise = torch.randn(
-            (
-                self.batch_size,
-                4,
-                self.height // 8,
-                self.width // 8,
-            ),
-            generator=generator,
-            dtype=self.dtype,
-        ).to("cpu")
-
-        self.scheduler.set_timesteps(num_inference_steps)
-        if self.is_img2img:
-            init_timestep = min(
-                int(num_inference_steps * strength), num_inference_steps
-            )
-            t_start = max(num_inference_steps - init_timestep, 0)
-            timesteps = self.scheduler.timesteps[t_start:]
-            latents = self.encode_image(image)
-            latents = self.scheduler.add_noise(latents, noise, timesteps[0].repeat(1))
-            return latents, [timesteps]
-        else:
-            self.scheduler.is_scale_input_called = True
-            latents = noise * self.scheduler.init_noise_sigma
-            return latents, self.scheduler.timesteps
-
-    def encode_image(self, input_image):
-        self.load_submodels(["vae_encode"])
-        vae_encode_start = time.time()
-        latents = self.run("vae_encode", input_image)
-        vae_inf_time = (time.time() - vae_encode_start) * 1000
-        if self.ondemand:
-            self.unload_submodels(["vae_encode"])
-        print(f"\n[LOG] VAE Encode Inference time (ms): {vae_inf_time:.3f}")
-
-        return latents
-
-    def produce_img_latents(
-        self,
-        latents,
-        text_embeddings,
-        guidance_scale,
-        total_timesteps,
-        cpu_scheduling,
-        mask=None,
-        masked_image_latents=None,
-        return_all_latents=False,
-    ):
-        # self.status = SD_STATE_IDLE
-        step_time_sum = 0
-        latent_history = [latents]
-        text_embeddings = torch.from_numpy(text_embeddings).to(self.dtype)
-        text_embeddings_numpy = text_embeddings.detach().numpy()
-        guidance_scale = torch.Tensor([guidance_scale]).to(self.dtype)
-        self.load_submodels(["unet"])
-        for i, t in tqdm(enumerate(total_timesteps)):
-            step_start_time = time.time()
-            timestep = torch.tensor([t]).to(self.dtype).detach().numpy()
-            latent_model_input = self.scheduler.scale_model_input(latents, t).to(
-                self.dtype
-            )
-            if mask is not None and masked_image_latents is not None:
-                latent_model_input = torch.cat(
-                    [
-                        torch.from_numpy(np.asarray(latent_model_input)).to(self.dtype),
-                        mask,
-                        masked_image_latents,
-                    ],
-                    dim=1,
-                ).to(self.dtype)
-            if cpu_scheduling:
-                latent_model_input = latent_model_input.detach().numpy()
-
-            # Profiling Unet.
-            # profile_device = start_profiling(file_path="unet.rdc")
-            noise_pred = self.run(
-                "unet",
-                [
-                    latent_model_input,
-                    timestep,
-                    text_embeddings_numpy,
-                    guidance_scale,
-                ],
-            )
-            # end_profiling(profile_device)
-
-            if cpu_scheduling:
-                noise_pred = torch.from_numpy(noise_pred.to_host())
-                latents = self.scheduler.step(noise_pred, t, latents).prev_sample
-            else:
-                latents = self.run("scheduler_step", (noise_pred, t, latents))
-
-            latent_history.append(latents)
-            step_time = (time.time() - step_start_time) * 1000
-            # print(
-            #     f"\n [LOG] step = {i} | timestep = {t} | time = {step_time:.2f}ms"
-            # )
-            step_time_sum += step_time
-
-            # if self.status == SD_STATE_CANCEL:
-            #    break
-
-        if self.ondemand:
-            self.unload_submodels(["unet"])
-            gc.collect()
-
-        avg_step_time = step_time_sum / len(total_timesteps)
-        print(f"\n[LOG] Average step time: {avg_step_time}ms/it")
-
-        if not return_all_latents:
-            return latents
-        all_latents = torch.cat(latent_history, dim=0)
-        return all_latents
-
-    def decode_latents(self, latents, cpu_scheduling=True):
-        latents_numpy = latents.to(self.dtype)
-        if cpu_scheduling:
-            latents_numpy = latents.detach().numpy()
-
-        # profile_device = start_profiling(file_path="vae.rdc")
-        vae_start = time.time()
-        images = self.run("vae_decode", latents_numpy).to_host()
-        vae_inf_time = (time.time() - vae_start) * 1000
-        # end_profiling(profile_device)
-        print(f"\n[LOG] VAE Inference time (ms): {vae_inf_time:.3f}")
-
-        images = torch.from_numpy(images).permute(0, 2, 3, 1).float().numpy()
-        pil_images = self.image_processor.numpy_to_pil(images)
-        return pil_images
-
-    # def process_sd_init_image(self, sd_init_image, resample_type):
-    #     if isinstance(sd_init_image, list):
-    #         images = []
-    #         for img in sd_init_image:
-    #             img, _ = self.process_sd_init_image(img, resample_type)
-    #             images.append(img)
-    #             is_img2img = True
-    #             return images, is_img2img
-    #     if isinstance(sd_init_image, str):
-    #         if os.path.isfile(sd_init_image):
-    #             sd_init_image = Image.open(sd_init_image, mode="r").convert("RGB")
-    #             image, is_img2img = self.process_sd_init_image(
-    #                 sd_init_image, resample_type
-    #             )
-    #         else:
-    #             image = None
-    #             is_img2img = False
-    #     elif isinstance(sd_init_image, Image.Image):
-    #         image = sd_init_image.convert("RGB")
-    #     elif sd_init_image:
-    #         image = sd_init_image["image"].convert("RGB")
-    #     else:
-    #         image = None
-    #         is_img2img = False
-    #     if image:
-    #         resample_type = (
-    #             resamplers[resample_type]
-    #             if resample_type in resampler_list
-    #             # Fallback to Lanczos
-    #             else Image.Resampling.LANCZOS
-    #         )
-    #         image = image.resize((self.width, self.height), resample=resample_type)
-    #         image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
-    #         image_arr = image_arr / 255.0
-    #         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(self.dtype)
-    #         image_arr = 2 * (image_arr - 0.5)
-    #         is_img2img = True
-    #         image = image_arr
-    #     return image, is_img2img
-
-    def generate_images(
-        self,
-        prompt,
-        negative_prompt,
-        image,
-        scheduler,
-        steps,
-        strength,
-        guidance_scale,
-        seed,
-        ondemand,
-        repeatable_seeds,
-        resample_type,
-        control_mode,
-        hints,
-    ):
-        # TODO: Batched args
-        self.image_processor = VaeImageProcessor(do_convert_rgb=True)
-        self.scheduler = self.schedulers[scheduler]
-        self.ondemand = ondemand
-        if self.is_img2img:
-            image, _ = self.image_processor.preprocess(image, resample_type)
-        else:
-            image = None
-
-        print("\n[LOG] Generating images...")
-        batched_args = [
-            prompt,
-            negative_prompt,
-            image,
-        ]
-        for arg in batched_args:
-            if not isinstance(arg, list):
-                arg = [arg] * self.batch_size
-            if len(arg) < self.batch_size:
-                arg = arg * self.batch_size
-            else:
-                arg = [arg[i] for i in range(self.batch_size)]
-
-        text_embeddings = self.encode_prompts_weight(
-            prompt,
-            negative_prompt,
-        )
-
-        uint32_info = np.iinfo(np.uint32)
-        uint32_min, uint32_max = uint32_info.min, uint32_info.max
-        if seed < uint32_min or seed >= uint32_max:
-            seed = randint(uint32_min, uint32_max)
-
-        generator = torch.manual_seed(seed)
-
-        init_latents, final_timesteps = self.prepare_latents(
-            generator=generator,
-            num_inference_steps=steps,
-            image=image,
-            strength=strength,
-        )
-
-        latents = self.produce_img_latents(
-            latents=init_latents,
-            text_embeddings=text_embeddings,
-            guidance_scale=guidance_scale,
-            total_timesteps=final_timesteps,
-            cpu_scheduling=True,  # until we have schedulers through Turbine
-        )
-
-        # Img latents -> PIL images
-        all_imgs = []
-        self.load_submodels(["vae_decode"])
-        for i in tqdm(range(0, latents.shape[0], self.batch_size)):
-            imgs = self.decode_latents(
-                latents=latents[i : i + self.batch_size],
-                cpu_scheduling=True,
-            )
-            all_imgs.extend(imgs)
-        if self.ondemand:
-            self.unload_submodels(["vae_decode"])
-
-        return all_imgs
 
 
 def shark_sd_fn_dict_input(
@@ -621,7 +319,7 @@ def shark_sd_fn(
         # parameters that are static in the turbine output format,
         # which is currently MLIR in the torch dialect.
 
-        sd_pipe = StableDiffusion(
+        sd_pipe = SharkDiffusionPipeline(
             **submit_pipe_kwargs,
         )
         global_obj.set_sd_obj(sd_pipe)
