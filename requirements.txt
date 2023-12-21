@@ -26,7 +26,7 @@ parameterized
 accelerate
 scipy
 ftfy
-gradio==4.8.0
+gradio==4.11.0
 altair
 omegaconf
 # 0.3.2 doesn't have binaries for arm64
