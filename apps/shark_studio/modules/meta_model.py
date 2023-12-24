@@ -18,7 +18,7 @@ import gc
 import os
 
 
-class SharkMetaModelBase:
+class SharkMetaLoader:
     # This class is a lightweight base for managing an
     # inference API class. It should provide methods for:
     # - compiling a set (model map) of torch IR modules
@@ -30,37 +30,17 @@ class SharkMetaModelBase:
         self,
         model_map: dict,
         device: str,
-        dtype: str =  "f16",
-        import_mlir: bool = True,
     ):
         self.model_map = model_map
         self.pipe_map = {}
         self.triple = get_iree_target_triple(device)
-        self._device, self.device_id = clean_device_info(device)
-        self.import_mlir = import_mlir
+        self.device, self.device_id = clean_device_info(device)
         self.iree_module_dict = {}
         self.tmp_dir = get_resource_path(os.path.join("..", "shark_tmp"))
         if not os.path.exists(self.tmp_dir):
             os.mkdir(self.tmp_dir)
         self.tempfiles = {}
         self.pipe_vmfb_path = ""
-        self._dtype = dtype
-
-    @property
-    def device(self):
-        return self._device
-    
-    @device.setter
-    def device(self, device_str):
-        self._device = device_str
-
-    @property
-    def dtype(self):
-        return self._dtype
-    
-    @dtype.setter
-    def dtype(self, dtype_val):
-        self._dtype = dtype_val
 
     def get_compiled_map(self, pipe_id, static_kwargs, submodel="None", init_kwargs={}) -> None:
         # First checks whether we have .vmfbs precompiled, then populates the map
@@ -96,32 +76,31 @@ class SharkMetaModelBase:
                     if key not in init_kwargs:
                         init_kwargs[key] = static_kwargs["pipe"][key]
                 self.import_torch_ir(submodel, init_kwargs)
-                self.get_compiled_map(pipe_id, submodel)
+                self.get_compiled_map(pipe_id, static_kwargs, submodel, init_kwargs)
             else:
                 ireec_flags = (
                     self.model_map[submodel]["ireec_flags"]
                     if "ireec_flags" in self.model_map[submodel]
                     else []
                 )
-
                 self.iree_module_dict[submodel] = get_iree_compiled_module(
                     self.tempfiles[submodel],
                     device=self.device,
                     frontend="torch",
                     mmap=True,
-                    external_weight_file=self.get_io_params(submodel),
+                    external_weight_file=self.get_io_params(submodel, static_kwargs),
                     extra_args=ireec_flags,
                     write_to=os.path.join(self.pipe_vmfb_path, submodel + ".vmfb"),
                 )
         return
 
-    def get_io_params(self, submodel):
-        if "external_weight_file" in self.static_kwargs[submodel]:
+    def get_io_params(self, submodel, static_kwargs: dict):
+        if "external_weight_file" in static_kwargs[submodel]:
             # we are using custom weights
-            weights_path = self.static_kwargs[submodel]["external_weight_file"]
-        elif "external_weight_path" in self.static_kwargs[submodel]:
+            weights_path = static_kwargs[submodel]["external_weight_file"]
+        elif "external_weight_path" in static_kwargs[submodel]:
             # we are using the default weights for the HF model
-            weights_path = self.static_kwargs[submodel]["external_weight_path"]
+            weights_path = static_kwargs[submodel]["external_weight_path"]
         else:
             # assume the torch IR contains the weights.
             weights_path = None
@@ -143,6 +122,7 @@ class SharkMetaModelBase:
         return
 
     def import_torch_ir(self, submodel, kwargs):
+        breakpoint()
         torch_ir = self.model_map[submodel]["initializer"](
             **self.safe_dict(kwargs), compile_to="torch"
         )

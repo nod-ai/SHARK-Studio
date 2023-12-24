@@ -16,19 +16,18 @@ from apps.shark_studio.api.sd import SharkDiffusionPipeline
 class SDBaseAPITest(unittest.TestCase):
     def testPipeSimple(self):
         pipe = SharkDiffusionPipeline.from_pretrained(
-            pretrained_model_name_or_path="hf-internal-testing/tiny-stable-diffusion-torch",
+            pretrained_model_name_or_path="stabilityai/stable-diffusion-2-1",
             device="vulkan",
-            torch_dtype=torch.float32,
-        )
+            torch_dtype=torch.float16,
+        ).to(torch.float16)
         pipe.setup_shark(
-            base_model_id="hf-internal-testing/tiny-stable-diffusion-torch",
+            base_model_id="stabilityai/stable-diffusion-2-1",
             height=512,
             width=512,
             batch_size=1,
-            precision="f32",
+            precision="f16",
             device="vulkan",
         )
-
         pipe.prepare_pipe(
             custom_weights="",
             adapters=[],
