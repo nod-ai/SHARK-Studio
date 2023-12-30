@@ -237,9 +237,13 @@ if __name__ == "__main__":
         )
 
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
+    gradio_workarounds = resource_path("ui/js/sd_gradio_workarounds.js")
 
     with gr.Blocks(
-        css=dark_theme, analytics_enabled=False, title="SHARK AI Studio"
+        css=dark_theme,
+        js=gradio_workarounds,
+        analytics_enabled=False,
+        title="SHARK AI Studio",
     ) as sd_web:
         with gr.Tabs() as tabs:
             # NOTE: If adding, removing, or re-ordering tabs, make sure that they

@@ -61,6 +61,7 @@ datas += [
     ("src/utils/resources/opt_flags.json", "resources"),
     ("src/utils/resources/base_model.json", "resources"),
     ("web/ui/css/*", "ui/css"),
+    ("web/ui/js/*", "ui/js"),
     ("web/ui/logos/*", "logos"),
     (
         "../language_models/src/pipelines/minigpt4_utils/configs/*",
