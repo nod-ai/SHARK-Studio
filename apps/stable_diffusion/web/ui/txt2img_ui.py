@@ -311,6 +311,7 @@ def txt2img_inf(
                 cpu_scheduling,
                 args.max_embeddings_multiples,
                 stencils=[],
+                images=None,
                 control_mode=None,
                 resample_type=resample_type,
             )
