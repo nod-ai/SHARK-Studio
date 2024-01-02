@@ -688,8 +688,6 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="contain",
-                        # TODO: Re-enable download when fixed in Gradio
-                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{t2i_model_info}\n"

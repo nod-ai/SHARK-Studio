@@ -478,8 +478,6 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="scale_down",
-                        # TODO: Re-enable download when fixed in Gradio
-                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{t2i_sdxl_model_info}\n"

@@ -957,8 +957,6 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         elem_id="gallery",
                         columns=2,
                         object_fit="contain",
-                        # TODO: Re-enable download when fixed in Gradio
-                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{i2i_model_info}\n"
