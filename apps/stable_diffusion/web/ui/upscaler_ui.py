@@ -470,8 +470,6 @@ with gr.Blocks(title="Upscaler") as upscaler_web:
                         elem_id="gallery",
                         columns=[2],
                         object_fit="contain",
-                        # TODO: Re-enable download when fixed in Gradio
-                        show_download_button=False,
                     )
                     std_output = gr.Textbox(
                         value=f"{upscaler_model_info}\n"

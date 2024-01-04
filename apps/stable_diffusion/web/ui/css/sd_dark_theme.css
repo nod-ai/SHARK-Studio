@@ -117,12 +117,21 @@ body {
     height: 100% !important;
 }
 
-/* display in full width for desktop devices */
+/* display in full width for desktop devices, but see below */
 @media (min-width: 1536px)
 {
     .gradio-container {
         max-width: var(--size-full) !important;
     }
+}
+
+/* media rules in custom css are don't appear to be applied in
+   gradio versions > 4.7, so we have to define a class which
+   we will manually need add and remove using javascript.
+   Remove this once this fixed in gradio.
+*/
+.gradio-container-size-full {
+    max-width: var(--size-full) !important;
 }
 
 .gradio-container .contain {
@@ -182,6 +191,8 @@ footer {
     aspect-ratio: unset;
     max-height: calc(55vh - (2 * var(--spacing-lg)));
 }
+
+/* fix width and height of gallery items when on very large desktop screens, but see below */
 @media (min-width: 1921px) {
     /* Force a 768px_height + 4px_margin_height + navbar_height for the gallery */
     #gallery .grid-wrap, #gallery .preview{
@@ -193,6 +204,20 @@ footer {
         max-height: 770px !important;
     }
 }
+
+/* media rules in custom css are don't appear to be applied in
+   gradio versions > 4.7, so we have to define classes which
+   we will manually need add and remove using javascript.
+   Remove this once this fixed in gradio.
+*/
+.gallery-force-height768 .grid-wrap, .gallery-force-height768 .preview {
+    min-height: calc(768px + 4px + var(--size-14)) !important;
+    max-height: calc(768px + 4px + var(--size-14)) !important;
+}
+.gallery-limit-height768 .thumbnail-item.thumbnail-lg {
+    max-height: 770px !important;
+}
+
 /* Don't upscale when viewing in solo image mode */
 #gallery .preview img {
     object-fit: scale-down;
@@ -285,7 +310,7 @@ footer {
 
 /* output gallery tab */
 .output_parameters_dataframe table.table {
-/* works around a gradio bug that always shows scrollbars */
+    /* works around a gradio bug that always shows scrollbars */
     overflow: clip auto;
 }
 

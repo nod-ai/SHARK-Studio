@@ -92,8 +92,6 @@ with gr.Blocks() as outputgallery_web:
                 visible=False,
                 show_label=True,
                 columns=4,
-                # TODO: Re-enable download when fixed in Gradio
-                show_download_button=False,
             )
 
         with gr.Column(scale=4):
