@@ -12,7 +12,6 @@ from apps.stable_diffusion.web.api.utils import (
     decode_base64_to_image,
     get_model_from_request,
     get_scheduler_from_request,
-    get_lora_params,
     get_device,
     GenerationInputData,
     GenerationResponseData,
@@ -180,7 +179,6 @@ def txt2img_api(InputData: Txt2ImgInputData):
     scheduler = get_scheduler_from_request(
         InputData, "txt2img_hires" if InputData.enable_hr else "txt2img"
     )
-    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
     print(
         f"Prompt: {InputData.prompt}, "
@@ -208,8 +206,8 @@ def txt2img_api(InputData: Txt2ImgInputData):
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights=lora_weights,
-        lora_hf_id=lora_hf_id,
+        lora_weights=frozen_args.use_lora,
+        lora_strength=frozen_args.lora_strength,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
         use_hiresfix=InputData.enable_hr,
@@ -270,7 +268,6 @@ def img2img_api(
         fallback_model="stabilityai/stable-diffusion-2-1-base",
     )
     scheduler = get_scheduler_from_request(InputData, "img2img")
-    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
     init_image = decode_base64_to_image(InputData.init_images[0])
     mask_image = (
@@ -308,8 +305,8 @@ def img2img_api(
         use_stencil=InputData.use_stencil,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights=lora_weights,
-        lora_hf_id=lora_hf_id,
+        lora_weights=frozen_args.use_lora,
+        lora_strength=frozen_args.lora_strength,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
         resample_type=frozen_args.resample_type,
@@ -358,7 +355,6 @@ def inpaint_api(
         fallback_model="stabilityai/stable-diffusion-2-inpainting",
     )
     scheduler = get_scheduler_from_request(InputData, "inpaint")
-    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
     init_image = decode_base64_to_image(InputData.image)
     mask = decode_base64_to_image(InputData.mask)
@@ -393,8 +389,8 @@ def inpaint_api(
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights=lora_weights,
-        lora_hf_id=lora_hf_id,
+        lora_weights=frozen_args.use_lora,
+        lora_strength=frozen_args.lora_strength,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
     )
@@ -448,7 +444,6 @@ def outpaint_api(
         fallback_model="stabilityai/stable-diffusion-2-inpainting",
     )
     scheduler = get_scheduler_from_request(InputData, "outpaint")
-    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
     init_image = decode_base64_to_image(InputData.init_images[0])
 
@@ -484,8 +479,8 @@ def outpaint_api(
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights=lora_weights,
-        lora_hf_id=lora_hf_id,
+        lora_weights=frozen_args.use_lora,
+        lora_strength=frozen_args.lora_strength,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
     )
@@ -531,7 +526,6 @@ def upscaler_api(
         fallback_model="stabilityai/stable-diffusion-x4-upscaler",
     )
     scheduler = get_scheduler_from_request(InputData, "upscaler")
-    (lora_weights, lora_hf_id) = get_lora_params(frozen_args.use_lora)
 
     init_image = decode_base64_to_image(InputData.init_images[0])
 
@@ -563,8 +557,8 @@ def upscaler_api(
         max_length=frozen_args.max_length,
         save_metadata_to_json=frozen_args.save_metadata_to_json,
         save_metadata_to_png=frozen_args.write_metadata_to_png,
-        lora_weights=lora_weights,
-        lora_hf_id=lora_hf_id,
+        lora_weights=frozen_args.use_lora,
+        lora_strength=frozen_args.lora_strength,
         ondemand=frozen_args.ondemand,
         repeatable_seeds=False,
     )

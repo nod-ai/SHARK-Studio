@@ -33,6 +33,7 @@ class Config:
     width: int
     device: str
     use_lora: str
+    lora_strength: float
     stencils: list[str]
     ondemand: str  # should this be expecting a bool instead?
 
@@ -180,14 +181,16 @@ def get_custom_model_files(model="models", custom_checkpoint_type=""):
     return sorted(ckpt_files, key=str.casefold)
 
 
-def get_custom_vae_or_lora_weights(weights, hf_id, model):
-    use_weight = ""
-    if weights == "None" and not hf_id:
+def get_custom_vae_or_lora_weights(weights, model):
+    if weights == "None":
         use_weight = ""
-    elif not hf_id:
-        use_weight = get_custom_model_pathfile(weights, model)
     else:
-        use_weight = hf_id
+        custom_weights = get_custom_model_pathfile(str(weights), model)
+        if os.path.isfile(custom_weights):
+            use_weight = custom_weights
+        else:
+            use_weight = weights
+
     return use_weight
 
 

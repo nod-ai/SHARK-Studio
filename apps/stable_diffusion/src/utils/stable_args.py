@@ -436,6 +436,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--lora_strength",
+    type=float,
+    default=1.0,
+    help="Strength (alpha) scaling factor to use when applying LoRA weights",
+)
+
+p.add_argument(
     "--use_quantize",
     type=str,
     default="none",
