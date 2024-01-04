@@ -43,7 +43,6 @@ def get_iree_device_args(device, extra_args=[]):
             get_iree_cpu_args()
             + u_kernel_flag
             + stack_size_flag
-            + ["--iree-global-opt-enable-quantized-matmul-reassociation"]
         )
     if device == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args

@@ -177,8 +177,6 @@ def chat(
         )
 
         _extra_args = _extra_args + [
-            "--iree-global-opt-enable-quantized-matmul-reassociation",
-            "--iree-llvmcpu-enable-quantized-matmul-reassociation",
             "--iree-opt-const-eval=false",
             "--iree-opt-data-tiling=false",
         ]

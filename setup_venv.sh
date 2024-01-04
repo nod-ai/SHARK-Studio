@@ -111,7 +111,7 @@ else
 fi
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
-  $PYTHON -m pip install --pre --upgrade --no-index --find-links ${RUNTIME} iree-compiler iree-runtime
+  $PYTHON -m pip install --pre --upgrade --no-index --find-links ${RUNTIME} iree-compiler==20231222.* iree-runtime==20231222.*
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi

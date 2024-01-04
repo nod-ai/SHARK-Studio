@@ -90,7 +90,7 @@ python -m pip install --upgrade pip
 pip install wheel
 pip install -r requirements.txt
 pip install --pre torch-mlir torchvision torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/
-pip install --upgrade -f https://nod-ai.github.io/SRT/pip-release-links.html iree-compiler iree-runtime
+pip install --upgrade -f https://nod-ai.github.io/SRT/pip-release-links.html iree-compiler==20231222.* iree-runtime==20231222.*
 Write-Host "Building SHARK..."
 pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
 Write-Host "Build and installation completed successfully"
