@@ -51,10 +51,13 @@ class Text2ImageSDXLPipeline(StableDiffusionPipeline):
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
         use_lora: str,
+        lora_strength: float,
         ondemand: bool,
         is_fp32_vae: bool,
     ):
-        super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        super().__init__(
+            scheduler, sd_model, import_mlir, use_lora, lora_strength, ondemand
+        )
         self.is_fp32_vae = is_fp32_vae
 
     def prepare_latents(

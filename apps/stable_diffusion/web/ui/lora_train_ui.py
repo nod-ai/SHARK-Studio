@@ -238,9 +238,7 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                 max_length,
                 training_images_dir,
                 output_loc,
-                get_custom_vae_or_lora_weights(
-                    lora_weights, lora_hf_id, "lora"
-                ),
+                get_custom_vae_or_lora_weights(lora_weights, "lora"),
             ],
             outputs=[std_output],
             show_progress="minimal" if args.progress_bar else "none",

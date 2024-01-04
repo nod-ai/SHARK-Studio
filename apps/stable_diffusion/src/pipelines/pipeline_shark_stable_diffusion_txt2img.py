@@ -49,9 +49,12 @@ class Text2ImagePipeline(StableDiffusionPipeline):
         sd_model: SharkifyStableDiffusionModel,
         import_mlir: bool,
         use_lora: str,
+        lora_strength: float,
         ondemand: bool,
     ):
-        super().__init__(scheduler, sd_model, import_mlir, use_lora, ondemand)
+        super().__init__(
+            scheduler, sd_model, import_mlir, use_lora, lora_strength, ondemand
+        )
 
     def prepare_latents(
         self,

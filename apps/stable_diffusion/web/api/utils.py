@@ -191,17 +191,6 @@ def get_scheduler_from_request(
     )
 
 
-def get_lora_params(use_lora: str):
-    # TODO: since the inference functions in the webui, which we are
-    # still calling into for the api, jam these back together again before
-    # handing them off to the pipeline, we should remove this nonsense
-    # and unify their selection in the UI and command line args proper
-    if use_lora in get_custom_model_files("lora"):
-        return (use_lora, "")
-
-    return ("None", use_lora)
-
-
 def get_device(device_str: str):
     # first substring match in the list available devices, with first
     # device when none are matched

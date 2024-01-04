@@ -159,6 +159,7 @@ class SharkifyStableDiffusionModel:
         is_sdxl: bool = False,
         stencils: list[str] = [],
         use_lora: str = "",
+        lora_strength: float = 0.75,
         use_quantize: str = None,
         return_mlir: bool = False,
     ):
@@ -216,8 +217,14 @@ class SharkifyStableDiffusionModel:
         self.is_upscaler = is_upscaler
         self.stencils = [get_stencil_model_id(x) for x in stencils]
         if use_lora != "":
-            self.model_name = self.model_name + "_" + get_path_stem(use_lora)
+            self.model_name = (
+                self.model_name
+                + "_"
+                + get_path_stem(use_lora)
+                + f"@{int(lora_strength*100)}"
+            )
         self.use_lora = use_lora
+        self.lora_strength = lora_strength
 
         self.model_name = self.get_extended_name_for_all_model()
         self.debug = debug
@@ -534,6 +541,7 @@ class SharkifyStableDiffusionModel:
                 model_id=self.model_id,
                 low_cpu_mem_usage=False,
                 use_lora=self.use_lora,
+                lora_strength=self.lora_strength,
             ):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
@@ -542,7 +550,9 @@ class SharkifyStableDiffusionModel:
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
                 if use_lora != "":
-                    update_lora_weight(self.unet, use_lora, "unet")
+                    update_lora_weight(
+                        self.unet, use_lora, "unet", lora_strength
+                    )
                 self.in_channels = self.unet.config.in_channels
                 self.train(False)
 
@@ -818,6 +828,7 @@ class SharkifyStableDiffusionModel:
                 model_id=self.model_id,
                 low_cpu_mem_usage=False,
                 use_lora=self.use_lora,
+                lora_strength=self.lora_strength,
             ):
                 super().__init__()
                 self.unet = UNet2DConditionModel.from_pretrained(
@@ -826,7 +837,9 @@ class SharkifyStableDiffusionModel:
                     low_cpu_mem_usage=low_cpu_mem_usage,
                 )
                 if use_lora != "":
-                    update_lora_weight(self.unet, use_lora, "unet")
+                    update_lora_weight(
+                        self.unet, use_lora, "unet", lora_strength
+                    )
                 self.in_channels = self.unet.config.in_channels
                 self.train(False)
                 if (
@@ -1058,6 +1071,7 @@ class SharkifyStableDiffusionModel:
                 model_id=self.model_id,
                 low_cpu_mem_usage=False,
                 use_lora=self.use_lora,
+                lora_strength=self.lora_strength,
             ):
                 super().__init__()
                 self.text_encoder = CLIPTextModel.from_pretrained(
@@ -1067,7 +1081,10 @@ class SharkifyStableDiffusionModel:
                 )
                 if use_lora != "":
                     update_lora_weight(
-                        self.text_encoder, use_lora, "text_encoder"
+                        self.text_encoder,
+                        use_lora,
+                        "text_encoder",
+                        lora_strength,
                     )
 
             def forward(self, input):
