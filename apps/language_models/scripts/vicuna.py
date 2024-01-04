@@ -1782,14 +1782,6 @@ class UnshardedVicuna(VicunaBase):
                 and "llama2_7b" in self.vicuna_mlir_path.name
             ):
                 self.vicuna_mlir_path = Path("llama2_7b_int4_f32.mlir")
-            elif (
-                "llama2_7b" in self.vicuna_mlir_path.name
-            ):
-                self.vicuna_mlir_path = Path("OLD_llama2_7b_int4.mlir")
-            elif (
-                "llama2_70b" in self.vicuna_mlir_path.name
-            ):
-                self.vicuna_mlir_path = Path("OLD_llama2_70b_int4.mlir")
             if (
                 not self.vicuna_mlir_path.exists()
                 and self.load_mlir_from_shark_tank
