@@ -266,8 +266,8 @@ class StencilPipeline(StableDiffusionPipeline):
                 latent_model_input_1 = latent_model_input
 
             # Multicontrolnet
-            width = latent_model_input_1.shape[2]
-            height = latent_model_input_1.shape[3]
+            height = latent_model_input_1.shape[2]
+            width = latent_model_input_1.shape[3]
             dtype = latent_model_input_1.dtype
             control_acc = (
                 [torch.zeros((2, 320, height, width), dtype=dtype)] * 3

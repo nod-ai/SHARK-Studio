@@ -597,20 +597,20 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                                 value="None",
                                 choices=choices,
                             )
-                            canvas_width = gr.Slider(
-                                label="Canvas Width",
-                                minimum=256,
-                                maximum=1024,
-                                value=512,
-                                step=1,
-                                visible=False,
-                            )
                             canvas_height = gr.Slider(
                                 label="Canvas Height",
                                 minimum=256,
-                                maximum=1024,
+                                maximum=768,
                                 value=512,
-                                step=1,
+                                step=8,
+                                visible=False,
+                            )
+                            canvas_width = gr.Slider(
+                                label="Canvas Width",
+                                minimum=256,
+                                maximum=768,
+                                value=512,
+                                step=8,
                                 visible=False,
                             )
                             make_canvas = gr.Button(
@@ -710,17 +710,17 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                             canvas_width = gr.Slider(
                                 label="Canvas Width",
                                 minimum=256,
-                                maximum=1024,
+                                maximum=768,
                                 value=512,
-                                step=1,
+                                step=8,
                                 visible=False,
                             )
                             canvas_height = gr.Slider(
                                 label="Canvas Height",
                                 minimum=256,
-                                maximum=1024,
+                                maximum=768,
                                 value=512,
-                                step=1,
+                                step=8,
                                 visible=False,
                             )
                             make_canvas = gr.Button(
