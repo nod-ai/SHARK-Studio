@@ -623,6 +623,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                                 step=1,
                                 label=default_settings.get("batch_size"),
                                 interactive=True,
+                                visible=False,
                             )
                         repeatable_seeds = gr.Checkbox(
                             default_settings.get("repeatable_seeds"),
