@@ -94,6 +94,10 @@ class StableDiffusionPipeline:
             self.unload_unet()
             self.tokenizer = get_tokenizer()
 
+    def favored_base_models(cls, model_id):
+        # all base models can be candidate base models for unet compilation
+        return None
+
     def load_clip(self):
         if self.text_encoder is not None:
             return
@@ -667,6 +671,9 @@ class StableDiffusionPipeline:
         is_upscaler = cls.__name__ in ["UpscalerPipeline"]
         is_sdxl = cls.__name__ in ["Text2ImageSDXLPipeline"]
 
+        print(f"model_id", model_id)
+        print(f"ckpt_loc", ckpt_loc)
+        print(f"favored_base_models:", cls.favored_base_models(model_id))
         sd_model = SharkifyStableDiffusionModel(
             model_id,
             ckpt_loc,
@@ -687,6 +694,9 @@ class StableDiffusionPipeline:
             use_lora=use_lora,
             lora_strength=lora_strength,
             use_quantize=use_quantize,
+            favored_base_models=cls.favored_base_models(
+                model_id if model_id != "" else ckpt_loc
+            ),
         )
 
         if cls.__name__ in ["UpscalerPipeline"]:
