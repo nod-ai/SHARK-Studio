@@ -162,6 +162,7 @@ class SharkifyStableDiffusionModel:
         lora_strength: float = 0.75,
         use_quantize: str = None,
         return_mlir: bool = False,
+        favored_base_models=None,
     ):
         self.check_params(max_len, width, height)
         self.max_len = max_len
@@ -191,6 +192,7 @@ class SharkifyStableDiffusionModel:
                 )
 
         self.model_id = model_id if custom_weights == "" else custom_weights
+        self.favored_base_models = favored_base_models
         self.custom_vae = custom_vae
         self.precision = precision
         self.base_vae = use_base_vae
@@ -1288,6 +1290,10 @@ class SharkifyStableDiffusionModel:
             compiled_unet = None
             unet_inputs = base_models[model]
 
+            # if the model to run *is* a base model, then we should treat it as such
+            if self.model_to_run in unet_inputs:
+                self.base_model_id = self.model_to_run
+
             if self.base_model_id != "":
                 self.inputs["unet"] = self.get_input_info_for(
                     unet_inputs[self.base_model_id]
@@ -1296,7 +1302,16 @@ class SharkifyStableDiffusionModel:
                     model, use_large=use_large, base_model=self.base_model_id
                 )
             else:
-                for model_id in unet_inputs:
+                # restrict base models to check if we were given a specific list of valid ones
+                allowed_base_model_ids = unet_inputs
+                if self.favored_base_models != None:
+                    allowed_base_model_ids = self.favored_base_models
+
+                print(f"self.favored_base_models: {self.favored_base_models}")
+                print(f"allowed_base_model_ids: {allowed_base_model_ids}")
+
+                # try compiling with each base model until we find one that works (of not)
+                for model_id in allowed_base_model_ids:
                     self.base_model_id = model_id
                     self.inputs["unet"] = self.get_input_info_for(
                         unet_inputs[model_id]
@@ -1309,7 +1324,7 @@ class SharkifyStableDiffusionModel:
                     except Exception as e:
                         print(e)
                         print(
-                            "Retrying with a different base model configuration"
+                            f"Retrying with a different base model configuration, as {model_id} did not work"
                         )
                         continue
 

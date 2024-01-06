@@ -212,6 +212,10 @@ def txt2img_inf(
                 use_lora=args.use_lora,
                 lora_strength=args.lora_strength,
                 ondemand=args.ondemand,
+                valid_base_models=[
+                    "stabilityai/stable-diffusion-2-1",
+                    "CompVis/stable-diffusion-v1-4",
+                ],
             )
         )
 

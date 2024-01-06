@@ -60,6 +60,19 @@ class Text2ImageSDXLPipeline(StableDiffusionPipeline):
         )
         self.is_fp32_vae = is_fp32_vae
 
+    @classmethod
+    def favored_base_models(cls, model_id):
+        if "turbo" in model_id:
+            return [
+                "stabilityai/sdxl-turbo",
+                "stabilityai/stable-diffusion-xl-base-1.0",
+            ]
+        else:
+            return [
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                "stabilityai/sdxl-turbo",
+            ]
+
     def prepare_latents(
         self,
         batch_size,

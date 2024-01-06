@@ -153,6 +153,7 @@ def txt2img_sdxl_inf(
             if args.hf_model_id
             else "stabilityai/stable-diffusion-xl-base-1.0"
         )
+
         global_obj.set_schedulers(get_schedulers(model_id))
         scheduler_obj = global_obj.get_scheduler(scheduler)
         if global_obj.get_cfg_obj().ondemand:
@@ -280,12 +281,14 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                                 label=f"VAE Models",
                                 info=t2i_sdxl_vae_info,
                                 elem_id="custom_model",
-                                value="None",
+                                value="madebyollin/sdxl-vae-fp16-fix",
                                 choices=[
                                     None,
                                     "madebyollin/sdxl-vae-fp16-fix",
                                 ]
-                                + get_custom_model_files("vae"),
+                                + get_custom_model_files(
+                                    "vae", custom_checkpoint_type="sdxl"
+                                ),
                                 allow_custom_value=True,
                                 scale=4,
                             )
@@ -375,7 +378,7 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                         height = gr.Slider(
                             512,
                             1024,
-                            value=1024,
+                            value=768,
                             step=256,
                             label="Height",
                             visible=True,
@@ -384,7 +387,7 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                         width = gr.Slider(
                             512,
                             1024,
-                            value=1024,
+                            value=768,
                             step=256,
                             label="Width",
                             visible=True,

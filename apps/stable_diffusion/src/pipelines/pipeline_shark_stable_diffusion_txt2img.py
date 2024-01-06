@@ -56,6 +56,13 @@ class Text2ImagePipeline(StableDiffusionPipeline):
             scheduler, sd_model, import_mlir, use_lora, lora_strength, ondemand
         )
 
+    @classmethod
+    def favored_base_models(cls, model_id):
+        return [
+            "stabilityai/stable-diffusion-2-1",
+            "CompVis/stable-diffusion-v1-4",
+        ]
+
     def prepare_latents(
         self,
         batch_size,
