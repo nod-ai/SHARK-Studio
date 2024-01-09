@@ -158,28 +158,28 @@ with gr.Blocks(title="Chat") as chat_element:
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
-    submit_event = msg.submit(
-        fn=user,
-        inputs=[msg, chatbot],
-        outputs=[msg, chatbot],
-        show_progress=False,
-        queue=False,
-    ).then(
-        fn=chat_fn,
-        inputs=[
-            prompt_prefix,
-            chatbot,
-            model,
-            device,
-            precision,
-            download_vmfb,
-            config_file,
-            streaming_llm,
-        ],
-        outputs=[chatbot, tokens_time],
-        show_progress=False,
-        queue=True,
-    )
+    # submit_event = msg.submit(
+    #     fn=user,
+    #     inputs=[msg, chatbot],
+    #     outputs=[msg, chatbot],
+    #     show_progress=False,
+    #     queue=False,
+    # ).then(
+    #     fn=chat_fn,
+    #     inputs=[
+    #         prompt_prefix,
+    #         chatbot,
+    #         model,
+    #         device,
+    #         precision,
+    #         download_vmfb,
+    #         config_file,
+    #         streaming_llm,
+    #     ],
+    #     outputs=[chatbot, tokens_time],
+    #     show_progress=False,
+    #     queue=True,
+    # )
     submit_click_event = submit.click(
         fn=user,
         inputs=[msg, chatbot],
@@ -206,7 +206,7 @@ with gr.Blocks(title="Chat") as chat_element:
         fn=None,
         inputs=None,
         outputs=None,
-        cancels=[submit_event, submit_click_event],
+        cancels=[submit_click_event], #[submit_event, submit_click_event],
         queue=False,
     )
     clear.click(lambda: None, None, [chatbot], queue=False)

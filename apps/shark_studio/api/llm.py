@@ -1,4 +1,5 @@
 from turbine_models.custom_models import stateless_llama
+from turbine_models.model_runner import vmfbRunner
 from turbine_models.gen_external_params.gen_external_params import gen_external_params
 import time
 from shark.iree_utils.compile_utils import (
@@ -106,18 +107,15 @@ class LanguageModel:
         if os.path.exists(self.vmfb_name) and (
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
-            self.iree_module_dict = dict()
-            (
-                self.iree_module_dict["vmfb"],
-                self.iree_module_dict["config"],
-                self.iree_module_dict["temp_file_to_unlink"],
-            ) = load_vmfb_using_mmap(
-                self.vmfb_name,
-                self.driver,
-                device_idx=0,
-                rt_flags=[],
-                external_weight_file=self.external_weight_file,
+            self.runner = vmfbRunner(
+                device = self.driver,
+                vmfb_path=self.vmfb_name,
+                external_weight_path=self.external_weight_file,
             )
+            if self.streaming_llm:
+                self.model = self.runner.ctx.modules.streaming_state_update
+            else:
+                self.model = self.runner.ctx.modules.state_update
             self.tokenizer = AutoTokenizer.from_pretrained(
                 self.hf_model_name,
                 use_fast=False,
@@ -181,6 +179,17 @@ class LanguageModel:
             write_to=self.vmfb_name,
             extra_args=flags,
         )
+        del self.iree_module_dict
+        gc.collect()
+        self.runner = vmfbRunner(
+                device = self.driver,
+                vmfb_path=self.vmfb_name,
+                external_weight_path=self.external_weight_file,
+            )
+        if self.streaming_llm:
+            self.model = self.runner.ctx.modules.streaming_state_update
+        else:
+            self.model = self.runner.ctx.modules.state_update
         # TODO: delete the temp file
 
     def sanitize_prompt(self, prompt):
@@ -211,45 +220,43 @@ class LanguageModel:
 
         history = []
         for iter in range(self.max_tokens):
-            if self.streaming_llm and self.iree_module_dict["vmfb"]["get_seq_step"]() > 600:
+            if self.streaming_llm and self.model["get_seq_step"]() > 600:
                 print("Evicting cache space!")
-                self.iree_module_dict["vmfb"]["evict_kvcache_space"]()
+                self.model["evict_kvcache_space"]()
             st_time = time.time()
             token_len = input_tensor.shape[-1]
             if iter == 0 and not self.streaming_llm:
                 device_inputs = [
                     ireert.asdevicearray(
-                        self.iree_module_dict["config"].device, input_tensor
+                        self.runner.config.device, input_tensor
                     )
                 ]
-                token = self.iree_module_dict["vmfb"]["run_initialize"](*device_inputs)
+                token = self.model["run_initialize"](*device_inputs)
                 token_len += 1
             elif iter == 0:
                 device_inputs = [
                     ireert.asdevicearray(
-                        self.iree_module_dict["config"].device, input_tensor
+                        self.runner.config.device, input_tensor
                     )
                 ]
-                token = self.iree_module_dict["vmfb"]["run_cached_initialize"](*device_inputs)
+                token = self.model["run_cached_initialize"](*device_inputs)
                 token_len += 1
             else:
-                if self.streaming_llm and self.iree_module_dict["vmfb"]["get_seq_step"]() > 600:
+                if self.streaming_llm and self.model["get_seq_step"]() > 600:
                     print("Evicting cache space!")
-                    self.iree_module_dict["vmfb"]["evict_kvcache_space"]()
+                    self.model["evict_kvcache_space"]()
                 device_inputs = [
                     ireert.asdevicearray(
-                        self.iree_module_dict["config"].device,
+                        self.runner.config.device,
                         token,
                     )
                 ]
-                token = self.iree_module_dict["vmfb"]["run_forward"](*device_inputs)
+                token = self.model["run_forward"](*device_inputs)
 
             total_time = time.time() - st_time
             history.append(format_out(token))
             self.prev_token_len = token_len + len(history)
-            res = self.tokenizer.decode(history, skip_special_tokens=True)
-            #prompt = append_bot_prompt(prompt, res)
-            yield res, total_time
+            yield self.tokenizer.decode(history, skip_special_tokens=True), total_time
 
             if format_out(token) == llm_model_map["llama2_7b"]["stop_token"]:
                 break
