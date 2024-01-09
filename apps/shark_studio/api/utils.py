@@ -136,33 +136,7 @@ def get_device_mapping(driver, key_combination=3):
         # mapping with full path
         device_map[f"{driver}://{device['path']}"] = get_output_value(device)
     return device_map
-
-
-def get_opt_flags(model, precision="fp16"):
-    iree_flags = []
-    # if len(cmd_opts.iree_vulkan_target_triple) > 0:
-    #     iree_flags.append(
-    #         f"-iree-vulkan-target-triple={cmd_opts.iree_vulkan_target_triple}"
-    #     )
-    # if "rocm" in cmd_opts.device:
-    #     from shark.iree_utils.gpu_utils import get_iree_rocm_args
-
-    #     rocm_args = get_iree_rocm_args()
-    #     iree_flags.extend(rocm_args)
-    # if cmd_opts.iree_constant_folding == False:
-    #     iree_flags.append("--iree-opt-const-expr-hoisting=False")
-    #     iree_flags.append(
-    #         "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
-    #     )
-    # if cmd_opts.data_tiling == False:
-    #     iree_flags.append("--iree-opt-data-tiling=False")
-
-    if "vae" not in model:
-        # Due to lack of support for multi-reduce, we always collapse reduction
-        # dims before dispatch formation right now.
-        iree_flags += ["--iree-flow-collapse-reduction-dims"]
-    return iree_flags
-
+    
 
 def map_device_to_name_path(device, key_combination=3):
     """Gives the appropriate device data (supported name/path) for user
