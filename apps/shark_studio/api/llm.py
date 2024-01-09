@@ -28,7 +28,19 @@ llm_model_map = {
         "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
     },
 }
+B_INST, E_INST = "[INST]", "[/INST]"
+B_SYS, E_SYS = "<s>", "</s>"
 
+def append_user_prompt(history, input_prompt):
+    user_prompt = f"{B_INST} {input_prompt} {E_INST}"
+    history += user_prompt
+    return history
+
+
+def append_bot_prompt(history, input_prompt):
+    user_prompt = f"{B_SYS} {input_prompt}{E_SYS} {E_SYS}"
+    history += user_prompt
+    return history
 
 class LanguageModel:
     def __init__(
@@ -36,17 +48,22 @@ class LanguageModel:
         model_name,
         hf_auth_token=None,
         device=None,
-        precision="fp32",
+        quantization="int4",
+        precision="",
         external_weights=None,
         use_system_prompt=True,
         streaming_llm=False,
     ):
         print(llm_model_map[model_name])
         self.hf_model_name = llm_model_map[model_name]["hf_model_name"]
-        self.tempfile_name = get_resource_path("llm.torch.tempfile")
-        self.vmfb_name = get_resource_path("llm.vmfb.tempfile")
-        self.device = device
-        self.precision = precision
+        self.device = device.split("=>")[-1].strip()
+        self.driver = self.device.split("://")[0]
+        print(f" Selected {self.driver} as device driver")
+        self.precision = "fp32" if "cpu" in self.driver else "fp16"
+        self.quantization = quantization
+        self.tempfile_name = get_resource_path(f"llm_{self.precision}_{self.quantization}.tempfile")
+        #TODO: Tag vmfb with target triple of device instead of HAL backend
+        self.vmfb_name = get_resource_path(f"llm_{self.precision}_{self.quantization}_{self.driver}.vmfb.tempfile")    
         self.safe_name = self.hf_model_name.strip("/").replace("/", "_")
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
@@ -70,7 +87,7 @@ class LanguageModel:
                 self.iree_module_dict["temp_file_to_unlink"],
             ) = load_vmfb_using_mmap(
                 self.vmfb_name,
-                device,
+                self.driver,
                 device_idx=0,
                 rt_flags=[],
                 external_weight_file=self.external_weight_file,
@@ -87,6 +104,8 @@ class LanguageModel:
                 compile_to="torch",
                 external_weights=external_weights,
                 external_weight_file=self.external_weight_file,
+                precision=self.precision,
+                quantization=self.quantization,
                 streaming_llm=self.streaming_llm,
             )
             with open(self.tempfile_name, "w+") as f:
@@ -104,6 +123,30 @@ class LanguageModel:
 
     def compile(self) -> None:
         # this comes with keys: "vmfb", "config", and "temp_file_to_unlink".
+        flags = [
+            "--iree-input-type=torch",
+            "--mlir-print-debuginfo",
+            "--mlir-print-op-on-diagnostic=false",
+            "--iree-llvmcpu-target-cpu-features=host",
+            "--iree-llvmcpu-target-triple=x86_64-linux-gnu",
+            "--iree-stream-resource-index-bits=64",
+            "--iree-vm-target-index-bits=64",
+            "--iree-codegen-check-ir-before-llvm-conversion=false",
+            "--iree-opt-const-expr-hoisting=False",
+        ]
+        if "cpu" in self.driver:
+            flags.extend(
+                [
+                "--iree-global-opt-enable-quantized-matmul-reassociation",
+                "--iree-llvmcpu-enable-ukernels=all"
+                ]
+            )
+        elif self.driver == "vulkan":
+            flags.extend(
+                [
+                    "--iree-stream-resource-max-allocation-size=4294967296"
+                ]
+            )
         self.iree_module_dict = get_iree_compiled_module(
             self.tempfile_name,
             device=self.device,
@@ -111,7 +154,7 @@ class LanguageModel:
             frontend="torch",
             external_weight_file=self.external_weight_file,
             write_to=self.vmfb_name,
-            extra_args=["--iree-global-opt-enable-quantized-matmul-reassociation"] if "cpu" in self.device else [],
+            extra_args=flags,
         )
         # TODO: delete the temp file
 

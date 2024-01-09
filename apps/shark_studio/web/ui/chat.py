@@ -201,7 +201,7 @@ with gr.Blocks(title="Chat") as chat_element:
         )
         precision = gr.Radio(
             label="Precision",
-            value="int4",
+            value="fp32",
             choices=[
                 # "int4",
                 # "int8",
