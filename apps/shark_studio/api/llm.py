@@ -249,8 +249,8 @@ class LanguageModel:
             history.append(format_out(token))
             self.prev_token_len = token_len + len(history)
             res = self.tokenizer.decode(history, skip_special_tokens=True)
-            prompt = append_bot_prompt(prompt, res)
-            yield prompt, total_time
+            #prompt = append_bot_prompt(prompt, res)
+            yield res, total_time
 
             if format_out(token) == llm_model_map["llama2_7b"]["stop_token"]:
                 break
@@ -258,7 +258,7 @@ class LanguageModel:
         for i in range(len(history)):
             if type(history[i]) != int:
                 history[i] = int(history[i])
-        result_output = self.tokenizer.decode(history)
+        result_output = self.tokenizer.decode(history, skip_special_tokens=True)
         self.global_iter += 1
         return result_output, total_time
 
