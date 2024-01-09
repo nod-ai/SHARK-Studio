@@ -95,7 +95,7 @@ class LanguageModel:
                 gen_external_params(
                     hf_model_name=self.hf_model_name,
                     quantization=self.quantization,
-                    weight_path=self.external_weight_file,
+                    weight_path="",
                     hf_auth_token=hf_auth_token,
                     precision=self.precision,
                 )
@@ -200,6 +200,8 @@ class LanguageModel:
 
     def chat(self, prompt):
         prompt = self.sanitize_prompt(prompt)
+        user_prompt = input("User prompt: ")
+        prompt = append_user_prompt(prompt, user_prompt)
 
         input_tensor = self.tokenizer(prompt, return_tensors="pt").input_ids
 
@@ -236,7 +238,7 @@ class LanguageModel:
             else:
                 if self.streaming_llm and self.iree_module_dict["vmfb"]["get_seq_step"]() > 600:
                     print("Evicting cache space!")
-                    self.model["evict_kvcache_space"]()
+                    self.iree_module_dict["vmfb"]["evict_kvcache_space"]()
                 device_inputs = [
                     ireert.asdevicearray(
                         self.iree_module_dict["config"].device,
@@ -248,7 +250,9 @@ class LanguageModel:
             total_time = time.time() - st_time
             history.append(format_out(token))
             self.prev_token_len = token_len + len(history)
-            yield self.tokenizer.decode(history), total_time
+            res = self.tokenizer.decode(history, skip_special_tokens=True)
+            prompt = append_bot_prompt(prompt, res)
+            yield prompt, total_time
 
             if format_out(token) == llm_model_map["llama2_7b"]["stop_token"]:
                 break
