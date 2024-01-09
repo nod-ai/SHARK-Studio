@@ -11,8 +11,8 @@ PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.5"
 backend_deps = []
 if "NO_BACKEND" in os.environ.keys():
     backend_deps = [
-        "iree-compiler==20231212.*",
-        "iree-runtime==20231212.*",
+        "iree-compiler==20231206.*",
+        "iree-runtime==20231206.*",
     ]
 
 setup(
