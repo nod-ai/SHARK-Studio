@@ -41,6 +41,7 @@ def chat_fn(
     precision,
     download_vmfb,
     config_file,
+    streaming_llm,
     cli=False,
 ):
     global language_model
@@ -52,8 +53,8 @@ def chat_fn(
             device=device,
             precision=precision,
             external_weights="safetensors",
-            external_weight_file="llama2_7b.safetensors",
             use_system_prompt=prompt_prefix,
+            streaming_llm=streaming_llm,
         )
         history[-1][-1] = "Getting the model ready... Done"
         yield history, ""
@@ -213,12 +214,18 @@ with gr.Blocks(title="Chat") as chat_element:
         with gr.Column():
             download_vmfb = gr.Checkbox(
                 label="Download vmfb from Shark tank if available",
+                value=False,
+                interactive=True,
+                visible=False,
+            )
+            streaming_llm = gr.Checkbox(
+                label="Run in streaming mode (requires recompilation)",
                 value=True,
                 interactive=True,
             )
             prompt_prefix = gr.Checkbox(
                 label="Add System Prompt",
-                value=False,
+                value=True,
                 interactive=True,
             )
 
@@ -241,8 +248,8 @@ with gr.Blocks(title="Chat") as chat_element:
     with gr.Row(visible=False):
         with gr.Group():
             config_file = gr.File(label="Upload sharding configuration", visible=False)
-            json_view_button = gr.Button(label="View as JSON", visible=False)
-        json_view = gr.JSON(interactive=True, visible=False)
+            json_view_button = gr.Button("View as JSON", visible=False)
+        json_view = gr.JSON(visible=False)
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
@@ -262,6 +269,7 @@ with gr.Blocks(title="Chat") as chat_element:
             precision,
             download_vmfb,
             config_file,
+            streaming_llm,
         ],
         outputs=[chatbot, tokens_time],
         show_progress=False,
@@ -283,6 +291,7 @@ with gr.Blocks(title="Chat") as chat_element:
             precision,
             download_vmfb,
             config_file,
+            streaming_llm,
         ],
         outputs=[chatbot, tokens_time],
         show_progress=False,

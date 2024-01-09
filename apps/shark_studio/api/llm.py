@@ -4,7 +4,7 @@ from shark.iree_utils.compile_utils import (
     get_iree_compiled_module,
     load_vmfb_using_mmap,
 )
-from apps.shark_studio.api.utils import get_resource_path
+from apps.shark_studio.web.utils import get_resource_path
 import iree.runtime as ireert
 from itertools import chain
 import gc
@@ -39,6 +39,7 @@ class LanguageModel:
         precision="fp32",
         external_weights=None,
         use_system_prompt=True,
+        streaming_llm=False,
     ):
         print(llm_model_map[model_name])
         self.hf_model_name = llm_model_map[model_name]["hf_model_name"]
@@ -50,12 +51,15 @@ class LanguageModel:
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
         self.external_weight_file = None
+        self.streaming_llm = streaming_llm
         if external_weights is not None:
             self.external_weight_file = get_resource_path(
                 self.safe_name + "." + external_weights
             )
         self.use_system_prompt = use_system_prompt
         self.global_iter = 0
+        self.prev_token_len = 0
+
         if os.path.exists(self.vmfb_name) and (
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
@@ -83,6 +87,7 @@ class LanguageModel:
                 compile_to="torch",
                 external_weights=external_weights,
                 external_weight_file=self.external_weight_file,
+                streaming_llm=self.streaming_llm,
             )
             with open(self.tempfile_name, "w+") as f:
                 f.write(self.torch_ir)
@@ -106,7 +111,7 @@ class LanguageModel:
             frontend="torch",
             external_weight_file=self.external_weight_file,
             write_to=self.vmfb_name,
-            extra_args=["--iree-global-opt-enable-quantized-matmul-reassociation"],
+            extra_args=["--iree-global-opt-enable-quantized-matmul-reassociation"] if "cpu" in self.device else [],
         )
         # TODO: delete the temp file
 
@@ -129,20 +134,40 @@ class LanguageModel:
 
         input_tensor = self.tokenizer(prompt, return_tensors="pt").input_ids
 
+        if self.streaming_llm:
+            token_slice = max(self.prev_token_len - 1, 0)
+            input_tensor = input_tensor[:, token_slice:]
+
         def format_out(results):
             return torch.tensor(results.to_host()[0][0])
 
         history = []
         for iter in range(self.max_tokens):
+            if self.streaming_llm and self.iree_module_dict["vmfb"]["get_seq_step"]() > 600:
+                print("Evicting cache space!")
+                self.iree_module_dict["vmfb"]["evict_kvcache_space"]()
             st_time = time.time()
-            if iter == 0:
+            token_len = input_tensor.shape[-1]
+            if iter == 0 and not self.streaming_llm:
                 device_inputs = [
                     ireert.asdevicearray(
                         self.iree_module_dict["config"].device, input_tensor
                     )
                 ]
                 token = self.iree_module_dict["vmfb"]["run_initialize"](*device_inputs)
+                token_len += 1
+            elif iter == 0:
+                device_inputs = [
+                    ireert.asdevicearray(
+                        self.iree_module_dict["config"].device, input_tensor
+                    )
+                ]
+                token = self.iree_module_dict["vmfb"]["run_cached_initialize"](*device_inputs)
+                token_len += 1
             else:
+                if self.streaming_llm and self.iree_module_dict["vmfb"]["get_seq_step"]() > 600:
+                    print("Evicting cache space!")
+                    self.model["evict_kvcache_space"]()
                 device_inputs = [
                     ireert.asdevicearray(
                         self.iree_module_dict["config"].device,
@@ -153,6 +178,7 @@ class LanguageModel:
 
             total_time = time.time() - st_time
             history.append(format_out(token))
+            self.prev_token_len = token_len + len(history)
             yield self.tokenizer.decode(history), total_time
 
             if format_out(token) == llm_model_map["llama2_7b"]["stop_token"]:
