@@ -39,11 +39,7 @@ def get_iree_device_args(device, extra_args=[]):
         u_kernel_flag = ["--iree-llvmcpu-enable-ukernels"]
         stack_size_flag = ["--iree-llvmcpu-stack-allocation-limit=256000"]
 
-        return (
-            get_iree_cpu_args()
-            + u_kernel_flag
-            + stack_size_flag
-        )
+        return get_iree_cpu_args() + u_kernel_flag + stack_size_flag
     if device == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
 
