@@ -12,7 +12,7 @@ backend_deps = []
 if "NO_BACKEND" in os.environ.keys():
     backend_deps = [
         "iree-compiler==20231212.*",
-        "iree-runtime>=20231212.*",
+        "iree-runtime==20231212.*",
     ]
 
 setup(
