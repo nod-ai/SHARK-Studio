@@ -140,22 +140,22 @@ def get_device_mapping(driver, key_combination=3):
 
 def get_opt_flags(model, precision="fp16"):
     iree_flags = []
-    if len(cmd_opts.iree_vulkan_target_triple) > 0:
-        iree_flags.append(
-            f"-iree-vulkan-target-triple={cmd_opts.iree_vulkan_target_triple}"
-        )
-    if "rocm" in cmd_opts.device:
-        from shark.iree_utils.gpu_utils import get_iree_rocm_args
+    # if len(cmd_opts.iree_vulkan_target_triple) > 0:
+    #     iree_flags.append(
+    #         f"-iree-vulkan-target-triple={cmd_opts.iree_vulkan_target_triple}"
+    #     )
+    # if "rocm" in cmd_opts.device:
+    #     from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
-        rocm_args = get_iree_rocm_args()
-        iree_flags.extend(rocm_args)
-    if cmd_opts.iree_constant_folding == False:
-        iree_flags.append("--iree-opt-const-expr-hoisting=False")
-        iree_flags.append(
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
-        )
-    if cmd_opts.data_tiling == False:
-        iree_flags.append("--iree-opt-data-tiling=False")
+    #     rocm_args = get_iree_rocm_args()
+    #     iree_flags.extend(rocm_args)
+    # if cmd_opts.iree_constant_folding == False:
+    #     iree_flags.append("--iree-opt-const-expr-hoisting=False")
+    #     iree_flags.append(
+    #         "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
+    #     )
+    # if cmd_opts.data_tiling == False:
+    #     iree_flags.append("--iree-opt-data-tiling=False")
 
     if "vae" not in model:
         # Due to lack of support for multi-reduce, we always collapse reduction

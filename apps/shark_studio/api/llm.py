@@ -1,4 +1,5 @@
 from turbine_models.custom_models import stateless_llama
+from turbine_models.gen_external_params.gen_external_params import gen_external_params
 import time
 from shark.iree_utils.compile_utils import (
     get_iree_compiled_module,
@@ -28,6 +29,7 @@ llm_model_map = {
         "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
     },
 }
+
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<s>", "</s>"
 
@@ -35,7 +37,6 @@ def append_user_prompt(history, input_prompt):
     user_prompt = f"{B_INST} {input_prompt} {E_INST}"
     history += user_prompt
     return history
-
 
 def append_bot_prompt(history, input_prompt):
     user_prompt = f"{B_SYS} {input_prompt}{E_SYS} {E_SYS}"
@@ -58,12 +59,19 @@ class LanguageModel:
         self.hf_model_name = llm_model_map[model_name]["hf_model_name"]
         self.device = device.split("=>")[-1].strip()
         self.driver = self.device.split("://")[0]
-        print(f" Selected {self.driver} as device driver")
-        self.precision = "fp32" if "cpu" in self.driver else "fp16"
+        print(f"Selected {self.driver} as device driver")
+        self.precision = "f32" if "cpu" in self.driver else "f16"
         self.quantization = quantization
-        self.tempfile_name = get_resource_path(f"llm_{self.precision}_{self.quantization}.tempfile")
+        #TODO: find a programmatic solution for model arch spec instead of hardcoding llama2
+        self.file_spec = "_".join([
+            "llama2",
+            "streaming" if streaming_llm else "chat",
+            self.precision,
+            self.quantization,
+        ])
+        self.tempfile_name = get_resource_path(f"{self.file_spec}.tempfile")
         #TODO: Tag vmfb with target triple of device instead of HAL backend
-        self.vmfb_name = get_resource_path(f"llm_{self.precision}_{self.quantization}_{self.driver}.vmfb.tempfile")    
+        self.vmfb_name = get_resource_path(f"{self.file_spec}_{self.driver}.vmfb.tempfile")    
         self.safe_name = self.hf_model_name.strip("/").replace("/", "_")
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
@@ -71,12 +79,30 @@ class LanguageModel:
         self.streaming_llm = streaming_llm
         if external_weights is not None:
             self.external_weight_file = get_resource_path(
-                self.safe_name + "." + external_weights
+                self.safe_name
+                + "_" + self.precision
+                + "_" + self.quantization
+                + "." + external_weights
             )
         self.use_system_prompt = use_system_prompt
         self.global_iter = 0
         self.prev_token_len = 0
-
+        if self.external_weight_file is not None:
+            if not os.path.exists(self.external_weight_file):
+                print(
+                    f"External weight file {self.external_weight_file} does not exist. Generating..."
+                )
+                gen_external_params(
+                    hf_model_name=self.hf_model_name,
+                    quantization=self.quantization,
+                    weight_path=self.external_weight_file,
+                    hf_auth_token=hf_auth_token,
+                    precision=self.precision,
+                )
+            else:
+                print(
+                    f"External weight file {self.external_weight_file} found for {self.vmfb_name}"
+                )
         if os.path.exists(self.vmfb_name) and (
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
