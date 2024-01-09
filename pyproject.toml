@@ -5,7 +5,7 @@ requires = [
     "packaging",
 
     "numpy>=1.22.4",
-    "torch-mlir>=20230620.875",
+    "torch-mlir==20231210.*",
     "iree-compiler==20231212.*",
     "iree-runtime==20231212.*",
 ]
