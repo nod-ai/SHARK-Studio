@@ -72,7 +72,7 @@ class LanguageModel:
         self.tempfile_name = get_resource_path(f"{self.file_spec}.tempfile")
         #TODO: Tag vmfb with target triple of device instead of HAL backend
         self.vmfb_name = get_resource_path(f"{self.file_spec}_{self.driver}.vmfb.tempfile")    
-        self.safe_name = self.hf_model_name.strip("/").replace("/", "_")
+        self.safe_name = self.hf_model_name.split("/")[-1].replace("-", "_")
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
         self.external_weight_file = None
@@ -95,7 +95,7 @@ class LanguageModel:
                 gen_external_params(
                     hf_model_name=self.hf_model_name,
                     quantization=self.quantization,
-                    weight_path="",
+                    weight_path=self.external_weight_file,
                     hf_auth_token=hf_auth_token,
                     precision=self.precision,
                 )
@@ -200,8 +200,6 @@ class LanguageModel:
 
     def chat(self, prompt):
         prompt = self.sanitize_prompt(prompt)
-        user_prompt = input("User prompt: ")
-        prompt = append_user_prompt(prompt, user_prompt)
 
         input_tensor = self.tokenizer(prompt, return_tensors="pt").input_ids
 

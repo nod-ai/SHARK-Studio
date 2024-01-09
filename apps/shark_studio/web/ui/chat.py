@@ -13,9 +13,9 @@ from apps.shark_studio.api.llm import (
     LanguageModel,
 )
 
-
 def user(message, history):
     # Append the user's message to the conversation history
+    #message = f"{B_INST} {message} {E_INST}"
     return "", history + [[message, ""]]
 
 
