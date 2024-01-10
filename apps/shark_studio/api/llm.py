@@ -33,6 +33,9 @@ llm_model_map = {
 
 B_INST, E_INST = "[INST]", "[/INST]"
 B_SYS, E_SYS = "<s>", "</s>"
+DEFAULT_CHAT_SYS_PROMPT = """<s>[INST] <<SYS>>
+Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n <</SYS>>\n\n
+"""
 
 def append_user_prompt(history, input_prompt):
     user_prompt = f"{B_INST} {input_prompt} {E_INST}"
@@ -88,6 +91,7 @@ class LanguageModel:
         self.use_system_prompt = use_system_prompt
         self.global_iter = 0
         self.prev_token_len = 0
+        self.first_input=True
         if self.external_weight_file is not None:
             if not os.path.exists(self.external_weight_file):
                 print(
@@ -193,7 +197,6 @@ class LanguageModel:
         # TODO: delete the temp file
 
     def sanitize_prompt(self, prompt):
-        print(prompt)
         if isinstance(prompt, list):
             prompt = list(chain.from_iterable(prompt))
             prompt = " ".join([x for x in prompt if isinstance(x, str)])
@@ -201,70 +204,63 @@ class LanguageModel:
         prompt = prompt.replace("\t", " ")
         prompt = prompt.replace("\r", " ")
         if self.use_system_prompt and self.global_iter == 0:
-            prompt = llm_model_map["llama2_7b"]["system_prompt"] + prompt
-        prompt += " [/INST]"
+            prompt = append_user_prompt(DEFAULT_CHAT_SYS_PROMPT, prompt)
         print(prompt)
         return prompt
 
     def chat(self, prompt):
         prompt = self.sanitize_prompt(prompt)
+        print(f"sanitized: {prompt}")
 
         input_tensor = self.tokenizer(prompt, return_tensors="pt").input_ids
-
-        if self.streaming_llm:
-            token_slice = max(self.prev_token_len - 1, 0)
-            input_tensor = input_tensor[:, token_slice:]
 
         def format_out(results):
             return torch.tensor(results.to_host()[0][0])
 
         history = []
         for iter in range(self.max_tokens):
+            if self.streaming_llm:
+                token_slice = max(self.prev_token_len - 1, 0)
+                input_tensor = input_tensor[:, token_slice:]
             if self.streaming_llm and self.model["get_seq_step"]() > 600:
                 print("Evicting cache space!")
                 self.model["evict_kvcache_space"]()
-            st_time = time.time()
             token_len = input_tensor.shape[-1]
-            if iter == 0 and not self.streaming_llm:
-                device_inputs = [
+            device_inputs = [
                     ireert.asdevicearray(
                         self.runner.config.device, input_tensor
                     )
                 ]
+            if self.first_input or not self.streaming_llm:
+                st_time = time.time()
                 token = self.model["run_initialize"](*device_inputs)
+                total_time = time.time() - st_time
                 token_len += 1
-            elif iter == 0:
-                device_inputs = [
-                    ireert.asdevicearray(
-                        self.runner.config.device, input_tensor
-                    )
-                ]
-                token = self.model["run_cached_initialize"](*device_inputs)
-                token_len += 1
+                self.first_input=False
             else:
-                if self.streaming_llm and self.model["get_seq_step"]() > 600:
-                    print("Evicting cache space!")
-                    self.model["evict_kvcache_space"]()
-                device_inputs = [
-                    ireert.asdevicearray(
-                        self.runner.config.device,
-                        token,
-                    )
-                ]
-                token = self.model["run_forward"](*device_inputs)
-
-            total_time = time.time() - st_time
-            history.append(format_out(token))
-            self.prev_token_len = token_len + len(history)
-            yield self.tokenizer.decode(history, skip_special_tokens=True), total_time
-
+                st_time = time.time()
+                token = self.model["run_cached_initialize"](*device_inputs)
+                total_time = time.time() - st_time
+                token_len += 1
+            
+                
+                while format_out(token) != llm_model_map["llama2_7b"]["stop_token"]:
+                    dec_time=time.time()
+                    if self.streaming_llm and self.model["get_seq_step"]() > 600:
+                        print("Evicting cache space!")
+                        self.model["evict_kvcache_space"]()
+                    token = self.model["run_forward"](token)
+                    history.append(format_out(token))
+                    total_time = time.time() - dec_time
+                    self.prev_token_len = token_len + len(history)
+                    yield self.tokenizer.decode(history), total_time
             if format_out(token) == llm_model_map["llama2_7b"]["stop_token"]:
                 break
 
         for i in range(len(history)):
             if type(history[i]) != int:
                 history[i] = int(history[i])
-        result_output = self.tokenizer.decode(history, skip_special_tokens=True)
+        result_output = append_bot_prompt(history, self.tokenizer.decode(history))
         self.global_iter += 1
         return result_output, total_time
 

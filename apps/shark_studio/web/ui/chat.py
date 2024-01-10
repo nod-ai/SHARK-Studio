@@ -13,17 +13,15 @@ from apps.shark_studio.api.llm import (
     LanguageModel,
 )
 
+
 def user(message, history):
+    if message == "":
+        message = "Hello!"
     # Append the user's message to the conversation history
-    #message = f"{B_INST} {message} {E_INST}"
     return "", history + [[message, ""]]
 
 
 language_model = None
-
-
-def create_prompt(model_name, history, prompt_prefix):
-    return ""
 
 
 def get_default_config():
@@ -45,6 +43,9 @@ def chat_fn(
     cli=False,
 ):
     global language_model
+    if streaming_llm and prompt_prefix=="Clear":
+        language_model = None
+        return "Clearing history...", ""
     if language_model is None:
         history[-1][-1] = "Getting the model ready..."
         yield history, ""
@@ -158,28 +159,28 @@ with gr.Blocks(title="Chat") as chat_element:
         json_view_button.click(
             fn=view_json_file, inputs=[config_file], outputs=[json_view]
         )
-    # submit_event = msg.submit(
-    #     fn=user,
-    #     inputs=[msg, chatbot],
-    #     outputs=[msg, chatbot],
-    #     show_progress=False,
-    #     queue=False,
-    # ).then(
-    #     fn=chat_fn,
-    #     inputs=[
-    #         prompt_prefix,
-    #         chatbot,
-    #         model,
-    #         device,
-    #         precision,
-    #         download_vmfb,
-    #         config_file,
-    #         streaming_llm,
-    #     ],
-    #     outputs=[chatbot, tokens_time],
-    #     show_progress=False,
-    #     queue=True,
-    # )
+    submit_event = msg.submit(
+        fn=user,
+        inputs=[msg, chatbot],
+        outputs=[msg, chatbot],
+        show_progress=False,
+        queue=False,
+    ).then(
+        fn=chat_fn,
+        inputs=[
+            prompt_prefix,
+            chatbot,
+            model,
+            device,
+            precision,
+            download_vmfb,
+            config_file,
+            streaming_llm,
+        ],
+        outputs=[chatbot, tokens_time],
+        show_progress=False,
+        queue=True,
+    )
     submit_click_event = submit.click(
         fn=user,
         inputs=[msg, chatbot],
@@ -209,4 +210,19 @@ with gr.Blocks(title="Chat") as chat_element:
         cancels=[submit_click_event], #[submit_event, submit_click_event],
         queue=False,
     )
-    clear.click(lambda: None, None, [chatbot], queue=False)
+    clear.click(
+        fn=chat_fn,
+        inputs=[
+            clear,
+            chatbot,
+            model,
+            device,
+            precision,
+            download_vmfb,
+            config_file,
+            streaming_llm,
+        ],
+        outputs=[chatbot, tokens_time],
+        show_progress=False,
+        queue=True,
+    ).then(lambda: None, None, [chatbot], queue=False)
