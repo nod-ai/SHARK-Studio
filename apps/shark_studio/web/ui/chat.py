@@ -212,7 +212,7 @@ with gr.Blocks(title="Chat") as chat_element:
         fn=None,
         inputs=None,
         outputs=None,
-        cancels=[submit_click_event], #[submit_event, submit_click_event],
+        cancels=[submit_event, submit_click_event],
         queue=False,
     )
     clear.click(
