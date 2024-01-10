@@ -32,18 +32,13 @@ llm_model_map = {
 }
 
 B_INST, E_INST = "[INST]", "[/INST]"
-B_SYS, E_SYS = "<s>", "</s>"
+
 DEFAULT_CHAT_SYS_PROMPT = """<s>[INST] <<SYS>>
 Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n <</SYS>>\n\n
 """
 
 def append_user_prompt(history, input_prompt):
     user_prompt = f"{B_INST} {input_prompt} {E_INST}"
-    history += user_prompt
-    return history
-
-def append_bot_prompt(history, input_prompt):
-    user_prompt = f"{B_SYS} {input_prompt}{E_SYS} {E_SYS}"
     history += user_prompt
     return history
 
@@ -210,7 +205,6 @@ class LanguageModel:
 
     def chat(self, prompt):
         prompt = self.sanitize_prompt(prompt)
-        print(f"sanitized: {prompt}")
 
         input_tensor = self.tokenizer(prompt, return_tensors="pt").input_ids
 
@@ -243,24 +237,26 @@ class LanguageModel:
                 total_time = time.time() - st_time
                 token_len += 1
             
-                
-                while format_out(token) != llm_model_map["llama2_7b"]["stop_token"]:
-                    dec_time=time.time()
-                    if self.streaming_llm and self.model["get_seq_step"]() > 600:
-                        print("Evicting cache space!")
-                        self.model["evict_kvcache_space"]()
-                    token = self.model["run_forward"](token)
-                    history.append(format_out(token))
-                    total_time = time.time() - dec_time
-                    self.prev_token_len = token_len + len(history)
-                    yield self.tokenizer.decode(history), total_time
+            history.append(format_out(token))
+            while format_out(token) != llm_model_map["llama2_7b"]["stop_token"]:
+                dec_time=time.time()
+                if self.streaming_llm and self.model["get_seq_step"]() > 600:
+                    print("Evicting cache space!")
+                    self.model["evict_kvcache_space"]()
+                token = self.model["run_forward"](token)
+                history.append(format_out(token))
+                total_time = time.time() - dec_time
+                yield self.tokenizer.decode(history), total_time
+
+            self.prev_token_len = token_len + len(history)
+
             if format_out(token) == llm_model_map["llama2_7b"]["stop_token"]:
                 break
 
         for i in range(len(history)):
             if type(history[i]) != int:
                 history[i] = int(history[i])
-        result_output = append_bot_prompt(history, self.tokenizer.decode(history))
+        result_output = self.tokenizer.decode(history)
         self.global_iter += 1
         return result_output, total_time
 

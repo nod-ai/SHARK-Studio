@@ -13,6 +13,7 @@ from apps.shark_studio.api.llm import (
     LanguageModel,
 )
 
+B_SYS, E_SYS = "<s>", "</s>"
 
 def user(message, history):
     if message == "":
@@ -20,6 +21,10 @@ def user(message, history):
     # Append the user's message to the conversation history
     return "", history + [[message, ""]]
 
+def append_bot_prompt(history, input_prompt):
+    user_prompt = f"{B_SYS} {input_prompt}{E_SYS} {E_SYS}"
+    history += user_prompt
+    return history
 
 language_model = None
 
@@ -65,7 +70,7 @@ def chat_fn(
     prefill_time = 0
     is_first = True
     for text, exec_time in language_model.chat(history):
-        history[-1][-1] = text
+        history[-1][-1] = f"{text}{E_SYS} {E_SYS}"
         if is_first:
             prefill_time = exec_time
             is_first = False
