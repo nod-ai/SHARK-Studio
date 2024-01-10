@@ -2076,8 +2076,8 @@ class UnshardedVicuna(VicunaBase):
             f"{'://' + str(self.device_id) if self.device_id is not None else ''}"
         )
         if "cpu" in self.device:
-            self.extra_args.extend("--iree-llvmcpu-enable-quantized-matmul-reassociation")
-            self.extra_args.extend("--iree-global-opt-enable-quantized-matmul-reassociation")
+            self.extra_args.extend(["--iree-llvmcpu-enable-quantized-matmul-reassociation"])
+            self.extra_args.extend(["--iree-global-opt-enable-quantized-matmul-reassociation"])
 
         shark_module = SharkInference(
             mlir_module=combined_module,
