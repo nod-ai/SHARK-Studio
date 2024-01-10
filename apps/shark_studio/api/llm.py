@@ -32,10 +32,16 @@ llm_model_map = {
 }
 
 B_INST, E_INST = "[INST]", "[/INST]"
+B_SYS, E_SYS = "<s>", "</s>"
 
 DEFAULT_CHAT_SYS_PROMPT = """<s>[INST] <<SYS>>
 Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n <</SYS>>\n\n
 """
+
+def append_bot_prompt(history, input_prompt):
+    user_prompt = f" {input_prompt} {E_SYS}"
+    history += user_prompt
+    return history
 
 def append_user_prompt(history, input_prompt):
     user_prompt = f"{B_INST} {input_prompt} {E_INST}"
@@ -200,8 +206,11 @@ class LanguageModel:
         prompt = prompt.replace("\r", " ")
         if self.use_system_prompt and self.global_iter == 0:
             prompt = append_user_prompt(DEFAULT_CHAT_SYS_PROMPT, prompt)
-        print(prompt)
-        return prompt
+            print(prompt)
+            return prompt
+        else:
+            print(prompt)
+            return f"{B_INST} {prompt} {E_INST}"
 
     def chat(self, prompt):
         prompt = self.sanitize_prompt(prompt)
