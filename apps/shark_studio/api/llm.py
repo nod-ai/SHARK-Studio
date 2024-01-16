@@ -38,13 +38,6 @@ DEFAULT_CHAT_SYS_PROMPT = """<s>[INST] <<SYS>>
 Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n <</SYS>>\n\n
 """
 
-
-def append_bot_prompt(history, input_prompt):
-    user_prompt = f" {input_prompt} {E_SYS}"
-    history += user_prompt
-    return history
-
-
 def append_user_prompt(history, input_prompt):
     user_prompt = f"{B_INST} {input_prompt} {E_INST}"
     history += user_prompt
