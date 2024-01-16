@@ -14,7 +14,7 @@ class LLMAPITest(unittest.TestCase):
         lm = LanguageModel(
             "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
             hf_auth_token=None,
-            device="local-task",
+            device="cpu",
             external_weights="safetensors",
             precision="fp32",
             quantization="int4",
