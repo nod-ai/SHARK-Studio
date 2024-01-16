@@ -686,6 +686,7 @@ def import_with_fx(
         torch.ops.aten._scaled_dot_product_flash_attention.default,
         torch.ops.aten.index_add,
         torch.ops.aten.index_add_,
+        torch.ops.aten._scaled_dot_product_flash_attention_for_cpu,
     ]
     if precision in ["int4", "int8"] and not is_gptq:
         from brevitas_examples.llm.llm_quant.export import (
