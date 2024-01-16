@@ -14,8 +14,10 @@ class LLMAPITest(unittest.TestCase):
         lm = LanguageModel(
             "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
             hf_auth_token=None,
-            device="cpu-task",
+            device="local-task",
             external_weights="safetensors",
+            precision="fp32",
+            quantization="int4"
         )
         count = 0
         for msg, _ in lm.chat("hi, what are you?"):
@@ -24,8 +26,8 @@ class LLMAPITest(unittest.TestCase):
                 count += 1
                 continue
             assert (
-                msg.strip(" ") == "Hello"
-            ), f"LLM API failed to return correct response, expected 'Hello', received {msg}"
+                msg.strip(" ") == "Hello!"
+            ), f"LLM API failed to return correct response, expected 'Hello!', received {msg}"
             break
 
 

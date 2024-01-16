@@ -62,31 +62,30 @@ class LanguageModel:
     ):
         print(llm_model_map[model_name])
         self.hf_model_name = llm_model_map[model_name]["hf_model_name"]
-        self.device = device.split("=>")[-1].strip()
-        self.driver = self.device.split("://")[0]
-        print(f"Selected {self.driver} as device driver")
+        self.device = device.split("=>")[-1].strip() if "cpu" not in device else "local-task"
+        self.driver = self.device.split("://")[0] if not any(x in self.device for x in ["cpu", "local-task"]) else "llvm-cpu"
+        print(f"Selected {self.driver} as IREE target backend.")
         self.precision = "f32" if "cpu" in self.driver else "f16"
         self.quantization = quantization
+        self.safe_name = self.hf_model_name.replace("/","_").replace("-", "_")
         #TODO: find a programmatic solution for model arch spec instead of hardcoding llama2
         self.file_spec = "_".join([
-            "llama2",
-            "streaming" if streaming_llm else "chat",
+            self.safe_name,
             self.precision,
             self.quantization,
         ])
+        if streaming_llm:
+            self.file_spec += "_streaming"
         self.tempfile_name = get_resource_path(f"{self.file_spec}.tempfile")
         #TODO: Tag vmfb with target triple of device instead of HAL backend
         self.vmfb_name = get_resource_path(f"{self.file_spec}_{self.driver}.vmfb.tempfile")    
-        self.safe_name = self.hf_model_name.split("/")[-1].replace("-", "_")
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
         self.external_weight_file = None
         self.streaming_llm = streaming_llm
         if external_weights is not None:
             self.external_weight_file = get_resource_path(
-                self.safe_name
-                + "_" + self.precision
-                + "_" + self.quantization
+                self.file_spec
                 + "." + external_weights
             )
         self.use_system_prompt = use_system_prompt
@@ -113,7 +112,7 @@ class LanguageModel:
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
             self.runner = vmfbRunner(
-                device = self.driver,
+                device = self.device,
                 vmfb_path=self.vmfb_name,
                 external_weight_path=self.external_weight_file,
             )
@@ -132,7 +131,6 @@ class LanguageModel:
                 hf_auth_token,
                 compile_to="torch",
                 external_weights=external_weights,
-                external_weight_file=self.external_weight_file,
                 precision=self.precision,
                 quantization=self.quantization,
                 streaming_llm=self.streaming_llm,
