@@ -17,7 +17,7 @@ class LLMAPITest(unittest.TestCase):
             device="local-task",
             external_weights="safetensors",
             precision="fp32",
-            quantization="int4"
+            quantization="int4",
         )
         count = 0
         for msg, _ in lm.chat("hi, what are you?"):

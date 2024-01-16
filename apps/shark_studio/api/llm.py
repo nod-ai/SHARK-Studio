@@ -38,15 +38,18 @@ DEFAULT_CHAT_SYS_PROMPT = """<s>[INST] <<SYS>>
 Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.\n <</SYS>>\n\n
 """
 
+
 def append_bot_prompt(history, input_prompt):
     user_prompt = f" {input_prompt} {E_SYS}"
     history += user_prompt
     return history
 
+
 def append_user_prompt(history, input_prompt):
     user_prompt = f"{B_INST} {input_prompt} {E_INST}"
     history += user_prompt
     return history
+
 
 class LanguageModel:
     def __init__(
@@ -62,36 +65,45 @@ class LanguageModel:
     ):
         print(llm_model_map[model_name])
         self.hf_model_name = llm_model_map[model_name]["hf_model_name"]
-        self.device = device.split("=>")[-1].strip() if "cpu" not in device else "local-task"
-        self.driver = self.device.split("://")[0] if not any(x in self.device for x in ["cpu", "local-task"]) else "llvm-cpu"
+        self.device = (
+            device.split("=>")[-1].strip() if "cpu" not in device else "local-task"
+        )
+        self.driver = (
+            self.device.split("://")[0]
+            if not any(x in self.device for x in ["cpu", "local-task"])
+            else "llvm-cpu"
+        )
         print(f"Selected {self.driver} as IREE target backend.")
         self.precision = "f32" if "cpu" in self.driver else "f16"
         self.quantization = quantization
-        self.safe_name = self.hf_model_name.replace("/","_").replace("-", "_")
-        #TODO: find a programmatic solution for model arch spec instead of hardcoding llama2
-        self.file_spec = "_".join([
-            self.safe_name,
-            self.precision,
-            self.quantization,
-        ])
+        self.safe_name = self.hf_model_name.replace("/", "_").replace("-", "_")
+        # TODO: find a programmatic solution for model arch spec instead of hardcoding llama2
+        self.file_spec = "_".join(
+            [
+                self.safe_name,
+                self.precision,
+                self.quantization,
+            ]
+        )
         if streaming_llm:
             self.file_spec += "_streaming"
         self.tempfile_name = get_resource_path(f"{self.file_spec}.tempfile")
-        #TODO: Tag vmfb with target triple of device instead of HAL backend
-        self.vmfb_name = get_resource_path(f"{self.file_spec}_{self.driver}.vmfb.tempfile")    
+        # TODO: Tag vmfb with target triple of device instead of HAL backend
+        self.vmfb_name = get_resource_path(
+            f"{self.file_spec}_{self.driver}.vmfb.tempfile"
+        )
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
         self.external_weight_file = None
         self.streaming_llm = streaming_llm
         if external_weights is not None:
             self.external_weight_file = get_resource_path(
-                self.file_spec
-                + "." + external_weights
+                self.file_spec + "." + external_weights
             )
         self.use_system_prompt = use_system_prompt
         self.global_iter = 0
         self.prev_token_len = 0
-        self.first_input=True
+        self.first_input = True
         if self.external_weight_file is not None:
             if not os.path.exists(self.external_weight_file):
                 print(
@@ -112,7 +124,7 @@ class LanguageModel:
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
             self.runner = vmfbRunner(
-                device = self.device,
+                device=self.device,
                 vmfb_path=self.vmfb_name,
                 external_weight_path=self.external_weight_file,
             )
@@ -163,16 +175,12 @@ class LanguageModel:
         if "cpu" in self.driver:
             flags.extend(
                 [
-                "--iree-global-opt-enable-quantized-matmul-reassociation",
-                "--iree-llvmcpu-enable-ukernels=all"
+                    "--iree-global-opt-enable-quantized-matmul-reassociation",
+                    "--iree-llvmcpu-enable-ukernels=all",
                 ]
             )
         elif self.driver == "vulkan":
-            flags.extend(
-                [
-                    "--iree-stream-resource-max-allocation-size=4294967296"
-                ]
-            )
+            flags.extend(["--iree-stream-resource-max-allocation-size=4294967296"])
         self.iree_module_dict = get_iree_compiled_module(
             self.tempfile_name,
             device=self.device,
@@ -185,10 +193,10 @@ class LanguageModel:
         del self.iree_module_dict
         gc.collect()
         self.runner = vmfbRunner(
-                device = self.driver,
-                vmfb_path=self.vmfb_name,
-                external_weight_path=self.external_weight_file,
-            )
+            device=self.driver,
+            vmfb_path=self.vmfb_name,
+            external_weight_path=self.external_weight_file,
+        )
         if self.streaming_llm:
             self.model = self.runner.ctx.modules.streaming_state_update
         else:
@@ -228,25 +236,23 @@ class LanguageModel:
                 self.model["evict_kvcache_space"]()
             token_len = input_tensor.shape[-1]
             device_inputs = [
-                    ireert.asdevicearray(
-                        self.runner.config.device, input_tensor
-                    )
-                ]
+                ireert.asdevicearray(self.runner.config.device, input_tensor)
+            ]
             if self.first_input or not self.streaming_llm:
                 st_time = time.time()
                 token = self.model["run_initialize"](*device_inputs)
                 total_time = time.time() - st_time
                 token_len += 1
-                self.first_input=False
+                self.first_input = False
             else:
                 st_time = time.time()
                 token = self.model["run_cached_initialize"](*device_inputs)
                 total_time = time.time() - st_time
                 token_len += 1
-            
+
             history.append(format_out(token))
             while format_out(token) != llm_model_map["llama2_7b"]["stop_token"]:
-                dec_time=time.time()
+                dec_time = time.time()
                 if self.streaming_llm and self.model["get_seq_step"]() > 600:
                     print("Evicting cache space!")
                     self.model["evict_kvcache_space"]()

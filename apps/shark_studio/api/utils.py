@@ -8,7 +8,8 @@ from random import (
 )
 
 from pathlib import Path
-#from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+
+# from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from cpuinfo import get_cpu_info
 
 # TODO: migrate these utils to studio
@@ -77,6 +78,7 @@ def get_available_devices():
     available_devices.extend(cpu_device)
     return available_devices
 
+
 def set_iree_runtime_flags():
     # TODO: This function should be device-agnostic and piped properly
     # to general runtime driver init.
@@ -136,7 +138,7 @@ def get_device_mapping(driver, key_combination=3):
         # mapping with full path
         device_map[f"{driver}://{device['path']}"] = get_output_value(device)
     return device_map
-    
+
 
 def map_device_to_name_path(device, key_combination=3):
     """Gives the appropriate device data (supported name/path) for user

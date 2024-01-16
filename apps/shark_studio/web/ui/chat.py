@@ -15,14 +15,17 @@ from apps.shark_studio.api.llm import (
 
 B_SYS, E_SYS = "<s>", "</s>"
 
+
 def user(message, history):
     # Append the user's message to the conversation history
     return "", history + [[message, ""]]
+
 
 def append_bot_prompt(history, input_prompt):
     user_prompt = f"{input_prompt} {E_SYS} {E_SYS}"
     history += user_prompt
     return history
+
 
 language_model = None
 
@@ -47,7 +50,7 @@ def chat_fn(
 ):
     global language_model
     print("Prompt prefix: ", prompt_prefix)
-    if streaming_llm and prompt_prefix=="Clear":
+    if streaming_llm and prompt_prefix == "Clear":
         language_model = None
         return "Clearing history...", ""
     if language_model is None:
