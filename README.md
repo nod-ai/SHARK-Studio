@@ -334,15 +334,19 @@ result = shark_module.forward((arg0, arg1))
 
 SHARK is maintained to support the latest innovations in ML Models: 
 
-| TF HuggingFace Models | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
-|---------------------|----------|----------|-------------|
-| BERT                | :green_heart:         | :green_heart:         | :green_heart:            |
-| DistilBERT         | :green_heart:         | :green_heart:         | :green_heart:            |
-| GPT2         | :green_heart:         | :green_heart:         | :green_heart:            |
-| BLOOM         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Stable Diffusion         | :green_heart:         | :green_heart:         | :green_heart:            |
-| Vision Transformer       | :green_heart:         | :green_heart:         | :green_heart:            |
-| ResNet50         | :green_heart:         | :green_heart:         | :green_heart:            |
+| hf_model_id | SHARK-Turbine |
+|---------------------|----------|
+| microsoft/resnet-50 | :green_heart: |
+| microsoft/resnet-18 | :green_heart: |
+| microsoft/resnet-101 | :green_heart: |
+| microsoft/resnet-152 | :green_heart: |
+| meta-llama/Llama-2-7b-chat-hf | :green_heart: |
+| chavinlo/alpaca-native | :green_heart: |
+| CompVis/stable-diffusion-v1-4 | :green_heart: |
+| runwayml/stable-diffusion-v1-5 | :green_heart: |
+| stablediffusionapi/anything-v5 | :green_heart: |
+
+
 
 For a complete list of the models supported in SHARK, please refer to [tank/README.md](https://github.com/nod-ai/SHARK/blob/main/tank/README.md).
 
