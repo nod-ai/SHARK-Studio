@@ -36,14 +36,6 @@ llm_model_map = {
         "max_tokens": 1024,
         "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
     },
-    "anushehchaudry/llama-2-tiny-random": {
-        "initializer": stateless_llama.export_transformer_model,
-        "hf_model_name": "anushehchaudry/llama-2-tiny-random",
-        "compile_flags": ["--iree-opt-const-expr-hoisting=True"],
-        "stop_token": 2,
-        "max_tokens": 4096,
-        "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
-    },
 }
 
 B_INST, E_INST = "[INST]", "[/INST]"
@@ -175,20 +167,12 @@ class LanguageModel:
 
     def compile(self) -> None:
         # this comes with keys: "vmfb", "config", and "temp_file_to_unlink".
-        flags = [
-            "--iree-input-type=torch",
-            "--mlir-print-debuginfo",
-            "--mlir-print-op-on-diagnostic=false",
-            "--iree-llvmcpu-target-cpu-features=host",
-            "--iree-llvmcpu-target-triple=x86_64-linux-gnu",
-            "--iree-stream-resource-index-bits=64",
-            "--iree-vm-target-index-bits=64",
-        ]
+        # ONLY architecture/api-specific compile-time flags for each backend, if needed.
+        # hf_model_id-specific global flags currently in model map.
         if "cpu" in self.backend:
             flags.extend(
                 [
                     "--iree-global-opt-enable-quantized-matmul-reassociation",
-                    "--iree-llvmcpu-enable-ukernels=all",
                 ]
             )
         elif self.backend == "vulkan":
