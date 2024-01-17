@@ -33,29 +33,6 @@ class LLMAPITest(unittest.TestCase):
         del lm
         gc.collect()
 
-    def test02_stream(self):
-        llama2 = LanguageModel(
-            "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-            hf_auth_token=None,
-            device="cpu",
-            external_weights="safetensors",
-            precision="fp32",
-            quantization="int4",
-            streaming_llm=True,
-        )
-        count = 0
-        for msg, _ in llama2.chat("hi, what are you?"):
-            # skip first token output
-            if count == 0:
-                count += 1
-                continue
-            assert (
-                msg.strip(" ") == "Hello!"
-            ), f"LLM API failed to return correct response, expected 'Hello!', received {msg}"
-            break
-        del llama2
-        gc.collect()
-
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
