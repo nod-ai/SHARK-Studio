@@ -49,7 +49,6 @@ def chat_fn(
     cli=False,
 ):
     global language_model
-    print("Prompt prefix: ", prompt_prefix)
     if streaming_llm and prompt_prefix == "Clear":
         language_model = None
         return "Clearing history...", ""
