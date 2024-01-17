@@ -16,7 +16,6 @@ class LLMAPITest(unittest.TestCase):
             "TinyPixel/small-llama2",
             hf_auth_token=None,
             device="cpu",
-            external_weights="safetensors",
             precision="fp32",
             quantization="None",
         )
