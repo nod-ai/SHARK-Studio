@@ -169,6 +169,7 @@ class LanguageModel:
         # this comes with keys: "vmfb", "config", and "temp_file_to_unlink".
         # ONLY architecture/api-specific compile-time flags for each backend, if needed.
         # hf_model_id-specific global flags currently in model map.
+        flags = []
         if "cpu" in self.backend:
             flags.extend(
                 [
