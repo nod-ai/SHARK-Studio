@@ -87,9 +87,9 @@ if [ "$torch_mlir_bin" = true ]; then
   if [[ $(uname -s) = 'Darwin' ]]; then
     echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
     $PYTHON -m pip uninstall -y timm #TEMP FIX FOR MAC
-    $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
+    $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f package-index-torch-mlir.html
   else
-    $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
+    $PYTHON -m pip install --pre torch-mlir -f package-index-torch-mlir.html  
     if [ $? -eq 0 ];then
       echo "Successfully Installed torch-mlir"
     else
@@ -135,7 +135,9 @@ else
   PYTORCH_URL=https://download.pytorch.org/whl/nightly/cpu/
 fi
 
-$PYTHON -m pip install --no-warn-conflicts -e . -f .\package-index-torch-mlir.html -f ${RUNTIME} -f ${PYTORCH_URL}
+
+$PYTHON -m pip install --no-warn-conflicts -e . -f package-index-torch-mlir.html -f ${RUNTIME}
+
 
 if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   T_VER=$($PYTHON -m pip show torch | grep Version)
