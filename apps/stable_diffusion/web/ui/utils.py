@@ -340,21 +340,37 @@ def mask_editor_value_for_gallery_data(gallery_data):
 
 
 default_configs = {
+    # "stabilityai/sdxl-turbo": [
+    #     gr.Textbox(label="", interactive=False, value=None, visible=False),
+    #     gr.Textbox(
+    #         label="Prompt",
+    #         value="masterpiece, a graceful shark leaping out of the water to catch a fish, eclipsing the sunset, epic, rays of light, silhouette",
+    #     ),
+    #     gr.Slider(0, 10, value=2),
+    #     "EulerAncestralDiscrete",
+    #     gr.Slider(0, value=0),
+    #     512,
+    #     512,
+    #     "madebyollin/sdxl-vae-fp16-fix",
+    #     gr.Checkbox(
+    #         label="Auto-Generate", visible=False, interactive=True, value=False
+    #     ),
+    # ],
     "stabilityai/sdxl-turbo": [
-        gr.Textbox(label="", interactive=False, value=None, visible=False),
-        gr.Textbox(
-            label="Prompt",
-            value="masterpiece, a graceful shark leaping out of the water to catch a fish, eclipsing the sunset, epic, rays of light, silhouette",
-        ),
-        gr.Slider(0, 10, value=2),
+        gr.Textbox(label="Prompt", interactive=True, visible=True),
+        gr.Textbox(label="Negative Prompt", interactive=True),
+        4,
         "EulerAncestralDiscrete",
-        gr.Slider(0, value=0),
-        512,
-        512,
+        0,
+        gr.Slider(value=768, interactive=True),
+        gr.Slider(value=768, interactive=True),
         "madebyollin/sdxl-vae-fp16-fix",
         gr.Checkbox(
-            label="Auto-Generate", visible=False, interactive=True, value=False
-        ),
+            label="Auto-Generate",
+            visible=False,
+            interactive=False,
+            value=False,
+        )
     ],
     "stabilityai/stable-diffusion-xl-base-1.0": [
         gr.Textbox(label="Prompt", interactive=True, visible=True),

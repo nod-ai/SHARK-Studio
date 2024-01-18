@@ -81,6 +81,21 @@ def get_schedulers(model_id):
         algorithm_type="dpmsolver++",
         use_karras_sigmas=True,
     )
+    schedulers[
+        "DPMSolverSDEKarras++"
+    ] = DPMSolverMultistepScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+        algorithm_type="sde-dpmsolver++",
+        use_karras_sigmas=True,
+    )
+    schedulers[
+        "DPMSolverSDE++"
+    ] = DPMSolverMultistepScheduler.from_pretrained(
+        model_id,
+        subfolder="scheduler",
+        algorithm_type="sde-dpmsolver++",
+    )
     schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
