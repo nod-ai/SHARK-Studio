@@ -135,7 +135,9 @@ else
   PYTORCH_URL=https://download.pytorch.org/whl/nightly/cpu/
 fi
 
+
 $PYTHON -m pip install --no-warn-conflicts -e . -f package-index-torch-mlir.html -f ${RUNTIME}
+
 
 if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
   T_VER=$($PYTHON -m pip show torch | grep Version)
