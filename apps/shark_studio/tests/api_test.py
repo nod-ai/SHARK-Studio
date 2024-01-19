@@ -7,6 +7,8 @@
 import logging
 import unittest
 import json
+from apps.shark_studio.api.llm import LanguageModel
+import gc
 
 from apps.shark_studio.api.llm import LanguageModel
 from apps.shark_studio.api.sd import shark_sd_fn_dict_input, view_json_file
@@ -28,12 +30,13 @@ class SDAPITest(unittest.TestCase):
             print(i)
 
 class LLMAPITest(unittest.TestCase):
-    def testLLMSimple(self):
+    def test01_LLMSmall(self):
         lm = LanguageModel(
-            "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
+            "TinyPixel/small-llama2",
             hf_auth_token=None,
-            device="cpu-task",
-            external_weights="safetensors",
+            device="cpu",
+            precision="fp32",
+            quantization="None",
         )
         count = 0
         for msg, _ in lm.chat("hi, what are you?"):
@@ -42,9 +45,11 @@ class LLMAPITest(unittest.TestCase):
                 count += 1
                 continue
             assert (
-                msg.strip(" ") == "Hello"
-            ), f"LLM API failed to return correct response, expected 'Hello', received {msg}"
+                msg.strip(" ") == "Turkish Turkish Turkish"
+            ), f"LLM API failed to return correct response, expected 'Turkish Turkish Turkish', received {msg}"
             break
+        del lm
+        gc.collect()
 
 
 if __name__ == "__main__":
