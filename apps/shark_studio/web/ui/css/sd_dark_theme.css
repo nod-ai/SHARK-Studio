@@ -117,12 +117,21 @@ body {
     height: 100% !important;
 }
 
-/* display in full width for desktop devices */
+/* display in full width for desktop devices, but see below */
 @media (min-width: 1536px)
 {
     .gradio-container {
         max-width: var(--size-full) !important;
     }
+}
+
+/* media rules in custom css are don't appear to be applied in
+   gradio versions > 4.7, so we have to define a class which
+   we will manually need add and remove using javascript.
+   Remove this once this fixed in gradio.
+*/
+.gradio-container-size-full {
+    max-width: var(--size-full) !important;
 }
 
 .gradio-container .contain {
@@ -303,6 +312,14 @@ footer {
     min-height: 89vh !important;
 }
 
+.sd-right-panel {
+    min-height: 87vh !important;
+}
+
+.sd-right-panel .fill {
+    flex: 1;
+}
+
 /* don't stretch non-square images to be square, breaking their aspect ratio */
 #outputgallery_gallery .thumbnail-item.thumbnail-lg > img {
     object-fit: contain !important;
@@ -314,11 +331,27 @@ footer {
     width: 100%;
 }
 
-#top_logo.logo_centered img{
+#top_logo.logo_centered img {
     object-fit: scale-down;
     position: absolute;
     width: 80%;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+}
+
+#tab_bar_logo {
+    overflow: visible !important;
+    border-width: 0 !important;
+    height: 0px !important;
+    padding: 0;
+    margin: 0;
+}
+
+#tab_bar_logo .image-container {
+    object-fit: scale-down;
+    position: absolute !important;
+    top: 14px;
+    right: 0px;
+    height: 36px;
 }

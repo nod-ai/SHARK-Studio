@@ -31,9 +31,6 @@ from apps.shark_studio.modules.img_processing import (
     resize_stencil,
 )
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
-from apps.shark_studio.web.ui.utils import (
-    nodlogo_loc,
-)
 from apps.shark_studio.web.utils.state import (
     status_label,
 )
@@ -238,22 +235,6 @@ def base_model_changed(base_model_id):
 
 
 with gr.Blocks(title="Stable Diffusion") as sd_element:
-    with gr.Row(elem_id="ui_title"):
-        nod_logo = Image.open(nodlogo_loc)
-        with gr.Row(variant="compact", equal_height=True):
-            with gr.Column(
-                scale=1,
-                elem_id="demo_title_outer",
-            ):
-                gr.Image(
-                    value=nod_logo,
-                    show_label=False,
-                    interactive=False,
-                    elem_id="top_logo",
-                    width=150,
-                    height=50,
-                    show_download_button=False,
-                )
     with gr.Column(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=2, min_width=600):
@@ -328,15 +309,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         value=cmd_opts.negative_prompt[0],
                         lines=2,
                         elem_id="negative_prompt_box",
-                    )
-
-                with gr.Accordion(label="Input Image", open=False):
-                    # TODO: make this import image prompt info if it exists
-                    sd_init_image = gr.Image(
-                        label="Input Image",
-                        type="pil",
-                        height=300,
-                        interactive=True,
                     )
                 with gr.Accordion(label="Embeddings options", open=True, render=True):
                     sd_lora_info = (str(get_checkpoints_path("loras"))).replace(
@@ -547,16 +519,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 "Submit",
                                 size="sm",
                             )
-                        use_input_img.click(
-                            fn=import_original,
-                            inputs=[
-                                sd_init_image,
-                                canvas_width,
-                                canvas_height,
-                            ],
-                            outputs=[cnet_input],
-                            queue=False,
-                        )
                         make_canvas.click(
                             fn=create_canvas,
                             inputs=[canvas_width, canvas_height],
@@ -589,156 +551,186 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             queue=False,
                         )
             with gr.Column(scale=3, min_width=600):
-                with gr.Group():
-                    sd_gallery = gr.Gallery(
-                        label="Generated images",
-                        show_label=False,
-                        elem_id="gallery",
-                        columns=2,
-                        object_fit="fit",
-                        preview=True,
-                    )
-                    std_output = gr.Textbox(
-                        value=f"{sd_model_info}\n"
-                        f"Images will be saved at "
-                        f"{get_generated_imgs_path()}",
-                        lines=2,
-                        elem_id="std_output",
-                        show_label=False,
-                    )
-                    sd_element.load(logger.read_sd_logs, None, std_output, every=1)
-                    sd_status = gr.Textbox(visible=False)
-                with gr.Row():
-                    stable_diffusion = gr.Button("Generate Image(s)")
-                    random_seed = gr.Button("Randomize Seed")
-                    random_seed.click(
-                        lambda: -1,
-                        inputs=[],
-                        outputs=[seed],
-                        queue=False,
-                        show_progress=False,
-                    )
-                    stop_batch = gr.Button("Stop Batch")
-                with gr.Group():
-                    with gr.Column(scale=3):
-                        sd_json = gr.JSON(
-                            value=view_json_file(
-                                os.path.join(
-                                    get_configs_path(),
-                                    "default_sd_config.json",
-                                )
+                with gr.Tab(label="Input Image", id=100):
+                    with gr.Column(elem_classes=["sd-right-panel"]):
+                        with gr.Row(elem_classes=["fill"]):
+                            # TODO: make this import image prompt info if it exists
+                            sd_init_image = gr.Image(
+                                type="pil",
+                                interactive=True,
+                                show_label=False,
                             )
-                        )
-                    with gr.Column(scale=1):
-                        clear_sd_config = gr.ClearButton(
-                            value="Clear Config", size="sm", components=sd_json
-                        )
+                            use_input_img.click(
+                                fn=import_original,
+                                inputs=[
+                                    sd_init_image,
+                                    canvas_width,
+                                    canvas_height,
+                                ],
+                                outputs=[cnet_input],
+                                queue=False,
+                            )
+                with gr.Tab(label="Output", id=101):
+                    with gr.Column(elem_classes=["sd-right-panel"]):
+                        with gr.Row(elem_classes=["fill"]):
+                            sd_gallery = gr.Gallery(
+                                label="Generated images",
+                                show_label=False,
+                                elem_id="gallery",
+                                columns=2,
+                                object_fit="fit",
+                                preview=True,
+                            )
                         with gr.Row():
-                            save_sd_config = gr.Button(value="Save Config", size="sm")
+                            std_output = gr.Textbox(
+                                value=f"{sd_model_info}\n"
+                                f"Images will be saved at "
+                                f"{get_generated_imgs_path()}",
+                                lines=2,
+                                elem_id="std_output",
+                                show_label=True,
+                                label="Generation Log",
+                            )
+                            sd_element.load(
+                                logger.read_sd_logs, None, std_output, every=1
+                            )
+                            sd_status = gr.Textbox(visible=False)
+                        with gr.Row():
+                            stable_diffusion = gr.Button("Generate Image(s)")
+                            random_seed = gr.Button("Randomize Seed")
+                            random_seed.click(
+                                lambda: -1,
+                                inputs=[],
+                                outputs=[seed],
+                                queue=False,
+                                show_progress=False,
+                            )
+                            stop_batch = gr.Button("Stop Batch")
+                with gr.Tab(label="Config", id=102):
+                    with gr.Column(elem_classes=["sd-right-panel"]):
+                        with gr.Row(elem_classes=["fill"]):
+                            sd_json = gr.JSON(
+                                elem_classes=["fill"],
+                                value=view_json_file(
+                                    os.path.join(
+                                        get_configs_path(),
+                                        "default_sd_config.json",
+                                    )
+                                ),
+                            )
+                        with gr.Row():
+                            with gr.Column(scale=3):
+                                load_sd_config = gr.FileExplorer(
+                                    label="Load Config",
+                                    file_count="single",
+                                    root=(
+                                        cmd_opts.configs_path
+                                        if cmd_opts.configs_path
+                                        else get_configs_path()
+                                    ),
+                                    height=75,
+                                )
+                            with gr.Column(scale=1):
+                                save_sd_config = gr.Button(
+                                    value="Save Config", size="sm"
+                                )
+                                clear_sd_config = gr.ClearButton(
+                                    value="Clear Config", size="sm", components=sd_json
+                                )
+                        with gr.Row():
                             sd_config_name = gr.Textbox(
                                 value="Config Name",
                                 info="Name of the file this config will be saved to.",
                                 interactive=True,
+                                show_label=False,
                             )
-                        load_sd_config = gr.FileExplorer(
-                            label="Load Config",
-                            file_count="single",
-                            root=(
-                                cmd_opts.configs_path
-                                if cmd_opts.configs_path
-                                else get_configs_path()
-                            ),
-                            height=75,
-                        )
-                        load_sd_config.change(
-                            fn=load_sd_cfg,
-                            inputs=[sd_json, load_sd_config],
-                            outputs=[
-                                prompt,
-                                negative_prompt,
-                                sd_init_image,
-                                height,
-                                width,
-                                steps,
-                                strength,
-                                guidance_scale,
-                                seed,
-                                batch_count,
-                                batch_size,
-                                scheduler,
-                                base_model_id,
-                                custom_weights,
-                                custom_vae,
-                                precision,
-                                device,
-                                ondemand,
-                                repeatable_seeds,
-                                resample_type,
-                                cnet_config,
-                                embeddings_config,
-                                sd_json,
-                            ],
-                        )
-                        save_sd_config.click(
-                            fn=save_sd_cfg,
-                            inputs=[sd_json, sd_config_name],
-                            outputs=[sd_config_name],
-                        )
+                            load_sd_config.change(
+                                fn=load_sd_cfg,
+                                inputs=[sd_json, load_sd_config],
+                                outputs=[
+                                    prompt,
+                                    negative_prompt,
+                                    sd_init_image,
+                                    height,
+                                    width,
+                                    steps,
+                                    strength,
+                                    guidance_scale,
+                                    seed,
+                                    batch_count,
+                                    batch_size,
+                                    scheduler,
+                                    base_model_id,
+                                    custom_weights,
+                                    custom_vae,
+                                    precision,
+                                    device,
+                                    ondemand,
+                                    repeatable_seeds,
+                                    resample_type,
+                                    cnet_config,
+                                    embeddings_config,
+                                    sd_json,
+                                ],
+                            )
+                            save_sd_config.click(
+                                fn=save_sd_cfg,
+                                inputs=[sd_json, sd_config_name],
+                                outputs=[sd_config_name],
+                            )
 
-        pull_kwargs = dict(
-            fn=pull_sd_configs,
-            inputs=[
-                prompt,
-                negative_prompt,
-                sd_init_image,
-                height,
-                width,
-                steps,
-                strength,
-                guidance_scale,
-                seed,
-                batch_count,
-                batch_size,
-                scheduler,
-                base_model_id,
-                custom_weights,
-                custom_vae,
-                precision,
-                device,
-                ondemand,
-                repeatable_seeds,
-                resample_type,
-                cnet_config,
-                embeddings_config,
-            ],
-            outputs=[
-                sd_json,
-            ],
-        )
+    pull_kwargs = dict(
+        fn=pull_sd_configs,
+        inputs=[
+            prompt,
+            negative_prompt,
+            sd_init_image,
+            height,
+            width,
+            steps,
+            strength,
+            guidance_scale,
+            seed,
+            batch_count,
+            batch_size,
+            scheduler,
+            base_model_id,
+            custom_weights,
+            custom_vae,
+            precision,
+            device,
+            ondemand,
+            repeatable_seeds,
+            resample_type,
+            cnet_config,
+            embeddings_config,
+        ],
+        outputs=[
+            sd_json,
+        ],
+    )
 
-        status_kwargs = dict(
-            fn=lambda bc, bs: status_label("Stable Diffusion", 0, bc, bs),
-            inputs=[batch_count, batch_size],
-            outputs=sd_status,
-        )
+    status_kwargs = dict(
+        fn=lambda bc, bs: status_label("Stable Diffusion", 0, bc, bs),
+        inputs=[batch_count, batch_size],
+        outputs=sd_status,
+    )
 
-        gen_kwargs = dict(
-            fn=shark_sd_fn_dict_input,
-            inputs=[sd_json],
-            outputs=[
-                sd_gallery,
-                sd_status,
-            ],
-        )
+    gen_kwargs = dict(
+        fn=shark_sd_fn_dict_input,
+        inputs=[sd_json],
+        outputs=[
+            sd_gallery,
+            sd_status,
+        ],
+    )
 
-        prompt_submit = prompt.submit(**status_kwargs).then(**pull_kwargs)
-        neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**pull_kwargs)
-        generate_click = (
-            stable_diffusion.click(**status_kwargs)
-            .then(**pull_kwargs)
-            .then(**gen_kwargs)
-        )
-        stop_batch.click(
-            fn=cancel_sd,
-            cancels=[prompt_submit, neg_prompt_submit, generate_click],
-        )
+    prompt_submit = prompt.submit(**status_kwargs).then(**pull_kwargs)
+    neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**pull_kwargs)
+    generate_click = (
+        stable_diffusion.click(**status_kwargs).then(**pull_kwargs).then(**gen_kwargs)
+    )
+    stop_batch.click(
+        fn=cancel_sd,
+        cancels=[prompt_submit, neg_prompt_submit, generate_click],
+    )
