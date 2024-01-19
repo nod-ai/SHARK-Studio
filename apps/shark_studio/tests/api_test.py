@@ -7,6 +7,7 @@
 import logging
 import unittest
 import json
+from apps.shark_studio.api.llm import LanguageModel
 import gc
 
 from apps.shark_studio.api.llm import LanguageModel, llm_chat_api
