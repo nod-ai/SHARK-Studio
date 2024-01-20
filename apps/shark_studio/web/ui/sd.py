@@ -238,20 +238,60 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
     with gr.Column(elem_id="ui_body"):
         with gr.Row():
             with gr.Column(scale=2, min_width=600):
-                with gr.Row(equal_height=True):
-                    with gr.Column(scale=3):
-                        sd_model_info = (
-                            f"Checkpoint Path: {str(get_checkpoints_path())}"
+                with gr.Accordion(
+                    label="\U0001F4D0\U0000FE0F Device Settings", open=False
+                ):
+                    device = gr.Dropdown(
+                        elem_id="device",
+                        label="Device",
+                        value=global_obj.get_device_list()[0],
+                        choices=global_obj.get_device_list(),
+                        allow_custom_value=False,
+                    )
+                    with gr.Row():
+                        ondemand = gr.Checkbox(
+                            value=cmd_opts.lowvram,
+                            label="Low VRAM",
+                            interactive=True,
                         )
-                        base_model_id = gr.Dropdown(
-                            label="Base Model",
-                            info="Select or enter HF model ID",
-                            elem_id="custom_model",
-                            value="stabilityai/stable-diffusion-2-1-base",
-                            choices=sd_default_models,
-                        )  # base_model_id
+                        precision = gr.Radio(
+                            label="Precision",
+                            value=cmd_opts.precision,
+                            choices=[
+                                "fp16",
+                                "fp32",
+                            ],
+                            visible=True,
+                        )
+                sd_model_info = f"Checkpoint Path: {str(get_checkpoints_path())}"
+                base_model_id = gr.Dropdown(
+                    label="\U000026F0\U0000FE0F Base Model",
+                    info="Select or enter HF model ID",
+                    elem_id="custom_model",
+                    value="stabilityai/stable-diffusion-2-1-base",
+                    choices=sd_default_models,
+                )  # base_model_id
+                with gr.Row():
+                    height = gr.Slider(
+                        384,
+                        768,
+                        value=cmd_opts.height,
+                        step=8,
+                        label="\U00002195\U0000FE0F Height",
+                    )
+                    width = gr.Slider(
+                        384,
+                        768,
+                        value=cmd_opts.width,
+                        step=8,
+                        label="\U00002194\U0000FE0F Width",
+                    )
+                with gr.Accordion(
+                    label="\U00002696\U0000FE0F Model Weights", open=False
+                ):
+                    with gr.Column():
                         custom_weights = gr.Dropdown(
-                            label="Custom Weights Checkpoint",
+                            label="Checkpoint Weights",
                             info="Select or enter HF model ID",
                             elem_id="custom_model",
                             value="None",
@@ -264,13 +304,12 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             inputs=[base_model_id],
                             outputs=[custom_weights],
                         )
-                    with gr.Column(scale=2):
                         sd_vae_info = (str(get_checkpoints_path("vae"))).replace(
                             "\\", "\n\\"
                         )
                         sd_vae_info = f"VAE Path: {sd_vae_info}"
                         custom_vae = gr.Dropdown(
-                            label=f"Custom VAE Models",
+                            label=f"VAE Model",
                             info=sd_vae_info,
                             elem_id="custom_model",
                             value=(
@@ -282,40 +321,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             allow_custom_value=True,
                             scale=1,
                         )
-                        with gr.Row():
-                            ondemand = gr.Checkbox(
-                                value=cmd_opts.lowvram,
-                                label="Low VRAM",
-                                interactive=True,
-                            )
-                            precision = gr.Radio(
-                                label="Precision",
-                                value=cmd_opts.precision,
-                                choices=[
-                                    "fp16",
-                                    "fp32",
-                                ],
-                                visible=True,
-                            )
-                with gr.Group(elem_id="prompt_box_outer"):
-                    prompt = gr.Textbox(
-                        label="Prompt",
-                        value=cmd_opts.prompt[0],
-                        lines=2,
-                        elem_id="prompt_box",
-                    )
-                    negative_prompt = gr.Textbox(
-                        label="Negative Prompt",
-                        value=cmd_opts.negative_prompt[0],
-                        lines=2,
-                        elem_id="negative_prompt_box",
-                    )
-                with gr.Accordion(label="Embeddings options", open=True, render=True):
-                    sd_lora_info = (str(get_checkpoints_path("loras"))).replace(
-                        "\\", "\n\\"
-                    )
-                    with gr.Row():
-                        embeddings_config = gr.JSON(min_width=50, scale=1)
+                        sd_lora_info = (str(get_checkpoints_path("loras"))).replace(
+                            "\\", "\n\\"
+                        )
                         lora_opt = gr.Dropdown(
                             allow_custom_value=True,
                             label=f"Standalone LoRA Weights",
@@ -330,105 +338,82 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value="<div><i>No LoRA selected</i></div>",
                             elem_classes="lora-tags",
                         )
-                    gr.on(
-                        triggers=[lora_opt.change],
-                        fn=lora_changed,
-                        inputs=[lora_opt],
-                        outputs=[lora_tags],
-                        queue=True,
-                        show_progress=False,
-                    ).then(
-                        fn=update_embeddings_json,
-                        inputs=[lora_opt],
-                        outputs=[embeddings_config],
-                        show_progress=False,
+                        embeddings_config = gr.JSON(
+                            label="Embeddings Options", min_width=50, scale=1
+                        )
+                        gr.on(
+                            triggers=[lora_opt.change],
+                            fn=lora_changed,
+                            inputs=[lora_opt],
+                            outputs=[lora_tags],
+                            queue=True,
+                            show_progress=False,
+                        ).then(
+                            fn=update_embeddings_json,
+                            inputs=[lora_opt],
+                            outputs=[embeddings_config],
+                            show_progress=False,
+                        )
+                with gr.Accordion(
+                    label="\U0001F9EA\U0000FE0F Input Image Processing", open=False
+                ):
+                    strength = gr.Slider(
+                        0,
+                        1,
+                        value=cmd_opts.strength,
+                        step=0.01,
+                        label="Denoising Strength",
                     )
-                with gr.Accordion(label="Advanced Options", open=True):
-                    with gr.Row():
-                        scheduler = gr.Dropdown(
-                            elem_id="scheduler",
-                            label="Scheduler",
-                            value="EulerDiscrete",
-                            choices=scheduler_model_map.keys(),
-                            allow_custom_value=False,
-                        )
-                        height = gr.Slider(
-                            384,
-                            768,
-                            value=cmd_opts.height,
-                            step=8,
-                            label="Height",
-                        )
-                        width = gr.Slider(
-                            384,
-                            768,
-                            value=cmd_opts.width,
-                            step=8,
-                            label="Width",
-                        )
-                    with gr.Row():
-                        with gr.Column(scale=3):
-                            steps = gr.Slider(
-                                1,
-                                100,
-                                value=cmd_opts.steps,
-                                step=1,
-                                label="Steps",
-                            )
-                            batch_count = gr.Slider(
-                                1,
-                                100,
-                                value=cmd_opts.batch_count,
-                                step=1,
-                                label="Batch Count",
-                                interactive=True,
-                            )
-                            batch_size = gr.Slider(
-                                1,
-                                4,
-                                value=cmd_opts.batch_size,
-                                step=1,
-                                label="Batch Size",
-                                interactive=True,
-                                visible=True,
-                            )
-                            repeatable_seeds = gr.Checkbox(
-                                cmd_opts.repeatable_seeds,
-                                label="Repeatable Seeds",
-                            )
-                        with gr.Column(scale=3):
-                            strength = gr.Slider(
-                                0,
-                                1,
-                                value=cmd_opts.strength,
-                                step=0.01,
-                                label="Denoising Strength",
-                            )
-                            resample_type = gr.Dropdown(
-                                value=cmd_opts.resample_type,
-                                choices=resampler_list,
-                                label="Resample Type",
-                                allow_custom_value=True,
-                            )
-                            guidance_scale = gr.Slider(
-                                0,
-                                50,
-                                value=cmd_opts.guidance_scale,
-                                step=0.1,
-                                label="CFG Scale",
-                            )
-                with gr.Row():
+                    resample_type = gr.Dropdown(
+                        value=cmd_opts.resample_type,
+                        choices=resampler_list,
+                        label="Resample Type",
+                        allow_custom_value=True,
+                    )
+                with gr.Group(elem_id="prompt_box_outer"):
+                    prompt = gr.Textbox(
+                        label="\U00002795\U0000FE0F Prompt",
+                        value=cmd_opts.prompt[0],
+                        lines=2,
+                        elem_id="prompt_box",
+                        show_copy_button=True,
+                    )
+                    negative_prompt = gr.Textbox(
+                        label="\U00002796\U0000FE0F Negative Prompt",
+                        value=cmd_opts.negative_prompt[0],
+                        lines=2,
+                        elem_id="negative_prompt_box",
+                        show_copy_button=True,
+                    )
+                with gr.Row(equal_height=True):
                     seed = gr.Textbox(
                         value=cmd_opts.seed,
-                        label="Seed",
+                        label="\U0001F331\U0000FE0F Seed",
                         info="An integer or a JSON list of integers, -1 for random",
+                        show_copy_button=True,
                     )
-                    device = gr.Dropdown(
-                        elem_id="device",
-                        label="Device",
-                        value=global_obj.get_device_list()[0],
-                        choices=global_obj.get_device_list(),
+                    scheduler = gr.Dropdown(
+                        elem_id="scheduler",
+                        label="\U0001F4C5\U0000FE0F Scheduler",
+                        info="\U000E0020",  # forces same height as seed
+                        value="EulerDiscrete",
+                        choices=scheduler_model_map.keys(),
                         allow_custom_value=False,
+                    )
+                with gr.Row():
+                    steps = gr.Slider(
+                        1,
+                        100,
+                        value=cmd_opts.steps,
+                        step=1,
+                        label="\U0001F3C3\U0000FE0F Steps",
+                    )
+                    guidance_scale = gr.Slider(
+                        0,
+                        50,
+                        value=cmd_opts.guidance_scale,
+                        step=0.1,
+                        label="\U0001F5C3\U0000FE0F CFG Scale",
                     )
                 with gr.Accordion(
                     label="Controlnet Options",
@@ -551,133 +536,166 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             queue=False,
                         )
             with gr.Column(scale=3, min_width=600):
-                with gr.Tab(label="Input Image", id=100):
-                    with gr.Column(elem_classes=["sd-right-panel"]):
-                        with gr.Row(elem_classes=["fill"]):
-                            # TODO: make this import image prompt info if it exists
-                            sd_init_image = gr.Image(
-                                type="pil",
-                                interactive=True,
-                                show_label=False,
-                            )
-                            use_input_img.click(
-                                fn=import_original,
-                                inputs=[
-                                    sd_init_image,
-                                    canvas_width,
-                                    canvas_height,
-                                ],
-                                outputs=[cnet_input],
-                                queue=False,
-                            )
-                with gr.Tab(label="Output", id=101):
-                    with gr.Column(elem_classes=["sd-right-panel"]):
-                        with gr.Row(elem_classes=["fill"]):
-                            sd_gallery = gr.Gallery(
-                                label="Generated images",
-                                show_label=False,
-                                elem_id="gallery",
-                                columns=2,
-                                object_fit="fit",
-                                preview=True,
-                            )
-                        with gr.Row():
-                            std_output = gr.Textbox(
-                                value=f"{sd_model_info}\n"
-                                f"Images will be saved at "
-                                f"{get_generated_imgs_path()}",
-                                lines=2,
-                                elem_id="std_output",
-                                show_label=True,
-                                label="Generation Log",
-                            )
-                            sd_element.load(
-                                logger.read_sd_logs, None, std_output, every=1
-                            )
-                            sd_status = gr.Textbox(visible=False)
-                        with gr.Row():
-                            stable_diffusion = gr.Button("Generate Image(s)")
-                            random_seed = gr.Button("Randomize Seed")
-                            random_seed.click(
-                                lambda: -1,
-                                inputs=[],
-                                outputs=[seed],
-                                queue=False,
-                                show_progress=False,
-                            )
-                            stop_batch = gr.Button("Stop Batch")
-                with gr.Tab(label="Config", id=102):
-                    with gr.Column(elem_classes=["sd-right-panel"]):
-                        with gr.Row(elem_classes=["fill"]):
-                            sd_json = gr.JSON(
-                                elem_classes=["fill"],
-                                value=view_json_file(
-                                    os.path.join(
-                                        get_configs_path(),
-                                        "default_sd_config.json",
-                                    )
-                                ),
-                            )
-                        with gr.Row():
-                            with gr.Column(scale=3):
-                                load_sd_config = gr.FileExplorer(
-                                    label="Load Config",
-                                    file_count="single",
-                                    root=(
-                                        cmd_opts.configs_path
-                                        if cmd_opts.configs_path
-                                        else get_configs_path()
+                with gr.Tabs() as sd_tabs:
+                    sd_element.load(
+                        # Workaround for Gradio issue #7085
+                        # TODO: revert to setting selected= in gr.Tabs declaration
+                        # once this is resolved in Gradio
+                        lambda: gr.Tabs(selected=101),
+                        outputs=[sd_tabs],
+                    )
+                    with gr.Tab(label="Input Image", id=100) as sd_tab_init_image:
+                        with gr.Column(elem_classes=["sd-right-panel"]):
+                            with gr.Row(elem_classes=["fill"]):
+                                # TODO: make this import image prompt info if it exists
+                                sd_init_image = gr.Image(
+                                    type="pil",
+                                    interactive=True,
+                                    show_label=False,
+                                )
+                                use_input_img.click(
+                                    fn=import_original,
+                                    inputs=[
+                                        sd_init_image,
+                                        canvas_width,
+                                        canvas_height,
+                                    ],
+                                    outputs=[cnet_input],
+                                    queue=False,
+                                )
+                    with gr.Tab(label="Generate Images", id=101) as sd_tab_gallery:
+                        with gr.Column(elem_classes=["sd-right-panel"]):
+                            with gr.Row(elem_classes=["fill"]):
+                                sd_gallery = gr.Gallery(
+                                    label="Generated images",
+                                    show_label=False,
+                                    elem_id="gallery",
+                                    columns=2,
+                                    object_fit="fit",
+                                    preview=True,
+                                )
+                            with gr.Row():
+                                std_output = gr.Textbox(
+                                    value=f"{sd_model_info}\n"
+                                    f"Images will be saved at "
+                                    f"{get_generated_imgs_path()}",
+                                    lines=2,
+                                    elem_id="std_output",
+                                    show_label=True,
+                                    label="Log",
+                                    show_copy_button=True,
+                                )
+                                sd_element.load(
+                                    logger.read_sd_logs, None, std_output, every=1
+                                )
+                                sd_status = gr.Textbox(visible=False)
+                            with gr.Row():
+                                batch_count = gr.Slider(
+                                    1,
+                                    100,
+                                    value=cmd_opts.batch_count,
+                                    step=1,
+                                    label="Batch Count",
+                                    interactive=True,
+                                )
+                                batch_size = gr.Slider(
+                                    1,
+                                    4,
+                                    value=cmd_opts.batch_size,
+                                    step=1,
+                                    label="Batch Size",
+                                    interactive=True,
+                                    visible=True,
+                                )
+                                repeatable_seeds = gr.Checkbox(
+                                    cmd_opts.repeatable_seeds,
+                                    label="Use Repeatable Seeds for Batches",
+                                )
+                            with gr.Row():
+                                stable_diffusion = gr.Button("Start")
+                                random_seed = gr.Button("Randomize Seed")
+                                random_seed.click(
+                                    lambda: -1,
+                                    inputs=[],
+                                    outputs=[seed],
+                                    queue=False,
+                                    show_progress=False,
+                                )
+                                stop_batch = gr.Button("Stop")
+                    with gr.Tab(label="Config", id=102) as sd_tab_config:
+                        with gr.Column(elem_classes=["sd-right-panel"]):
+                            with gr.Row(elem_classes=["fill"]):
+                                sd_json = gr.JSON(
+                                    elem_classes=["fill"],
+                                    value=view_json_file(
+                                        os.path.join(
+                                            get_configs_path(),
+                                            "default_sd_config.json",
+                                        )
                                     ),
-                                    height=75,
                                 )
-                            with gr.Column(scale=1):
-                                save_sd_config = gr.Button(
-                                    value="Save Config", size="sm"
+                            with gr.Row():
+                                with gr.Column(scale=3):
+                                    load_sd_config = gr.FileExplorer(
+                                        label="Load Config",
+                                        file_count="single",
+                                        root=(
+                                            cmd_opts.configs_path
+                                            if cmd_opts.configs_path
+                                            else get_configs_path()
+                                        ),
+                                        height=75,
+                                    )
+                                with gr.Column(scale=1):
+                                    save_sd_config = gr.Button(
+                                        value="Save Config", size="sm"
+                                    )
+                                    clear_sd_config = gr.ClearButton(
+                                        value="Clear Config",
+                                        size="sm",
+                                        components=sd_json,
+                                    )
+                            with gr.Row():
+                                sd_config_name = gr.Textbox(
+                                    value="Config Name",
+                                    info="Name of the file this config will be saved to.",
+                                    interactive=True,
+                                    show_label=False,
                                 )
-                                clear_sd_config = gr.ClearButton(
-                                    value="Clear Config", size="sm", components=sd_json
+                                load_sd_config.change(
+                                    fn=load_sd_cfg,
+                                    inputs=[sd_json, load_sd_config],
+                                    outputs=[
+                                        prompt,
+                                        negative_prompt,
+                                        sd_init_image,
+                                        height,
+                                        width,
+                                        steps,
+                                        strength,
+                                        guidance_scale,
+                                        seed,
+                                        batch_count,
+                                        batch_size,
+                                        scheduler,
+                                        base_model_id,
+                                        custom_weights,
+                                        custom_vae,
+                                        precision,
+                                        device,
+                                        ondemand,
+                                        repeatable_seeds,
+                                        resample_type,
+                                        cnet_config,
+                                        embeddings_config,
+                                        sd_json,
+                                    ],
                                 )
-                        with gr.Row():
-                            sd_config_name = gr.Textbox(
-                                value="Config Name",
-                                info="Name of the file this config will be saved to.",
-                                interactive=True,
-                                show_label=False,
-                            )
-                            load_sd_config.change(
-                                fn=load_sd_cfg,
-                                inputs=[sd_json, load_sd_config],
-                                outputs=[
-                                    prompt,
-                                    negative_prompt,
-                                    sd_init_image,
-                                    height,
-                                    width,
-                                    steps,
-                                    strength,
-                                    guidance_scale,
-                                    seed,
-                                    batch_count,
-                                    batch_size,
-                                    scheduler,
-                                    base_model_id,
-                                    custom_weights,
-                                    custom_vae,
-                                    precision,
-                                    device,
-                                    ondemand,
-                                    repeatable_seeds,
-                                    resample_type,
-                                    cnet_config,
-                                    embeddings_config,
-                                    sd_json,
-                                ],
-                            )
-                            save_sd_config.click(
-                                fn=save_sd_cfg,
-                                inputs=[sd_json, sd_config_name],
-                                outputs=[sd_config_name],
-                            )
+                                save_sd_config.click(
+                                    fn=save_sd_cfg,
+                                    inputs=[sd_json, sd_config_name],
+                                    outputs=[sd_config_name],
+                                )
 
     pull_kwargs = dict(
         fn=pull_sd_configs,
