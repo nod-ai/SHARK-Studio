@@ -77,7 +77,7 @@ jobs:
 
   linux-build:
 
-    runs-on: a100
+    runs-on: nodai-ubuntu-builder-large
     strategy:
       fail-fast: false
       matrix:
@@ -123,16 +123,8 @@ jobs:
         pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://openxla.github.io/iree/pip-release-links.html
         # Install the built wheel
         pip install ./wheelhouse/nodai*
-        # Validate the Models
-        /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" -k "not metal" |
-          tail -n 1 |
-          tee -a pytest_results.txt
-        if !(grep -Fxq " failed" pytest_results.txt) 
-          then 
-            export SHA=$(git log -1 --format='%h')
-            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/${DATE}_$SHA
-            gsutil -m cp -r gs://shark_tank/${DATE}_$SHA/* gs://shark_tank/nightly/
+        # Run API tests
+        python apps/shark_studio/tests/api_test.py
         fi
         rm -rf ./wheelhouse/nodai*
 
@@ -147,7 +139,5 @@ jobs:
         pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
         # Install the built wheel
         pip install ./wheelhouse/nodai*
-        # Validate the Models
-        pytest --ci --ci_sha=${SHORT_SHA} -k "not metal" |
-          tail -n 1 |
-          tee -a pytest_results.txt
+        # Run API tests
+        python apps/shark_studio/tests/api_test.py
