@@ -609,7 +609,7 @@ class StableDiffusionPipeline:
         # latents are in unet dtype here so switch if we want to use fp32
         if is_fp32_vae:
             print("Casting latents to float32 for VAE")
-            latents = latents.to(torch.float32)
+            latents = latents.astype("float32")
         images = self.vae("forward", (latents,))
         images = (torch.from_numpy(images) / 2 + 0.5).clamp(0, 1)
         images = images.cpu().permute(0, 2, 3, 1).float().numpy()

@@ -361,6 +361,8 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                                 "DPMSolverMultistep++",
                                 "DPMSolverMultistepKarras",
                                 "DPMSolverMultistepKarras++",
+                                "DPMSolverSDEKarras++",
+                                "DPMSolverSDE++",
                                 "EulerDiscrete",
                                 "LCMScheduler",
                             ],
