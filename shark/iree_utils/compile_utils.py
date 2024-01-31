@@ -43,7 +43,6 @@ def get_iree_device_args(device, extra_args=[]):
             get_iree_cpu_args()
             + u_kernel_flag
             + stack_size_flag
-            + ["--iree-global-opt-enable-quantized-matmul-reassociation"]
         )
     if device == "cuda":
         from shark.iree_utils.gpu_utils import get_iree_gpu_args
@@ -305,6 +304,7 @@ def compile_module_to_flatbuffer(
     model_name="None",
     debug=False,
     compile_str=False,
+    write_to=None,
 ):
     # Setup Compile arguments wrt to frontends.
     input_type = "auto"
@@ -342,12 +342,24 @@ def compile_module_to_flatbuffer(
             extra_args=args,
         )
 
+    if write_to is not None:
+        with open(write_to, "wb") as f:
+            f.write(flatbuffer_blob)
+        return None
+
     return flatbuffer_blob
 
 
 def get_iree_module(
-    flatbuffer_blob, device, device_idx=None, rt_flags: list = []
+    flatbuffer_blob,
+    device,
+    device_idx=None,
+    rt_flags: list = [],
+    external_weight_file=None,
 ):
+    if external_weight_file is not None:
+        index = ireert.ParameterIndex()
+        index.load(external_weight_file)
     # Returns the compiled module and the configs.
     for flag in rt_flags:
         ireert.flags.parse_flag(flag)
@@ -369,7 +381,10 @@ def get_iree_module(
     vm_module = ireert.VmModule.from_buffer(
         config.vm_instance, flatbuffer_blob, warn_if_copy=False
     )
-    ctx = ireert.SystemContext(config=config)
+    modules = []
+    if external_weight_file is not None:
+        modules.append(index.create_provider(scope="model"))
+    ctx = ireert.SystemContext(vm_modules=modules, config=config)
     ctx.add_vm_module(vm_module)
     ModuleCompiled = getattr(ctx.modules, vm_module.name)
     return ModuleCompiled, config
@@ -380,6 +395,7 @@ def load_vmfb_using_mmap(
     device: str,
     device_idx: int = None,
     rt_flags: list = [],
+    external_weight_file: str = None,
 ):
     print(f"Loading module {flatbuffer_blob_or_path}...")
     if "task" in device:
@@ -440,17 +456,28 @@ def load_vmfb_using_mmap(
             mmaped_vmfb = ireert.VmModule.mmap(
                 config.vm_instance, flatbuffer_blob_or_path
             )
+            vm_modules = []
+            if external_weight_file is not None:
+                index = ireert.ParameterIndex()
+                index.load(external_weight_file)
+                param_module = ireert.create_io_parameters_module(
+                    config.vm_instance, index.create_provider(scope="model")
+                )
+                vm_modules.append(param_module)
+            vm_modules.append(mmaped_vmfb)
+            vm_modules.append(
+                ireert.create_hal_module(config.vm_instance, config.device)
+            )
             dl.log(f"mmap {flatbuffer_blob_or_path}")
-            ctx = ireert.SystemContext(config=config)
-            for flag in shark_args.additional_runtime_args:
-                ireert.flags.parse_flags(flag)
-            dl.log(f"ireert.SystemContext created")
             if "vulkan" in device:
                 # Vulkan pipeline creation consumes significant amount of time.
                 print(
                     "\tCompiling Vulkan shaders. This may take a few minutes."
                 )
-            ctx.add_vm_module(mmaped_vmfb)
+            ctx = ireert.SystemContext(config=config, vm_modules=vm_modules)
+            dl.log(f"ireert.SystemContext created")
+            for flag in shark_args.additional_runtime_args:
+                ireert.flags.parse_flags(flag)
             dl.log(f"module initialized")
             mmaped_vmfb = getattr(ctx.modules, mmaped_vmfb.name)
         else:
@@ -475,6 +502,8 @@ def get_iree_compiled_module(
     mmap: bool = False,
     debug: bool = False,
     compile_str: bool = False,
+    external_weight_file: str = None,
+    write_to: bool = None,
 ):
     """Given a module returns the compiled .vmfb and configs"""
     flatbuffer_blob = compile_module_to_flatbuffer(
@@ -485,6 +514,7 @@ def get_iree_compiled_module(
         extra_args=extra_args,
         debug=debug,
         compile_str=compile_str,
+        write_to=write_to,
     )
     temp_file_to_unlink = None
     # TODO: Currently mmap=True control flow path has been switched off for mmap.
@@ -492,8 +522,14 @@ def get_iree_compiled_module(
     #       we're setting delete=False when creating NamedTemporaryFile. That's why
     #       I'm getting hold of the name of the temporary file in `temp_file_to_unlink`.
     if mmap:
+        if write_to is not None:
+            flatbuffer_blob = write_to
         vmfb, config, temp_file_to_unlink = load_vmfb_using_mmap(
-            flatbuffer_blob, device, device_idx, rt_flags
+            flatbuffer_blob,
+            device,
+            device_idx,
+            rt_flags,
+            external_weight_file=external_weight_file,
         )
     else:
         vmfb, config = get_iree_module(
@@ -501,6 +537,7 @@ def get_iree_compiled_module(
             device,
             device_idx=device_idx,
             rt_flags=rt_flags,
+            external_weight_file=external_weight_file,
         )
     ret_params = {
         "vmfb": vmfb,

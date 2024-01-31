@@ -10,9 +10,7 @@ from utils import get_datasets
 
 shark_root = Path(__file__).parent.parent
 demo_css = shark_root.joinpath("web/demo.css").resolve()
-nodlogo_loc = shark_root.joinpath(
-    "web/models/stable_diffusion/logos/nod-logo.png"
-)
+nodlogo_loc = shark_root.joinpath("web/models/stable_diffusion/logos/nod-logo.png")
 
 
 with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
@@ -23,6 +21,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
                 value=nod_logo,
                 show_label=False,
                 interactive=False,
+                show_download_button=False,
                 elem_id="top_logo",
                 width=150,
                 height=100,
@@ -75,9 +74,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             with jsonlines.open(dataset_path + "/metadata.jsonl") as reader:
                 for line in reader.iter(type=dict, skip_invalid=True):
                     prompt_data[line["file_name"]] = (
-                        [line["text"]]
-                        if type(line["text"]) is str
-                        else line["text"]
+                        [line["text"]] if type(line["text"]) is str else line["text"]
                     )
 
         return gr.Dropdown.update(choices=images[dataset])
@@ -103,9 +100,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             prompt_data[image_name] = []
         prompt_choices = ["Add new"]
         prompt_choices += prompt_data[image_name]
-        return gr.Image.update(value=img), gr.Dropdown.update(
-            choices=prompt_choices
-        )
+        return gr.Image.update(value=img), gr.Dropdown.update(choices=prompt_choices)
 
     image_name.change(
         fn=display_image,
@@ -122,12 +117,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
     prompts.change(fn=edit_prompt, inputs=prompts, outputs=prompt)
 
     def save_prompt(dataset, image_name, prompts, prompt):
-        if (
-            dataset is None
-            or image_name is None
-            or prompts is None
-            or prompt is None
-        ):
+        if dataset is None or image_name is None or prompts is None or prompt is None:
             return
 
         if prompts == "Add new":
@@ -136,9 +126,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             idx = prompt_data[image_name].index(prompts)
             prompt_data[image_name][idx] = prompt
 
-        prompt_path = (
-            str(shark_root) + "/dataset/" + dataset + "/metadata.jsonl"
-        )
+        prompt_path = str(shark_root) + "/dataset/" + dataset + "/metadata.jsonl"
         # write prompt jsonlines file
         with open(prompt_path, "w") as f:
             for key, value in prompt_data.items():
@@ -165,9 +153,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             return
 
         prompt_data[image_name].remove(prompts)
-        prompt_path = (
-            str(shark_root) + "/dataset/" + dataset + "/metadata.jsonl"
-        )
+        prompt_path = str(shark_root) + "/dataset/" + dataset + "/metadata.jsonl"
         # write prompt jsonlines file
         with open(prompt_path, "w") as f:
             for key, value in prompt_data.items():
@@ -230,9 +216,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
         # upload prompt and remove local data
         dataset_path = str(shark_root) + "/dataset/" + dataset
         dataset_gs_path = args.gs_url + "/" + dataset + "/"
-        os.system(
-            f'gsutil cp "{dataset_path}/metadata.jsonl" "{dataset_gs_path}"'
-        )
+        os.system(f'gsutil cp "{dataset_path}/metadata.jsonl" "{dataset_gs_path}"')
         os.system(f'rm -rf "{dataset_path}"')
 
         return gr.Dropdown.update(value=None)

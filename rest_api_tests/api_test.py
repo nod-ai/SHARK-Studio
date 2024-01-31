@@ -44,14 +44,10 @@ def upscaler_test(verbose=False):
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(
-        f"[upscaler] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[upscaler] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
-        print(
-            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
-        )
+        print(f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n")
 
 
 def img2img_test(verbose=False):
@@ -96,14 +92,10 @@ def img2img_test(verbose=False):
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(
-        f"[img2img] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[img2img] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
-        print(
-            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
-        )
+        print(f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n")
 
     # NOTE Uncomment below to save the picture
 
@@ -133,13 +125,9 @@ def inpainting_test(verbose=False):
     image_path = r"./rest_api_tests/dog.png"
 
     img_file = open(image_path, "rb")
-    image = (
-        "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
-    )
+    image = "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
     img_file = open(image_path, "rb")
-    mask = (
-        "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
-    )
+    mask = "data:image/png;base64," + base64.b64encode(img_file.read()).decode()
 
     url = "http://127.0.0.1:8080/sdapi/v1/inpaint"
 
@@ -166,14 +154,10 @@ def inpainting_test(verbose=False):
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(
-        f"[inpaint] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[inpaint] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
-        print(
-            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
-        )
+        print(f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n")
 
 
 def outpainting_test(verbose=False):
@@ -223,14 +207,10 @@ def outpainting_test(verbose=False):
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(
-        f"[outpaint] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[outpaint] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
-        print(
-            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
-        )
+        print(f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n")
 
 
 def txt2img_test(verbose=False):
@@ -262,14 +242,10 @@ def txt2img_test(verbose=False):
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)
 
-    print(
-        f"[txt2img] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[txt2img] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
-        print(
-            f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n"
-        )
+        print(f"\n{res.json()['info'] if res.status_code == 200 else res.content}\n")
 
 
 def sd_models_test(verbose=False):
@@ -283,9 +259,7 @@ def sd_models_test(verbose=False):
 
     res = requests.get(url=url, headers=headers, timeout=1000)
 
-    print(
-        f"[sd_models] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[sd_models] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
         print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
@@ -302,9 +276,7 @@ def sd_samplers_test(verbose=False):
 
     res = requests.get(url=url, headers=headers, timeout=1000)
 
-    print(
-        f"[sd_samplers] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[sd_samplers] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
         print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
@@ -321,9 +293,7 @@ def options_test(verbose=False):
 
     res = requests.get(url=url, headers=headers, timeout=1000)
 
-    print(
-        f"[options] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[options] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
         print(f"\n{res.json() if res.status_code == 200 else res.content}\n")
@@ -340,9 +310,7 @@ def cmd_flags_test(verbose=False):
 
     res = requests.get(url=url, headers=headers, timeout=1000)
 
-    print(
-        f"[cmd-flags] response from server was : {res.status_code} {res.reason}"
-    )
+    print(f"[cmd-flags] response from server was : {res.status_code} {res.reason}")
 
     if verbose or res.status_code != 200:
         print(f"\n{res.json() if res.status_code == 200 else res.content}\n")

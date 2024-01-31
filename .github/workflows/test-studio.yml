@@ -1,0 +1,86 @@
+# This workflow will install Python dependencies, run tests and lint with a variety of Python versions
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: Validate Shark Studio
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'shark/examples/**'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'shark/examples/**'
+  workflow_dispatch:
+
+# Ensure that only a single job or workflow using the same
+# concurrency group will run at a time. This would cancel
+# any in-progress jobs in the same github workflow and github
+# ref (e.g. refs/heads/main or refs/pull/<pr_number>/merge).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-validate:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [nodai-ubuntu-builder-large]
+        suite: [cpu] #,cuda,vulkan]
+        python-version: ["3.11"]
+        include:
+          - os: nodai-ubuntu-builder-large
+            suite: lint
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set Environment Variables
+      run: |
+        echo "SHORT_SHA=`git rev-parse --short=4 HEAD`" >> $GITHUB_ENV
+        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
+        
+    - name: Set up Python Version File ${{ matrix.python-version }}
+      run: |
+        echo ${{ matrix.python-version }} >> $GITHUB_WORKSPACE/.python-version
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: '${{ matrix.python-version }}'
+          
+    - name: Install dependencies
+      if: matrix.suite == 'lint'
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install flake8 pytest toml black
+        
+    - name: Lint with flake8
+      if: matrix.suite == 'lint'
+      run: |
+        # black format check
+        black --version
+        black --check apps/shark_studio 
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 . --statistics
+        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+        flake8 . --isolated --count --exit-zero --max-complexity=10 --max-line-length=127 \
+          --statistics --exclude lit.cfg.py
+
+    - name: Validate Models on CPU
+      if: matrix.suite == 'cpu'
+      run: |
+        cd $GITHUB_WORKSPACE
+        python${{ matrix.python-version }} -m venv shark.venv
+        source shark.venv/bin/activate
+        pip install -r requirements.txt --no-cache-dir
+        pip install -e .
+        pip uninstall -y torch
+        pip install torch==2.1.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+        python apps/shark_studio/tests/api_test.py
