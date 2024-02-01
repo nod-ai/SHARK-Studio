@@ -291,7 +291,7 @@ class LanguageModel:
             history.append(int(token))
             while token != llm_model_map["llama2_7b"]["stop_token"]:
                 dec_time = time.time()
-                result = self.mod(token.reshape([1,1]), past_key_values=pkv)
+                result = self.mod(token.reshape([1, 1]), past_key_values=pkv)
                 history.append(int(token))
                 total_time = time.time() - dec_time
                 token = torch.argmax(result.logits[:, -1, :], dim=1)
@@ -308,7 +308,6 @@ class LanguageModel:
         result_output = self.tokenizer.decode(history)
         self.global_iter += 1
         return result_output, total_time
-
 
 
 if __name__ == "__main__":
