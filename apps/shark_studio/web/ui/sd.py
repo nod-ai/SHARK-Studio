@@ -136,6 +136,8 @@ def pull_sd_configs(
                 sd_cfg[arg] = json.loads(sd_args[arg])
             else:
                 sd_cfg[arg] = {}
+        elif arg == "None":
+            sd_cfg[arg] = None
         else:
             sd_cfg[arg] = sd_args[arg]
     return sd_cfg

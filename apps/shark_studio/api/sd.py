@@ -96,6 +96,7 @@ class StableDiffusion(SharkPipelineBase):
         num_loras: int = 0,
         import_ir: bool = True,
         is_controlled: bool = False,
+        hf_auth_token=None,
     ):
         self.model_max_length = 77
         self.batch_size = batch_size
@@ -112,7 +113,7 @@ class StableDiffusion(SharkPipelineBase):
             "unet": {
                 "hf_model_name": base_model_id,
                 "unet_model": unet.UnetModel(
-                    hf_model_name=base_model_id, hf_auth_token=None
+                    hf_model_name=base_model_id, hf_auth_token=hf_auth_token
                 ),
                 "batch_size": batch_size,
                 # "is_controlled": is_controlled,
@@ -125,8 +126,8 @@ class StableDiffusion(SharkPipelineBase):
             "vae_encode": {
                 "hf_model_name": base_model_id,
                 "vae_model": vae.VaeModel(
-                    hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
+                    hf_model_name=custom_vae if custom_vae else base_model_id,
+                    hf_auth_token=hf_auth_token,
                 ),
                 "batch_size": batch_size,
                 "height": height,
@@ -136,8 +137,8 @@ class StableDiffusion(SharkPipelineBase):
             "vae_decode": {
                 "hf_model_name": base_model_id,
                 "vae_model": vae.VaeModel(
-                    hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
+                    hf_model_name=custom_vae if custom_vae else base_model_id,
+                    hf_auth_token=hf_auth_token,
                 ),
                 "batch_size": batch_size,
                 "height": height,
@@ -183,7 +184,7 @@ class StableDiffusion(SharkPipelineBase):
                 custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
                 if submodel not in ["clip", "clip2"]:
                     self.static_kwargs[submodel][
-                        "external_weight_file"
+                        "external_weights"
                     ] = custom_weights_params
                 else:
                     self.static_kwargs[submodel]["external_weight_path"] = os.path.join(
