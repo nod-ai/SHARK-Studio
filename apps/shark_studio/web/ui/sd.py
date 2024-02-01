@@ -33,6 +33,8 @@ from apps.shark_studio.modules.img_processing import (
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from apps.shark_studio.web.ui.utils import (
     nodlogo_loc,
+    none_to_str_none,
+    str_none_to_none,
 )
 from apps.shark_studio.web.utils.state import (
     status_label,
@@ -122,7 +124,7 @@ def pull_sd_configs(
     controlnets,
     embeddings,
 ):
-    sd_args = locals()
+    sd_args = str_none_to_none(locals())
     sd_cfg = {}
     for arg in sd_args:
         if arg in [
@@ -136,15 +138,14 @@ def pull_sd_configs(
                 sd_cfg[arg] = json.loads(sd_args[arg])
             else:
                 sd_cfg[arg] = {}
-        elif arg == "None":
-            sd_cfg[arg] = None
         else:
             sd_cfg[arg] = sd_args[arg]
-    return sd_cfg
+
+    return json.dumps(sd_cfg)
 
 
 def load_sd_cfg(sd_json: dict, load_sd_config: str):
-    new_sd_config = json.loads(view_json_file(load_sd_config))
+    new_sd_config = none_to_str_none(json.loads(view_json_file(load_sd_config)))
     if sd_json:
         for key in new_sd_config:
             sd_json[key] = new_sd_config[key]
@@ -277,9 +278,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             label=f"Custom VAE Models",
                             info=sd_vae_info,
                             elem_id="custom_model",
-                            value=os.path.basename(cmd_opts.custom_vae)
-                            if cmd_opts.custom_vae
-                            else "None",
+                            value=(
+                                os.path.basename(cmd_opts.custom_vae)
+                                if cmd_opts.custom_vae
+                                else "None"
+                            ),
                             choices=["None"] + get_checkpoints("vae"),
                             allow_custom_value=True,
                             scale=1,
@@ -626,9 +629,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         load_sd_config = gr.FileExplorer(
                             label="Load Config",
                             file_count="single",
-                            root=cmd_opts.configs_path
-                            if cmd_opts.configs_path
-                            else get_configs_path(),
+                            root=(
+                                cmd_opts.configs_path
+                                if cmd_opts.configs_path
+                                else get_configs_path()
+                            ),
                             height=75,
                         )
                         load_sd_config.change(
