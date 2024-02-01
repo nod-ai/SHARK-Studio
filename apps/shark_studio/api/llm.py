@@ -221,7 +221,7 @@ class LanguageModel:
         input_tensor = self.tokenizer(prompt, return_tensors="pt").input_ids
 
         def format_out(results):
-            return int(torch.tensor(results.to_host()[0][0]))
+            return torch.tensor(results.to_host()[0][0])
 
         history = []
         for iter in range(self.max_tokens):
