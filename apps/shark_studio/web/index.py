@@ -20,9 +20,8 @@ if sys.platform == "darwin":
 
 
 def create_api(app):
-    from apps.shark_studio.api.compat import ApiCompat
-    from modules.call_queue import queue_lock
-
+    from apps.shark_studio.web.api.compat import ApiCompat, FIFOLock
+    queue_lock = FIFOLock()
     api = ApiCompat(app, queue_lock)
     return api
 
@@ -43,9 +42,9 @@ def api_only():
 
     print(f"Startup time: {startup_timer.summary()}.")
     api.launch(
-        server_name="0.0.0.0" if cmd_opts.listen else "127.0.0.1",
-        port=cmd_opts.port if cmd_opts.port else 8080,
-        root_path=f"/{cmd_opts.subpath}" if cmd_opts.subpath else "",
+        server_name="0.0.0.0",
+        port=cmd_opts.server_port,
+        root_path="",
     )
 
 
@@ -188,7 +187,7 @@ def webui():
         share=True,
         inbrowser=True,
         server_name="0.0.0.0",
-        server_port=11911,  # args.server_port,
+        server_port=cmd_opts.server_port,
     )
 
 

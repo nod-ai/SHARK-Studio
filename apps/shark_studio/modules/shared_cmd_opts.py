@@ -440,6 +440,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--external_weights",
+    type=str,
+    default=None,
+    help="What type of externalized weights to use. Currently options are 'safetensors' and defaults to inlined weights.",
+)
+
+p.add_argument(
     "--device_allocator_heap_key",
     type=str,
     default="",
@@ -580,6 +587,13 @@ p.add_argument(
     help="Controls data tiling in iree-compile for all SD models.",
 )
 
+p.add_argument(
+    "--quantization",
+    type=str,
+    default="None",
+    help="Quantization to be used for api-exposed model.",
+)
+
 ##############################################################################
 # Web UI flags
 ##############################################################################
@@ -676,6 +690,12 @@ p.add_argument(
     "follow symlinks when listing subdirectories under --output_dir.",
 )
 
+p.add_argument(
+    "--api_log",
+    default=False,
+    action=argparse.BooleanOptionalAction,
+    help="Enables Compatibility API logging.",
+)
 
 ##############################################################################
 # SD model auto-annotation flags

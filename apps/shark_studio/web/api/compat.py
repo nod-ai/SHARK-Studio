@@ -6,7 +6,10 @@ import datetime
 import uvicorn
 import ipaddress
 import requests
+import threading
+import collections
 import gradio as gr
+from PIL import Image, PngImagePlugin
 from threading import Lock
 from io import BytesIO
 from fastapi import APIRouter, Depends, FastAPI, Request, Response
@@ -15,22 +18,15 @@ from fastapi.exceptions import HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
-from apps.shark_studio.modules.img_processing import sampler_list
-from sdapi_v1 import shark_sd_api
-from api.llm import chat_api
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+#from sdapi_v1 import shark_sd_api
+from apps.shark_studio.api.llm import llm_chat_api
 
 
 def decode_base64_to_image(encoding):
     if encoding.startswith("http://") or encoding.startswith("https://"):
-        if not opts.api_enable_requests:
-            raise HTTPException(status_code=500, detail="Requests not allowed")
 
-        if opts.api_forbid_local_requests and not verify_url(encoding):
-            raise HTTPException(
-                status_code=500, detail="Request to local resource not allowed"
-            )
-
-        headers = {"user-agent": opts.api_useragent} if opts.api_useragent else {}
+        headers = {}
         response = requests.get(encoding, timeout=30, headers=headers)
         try:
             image = Image.open(BytesIO(response.content))
@@ -49,54 +45,56 @@ def decode_base64_to_image(encoding):
 
 def encode_pil_to_base64(image):
     with io.BytesIO() as output_bytes:
-        if opts.samples_format.lower() == "png":
-            use_metadata = False
-            metadata = PngImagePlugin.PngInfo()
-            for key, value in image.info.items():
-                if isinstance(key, str) and isinstance(value, str):
-                    metadata.add_text(key, value)
-                    use_metadata = True
-            image.save(
-                output_bytes,
-                format="PNG",
-                pnginfo=(metadata if use_metadata else None),
-                quality=opts.jpeg_quality,
-            )
-
-        elif opts.samples_format.lower() in ("jpg", "jpeg", "webp"):
-            if image.mode == "RGBA":
-                image = image.convert("RGB")
-            parameters = image.info.get("parameters", None)
-            exif_bytes = piexif.dump(
-                {
-                    "Exif": {
-                        piexif.ExifIFD.UserComment: piexif.helper.UserComment.dump(
-                            parameters or "", encoding="unicode"
-                        )
-                    }
-                }
-            )
-            if opts.samples_format.lower() in ("jpg", "jpeg"):
-                image.save(
-                    output_bytes,
-                    format="JPEG",
-                    exif=exif_bytes,
-                    quality=opts.jpeg_quality,
-                )
-            else:
-                image.save(
-                    output_bytes,
-                    format="WEBP",
-                    exif=exif_bytes,
-                    quality=opts.jpeg_quality,
-                )
-
-        else:
-            raise HTTPException(status_code=500, detail="Invalid image format")
+        use_metadata = False
+        metadata = PngImagePlugin.PngInfo()
+        for key, value in image.info.items():
+            if isinstance(key, str) and isinstance(value, str):
+                metadata.add_text(key, value)
+                use_metadata = True
+        image.save(
+            output_bytes,
+            format="PNG",
+            pnginfo=(metadata if use_metadata else None),
+        )
 
         bytes_data = output_bytes.getvalue()
 
     return base64.b64encode(bytes_data)
+
+
+# reference: https://gist.github.com/vitaliyp/6d54dd76ca2c3cdfc1149d33007dc34a
+class FIFOLock(object):
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._inner_lock = threading.Lock()
+        self._pending_threads = collections.deque()
+
+    def acquire(self, blocking=True):
+        with self._inner_lock:
+            lock_acquired = self._lock.acquire(False)
+            if lock_acquired:
+                return True
+            elif not blocking:
+                return False
+
+            release_event = threading.Event()
+            self._pending_threads.append(release_event)
+
+        release_event.wait()
+        return self._lock.acquire()
+
+    def release(self):
+        with self._inner_lock:
+            if self._pending_threads:
+                release_event = self._pending_threads.popleft()
+                release_event.set()
+
+            self._lock.release()
+
+    __enter__ = acquire
+
+    def __exit__(self, t, v, tb):
+        self.release()
 
 
 def api_middleware(app: FastAPI):
@@ -119,7 +117,7 @@ def api_middleware(app: FastAPI):
         duration = str(round(time.time() - ts, 4))
         res.headers["X-Process-Time"] = duration
         endpoint = req.scope.get("path", "err")
-        if shared.cmd_opts.api_log and endpoint.startswith("/sdapi"):
+        if cmd_opts.api_log and endpoint.startswith("/sdapi"):
             print(
                 "API {t} {code} {prot}/{ver} {method} {endpoint} {cli} {duration}".format(
                     t=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f"),
@@ -156,7 +154,8 @@ def api_middleware(app: FastAPI):
                     width=min([console.width, 200]),
                 )
             else:
-                errors.report(message, exc_info=True)
+                print(message)
+                raise(e)
         return JSONResponse(
             status_code=vars(e).get("status_code", 500),
             content=jsonable_encoder(err),
@@ -179,14 +178,14 @@ def api_middleware(app: FastAPI):
 
 
 class ApiCompat:
-    def __init__(self, queue_lock: Lock):
+    def __init__(self, app: FastAPI, queue_lock: Lock):
         self.router = APIRouter()
-        self.app = FastAPI()
+        self.app = app
         self.queue_lock = queue_lock
         api_middleware(self.app)
-        self.add_api_route("/sdapi/v1/txt2img", shark_sd_api, methods=["post"])
-        self.add_api_route("/sdapi/v1/img2img", shark_sd_api, methods=["post"])
-        # self.add_api_route("/sdapi/v1/upscaler", self.upscaler_api, methods=["post"])
+        #self.add_api_route("/sdapi/v1/txt2img", shark_sd_api, methods=["POST"])
+        #self.add_api_route("/sdapi/v1/img2img", shark_sd_api, methods=["POST"])
+        # self.add_api_route("/sdapi/v1/upscaler", self.upscaler_api, methods=["POST"])
         # self.add_api_route("/sdapi/v1/extra-single-image", self.extras_single_image_api, methods=["POST"], response_model=models.ExtrasSingleImageResponse)
         # self.add_api_route("/sdapi/v1/extra-batch-images", self.extras_batch_images_api, methods=["POST"], response_model=models.ExtrasBatchImagesResponse)
         # self.add_api_route("/sdapi/v1/png-info", self.pnginfoapi, methods=["POST"], response_model=models.PNGInfoResponse)
@@ -221,56 +220,40 @@ class ApiCompat:
         # self.add_api_route("/sdapi/v1/script-info", self.get_script_info, methods=["GET"], response_model=List[models.ScriptInfo])
 
         # chat APIs needed for compatibility with multiple extensions using OpenAI API
-        self.add_api_route("/v1/chat/completions", chat_api, methods=["post"])
-        self.add_api_route("/v1/completions", chat_api, methods=["post"])
-        self.add_api_route("/chat/completions", chat_api, methods=["post"])
-        self.add_api_route("/completions", chat_api, methods=["post"])
+        self.add_api_route("/v1/chat/completions", llm_chat_api, methods=["POST"])
+        self.add_api_route("/v1/completions", llm_chat_api, methods=["POST"])
+        self.add_api_route("/chat/completions", llm_chat_api, methods=["POST"])
+        self.add_api_route("/completions", llm_chat_api, methods=["POST"])
         self.add_api_route(
-            "/v1/engines/codegen/completions", chat_api, methods=["post"]
+            "/v1/engines/codegen/completions", llm_chat_api, methods=["POST"]
         )
-        if studio.cmd_opts.api_server_stop:
-            self.add_api_route(
-                "/sdapi/v1/server-kill", self.kill_studio, methods=["POST"]
-            )
-            self.add_api_route(
-                "/sdapi/v1/server-restart",
-                self.restart_studio,
-                methods=["POST"],
-            )
-            self.add_api_route(
-                "/sdapi/v1/server-stop", self.stop_studio, methods=["POST"]
-            )
 
         self.default_script_arg_txt2img = []
         self.default_script_arg_img2img = []
 
     def add_api_route(self, path: str, endpoint, **kwargs):
-        if studio.cmd_opts.api_auth:
-            return self.app.add_api_route(
-                path, endpoint, dependencies=[Depends(self.auth)], **kwargs
-            )
         return self.app.add_api_route(path, endpoint, **kwargs)
 
-    def refresh_checkpoints(self):
-        with self.queue_lock:
-            studio_data.refresh_checkpoints()
+    # def refresh_checkpoints(self):
+    #     with self.queue_lock:
+    #         studio_data.refresh_checkpoints()
 
-    def refresh_vae(self):
-        with self.queue_lock:
-            studio_data.refresh_vae_list()
+    # def refresh_vae(self):
+    #     with self.queue_lock:
+    #         studio_data.refresh_vae_list()
 
-    def unloadapi(self):
-        unload_model_weights()
+    # def unloadapi(self):
+    #     unload_model_weights()
 
-        return {}
+    #     return {}
 
-    def reloadapi(self):
-        reload_model_weights()
+    # def reloadapi(self):
+    #     reload_model_weights()
 
-        return {}
+    #     return {}
 
-    def skip(self):
-        studio.state.skip()
+    # def skip(self):
+    #     studio.state.skip()
 
     def launch(self, server_name, port, root_path):
         self.app.include_router(self.router)
@@ -278,27 +261,26 @@ class ApiCompat:
             self.app,
             host=server_name,
             port=port,
-            timeout_keep_alive=studio.cmd_opts.timeout_keep_alive,
             root_path=root_path,
         )
 
-    def kill_studio(self):
-        restart.stop_program()
+    # def kill_studio(self):
+    #     restart.stop_program()
 
-    def restart_studio(self):
-        if restart.is_restartable():
-            restart.restart_program()
-        return Response(status_code=501)
+    # def restart_studio(self):
+    #     if restart.is_restartable():
+    #         restart.restart_program()
+    #     return Response(status_code=501)
 
-    def preprocess(self, args: dict):
-        try:
-            studio.state.begin(job="preprocess")
-            preprocess(**args)
-            studio.state.end()
-            return models.PreprocessResponse(info="preprocess complete")
-        except:
-            studio.state.end()
+    # def preprocess(self, args: dict):
+    #     try:
+    #         studio.state.begin(job="preprocess")
+    #         preprocess(**args)
+    #         studio.state.end()
+    #         return models.PreprocessResponse(info="preprocess complete")
+    #     except:
+    #         studio.state.end()
 
-    def stop_studio(request):
-        studio.state.server_command = "stop"
-        return Response("Stopping.")
+    # def stop_studio(request):
+    #     studio.state.server_command = "stop"
+    #     return Response("Stopping.")
