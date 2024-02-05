@@ -5,8 +5,8 @@
 setuptools
 wheel
 
-shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@main
-turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine#egg=turbine-models&subdirectory=python/turbine_models
+shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine#egg=shark-turbine&subdirectory=core
+turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine#egg=turbine-models&subdirectory=models
 
 # SHARK Runner
 tqdm
