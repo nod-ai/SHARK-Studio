@@ -290,6 +290,7 @@ def map_device_to_name_path(device, key_combination=3):
     available_devices.extend(cpu_device)
     return available_devices
 
+
 # Generate and return a new seed if the provided one is not in the
 # supported range (including -1)
 def sanitize_seed(seed: int | str):

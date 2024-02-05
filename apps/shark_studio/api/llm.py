@@ -102,11 +102,15 @@ class LanguageModel:
             self.file_spec += "_streaming"
         self.streaming_llm = streaming_llm
 
-        self.tempfile_name = get_resource_path(os.path.join("..", f"{self.file_spec}.tempfile"))
+        self.tempfile_name = get_resource_path(
+            os.path.join("..", f"{self.file_spec}.tempfile")
+        )
         # TODO: Tag vmfb with target triple of device instead of HAL backend
-        self.vmfb_name = str(get_resource_path(
-            os.path.join("..", f"{self.file_spec}_{self.backend}.vmfb.tempfile")
-        ))
+        self.vmfb_name = str(
+            get_resource_path(
+                os.path.join("..", f"{self.file_spec}_{self.backend}.vmfb.tempfile")
+            )
+        )
 
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
@@ -253,7 +257,10 @@ class LanguageModel:
                 token_len += 1
 
             history.append(format_out(token))
-            while format_out(token) != llm_model_map["llama2_7b"]["stop_token"] and len(history) < self.max_tokens:
+            while (
+                format_out(token) != llm_model_map["llama2_7b"]["stop_token"]
+                and len(history) < self.max_tokens
+            ):
                 dec_time = time.time()
                 if self.streaming_llm and self.model["get_seq_step"]() > 600:
                     print("Evicting cache space!")
@@ -378,7 +385,9 @@ def llm_chat_api(InputData: dict):
     # TODO: add role dict for different models
     if is_chat_completion_api:
         # TODO: add funtionality for multiple messages
-        prompt = append_user_prompt(InputData["messages"][0]["role"], InputData["messages"][0]["content"])
+        prompt = append_user_prompt(
+            InputData["messages"][0]["role"], InputData["messages"][0]["content"]
+        )
     else:
         prompt = InputData["prompt"]
     print("prompt = ", prompt)
@@ -412,6 +421,7 @@ def llm_chat_api(InputData: dict):
         "created": int(end_time),
         "choices": choices,
     }
+
 
 if __name__ == "__main__":
     lm = LanguageModel(

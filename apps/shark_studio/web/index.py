@@ -21,6 +21,7 @@ if sys.platform == "darwin":
 
 def create_api(app):
     from apps.shark_studio.web.api.compat import ApiCompat, FIFOLock
+
     queue_lock = FIFOLock()
     api = ApiCompat(app, queue_lock)
     return api

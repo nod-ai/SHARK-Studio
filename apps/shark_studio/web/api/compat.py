@@ -19,7 +19,8 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
-#from sdapi_v1 import shark_sd_api
+
+# from sdapi_v1 import shark_sd_api
 from apps.shark_studio.api.llm import llm_chat_api
 
 
@@ -155,7 +156,7 @@ def api_middleware(app: FastAPI):
                 )
             else:
                 print(message)
-                raise(e)
+                raise (e)
         return JSONResponse(
             status_code=vars(e).get("status_code", 500),
             content=jsonable_encoder(err),
@@ -183,8 +184,8 @@ class ApiCompat:
         self.app = app
         self.queue_lock = queue_lock
         api_middleware(self.app)
-        #self.add_api_route("/sdapi/v1/txt2img", shark_sd_api, methods=["POST"])
-        #self.add_api_route("/sdapi/v1/img2img", shark_sd_api, methods=["POST"])
+        # self.add_api_route("/sdapi/v1/txt2img", shark_sd_api, methods=["POST"])
+        # self.add_api_route("/sdapi/v1/img2img", shark_sd_api, methods=["POST"])
         # self.add_api_route("/sdapi/v1/upscaler", self.upscaler_api, methods=["POST"])
         # self.add_api_route("/sdapi/v1/extra-single-image", self.extras_single_image_api, methods=["POST"], response_model=models.ExtrasSingleImageResponse)
         # self.add_api_route("/sdapi/v1/extra-batch-images", self.extras_batch_images_api, methods=["POST"], response_model=models.ExtrasBatchImagesResponse)

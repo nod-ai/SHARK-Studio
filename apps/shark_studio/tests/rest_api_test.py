@@ -19,13 +19,14 @@ def llm_chat_test(verbose=False):
 
     data = {
         "model": "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
-        "messages": [{
-            "role": "",
-            "content": prompt,
-        }],
+        "messages": [
+            {
+                "role": "",
+                "content": prompt,
+            }
+        ],
         "device": "vulkan://0",
         "max_tokens": 4096,
-
     }
 
     res = requests.post(url=url, json=data, headers=headers, timeout=1000)

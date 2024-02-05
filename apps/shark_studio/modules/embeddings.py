@@ -41,10 +41,12 @@ def processLoRA(model, use_lora, splitting_prefix, lora_strength=0.75):
                     state_dict[f"{stem}up.weight"],
                     state_dict[f"{stem}down.weight"],
                     state_dict.get(f"{stem}mid.weight", None),
-                    state_dict[f"{weight_key}.alpha"]
-                    / state_dict[f"{stem}up.weight"].shape[1]
-                    if f"{weight_key}.alpha" in state_dict
-                    else 1.0,
+                    (
+                        state_dict[f"{weight_key}.alpha"]
+                        / state_dict[f"{stem}up.weight"].shape[1]
+                        if f"{weight_key}.alpha" in state_dict
+                        else 1.0
+                    ),
                 )
 
     # Directly update weight in model

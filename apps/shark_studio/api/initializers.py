@@ -7,6 +7,7 @@ import json
 from threading import Thread
 
 from apps.shark_studio.modules.timer import startup_timer
+
 # from apps.shark_studio.web.utils.tmp_configs import (
 #     config_tmp,
 #     clear_tmp_mlir,
@@ -88,7 +89,9 @@ def dumpstacks():
 def setup_middleware(app):
     from starlette.middleware.gzip import GZipMiddleware
 
-    app.middleware_stack = None  # reset current middleware to allow modifying user provided list
+    app.middleware_stack = (
+        None  # reset current middleware to allow modifying user provided list
+    )
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     configure_cors_middleware(app)
     app.build_middleware_stack()  # rebuild middleware stack on-the-fly
@@ -104,7 +107,7 @@ def configure_cors_middleware(app):
         "allow_credentials": True,
     }
     if cmd_opts.api_accept_origin:
-        cors_options["allow_origins"] = cmd_opts.api_accept_origin.split(',')
+        cors_options["allow_origins"] = cmd_opts.api_accept_origin.split(",")
 
     app.add_middleware(CORSMiddleware, **cors_options)
 
