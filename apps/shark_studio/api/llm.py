@@ -107,6 +107,7 @@ class LanguageModel:
         self.vmfb_name = str(get_resource_path(
             os.path.join("..", f"{self.file_spec}_{self.backend}.vmfb.tempfile")
         ))
+
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
         self.use_system_prompt = use_system_prompt
@@ -131,6 +132,7 @@ class LanguageModel:
                     f"External weight file {self.external_weight_file} found for {self.vmfb_name}"
                 )
             self.external_weight_file = str(self.external_weight_file)
+
         if os.path.exists(self.vmfb_name) and (
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
