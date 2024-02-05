@@ -174,9 +174,7 @@ def process_sd_init_image(self, sd_init_image, resample_type):
     if isinstance(sd_init_image, str):
         if os.path.isfile(sd_init_image):
             sd_init_image = Image.open(sd_init_image, mode="r").convert("RGB")
-            image, is_img2img = self.process_sd_init_image(
-                sd_init_image, resample_type
-            )
+            image, is_img2img = self.process_sd_init_image(sd_init_image, resample_type)
         else:
             image = None
             is_img2img = False

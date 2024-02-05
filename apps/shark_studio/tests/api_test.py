@@ -29,6 +29,7 @@ from apps.shark_studio.web.utils.file_utils import get_resource_path
 #         for i in shark_sd_fn_dict_input(sd_kwargs):
 #             print(i)
 
+
 class LLMAPITest(unittest.TestCase):
     def test01_LLMSmall(self):
         lm = LanguageModel(

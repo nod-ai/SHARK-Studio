@@ -292,9 +292,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             label=f"Custom VAE Models",
                             info=sd_vae_info,
                             elem_id="custom_model",
-                            value=os.path.basename(cmd_opts.custom_vae)
-                            if cmd_opts.custom_vae
-                            else "None",
+                            value=(
+                                os.path.basename(cmd_opts.custom_vae)
+                                if cmd_opts.custom_vae
+                                else "None"
+                            ),
                             choices=["None"] + get_checkpoints("vae"),
                             allow_custom_value=True,
                             scale=1,
@@ -641,9 +643,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         load_sd_config = gr.FileExplorer(
                             label="Load Config",
                             file_count="single",
-                            root=cmd_opts.configs_path
-                            if cmd_opts.configs_path
-                            else get_configs_path(),
+                            root=(
+                                cmd_opts.configs_path
+                                if cmd_opts.configs_path
+                                else get_configs_path()
+                            ),
                             height=75,
                         )
                         load_sd_config.change(
