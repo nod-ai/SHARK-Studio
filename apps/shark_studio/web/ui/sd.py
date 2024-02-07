@@ -226,6 +226,17 @@ def import_original(original_img, width, height):
         return EditorValue(img_dict)
 
 
+def base_model_changed(base_model_id):
+    new_choices = get_checkpoints(
+        os.path.join("checkpoints", os.path.basename(str(base_model_id)))
+    ) + get_checkpoints(model_type="checkpoints")
+
+    return gr.Dropdown(
+        value=new_choices[0] if len(new_choices) > 0 else "None",
+        choices=["None"] + new_choices,
+    )
+
+
 with gr.Blocks(title="Stable Diffusion") as sd_element:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
@@ -259,13 +270,19 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             choices=sd_default_models,
                         )  # base_model_id
                         custom_weights = gr.Dropdown(
-                            label="Custom Weights",
+                            label="Custom Weights Checkpoint",
                             info="Select or enter HF model ID",
                             elem_id="custom_model",
                             value="None",
                             allow_custom_value=True,
-                            choices=["None"] + get_checkpoints(base_model_id),
-                        )  #
+                            choices=["None"]
+                            + get_checkpoints(os.path.basename(str(base_model_id))),
+                        )  # custom_weights
+                        base_model_id.change(
+                            fn=base_model_changed,
+                            inputs=[base_model_id],
+                            outputs=[custom_weights],
+                        )
                     with gr.Column(scale=2):
                         sd_vae_info = (str(get_checkpoints_path("vae"))).replace(
                             "\\", "\n\\"
