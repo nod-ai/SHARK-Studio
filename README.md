@@ -2,18 +2,20 @@
 
 High Performance Machine Learning Distribution
 
+*We are currently rebuilding SHARK to take advantage of [Turbine](https://github.com/nod-ai/SHARK-Turbine). Until that is complete make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK*
+
 [![Nightly Release](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml)
 [![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
 
 
 <details>
   <summary>Prerequisites - Drivers </summary>
-  
+
 #### Install your Windows hardware drivers
 * [AMD RDNA Users] Download the latest driver (23.2.1 is the oldest supported) [here](https://www.amd.com/en/support).
-* [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work. 
+* [macOS Users] Download and install the 1.3.216 Vulkan SDK from [here](https://sdk.lunarg.com/sdk/download/1.3.216.0/mac/vulkansdk-macos-1.3.216.0.dmg). Newer versions of the SDK will not work.
 * [Nvidia Users] Download and install the latest CUDA / Vulkan drivers from [here](https://developer.nvidia.com/cuda-downloads)
-  
+
 #### Linux Drivers
 * MESA / RADV drivers wont work with FP16. Please use the latest AMGPU-PRO drivers (non-pro OSS drivers also wont work) or the latest NVidia Linux Drivers.
 
@@ -22,23 +24,23 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 </details>
 
 
- 
+
 ### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
 
-Install the Driver from [Prerequisites](https://github.com/nod-ai/SHARK#install-your-hardware-drivers) above 
+Install the Driver from (Prerequisites)[https://github.com/nod-ai/SHARK#install-your-hardware-drivers] above
 
-Download the [stable release](https://github.com/nod-ai/shark/releases/latest)
+Download the [stable release](https://github.com/nod-ai/shark/releases/latest) or the most recent [SHARK 1.0 pre-release](https://github.com/nod-ai/shark/releases).
 
-Double click the .exe and you should have the [UI](http://localhost:8080/) in the browser. 
+Double click the .exe, or [run from the command line](#running) (recommended), and you should have the [UI](http://localhost:8080/) in the browser.
 
-If you have custom models put them in a `models/` directory where the .exe is. 
+If you have custom models put them in a `models/` directory where the .exe is.
 
-Enjoy. 
+Enjoy.
 
 <details>
   <summary>More installation notes</summary>
-* We recommend that you download EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files with `rm *.vmfb`. You can also use `--clear_all` flag once to clean all the old files. 
-* If you recently updated the driver or this binary (EXE file), we recommend you clear all the local artifacts with `--clear_all` 
+* We recommend that you download EXE in a new folder, whenever you download a new EXE version. If you download it in the same folder as a previous install, you must delete the old `*.vmfb` files with `rm *.vmfb`. You can also use `--clear_all` flag once to clean all the old files.
+* If you recently updated the driver or this binary (EXE file), we recommend you clear all the local artifacts with `--clear_all`
 
 ## Running
 
@@ -46,16 +48,21 @@ Enjoy.
 * The first run may take few minutes when the models are downloaded and compiled. Your patience is appreciated. The download could be about 5GB.
 * You will likely see a Windows Defender message asking you to give permission to open a web server port. Accept it.
 * Open a browser to access the Stable Diffusion web server. By default, the port is 8080, so you can go to http://localhost:8080/.
+* If you prefer to always run in the browser, use the `--ui=web` command argument when running the EXE.
 
 ## Stopping
 
-* Select the command prompt that's running the EXE. Press CTRL-C and wait a moment or close the terminal. 
+* Select the command prompt that's running the EXE. Press CTRL-C and wait a moment or close the terminal.
 </details>
 
 <details>
   <summary>Advanced Installation (Only for developers)</summary>
-  
+
 ## Advanced Installation (Windows, Linux and macOS) for developers
+
+### Windows 10/11 Users
+
+* Install Git for Windows from [here](https://git-scm.com/download/win) if you don't already have it.
 
 ## Check out the code
 
@@ -64,13 +71,21 @@ git clone https://github.com/nod-ai/SHARK.git
 cd SHARK
 ```
 
+## Switch to the Correct Branch (IMPORTANT!)
+
+Currently SHARK is being rebuilt for [Turbine](https://github.com/nod-ai/SHARK-Turbine) on the `main` branch. For now you are strongly discouraged from using `main` unless you are working on the rebuild effort, and should not expect the code there to produce a working application for Image Generation, So for now you'll need switch over to the `SHARK-1.0` branch and use the stable code.
+
+```shell
+git checkout SHARK-1.0
+```
+
+The following setup instructions assume you are on this branch.
+
 ## Setup your Python VirtualEnvironment and Dependencies
 
 ### Windows 10/11 Users
 
 * Install the latest Python 3.11.x version from [here](https://www.python.org/downloads/windows/)
-
-* Install Git for Windows from [here](https://git-scm.com/download/win)
 
 #### Allow the install script to run in Powershell
 ```powershell
@@ -86,21 +101,20 @@ set-executionpolicy remotesigned
 
 ```shell
 ./setup_venv.sh
-source shark.venv/bin/activate
+source shark1.venv/bin/activate
 ```
-
 
 ### Run Stable Diffusion on your device - WebUI
 
 #### Windows 10/11 Users
 ```powershell
-(shark.venv) PS C:\g\shark> cd .\apps\stable_diffusion\web\
-(shark.venv) PS C:\g\shark\apps\stable_diffusion\web> python .\index.py
+(shark1.venv) PS C:\g\shark> cd .\apps\stable_diffusion\web\
+(shark1.venv) PS C:\g\shark\apps\stable_diffusion\web> python .\index.py
 ```
 #### Linux / macOS Users
 ```shell
-(shark.venv) > cd apps/stable_diffusion/web
-(shark.venv) > python index.py
+(shark1.venv) > cd apps/stable_diffusion/web
+(shark1.venv) > python index.py
 ```
 
 #### Access Stable Diffusion on http://localhost:8080/?__theme=dark
@@ -114,7 +128,7 @@ source shark.venv/bin/activate
 
 #### Windows 10/11 Users
 ```powershell
-(shark.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\main.py --app="txt2img" --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
+(shark1.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\main.py --app="txt2img" --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
 ```
 
 #### Linux / macOS Users
@@ -142,7 +156,7 @@ Here are some samples generated:
 ![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
 
 
-Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware. 
+Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware.
 
 
 <details>
@@ -205,7 +219,7 @@ python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal
 If you want to use Python3.11 and with TF Import tools you can use the environment variables like:
 Set `USE_IREE=1` to use upstream IREE
 ```
-# PYTHON=python3.11 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh 
+# PYTHON=python3.11 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh
 ```
 
 ### Run any of the hundreds of SHARK tank models via the test framework
@@ -214,7 +228,7 @@ python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use g
 # Or a pytest
 pytest tank/test_models.py -k "MiniLM"
 ```
-  
+
 ### How to use your locally built IREE / Torch-MLIR with SHARK
 If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
@@ -240,12 +254,12 @@ Now the SHARK will use your locally build Torch-MLIR repo.
 
 ## Benchmarking Dispatches
 
-To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your pytest command line argument.  
+To produce benchmarks of individual dispatches, you can add `--dispatch_benchmarks=All --dispatch_benchmarks_dir=<output_dir>` to your pytest command line argument.
 If you only want to compile specific dispatches, you can specify them with a space seperated string instead of `"All"`.  E.G. `--dispatch_benchmarks="0 1 2 10"`
 
 For example, to generate and run dispatch benchmarks for MiniLM on CUDA:
 ```
-pytest -k "MiniLM and torch and static and cuda" --benchmark_dispatches=All -s --dispatch_benchmarks_dir=./my_dispatch_benchmarks                                                                                
+pytest -k "MiniLM and torch and static and cuda" --benchmark_dispatches=All -s --dispatch_benchmarks_dir=./my_dispatch_benchmarks
 ```
 The given command will populate `<dispatch_benchmarks_dir>/<model_name>/` with an `ordered_dispatches.txt` that lists and orders the dispatches and their latencies, as well as folders for each dispatch that contain .mlir, .vmfb, and results of the benchmark for that dispatch.
 
@@ -264,7 +278,7 @@ shark_module = SharkInference(
 Output will include:
 - An ordered list ordered-dispatches.txt of all the dispatches with their runtime
 - Inside the specified directory, there will be a directory for each dispatch (there will be mlir files for all dispatches, but only compiled binaries and benchmark data for the specified dispatches)
-- An .mlir file containing the dispatch benchmark 
+- An .mlir file containing the dispatch benchmark
 - A compiled .vmfb file containing the dispatch benchmark
 - An .mlir file containing just the hal executable
 - A compiled .vmfb file of the hal executable
@@ -332,7 +346,7 @@ result = shark_module.forward((arg0, arg1))
 
 ## Supported and Validated Models
 
-SHARK is maintained to support the latest innovations in ML Models: 
+SHARK is maintained to support the latest innovations in ML Models:
 
 | TF HuggingFace Models | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
 |---------------------|----------|----------|-------------|
@@ -373,7 +387,7 @@ For a complete list of the models supported in SHARK, please refer to [tank/READ
 *  Weekly meetings on Mondays 9AM PST. See [here](https://discourse.llvm.org/t/community-meeting-developer-hour-refactoring-recurring-meetings/62575) for more information.
 * [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31) SHARK and IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org).
 </details>
-  
+
 ## License
 
 nod.ai SHARK is licensed under the terms of the Apache 2.0 License with LLVM Exceptions.
