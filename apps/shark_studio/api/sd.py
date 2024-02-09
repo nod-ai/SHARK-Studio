@@ -9,7 +9,7 @@ from tqdm.auto import tqdm
 from pathlib import Path
 from random import randint
 from turbine_models.custom_models.sd_inference import clip, unet, vae
-from apps.shark_studio.api.controlnet import control_adapter_map
+from apps.shark_studio.api.controlnet import control_adapter_map, SharkControlnetPipeline
 from apps.shark_studio.web.utils.state import status_label
 from apps.shark_studio.web.utils.file_utils import (
     safe_name,
@@ -112,10 +112,10 @@ class StableDiffusion(SharkPipelineBase):
             "unet": {
                 "hf_model_name": base_model_id,
                 "unet_model": unet.UnetModel(
-                    hf_model_name=base_model_id, hf_auth_token=None
+                    hf_model_name=base_model_id, hf_auth_token=None, is_controlled=False,
                 ),
                 "batch_size": batch_size,
-                # "is_controlled": is_controlled,
+                "is_controlled": is_controlled,
                 # "num_loras": num_loras,
                 "height": height,
                 "width": width,
@@ -126,7 +126,6 @@ class StableDiffusion(SharkPipelineBase):
                 "hf_model_name": base_model_id,
                 "vae_model": vae.VaeModel(
                     hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
                 ),
                 "batch_size": batch_size,
                 "height": height,
@@ -137,7 +136,6 @@ class StableDiffusion(SharkPipelineBase):
                 "hf_model_name": base_model_id,
                 "vae_model": vae.VaeModel(
                     hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
                 ),
                 "batch_size": batch_size,
                 "height": height,
@@ -163,6 +161,7 @@ class StableDiffusion(SharkPipelineBase):
         print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
         del static_kwargs
         gc.collect()
+        self.controlnet = SharkControlnetPipeline(device)
 
     def prepare_pipe(self, custom_weights, adapters, embeddings, is_img2img):
         print(f"\n[LOG] Preparing pipeline...")
@@ -291,6 +290,7 @@ class StableDiffusion(SharkPipelineBase):
         mask=None,
         masked_image_latents=None,
         return_all_latents=False,
+        controlnet_latents=None
     ):
         # self.status = SD_STATE_IDLE
         step_time_sum = 0
@@ -299,6 +299,7 @@ class StableDiffusion(SharkPipelineBase):
         text_embeddings_numpy = text_embeddings.detach().numpy()
         guidance_scale = torch.Tensor([guidance_scale]).to(self.dtype)
         self.load_submodels(["unet"])
+        control_scale = torch.tensor(1.0, dtype=self.dtype)
         for i, t in tqdm(enumerate(total_timesteps)):
             step_start_time = time.time()
             timestep = torch.tensor([t]).to(self.dtype).detach().numpy()
@@ -319,15 +320,52 @@ class StableDiffusion(SharkPipelineBase):
 
             # Profiling Unet.
             # profile_device = start_profiling(file_path="unet.rdc")
-            noise_pred = self.run(
-                "unet",
-                [
-                    latent_model_input,
-                    timestep,
-                    text_embeddings_numpy,
-                    guidance_scale,
-                ],
-            )
+            if controlnet_latents is None:
+                noise_pred = self.run(
+                    "unet",
+                    [
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                    ],
+                )
+            else:
+                noise_pred = self.run(
+                    "unet",
+                    [
+                        latent_model_input,
+                        timestep,
+                        text_embeddings_numpy,
+                        guidance_scale,
+                        controlnet_latents[0],
+                        controlnet_latents[1],
+                        controlnet_latents[2],
+                        controlnet_latents[3],
+                        controlnet_latents[4],
+                        controlnet_latents[5],
+                        controlnet_latents[6],
+                        controlnet_latents[7],
+                        controlnet_latents[8],
+                        controlnet_latents[9],
+                        controlnet_latents[10],
+                        controlnet_latents[11],
+                        controlnet_latents[12],
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                        control_scale,
+                    ],
+                )
             # end_profiling(profile_device)
 
             if cpu_scheduling:
@@ -388,6 +426,7 @@ class StableDiffusion(SharkPipelineBase):
         repeatable_seeds,
         resample_type,
         control_mode,
+        controlnet_models,
         hints,
     ):
         # TODO: Batched args
@@ -432,12 +471,24 @@ class StableDiffusion(SharkPipelineBase):
             strength=strength,
         )
 
+        hints = [Image.load_file(x) for x in hints]
+        controlnet_latents = None
+        for (model, hint) in zip(controlnet_models, hints):
+            # if model not in self.controlnets:
+            #     continue
+            self.controlnet.get_compiled_map("canny")
+            latent = self.controlnets[model].run(hint)
+            if controlnet_latents is None:
+                controlnet_latents = latent
+            break
+
         latents = self.produce_img_latents(
             latents=init_latents,
             text_embeddings=text_embeddings,
             guidance_scale=guidance_scale,
             total_timesteps=final_timesteps,
             cpu_scheduling=True,  # until we have schedulers through Turbine
+            controlnet_latents=controlnet_latents,
         )
 
         # Img latents -> PIL images
@@ -511,6 +562,7 @@ def shark_sd_fn(
     is_controlled = False
     control_mode = None
     hints = []
+    controlnet_models = []
     num_loras = 0
     for i in embeddings:
         num_loras += 1 if embeddings[i] else 0
@@ -525,16 +577,17 @@ def shark_sd_fn(
                 }
             else:
                 adapters[f"control_adapter_{model}"] = {
-                    "hf_id": control_adapter_map["stabilityai/stable-diffusion-xl-1.0"][
+                    "hf_id": +["stabilityai/stable-diffusion-xl-1.0"][
                         model
                     ],
                     "strength": controlnets["strength"][i],
                 }
             if model is not None:
                 is_controlled = True
+                controlnet_models.append(model)
         control_mode = controlnets["control_mode"]
         for i in controlnets["hint"]:
-            hints.append[i]
+            hints.append(i)
 
     submit_pipe_kwargs = {
         "base_model_id": base_model_id,
@@ -567,6 +620,7 @@ def shark_sd_fn(
         "repeatable_seeds": repeatable_seeds,
         "resample_type": resample_type,
         "control_mode": control_mode,
+        "controlnet_models": controlnet_models,
         "hints": hints,
     }
     if (

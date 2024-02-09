@@ -51,4 +51,5 @@ pyinstaller
 
 # For quantized GPTQ models
 optimum
+peft==0.5.0
 auto_gptq

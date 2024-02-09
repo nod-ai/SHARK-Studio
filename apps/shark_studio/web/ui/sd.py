@@ -1,3 +1,4 @@
+import base64
 import os
 import json
 import gradio as gr
@@ -40,6 +41,7 @@ from apps.shark_studio.web.utils.state import (
 from apps.shark_studio.web.ui.common_events import lora_changed
 from apps.shark_studio.modules import logger
 import apps.shark_studio.web.utils.globals as global_obj
+import random
 
 sd_default_models = [
     "CompVis/stable-diffusion-v1-4",
@@ -64,25 +66,34 @@ def submit_to_cnet_config(
     cnet_strength: int,
     control_mode: str,
     curr_config: dict,
+    curr_main_config: dict,
 ):
-    if any(i in [None, ""] for i in [stencil, preprocessed_hint]):
+    if ((stencil is None or stencil == "") or
+       (None in preprocessed_hint or "" in preprocessed_hint)):
         return gr.update()
+
+    filename = stencil + "_" + str(random.getrandbits(32)) + ".png"
+    hint_img = Image.fromarray(preprocessed_hint)
+    hint_img.save(filename)
+    
     if curr_config is not None:
         if "controlnets" in curr_config:
             curr_config["controlnets"]["control_mode"] = control_mode
             curr_config["controlnets"]["model"].append(stencil)
-            curr_config["controlnets"]["hint"].append(preprocessed_hint)
+            curr_config["controlnets"]["hint"].append(filename)
             curr_config["controlnets"]["strength"].append(cnet_strength)
-            return curr_config
+            curr_main_config["controlnets"] = curr_config["controlnets"]
+            return (curr_config, curr_main_config)
 
     cnet_map = {}
     cnet_map["controlnets"] = {
         "control_mode": control_mode,
         "model": [stencil],
-        "hint": [preprocessed_hint],
+        "hint": [filename],
         "strength": [cnet_strength],
     }
-    return cnet_map
+    curr_main_config["controlnets"] = cnet_map["controlnets"]
+    return (cnet_map, curr_main_config)
 
 
 def update_embeddings_json(embedding):
@@ -458,8 +469,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     )
                 with gr.Accordion(
                     label="Controlnet Options",
-                    open=False,
-                    visible=False,
+                    open=True,
+                    visible=True,
                 ):
                     preprocessed_hints = gr.State([])
                     with gr.Column():
@@ -572,20 +583,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 preprocessed_hints,
                             ],
                         )
-                        use_result.click(
-                            fn=submit_to_cnet_config,
-                            inputs=[
-                                cnet_model,
-                                cnet_output,
-                                cnet_strength,
-                                control_mode,
-                                cnet_config,
-                            ],
-                            outputs=[
-                                cnet_config,
-                            ],
-                            queue=False,
-                        )
             with gr.Column(scale=3, min_width=600):
                 with gr.Group():
                     sd_gallery = gr.Gallery(
@@ -681,6 +678,23 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             outputs=[sd_config_name],
                         )
 
+        use_result.click(
+            fn=submit_to_cnet_config,
+            inputs=[
+                cnet_model,
+                cnet_output,
+                cnet_strength,
+                control_mode,
+                cnet_config,
+                sd_json,
+            ],
+            outputs=[
+                cnet_config,
+                sd_json,
+            ],
+            queue=False,
+        )
+
         pull_kwargs = dict(
             fn=pull_sd_configs,
             inputs=[
@@ -731,7 +745,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
         neg_prompt_submit = negative_prompt.submit(**status_kwargs).then(**pull_kwargs)
         generate_click = (
             stable_diffusion.click(**status_kwargs)
-            .then(**pull_kwargs)
+            # .then(**pull_kwargs)
             .then(**gen_kwargs)
         )
         stop_batch.click(

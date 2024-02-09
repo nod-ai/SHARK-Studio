@@ -2,15 +2,29 @@
 import os
 import PIL
 import numpy as np
+from apps.shark_studio.modules.pipeline import SharkPipelineBase
 from apps.shark_studio.web.utils.file_utils import (
     get_generated_imgs_path,
 )
+from shark.iree_utils.compile_utils import (
+    get_iree_compiled_module,
+    load_vmfb_using_mmap,
+    clean_device_info,
+    get_iree_target_triple,
+)
+from apps.shark_studio.web.utils.file_utils import (
+    safe_name,
+    get_resource_path,
+    get_checkpoints_path,
+)
+import cv2
 from datetime import datetime
 from PIL import Image
 from gradio.components.image_editor import (
     EditorValue,
 )
-
+# from turbine_models.custom_models.sd_inference import export_controlnet_model, ControlNetModel
+import gc
 
 class control_adapter:
     def __init__(
@@ -20,7 +34,14 @@ class control_adapter:
         self.model = None
 
     def export_control_adapter_model(model_keyword):
-        return None
+        if model_keyword == "canny":
+            return export_controlnet_model(
+                ControlNetModel("lllyasviel/control_v11p_sd15_canny"),
+                "lllyasviel/control_v11p_sd15_canny",
+                1,
+                512,
+                512,
+            )
 
     def export_xl_control_adapter_model(model_keyword):
         return None
@@ -36,9 +57,16 @@ class preprocessors:
     def export_controlnet_model(model_keyword):
         return None
 
+ireec_flags = [
+    "--iree-flow-collapse-reduction-dims",
+    "--iree-opt-const-expr-hoisting=False",
+    "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
+    "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32}))",
+    "--iree-flow-inline-constants-max-byte-length=1" # Stopgap, take out when not needed
+]
 
 control_adapter_map = {
-    "sd15": {
+    "runwayml/stable-diffusion-v1-5": {
         "canny": {"initializer": control_adapter.export_control_adapter_model},
         "openpose": {"initializer": control_adapter.export_control_adapter_model},
         "scribble": {"initializer": control_adapter.export_control_adapter_model},
@@ -64,14 +92,112 @@ class PreprocessorModel:
     ):
         self.model = hf_model_id
         self.device = device
+        self.compiled_model = None
 
     def compile(self):
+        if self.compiled_model is not None:
+            return
+        if "canny" in self.model:
+            return
+        if "openpose" in self.model:
+            pass
         print("compile not implemented for preprocessor.")
-        return
 
     def run(self, inputs):
-        print("run not implemented for preprocessor.")
-        return inputs
+        if self.compiled_model is None:
+            self.compile()
+        if "canny" in self.model:
+            out = cv2.Canny(*inputs)
+            return out
+        if "openpose" in self.model:
+            self.compiled_model(*inputs)
+
+    def __call__(self, *inputs):
+        return self.run(inputs)
+
+
+class SharkControlnetPipeline(SharkPipelineBase):
+    def __init__(
+        self,
+        # model_map: dict,
+        # static_kwargs: dict,
+        device: str,
+        # import_mlir: bool = True,
+    ):
+        self.model_map = control_adapter_map
+        self.pipe_map = {}
+        # self.static_kwargs = static_kwargs
+        self.static_kwargs = {}
+        self.triple = get_iree_target_triple(device)
+        self.device, self.device_id = clean_device_info(device)
+        self.import_mlir = False
+        self.iree_module_dict = {}
+        self.tmp_dir = get_resource_path(os.path.join("..", "shark_tmp"))
+        if not os.path.exists(self.tmp_dir):
+            os.mkdir(self.tmp_dir)
+        self.tempfiles = {}
+        self.pipe_vmfb_path = ""
+        self.ireec_flags = ireec_flags
+
+    def get_compiled_map(self, model, init_kwargs={}):
+        self.pipe_map[model] = {}
+        if model in self.iree_module_dict:
+            return
+        elif model not in self.tempfiles:
+            # if model in self.static_kwargs[model]:
+            #     init_kwargs = self.static_kwargs[model]
+            init_kwargs = {}
+            # for key in self.static_kwargs["pipe"]:
+            #         if key not in init_kwargs:
+            #             init_kwargs[key] = self.static_kwargs["pipe"][key]
+            self.import_torch_ir(model, init_kwargs)
+            self.get_compiled_map(model)
+        else:
+            # weights_path = self.get_io_params(model)
+
+            self.iree_module_dict[model] = get_iree_compiled_module(
+                self.tempfiles[model],
+                device=self.device,
+                frontend="torch",
+                mmap=True,
+                # external_weight_file=weights_path,
+                external_weight_file=None,
+                extra_args=self.ireec_flags,
+                write_to=os.path.join(self.pipe_vmfb_path, model + ".vmfb")
+            )
+
+    def import_torch_ir(self, model, kwargs):
+        # torch_ir = self.model_map[model]["initializer"](
+        #     **self.safe_dict(kwargs), compile_to="torch"
+        # )
+        tmp_kwargs = {
+            "model_keyword": "canny"
+        }
+        torch_ir = self.model_map["sd15"][model]["initializer"](
+            **self.safe_dict(tmp_kwargs) #, compile_to="torch"
+        )
+
+        self.tempfiles[model] = os.path.join(
+            self.tmp_dir, f"{model}.torch.tempfile"
+        )
+
+        with open(self.tempfiles[model], "w+") as f:
+            f.write(torch_ir)
+        del torch_ir
+        gc.collect()
+        return
+
+    def get_precompiled(self, model):
+        vmfbs = []
+        for dirpath, dirnames, filenames in os.walk(self.pipe_vmfb_path):
+            vmfbs.extend(filenames)
+            break
+        for file in vmfbs:
+            if model in file:
+                self.pipe_map[model]["vmfb_path"] = os.path.join(
+                    self.pipe_vmfb_path, file
+                )
+        return
 
 
 def cnet_preview(model, input_image):
