@@ -1,4 +1,4 @@
-from msvcrt import kbhit
+# from msvcrt import kbhit
 from shark.iree_utils.compile_utils import (
     get_iree_compiled_module,
     load_vmfb_using_mmap,
