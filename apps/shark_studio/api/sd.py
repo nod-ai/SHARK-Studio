@@ -45,16 +45,16 @@ sd_model_map = {
             "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
         ],
     },
-    "vae_encode": {
-        "initializer": vae.export_vae_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
-        ],
-    },
+    # "vae_encode": {
+    #     "initializer": vae.export_vae_model,
+    #     "ireec_flags": [
+    #         "--iree-flow-collapse-reduction-dims",
+    #         "--iree-opt-const-expr-hoisting=False",
+    #         "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
+    #         "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))",
+    #         "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
+    #     ],
+    # },
     "unet": {
         "initializer": unet.export_unet_model,
         "ireec_flags": [
@@ -152,6 +152,7 @@ class StableDiffusion(SharkPipelineBase):
             str(static_kwargs["unet"]["max_length"]),
             f"{str(height)}x{str(width)}",
             precision,
+            self.device,
         ]
         if num_loras > 0:
             pipe_id_list.append(str(num_loras) + "lora")
