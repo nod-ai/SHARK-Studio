@@ -29,3 +29,15 @@ def hsl_color(alpha: float, start, end):
 
     # Return a CSS HSL string
     return f"hsl({math.floor(result)}, 80%, 35%)"
+
+
+def none_to_str_none(props: dict):
+    for key in props:
+        props[key] = "None" if props[key] == None else props[key]
+    return props
+
+
+def str_none_to_none(props: dict):
+    for key in props:
+        props[key] = None if props[key] == "None" else props[key]
+    return props

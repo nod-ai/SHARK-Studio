@@ -31,6 +31,11 @@ from apps.shark_studio.modules.img_processing import (
     resize_stencil,
 )
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+from apps.shark_studio.web.ui.utils import (
+    nodlogo_loc,
+    none_to_str_none,
+    str_none_to_none,
+)
 from apps.shark_studio.web.utils.state import (
     status_label,
 )
@@ -119,7 +124,7 @@ def pull_sd_configs(
     controlnets,
     embeddings,
 ):
-    sd_args = locals()
+    sd_args = str_none_to_none(locals())
     sd_cfg = {}
     for arg in sd_args:
         if arg in [
@@ -135,11 +140,12 @@ def pull_sd_configs(
                 sd_cfg[arg] = {}
         else:
             sd_cfg[arg] = sd_args[arg]
-    return sd_cfg
+
+    return json.dumps(sd_cfg)
 
 
 def load_sd_cfg(sd_json: dict, load_sd_config: str):
-    new_sd_config = json.loads(view_json_file(load_sd_config))
+    new_sd_config = none_to_str_none(json.loads(view_json_file(load_sd_config)))
     if sd_json:
         for key in new_sd_config:
             sd_json[key] = new_sd_config[key]
@@ -696,6 +702,63 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     inputs=[sd_json, sd_config_name],
                                     outputs=[sd_config_name],
                                 )
+                            )
+                        )
+                    with gr.Column(scale=1):
+                        clear_sd_config = gr.ClearButton(
+                            value="Clear Config", size="sm", components=sd_json
+                        )
+                        with gr.Row():
+                            save_sd_config = gr.Button(value="Save Config", size="sm")
+                            sd_config_name = gr.Textbox(
+                                value="Config Name",
+                                info="Name of the file this config will be saved to.",
+                                interactive=True,
+                            )
+                        load_sd_config = gr.FileExplorer(
+                            label="Load Config",
+                            file_count="single",
+                            root=(
+                                cmd_opts.configs_path
+                                if cmd_opts.configs_path
+                                else get_configs_path()
+                            ),
+                            height=75,
+                        )
+                        load_sd_config.change(
+                            fn=load_sd_cfg,
+                            inputs=[sd_json, load_sd_config],
+                            outputs=[
+                                prompt,
+                                negative_prompt,
+                                sd_init_image,
+                                height,
+                                width,
+                                steps,
+                                strength,
+                                guidance_scale,
+                                seed,
+                                batch_count,
+                                batch_size,
+                                scheduler,
+                                base_model_id,
+                                custom_weights,
+                                custom_vae,
+                                precision,
+                                device,
+                                ondemand,
+                                repeatable_seeds,
+                                resample_type,
+                                cnet_config,
+                                embeddings_config,
+                                sd_json,
+                            ],
+                        )
+                        save_sd_config.click(
+                            fn=save_sd_cfg,
+                            inputs=[sd_json, sd_config_name],
+                            outputs=[sd_config_name],
+                        )
 
     pull_kwargs = dict(
         fn=pull_sd_configs,
