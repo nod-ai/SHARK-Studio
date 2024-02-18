@@ -117,12 +117,21 @@ body {
     height: 100% !important;
 }
 
-/* display in full width for desktop devices */
+/* display in full width for desktop devices, but see below */
 @media (min-width: 1536px)
 {
     .gradio-container {
         max-width: var(--size-full) !important;
     }
+}
+
+/* media rules in custom css are don't appear to be applied in
+   gradio versions > 4.7, so we have to define a class which
+   we will manually need add and remove using javascript.
+   Remove this once this fixed in gradio.
+*/
+.gradio-container-size-full {
+    max-width: var(--size-full) !important;
 }
 
 .gradio-container .contain {
@@ -182,6 +191,7 @@ footer {
     aspect-ratio: unset;
     max-height: calc(55vh - (2 * var(--spacing-lg)));
 }
+/* fix width and height of gallery items when on very large desktop screens, but see below */
 @media (min-width: 1921px) {
     /* Force a 768px_height + 4px_margin_height + navbar_height for the gallery */
     #gallery .grid-wrap, #gallery .preview{
@@ -193,6 +203,20 @@ footer {
         max-height: 770px !important;
     }
 }
+
+/* media rules in custom css are don't appear to be applied in
+   gradio versions > 4.7, so we have to define classes which
+   we will manually need add and remove using javascript.
+   Remove this once this fixed in gradio.
+*/
+.gallery-force-height768 .grid-wrap, .gallery-force-height768 .preview {
+    min-height: calc(768px + 4px + var(--size-14)) !important;
+    max-height: calc(768px + 4px + var(--size-14)) !important;
+}
+.gallery-limit-height768 .thumbnail-item.thumbnail-lg {
+    max-height: 770px !important;
+}
+
 /* Don't upscale when viewing in solo image mode */
 #gallery .preview img {
     object-fit: scale-down;
@@ -303,6 +327,15 @@ footer {
     min-height: 89vh !important;
 }
 
+.sd-right-panel {
+    height: calc(100vmin - var(--size-32) - var(--size-10)) !important;
+    overflow-y: scroll;
+}
+
+.sd-right-panel .fill {
+    flex: 1;
+}
+
 /* don't stretch non-square images to be square, breaking their aspect ratio */
 #outputgallery_gallery .thumbnail-item.thumbnail-lg > img {
     object-fit: contain !important;
@@ -314,11 +347,27 @@ footer {
     width: 100%;
 }
 
-#top_logo.logo_centered img{
+#top_logo.logo_centered img {
     object-fit: scale-down;
     position: absolute;
     width: 80%;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+}
+
+#tab_bar_logo {
+    overflow: visible !important;
+    border-width: 0 !important;
+    height: 0px !important;
+    padding: 0;
+    margin: 0;
+}
+
+#tab_bar_logo .image-container {
+    object-fit: scale-down;
+    position: absolute !important;
+    top: 14px;
+    right: 0px;
+    height: 36px;
 }
