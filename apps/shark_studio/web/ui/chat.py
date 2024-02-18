@@ -11,17 +11,23 @@ from apps.shark_studio.api.llm import (
 )
 import apps.shark_studio.web.utils.globals as global_obj
 
+B_SYS, E_SYS = "<s>", "</s>"
+
+B_SYS, E_SYS = "<s>", "</s>"
+
 
 def user(message, history):
     # Append the user's message to the conversation history
     return "", history + [[message, ""]]
 
 
+def append_bot_prompt(history, input_prompt):
+    user_prompt = f"{input_prompt} {E_SYS} {E_SYS}"
+    history += user_prompt
+    return history
+
+
 language_model = None
-
-
-def create_prompt(model_name, history, prompt_prefix):
-    return ""
 
 
 def get_default_config():
@@ -39,9 +45,13 @@ def chat_fn(
     precision,
     download_vmfb,
     config_file,
+    streaming_llm,
     cli=False,
 ):
     global language_model
+    if streaming_llm and prompt_prefix == "Clear":
+        language_model = None
+        return "Clearing history...", ""
     if language_model is None:
         history[-1][-1] = "Getting the model ready..."
         yield history, ""
@@ -50,8 +60,8 @@ def chat_fn(
             device=device,
             precision=precision,
             external_weights="safetensors",
-            external_weight_file="llama2_7b.safetensors",
             use_system_prompt=prompt_prefix,
+            streaming_llm=streaming_llm,
         )
         history[-1][-1] = "Getting the model ready... Done"
         yield history, ""
@@ -61,7 +71,7 @@ def chat_fn(
     prefill_time = 0
     is_first = True
     for text, exec_time in language_model.chat(history):
-        history[-1][-1] = text
+        history[-1][-1] = f"{text}{E_SYS}"
         if is_first:
             prefill_time = exec_time
             is_first = False
@@ -71,101 +81,6 @@ def chat_fn(
             token_count += 1
             tokens_per_sec = token_count / total_time
             yield history, f"Prefill: {prefill_time:.2f} seconds\n Decode: {tokens_per_sec:.2f} tokens/sec"
-
-
-def llm_chat_api(InputData: dict):
-    return None
-    print(f"Input keys : {InputData.keys()}")
-    # print(f"model : {InputData['model']}")
-    is_chat_completion_api = (
-        "messages" in InputData.keys()
-    )  # else it is the legacy `completion` api
-    # For Debugging input data from API
-    # if is_chat_completion_api:
-    #     print(f"message -> role : {InputData['messages'][0]['role']}")
-    #     print(f"message -> content : {InputData['messages'][0]['content']}")
-    # else:
-    #     print(f"prompt : {InputData['prompt']}")
-    # print(f"max_tokens : {InputData['max_tokens']}") # Default to 128 for now
-    global vicuna_model
-    model_name = InputData["model"] if "model" in InputData.keys() else "codegen"
-    model_path = llm_model_map[model_name]
-    device = "cpu-task"
-    precision = "fp16"
-    max_toks = None if "max_tokens" not in InputData.keys() else InputData["max_tokens"]
-    if max_toks is None:
-        max_toks = 128 if model_name == "codegen" else 512
-
-    # make it working for codegen first
-    from apps.language_models.scripts.vicuna import (
-        UnshardedVicuna,
-    )
-
-    device_id = None
-    if vicuna_model == 0:
-        if "cuda" in device:
-            device = "cuda"
-        elif "sync" in device:
-            device = "cpu-sync"
-        elif "task" in device:
-            device = "cpu-task"
-        elif "vulkan" in device:
-            device_id = int(device.split("://")[1])
-            device = "vulkan"
-        else:
-            print("unrecognized device")
-
-        vicuna_model = UnshardedVicuna(
-            model_name,
-            hf_model_path=model_path,
-            device=device,
-            precision=precision,
-            max_num_tokens=max_toks,
-            download_vmfb=True,
-            load_mlir_from_shark_tank=True,
-            device_id=device_id,
-        )
-
-    # TODO: add role dict for different models
-    if is_chat_completion_api:
-        # TODO: add funtionality for multiple messages
-        prompt = create_prompt(model_name, [(InputData["messages"][0]["content"], "")])
-    else:
-        prompt = InputData["prompt"]
-    print("prompt = ", prompt)
-
-    res = vicuna_model.generate(prompt)
-    res_op = None
-    for op in res:
-        res_op = op
-
-    if is_chat_completion_api:
-        choices = [
-            {
-                "index": 0,
-                "message": {
-                    "role": "assistant",
-                    "content": res_op,  # since we are yeilding the result
-                },
-                "finish_reason": "stop",  # or length
-            }
-        ]
-    else:
-        choices = [
-            {
-                "text": res_op,
-                "index": 0,
-                "logprobs": None,
-                "finish_reason": "stop",  # or length
-            }
-        ]
-    end_time = dt.now().strftime("%Y%m%d%H%M%S%f")
-    return {
-        "id": end_time,
-        "object": "chat.completion" if is_chat_completion_api else "text_completion",
-        "created": int(end_time),
-        "choices": choices,
-    }
 
 
 def view_json_file(file_obj):
@@ -198,7 +113,7 @@ with gr.Blocks(title="Chat") as chat_element:
         )
         precision = gr.Radio(
             label="Precision",
-            value="int4",
+            value="fp32",
             choices=[
                 # "int4",
                 # "int8",
@@ -211,12 +126,18 @@ with gr.Blocks(title="Chat") as chat_element:
         with gr.Column():
             download_vmfb = gr.Checkbox(
                 label="Download vmfb from Shark tank if available",
+                value=False,
+                interactive=True,
+                visible=False,
+            )
+            streaming_llm = gr.Checkbox(
+                label="Run in streaming mode (requires recompilation)",
                 value=True,
                 interactive=True,
             )
             prompt_prefix = gr.Checkbox(
                 label="Add System Prompt",
-                value=False,
+                value=True,
                 interactive=True,
             )
 
@@ -260,6 +181,7 @@ with gr.Blocks(title="Chat") as chat_element:
             precision,
             download_vmfb,
             config_file,
+            streaming_llm,
         ],
         outputs=[chatbot, tokens_time],
         show_progress=False,
@@ -281,6 +203,7 @@ with gr.Blocks(title="Chat") as chat_element:
             precision,
             download_vmfb,
             config_file,
+            streaming_llm,
         ],
         outputs=[chatbot, tokens_time],
         show_progress=False,
@@ -293,4 +216,19 @@ with gr.Blocks(title="Chat") as chat_element:
         cancels=[submit_event, submit_click_event],
         queue=False,
     )
-    clear.click(lambda: None, None, [chatbot], queue=False)
+    clear.click(
+        fn=chat_fn,
+        inputs=[
+            clear,
+            chatbot,
+            model,
+            device,
+            precision,
+            download_vmfb,
+            config_file,
+            streaming_llm,
+        ],
+        outputs=[chatbot, tokens_time],
+        show_progress=False,
+        queue=True,
+    ).then(lambda: None, None, [chatbot], queue=False)

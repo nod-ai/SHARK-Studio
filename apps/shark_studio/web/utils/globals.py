@@ -10,12 +10,14 @@ Also we could avoid memory leak when switching models by clearing the cache.
 
 def _init():
     global _sd_obj
+    global _llm_obj
     global _devices
     global _pipe_kwargs
     global _prep_kwargs
     global _gen_kwargs
     global _schedulers
     _sd_obj = None
+    _llm_obj = None
     _devices = None
     _pipe_kwargs = None
     _prep_kwargs = None
@@ -26,7 +28,16 @@ def _init():
 
 def set_sd_obj(value):
     global _sd_obj
+    global _llm_obj
+    _llm_obj = None
     _sd_obj = value
+
+
+def set_llm_obj(value):
+    global _sd_obj
+    global _llm_obj
+    _llm_obj = value
+    _sd_obj = None
 
 
 def set_devices():
@@ -69,6 +80,11 @@ def get_sd_obj():
     return _sd_obj
 
 
+def get_llm_obj():
+    global _llm_obj
+    return _llm_obj
+
+
 def get_device_list():
     global _devices
     return _devices
@@ -101,14 +117,17 @@ def get_scheduler(key):
 
 def clear_cache():
     global _sd_obj
+    global _llm_obj
     global _pipe_kwargs
     global _prep_kwargs
     global _gen_kwargs
     global _schedulers
     del _sd_obj
+    del _llm_obj
     del _schedulers
     gc.collect()
     _sd_obj = None
+    _llm_obj = None
     _pipe_kwargs = None
     _prep_kwargs = None
     _gen_kwargs = None

@@ -45,16 +45,16 @@ sd_model_map = {
             "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
         ],
     },
-    "vae_encode": {
-        "initializer": vae.export_vae_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
-        ],
-    },
+    # "vae_encode": {
+    #     "initializer": vae.export_vae_model,
+    #     "ireec_flags": [
+    #         "--iree-flow-collapse-reduction-dims",
+    #         "--iree-opt-const-expr-hoisting=False",
+    #         "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
+    #         "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))",
+    #         "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
+    #     ],
+    # },
     "unet": {
         "initializer": unet.export_unet_model,
         "ireec_flags": [
@@ -153,6 +153,7 @@ class StableDiffusion(SharkPipelineBase):
             str(static_kwargs["unet"]["max_length"]),
             f"{str(height)}x{str(width)}",
             precision,
+            self.device,
         ]
         if num_loras > 0:
             pipe_id_list.append(str(num_loras) + "lora")
@@ -374,46 +375,6 @@ class StableDiffusion(SharkPipelineBase):
         images = torch.from_numpy(images).permute(0, 2, 3, 1).float().numpy()
         pil_images = self.image_processor.numpy_to_pil(images)
         return pil_images
-
-    # def process_sd_init_image(self, sd_init_image, resample_type):
-    #     if isinstance(sd_init_image, list):
-    #         images = []
-    #         for img in sd_init_image:
-    #             img, _ = self.process_sd_init_image(img, resample_type)
-    #             images.append(img)
-    #             is_img2img = True
-    #             return images, is_img2img
-    #     if isinstance(sd_init_image, str):
-    #         if os.path.isfile(sd_init_image):
-    #             sd_init_image = Image.open(sd_init_image, mode="r").convert("RGB")
-    #             image, is_img2img = self.process_sd_init_image(
-    #                 sd_init_image, resample_type
-    #             )
-    #         else:
-    #             image = None
-    #             is_img2img = False
-    #     elif isinstance(sd_init_image, Image.Image):
-    #         image = sd_init_image.convert("RGB")
-    #     elif sd_init_image:
-    #         image = sd_init_image["image"].convert("RGB")
-    #     else:
-    #         image = None
-    #         is_img2img = False
-    #     if image:
-    #         resample_type = (
-    #             resamplers[resample_type]
-    #             if resample_type in resampler_list
-    #             # Fallback to Lanczos
-    #             else Image.Resampling.LANCZOS
-    #         )
-    #         image = image.resize((self.width, self.height), resample=resample_type)
-    #         image_arr = np.stack([np.array(i) for i in (image,)], axis=0)
-    #         image_arr = image_arr / 255.0
-    #         image_arr = torch.from_numpy(image_arr).permute(0, 3, 1, 2).to(self.dtype)
-    #         image_arr = 2 * (image_arr - 0.5)
-    #         is_img2img = True
-    #         image = image_arr
-    #     return image, is_img2img
 
     def generate_images(
         self,
