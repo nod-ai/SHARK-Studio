@@ -120,8 +120,8 @@ class StableDiffusion(SharkPipelineBase):
                 # "num_loras": num_loras,
                 "height": height,
                 "width": width,
-                "precision": precision,
-                "max_length": self.model_max_length,
+                # "precision": precision,
+                # "max_length": self.model_max_length,
             },
             "vae_encode": {
                 "hf_model_name": base_model_id,
@@ -150,7 +150,7 @@ class StableDiffusion(SharkPipelineBase):
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
-            str(static_kwargs["unet"]["max_length"]),
+            str(self.model_max_length),
             f"{str(height)}x{str(width)}",
             precision,
             self.device,
