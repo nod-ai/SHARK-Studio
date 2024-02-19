@@ -136,6 +136,7 @@ class LanguageModel:
                     f"External weight file {self.external_weight_file} found for {self.vmfb_name}"
                 )
             self.external_weight_file = str(self.external_weight_file)
+
         if os.path.exists(self.vmfb_name) and (
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
@@ -325,7 +326,6 @@ class LanguageModel:
         self.global_iter += 1
         return result_output, total_time
 
-
 def llm_chat_api(InputData: dict):
     from datetime import datetime as dt
 
@@ -420,7 +420,6 @@ def llm_chat_api(InputData: dict):
         "created": int(end_time),
         "choices": choices,
     }
-
 
 if __name__ == "__main__":
     lm = LanguageModel(

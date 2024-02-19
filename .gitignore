@@ -183,6 +183,7 @@ generated_imgs/
 # Custom model related artefacts
 variants.json
 /models/
+*.safetensors
 
 # models folder
 apps/stable_diffusion/web/models/

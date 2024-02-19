@@ -77,7 +77,6 @@ def get_available_devices():
     available_devices.extend(cpu_device)
     return available_devices
 
-
 def set_init_device_flags():
     if "vulkan" in cmd_opts.device:
         # set runtime flags for vulkan.
@@ -109,7 +108,6 @@ def set_init_device_flags():
         )
     elif "cpu" in cmd_opts.device:
         cmd_opts.device = "cpu"
-
 
 def set_iree_runtime_flags():
     # TODO: This function should be device-agnostic and piped properly
@@ -179,7 +177,6 @@ def get_device_mapping(driver, key_combination=3):
         device_map[f"{driver}://{device['path']}"] = get_output_value(device)
     return device_map
 
-
 def get_opt_flags(model, precision="fp16"):
     iree_flags = []
     if len(cmd_opts.iree_vulkan_target_triple) > 0:
@@ -204,7 +201,6 @@ def get_opt_flags(model, precision="fp16"):
         # dims before dispatch formation right now.
         iree_flags += ["--iree-flow-collapse-reduction-dims"]
     return iree_flags
-
 
 def map_device_to_name_path(device, key_combination=3):
     """Gives the appropriate device data (supported name/path) for user
