@@ -645,7 +645,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     load_sd_config = gr.FileExplorer(
                                         label="Load Config",
                                         file_count="single",
-                                        root=(
+                                        root_dir=(
                                             cmd_opts.configs_path
                                             if cmd_opts.configs_path
                                             else get_configs_path()
@@ -702,58 +702,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     inputs=[sd_json, sd_config_name],
                                     outputs=[sd_config_name],
                                 )
-                            )
-                        )
-                    with gr.Column(scale=1):
-                        clear_sd_config = gr.ClearButton(
-                            value="Clear Config", size="sm", components=sd_json
-                        )
-                        with gr.Row():
-                            save_sd_config = gr.Button(value="Save Config", size="sm")
-                            sd_config_name = gr.Textbox(
-                                value="Config Name",
-                                info="Name of the file this config will be saved to.",
-                                interactive=True,
-                            )
-                        load_sd_config = gr.FileExplorer(
-                            label="Load Config",
-                            file_count="single",
-                            root=(
-                                cmd_opts.configs_path
-                                if cmd_opts.configs_path
-                                else get_configs_path()
-                            ),
-                            height=75,
-                        )
-                        load_sd_config.change(
-                            fn=load_sd_cfg,
-                            inputs=[sd_json, load_sd_config],
-                            outputs=[
-                                prompt,
-                                negative_prompt,
-                                sd_init_image,
-                                height,
-                                width,
-                                steps,
-                                strength,
-                                guidance_scale,
-                                seed,
-                                batch_count,
-                                batch_size,
-                                scheduler,
-                                base_model_id,
-                                custom_weights,
-                                custom_vae,
-                                precision,
-                                device,
-                                ondemand,
-                                repeatable_seeds,
-                                resample_type,
-                                cnet_config,
-                                embeddings_config,
-                                sd_json,
-                            ],
-                        )
                         save_sd_config.click(
                             fn=save_sd_cfg,
                             inputs=[sd_json, sd_config_name],
