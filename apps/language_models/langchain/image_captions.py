@@ -7,6 +7,7 @@ By default, the loader utilizes the pre-trained BLIP image captioning model.
 https://huggingface.co/Salesforce/blip-image-captioning-base
 
 """
+
 from typing import List, Union, Any, Tuple
 
 import requests

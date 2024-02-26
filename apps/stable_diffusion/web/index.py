@@ -439,7 +439,7 @@ if __name__ == "__main__":
             )
             register_outputgallery_sendto_button(
                 outputgallery_sendto_txt2img_sdxl,
-                0,
+                13,
                 [outputgallery_filename],
                 [txt2img_sdxl_png_info_img, tabs],
             )

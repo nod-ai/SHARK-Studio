@@ -669,10 +669,12 @@ def processLoRA(model, use_lora, splitting_prefix, lora_strength):
                     state_dict[f"{stem}up.weight"],
                     state_dict[f"{stem}down.weight"],
                     state_dict.get(f"{stem}mid.weight", None),
-                    state_dict[f"{weight_key}.alpha"]
-                    / state_dict[f"{stem}up.weight"].shape[1]
-                    if f"{weight_key}.alpha" in state_dict
-                    else 1.0,
+                    (
+                        state_dict[f"{weight_key}.alpha"]
+                        / state_dict[f"{stem}up.weight"].shape[1]
+                        if f"{weight_key}.alpha" in state_dict
+                        else 1.0
+                    ),
                 )
 
     # Directly update weight in model
@@ -977,9 +979,9 @@ def save_output_img(output_img, img_seed, extra_info=None):
         "CFG_SCALE": args.guidance_scale,
         "PRECISION": args.precision,
         "STEPS": args.steps,
-        "HEIGHT": args.height
-        if not args.use_hiresfix
-        else args.hiresfix_height,
+        "HEIGHT": (
+            args.height if not args.use_hiresfix else args.hiresfix_height
+        ),
         "WIDTH": args.width if not args.use_hiresfix else args.hiresfix_width,
         "MAX_LENGTH": args.max_length,
         "OUTPUT": out_img_path,

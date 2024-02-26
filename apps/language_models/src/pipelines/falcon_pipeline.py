@@ -279,16 +279,18 @@ class ShardedFalcon(SharkLLMBase):
         path = shark_module.save_module(
             self.falcon_vmfb_path.parent.absolute(),
             self.falcon_vmfb_path.stem,
-            extra_args=[
-                "--iree-vm-target-truncate-unsupported-floats",
-                "--iree-codegen-check-ir-before-llvm-conversion=false",
-                "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-            ]
-            + [
-                "--iree-llvmcpu-use-fast-min-max-ops",
-            ]
-            if self.precision == "int4"
-            else [],
+            extra_args=(
+                [
+                    "--iree-vm-target-truncate-unsupported-floats",
+                    "--iree-codegen-check-ir-before-llvm-conversion=false",
+                    "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+                ]
+                + [
+                    "--iree-llvmcpu-use-fast-min-max-ops",
+                ]
+                if self.precision == "int4"
+                else []
+            ),
             debug=self.debug,
         )
         print("Saved falcon vmfb at ", str(path))
@@ -326,9 +328,11 @@ class ShardedFalcon(SharkLLMBase):
             lm_head,
             [sample_hidden_states],
             "lm_head",
-            device_idx=(0 % num_devices) % args.num_shards
-            if self.device == "rocm"
-            else None,
+            device_idx=(
+                (0 % num_devices) % args.num_shards
+                if self.device == "rocm"
+                else None
+            ),
         )
         shark_lm_head = CompiledLMHeadEmbeddingLayer(shark_lm_head)
 
@@ -340,9 +344,11 @@ class ShardedFalcon(SharkLLMBase):
             word_embedding,
             [sample_input_ids],
             "word_embeddings",
-            device_idx=(1 % num_devices) % args.num_shards
-            if self.device == "rocm"
-            else None,
+            device_idx=(
+                (1 % num_devices) % args.num_shards
+                if self.device == "rocm"
+                else None
+            ),
         )
         shark_word_embedding = CompiledWordEmbeddingsLayer(
             shark_word_embedding
@@ -354,9 +360,11 @@ class ShardedFalcon(SharkLLMBase):
             ln_f,
             [sample_hidden_states],
             "ln_f",
-            device_idx=(2 % num_devices) % args.num_shards
-            if self.device == "rocm"
-            else None,
+            device_idx=(
+                (2 % num_devices) % args.num_shards
+                if self.device == "rocm"
+                else None
+            ),
         )
         shark_ln_f = CompiledLNFEmbeddingLayer(shark_ln_f)
 
@@ -458,9 +466,9 @@ class ShardedFalcon(SharkLLMBase):
         )
 
         model_kwargs["output_attentions"] = generation_config.output_attentions
-        model_kwargs[
-            "output_hidden_states"
-        ] = generation_config.output_hidden_states
+        model_kwargs["output_hidden_states"] = (
+            generation_config.output_hidden_states
+        )
         model_kwargs["use_cache"] = generation_config.use_cache
 
         input_ids = (
@@ -790,16 +798,18 @@ class UnshardedFalcon(SharkLLMBase):
         path = shark_module.save_module(
             self.falcon_vmfb_path.parent.absolute(),
             self.falcon_vmfb_path.stem,
-            extra_args=[
-                "--iree-vm-target-truncate-unsupported-floats",
-                "--iree-codegen-check-ir-before-llvm-conversion=false",
-                "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
-            ]
-            + [
-                "--iree-llvmcpu-use-fast-min-max-ops",
-            ]
-            if self.precision == "int4"
-            else [],
+            extra_args=(
+                [
+                    "--iree-vm-target-truncate-unsupported-floats",
+                    "--iree-codegen-check-ir-before-llvm-conversion=false",
+                    "--iree-vm-bytecode-module-output-format=flatbuffer-binary",
+                ]
+                + [
+                    "--iree-llvmcpu-use-fast-min-max-ops",
+                ]
+                if self.precision == "int4"
+                else []
+            ),
             debug=self.debug,
         )
         print("Saved falcon vmfb at ", str(path))
@@ -859,9 +869,9 @@ class UnshardedFalcon(SharkLLMBase):
         batch_size = inputs_tensor.shape[0]
 
         model_kwargs["output_attentions"] = generation_config.output_attentions
-        model_kwargs[
-            "output_hidden_states"
-        ] = generation_config.output_hidden_states
+        model_kwargs["output_hidden_states"] = (
+            generation_config.output_hidden_states
+        )
         model_kwargs["use_cache"] = generation_config.use_cache
 
         input_ids = (

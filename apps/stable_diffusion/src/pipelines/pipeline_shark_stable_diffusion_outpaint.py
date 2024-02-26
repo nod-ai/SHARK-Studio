@@ -480,12 +480,16 @@ class OutpaintPipeline(StableDiffusionPipeline):
                 (
                     expand_pixels + mask_blur if is_left else 0,
                     expand_pixels + mask_blur if is_top else 0,
-                    msk.width - expand_pixels - mask_blur
-                    if is_right
-                    else res_w,
-                    msk.height - expand_pixels - mask_blur
-                    if is_bottom
-                    else res_h,
+                    (
+                        msk.width - expand_pixels - mask_blur
+                        if is_right
+                        else res_w
+                    ),
+                    (
+                        msk.height - expand_pixels - mask_blur
+                        if is_bottom
+                        else res_h
+                    ),
                 ),
                 fill="black",
             )

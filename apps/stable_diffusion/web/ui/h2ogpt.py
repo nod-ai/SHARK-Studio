@@ -83,9 +83,9 @@ def chat(curr_system_message, history, device, precision):
 
         langchain = Langchain(device, precision)
         h2ogpt_model, h2ogpt_tokenizer, _ = langchain.get_model(
-            load_4bit=True
-            if device == "cuda"
-            else False,  # load model in 4bit if device is cuda to save memory
+            load_4bit=(
+                True if device == "cuda" else False
+            ),  # load model in 4bit if device is cuda to save memory
             load_gptq="",
             use_safetensors=False,
             infer_devices=True,
@@ -207,9 +207,11 @@ with gr.Blocks(title="DocuChat") as h2ogpt_web:
         print(supported_devices)
         device = gr.Dropdown(
             label="Device",
-            value=supported_devices[0]
-            if enabled
-            else "Only CUDA Supported for now",
+            value=(
+                supported_devices[0]
+                if enabled
+                else "Only CUDA Supported for now"
+            ),
             choices=supported_devices,
             interactive=enabled,
             allow_custom_value=True,

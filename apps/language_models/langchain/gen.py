@@ -582,9 +582,9 @@ class Langchain:
                 tokenizer,
                 model=base_model,
                 device=0 if self.device == "cuda" else -1,
-                torch_dtype=torch.float16
-                if self.device == "cuda"
-                else torch.float32,
+                torch_dtype=(
+                    torch.float16 if self.device == "cuda" else torch.float32
+                ),
             )
         else:
             assert self.device in ["cuda", "cpu", "mps"], (
@@ -592,9 +592,9 @@ class Langchain:
             )
             model_kwargs = dict(
                 local_files_only=local_files_only,
-                torch_dtype=torch.float16
-                if self.device == "cuda"
-                else torch.float32,
+                torch_dtype=(
+                    torch.float16 if self.device == "cuda" else torch.float32
+                ),
                 resume_download=resume_download,
                 use_auth_token=use_auth_token,
                 trust_remote_code=trust_remote_code,
@@ -628,9 +628,9 @@ class Langchain:
                 # MPT doesn't support spreading over GPUs
                 model_kwargs.update(
                     dict(
-                        device_map={"": gpu_id}
-                        if self.device == "cuda"
-                        else "cpu"
+                        device_map=(
+                            {"": gpu_id} if self.device == "cuda" else "cpu"
+                        )
                     )
                 )
 
@@ -689,17 +689,19 @@ class Langchain:
                 model = PeftModel.from_pretrained(
                     model,
                     lora_weights,
-                    torch_dtype=torch.float16
-                    if self.device == "cuda"
-                    else torch.float32,
+                    torch_dtype=(
+                        torch.float16
+                        if self.device == "cuda"
+                        else torch.float32
+                    ),
                     local_files_only=local_files_only,
                     resume_download=resume_download,
                     use_auth_token=use_auth_token,
                     trust_remote_code=trust_remote_code,
                     offload_folder=offload_folder,
-                    device_map={"": 0}
-                    if self.device == "cuda"
-                    else {"": "cpu"},  # seems to be required
+                    device_map=(
+                        {"": 0} if self.device == "cuda" else {"": "cpu"}
+                    ),  # seems to be required
                 )
             else:
                 with torch.device(self.device):
@@ -716,9 +718,11 @@ class Langchain:
                     model = PeftModel.from_pretrained(
                         model,
                         lora_weights,
-                        torch_dtype=torch.float16
-                        if self.device == "cuda"
-                        else torch.float32,
+                        torch_dtype=(
+                            torch.float16
+                            if self.device == "cuda"
+                            else torch.float32
+                        ),
                         local_files_only=local_files_only,
                         resume_download=resume_download,
                         use_auth_token=use_auth_token,
@@ -1143,9 +1147,9 @@ class Langchain:
                 db=db1,
                 user_path=user_path,
                 detect_user_path_changes_every_query=detect_user_path_changes_every_query,
-                cut_distanct=1.1
-                if langchain_mode in ["wiki_full"]
-                else 1.64,  # FIXME, too arbitrary
+                cut_distanct=(
+                    1.1 if langchain_mode in ["wiki_full"] else 1.64
+                ),  # FIXME, too arbitrary
                 use_openai_embedding=use_openai_embedding,
                 use_openai_model=use_openai_model,
                 hf_embedding_model=hf_embedding_model,
@@ -1523,9 +1527,11 @@ class Langchain:
         examples += [
             [
                 summarize_example1,
-                "Summarize"
-                if prompt_type not in ["plain", "instruct_simple"]
-                else "",
+                (
+                    "Summarize"
+                    if prompt_type not in ["plain", "instruct_simple"]
+                    else ""
+                ),
             ]
             + params_list
         ]
@@ -1548,14 +1554,14 @@ class Langchain:
             ]
             # adjust examples if non-chat mode
             if not chat:
-                example[
-                    eval_func_param_names.index("instruction_nochat")
-                ] = example[eval_func_param_names.index("instruction")]
+                example[eval_func_param_names.index("instruction_nochat")] = (
+                    example[eval_func_param_names.index("instruction")]
+                )
                 example[eval_func_param_names.index("instruction")] = ""
 
-                example[
-                    eval_func_param_names.index("iinput_nochat")
-                ] = example[eval_func_param_names.index("iinput")]
+                example[eval_func_param_names.index("iinput_nochat")] = (
+                    example[eval_func_param_names.index("iinput")]
+                )
                 example[eval_func_param_names.index("iinput")] = ""
             assert len(example) == len(
                 eval_func_param_names

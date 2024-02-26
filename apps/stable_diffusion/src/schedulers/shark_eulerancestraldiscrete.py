@@ -89,9 +89,7 @@ class SharkEulerAncestralDiscreteScheduler(EulerAncestralDiscreteScheduler):
                 self, noise_pred, latent, sigma, sigma_from, sigma_to, noise
             ):
                 sigma_up = (
-                    sigma_to**2
-                    * (sigma_from**2 - sigma_to**2)
-                    / sigma_from**2
+                    sigma_to**2 * (sigma_from**2 - sigma_to**2) / sigma_from**2
                 ) ** 0.5
                 sigma_down = (sigma_to**2 - sigma_up**2) ** 0.5
                 dt = sigma_down - sigma
@@ -108,9 +106,7 @@ class SharkEulerAncestralDiscreteScheduler(EulerAncestralDiscreteScheduler):
                 self, noise_pred, sigma, sigma_from, sigma_to, latent, noise
             ):
                 sigma_up = (
-                    sigma_to**2
-                    * (sigma_from**2 - sigma_to**2)
-                    / sigma_from**2
+                    sigma_to**2 * (sigma_from**2 - sigma_to**2) / sigma_from**2
                 ) ** 0.5
                 sigma_down = (sigma_to**2 - sigma_up**2) ** 0.5
                 dt = sigma_down - sigma

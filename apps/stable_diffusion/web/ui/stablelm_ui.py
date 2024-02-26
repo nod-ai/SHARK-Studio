@@ -372,9 +372,9 @@ def llm_chat_api(InputData: dict):
     end_time = dt.now().strftime("%Y%m%d%H%M%S%f")
     return {
         "id": end_time,
-        "object": "chat.completion"
-        if is_chat_completion_api
-        else "text_completion",
+        "object": (
+            "chat.completion" if is_chat_completion_api else "text_completion"
+        ),
         "created": int(end_time),
         "choices": choices,
     }

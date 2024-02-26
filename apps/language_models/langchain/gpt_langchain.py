@@ -489,9 +489,9 @@ class GradioInference(LLM):
         chunk = True
         chunk_size = 512
         client_kwargs = dict(
-            instruction=prompt
-            if self.chat_client
-            else "",  # only for chat=True
+            instruction=(
+                prompt if self.chat_client else ""
+            ),  # only for chat=True
             iinput="",  # only for chat=True
             context="",
             # streaming output is supported, loops over and outputs each generation in streaming mode

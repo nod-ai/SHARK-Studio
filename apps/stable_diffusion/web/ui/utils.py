@@ -370,7 +370,7 @@ default_configs = {
             visible=False,
             interactive=False,
             value=False,
-        )
+        ),
     ],
     "stabilityai/stable-diffusion-xl-base-1.0": [
         gr.Textbox(label="Prompt", interactive=True, visible=True),

@@ -56,42 +56,40 @@ def get_schedulers(model_id):
         model_id,
         subfolder="scheduler",
     )
-    schedulers[
-        "DPMSolverMultistep"
-    ] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id, subfolder="scheduler", algorithm_type="dpmsolver"
+    schedulers["DPMSolverMultistep"] = (
+        DPMSolverMultistepScheduler.from_pretrained(
+            model_id, subfolder="scheduler", algorithm_type="dpmsolver"
+        )
     )
-    schedulers[
-        "DPMSolverMultistep++"
-    ] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id, subfolder="scheduler", algorithm_type="dpmsolver++"
+    schedulers["DPMSolverMultistep++"] = (
+        DPMSolverMultistepScheduler.from_pretrained(
+            model_id, subfolder="scheduler", algorithm_type="dpmsolver++"
+        )
     )
-    schedulers[
-        "DPMSolverMultistepKarras"
-    ] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-        use_karras_sigmas=True,
+    schedulers["DPMSolverMultistepKarras"] = (
+        DPMSolverMultistepScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+            use_karras_sigmas=True,
+        )
     )
-    schedulers[
-        "DPMSolverMultistepKarras++"
-    ] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-        algorithm_type="dpmsolver++",
-        use_karras_sigmas=True,
+    schedulers["DPMSolverMultistepKarras++"] = (
+        DPMSolverMultistepScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+            algorithm_type="dpmsolver++",
+            use_karras_sigmas=True,
+        )
     )
-    schedulers[
-        "DPMSolverSDEKarras++"
-    ] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-        algorithm_type="sde-dpmsolver++",
-        use_karras_sigmas=True,
+    schedulers["DPMSolverSDEKarras++"] = (
+        DPMSolverMultistepScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+            algorithm_type="sde-dpmsolver++",
+            use_karras_sigmas=True,
+        )
     )
-    schedulers[
-        "DPMSolverSDE++"
-    ] = DPMSolverMultistepScheduler.from_pretrained(
+    schedulers["DPMSolverSDE++"] = DPMSolverMultistepScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
         algorithm_type="sde-dpmsolver++",
@@ -100,39 +98,39 @@ def get_schedulers(model_id):
         model_id,
         subfolder="scheduler",
     )
-    schedulers[
-        "EulerAncestralDiscrete"
-    ] = EulerAncestralDiscreteScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
+    schedulers["EulerAncestralDiscrete"] = (
+        EulerAncestralDiscreteScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+        )
     )
     schedulers["DEISMultistep"] = DEISMultistepScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
     )
-    schedulers[
-        "SharkEulerDiscrete"
-    ] = SharkEulerDiscreteScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
+    schedulers["SharkEulerDiscrete"] = (
+        SharkEulerDiscreteScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+        )
     )
-    schedulers[
-        "SharkEulerAncestralDiscrete"
-    ] = SharkEulerAncestralDiscreteScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
+    schedulers["SharkEulerAncestralDiscrete"] = (
+        SharkEulerAncestralDiscreteScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+        )
     )
-    schedulers[
-        "DPMSolverSinglestep"
-    ] = DPMSolverSinglestepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
+    schedulers["DPMSolverSinglestep"] = (
+        DPMSolverSinglestepScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+        )
     )
-    schedulers[
-        "KDPM2AncestralDiscrete"
-    ] = KDPM2AncestralDiscreteScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
+    schedulers["KDPM2AncestralDiscrete"] = (
+        KDPM2AncestralDiscreteScheduler.from_pretrained(
+            model_id,
+            subfolder="scheduler",
+        )
     )
     schedulers["HeunDiscrete"] = HeunDiscreteScheduler.from_pretrained(
         model_id,

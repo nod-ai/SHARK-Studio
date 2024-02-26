@@ -336,14 +336,16 @@ def test_config_to_json():
                             "\n", ""
                         ),
                     },
-                    {
-                        "prompt_type": "plain",
-                        "instruction": f"<human>: How can I do this: {title}.\n<bot>: Set the {k.replace('_', ' ')} config.toml\n<human>:".replace(
-                            "\n", ""
-                        ),
-                    }
-                    if title and comment
-                    else None,
+                    (
+                        {
+                            "prompt_type": "plain",
+                            "instruction": f"<human>: How can I do this: {title}.\n<bot>: Set the {k.replace('_', ' ')} config.toml\n<human>:".replace(
+                                "\n", ""
+                            ),
+                        }
+                        if title and comment
+                        else None
+                    ),
                     {
                         "prompt_type": "human_bot",
                         "instruction": f"Explain the following expert setting for Driverless AI",
