@@ -261,9 +261,11 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                                 label=f"Models",
                                 info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                                 elem_id="custom_model",
-                                value=os.path.basename(args.ckpt_loc)
-                                if args.ckpt_loc
-                                else "stabilityai/stable-diffusion-xl-base-1.0",
+                                value=(
+                                    os.path.basename(args.ckpt_loc)
+                                    if args.ckpt_loc
+                                    else "stabilityai/stable-diffusion-xl-base-1.0"
+                                ),
                                 choices=predefined_sdxl_models
                                 + get_custom_model_files(
                                     custom_checkpoint_type="sdxl"
@@ -617,6 +619,7 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                 height,
                 txt2img_sdxl_custom_model,
                 lora_weights,
+                lora_strength,
                 custom_vae,
             ],
             outputs=[
@@ -631,6 +634,7 @@ with gr.Blocks(title="Text-to-Image-SDXL", theme=theme) as txt2img_sdxl_web:
                 height,
                 txt2img_sdxl_custom_model,
                 lora_weights,
+                lora_strength,
                 custom_vae,
             ],
         )

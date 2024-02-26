@@ -156,6 +156,7 @@ def import_png_metadata(
     height,
     custom_model,
     custom_lora,
+    custom_lora_strength,
     custom_vae,
 ):
     try:
