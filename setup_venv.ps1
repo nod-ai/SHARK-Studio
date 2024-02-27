@@ -89,7 +89,8 @@ else {python -m venv .\shark1.venv\}
 python -m pip install --upgrade pip
 pip install wheel
 pip install -r requirements.txt
-pip install --pre torch-mlir==20231210.* torchvision torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f .\package-index-torch-mlir.html
+pip install torchvision --no-deps -f https://download.pytorch.org/whl/nightly/cpu/torchvision/
+pip install --pre torch-mlir==20231210.* torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f .\package-index-torch-mlir.html
 pip install --upgrade -f https://nod-ai.github.io/SRT/pip-release-links.html iree-compiler==20231212.* iree-runtime==20231212.*
 Write-Host "Building SHARK..."
 pip install -e . -f .\package-index-torch-mlir.html -f https://nod-ai.github.io/SRT/pip-release-links.html
