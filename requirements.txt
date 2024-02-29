@@ -25,6 +25,7 @@ diffusers==0.24.0
 #accelerate is now required for diffusers import from ckpt.
 accelerate
 scipy
+mpmath==1.3.0
 ftfy
 gradio==4.12.0
 altair
