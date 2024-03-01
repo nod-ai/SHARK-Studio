@@ -44,6 +44,7 @@ timm # for MiniGPT4
 langchain
 einops # for zoedepth
 pydantic==2.4.1 # pin until pyinstaller-hooks-contrib works with beta versions
+mpmath==1.3.0
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile
