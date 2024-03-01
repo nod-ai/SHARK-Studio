@@ -316,9 +316,9 @@ def generate_token(h2ogpt_shark_model, model, tokenizer, **generate_kwargs):
     )
 
     model_kwargs["output_attentions"] = generation_config.output_attentions
-    model_kwargs[
-        "output_hidden_states"
-    ] = generation_config.output_hidden_states
+    model_kwargs["output_hidden_states"] = (
+        generation_config.output_hidden_states
+    )
     model_kwargs["use_cache"] = generation_config.use_cache
 
     input_ids = (

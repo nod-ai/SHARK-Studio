@@ -380,9 +380,11 @@ def load_settings():
     return [
         loaded_settings.get(
             "txt2img_custom_model",
-            os.path.basename(args.ckpt_loc)
-            if args.ckpt_loc
-            else "stabilityai/stable-diffusion-2-1-base",
+            (
+                os.path.basename(args.ckpt_loc)
+                if args.ckpt_loc
+                else "stabilityai/stable-diffusion-2-1-base"
+            ),
         ),
         loaded_settings.get(
             "custom_vae",
@@ -858,6 +860,7 @@ with gr.Blocks(title="Text-to-Image", css=dark_theme) as txt2img_web:
                 height,
                 txt2img_custom_model,
                 lora_weights,
+                lora_strength,
                 custom_vae,
             ],
             outputs=[

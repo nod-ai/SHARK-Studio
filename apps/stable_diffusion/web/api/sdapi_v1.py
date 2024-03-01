@@ -130,9 +130,11 @@ def options_api():
     return {
         "samples_save": True,
         "samples_format": frozen_args.output_img_format,
-        "sd_model_checkpoint": os.path.basename(frozen_args.ckpt_loc)
-        if frozen_args.ckpt_loc
-        else frozen_args.hf_model_id,
+        "sd_model_checkpoint": (
+            os.path.basename(frozen_args.ckpt_loc)
+            if frozen_args.ckpt_loc
+            else frozen_args.hf_model_id
+        ),
         "sd_lora": frozen_args.use_lora,
         "sd_vae": frozen_args.custom_vae or "Automatic",
         "enable_pnginfo": frozen_args.write_metadata_to_png,

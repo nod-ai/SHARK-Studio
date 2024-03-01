@@ -355,9 +355,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         label=f"Models",
                         info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                         elem_id="custom_model",
-                        value=os.path.basename(args.ckpt_loc)
-                        if args.ckpt_loc
-                        else "stabilityai/stable-diffusion-2-1-base",
+                        value=(
+                            os.path.basename(args.ckpt_loc)
+                            if args.ckpt_loc
+                            else "stabilityai/stable-diffusion-2-1-base"
+                        ),
                         choices=get_custom_model_files() + predefined_models,
                         allow_custom_value=True,
                         scale=2,
@@ -371,9 +373,11 @@ with gr.Blocks(title="Image-to-Image") as img2img_web:
                         label=f"Custom VAE Models",
                         info=i2i_vae_info,
                         elem_id="custom_model",
-                        value=os.path.basename(args.custom_vae)
-                        if args.custom_vae
-                        else "None",
+                        value=(
+                            os.path.basename(args.custom_vae)
+                            if args.custom_vae
+                            else "None"
+                        ),
                         choices=["None"] + get_custom_model_files("vae"),
                         allow_custom_value=True,
                         scale=1,

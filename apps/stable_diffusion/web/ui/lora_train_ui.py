@@ -45,9 +45,11 @@ with gr.Blocks(title="Lora Training") as lora_train_web:
                                 label=f"Models",
                                 info=train_lora_model_info,
                                 elem_id="custom_model",
-                                value=os.path.basename(args.ckpt_loc)
-                                if args.ckpt_loc
-                                else "None",
+                                value=(
+                                    os.path.basename(args.ckpt_loc)
+                                    if args.ckpt_loc
+                                    else "None"
+                                ),
                                 choices=["None"]
                                 + get_custom_model_files()
                                 + predefined_models,

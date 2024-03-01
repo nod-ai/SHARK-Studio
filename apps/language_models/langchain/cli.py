@@ -151,9 +151,9 @@ def run_cli(  # for local function:
             eval_vars[eval_func_param_names.index("iinput")] = eval_vars[
                 eval_func_param_names.index("iinput_nochat")
             ] = ""  # no input yet
-            eval_vars[
-                eval_func_param_names.index("context")
-            ] = ""  # no context yet
+            eval_vars[eval_func_param_names.index("context")] = (
+                ""  # no context yet
+            )
 
             # grab other parameters, like langchain_mode
             for k in eval_func_param_names:

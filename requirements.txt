@@ -27,7 +27,7 @@ accelerate
 scipy
 mpmath==1.3.0
 ftfy
-gradio==4.12.0
+gradio==4.19.2
 altair
 omegaconf
 # 0.3.2 doesn't have binaries for arm64

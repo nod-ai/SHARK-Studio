@@ -1,4 +1,5 @@
 """Load Data from a MediaWiki dump xml."""
+
 import ast
 import glob
 import pickle
@@ -105,9 +106,11 @@ class MWDumpDirectLoader(MWDumpLoader):
                     source="https://en.wikipedia.org/wiki/" + title_url,
                     id=page.id,
                     redirect=page.redirect,
-                    views=self.views[page.title]
-                    if self.views is not None
-                    else -1,
+                    views=(
+                        self.views[page.title]
+                        if self.views is not None
+                        else -1
+                    ),
                 )
                 metadata = {k: v for k, v in metadata.items() if v is not None}
                 docs.append(Document(page_content=text, metadata=metadata))

@@ -259,9 +259,11 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         label=f"Models",
                         info="Select, or enter HuggingFace Model ID or Civitai model download URL",
                         elem_id="custom_model",
-                        value=os.path.basename(args.ckpt_loc)
-                        if args.ckpt_loc
-                        else "stabilityai/stable-diffusion-2-inpainting",
+                        value=(
+                            os.path.basename(args.ckpt_loc)
+                            if args.ckpt_loc
+                            else "stabilityai/stable-diffusion-2-inpainting"
+                        ),
                         choices=get_custom_model_files(
                             custom_checkpoint_type="inpainting"
                         )
@@ -278,9 +280,11 @@ with gr.Blocks(title="Outpainting") as outpaint_web:
                         label=f"Custom VAE Models",
                         info=outpaint_vae_info,
                         elem_id="custom_model",
-                        value=os.path.basename(args.custom_vae)
-                        if args.custom_vae
-                        else "None",
+                        value=(
+                            os.path.basename(args.custom_vae)
+                            if args.custom_vae
+                            else "None"
+                        ),
                         choices=["None"] + get_custom_model_files("vae"),
                         allow_custom_value=True,
                         scale=1,

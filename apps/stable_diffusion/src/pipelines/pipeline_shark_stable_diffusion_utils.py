@@ -796,9 +796,9 @@ class StableDiffusionPipeline:
         text_embeddings, uncond_embeddings = get_weighted_text_embeddings(
             pipe=self,
             prompt=prompt,
-            uncond_prompt=negative_prompt
-            if do_classifier_free_guidance
-            else None,
+            uncond_prompt=(
+                negative_prompt if do_classifier_free_guidance else None
+            ),
             max_embeddings_multiples=max_embeddings_multiples,
         )
         # SHARK: we are not using num_images_per_prompt
