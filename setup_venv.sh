@@ -49,58 +49,20 @@ Red=`tput setaf 1`
 Green=`tput setaf 2`
 Yellow=`tput setaf 3`
 
-# Assume no binary torch-mlir.
-# Currently available for macOS m1&intel (3.11) and Linux(3.8,3.10,3.11)
-torch_mlir_bin=false
-if [[ $(uname -s) = 'Darwin' ]]; then
-  echo "${Yellow}Apple macOS detected"
-  if [[ $(uname -m) == 'arm64' ]]; then
-    echo "${Yellow}Apple M1 Detected"
-    hash rustc 2>/dev/null
-    if [ $? -eq 0 ];then
-      echo "${Green}rustc found to compile HF tokenizers"
-    else
-      echo "${Red}Could not find rustc" >&2
-      echo "${Red}Please run:"
-      echo "${Red}curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-      exit 1
-    fi
-  fi
-  echo "${Yellow}Run the following commands to setup your SSL certs for your Python version if you see SSL errors with tests"
-  echo "${Yellow}/Applications/Python\ 3.XX/Install\ Certificates.command"
-  if [ "$PYTHON_VERSION_X_Y" == "3.11" ]; then
-    torch_mlir_bin=true
-  fi
-elif [[ $(uname -s) = 'Linux' ]]; then
-  echo "${Yellow}Linux detected"
-  if [ "$PYTHON_VERSION_X_Y" == "3.8" ]  || [ "$PYTHON_VERSION_X_Y" == "3.10" ] || [ "$PYTHON_VERSION_X_Y" == "3.11" ] ; then
-    torch_mlir_bin=true
-  fi
-else
-  echo "${Red}OS not detected. Pray and Play"
-fi
-
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
-if [ "$torch_mlir_bin" = true ]; then
-  if [[ $(uname -s) = 'Darwin' ]]; then
-    echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
-    $PYTHON -m pip uninstall -y timm #TEMP FIX FOR MAC
-    $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
-  else
-    $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
-    if [ $? -eq 0 ];then
-      echo "Successfully Installed torch-mlir"
-    else
-      echo "Could not install torch-mlir" >&2
-    fi
-  fi
+if [[ $(uname -s) = 'Darwin' ]]; then
+  echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
+  $PYTHON -m pip uninstall -y timm #TEMP FIX FOR MAC
+  $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
 else
-  echo "${Red}No binaries found for Python $PYTHON_VERSION_X_Y on $(uname -s)"
-  echo "${Yello}Python 3.11 supported on macOS and 3.8,3.10 and 3.11 on Linux"
-  echo "${Red}Please build torch-mlir from source in your environment"
-  exit 1
+  $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
+  if [ $? -eq 0 ];then
+    echo "Successfully Installed torch-mlir"
+  else
+    echo "Could not install torch-mlir" >&2
+  fi
 fi
 if [[ -z "${USE_IREE}" ]]; then
   rm .use-iree
@@ -114,19 +76,6 @@ if [[ -z "${NO_BACKEND}" ]]; then
   $PYTHON -m pip install --pre --upgrade --no-index --find-links ${RUNTIME} iree-compiler iree-runtime
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
-fi
-
-if [[ ! -z "${IMPORTER}" ]]; then
-  echo "${Yellow}Installing importer tools.."
-  if [[ $(uname -s) = 'Linux' ]]; then
-    echo "${Yellow}Linux detected.. installing Linux importer tools"
-    #Always get the importer tools from upstream IREE
-    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer.txt" -f https://openxla.github.io/iree/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-  elif [[ $(uname -s) = 'Darwin' ]]; then
-    echo "${Yellow}macOS detected.. installing macOS importer tools"
-    #Conda seems to have some problems installing these packages and hope they get resolved upstream.
-    $PYTHON -m pip install --no-warn-conflicts --upgrade -r "$TD/requirements-importer-macos.txt" -f ${RUNTIME} --extra-index-url https://download.pytorch.org/whl/nightly/cpu
-  fi
 fi
 
 if [[ $(uname -s) = 'Darwin' ]]; then

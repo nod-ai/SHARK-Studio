@@ -121,8 +121,8 @@ class StableDiffusion(SharkPipelineBase):
                 # "num_loras": num_loras,
                 "height": height,
                 "width": width,
-                # "precision": precision,
-                # "max_length": self.model_max_length,
+                "precision": precision,
+                "max_length": self.model_max_length,
             },
             "vae_encode": {
                 "hf_model_name": base_model_id,

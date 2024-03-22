@@ -14,6 +14,7 @@ from apps.shark_studio.web.utils.file_utils import (
     get_checkpoints_path,
     get_checkpoints,
     get_configs_path,
+    write_default_sd_config,
 )
 from apps.shark_studio.api.sd import (
     sd_model_map,
@@ -631,14 +632,15 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     with gr.Tab(label="Config", id=102) as sd_tab_config:
                         with gr.Column(elem_classes=["sd-right-panel"]):
                             with gr.Row(elem_classes=["fill"]):
+                                Path(get_configs_path()).mkdir(parents=True, exist_ok=True)
+                                default_config_file = os.path.join(
+                                    get_configs_path(),
+                                    "default_sd_config.json",
+                                )
+                                write_default_sd_config(default_config_file)
                                 sd_json = gr.JSON(
                                     elem_classes=["fill"],
-                                    value=view_json_file(
-                                        os.path.join(
-                                            get_configs_path(),
-                                            "default_sd_config.json",
-                                        )
-                                    ),
+                                    value=view_json_file(default_config_file),
                                 )
                             with gr.Row():
                                 with gr.Column(scale=3):

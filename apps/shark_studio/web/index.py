@@ -1,4 +1,5 @@
 from multiprocessing import Process, freeze_support
+freeze_support()
 from PIL import Image
 
 import os
