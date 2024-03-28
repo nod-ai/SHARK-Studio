@@ -38,42 +38,12 @@ from diffusers.image_processor import VaeImageProcessor
 sd_model_map = {
     "clip": {
         "initializer": clip.export_clip_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-flow-inline-constants-max-byte-length=0",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
-        ],
     },
-    # "vae_encode": {
-    #     "initializer": vae.export_vae_model,
-    #     "ireec_flags": [
-    #         "--iree-flow-collapse-reduction-dims",
-    #         "--iree-opt-const-expr-hoisting=False",
-    #         "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-    #         "--iree-flow-inline-constants-max-byte-length=0",
-    #         "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul))",
-    #     ],
-    # },
     "unet": {
         "initializer": unet.export_unet_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-flow-inline-constants-max-byte-length=0",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-pad-linalg-ops{pad-size=32}))",
-        ],
     },
     "vae_decode": {
         "initializer": vae.export_vae_model,
-        "ireec_flags": [
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-flow-inline-constants-max-byte-length=0",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-pad-linalg-ops{pad-size=32}))",
-        ],
     },
 }
 
