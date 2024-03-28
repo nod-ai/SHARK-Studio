@@ -7,7 +7,7 @@ import glob
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "0.0.5"
+PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "2.0.0"
 backend_deps = []
 
 setup(

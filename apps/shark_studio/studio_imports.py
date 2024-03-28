@@ -65,6 +65,6 @@ hiddenimports += [
     for x in collect_submodules("transformers")
     if not any(kw in x for kw in blacklist)
 ]
-hiddenimports += [x for x in collect_submodules("iree") if "tests" not in x]
+hiddenimports += [x for x in collect_submodules("iree") if "test" not in x]
 hiddenimports += ["iree._runtime"]
-hiddenimports += collect_submodules('scipy')
+hiddenimports += [x for x in collect_submodules("scipy") if "test" not in x]
