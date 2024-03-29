@@ -91,7 +91,7 @@ _IREE_TARGET_MAP = {
     "cpu-task": "llvm-cpu",
     "cpu-sync": "llvm-cpu",
     "cuda": "cuda",
-    "vulkan": "vulkan",
+    "vulkan": "vulkan-spirv",
     "metal": "metal",
     "rocm": "rocm",
     "intel-gpu": "opencl-spirv",
@@ -122,9 +122,7 @@ def check_device_drivers(device):
         )
         return True
     except RuntimeError as re:
-        print(
-            f"[ERR] Failed to get driver for {device} with error:\n{repr(re)}"
-        )
+        print(f"[ERR] Failed to get driver for {device} with error:\n{repr(re)}")
         return True
 
     # Unknown device. We assume drivers are installed.
