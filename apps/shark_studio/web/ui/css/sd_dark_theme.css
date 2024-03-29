@@ -1,0 +1,373 @@
+/*
+Apply Gradio dark theme to the default Gradio theme.
+Procedure to upgrade the dark theme:
+- Using your browser, visit http://localhost:8080/?__theme=dark
+- Open your browser inspector, search for the .dark css class
+- Copy .dark class declarations, apply them here into :root
+*/
+
+:root {
+    --body-background-fill: var(--background-fill-primary);
+    --body-text-color: var(--neutral-100);
+    --color-accent-soft: var(--neutral-700);
+    --background-fill-primary: var(--neutral-950);
+    --background-fill-secondary: var(--neutral-900);
+    --border-color-accent: var(--neutral-600);
+    --border-color-primary: var(--neutral-700);
+    --link-text-color-active: var(--secondary-500);
+    --link-text-color: var(--secondary-500);
+    --link-text-color-hover: var(--secondary-400);
+    --link-text-color-visited: var(--secondary-600);
+    --body-text-color-subdued: var(--neutral-400);
+    --shadow-spread: 1px;
+    --block-background-fill: var(--neutral-800);
+    --block-border-color: var(--border-color-primary);
+    --block_border_width: None;
+    --block-info-text-color: var(--body-text-color-subdued);
+    --block-label-background-fill: var(--background-fill-secondary);
+    --block-label-border-color: var(--border-color-primary);
+    --block_label_border_width: None;
+    --block-label-text-color: var(--neutral-200);
+    --block_shadow: None;
+    --block_title_background_fill: None;
+    --block_title_border_color: None;
+    --block_title_border_width: None;
+    --block-title-text-color: var(--neutral-200);
+    --panel-background-fill: var(--background-fill-secondary);
+    --panel-border-color: var(--border-color-primary);
+    --panel_border_width: None;
+    --checkbox-background-color: var(--neutral-800);
+    --checkbox-background-color-focus: var(--checkbox-background-color);
+    --checkbox-background-color-hover: var(--checkbox-background-color);
+    --checkbox-background-color-selected: var(--secondary-600);
+    --checkbox-border-color: var(--neutral-700);
+    --checkbox-border-color-focus: var(--secondary-500);
+    --checkbox-border-color-hover: var(--neutral-600);
+    --checkbox-border-color-selected: var(--secondary-600);
+    --checkbox-border-width: var(--input-border-width);
+    --checkbox-label-background-fill: linear-gradient(to top, var(--neutral-900), var(--neutral-800));
+    --checkbox-label-background-fill-hover: linear-gradient(to top, var(--neutral-900), var(--neutral-800));
+    --checkbox-label-background-fill-selected: var(--checkbox-label-background-fill);
+    --checkbox-label-border-color: var(--border-color-primary);
+    --checkbox-label-border-color-hover: var(--checkbox-label-border-color);
+    --checkbox-label-border-width: var(--input-border-width);
+    --checkbox-label-text-color: var(--body-text-color);
+    --checkbox-label-text-color-selected: var(--checkbox-label-text-color);
+    --error-background-fill: var(--background-fill-primary);
+    --error-border-color: var(--border-color-primary);
+    --error_border_width: None;
+    --error-text-color: #ef4444;
+    --input-background-fill: var(--neutral-800);
+    --input-background-fill-focus: var(--secondary-600);
+    --input-background-fill-hover: var(--input-background-fill);
+    --input-border-color: var(--border-color-primary);
+    --input-border-color-focus: var(--neutral-700);
+    --input-border-color-hover: var(--input-border-color);
+    --input_border_width: None;
+    --input-placeholder-color: var(--neutral-500);
+    --input_shadow: None;
+    --input-shadow-focus: 0 0 0 var(--shadow-spread) var(--neutral-700), var(--shadow-inset);
+    --loader_color: None;
+    --slider_color: None;
+    --stat-background-fill: linear-gradient(to right, var(--primary-400), var(--primary-600));
+    --table-border-color: var(--neutral-700);
+    --table-even-background-fill: var(--neutral-950);
+    --table-odd-background-fill: var(--neutral-900);
+    --table-row-focus: var(--color-accent-soft);
+    --button-border-width: var(--input-border-width);
+    --button-cancel-background-fill: linear-gradient(to bottom right, #dc2626, #b91c1c);
+    --button-cancel-background-fill-hover: linear-gradient(to bottom right, #dc2626, #dc2626);
+    --button-cancel-border-color: #dc2626;
+    --button-cancel-border-color-hover: var(--button-cancel-border-color);
+    --button-cancel-text-color: white;
+    --button-cancel-text-color-hover: var(--button-cancel-text-color);
+    --button-primary-background-fill: linear-gradient(to bottom right, var(--primary-500), var(--primary-600));
+    --button-primary-background-fill-hover: linear-gradient(to bottom right, var(--primary-500), var(--primary-500));
+    --button-primary-border-color: var(--primary-500);
+    --button-primary-border-color-hover: var(--button-primary-border-color);
+    --button-primary-text-color: white;
+    --button-primary-text-color-hover: var(--button-primary-text-color);
+    --button-secondary-background-fill: linear-gradient(to bottom right, var(--neutral-600), var(--neutral-700));
+    --button-secondary-background-fill-hover: linear-gradient(to bottom right, var(--neutral-600), var(--neutral-600));
+    --button-secondary-border-color: var(--neutral-600);
+    --button-secondary-border-color-hover: var(--button-secondary-border-color);
+    --button-secondary-text-color: white;
+    --button-secondary-text-color-hover: var(--button-secondary-text-color);
+    --block-border-width: 1px;
+    --block-label-border-width: 1px;
+    --form-gap-width: 1px;
+    --error-border-width: 1px;
+    --input-border-width: 1px;
+}
+
+/* SHARK theme */
+body {
+    background-color: var(--background-fill-primary);
+}
+
+.generating.svelte-zlszon.svelte-zlszon {
+    border: none;
+}
+
+.generating {
+    border: none !important;
+}
+
+#chatbot {
+    height: 100% !important;
+}
+
+/* display in full width for desktop devices, but see below */
+@media (min-width: 1536px)
+{
+    .gradio-container {
+        max-width: var(--size-full) !important;
+    }
+}
+
+/* media rules in custom css are don't appear to be applied in
+   gradio versions > 4.7, so we have to define a class which
+   we will manually need add and remove using javascript.
+   Remove this once this fixed in gradio.
+*/
+.gradio-container-size-full {
+    max-width: var(--size-full) !important;
+}
+
+.gradio-container .contain {
+    padding: 0 var(--size-4) !important;
+}
+
+#top_logo {
+    color: transparent;
+    background-color: transparent;
+    border-radius: 0 !important;
+    border: 0;
+}
+
+#ui_title {
+    padding: var(--size-2) 0 0 var(--size-1);
+}
+
+#demo_title_outer {
+    border-radius: 0;
+}
+
+#prompt_box_outer div:first-child {
+    border-radius: 0 !important
+}
+
+#prompt_box textarea, #negative_prompt_box textarea {
+    background-color: var(--background-fill-primary) !important;
+}
+
+#prompt_examples {
+    margin: 0 !important;
+}
+
+#prompt_examples svg {
+    display: none !important;
+}
+
+#ui_body {
+    padding: var(--size-2) !important;
+    border-radius: 0.5em !important;
+}
+
+#img_result+div {
+    display: none !important;
+}
+
+footer {
+    display: none !important;
+}
+
+#gallery + div {
+    border-radius: 0 !important;
+}
+
+/* Gallery: Remove the default square ratio thumbnail and limit images height to the container */
+#gallery .thumbnail-item.thumbnail-lg {
+    aspect-ratio: unset;
+    max-height: calc(55vh - (2 * var(--spacing-lg)));
+}
+/* fix width and height of gallery items when on very large desktop screens, but see below */
+@media (min-width: 1921px) {
+    /* Force a 768px_height + 4px_margin_height + navbar_height for the gallery */
+    #gallery .grid-wrap, #gallery .preview{
+        min-height: calc(768px + 4px + var(--size-14));
+        max-height: calc(768px + 4px + var(--size-14));
+    }
+    /* Limit height to 768px_height + 2px_margin_height for the thumbnails */
+    #gallery .thumbnail-item.thumbnail-lg {
+        max-height: 770px !important;
+    }
+}
+
+/* media rules in custom css are don't appear to be applied in
+   gradio versions > 4.7, so we have to define classes which
+   we will manually need add and remove using javascript.
+   Remove this once this fixed in gradio.
+*/
+.gallery-force-height768 .grid-wrap, .gallery-force-height768 .preview {
+    min-height: calc(768px + 4px + var(--size-14)) !important;
+    max-height: calc(768px + 4px + var(--size-14)) !important;
+}
+.gallery-limit-height768 .thumbnail-item.thumbnail-lg {
+    max-height: 770px !important;
+}
+
+/* Don't upscale when viewing in solo image mode */
+#gallery .preview img {
+    object-fit: scale-down;
+}
+/* Navbar images in cover mode*/
+#gallery .preview .thumbnail-item img {
+    object-fit: cover;
+}
+
+/* Limit the stable diffusion text output height */
+#std_output textarea {
+    max-height: 215px;
+}
+
+/* Prevent progress bar to block gallery navigation while building images (Gradio V3.19.0) */
+#gallery .wrap.default {
+    pointer-events: none;
+}
+
+/* Import Png info box */
+#txt2img_prompt_image {
+    height: var(--size-32) !important;
+}
+
+/* Hide "remove buttons" from ui dropdowns */
+#custom_model .token-remove.remove-all,
+#lora_weights .token-remove.remove-all,
+#scheduler .token-remove.remove-all,
+#device .token-remove.remove-all,
+#stencil_model .token-remove.remove-all {
+    display: none;
+}
+
+/* Hide selected items from ui dropdowns */
+#custom_model .options .item .inner-item,
+#scheduler .options .item .inner-item,
+#device .options .item .inner-item,
+#stencil_model .options .item .inner-item {
+    display:none;
+}
+
+/* workarounds for container=false not currently working for dropdowns */
+.dropdown_no_container {
+    padding: 0 !important;
+}
+
+#output_subdir_container :first-child {
+    border: none;
+}
+
+/* reduced animation load when generating */
+.generating {
+    animation-play-state: paused !important;
+}
+
+/* better clarity when progress bars are minimal */
+.meta-text {
+    background-color: var(--block-label-background-fill);
+}
+
+/* lora tag pills */
+.lora-tags {
+    border: 1px solid var(--border-color-primary);
+    color: var(--block-info-text-color) !important;
+    padding: var(--block-padding);
+}
+
+.lora-tag {
+    display: inline-block;
+    height: 2em;
+    color: rgb(212 212 212) !important;
+    margin-right: 5pt;
+    margin-bottom: 5pt;
+    padding: 2pt 5pt;
+    border-radius: 5pt;
+    white-space: nowrap;
+}
+
+.lora-model {
+    margin-bottom: var(--spacing-lg);
+    color: var(--block-info-text-color) !important;
+    line-height: var(--line-sm);
+}
+
+/* output gallery tab */
+.output_parameters_dataframe table.table {
+    /* works around a gradio bug that always shows scrollbars */
+    overflow: clip auto;
+}
+
+.output_parameters_dataframe tbody td {
+    font-size: small;
+    line-height: var(--line-xs);
+}
+
+.output_icon_button {
+    max-width: 30px;
+    align-self: end;
+    padding-bottom: 8px;
+}
+
+.outputgallery_sendto {
+    min-width: 7em !important;
+}
+
+/* output gallery should take up most of the viewport height regardless of image size/number */
+#outputgallery_gallery .fixed-height {
+    min-height: 89vh !important;
+}
+
+.sd-right-panel {
+    height: calc(100vmin - var(--size-32) - var(--size-10)) !important;
+    overflow-y: scroll;
+}
+
+.sd-right-panel .fill {
+    flex: 1;
+}
+
+/* don't stretch non-square images to be square, breaking their aspect ratio */
+#outputgallery_gallery .thumbnail-item.thumbnail-lg > img {
+    object-fit: contain !important;
+}
+
+/* centered logo for when there are no images */
+#top_logo.logo_centered {
+    height: 100%;
+    width: 100%;
+}
+
+#top_logo.logo_centered img {
+    object-fit: scale-down;
+    position: absolute;
+    width: 80%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#tab_bar_logo {
+    overflow: visible !important;
+    border-width: 0 !important;
+    height: 0px !important;
+    padding: 0;
+    margin: 0;
+}
+
+#tab_bar_logo .image-container {
+    object-fit: scale-down;
+    position: absolute !important;
+    top: 14px;
+    right: 0px;
+    height: 36px;
+}

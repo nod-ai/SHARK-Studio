@@ -8,8 +8,7 @@ from random import (
 )
 
 from pathlib import Path
-
-# from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from cpuinfo import get_cpu_info
 
 # TODO: migrate these utils to studio
@@ -79,11 +78,52 @@ def get_available_devices():
     return available_devices
 
 
+def set_init_device_flags():
+    if "vulkan" in cmd_opts.device:
+        # set runtime flags for vulkan.
+        set_iree_runtime_flags()
+
+        # set triple flag to avoid multiple calls to get_vulkan_triple_flag
+        device_name, cmd_opts.device = map_device_to_name_path(cmd_opts.device)
+        if not cmd_opts.iree_vulkan_target_triple:
+            triple = get_vulkan_target_triple(device_name)
+            if triple is not None:
+                cmd_opts.iree_vulkan_target_triple = triple
+        print(
+            f"Found device {device_name}. Using target triple "
+            f"{cmd_opts.iree_vulkan_target_triple}."
+        )
+    elif "cuda" in cmd_opts.device:
+        cmd_opts.device = "cuda"
+    elif "metal" in cmd_opts.device:
+        device_name, cmd_opts.device = map_device_to_name_path(cmd_opts.device)
+        if not cmd_opts.iree_metal_target_platform:
+            from shark.iree_utils.metal_utils import get_metal_target_triple
+
+            triple = get_metal_target_triple(device_name)
+            if triple is not None:
+                cmd_opts.iree_metal_target_platform = triple.split("-")[-1]
+        print(
+            f"Found device {device_name}. Using target triple "
+            f"{cmd_opts.iree_metal_target_platform}."
+        )
+    elif "cpu" in cmd_opts.device:
+        cmd_opts.device = "cpu"
+
+
 def set_iree_runtime_flags():
     # TODO: This function should be device-agnostic and piped properly
     # to general runtime driver init.
     vulkan_runtime_flags = get_iree_vulkan_runtime_flags()
-
+    if cmd_opts.enable_rgp:
+        vulkan_runtime_flags += [
+            f"--enable_rgp=true",
+            f"--vulkan_debug_utils=true",
+        ]
+    if cmd_opts.device_allocator_heap_key:
+        vulkan_runtime_flags += [
+            f"--device_allocator=caching:device_local={cmd_opts.device_allocator_heap_key}",
+        ]
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
 
@@ -140,6 +180,32 @@ def get_device_mapping(driver, key_combination=3):
     return device_map
 
 
+def get_opt_flags(model, precision="fp16"):
+    iree_flags = []
+    if len(cmd_opts.iree_vulkan_target_triple) > 0:
+        iree_flags.append(
+            f"-iree-vulkan-target-triple={cmd_opts.iree_vulkan_target_triple}"
+        )
+    if "rocm" in cmd_opts.device:
+        from shark.iree_utils.gpu_utils import get_iree_rocm_args
+
+        rocm_args = get_iree_rocm_args()
+        iree_flags.extend(rocm_args)
+    if cmd_opts.iree_constant_folding == False:
+        iree_flags.append("--iree-opt-const-expr-hoisting=False")
+        iree_flags.append(
+            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
+        )
+    if cmd_opts.data_tiling == False:
+        iree_flags.append("--iree-opt-data-tiling=False")
+
+    if "vae" not in model:
+        # Due to lack of support for multi-reduce, we always collapse reduction
+        # dims before dispatch formation right now.
+        iree_flags += ["--iree-flow-collapse-reduction-dims"]
+    return iree_flags
+
+
 def map_device_to_name_path(device, key_combination=3):
     """Gives the appropriate device data (supported name/path) for user
         selected execution device
@@ -164,6 +230,63 @@ def map_device_to_name_path(device, key_combination=3):
     except KeyError:
         raise ValueError(f"Device '{device}' is not a valid device.")
     return device_mapping
+
+    def get_devices_by_name(driver_name):
+        from shark.iree_utils._common import iree_device_map
+
+        device_list = []
+        try:
+            driver_name = iree_device_map(driver_name)
+            device_list_dict = get_all_devices(driver_name)
+            print(f"{driver_name} devices are available.")
+        except:
+            print(f"{driver_name} devices are not available.")
+        else:
+            cpu_name = get_cpu_info()["brand_raw"]
+            for i, device in enumerate(device_list_dict):
+                device_name = (
+                    cpu_name if device["name"] == "default" else device["name"]
+                )
+                if "local" in driver_name:
+                    device_list.append(
+                        f"{device_name} => {driver_name.replace('local', 'cpu')}"
+                    )
+                else:
+                    # for drivers with single devices
+                    # let the default device be selected without any indexing
+                    if len(device_list_dict) == 1:
+                        device_list.append(f"{device_name} => {driver_name}")
+                    else:
+                        device_list.append(f"{device_name} => {driver_name}://{i}")
+        return device_list
+
+    set_iree_runtime_flags()
+
+    available_devices = []
+    from shark.iree_utils.vulkan_utils import (
+        get_all_vulkan_devices,
+    )
+
+    vulkaninfo_list = get_all_vulkan_devices()
+    vulkan_devices = []
+    id = 0
+    for device in vulkaninfo_list:
+        vulkan_devices.append(f"{device.strip()} => vulkan://{id}")
+        id += 1
+    if id != 0:
+        print(f"vulkan devices are available.")
+    available_devices.extend(vulkan_devices)
+    metal_devices = get_devices_by_name("metal")
+    available_devices.extend(metal_devices)
+    cuda_devices = get_devices_by_name("cuda")
+    available_devices.extend(cuda_devices)
+    rocm_devices = get_devices_by_name("rocm")
+    available_devices.extend(rocm_devices)
+    cpu_device = get_devices_by_name("cpu-sync")
+    available_devices.extend(cpu_device)
+    cpu_device = get_devices_by_name("cpu-task")
+    available_devices.extend(cpu_device)
+    return available_devices
 
 
 # Generate and return a new seed if the provided one is not in the

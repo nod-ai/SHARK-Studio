@@ -7,13 +7,13 @@
   It checks the Python version installed and installs any required build
   dependencies into a Python virtual environment.
   If that environment does not exist, it creates it.
-  
+
 .PARAMETER update-src
   git pulls latest version
 
 .PARAMETER force
   removes and recreates venv to force update of all dependencies
-  
+
 .EXAMPLE
   .\setup_venv.ps1 --force
 
@@ -39,7 +39,7 @@ if ($arguments -eq "--force"){
         Write-Host "deactivating..."
         Deactivate
     }
-    
+
     if (Test-Path .\shark.venv\) {
         Write-Host "removing and recreating venv..."
         Remove-Item .\shark.venv -Force -Recurse
@@ -89,9 +89,7 @@ else {python -m venv .\shark.venv\}
 python -m pip install --upgrade pip
 pip install wheel
 pip install -r requirements.txt
-pip install --pre torch-mlir torchvision torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/
-pip install --upgrade -f https://nod-ai.github.io/SRT/pip-release-links.html iree-compiler iree-runtime
-Write-Host "Building SHARK..."
-pip install -e . -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
-Write-Host "Build and installation completed successfully"
+# remove this when windows DLL issues are fixed from LLVM changes
+pip install --force-reinstall https://github.com/openxla/iree/releases/download/candidate-20240326.843/iree_compiler-20240326.843-cp311-cp311-win_amd64.whl https://github.com/openxla/iree/releases/download/candidate-20240326.843/iree_runtime-20240326.843-cp311-cp311-win_amd64.whl
+
 Write-Host "Source your venv with ./shark.venv/Scripts/activate"

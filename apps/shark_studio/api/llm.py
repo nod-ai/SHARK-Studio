@@ -3,7 +3,8 @@ from turbine_models.model_runner import vmfbRunner
 from turbine_models.gen_external_params.gen_external_params import gen_external_params
 import time
 from shark.iree_utils.compile_utils import compile_module_to_flatbuffer
-from apps.shark_studio.web.utils import get_resource_path
+from apps.shark_studio.web.utils.file_utils import get_resource_path
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 import iree.runtime as ireert
 from itertools import chain
 import gc
@@ -88,21 +89,29 @@ class LanguageModel:
         if self.quantization != "None":
             self.file_spec += "_" + self.quantization
 
-        if external_weights is not None:
+        if external_weights in ["safetensors", "gguf"]:
             self.external_weight_file = get_resource_path(
-                self.file_spec + "." + external_weights
+                os.path.join("..", self.file_spec + "." + external_weights)
             )
+        else:
+            self.external_weights = None
+            self.external_weight_file = None
 
         if streaming_llm:
             # Add streaming suffix to file spec after setting external weights filename.
             self.file_spec += "_streaming"
         self.streaming_llm = streaming_llm
 
-        self.tempfile_name = get_resource_path(f"{self.file_spec}.tempfile")
-        # TODO: Tag vmfb with target triple of device instead of HAL backend
-        self.vmfb_name = get_resource_path(
-            f"{self.file_spec}_{self.backend}.vmfb.tempfile"
+        self.tempfile_name = get_resource_path(
+            os.path.join("..", f"{self.file_spec}.tempfile")
         )
+        # TODO: Tag vmfb with target triple of device instead of HAL backend
+        self.vmfb_name = str(
+            get_resource_path(
+                os.path.join("..", f"{self.file_spec}_{self.backend}.vmfb.tempfile")
+            )
+        )
+
         self.max_tokens = llm_model_map[model_name]["max_tokens"]
         self.iree_module_dict = None
         self.use_system_prompt = use_system_prompt
@@ -126,6 +135,8 @@ class LanguageModel:
                 print(
                     f"External weight file {self.external_weight_file} found for {self.vmfb_name}"
                 )
+            self.external_weight_file = str(self.external_weight_file)
+
         if os.path.exists(self.vmfb_name) and (
             external_weights is None or os.path.exists(str(self.external_weight_file))
         ):
@@ -209,10 +220,8 @@ class LanguageModel:
         prompt = prompt.replace("\r", " ")
         if self.use_system_prompt and self.global_iter == 0:
             prompt = append_user_prompt(DEFAULT_CHAT_SYS_PROMPT, prompt)
-            print(prompt)
             return prompt
         else:
-            print(prompt)
             return f"{B_INST} {prompt} {E_INST}"
 
     def chat(self, prompt):
@@ -248,7 +257,10 @@ class LanguageModel:
                 token_len += 1
 
             history.append(format_out(token))
-            while format_out(token) != llm_model_map["llama2_7b"]["stop_token"]:
+            while (
+                format_out(token) != llm_model_map["llama2_7b"]["stop_token"]
+                and len(history) < self.max_tokens
+            ):
                 dec_time = time.time()
                 if self.streaming_llm and self.model["get_seq_step"]() > 600:
                     print("Evicting cache space!")
@@ -313,6 +325,101 @@ class LanguageModel:
         result_output = self.tokenizer.decode(history)
         self.global_iter += 1
         return result_output, total_time
+
+
+def llm_chat_api(InputData: dict):
+    from datetime import datetime as dt
+
+    import apps.shark_studio.web.utils.globals as global_obj
+
+    print(f"Input keys : {InputData.keys()}")
+
+    # print(f"model : {InputData['model']}")
+
+    is_chat_completion_api = (
+        "messages" in InputData.keys()
+    )  # else it is the legacy `completion` api
+
+    # For Debugging input data from API
+    if is_chat_completion_api:
+        print(f"message -> role : {InputData['messages'][0]['role']}")
+        print(f"message -> content : {InputData['messages'][0]['content']}")
+    else:
+        print(f"prompt : {InputData['prompt']}")
+
+    model_name = InputData["model"] if "model" in InputData.keys() else "llama2_7b"
+    model_path = llm_model_map[model_name]
+    device = InputData["device"] if "device" in InputData.keys() else "cpu"
+    precision = "fp16"
+    max_tokens = InputData["max_tokens"] if "max_tokens" in InputData.keys() else 4096
+
+    device_id = None
+    if not global_obj.get_llm_obj():
+        print("\n[LOG] Initializing new pipeline...")
+        global_obj.clear_cache()
+        gc.collect()
+        if "cuda" in device:
+            device = "cuda"
+        elif "vulkan" in device:
+            device_id = int(device.split("://")[1])
+            device = "vulkan"
+        elif "cpu" in device:
+            device = "cpu"
+            precision = "fp32"
+        else:
+            print("unrecognized device")
+        llm_model = LanguageModel(
+            model_name=model_name,
+            hf_auth_token=cmd_opts.hf_auth_token,
+            device=device,
+            quantization=cmd_opts.quantization,
+            external_weights="safetensors",
+            use_system_prompt=True,
+            streaming_llm=False,
+        )
+        global_obj.set_llm_obj(llm_model)
+    else:
+        llm_model = global_obj.get_llm_obj()
+
+    llm_model.max_tokens = max_tokens
+    # TODO: add role dict for different models
+    if is_chat_completion_api:
+        # TODO: add funtionality for multiple messages
+        prompt = append_user_prompt(
+            InputData["messages"][0]["role"], InputData["messages"][0]["content"]
+        )
+    else:
+        prompt = InputData["prompt"]
+    print("prompt = ", prompt)
+
+    for res_op, _ in llm_model.chat(prompt):
+        if is_chat_completion_api:
+            choices = [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": res_op,  # since we are yeilding the result
+                    },
+                    "finish_reason": "stop",  # or length
+                }
+            ]
+        else:
+            choices = [
+                {
+                    "text": res_op,
+                    "index": 0,
+                    "logprobs": None,
+                    "finish_reason": "stop",  # or length
+                }
+            ]
+    end_time = dt.now().strftime("%Y%m%d%H%M%S%f")
+    return {
+        "id": end_time,
+        "object": "chat.completion" if is_chat_completion_api else "text_completion",
+        "created": int(end_time),
+        "choices": choices,
+    }
 
 
 if __name__ == "__main__":

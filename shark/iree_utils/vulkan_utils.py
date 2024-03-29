@@ -144,6 +144,8 @@ def get_vulkan_target_triple(device_name):
     # Intel Targets
     elif any(x in device_name for x in ("A770", "A750")):
         triple = f"arc-770-{system_os}"
+    elif "v620" in device_name:
+        triple = f"rdna2-v620-{system_os}"
 
     # Adreno Targets
     elif all(x in device_name for x in ("Adreno", "740")):
@@ -169,7 +171,7 @@ def get_vulkan_triple_flag(device_name="", device_num=0, extra_args=[]):
         print(
             f"Found vulkan device {vulkan_device}. Using target triple {triple}"
         )
-        return f"-iree-vulkan-target-triple={triple}"
+        return f"--iree-vulkan-target-triple={triple}"
     print(
         """Optimized kernel for your target device is not added yet.
         Contact SHARK Admin on discord[https://discord.com/invite/RUqY2h2s9u]
@@ -184,7 +186,8 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
 
     res_vulkan_flag = []
     res_vulkan_flag += [
-        "--iree-stream-resource-max-allocation-size=3221225472"
+        "--iree-stream-resource-max-allocation-size=3221225472",
+        "--iree-flow-inline-constants-max-byte-length=0"
     ]
     vulkan_triple_flag = None
     for arg in extra_args:
@@ -197,6 +200,7 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
         vulkan_triple_flag = get_vulkan_triple_flag(
             device_num=device_num, extra_args=extra_args
         )
+    res_vulkan_flag += [vulkan_triple_flag]
 
     if vulkan_triple_flag is not None:
         vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)
