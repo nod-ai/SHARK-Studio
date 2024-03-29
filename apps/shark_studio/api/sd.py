@@ -76,6 +76,9 @@ class StableDiffusion(SharkPipelineBase):
         self.height = height
         self.width = width
         self.scheduler_obj = {}
+
+        # TODO: Reinstate commented out *kwargs once supported by the relevant
+        # turbine.models
         static_kwargs = {
             "pipe": {
                 "external_weights": "safetensors",
@@ -100,7 +103,7 @@ class StableDiffusion(SharkPipelineBase):
                 "batch_size": batch_size,
                 "height": height,
                 "width": width,
-                "precision": precision,
+                # "precision": precision,
             },
             "vae_decode": {
                 "hf_model_name": base_model_id,
@@ -110,7 +113,7 @@ class StableDiffusion(SharkPipelineBase):
                 "batch_size": batch_size,
                 "height": height,
                 "width": width,
-                "precision": precision,
+                # "precision": precision,
             },
         }
         super().__init__(sd_model_map, base_model_id, static_kwargs, device, import_ir)
