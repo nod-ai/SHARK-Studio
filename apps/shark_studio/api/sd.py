@@ -83,9 +83,7 @@ class StableDiffusion(SharkPipelineBase):
             "clip": {"hf_model_name": base_model_id},
             "unet": {
                 "hf_model_name": base_model_id,
-                "unet_model": unet.UnetModel(
-                    hf_model_name=base_model_id
-                ),
+                "unet_model": unet.UnetModel(hf_model_name=base_model_id),
                 "batch_size": batch_size,
                 # "is_controlled": is_controlled,
                 # "num_loras": num_loras,

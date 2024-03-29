@@ -90,6 +90,8 @@ class SharkPipelineBase:
                 )
 
                 weights_path = self.get_io_params(submodel)
+                if weights_path:
+                    ireec_flags.append("--iree-opt-const-eval=False")
 
                 self.iree_module_dict[submodel] = get_iree_compiled_module(
                     self.tempfiles[submodel],

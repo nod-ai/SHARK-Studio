@@ -113,8 +113,8 @@ def get_iree_frontend_args(frontend):
 # Common args to be used given any frontend or device.
 def get_iree_common_args(debug=False):
     common_args = [
-        "--iree-vm-bytecode-module-strip-source-map=true",
         "--iree-util-zero-fill-elided-attrs",
+        "--mlir-elide-elementsattrs-if-larger=10",
     ]
     if debug == True:
         common_args.extend(

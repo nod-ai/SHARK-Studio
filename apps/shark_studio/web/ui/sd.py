@@ -632,7 +632,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     with gr.Tab(label="Config", id=102) as sd_tab_config:
                         with gr.Column(elem_classes=["sd-right-panel"]):
                             with gr.Row(elem_classes=["fill"]):
-                                Path(get_configs_path()).mkdir(parents=True, exist_ok=True)
+                                Path(get_configs_path()).mkdir(
+                                    parents=True, exist_ok=True
+                                )
                                 default_config_file = os.path.join(
                                     get_configs_path(),
                                     "default_sd_config.json",

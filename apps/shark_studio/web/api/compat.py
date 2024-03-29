@@ -26,7 +26,6 @@ from apps.shark_studio.api.llm import llm_chat_api
 
 def decode_base64_to_image(encoding):
     if encoding.startswith("http://") or encoding.startswith("https://"):
-
         headers = {}
         response = requests.get(encoding, timeout=30, headers=headers)
         try:

@@ -40,9 +40,11 @@ default_sd_config = r"""{
   "embeddings": {}
 }"""
 
+
 def write_default_sd_config(path):
     with open(path, "w") as f:
         f.write(default_sd_config)
+
 
 def safe_name(name):
     return name.replace("/", "_").replace("-", "_")

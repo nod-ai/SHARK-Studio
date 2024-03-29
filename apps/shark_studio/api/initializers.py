@@ -84,7 +84,7 @@ def dumpstacks():
             if line:
                 code.append("  " + line.strip())
     with open(os.path.join(shark_tmp, "stack_dump.log"), "w") as f:
-        f.write("\n".join(code)) 
+        f.write("\n".join(code))
 
 
 def setup_middleware(app):

@@ -38,7 +38,6 @@ def llm_chat_test(verbose=False):
 
 
 if __name__ == "__main__":
-
     # "Exercises the chatbot REST API of Shark. Make sure "
     # "Shark is running in API mode on 127.0.0.1:8080 before running"
     # "this script."

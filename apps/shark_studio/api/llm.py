@@ -326,6 +326,7 @@ class LanguageModel:
         self.global_iter += 1
         return result_output, total_time
 
+
 def llm_chat_api(InputData: dict):
     from datetime import datetime as dt
 
@@ -392,7 +393,6 @@ def llm_chat_api(InputData: dict):
     print("prompt = ", prompt)
 
     for res_op, _ in llm_model.chat(prompt):
-
         if is_chat_completion_api:
             choices = [
                 {
@@ -420,6 +420,7 @@ def llm_chat_api(InputData: dict):
         "created": int(end_time),
         "choices": choices,
     }
+
 
 if __name__ == "__main__":
     lm = LanguageModel(

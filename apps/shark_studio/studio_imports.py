@@ -56,9 +56,7 @@ datas += [
 # hidden imports for pyinstaller
 hiddenimports = ["shark", "apps"]
 hiddenimports += [x for x in collect_submodules("gradio") if "tests" not in x]
-hiddenimports += [
-    x for x in collect_submodules("diffusers") if "tests" not in x
-]
+hiddenimports += [x for x in collect_submodules("diffusers") if "tests" not in x]
 blacklist = ["tests", "convert"]
 hiddenimports += [
     x
