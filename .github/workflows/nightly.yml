@@ -4,6 +4,7 @@
 name: Nightly Release
 
 on:
+  pull_request:
   schedule:
     - cron: '0 5 * * *'
   workflow_dispatch:
@@ -51,6 +52,7 @@ jobs:
       run: |
         ./setup_venv.ps1
         $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
+        pip install -e .
         pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
         python process_skipfiles.py
         pyinstaller .\apps\shark_studio\shark_studio.spec
