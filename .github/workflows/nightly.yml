@@ -4,6 +4,7 @@
 name: Nightly Release
 
 on:
+  pull_request:
   schedule:
     - cron: '0 5 * * *'
   workflow_dispatch:
@@ -50,12 +51,17 @@ jobs:
       shell: powershell
       run: |
         ./setup_venv.ps1
-        $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
-        pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
+        echo "1"
         python process_skipfiles.py
+        echo "2"
+        $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
+        echo "3"
+        pip install -e .
+        echo "4"
         pyinstaller .\apps\shark_studio\shark_studio.spec
+        echo "5"
         mv ./dist/nodai_shark_studio.exe ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
-        signtool sign /f c:\g\shark_02152023.cer /fd certHash /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
+        echo "6"
   
     - name: Upload Release Assets
       id: upload-release-assets
