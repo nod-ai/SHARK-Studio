@@ -50,17 +50,11 @@ jobs:
       shell: powershell
       run: |
         ./setup_venv.ps1
-        echo "1"
         python process_skipfiles.py
-        echo "2"
         $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
-        echo "3"
         pip install -e .
-        echo "4"
         pyinstaller .\apps\shark_studio\shark_studio.spec
-        echo "5"
         mv ./dist/nodai_shark_studio.exe ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
-        echo "6"
   
     - name: Upload Release Assets
       id: upload-release-assets
