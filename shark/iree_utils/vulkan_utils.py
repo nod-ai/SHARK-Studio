@@ -202,9 +202,6 @@ def get_iree_vulkan_args(device_num=0, extra_args=[]):
         )
     res_vulkan_flag += [vulkan_triple_flag]
 
-    if vulkan_triple_flag is not None:
-        vulkan_target_env = get_vulkan_target_env_flag(vulkan_triple_flag)
-        res_vulkan_flag.append(vulkan_target_env)
     return res_vulkan_flag
 
 
