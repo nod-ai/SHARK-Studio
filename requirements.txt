@@ -6,8 +6,8 @@ setuptools
 wheel
 
 torch==2.3.0.dev20240305
-shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@ean-sd-fp16#subdirectory=core
-turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@ean-sd-fp16#subdirectory=models
+shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=core
+turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=models
 
 # SHARK Runner
 tqdm
