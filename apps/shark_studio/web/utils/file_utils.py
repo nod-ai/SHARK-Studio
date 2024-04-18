@@ -66,18 +66,24 @@ def get_resource_path(path):
 
 
 def get_configs_path() -> Path:
-    configs = get_resource_path(os.path.join("..", "configs"))
+    configs = get_resource_path(cmd_opts.config_dir)
     if not os.path.exists(configs):
         os.mkdir(configs)
-    return Path(get_resource_path("../configs"))
+    return Path(configs)
 
 
 def get_generated_imgs_path() -> Path:
-    return Path(
-        cmd_opts.output_dir
-        if cmd_opts.output_dir
-        else get_resource_path("../generated_imgs")
-    )
+    outputs = get_resource_path(cmd_opts.output_dir)
+    if not os.path.exists(outputs):
+        os.mkdir(outputs)
+    return Path(outputs)
+
+
+def get_tmp_path() -> Path:
+    tmpdir = get_resource_path(cmd_opts.ckpt_dir)
+    if not os.path.exists(tmpdir):
+        os.mkdir(tmpdir)
+    return Path(tmpdir)
 
 
 def get_generated_imgs_todays_subdir() -> str:
