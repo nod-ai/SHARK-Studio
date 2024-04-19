@@ -372,7 +372,7 @@ For a complete list of the models supported in SHARK, please refer to [tank/READ
 
 *   [Upstream IREE issues](https://github.com/google/iree/issues): Feature requests,
     bugs, and other work tracking
-*   [Upstream IREE Discord server](https://discord.gg/26P4xW4): Daily development
+*   [Upstream IREE Discord server](https://discord.gg/wEWh6Z9nMU): Daily development
     discussions with the core team and collaborators
 *   [iree-discuss email list](https://groups.google.com/forum/#!forum/iree-discuss):
     Announcements, general and low-priority discussion

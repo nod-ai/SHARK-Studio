@@ -50,10 +50,10 @@ jobs:
       shell: powershell
       run: |
         ./setup_venv.ps1
-        $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
-        pip wheel -v -w dist . --pre -f https://download.pytorch.org/whl/nightly/cpu -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
         python process_skipfiles.py
-        pyinstaller .\apps\stable_diffusion\shark_sd.spec
+        $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
+        pip install -e .
+        pyinstaller .\apps\shark_studio\shark_studio.spec
         mv ./dist/nodai_shark_studio.exe ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
         signtool sign /f c:\g\shark_02152023.cer /fd certHash /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
   
@@ -74,80 +74,3 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         release_id: ${{ steps.create_release.outputs.id }}
-
-  linux-build:
-
-    runs-on: a100
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.11"]
-        backend: [IREE, SHARK]
-
-    steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v3
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Setup pip cache
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-
-    - name: Install dependencies
-      run: |
-        echo "DATE=$(date +'%Y-%m-%d')" >> $GITHUB_ENV
-        python -m pip install --upgrade pip
-        python -m pip install flake8 pytest toml
-        if [ -f requirements.txt ]; then pip install -r requirements.txt -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html; fi
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude shark.venv,lit.cfg.py 
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude shark.venv,lit.cfg.py 
-    - name: Build and validate the IREE package
-      if: ${{ matrix.backend == 'IREE' }}
-      continue-on-error: true
-      run: |
-        cd $GITHUB_WORKSPACE
-        USE_IREE=1 VENV_DIR=iree.venv ./setup_venv.sh
-        source iree.venv/bin/activate
-        package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
-        SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://openxla.github.io/iree/pip-release-links.html
-        # Install the built wheel
-        pip install ./wheelhouse/nodai*
-        # Validate the Models
-        /bin/bash "$GITHUB_WORKSPACE/build_tools/populate_sharktank_ci.sh"
-        pytest --ci --ci_sha=${SHORT_SHA} --local_tank_cache="./gen_shark_tank/" -k "not metal" |
-          tail -n 1 |
-          tee -a pytest_results.txt
-        if !(grep -Fxq " failed" pytest_results.txt) 
-          then 
-            export SHA=$(git log -1 --format='%h')
-            gsutil -m cp -r $GITHUB_WORKSPACE/gen_shark_tank/* gs://shark_tank/${DATE}_$SHA
-            gsutil -m cp -r gs://shark_tank/${DATE}_$SHA/* gs://shark_tank/nightly/
-        fi
-        rm -rf ./wheelhouse/nodai*
-
-    - name: Build and validate the SHARK Runtime package
-      if: ${{ matrix.backend == 'SHARK' }}
-      run: |
-        cd $GITHUB_WORKSPACE
-        ./setup_venv.sh
-        source shark.venv/bin/activate
-        package_version="$(printf '%(%Y%m%d)T.${{ github.run_number }}')"
-        SHARK_PACKAGE_VERSION=${package_version} \
-        pip wheel -v -w wheelhouse . --pre -f https://download.pytorch.org/whl/nightly/torch -f https://llvm.github.io/torch-mlir/package-index/ -f https://nod-ai.github.io/SRT/pip-release-links.html
-        # Install the built wheel
-        pip install ./wheelhouse/nodai*
-        # Validate the Models
-        pytest --ci --ci_sha=${SHORT_SHA} -k "not metal" |
-          tail -n 1 |
-          tee -a pytest_results.txt

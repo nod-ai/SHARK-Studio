@@ -8,11 +8,12 @@ from threading import Thread
 
 from apps.shark_studio.modules.timer import startup_timer
 
-# from apps.shark_studio.web.utils.tmp_configs import (
-#     config_tmp,
-#     clear_tmp_mlir,
-#     clear_tmp_imgs,
-# )
+from apps.shark_studio.web.utils.tmp_configs import (
+    config_tmp,
+    clear_tmp_mlir,
+    clear_tmp_imgs,
+    shark_tmp,
+)
 
 
 def imports():
@@ -47,9 +48,9 @@ def initialize():
     # existing temporary images there if they exist. Then we can import gradio.
     # It has to be in this order or gradio ignores what we've set up.
 
-    # config_tmp()
+    config_tmp()
     # clear_tmp_mlir()
-    # clear_tmp_imgs()
+    clear_tmp_imgs()
 
     from apps.shark_studio.web.utils.file_utils import (
         create_checkpoint_folders,
@@ -82,8 +83,8 @@ def dumpstacks():
             code.append(f"""File: "{filename}", line {lineno}, in {name}""")
             if line:
                 code.append("  " + line.strip())
-
-    print("\n".join(code))
+    with open(os.path.join(shark_tmp, "stack_dump.log"), "w") as f:
+        f.write("\n".join(code))
 
 
 def setup_middleware(app):

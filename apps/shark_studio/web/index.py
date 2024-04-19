@@ -1,4 +1,8 @@
 from multiprocessing import Process, freeze_support
+
+freeze_support()
+from PIL import Image
+
 import os
 import time
 import sys
@@ -71,6 +75,10 @@ def launch_webui(address):
 
 def webui():
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+    from apps.shark_studio.web.ui.utils import (
+        nodicon_loc,
+        nodlogo_loc,
+    )
 
     launch_api = cmd_opts.api
     initialize.initialize()
@@ -81,12 +89,6 @@ def webui():
 
     # required to do multiprocessing in a pyinstaller freeze
     freeze_support()
-
-    # if args.api or "api" in args.ui.split(","):
-    #     from apps.shark_studio.api.llm import (
-    #         chat,
-    #     )
-    #     from apps.shark_studio.web.api import sdapi
     #
     #     from fastapi import FastAPI, APIRouter
     #     from fastapi.middleware.cors import CORSMiddleware
@@ -134,6 +136,7 @@ def webui():
         return os.path.join(base_path, relative_path)
 
     dark_theme = resource_path("ui/css/sd_dark_theme.css")
+    gradio_workarounds = resource_path("ui/js/sd_gradio_workarounds.js")
 
     # from apps.shark_studio.web.ui import load_ui_from_script
 
@@ -158,8 +161,19 @@ def webui():
         )
 
     with gr.Blocks(
-        css=dark_theme, analytics_enabled=False, title="Shark Studio 2.0 Beta"
+        css=dark_theme,
+        js=gradio_workarounds,
+        analytics_enabled=False,
+        title="Shark Studio 2.0 Beta",
     ) as studio_web:
+        nod_logo = Image.open(nodlogo_loc)
+        gr.Image(
+            value=nod_logo,
+            show_label=False,
+            interactive=False,
+            elem_id="tab_bar_logo",
+            show_download_button=False,
+        )
         with gr.Tabs() as tabs:
             # NOTE: If adding, removing, or re-ordering tabs, make sure that they
             # have a unique id that doesn't clash with any of the other tabs,
@@ -185,10 +199,11 @@ def webui():
     #    )
     #    t.start()
     studio_web.launch(
-        share=True,
+        share=cmd_opts.share,
         inbrowser=True,
         server_name="0.0.0.0",
         server_port=cmd_opts.server_port,
+        favicon_path=nodicon_loc,
     )
 
 

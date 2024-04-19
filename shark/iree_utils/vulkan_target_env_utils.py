@@ -33,7 +33,7 @@ def get_vulkan_target_env(vulkan_target_triple):
     device_type = get_device_type(triple)
     # get capabilities
     capabilities = get_vulkan_target_capabilities(triple)
-    target_env = f"#vk.target_env<{version}, r({revision}), {extensions}, {vendor}:{device_type}, #vk.caps< {capabilities} >>"
+    target_env = f"<#spirv.vce<{version}, r({revision}), {extensions}>, {vendor}:{device_type}, #spirv.resource_limits< {capabilities} >>"
     return target_env
 
 
@@ -63,62 +63,62 @@ def get_extensions(triple):
     arch, product, os = triple
     if arch == "m1":
         ext = [
-            "VK_KHR_16bit_storage",
-            "VK_KHR_8bit_storage",
-            "VK_KHR_shader_float16_int8",
-            "VK_KHR_storage_buffer_storage_class",
-            "VK_KHR_variable_pointers",
+            "SPV_KHR_16bit_storage",
+            "SPV_KHR_8bit_storage",
+            "SPV_KHR_shader_float16_int8",
+            "SPV_KHR_storage_buffer_storage_class",
+            "SPV_KHR_variable_pointers",
         ]
         return make_ext_list(ext_list=ext)
 
     if arch == "valhall":
         ext = [
-            "VK_KHR_16bit_storage",
-            "VK_KHR_8bit_storage",
-            "VK_KHR_shader_float16_int8",
-            "VK_KHR_spirv_1_4",
-            "VK_KHR_storage_buffer_storage_class",
-            "VK_KHR_variable_pointers",
+            "SPV_KHR_16bit_storage",
+            "SPV_KHR_8bit_storage",
+            "SPV_KHR_shader_float16_int8",
+            "SPV_KHR_spirv_1_4",
+            "SPV_KHR_storage_buffer_storage_class",
+            "SPV_KHR_variable_pointers",
         ]
         return make_ext_list(ext_list=ext)
 
     if arch == "adreno":
         ext = [
-            "VK_KHR_16bit_storage",
-            "VK_KHR_shader_float16_int8",
-            "VK_KHR_spirv_1_4",
-            "VK_KHR_storage_buffer_storage_class",
-            "VK_KHR_variable_pointers",
+            "SPV_KHR_16bit_storage",
+            "SPV_KHR_shader_float16_int8",
+            "SPV_KHR_spirv_1_4",
+            "SPV_KHR_storage_buffer_storage_class",
+            "SPV_KHR_variable_pointers",
         ]
         if os == "android31":
-            ext.append("VK_KHR_8bit_storage")
+            ext.append("SPV_KHR_8bit_storage")
         return make_ext_list(ext_list=ext)
 
     if get_vendor(triple) == "SwiftShader":
-        ext = ["VK_KHR_storage_buffer_storage_class"]
+        ext = ["SPV_KHR_storage_buffer_storage_class"]
         return make_ext_list(ext_list=ext)
 
     if arch == "unknown":
         ext = [
-            "VK_KHR_storage_buffer_storage_class",
-            "VK_KHR_variable_pointers",
+            "SPV_KHR_storage_buffer_storage_class",
+            "SPV_KHR_variable_pointers",
         ]
         return make_ext_list(ext_list=ext)
 
     ext = [
-        "VK_KHR_16bit_storage",
-        "VK_KHR_8bit_storage",
-        "VK_KHR_shader_float16_int8",
-        "VK_KHR_spirv_1_4",
-        "VK_KHR_storage_buffer_storage_class",
-        "VK_KHR_variable_pointers",
+        "SPV_KHR_16bit_storage",
+        "SPV_KHR_8bit_storage",
+        "SPV_KHR_shader_float16_int8",
+        "SPV_KHR_spirv_1_4",
+        "SPV_KHR_storage_buffer_storage_class",
+        "SPV_KHR_variable_pointers",
         "VK_EXT_subgroup_size_control",
     ]
 
     if get_vendor(triple) == "NVIDIA" or arch == "rdna3":
-        ext.append("VK_KHR_cooperative_matrix")
+        ext.append("SPV_KHR_cooperative_matrix")
     if get_vendor(triple) == ["NVIDIA", "AMD", "Intel"]:
-        ext.append("VK_KHR_shader_integer_dot_product")
+        ext.append("SPV_KHR_shader_integer_dot_product")
     return make_ext_list(ext_list=ext)
 
 
@@ -186,13 +186,13 @@ def get_vulkan_target_capabilities(triple):
         "Quad": 128,
         "PartitionedNV": 256,
     }
-    cap["maxComputeSharedMemorySize"] = 16384
-    cap["maxComputeWorkGroupInvocations"] = 128
-    cap["maxComputeWorkGroupSize"] = [128, 128, 64]
-    cap["subgroupSize"] = 32
+    cap["max_compute_shared_memory_size"] = 16384
+    cap["max_compute_workgroup_invocations"] = 128
+    cap["max_compute_workgroup_size"] = [128, 128, 64]
+    cap["subgroup_size"] = 32
     cap["subgroupFeatures"] = ["Basic"]
-    cap["minSubgroupSize"] = None
-    cap["maxSubgroupSize"] = None
+    cap["min_subgroup_size"] = None
+    cap["max_subgroup_size"] = None
     cap["shaderFloat16"] = False
     cap["shaderFloat64"] = False
     cap["shaderInt8"] = False
@@ -209,13 +209,13 @@ def get_vulkan_target_capabilities(triple):
     cap["coopmatCases"] = None
 
     if arch in ["rdna1", "rdna2", "rdna3"]:
-        cap["maxComputeSharedMemorySize"] = 65536
-        cap["maxComputeWorkGroupInvocations"] = 1024
-        cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
+        cap["max_compute_shared_memory_size"] = 65536
+        cap["max_compute_workgroup_invocations"] = 1024
+        cap["max_compute_workgroup_size"] = [1024, 1024, 1024]
 
-        cap["subgroupSize"] = 64
-        cap["minSubgroupSize"] = 32
-        cap["maxSubgroupSize"] = 64
+        cap["subgroup_size"] = 64
+        cap["min_subgroup_size"] = 32
+        cap["max_subgroup_size"] = 64
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -244,7 +244,8 @@ def get_vulkan_target_capabilities(triple):
         if arch == "rdna3":
             # TODO: Get scope value
             cap["coopmatCases"] = [
-                "mSize = 16, nSize = 16, kSize = 16, aType = f16, bType = f16, cType = f16, resultType = f16, accSat = false, scope = #vk.scope<Subgroup>"
+                "m_size = 16, n_size = 16, k_size = 16, a_type = f16, b_type = f16, c_type = f16, result_type = f16, acc_sat = false, scope = <Subgroup>",
+                "m_size = 16, n_size = 16, k_size = 16, a_type = f16, b_type = f16, c_type = f32, result_type = f32, acc_sat = false, scope = <Subgroup>"
             ]
 
         if product == "rx5700xt":
@@ -252,11 +253,11 @@ def get_vulkan_target_capabilities(triple):
             cap["storagePushConstant8"] = False
 
     elif arch in ["rgcn5", "rgcn4", "rgcn3"]:
-        cap["maxComputeSharedMemorySize"] = 65536
-        cap["maxComputeWorkGroupInvocations"] = 1024
-        cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
+        cap["max_compute_shared_memory_size"] = 65536
+        cap["max_compute_workgroup_invocations"] = 1024
+        cap["max_compute_workgroup_size"] = [1024, 1024, 1024]
 
-        cap["subgroupSize"] = 64
+        cap["subgroup_size"] = 64
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -267,8 +268,8 @@ def get_vulkan_target_capabilities(triple):
             "Clustered",
             "Quad",
         ]
-        cap["minSubgroupSize"] = 64
-        cap["maxSubgroupSize"] = 64
+        cap["min_subgroup_size"] = 64
+        cap["max_subgroup_size"] = 64
 
         if arch == "rgcn5":
             cap["shaderFloat16"] = True
@@ -290,11 +291,11 @@ def get_vulkan_target_capabilities(triple):
         cap["variablePointersStorageBuffer"] = True
 
     elif arch == "m1":
-        cap["maxComputeSharedMemorySize"] = 32768
-        cap["maxComputeWorkGroupInvocations"] = 1024
-        cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
+        cap["max_compute_shared_memory_size"] = 32768
+        cap["max_compute_workgroup_invocations"] = 1024
+        cap["max_compute_workgroup_size"] = [1024, 1024, 1024]
 
-        cap["subgroupSize"] = 32
+        cap["subgroup_size"] = 32
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -321,11 +322,11 @@ def get_vulkan_target_capabilities(triple):
         cap["variablePointersStorageBuffer"] = True
 
     elif arch == "valhall":
-        cap["maxComputeSharedMemorySize"] = 32768
-        cap["maxComputeWorkGroupInvocations"] = 512
-        cap["maxComputeWorkGroupSize"] = [512, 512, 512]
+        cap["max_compute_shared_memory_size"] = 32768
+        cap["max_compute_workgroup_invocations"] = 512
+        cap["max_compute_workgroup_size"] = [512, 512, 512]
 
-        cap["subgroupSize"] = 16
+        cap["subgroup_size"] = 16
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -352,11 +353,11 @@ def get_vulkan_target_capabilities(triple):
         cap["variablePointersStorageBuffer"] = True
 
     elif arch == "arc":
-        cap["maxComputeSharedMemorySize"] = 32768
-        cap["maxComputeWorkGroupInvocations"] = 1024
-        cap["maxComputeWorkGroupSize"] = [1024, 1024, 64]
+        cap["max_compute_shared_memory_size"] = 32768
+        cap["max_compute_workgroup_invocations"] = 1024
+        cap["max_compute_workgroup_size"] = [1024, 1024, 64]
 
-        cap["subgroupSize"] = 32
+        cap["subgroup_size"] = 32
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -385,8 +386,8 @@ def get_vulkan_target_capabilities(triple):
 
     elif arch == "cpu":
         if product == "swiftshader":
-            cap["maxComputeSharedMemorySize"] = 16384
-            cap["subgroupSize"] = 4
+            cap["max_compute_shared_memory_size"] = 16384
+            cap["subgroup_size"] = 4
             cap["subgroupFeatures"] = [
                 "Basic",
                 "Vote",
@@ -397,13 +398,13 @@ def get_vulkan_target_capabilities(triple):
             ]
 
     elif arch in ["pascal"]:
-        cap["maxComputeSharedMemorySize"] = 49152
-        cap["maxComputeWorkGroupInvocations"] = 1536
-        cap["maxComputeWorkGroupSize"] = [1536, 1024, 64]
+        cap["max_compute_shared_memory_size"] = 49152
+        cap["max_compute_workgroup_invocations"] = 1536
+        cap["max_compute_workgroup_size"] = [1536, 1024, 64]
 
-        cap["subgroupSize"] = 32
-        cap["minSubgroupSize"] = 32
-        cap["maxSubgroupSize"] = 32
+        cap["subgroup_size"] = 32
+        cap["min_subgroup_size"] = 32
+        cap["max_subgroup_size"] = 32
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -431,13 +432,13 @@ def get_vulkan_target_capabilities(triple):
         cap["variablePointersStorageBuffer"] = True
 
     elif arch in ["ampere", "turing"]:
-        cap["maxComputeSharedMemorySize"] = 49152
-        cap["maxComputeWorkGroupInvocations"] = 1024
-        cap["maxComputeWorkGroupSize"] = [1024, 1024, 1024]
+        cap["max_compute_shared_memory_size"] = 49152
+        cap["max_compute_workgroup_invocations"] = 1024
+        cap["max_compute_workgroup_size"] = [1024, 1024, 1024]
 
-        cap["subgroupSize"] = 32
-        cap["minSubgroupSize"] = 32
-        cap["maxSubgroupSize"] = 32
+        cap["subgroup_size"] = 32
+        cap["min_subgroup_size"] = 32
+        cap["max_subgroup_size"] = 32
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -471,11 +472,11 @@ def get_vulkan_target_capabilities(triple):
         ]
 
     elif arch == "adreno":
-        cap["maxComputeSharedMemorySize"] = 32768
-        cap["maxComputeWorkGroupInvocations"] = 1024
-        cap["maxComputeWorkGroupSize"] = [1024, 1024, 64]
+        cap["max_compute_shared_memory_size"] = 32768
+        cap["max_compute_workgroup_invocations"] = 1024
+        cap["max_compute_workgroup_size"] = [1024, 1024, 64]
 
-        cap["subgroupSize"] = 64
+        cap["subgroup_size"] = 64
         cap["subgroupFeatures"] = [
             "Basic",
             "Vote",
@@ -491,14 +492,14 @@ def get_vulkan_target_capabilities(triple):
         cap["shaderInt16"] = True
 
         cap["storageBuffer16BitAccess"] = True
-        if os == "andorid31":
+        if os == "android31":
             cap["uniformAndStorageBuffer8BitAccess"] = True
 
         cap["variablePointers"] = True
         cap["variablePointersStorageBuffer"] = True
 
     elif arch == "unknown":
-        cap["subgroupSize"] = 64
+        cap["subgroup_size"] = 64
         cap["variablePointers"] = False
         cap["variablePointersStorageBuffer"] = False
     else:
@@ -521,14 +522,14 @@ def get_vulkan_target_capabilities(triple):
             res += f"{k} = {'unit' if v == True else None}, "
         elif isinstance(v, list):
             if k == "subgroupFeatures":
-                res += f"subgroupFeatures = {get_subgroup_val(v)}: i32, "
-            elif k == "maxComputeWorkGroupSize":
-                res += f"maxComputeWorkGroupSize = dense<{get_comma_sep_str(v)}>: vector<{len(v)}xi32>, "
+                res += f"subgroup_features = {get_subgroup_val(v)}: i32, "
+            elif k == "max_compute_workgroup_size":
+                res += f"max_compute_workgroup_size = dense<{get_comma_sep_str(v)}>: vector<{len(v)}xi32>, "
             elif k == "coopmatCases":
                 cmc = ""
                 for case in v:
-                    cmc += f"#vk.coop_matrix_props<{case}>, "
-                res += f"cooperativeMatrixPropertiesKHR = [{cmc[:-2]}], "
+                    cmc += f"#spirv.coop_matrix_props_khr<{case}>, "
+                res += f"cooperative_matrix_properties_khr = [{cmc[:-2]}], "
             else:
                 res += f"{k} = {get_comma_sep_str(v)}, "
         else:

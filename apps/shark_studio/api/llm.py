@@ -393,7 +393,6 @@ def llm_chat_api(InputData: dict):
     print("prompt = ", prompt)
 
     for res_op, _ in llm_model.chat(prompt):
-
         if is_chat_completion_api:
             choices = [
                 {

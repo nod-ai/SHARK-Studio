@@ -13,9 +13,6 @@ import apps.shark_studio.web.utils.globals as global_obj
 
 B_SYS, E_SYS = "<s>", "</s>"
 
-B_SYS, E_SYS = "<s>", "</s>"
-
-
 def user(message, history):
     # Append the user's message to the conversation history
     return "", history + [[message, ""]]

@@ -38,41 +38,12 @@ from diffusers.image_processor import VaeImageProcessor
 sd_model_map = {
     "clip": {
         "initializer": clip.export_clip_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
-        ],
-    },
-    "vae_encode": {
-        "initializer": vae.export_vae_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
-        ],
     },
     "unet": {
         "initializer": unet.export_unet_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32}))",
-        ],
     },
     "vae_decode": {
         "initializer": vae.export_vae_model,
-        "ireec_flags": [
-            "--iree-flow-collapse-reduction-dims",
-            "--iree-opt-const-expr-hoisting=False",
-            "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-global-opt-detach-elementwise-from-named-ops,iree-global-opt-convert-1x1-filter-conv2d-to-matmul,iree-preprocessing-convert-conv2d-to-img2col,iree-preprocessing-pad-linalg-ops{pad-size=32},iree-linalg-ext-convert-conv2d-to-winograd))",
-            "--iree-preprocessing-pass-pipeline=builtin.module(func.func(iree-preprocessing-pad-linalg-ops{pad-size=16}))",
-        ],
     },
 }
 
@@ -96,6 +67,7 @@ class StableDiffusion(SharkPipelineBase):
         num_loras: int = 0,
         import_ir: bool = True,
         is_controlled: bool = False,
+        hf_auth_token=None,
     ):
         self.model_max_length = 77
         self.batch_size = batch_size
@@ -111,9 +83,7 @@ class StableDiffusion(SharkPipelineBase):
             "clip": {"hf_model_name": base_model_id},
             "unet": {
                 "hf_model_name": base_model_id,
-                "unet_model": unet.UnetModel(
-                    hf_model_name=base_model_id, hf_auth_token=None
-                ),
+                "unet_model": unet.UnetModel(hf_model_name=base_model_id),
                 "batch_size": batch_size,
                 # "is_controlled": is_controlled,
                 # "num_loras": num_loras,
@@ -125,8 +95,7 @@ class StableDiffusion(SharkPipelineBase):
             "vae_encode": {
                 "hf_model_name": base_model_id,
                 "vae_model": vae.VaeModel(
-                    hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
+                    hf_model_name=custom_vae if custom_vae else base_model_id,
                 ),
                 "batch_size": batch_size,
                 "height": height,
@@ -136,8 +105,7 @@ class StableDiffusion(SharkPipelineBase):
             "vae_decode": {
                 "hf_model_name": base_model_id,
                 "vae_model": vae.VaeModel(
-                    hf_model_name=base_model_id,
-                    custom_vae=custom_vae,
+                    hf_model_name=custom_vae if custom_vae else base_model_id,
                 ),
                 "batch_size": batch_size,
                 "height": height,
@@ -149,9 +117,10 @@ class StableDiffusion(SharkPipelineBase):
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
-            str(static_kwargs["unet"]["max_length"]),
+            str(self.model_max_length),
             f"{str(height)}x{str(width)}",
             precision,
+            self.device,
         ]
         if num_loras > 0:
             pipe_id_list.append(str(num_loras) + "lora")
@@ -183,7 +152,7 @@ class StableDiffusion(SharkPipelineBase):
                 custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
                 if submodel not in ["clip", "clip2"]:
                     self.static_kwargs[submodel][
-                        "external_weight_file"
+                        "external_weights"
                     ] = custom_weights_params
                 else:
                     self.static_kwargs[submodel]["external_weight_path"] = os.path.join(

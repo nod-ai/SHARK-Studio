@@ -615,7 +615,7 @@ p.add_argument(
 p.add_argument(
     "--ckpt_dir",
     type=str,
-    default="",
+    default="../models",
     help="Path to directory where all .ckpts are stored in order to populate "
     "them in the web UI.",
 )

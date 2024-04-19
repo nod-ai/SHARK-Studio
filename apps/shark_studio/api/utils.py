@@ -9,7 +9,6 @@ from random import (
 
 from pathlib import Path
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
-
 from cpuinfo import get_cpu_info
 
 # TODO: migrate these utils to studio
@@ -125,7 +124,6 @@ def set_iree_runtime_flags():
         vulkan_runtime_flags += [
             f"--device_allocator=caching:device_local={cmd_opts.device_allocator_heap_key}",
         ]
-
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
 
