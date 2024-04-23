@@ -231,7 +231,11 @@ def import_original(original_img, width, height):
 
 
 def base_model_changed(base_model_id):
-    ckpt_path = Path(os.path.join(cmd_opts.model_dir, "checkpoints", os.path.basename(str(base_model_id))))
+    ckpt_path = Path(
+        os.path.join(
+            cmd_opts.model_dir, "checkpoints", os.path.basename(str(base_model_id))
+        )
+    )
     ckpt_path.mkdir(parents=True, exist_ok=True)
 
     new_choices = get_checkpoints(ckpt_path) + get_checkpoints(model_type="checkpoints")
@@ -394,12 +398,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         show_copy_button=True,
                     )
                     with gr.Row():
-                        save_prompt = gr.Checkbox(
-                            label="Save Prompt"
-                        )
-                        save_negative_prompt = gr.Checkbox(
-                            label="Save Negative Prompt"
-                        )
+                        save_prompt = gr.Checkbox(label="Save Prompt")
+                        save_negative_prompt = gr.Checkbox(label="Save Negative Prompt")
                 with gr.Row(equal_height=True):
                     seed = gr.Textbox(
                         value=cmd_opts.seed,
@@ -624,9 +624,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 stop_batch = gr.Button("Stop")
                     with gr.Tab(label="Config", id=102) as sd_tab_config:
                         with gr.Column(elem_classes=["sd-right-panel"]):
-                            Path(get_configs_path()).mkdir(
-                                parents=True, exist_ok=True
-                            )
+                            Path(get_configs_path()).mkdir(parents=True, exist_ok=True)
                             default_config_file = os.path.join(
                                 get_configs_path(),
                                 "default_sd_config.json",
@@ -723,7 +721,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             )
                             sd_status = gr.Textbox(visible=False)
                     with gr.Tab(label="Automation", id=104) as sd_tab_automation:
-                       pass
+                        pass
 
     pull_kwargs = dict(
         fn=pull_sd_configs,

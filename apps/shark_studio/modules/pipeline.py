@@ -55,9 +55,7 @@ class SharkPipelineBase:
         # and your model map is populated with any IR - unique model IDs and their static params,
         # call this method to get the artifacts associated with your map.
         self.pipe_id = self.safe_name(pipe_id)
-        self.pipe_vmfb_path = Path(
-            os.path.join(get_checkpoints_path(), self.pipe_id)
-        )
+        self.pipe_vmfb_path = Path(os.path.join(get_checkpoints_path(), self.pipe_id))
         self.pipe_vmfb_path.mkdir(parents=False, exist_ok=True)
         if submodel == "None":
             print("\n[LOG] Gathering any pre-compiled artifacts....")

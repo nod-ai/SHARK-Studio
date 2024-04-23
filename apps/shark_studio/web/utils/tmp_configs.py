@@ -4,7 +4,7 @@ from time import time
 
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
-shark_tmp = cmd_opts.tmp_dir #os.path.join(os.getcwd(), "shark_tmp/")
+shark_tmp = cmd_opts.tmp_dir  # os.path.join(os.getcwd(), "shark_tmp/")
 
 
 def clear_tmp_mlir():
