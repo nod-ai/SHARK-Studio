@@ -613,6 +613,13 @@ p.add_argument(
 )
 
 p.add_argument(
+    "--tmp_dir",
+    type=str,
+    default=os.path.join(os.getcwd(), "shark_tmp"),
+    help="Path to tmp directory",
+)
+
+p.add_argument(
     "--config_dir",
     type=str,
     default=os.path.join(os.getcwd(), "configs"),
@@ -620,7 +627,7 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--ckpt_dir",
+    "--model_dir",
     type=str,
     default=os.path.join(os.getcwd(), "models"),
     help="Path to directory where all .ckpts are stored in order to populate "

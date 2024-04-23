@@ -41,7 +41,7 @@ class SharkPipelineBase:
         self.device, self.device_id = clean_device_info(device)
         self.import_mlir = import_mlir
         self.iree_module_dict = {}
-        self.tmp_dir = get_resource_path(os.path.join("..", "shark_tmp"))
+        self.tmp_dir = get_resource_path(cmd_opts.tmp_dir)
         if not os.path.exists(self.tmp_dir):
             os.mkdir(self.tmp_dir)
         self.tempfiles = {}

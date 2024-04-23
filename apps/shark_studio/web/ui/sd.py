@@ -231,9 +231,10 @@ def import_original(original_img, width, height):
 
 
 def base_model_changed(base_model_id):
-    new_choices = get_checkpoints(
-        os.path.join("checkpoints", os.path.basename(str(base_model_id)))
-    ) + get_checkpoints(model_type="checkpoints")
+    ckpt_path = Path(os.path.join(cmd_opts.model_dir, "checkpoints", os.path.basename(str(base_model_id))))
+    ckpt_path.mkdir(parents=True, exist_ok=True)
+
+    new_choices = get_checkpoints(ckpt_path) + get_checkpoints(model_type="checkpoints")
 
     return gr.Dropdown(
         value=new_choices[0] if len(new_choices) > 0 else "None",
