@@ -62,6 +62,9 @@ def get_iree_device_args(device, extra_args=[]):
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
         return get_iree_rocm_args(device_num=device_num, extra_args=extra_args)
+    if device == "hip":
+        from shark.iree_utils.gpu_utils import get_iree_rocm_args
+        return get_iree_rocm_args(device_num=device_num, extra_args=extra_args, hip_driver=True)
     return []
 
 def get_iree_target_triple(device):

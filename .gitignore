@@ -188,6 +188,11 @@ variants.json
 # models folder
 apps/stable_diffusion/web/models/
 
+# model artifacts (SHARK)
+*.tempfile
+*.mlir
+*.vmfb
+
 # Stencil annotators.
 stencil_annotator/
 

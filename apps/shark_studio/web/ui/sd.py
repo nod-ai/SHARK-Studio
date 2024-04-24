@@ -45,11 +45,10 @@ from apps.shark_studio.modules import logger
 import apps.shark_studio.web.utils.globals as global_obj
 
 sd_default_models = [
-    "CompVis/stable-diffusion-v1-4",
     "runwayml/stable-diffusion-v1-5",
     "stabilityai/stable-diffusion-2-1-base",
     "stabilityai/stable-diffusion-2-1",
-    "stabilityai/stable-diffusion-xl-1.0",
+    "stabilityai/stable-diffusion-xl-base-1.0",
     "stabilityai/sdxl-turbo",
 ]
 
@@ -286,14 +285,14 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 with gr.Row():
                     height = gr.Slider(
                         384,
-                        768,
+                        1024,
                         value=cmd_opts.height,
                         step=8,
                         label="\U00002195\U0000FE0F Height",
                     )
                     width = gr.Slider(
                         384,
-                        768,
+                        1024,
                         value=cmd_opts.width,
                         step=8,
                         label="\U00002194\U0000FE0F Width",
