@@ -5,7 +5,7 @@
 setuptools
 wheel
 
-torch==2.3.0.dev20240305
+torch==2.3.0
 shark-turbine @ git+https://github.com/iree-org/iree-turbine.git@ci-bringup
 turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=models
 
