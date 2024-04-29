@@ -5,8 +5,8 @@
 setuptools
 wheel
 
-torch==2.3.0.dev20240305
-shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=core
+torch==2.3.0
+shark-turbine @ git+https://github.com/iree-org/iree-turbine.git@main
 turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=models
 
 # SHARK Runner
@@ -35,6 +35,7 @@ safetensors==0.3.1
 py-cpuinfo
 pydantic==2.4.1 # pin until pyinstaller-hooks-contrib works with beta versions
 mpmath==1.3.0
+optimum
 
 # Keep PyInstaller at the end. Sometimes Windows Defender flags it but most folks can continue even if it errors
 pefile

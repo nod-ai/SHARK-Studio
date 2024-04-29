@@ -9,6 +9,7 @@ from apps.shark_studio.api.llm import (
     llm_model_map,
     LanguageModel,
 )
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 import apps.shark_studio.web.utils.globals as global_obj
 
 B_SYS, E_SYS = "<s>", "</s>"
@@ -64,6 +65,7 @@ def chat_fn(
             external_weights="safetensors",
             use_system_prompt=prompt_prefix,
             streaming_llm=streaming_llm,
+            hf_auth_token=cmd_opts.hf_auth_token,
         )
         history[-1][-1] = "Getting the model ready... Done"
         yield history, ""
