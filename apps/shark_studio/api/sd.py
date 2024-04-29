@@ -10,6 +10,9 @@ from tqdm.auto import tqdm
 from pathlib import Path
 from random import randint
 from turbine_models.custom_models.sd_inference.sd_pipeline import SharkSDPipeline
+from turbine_models.custom_models.sdxl_inference.sdxl_compiled_pipeline import SharkSDXLPipeline
+
+
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.api.utils import parse_device
 from apps.shark_studio.web.utils.state import status_label
@@ -18,6 +21,7 @@ from apps.shark_studio.web.utils.file_utils import (
     get_resource_path,
     get_checkpoints_path,
 )
+
 from apps.shark_studio.modules.schedulers import get_schedulers
 from apps.shark_studio.modules.prompt_encoding import (
     get_weighted_text_embeddings,
@@ -34,6 +38,10 @@ from apps.shark_studio.modules.ckpt_processing import (
     process_custom_pipe_weights,
 )
 
+from shark.iree_utils.compile_utils import (
+    clean_device_info,
+    get_iree_target_triple,
+)
 
 EMPTY_SD_MAP = {
     "clip": None,
@@ -73,6 +81,12 @@ class StableDiffusion:
     ):
         self.compiled_pipeline = False
         self.base_model_id = base_model_id
+        self.custom_vae = custom_vae
+        self.is_sdxl = "xl" in self.base_model_id.lower()
+        if self.is_sdxl:
+            self.turbine_pipe = SharkSDXLPipeline
+        else:
+            self.turbine_pipe = SharkSDPipeline
         external_weights = "safetensors"
         max_length = 64
         target_backend, self.rt_device, triple = parse_device(device)
@@ -91,12 +105,14 @@ class StableDiffusion:
         if custom_vae:
             pipe_id_list.append(custom_vae)
         self.pipe_id = "_".join(pipe_id_list)
-        self.weights_path = os.path.join(
+        self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), self.pipe_id))
+        self.weights_path = Path(os.path.join(
             get_checkpoints_path(), safe_name(self.base_model_id)
-        )
+        ))
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
-        self.sd_pipe = SharkSDPipeline(
+
+        self.sd_pipe = self.turbine_pipe(
             hf_model_name=base_model_id,
             scheduler_id=scheduler,
             height=height,
@@ -110,9 +126,10 @@ class StableDiffusion:
             ireec_flags=EMPTY_FLAGS,
             attn_spec=None,
             decomp_attn=True if "gfx9" not in triple else False,
-            pipeline_dir=self.pipe_id,
+            pipeline_dir=self.pipeline_dir,
             external_weights_dir=self.weights_path,
             external_weights=external_weights,
+            custom_vae=custom_vae,
         )
         print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
         gc.collect()
@@ -123,6 +140,15 @@ class StableDiffusion:
         mlirs = copy.deepcopy(EMPTY_SD_MAP)
         vmfbs = copy.deepcopy(EMPTY_SD_MAP)
         weights = copy.deepcopy(EMPTY_SD_MAP)
+
+        if custom_weights:
+            custom_weights_params, _ = process_custom_pipe_weights(
+                custom_weights
+            )
+            weights["clip"] = custom_weights_params
+            weights["unet"] = custom_weights_params
+
+
         vmfbs, weights = self.sd_pipe.check_prepared(mlirs, vmfbs, weights, interactive=False)
         print(f"\n[LOG] Loading pipeline to device {self.rt_device}.")
         self.sd_pipe.load_pipeline(vmfbs, weights, self.rt_device, self.compiled_pipeline)
@@ -280,6 +306,7 @@ def shark_sd_fn(
         # Initializes the pipeline and retrieves IR based on all
         # parameters that are static in the turbine output format,
         # which is currently MLIR in the torch dialect.
+        
 
         sd_pipe = StableDiffusion(
             **submit_pipe_kwargs,
