@@ -13,7 +13,7 @@ import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 
 llm_model_map = {
-    "llama2_7b": {
+    "meta-llama/Llama-2-7b-chat-hf": {
         "initializer": stateless_llama.export_transformer_model,
         "hf_model_name": "meta-llama/Llama-2-7b-chat-hf",
         "compile_flags": ["--iree-opt-const-expr-hoisting=False"],
@@ -258,7 +258,7 @@ class LanguageModel:
 
             history.append(format_out(token))
             while (
-                format_out(token) != llm_model_map["llama2_7b"]["stop_token"]
+                format_out(token) != llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]
                 and len(history) < self.max_tokens
             ):
                 dec_time = time.time()
@@ -272,7 +272,7 @@ class LanguageModel:
 
             self.prev_token_len = token_len + len(history)
 
-            if format_out(token) == llm_model_map["llama2_7b"]["stop_token"]:
+            if format_out(token) == llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]:
                 break
 
         for i in range(len(history)):
@@ -306,7 +306,7 @@ class LanguageModel:
                 self.first_input = False
 
             history.append(int(token))
-            while token != llm_model_map["llama2_7b"]["stop_token"]:
+            while token != llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]:
                 dec_time = time.time()
                 result = self.hf_mod(token.reshape([1, 1]), past_key_values=pkv)
                 history.append(int(token))
@@ -317,7 +317,7 @@ class LanguageModel:
 
             self.prev_token_len = token_len + len(history)
 
-            if token == llm_model_map["llama2_7b"]["stop_token"]:
+            if token == llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]:
                 break
         for i in range(len(history)):
             if type(history[i]) != int:
@@ -347,7 +347,7 @@ def llm_chat_api(InputData: dict):
     else:
         print(f"prompt : {InputData['prompt']}")
 
-    model_name = InputData["model"] if "model" in InputData.keys() else "llama2_7b"
+    model_name = InputData["model"] if "model" in InputData.keys() else "meta-llama/Llama-2-7b-chat-hf"
     model_path = llm_model_map[model_name]
     device = InputData["device"] if "device" in InputData.keys() else "cpu"
     precision = "fp16"
