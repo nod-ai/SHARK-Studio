@@ -5,8 +5,8 @@
 setuptools
 wheel
 
-torch==2.3.0.dev20240305
-shark-turbine @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=core
+torch==2.3.0
+shark-turbine @ git+https://github.com/iree-org/iree-turbine.git@main
 turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=models
 
 # SHARK Runner
