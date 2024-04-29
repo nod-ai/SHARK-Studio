@@ -258,7 +258,8 @@ class LanguageModel:
 
             history.append(format_out(token))
             while (
-                format_out(token) != llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]
+                format_out(token)
+                != llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]
                 and len(history) < self.max_tokens
             ):
                 dec_time = time.time()
@@ -272,7 +273,10 @@ class LanguageModel:
 
             self.prev_token_len = token_len + len(history)
 
-            if format_out(token) == llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]:
+            if (
+                format_out(token)
+                == llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]
+            ):
                 break
 
         for i in range(len(history)):
@@ -347,7 +351,11 @@ def llm_chat_api(InputData: dict):
     else:
         print(f"prompt : {InputData['prompt']}")
 
-    model_name = InputData["model"] if "model" in InputData.keys() else "meta-llama/Llama-2-7b-chat-hf"
+    model_name = (
+        InputData["model"]
+        if "model" in InputData.keys()
+        else "meta-llama/Llama-2-7b-chat-hf"
+    )
     model_path = llm_model_map[model_name]
     device = InputData["device"] if "device" in InputData.keys() else "cpu"
     precision = "fp16"
