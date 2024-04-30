@@ -89,6 +89,7 @@ else {python -m venv .\shark.venv\}
 python -m pip install --upgrade pip
 pip install wheel
 pip install --pre -r requirements.txt
+pip install -e .
 
 >>>>>>> 0c904eb7 (Shark Studio SDXL support, HIP driver support, simpler device info, small fixes)
 Write-Host "Source your venv with ./shark.venv/Scripts/activate"
