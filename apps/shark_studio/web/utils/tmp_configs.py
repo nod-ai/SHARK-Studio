@@ -2,7 +2,9 @@ import os
 import shutil
 from time import time
 
-shark_tmp = os.path.join(os.getcwd(), "shark_tmp/")
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+
+shark_tmp = cmd_opts.tmp_dir  # os.path.join(os.getcwd(), "shark_tmp/")
 
 
 def clear_tmp_mlir():

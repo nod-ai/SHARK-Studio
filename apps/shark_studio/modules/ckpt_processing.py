@@ -6,6 +6,7 @@ from io import BytesIO
 from pathlib import Path
 from tqdm import tqdm
 from omegaconf import OmegaConf
+from diffusers import StableDiffusionPipeline
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     download_from_original_stable_diffusion_ckpt,
@@ -87,6 +88,7 @@ def process_custom_pipe_weights(custom_weights):
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             custom_weights_tgt = get_path_to_diffusers_checkpoint(custom_weights)
             custom_weights_params = custom_weights
+
         return custom_weights_params, custom_weights_tgt
 
 
@@ -98,7 +100,7 @@ def get_civitai_checkpoint(url: str):
         base_filename = re.findall(
             '"([^"]*)"', response.headers["Content-Disposition"]
         )[0]
-        destination_path = Path.cwd() / (cmd_opts.ckpt_dir or "models") / base_filename
+        destination_path = Path.cwd() / (cmd_opts.model_dir or "models") / base_filename
 
         # we don't have this model downloaded yet
         if not destination_path.is_file():

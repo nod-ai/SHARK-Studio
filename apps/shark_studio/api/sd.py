@@ -602,7 +602,9 @@ if __name__ == "__main__":
 
     global_obj._init()
 
-    sd_json = view_json_file(get_resource_path("../configs/default_sd_config.json"))
+    sd_json = view_json_file(
+        get_resource_path(os.path.join(cmd_opts.config_dir, "default_sd_config.json"))
+    )
     sd_kwargs = json.loads(sd_json)
     for arg in vars(cmd_opts):
         if arg in sd_kwargs:
