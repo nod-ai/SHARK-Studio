@@ -397,9 +397,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         elem_id="negative_prompt_box",
                         show_copy_button=True,
                     )
-                    with gr.Row():
-                        save_prompt = gr.Checkbox(label="Save Prompt")
-                        save_negative_prompt = gr.Checkbox(label="Save Negative Prompt")
                 with gr.Row(equal_height=True):
                     seed = gr.Textbox(
                         value=cmd_opts.seed,

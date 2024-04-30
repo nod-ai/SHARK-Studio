@@ -81,23 +81,14 @@ def process_custom_pipe_weights(custom_weights):
             # act as if we were given the local file as custom_weights originally
             custom_weights_tgt = get_path_to_diffusers_checkpoint(weights_path)
             custom_weights_params = weights_path
-            return custom_weights_params, custom_weights_tgt
 
-        elif not custom_weights.lower().endswith((".ckpt", ".safetensors")):
-            # TODO: HF downloader
-            # Load pretrained model
-            model = StableDiffusionPipeline.from_pretrained(custom_weights)
-            custom_weights = custom_weights + ".ckpt"
-            # Save pretrained to disk
-            model.save_pretrained(custom_weights)
-            # Delete pretrained model
-            del model
+        else:
+            assert custom_weights.lower().endswith(
+                (".ckpt", ".safetensors")
+            ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
+            custom_weights_tgt = get_path_to_diffusers_checkpoint(custom_weights)
+            custom_weights_params = custom_weights
 
-        assert custom_weights.lower().endswith(
-            (".ckpt", ".safetensors")
-        ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
-        custom_weights_tgt = get_path_to_diffusers_checkpoint(custom_weights)
-        custom_weights_params = custom_weights
         return custom_weights_params, custom_weights_tgt
 
 

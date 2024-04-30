@@ -318,29 +318,3 @@ def parse_seed_input(seed_input: str | list | int):
     raise TypeError(
         "Seed input must be an integer or an array of integers in JSON format"
     )
-
-
-config = {}
-
-
-def load_config(path):
-    # Create if file doesn't exist
-    # Read file contents
-    pass
-
-
-def save_config(path):
-    pass
-
-
-def get_config_value(key):
-    load_config(cmd_opts.conf)
-    # Return None if key doesn't exist
-    # Otherwise return value
-    pass
-
-
-def set_config_value(key, value):
-    load_config(cmd_opts.conf)
-    config[key] = value
-    save_config(cmd_opts.conf)
