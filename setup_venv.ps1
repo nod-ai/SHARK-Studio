@@ -89,5 +89,4 @@ else {python -m venv .\shark.venv\}
 python -m pip install --upgrade pip
 pip install wheel
 pip install -r requirements.txt
-
 Write-Host "Source your venv with ./shark.venv/Scripts/activate"

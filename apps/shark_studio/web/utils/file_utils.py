@@ -66,33 +66,39 @@ def get_resource_path(path):
 
 
 def get_configs_path() -> Path:
-    configs = get_resource_path(os.path.join("..", "configs"))
+    configs = get_resource_path(cmd_opts.config_dir)
     if not os.path.exists(configs):
         os.mkdir(configs)
-    return Path(get_resource_path("../configs"))
+    return Path(configs)
 
 
 def get_generated_imgs_path() -> Path:
-    return Path(
-        cmd_opts.output_dir
-        if cmd_opts.output_dir
-        else get_resource_path("../generated_imgs")
-    )
+    outputs = get_resource_path(cmd_opts.output_dir)
+    if not os.path.exists(outputs):
+        os.mkdir(outputs)
+    return Path(outputs)
+
+
+def get_tmp_path() -> Path:
+    tmpdir = get_resource_path(cmd_opts.model_dir)
+    if not os.path.exists(tmpdir):
+        os.mkdir(tmpdir)
+    return Path(tmpdir)
 
 
 def get_generated_imgs_todays_subdir() -> str:
     return dt.now().strftime("%Y%m%d")
 
 
-def create_checkpoint_folders():
+def create_model_folders():
     dir = ["checkpoints", "vae", "lora", "vmfb"]
-    if not os.path.isdir(cmd_opts.ckpt_dir):
+    if not os.path.isdir(cmd_opts.model_dir):
         try:
-            os.makedirs(cmd_opts.ckpt_dir)
+            os.makedirs(cmd_opts.model_dir)
         except OSError:
             sys.exit(
-                f"Invalid --ckpt_dir argument, "
-                f"{cmd_opts.ckpt_dir} folder does not exist, and cannot be created."
+                f"Invalid --model_dir argument, "
+                f"{cmd_opts.model_dir} folder does not exist, and cannot be created."
             )
 
     for root in dir:
@@ -100,7 +106,7 @@ def create_checkpoint_folders():
 
 
 def get_checkpoints_path(model_type=""):
-    return get_resource_path(os.path.join(cmd_opts.ckpt_dir, model_type))
+    return get_resource_path(os.path.join(cmd_opts.model_dir, model_type))
 
 
 def get_checkpoints(model_type="checkpoints"):

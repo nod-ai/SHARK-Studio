@@ -339,7 +339,7 @@ p.add_argument(
 p.add_argument(
     "--output_dir",
     type=str,
-    default=None,
+    default=os.path.join(os.getcwd(), "generated_imgs"),
     help="Directory path to save the output images and json.",
 )
 
@@ -613,12 +613,27 @@ p.add_argument(
 )
 
 p.add_argument(
-    "--ckpt_dir",
+    "--tmp_dir",
     type=str,
-    default="../models",
+    default=os.path.join(os.getcwd(), "shark_tmp"),
+    help="Path to tmp directory",
+)
+
+p.add_argument(
+    "--config_dir",
+    type=str,
+    default=os.path.join(os.getcwd(), "configs"),
+    help="Path to config directory",
+)
+
+p.add_argument(
+    "--model_dir",
+    type=str,
+    default=os.path.join(os.getcwd(), "models"),
     help="Path to directory where all .ckpts are stored in order to populate "
     "them in the web UI.",
 )
+
 # TODO: replace API flag when these can be run together
 p.add_argument(
     "--ui",

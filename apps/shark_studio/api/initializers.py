@@ -53,11 +53,11 @@ def initialize():
     clear_tmp_imgs()
 
     from apps.shark_studio.web.utils.file_utils import (
-        create_checkpoint_folders,
+        create_model_folders,
     )
 
     # Create custom models folders if they don't exist
-    create_checkpoint_folders()
+    create_model_folders()
 
     import gradio as gr
 
