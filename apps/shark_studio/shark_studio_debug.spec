@@ -32,7 +32,7 @@ exe = EXE(
     a.zipfiles,
     a.datas,
     [],
-    name='nodai_shark_studio',
+    name='nodai_shark_studio_debug',
     debug=True,
     bootloader_ignore_signals=False,
     strip=False,
