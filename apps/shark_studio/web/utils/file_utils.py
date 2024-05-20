@@ -66,21 +66,24 @@ def get_resource_path(path):
 
 
 def get_configs_path() -> Path:
-    configs = get_resource_path(cmd_opts.config_dir)
+    # configs = get_resource_path(cmd_opts.config_dir)
+    configs = cmd_opts.config_dir
     if not os.path.exists(configs):
         os.mkdir(configs)
     return Path(configs)
 
 
 def get_generated_imgs_path() -> Path:
-    outputs = get_resource_path(cmd_opts.output_dir)
+    # outputs = get_resource_path(cmd_opts.output_dir)
+    outputs = cmd_opts.output_dir
     if not os.path.exists(outputs):
         os.mkdir(outputs)
     return Path(outputs)
 
 
 def get_tmp_path() -> Path:
-    tmpdir = get_resource_path(cmd_opts.model_dir)
+    # tmpdir = get_resource_path(cmd_opts.model_dir)
+    tmpdir = cmd_opts.model_dir
     if not os.path.exists(tmpdir):
         os.mkdir(tmpdir)
     return Path(tmpdir)
@@ -106,7 +109,8 @@ def create_model_folders():
 
 
 def get_checkpoints_path(model_type=""):
-    return get_resource_path(os.path.join(cmd_opts.model_dir, model_type))
+    # return get_resource_path(os.path.join(cmd_opts.model_dir, model_type))
+    return os.path.join(cmd_opts.model_dir, model_type)
 
 
 def get_checkpoints(model_type="checkpoints"):
@@ -119,7 +123,7 @@ def get_checkpoints(model_type="checkpoints"):
             os.path.basename(x)
             for x in glob.glob(os.path.join(get_checkpoints_path(model_type), extn))
         ]
-    ckpt_files.extend(files)
+        ckpt_files.extend(files)
     return sorted(ckpt_files, key=str.casefold)
 
 

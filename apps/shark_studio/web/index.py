@@ -215,6 +215,13 @@ def webui():
 
 if __name__ == "__main__":
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+    import shutil
+
+    if cmd_opts.clear_all:
+        shutil.rmtree(cmd_opts.tmp_dir, ignore_errors=True)
+        for file in os.listdir(cmd_opts.model_dir):
+            if file not in ["checkpoints"]:
+                shutil.rmtree(file, ignore_errors=True)
 
     if cmd_opts.webui == False:
         api_only()
