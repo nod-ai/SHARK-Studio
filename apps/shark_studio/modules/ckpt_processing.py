@@ -54,6 +54,30 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
     pipe.save_pretrained(path_to_diffusers)
     print("Loading complete")
 
+def load_model_from_ckpt(custom_weights, is_inpaint=False):
+    path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights)
+    # if next(Path(path_to_diffusers).iterdir(), None):
+    #     print("Checkpoint already loaded at : ", path_to_diffusers)
+    #     return
+    # else:
+    #     print(
+    #         "Diffusers' checkpoint will be identified here : ",
+    #         path_to_diffusers,
+    #     )
+    from_safetensors = (
+        True if custom_weights.lower().endswith(".safetensors") else False
+    )
+    extract_ema = False
+    print("Loading diffusers' pipeline from original stable diffusion checkpoint")
+    num_in_channels = 9 if is_inpaint else 4
+    pipe = download_from_original_stable_diffusion_ckpt(
+        checkpoint_path_or_dict=custom_weights,
+        extract_ema=extract_ema,
+        from_safetensors=from_safetensors,
+        num_in_channels=num_in_channels,
+    )
+    return pipe
+
 
 def convert_original_vae(vae_checkpoint):
     vae_state_dict = {}

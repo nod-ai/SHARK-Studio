@@ -90,9 +90,10 @@ class LanguageModel:
             self.file_spec += "_" + self.quantization
 
         if external_weights in ["safetensors", "gguf"]:
-            self.external_weight_file = get_resource_path(
-                os.path.join("..", self.file_spec + "." + external_weights)
-            )
+            # self.external_weight_file = get_resource_path(
+            #     os.path.join(cmd_opts.model_dir, self.file_spec + "." + external_weights)
+            # )
+            self.external_weight_file = os.path.join(cmd_opts.model_dir, self.file_spec + "." + external_weights)
         else:
             self.external_weights = None
             self.external_weight_file = None
@@ -102,14 +103,16 @@ class LanguageModel:
             self.file_spec += "_streaming"
         self.streaming_llm = streaming_llm
 
-        self.tempfile_name = get_resource_path(
-            os.path.join("..", f"{self.file_spec}.tempfile")
-        )
+        # self.tempfile_name = get_resource_path(
+        #     os.path.join(cmd_opts.tmp_dir, f"{self.file_spec}.tempfile")
+        # )
+        self.tempfile_name = os.path.join(cmd_opts.tmp_dir, f"{self.file_spec}.tempfile")
         # TODO: Tag vmfb with target triple of device instead of HAL backend
         self.vmfb_name = str(
-            get_resource_path(
-                os.path.join("..", f"{self.file_spec}_{self.backend}.vmfb.tempfile")
-            )
+            # get_resource_path(
+            #     os.path.join(cmd_opts.tmp_dir, f"{self.file_spec}_{self.backend}.vmfb.tempfile")
+            # )
+            os.path.join(cmd_opts.tmp_dir, f"{self.file_spec}_{self.backend}.vmfb.tempfile")
         )
 
         self.max_tokens = llm_model_map[model_name]["max_tokens"]

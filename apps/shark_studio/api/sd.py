@@ -16,6 +16,7 @@ from apps.shark_studio.web.utils.file_utils import (
     get_resource_path,
     get_checkpoints_path,
 )
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from apps.shark_studio.modules.pipeline import SharkPipelineBase
 from apps.shark_studio.modules.schedulers import get_schedulers
 from apps.shark_studio.modules.prompt_encoding import (
@@ -30,10 +31,12 @@ from apps.shark_studio.modules.img_processing import (
 
 from apps.shark_studio.modules.ckpt_processing import (
     preprocessCKPT,
+    load_model_from_ckpt,
     process_custom_pipe_weights,
 )
 from transformers import CLIPTokenizer
 from diffusers.image_processor import VaeImageProcessor
+from safetensors.torch import save_file
 
 sd_model_map = {
     "clip": {
@@ -147,13 +150,31 @@ class StableDiffusion(SharkPipelineBase):
         for model in adapters:
             self.model_map[model] = adapters[model]
 
+        if custom_weights:
+            custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
+            custom_weights_file = os.path.join(cmd_opts.model_dir, "checkpoints", os.path.basename(str(self.base_model_id)), custom_weights_params)
+            custom_weights_subdir = os.path.join(cmd_opts.model_dir, "checkpoints", os.path.basename(str(self.base_model_id)), custom_weights_params + ".d")
+            if not os.path.exists(custom_weights_subdir):
+                os.mkdir(custom_weights_subdir)
+            model = load_model_from_ckpt(custom_weights_file)
+            submodel_aliases = {
+                "unet": "unet",
+                "vae_decode": "vae",
+                "vae_encode": "text_encoder",
+            }
+            for submodel in self.static_kwargs:
+                if submodel not in submodel_aliases:
+                    continue
+                if submodel_aliases[submodel] in model.__dict__:
+                    save_file(model.__dict__[submodel_aliases[submodel]].state_dict(), os.path.join(custom_weights_subdir, submodel+".safetensors"))
+
         for submodel in self.static_kwargs:
             if custom_weights:
-                custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
-                if submodel not in ["clip", "clip2"]:
-                    self.static_kwargs[submodel][
-                        "external_weights"
-                    ] = custom_weights_params
+                if submodel in ["unet", "vae_decode"]: #submodel not in ["clip", "clip2"]:
+                    # self.static_kwargs[submodel][
+                    #     "external_weights"
+                    # ] = custom_weights_params
+                    self.static_kwargs[submodel]["external_weight_path"] = os.path.join(custom_weights_subdir, submodel+".safetensors")
                 else:
                     self.static_kwargs[submodel]["external_weight_path"] = os.path.join(
                         self.weights_path, submodel + ".safetensors"
@@ -603,7 +624,8 @@ if __name__ == "__main__":
     global_obj._init()
 
     sd_json = view_json_file(
-        get_resource_path(os.path.join(cmd_opts.config_dir, "default_sd_config.json"))
+        # get_resource_path(os.path.join(cmd_opts.config_dir, "default_sd_config.json"))
+        os.path.join(cmd_opts.config_dir, "default_sd_config.json")
     )
     sd_kwargs = json.loads(sd_json)
     for arg in vars(cmd_opts):
