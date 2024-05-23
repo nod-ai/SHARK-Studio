@@ -17,7 +17,7 @@ def clear_tmp_mlir():
         and filename.endswith(".mlir")
     ]
     for filename in mlir_files:
-        os.remove(shark_tmp + filename)
+        os.remove(os.path.join(shark_tmp, filename))
     print(f"Clearing .mlir temporary files took {time() - cleanup_start:.4f} seconds.")
 
 

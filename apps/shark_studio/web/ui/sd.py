@@ -17,10 +17,10 @@ from apps.shark_studio.web.utils.file_utils import (
     write_default_sd_config,
 )
 from apps.shark_studio.api.sd import (
-    sd_model_map,
     shark_sd_fn_dict_input,
     cancel_sd,
 )
+from apps.shark_studio.api.sd import EMPTY_SD_MAP as sd_model_map
 from apps.shark_studio.api.controlnet import (
     cnet_preview,
 )
