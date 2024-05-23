@@ -18,6 +18,7 @@ from shark.iree_utils.vulkan_utils import (
     get_iree_vulkan_runtime_flags,
 )
 
+
 def get_available_devices():
     def get_devices_by_name(driver_name):
         from shark.iree_utils._common import iree_device_map
@@ -49,7 +50,7 @@ def get_available_devices():
         return device_list
 
     set_iree_runtime_flags()
-    
+
     available_devices = []
     from shark.iree_utils.vulkan_utils import (
         get_all_vulkan_devices,
@@ -77,6 +78,7 @@ def get_available_devices():
     cpu_device = get_devices_by_name("cpu-task")
     available_devices.extend(cpu_device)
     return available_devices
+
 
 def set_init_device_flags():
     if "vulkan" in cmd_opts.device:
@@ -126,8 +128,14 @@ def set_iree_runtime_flags():
         ]
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
+
 def parse_device(device_str):
-    from shark.iree_utils.compile_utils import clean_device_info, get_iree_target_triple, iree_target_map
+    from shark.iree_utils.compile_utils import (
+        clean_device_info,
+        get_iree_target_triple,
+        iree_target_map,
+    )
+
     rt_driver, device_id = clean_device_info(device_str)
     target_backend = iree_target_map(rt_driver)
     if device_id:
@@ -147,7 +155,7 @@ def parse_device(device_str):
 
 
 def get_rocm_target_chip(device_str):
-    #TODO: Use a data file to map device_str to target chip.
+    # TODO: Use a data file to map device_str to target chip.
     rocm_chip_map = {
         "6700": "gfx1031",
         "6800": "gfx1030",
@@ -164,7 +172,10 @@ def get_rocm_target_chip(device_str):
     for key in rocm_chip_map:
         if key in device_str:
             return rocm_chip_map[key]
-    raise AssertionError(f"Device {device_str} not recognized. Please file an issue at https://github.com/nod-ai/SHARK/issues.")
+    raise AssertionError(
+        f"Device {device_str} not recognized. Please file an issue at https://github.com/nod-ai/SHARK/issues."
+    )
+
 
 def get_all_devices(driver_name):
     """

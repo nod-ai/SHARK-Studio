@@ -10,7 +10,9 @@ from tqdm.auto import tqdm
 from pathlib import Path
 from random import randint
 from turbine_models.custom_models.sd_inference.sd_pipeline import SharkSDPipeline
-from turbine_models.custom_models.sdxl_inference.sdxl_compiled_pipeline import SharkSDXLPipeline
+from turbine_models.custom_models.sdxl_inference.sdxl_compiled_pipeline import (
+    SharkSDXLPipeline,
+)
 
 
 from apps.shark_studio.api.controlnet import control_adapter_map
@@ -104,9 +106,9 @@ class StableDiffusion:
             pipe_id_list.append(custom_vae)
         self.pipe_id = "_".join(pipe_id_list)
         self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), self.pipe_id))
-        self.weights_path = Path(os.path.join(
-            get_checkpoints_path(), safe_name(self.base_model_id)
-        ))
+        self.weights_path = Path(
+            os.path.join(get_checkpoints_path(), safe_name(self.base_model_id))
+        )
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
 
@@ -140,18 +142,21 @@ class StableDiffusion:
         weights = copy.deepcopy(self.model_map)
 
         if custom_weights:
-            custom_weights_params, _ = process_custom_pipe_weights(
-                custom_weights
-            )
+            custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
             for key in weights:
                 if key not in ["vae_decode", "pipeline", "full_pipeline"]:
                     weights[key] = custom_weights_params
 
-
-        vmfbs, weights = self.sd_pipe.check_prepared(mlirs, vmfbs, weights, interactive=False)
+        vmfbs, weights = self.sd_pipe.check_prepared(
+            mlirs, vmfbs, weights, interactive=False
+        )
         print(f"\n[LOG] Loading pipeline to device {self.rt_device}.")
-        self.sd_pipe.load_pipeline(vmfbs, weights, self.rt_device, self.compiled_pipeline)
-        print("\n[LOG] Pipeline successfully prepared for runtime. Generating images...")
+        self.sd_pipe.load_pipeline(
+            vmfbs, weights, self.rt_device, self.compiled_pipeline
+        )
+        print(
+            "\n[LOG] Pipeline successfully prepared for runtime. Generating images..."
+        )
         return
 
     def generate_images(
@@ -236,7 +241,7 @@ def shark_sd_fn(
     control_mode = None
     hints = []
     num_loras = 0
-    import_ir=True
+    import_ir = True
     for i in embeddings:
         num_loras += 1 if embeddings[i] else 0
     if "model" in controlnets:
@@ -305,7 +310,6 @@ def shark_sd_fn(
         # Initializes the pipeline and retrieves IR based on all
         # parameters that are static in the turbine output format,
         # which is currently MLIR in the torch dialect.
-        
 
         sd_pipe = StableDiffusion(
             **submit_pipe_kwargs,
@@ -325,7 +329,7 @@ def shark_sd_fn(
         out_imgs = global_obj.get_sd_obj().generate_images(**submit_run_kwargs)
         # total_time = time.time() - start_time
         # text_output = f"Total image(s) generation time: {total_time:.4f}sec"
-        #print(f"\n[LOG] {text_output}")
+        # print(f"\n[LOG] {text_output}")
         # if global_obj.get_sd_status() == SD_STATE_CANCEL:
         #     break
         # else:
@@ -352,8 +356,9 @@ def view_json_file(file_path):
         content = fopen.read()
     return content
 
+
 def safe_name(name):
-        return name.replace("/", "_").replace("-", "_").replace("\\", "_").replace(".", "_")
+    return name.replace("/", "_").replace("-", "_").replace("\\", "_").replace(".", "_")
 
 
 if __name__ == "__main__":

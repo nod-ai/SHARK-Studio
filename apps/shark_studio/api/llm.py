@@ -155,7 +155,9 @@ class LanguageModel:
                 use_auth_token=hf_auth_token,
             )
         elif not os.path.exists(self.tempfile_name):
-            self.torch_ir, self.tokenizer = llm_model_map[self.hf_model_name]["initializer"](
+            self.torch_ir, self.tokenizer = llm_model_map[self.hf_model_name][
+                "initializer"
+            ](
                 self.hf_model_name,
                 hf_auth_token,
                 compile_to="torch",
