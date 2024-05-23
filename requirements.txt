@@ -18,11 +18,6 @@ google-cloud-storage
 
 # Testing
 pytest
-<<<<<<< HEAD
-pytest-xdist
-pytest-forked
-=======
->>>>>>> 08d48242 (Fix typo)
 Pillow
 parameterized
 
