@@ -20,7 +20,6 @@ from apps.shark_studio.api.sd import (
     shark_sd_fn_dict_input,
     cancel_sd,
 )
-from apps.shark_studio.api.sd import EMPTY_SD_MAP as sd_model_map
 from apps.shark_studio.api.controlnet import (
     cnet_preview,
 )
@@ -230,14 +229,9 @@ def import_original(original_img, width, height):
 
 
 def base_model_changed(base_model_id):
-    ckpt_path = Path(
-        os.path.join(
-            cmd_opts.model_dir, "checkpoints", os.path.basename(str(base_model_id))
-        )
-    )
-    ckpt_path.mkdir(parents=True, exist_ok=True)
-
-    new_choices = get_checkpoints(ckpt_path) + get_checkpoints(model_type="checkpoints")
+    new_choices = get_checkpoints(
+        os.path.join("checkpoints", os.path.basename(str(base_model_id)))
+    ) + get_checkpoints(model_type="checkpoints")
 
     return gr.Dropdown(
         value=new_choices[0] if len(new_choices) > 0 else "None",
@@ -586,6 +580,21 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     preview=True,
                                 )
                             with gr.Row():
+                                std_output = gr.Textbox(
+                                    value=f"{sd_model_info}\n"
+                                    f"Images will be saved at "
+                                    f"{get_generated_imgs_path()}",
+                                    lines=2,
+                                    elem_id="std_output",
+                                    show_label=True,
+                                    label="Log",
+                                    show_copy_button=True,
+                                )
+                                sd_element.load(
+                                    logger.read_sd_logs, None, std_output, every=1
+                                )
+                                sd_status = gr.Textbox(visible=False)
+                            with gr.Row():
                                 batch_count = gr.Slider(
                                     1,
                                     100,
@@ -620,18 +629,19 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 stop_batch = gr.Button("Stop")
                     with gr.Tab(label="Config", id=102) as sd_tab_config:
                         with gr.Column(elem_classes=["sd-right-panel"]):
-                            Path(get_configs_path()).mkdir(parents=True, exist_ok=True)
-                            default_config_file = os.path.join(
-                                get_configs_path(),
-                                "default_sd_config.json",
-                            )
-                            write_default_sd_config(default_config_file)
-                            sd_json = gr.JSON(
-                                label="SD Config",
-                                elem_classes=["fill"],
-                                value=view_json_file(default_config_file),
-                                render=False,
-                            )
+                            with gr.Row(elem_classes=["fill"]):
+                                Path(get_configs_path()).mkdir(
+                                    parents=True, exist_ok=True
+                                )
+                                default_config_file = os.path.join(
+                                    get_configs_path(),
+                                    "default_sd_config.json",
+                                )
+                                write_default_sd_config(default_config_file)
+                                sd_json = gr.JSON(
+                                    elem_classes=["fill"],
+                                    value=view_json_file(default_config_file),
+                                )
                             with gr.Row():
                                 with gr.Column(scale=3):
                                     load_sd_config = gr.FileExplorer(
@@ -694,30 +704,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     inputs=[sd_json, sd_config_name],
                                     outputs=[sd_config_name],
                                 )
-                            with gr.Row(elem_classes=["fill"]):
-                                sd_json.render()
                         save_sd_config.click(
                             fn=save_sd_cfg,
                             inputs=[sd_json, sd_config_name],
                             outputs=[sd_config_name],
                         )
-                    with gr.Tab(label="Log", id=103) as sd_tab_log:
-                        with gr.Row():
-                            std_output = gr.Textbox(
-                                value=f"{sd_model_info}\n"
-                                f"Images will be saved at "
-                                f"{get_generated_imgs_path()}",
-                                elem_id="std_output",
-                                show_label=True,
-                                label="Log",
-                                show_copy_button=True,
-                            )
-                            sd_element.load(
-                                logger.read_sd_logs, None, std_output, every=1
-                            )
-                            sd_status = gr.Textbox(visible=False)
-                    with gr.Tab(label="Automation", id=104) as sd_tab_automation:
-                        pass
 
     pull_kwargs = dict(
         fn=pull_sd_configs,

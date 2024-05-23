@@ -22,38 +22,27 @@ from apps.shark_studio.web.utils.file_utils import (
     get_checkpoints_path,
 )
 
-from apps.shark_studio.modules.schedulers import get_schedulers
-from apps.shark_studio.modules.prompt_encoding import (
-    get_weighted_text_embeddings,
-)
 from apps.shark_studio.modules.img_processing import (
-    resize_stencil,
     save_output_img,
-    resamplers,
-    resampler_list,
 )
 
 from apps.shark_studio.modules.ckpt_processing import (
-    preprocessCKPT,
     process_custom_pipe_weights,
-)
-
-from shark.iree_utils.compile_utils import (
-    clean_device_info,
-    get_iree_target_triple,
 )
 
 EMPTY_SD_MAP = {
     "clip": None,
+    "scheduler": None,
     "unet": None,
     "vae_decode": None,
 }
 
-EMPTY_FLAGS = {
-    "clip": None,
-    "unet": None,
-    "vae": None,
+EMPTY_SDXL_MAP = {
+    "prompt_encoder": None,
+    "scheduled_unet": None,
+    "vae_decode": None,
     "pipeline": None,
+    "full_pipeline": None,
 }
 
 EMPTY_FLAGS = {
@@ -62,6 +51,7 @@ EMPTY_FLAGS = {
     "vae": None,
     "pipeline": None,
 }
+
 
 class StableDiffusion:
     # This class is responsible for executing image generation and creating
@@ -91,8 +81,10 @@ class StableDiffusion:
         self.is_sdxl = "xl" in self.base_model_id.lower()
         if self.is_sdxl:
             self.turbine_pipe = SharkSDXLPipeline
+            self.model_map = EMPTY_SDXL_MAP
         else:
             self.turbine_pipe = SharkSDPipeline
+            self.model_map = EMPTY_SD_MAP
         external_weights = "safetensors"
         max_length = 64
         target_backend, self.rt_device, triple = parse_device(device)
@@ -143,16 +135,17 @@ class StableDiffusion:
     def prepare_pipe(self, custom_weights, adapters, embeddings, is_img2img):
         print(f"\n[LOG] Preparing pipeline...")
         self.is_img2img = False
-        mlirs = copy.deepcopy(EMPTY_SD_MAP)
-        vmfbs = copy.deepcopy(EMPTY_SD_MAP)
-        weights = copy.deepcopy(EMPTY_SD_MAP)
+        mlirs = copy.deepcopy(self.model_map)
+        vmfbs = copy.deepcopy(self.model_map)
+        weights = copy.deepcopy(self.model_map)
 
         if custom_weights:
             custom_weights_params, _ = process_custom_pipe_weights(
                 custom_weights
             )
-            weights["clip"] = custom_weights_params
-            weights["unet"] = custom_weights_params
+            for key in weights:
+                if key not in ["vae_decode", "pipeline", "full_pipeline"]:
+                    weights[key] = custom_weights_params
 
 
         vmfbs, weights = self.sd_pipe.check_prepared(mlirs, vmfbs, weights, interactive=False)
