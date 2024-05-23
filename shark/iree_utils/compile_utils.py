@@ -70,8 +70,8 @@ def get_iree_device_args(device, extra_args=[]):
 def get_iree_target_triple(device):
     args = get_iree_device_args(device)
     for flag in args:
-        if "triple" in flag.split("-"):
-            triple = flag.split("=")
+        if "triple" in flag:
+            triple = flag.split("=")[-1]
             return triple
     return ""
 
