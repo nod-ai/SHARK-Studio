@@ -112,6 +112,17 @@ class StableDiffusion:
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
 
+        decomp_attn = True
+        attn_spec = None
+        if triple in ["gfx940", "gfx942", "gfx90a"]:
+            decomp_attn = False
+            attn_spec = "mfma"
+        elif triple in ["gfx1100", "gfx1103"]:
+            decomp_attn = False
+            attn_spec = "wmma"
+        elif target_backend == "llvm-cpu":
+            decomp_attn = False
+
         self.sd_pipe = self.turbine_pipe(
             hf_model_name=base_model_id,
             scheduler_id=scheduler,
@@ -124,8 +135,8 @@ class StableDiffusion:
             device=target_backend,
             iree_target_triple=triple,
             ireec_flags=EMPTY_FLAGS,
-            attn_spec=None,
-            decomp_attn=True if "gfx9" not in triple else False,
+            attn_spec=attn_spec,
+            decomp_attn=decomp_attn,
             pipeline_dir=self.pipeline_dir,
             external_weights_dir=self.weights_path,
             external_weights=external_weights,
