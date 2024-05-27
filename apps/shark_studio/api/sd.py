@@ -109,7 +109,9 @@ class StableDiffusion:
         self.pipe_id = "_".join(pipe_id_list)
         self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), self.pipe_id))
         self.weights_path = Path(
-            os.path.join(get_checkpoints_path(), safe_name(self.base_model_id + "_" + precision))
+            os.path.join(
+                get_checkpoints_path(), safe_name(self.base_model_id + "_" + precision)
+            )
         )
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
@@ -155,29 +157,48 @@ class StableDiffusion:
         weights = copy.deepcopy(self.model_map)
 
         if custom_weights:
-            custom_weights = os.path.join(get_checkpoints_path("checkpoints"), safe_name(self.base_model_id.split("/")[-1]), custom_weights)
+            custom_weights = os.path.join(
+                get_checkpoints_path("checkpoints"),
+                safe_name(self.base_model_id.split("/")[-1]),
+                custom_weights,
+            )
             diffusers_weights_path = preprocessCKPT(custom_weights, self.precision)
             for key in weights:
                 if key in ["scheduled_unet", "unet"]:
-                    unet_weights_path = os.path.join(diffusers_weights_path, "unet", "diffusion_pytorch_model.safetensors")
+                    unet_weights_path = os.path.join(
+                        diffusers_weights_path,
+                        "unet",
+                        "diffusion_pytorch_model.safetensors",
+                    )
                     weights[key] = save_irpa(unet_weights_path, "unet.")
-                    
+
                 elif key in ["clip", "prompt_encoder"]:
                     if not self.is_sdxl:
-                        sd1_path = os.path.join(diffusers_weights_path, "text_encoder", "model.safetensors")
+                        sd1_path = os.path.join(
+                            diffusers_weights_path, "text_encoder", "model.safetensors"
+                        )
                         weights[key] = save_irpa(sd1_path, "text_encoder_model.")
                     else:
-                        clip_1_path = os.path.join(diffusers_weights_path, "text_encoder", "model.safetensors")
-                        clip_2_path = os.path.join(diffusers_weights_path, "text_encoder_2", "model.safetensors")
+                        clip_1_path = os.path.join(
+                            diffusers_weights_path, "text_encoder", "model.safetensors"
+                        )
+                        clip_2_path = os.path.join(
+                            diffusers_weights_path,
+                            "text_encoder_2",
+                            "model.safetensors",
+                        )
                         weights[key] = [
                             save_irpa(clip_1_path, "text_encoder_model_1."),
-                            save_irpa(clip_2_path, "text_encoder_model_2.")
+                            save_irpa(clip_2_path, "text_encoder_model_2."),
                         ]
 
                 elif key in ["vae_decode"] and weights[key] is None:
-                    vae_weights_path = os.path.join(diffusers_weights_path, "vae", "diffusion_pytorch_model.safetensors")
+                    vae_weights_path = os.path.join(
+                        diffusers_weights_path,
+                        "vae",
+                        "diffusion_pytorch_model.safetensors",
+                    )
                     weights[key] = save_irpa(vae_weights_path, "vae.")
-                
 
         vmfbs, weights = self.sd_pipe.check_prepared(
             mlirs, vmfbs, weights, interactive=False

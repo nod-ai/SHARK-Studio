@@ -135,6 +135,7 @@ def parse_device(device_str):
         get_iree_target_triple,
         iree_target_map,
     )
+
     rt_driver, device_id = clean_device_info(device_str)
     target_backend = iree_target_map(rt_driver)
     if device_id:

@@ -30,7 +30,7 @@ def get_path_to_diffusers_checkpoint(custom_weights, precision="fp16"):
     return path_to_diffusers
 
 
-def preprocessCKPT(custom_weights, precision = "fp16", is_inpaint=False):
+def preprocessCKPT(custom_weights, precision="fp16", is_inpaint=False):
     path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights, precision)
     if next(Path(path_to_diffusers).iterdir(), None):
         print("Checkpoint already loaded at : ", path_to_diffusers)
@@ -62,6 +62,7 @@ def preprocessCKPT(custom_weights, precision = "fp16", is_inpaint=False):
     del pipe
     print("Loading complete")
     return path_to_diffusers
+
 
 def save_irpa(weights_path, prepend_str):
     weights = safetensors.torch.load_file(weights_path)
