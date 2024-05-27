@@ -29,7 +29,8 @@ from apps.shark_studio.modules.img_processing import (
 )
 
 from apps.shark_studio.modules.ckpt_processing import (
-    process_custom_pipe_weights,
+    preprocessCKPT,
+    save_irpa,
 )
 
 EMPTY_SD_MAP = {
@@ -77,6 +78,7 @@ class StableDiffusion:
         import_ir: bool = True,
         is_controlled: bool = False,
     ):
+        self.precision = precision
         self.compiled_pipeline = False
         self.base_model_id = base_model_id
         self.custom_vae = custom_vae
@@ -107,7 +109,7 @@ class StableDiffusion:
         self.pipe_id = "_".join(pipe_id_list)
         self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), self.pipe_id))
         self.weights_path = Path(
-            os.path.join(get_checkpoints_path(), safe_name(self.base_model_id))
+            os.path.join(get_checkpoints_path(), safe_name(self.base_model_id + "_" + precision))
         )
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
@@ -153,10 +155,29 @@ class StableDiffusion:
         weights = copy.deepcopy(self.model_map)
 
         if custom_weights:
-            custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
+            custom_weights = os.path.join(get_checkpoints_path("checkpoints"), safe_name(self.base_model_id.split("/")[-1]), custom_weights)
+            diffusers_weights_path = preprocessCKPT(custom_weights, self.precision)
             for key in weights:
-                if key not in ["vae_decode", "pipeline", "full_pipeline"]:
-                    weights[key] = custom_weights_params
+                if key in ["scheduled_unet", "unet"]:
+                    unet_weights_path = os.path.join(diffusers_weights_path, "unet", "diffusion_pytorch_model.safetensors")
+                    weights[key] = save_irpa(unet_weights_path, "unet.")
+                    
+                elif key in ["clip", "prompt_encoder"]:
+                    if not self.is_sdxl:
+                        sd1_path = os.path.join(diffusers_weights_path, "text_encoder", "model.safetensors")
+                        weights[key] = save_irpa(sd1_path, "text_encoder_model.")
+                    else:
+                        clip_1_path = os.path.join(diffusers_weights_path, "text_encoder", "model.safetensors")
+                        clip_2_path = os.path.join(diffusers_weights_path, "text_encoder_2", "model.safetensors")
+                        weights[key] = [
+                            save_irpa(clip_1_path, "text_encoder_model_1."),
+                            save_irpa(clip_2_path, "text_encoder_model_2.")
+                        ]
+
+                elif key in ["vae_decode"] and weights[key] is None:
+                    vae_weights_path = os.path.join(diffusers_weights_path, "vae", "diffusion_pytorch_model.safetensors")
+                    weights[key] = save_irpa(vae_weights_path, "vae.")
+                
 
         vmfbs, weights = self.sd_pipe.check_prepared(
             mlirs, vmfbs, weights, interactive=False
@@ -369,7 +390,7 @@ def view_json_file(file_path):
 
 
 def safe_name(name):
-    return name.replace("/", "_").replace("-", "_").replace("\\", "_").replace(".", "_")
+    return name.replace("/", "_").replace("\\", "_").replace(".", "_")
 
 
 if __name__ == "__main__":

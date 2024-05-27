@@ -135,7 +135,6 @@ def parse_device(device_str):
         get_iree_target_triple,
         iree_target_map,
     )
-
     rt_driver, device_id = clean_device_info(device_str)
     target_backend = iree_target_map(rt_driver)
     if device_id:
@@ -150,7 +149,7 @@ def parse_device(device_str):
         case "rocm":
             triple = get_rocm_target_chip(device_str)
             return target_backend, rt_device, triple
-        case "cpu":
+        case "llvm-cpu":
             return "llvm-cpu", "local-task", "x86_64-linux-gnu"
 
 
