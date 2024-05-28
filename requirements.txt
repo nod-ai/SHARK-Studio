@@ -25,7 +25,8 @@ parameterized
 #accelerate is now required for diffusers import from ckpt.
 accelerate
 scipy
-torchsde
+transformers==4.37.1
+torchsde # Required for Stable Diffusion SDE schedulers.
 ftfy
 gradio==4.29.0
 altair
