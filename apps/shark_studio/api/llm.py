@@ -155,7 +155,9 @@ class LanguageModel:
                 use_auth_token=hf_auth_token,
             )
         elif not os.path.exists(self.tempfile_name):
-            self.torch_ir, self.tokenizer = llm_model_map[model_name]["initializer"](
+            self.torch_ir, self.tokenizer = llm_model_map[self.hf_model_name][
+                "initializer"
+            ](
                 self.hf_model_name,
                 hf_auth_token,
                 compile_to="torch",
@@ -258,8 +260,7 @@ class LanguageModel:
 
             history.append(format_out(token))
             while (
-                format_out(token)
-                != llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]
+                format_out(token) != llm_model_map[self.hf_model_name]["stop_token"]
                 and len(history) < self.max_tokens
             ):
                 dec_time = time.time()
@@ -273,10 +274,7 @@ class LanguageModel:
 
             self.prev_token_len = token_len + len(history)
 
-            if (
-                format_out(token)
-                == llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]
-            ):
+            if format_out(token) == llm_model_map[self.hf_model_name]["stop_token"]:
                 break
 
         for i in range(len(history)):
@@ -310,7 +308,7 @@ class LanguageModel:
                 self.first_input = False
 
             history.append(int(token))
-            while token != llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]:
+            while token != llm_model_map[self.hf_model_name]["stop_token"]:
                 dec_time = time.time()
                 result = self.hf_mod(token.reshape([1, 1]), past_key_values=pkv)
                 history.append(int(token))
@@ -321,7 +319,7 @@ class LanguageModel:
 
             self.prev_token_len = token_len + len(history)
 
-            if token == llm_model_map["meta-llama/Llama-2-7b-chat-hf"]["stop_token"]:
+            if token == llm_model_map[self.hf_model_name]["stop_token"]:
                 break
         for i in range(len(history)):
             if type(history[i]) != int:

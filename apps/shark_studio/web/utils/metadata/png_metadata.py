@@ -3,9 +3,8 @@ from pathlib import Path
 from apps.shark_studio.web.utils.file_utils import (
     get_checkpoint_pathfile,
 )
-from apps.shark_studio.api.sd import (
-    sd_model_map,
-)
+from apps.shark_studio.api.sd import EMPTY_SD_MAP as sd_model_map
+
 from apps.shark_studio.modules.schedulers import (
     scheduler_model_map,
 )

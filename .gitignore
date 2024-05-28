@@ -164,7 +164,7 @@ cython_debug/
 # vscode related
 .vscode
 
-# Shark related artefacts
+# Shark related artifacts
 *venv/
 shark_tmp/
 *.vmfb
@@ -172,6 +172,7 @@ shark_tmp/
 tank/dict_configs.py
 *.csv
 reproducers/
+apps/shark_studio/web/configs
 
 # ORT related artefacts
 cache_models/
@@ -187,6 +188,11 @@ variants.json
 
 # models folder
 apps/stable_diffusion/web/models/
+
+# model artifacts (SHARK)
+*.tempfile
+*.mlir
+*.vmfb
 
 # Stencil annotators.
 stencil_annotator/

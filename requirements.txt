@@ -1,13 +1,14 @@
--f https://download.pytorch.org/whl/nightly/cpu/torch_nightly.html
+-f https://download.pytorch.org/whl/nightly/cpu
 -f https://iree.dev/pip-release-links.html
 --pre
 
 setuptools
 wheel
 
-torch==2.3.0
+
+torch>=2.3.0
 shark-turbine @ git+https://github.com/iree-org/iree-turbine.git@main
-turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=models
+turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@ean-unify-sd#subdirectory=models
 
 # SHARK Runner
 tqdm
@@ -17,17 +18,14 @@ google-cloud-storage
 
 # Testing
 pytest
-pytest-xdist
-pytest-forked
 Pillow
 parameterized
 
 # Add transformers, diffusers and scipy since it most commonly used
 #accelerate is now required for diffusers import from ckpt.
 accelerate
-scipy
 ftfy
-gradio==4.19.2
+gradio==4.29.0
 altair
 omegaconf
 # 0.3.2 doesn't have binaries for arm64

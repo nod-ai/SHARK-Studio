@@ -76,6 +76,7 @@ _IREE_DEVICE_MAP = {
     "vulkan": "vulkan",
     "metal": "metal",
     "rocm": "rocm",
+    "hip": "hip",
     "intel-gpu": "level_zero",
 }
 
@@ -94,6 +95,7 @@ _IREE_TARGET_MAP = {
     "vulkan": "vulkan-spirv",
     "metal": "metal",
     "rocm": "rocm",
+    "hip": "rocm",
     "intel-gpu": "opencl-spirv",
 }
 

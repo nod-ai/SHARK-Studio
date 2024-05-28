@@ -81,6 +81,4 @@ jobs:
         source shark.venv/bin/activate
         pip install -r requirements.txt --no-cache-dir
         pip install -e .
-        pip uninstall -y torch
-        pip install torch==2.1.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
         python apps/shark_studio/tests/api_test.py

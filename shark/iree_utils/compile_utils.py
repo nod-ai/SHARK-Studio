@@ -62,13 +62,16 @@ def get_iree_device_args(device, extra_args=[]):
         from shark.iree_utils.gpu_utils import get_iree_rocm_args
 
         return get_iree_rocm_args(device_num=device_num, extra_args=extra_args)
+    if device == "hip":
+        from shark.iree_utils.gpu_utils import get_iree_rocm_args
+        return get_iree_rocm_args(device_num=device_num, extra_args=extra_args, hip_driver=True)
     return []
 
 def get_iree_target_triple(device):
     args = get_iree_device_args(device)
     for flag in args:
-        if "triple" in flag.split("-"):
-            triple = flag.split("=")
+        if "triple" in flag:
+            triple = flag.split("=")[-1]
             return triple
     return ""
 
@@ -89,9 +92,9 @@ def clean_device_info(raw_device):
         if len(device_id) <= 2:
             device_id = int(device_id)
 
-    if device not in ["rocm", "vulkan"]:
+    if device not in ["hip", "rocm", "vulkan"]:
         device_id = None
-    if device in ["rocm", "vulkan"] and device_id == None:
+    if device in ["hip", "rocm", "vulkan"] and device_id == None:
         device_id = 0
     return device, device_id
 

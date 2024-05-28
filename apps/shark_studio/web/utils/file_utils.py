@@ -47,7 +47,7 @@ def write_default_sd_config(path):
 
 
 def safe_name(name):
-    return name.replace("/", "_").replace("-", "_")
+    return name.split("/")[-1].replace("-", "_")
 
 
 def get_path_stem(path):

@@ -52,7 +52,7 @@ def check_rocm_device_arch_in_args(extra_args):
     return None
 
 
-def get_rocm_device_arch(device_num=0, extra_args=[]):
+def get_rocm_device_arch(device_num=0, extra_args=[], hip_driver=False):
     # ROCM Device Arch selection:
     # 1 : User given device arch using `--iree-rocm-target-chip` flag
     # 2 : Device arch from `iree-run-module --dump_devices=rocm` for device on index <device_num>
@@ -68,15 +68,23 @@ def get_rocm_device_arch(device_num=0, extra_args=[]):
     arch_in_device_dump = None
 
     # get rocm arch from iree dump devices
-    def get_devices_info_from_dump(dump):
+    def get_devices_info_from_dump(dump, driver):
         from os import linesep
-
-        dump_clean = list(
-            filter(
-                lambda s: "--device=rocm" in s or "gpu-arch-name:" in s,
-                dump.split(linesep),
+        
+        if driver == "hip":
+            dump_clean = list(
+                filter(
+                    lambda s: "AMD" in s,
+                    dump.split(linesep),
+                )
             )
-        )
+        else:
+            dump_clean = list(
+                filter(
+                    lambda s: f"--device={driver}" in s or "gpu-arch-name:" in s,
+                    dump.split(linesep),
+                )
+            )
         arch_pairs = [
             (
                 dump_clean[i].split("=")[1].strip(),
@@ -87,16 +95,17 @@ def get_rocm_device_arch(device_num=0, extra_args=[]):
         return arch_pairs
 
     dump_device_info = None
+    driver = "hip" if hip_driver else "rocm"
     try:
         dump_device_info = run_cmd(
-            "iree-run-module --dump_devices=rocm", raise_err=True
+            "iree-run-module --dump_devices=" + driver, raise_err=True
         )
     except Exception as e:
-        print("could not execute `iree-run-module --dump_devices=rocm`")
+        print("could not execute `iree-run-module --dump_devices=" + driver + "`")
 
     if dump_device_info is not None:
         device_num = 0 if device_num is None else device_num
-        device_arch_pairs = get_devices_info_from_dump(dump_device_info[0])
+        device_arch_pairs = get_devices_info_from_dump(dump_device_info[0], driver)
         if len(device_arch_pairs) > device_num:  # can find arch in the list
             arch_in_device_dump = device_arch_pairs[device_num][1]
 
@@ -107,23 +116,21 @@ def get_rocm_device_arch(device_num=0, extra_args=[]):
     default_rocm_arch = "gfx1100"
     print(
         "Did not find ROCm architecture from `--iree-rocm-target-chip` flag"
-        "\n or from `iree-run-module --dump_devices=rocm` command."
+        "\n or from `iree-run-module --dump_devices` command."
         f"\nUsing {default_rocm_arch} as ROCm arch for compilation."
     )
     return default_rocm_arch
 
 
 # Get the default gpu args given the architecture.
-def get_iree_rocm_args(device_num=0, extra_args=[]):
+def get_iree_rocm_args(device_num=0, extra_args=[], hip_driver=False):
     ireert.flags.FUNCTION_INPUT_VALIDATION = False
-    rocm_flags = ["--iree-rocm-link-bc=true"]
-
+    rocm_flags = []
     if check_rocm_device_arch_in_args(extra_args) is None:
-        rocm_arch = get_rocm_device_arch(device_num, extra_args)
+        rocm_arch = get_rocm_device_arch(device_num, extra_args, hip_driver=hip_driver)
         rocm_flags.append(f"--iree-rocm-target-chip={rocm_arch}")
 
     return rocm_flags
-
 
 # Some constants taken from cuda.h
 CUDA_SUCCESS = 0

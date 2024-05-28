@@ -101,11 +101,12 @@ def export_scheduler_model(model):
 
 
 scheduler_model_map = {
+    "PNDM": export_scheduler_model("PNDMScheduler"),
+    "DPMSolverSDE": export_scheduler_model("DpmSolverSDEScheduler"),
     "EulerDiscrete": export_scheduler_model("EulerDiscreteScheduler"),
     "EulerAncestralDiscrete": export_scheduler_model("EulerAncestralDiscreteScheduler"),
     "LCM": export_scheduler_model("LCMScheduler"),
     "LMSDiscrete": export_scheduler_model("LMSDiscreteScheduler"),
-    "PNDM": export_scheduler_model("PNDMScheduler"),
     "DDPM": export_scheduler_model("DDPMScheduler"),
     "DDIM": export_scheduler_model("DDIMScheduler"),
     "DPMSolverMultistep": export_scheduler_model("DPMSolverMultistepScheduler"),

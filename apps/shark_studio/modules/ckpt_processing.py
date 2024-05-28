@@ -2,6 +2,11 @@ import os
 import json
 import re
 import requests
+import torch
+import safetensors
+from shark_turbine.aot.params import (
+    ParameterArchiveBuilder,
+)
 from io import BytesIO
 from pathlib import Path
 from tqdm import tqdm
@@ -15,21 +20,21 @@ from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
 )
 
 
-def get_path_to_diffusers_checkpoint(custom_weights):
+def get_path_to_diffusers_checkpoint(custom_weights, precision="fp16"):
     path = Path(custom_weights)
     diffusers_path = path.parent.absolute()
-    diffusers_directory_name = os.path.join("diffusers", path.stem)
+    diffusers_directory_name = os.path.join("diffusers", path.stem + f"_{precision}")
     complete_path_to_diffusers = diffusers_path / diffusers_directory_name
     complete_path_to_diffusers.mkdir(parents=True, exist_ok=True)
     path_to_diffusers = complete_path_to_diffusers.as_posix()
     return path_to_diffusers
 
 
-def preprocessCKPT(custom_weights, is_inpaint=False):
-    path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights)
+def preprocessCKPT(custom_weights, precision="fp16", is_inpaint=False):
+    path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights, precision)
     if next(Path(path_to_diffusers).iterdir(), None):
         print("Checkpoint already loaded at : ", path_to_diffusers)
-        return
+        return path_to_diffusers
     else:
         print(
             "Diffusers' checkpoint will be identified here : ",
@@ -51,8 +56,24 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
         from_safetensors=from_safetensors,
         num_in_channels=num_in_channels,
     )
+    if precision == "fp16":
+        pipe.to(dtype=torch.float16)
     pipe.save_pretrained(path_to_diffusers)
+    del pipe
     print("Loading complete")
+    return path_to_diffusers
+
+
+def save_irpa(weights_path, prepend_str):
+    weights = safetensors.torch.load_file(weights_path)
+    archive = ParameterArchiveBuilder()
+    for key in weights.keys():
+        new_key = prepend_str + key
+        archive.add_tensor(new_key, weights[key])
+
+    irpa_file = weights_path.replace(".safetensors", ".irpa")
+    archive.save(irpa_file)
+    return irpa_file
 
 
 def convert_original_vae(vae_checkpoint):
