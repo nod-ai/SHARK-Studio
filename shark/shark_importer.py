@@ -6,6 +6,7 @@ import tempfile
 import os
 import hashlib
 
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
 def create_hash(file_name):
     with open(file_name, "rb") as f:
@@ -120,7 +121,7 @@ class SharkImporter:
         is_dynamic=False,
         tracing_required=False,
         func_name="forward",
-        save_dir="./shark_tmp/",
+        save_dir=cmd_opts.tmp_dir, #"./shark_tmp/",
         mlir_type="linalg",
     ):
         if self.frontend in ["torch", "pytorch"]:
@@ -806,7 +807,7 @@ def save_mlir(
         model_name + "_" + frontend + "_" + mlir_dialect + ".mlir"
     )
     if dir == "":
-        dir = os.path.join(".", "shark_tmp")
+        dir = cmd_opts.tmp_dir, #os.path.join(".", "shark_tmp")
     mlir_path = os.path.join(dir, model_name_mlir)
     print(f"saving {model_name_mlir} to {dir}")
     if not os.path.exists(dir):

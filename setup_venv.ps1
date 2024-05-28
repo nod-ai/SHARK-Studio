@@ -88,8 +88,7 @@ else {python -m venv .\shark.venv\}
 .\shark.venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install wheel
-pip install -r requirements.txt
-# remove this when windows DLL issues are fixed from LLVM changes
-pip install --force-reinstall https://github.com/openxla/iree/releases/download/candidate-20240326.843/iree_compiler-20240326.843-cp311-cp311-win_amd64.whl https://github.com/openxla/iree/releases/download/candidate-20240326.843/iree_runtime-20240326.843-cp311-cp311-win_amd64.whl
+pip install --pre -r requirements.txt
+pip install -e .
 
 Write-Host "Source your venv with ./shark.venv/Scripts/activate"

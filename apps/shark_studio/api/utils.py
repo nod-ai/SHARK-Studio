@@ -71,6 +71,8 @@ def get_available_devices():
     available_devices.extend(cuda_devices)
     rocm_devices = get_devices_by_name("rocm")
     available_devices.extend(rocm_devices)
+    hip_devices = get_devices_by_name("hip")
+    available_devices.extend(hip_devices)
     cpu_device = get_devices_by_name("cpu-sync")
     available_devices.extend(cpu_device)
     cpu_device = get_devices_by_name("cpu-task")
@@ -125,6 +127,54 @@ def set_iree_runtime_flags():
             f"--device_allocator=caching:device_local={cmd_opts.device_allocator_heap_key}",
         ]
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
+
+
+def parse_device(device_str):
+    from shark.iree_utils.compile_utils import (
+        clean_device_info,
+        get_iree_target_triple,
+        iree_target_map,
+    )
+
+    rt_driver, device_id = clean_device_info(device_str)
+    target_backend = iree_target_map(rt_driver)
+    if device_id:
+        rt_device = f"{rt_driver}://{device_id}"
+    else:
+        rt_device = rt_driver
+
+    match target_backend:
+        case "vulkan-spirv":
+            triple = get_iree_target_triple(device_str)
+            return target_backend, rt_device, triple
+        case "rocm":
+            triple = get_rocm_target_chip(device_str)
+            return target_backend, rt_device, triple
+        case "llvm-cpu":
+            return "llvm-cpu", "local-task", "x86_64-linux-gnu"
+
+
+def get_rocm_target_chip(device_str):
+    # TODO: Use a data file to map device_str to target chip.
+    rocm_chip_map = {
+        "6700": "gfx1031",
+        "6800": "gfx1030",
+        "6900": "gfx1030",
+        "7900": "gfx1100",
+        "MI300X": "gfx942",
+        "MI300A": "gfx940",
+        "MI210": "gfx90a",
+        "MI250": "gfx90a",
+        "MI100": "gfx908",
+        "MI50": "gfx906",
+        "MI60": "gfx906",
+    }
+    for key in rocm_chip_map:
+        if key in device_str:
+            return rocm_chip_map[key]
+    raise AssertionError(
+        f"Device {device_str} not recognized. Please file an issue at https://github.com/nod-ai/SHARK/issues."
+    )
 
 
 def get_all_devices(driver_name):

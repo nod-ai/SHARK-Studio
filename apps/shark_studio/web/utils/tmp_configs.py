@@ -2,7 +2,9 @@ import os
 import shutil
 from time import time
 
-shark_tmp = os.path.join(os.getcwd(), "shark_tmp/")
+from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+
+shark_tmp = cmd_opts.tmp_dir  # os.path.join(os.getcwd(), "shark_tmp/")
 
 
 def clear_tmp_mlir():
@@ -15,7 +17,7 @@ def clear_tmp_mlir():
         and filename.endswith(".mlir")
     ]
     for filename in mlir_files:
-        os.remove(shark_tmp + filename)
+        os.remove(os.path.join(shark_tmp, filename))
     print(f"Clearing .mlir temporary files took {time() - cleanup_start:.4f} seconds.")
 
 

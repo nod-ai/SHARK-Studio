@@ -49,28 +49,18 @@ Red=`tput setaf 1`
 Green=`tput setaf 2`
 Yellow=`tput setaf 3`
 
+RUNTIME="https://iree.dev/pip-release-links.html"
+PYTORCH_URL="https://download.pytorch.org/whl/nightly/cpu/"
+
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
-$PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
-if [[ $(uname -s) = 'Darwin' ]]; then
-  echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
-  $PYTHON -m pip uninstall -y timm #TEMP FIX FOR MAC
-  $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
-else
-  $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed torch-mlir"
-  else
-    echo "Could not install torch-mlir" >&2
-  fi
+$PYTHON -m pip install --upgrade --pre torch torchvision torchaudio --index-url $PYTORCH_URL
+if [[ -z "${NO_BREVITAS}" ]]; then
+  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
 fi
-if [[ -z "${USE_IREE}" ]]; then
-  rm .use-iree
-  RUNTIME="https://nod-ai.github.io/SRT/pip-release-links.html"
-else
-  touch ./.use-iree
-  RUNTIME="https://openxla.github.io/iree/pip-release-links.html"
-fi
+$PYTHON -m pip install --pre --upgrade -r "$TD/requirements.txt"
+
+
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
   $PYTHON -m pip install --pre --upgrade --no-index --find-links ${RUNTIME} iree-compiler iree-runtime
@@ -78,31 +68,8 @@ else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
 
-if [[ $(uname -s) = 'Darwin' ]]; then
-  PYTORCH_URL=https://download.pytorch.org/whl/nightly/torch/
-else
-  PYTORCH_URL=https://download.pytorch.org/whl/nightly/cpu/
-fi
+$PYTHON -m pip install --no-warn-conflicts -e .
 
-$PYTHON -m pip install --no-warn-conflicts -e . -f https://llvm.github.io/torch-mlir/package-index/ -f ${RUNTIME} -f ${PYTORCH_URL}
-
-if [[ $(uname -s) = 'Linux' && ! -z "${IMPORTER}" ]]; then
-  T_VER=$($PYTHON -m pip show torch | grep Version)
-  T_VER_MIN=${T_VER:14:12}
-  TV_VER=$($PYTHON -m pip show torchvision | grep Version)
-  TV_VER_MAJ=${TV_VER:9:6}
-  $PYTHON -m pip uninstall -y torchvision
-  $PYTHON -m pip install torchvision==${TV_VER_MAJ}${T_VER_MIN} --no-deps -f https://download.pytorch.org/whl/nightly/cpu/torchvision/
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed torch + cu118."
-  else
-    echo "Could not install torch + cu118." >&2
-  fi
-fi
-
-if [[ -z "${NO_BREVITAS}" ]]; then
-  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
-fi
 
 if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
   echo "${Green}Before running examples activate venv with:"

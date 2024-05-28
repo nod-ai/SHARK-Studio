@@ -4,51 +4,59 @@ import time
 import os
 import json
 import numpy as np
+import copy
 from tqdm.auto import tqdm
 
 from pathlib import Path
 from random import randint
-from turbine_models.custom_models.sd_inference import clip, unet, vae
+from turbine_models.custom_models.sd_inference.sd_pipeline import SharkSDPipeline
+from turbine_models.custom_models.sdxl_inference.sdxl_compiled_pipeline import (
+    SharkSDXLPipeline,
+)
+
+
 from apps.shark_studio.api.controlnet import control_adapter_map
+from apps.shark_studio.api.utils import parse_device
 from apps.shark_studio.web.utils.state import status_label
 from apps.shark_studio.web.utils.file_utils import (
     safe_name,
     get_resource_path,
     get_checkpoints_path,
 )
-from apps.shark_studio.modules.pipeline import SharkPipelineBase
-from apps.shark_studio.modules.schedulers import get_schedulers
-from apps.shark_studio.modules.prompt_encoding import (
-    get_weighted_text_embeddings,
-)
+
 from apps.shark_studio.modules.img_processing import (
-    resize_stencil,
     save_output_img,
-    resamplers,
-    resampler_list,
 )
 
 from apps.shark_studio.modules.ckpt_processing import (
     preprocessCKPT,
-    process_custom_pipe_weights,
+    save_irpa,
 )
-from transformers import CLIPTokenizer
-from diffusers.image_processor import VaeImageProcessor
 
-sd_model_map = {
-    "clip": {
-        "initializer": clip.export_clip_model,
-    },
-    "unet": {
-        "initializer": unet.export_unet_model,
-    },
-    "vae_decode": {
-        "initializer": vae.export_vae_model,
-    },
+EMPTY_SD_MAP = {
+    "clip": None,
+    "scheduler": None,
+    "unet": None,
+    "vae_decode": None,
+}
+
+EMPTY_SDXL_MAP = {
+    "prompt_encoder": None,
+    "scheduled_unet": None,
+    "vae_decode": None,
+    "pipeline": None,
+    "full_pipeline": None,
+}
+
+EMPTY_FLAGS = {
+    "clip": None,
+    "unet": None,
+    "vae": None,
+    "pipeline": None,
 }
 
 
-class StableDiffusion(SharkPipelineBase):
+class StableDiffusion:
     # This class is responsible for executing image generation and creating
     # /managing a set of compiled modules to run Stable Diffusion. The init
     # aims to be as general as possible, and the class will infer and compile
@@ -61,66 +69,36 @@ class StableDiffusion(SharkPipelineBase):
         height: int,
         width: int,
         batch_size: int,
+        steps: int,
+        scheduler: str,
         precision: str,
         device: str,
         custom_vae: str = None,
         num_loras: int = 0,
         import_ir: bool = True,
         is_controlled: bool = False,
-        hf_auth_token=None,
     ):
-        self.model_max_length = 77
-        self.batch_size = batch_size
         self.precision = precision
-        self.dtype = torch.float16 if precision == "fp16" else torch.float32
-        self.height = height
-        self.width = width
-        self.scheduler_obj = {}
-        static_kwargs = {
-            "pipe": {
-                "external_weights": "safetensors",
-            },
-            "clip": {"hf_model_name": base_model_id},
-            "unet": {
-                "hf_model_name": base_model_id,
-                "unet_model": unet.UnetModel(hf_model_name=base_model_id),
-                "batch_size": batch_size,
-                # "is_controlled": is_controlled,
-                # "num_loras": num_loras,
-                "height": height,
-                "width": width,
-                "precision": precision,
-                "max_length": self.model_max_length,
-            },
-            "vae_encode": {
-                "hf_model_name": base_model_id,
-                "vae_model": vae.VaeModel(
-                    hf_model_name=custom_vae if custom_vae else base_model_id,
-                ),
-                "batch_size": batch_size,
-                "height": height,
-                "width": width,
-                "precision": precision,
-            },
-            "vae_decode": {
-                "hf_model_name": base_model_id,
-                "vae_model": vae.VaeModel(
-                    hf_model_name=custom_vae if custom_vae else base_model_id,
-                ),
-                "batch_size": batch_size,
-                "height": height,
-                "width": width,
-                "precision": precision,
-            },
-        }
-        super().__init__(sd_model_map, base_model_id, static_kwargs, device, import_ir)
+        self.compiled_pipeline = False
+        self.base_model_id = base_model_id
+        self.custom_vae = custom_vae
+        self.is_sdxl = "xl" in self.base_model_id.lower()
+        if self.is_sdxl:
+            self.turbine_pipe = SharkSDXLPipeline
+            self.model_map = EMPTY_SDXL_MAP
+        else:
+            self.turbine_pipe = SharkSDPipeline
+            self.model_map = EMPTY_SD_MAP
+        external_weights = "safetensors"
+        max_length = 64
+        target_backend, self.rt_device, triple = parse_device(device)
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
-            str(self.model_max_length),
+            str(max_length),
             f"{str(height)}x{str(width)}",
             precision,
-            self.device,
+            triple,
         ]
         if num_loras > 0:
             pipe_id_list.append(str(num_loras) + "lora")
@@ -129,227 +107,116 @@ class StableDiffusion(SharkPipelineBase):
         if custom_vae:
             pipe_id_list.append(custom_vae)
         self.pipe_id = "_".join(pipe_id_list)
-        print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
-        del static_kwargs
-        gc.collect()
-
-    def prepare_pipe(self, custom_weights, adapters, embeddings, is_img2img):
-        print(f"\n[LOG] Preparing pipeline...")
-        self.is_img2img = is_img2img
-        self.schedulers = get_schedulers(self.base_model_id)
-
-        self.weights_path = os.path.join(
-            get_checkpoints_path(), self.safe_name(self.base_model_id)
+        self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), self.pipe_id))
+        self.weights_path = Path(
+            os.path.join(
+                get_checkpoints_path(), safe_name(self.base_model_id + "_" + precision)
+            )
         )
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
 
-        for model in adapters:
-            self.model_map[model] = adapters[model]
+        decomp_attn = True
+        attn_spec = None
+        if triple in ["gfx940", "gfx942", "gfx90a"]:
+            decomp_attn = False
+            attn_spec = "mfma"
+        elif triple in ["gfx1100", "gfx1103"]:
+            decomp_attn = False
+            attn_spec = "wmma"
+        elif target_backend == "llvm-cpu":
+            decomp_attn = False
 
-        for submodel in self.static_kwargs:
-            if custom_weights:
-                custom_weights_params, _ = process_custom_pipe_weights(custom_weights)
-                if submodel not in ["clip", "clip2"]:
-                    self.static_kwargs[submodel][
-                        "external_weights"
-                    ] = custom_weights_params
-                else:
-                    self.static_kwargs[submodel]["external_weight_path"] = os.path.join(
-                        self.weights_path, submodel + ".safetensors"
+        self.sd_pipe = self.turbine_pipe(
+            hf_model_name=base_model_id,
+            scheduler_id=scheduler,
+            height=height,
+            width=width,
+            precision=precision,
+            max_length=max_length,
+            batch_size=batch_size,
+            num_inference_steps=steps,
+            device=target_backend,
+            iree_target_triple=triple,
+            ireec_flags=EMPTY_FLAGS,
+            attn_spec=attn_spec,
+            decomp_attn=decomp_attn,
+            pipeline_dir=self.pipeline_dir,
+            external_weights_dir=self.weights_path,
+            external_weights=external_weights,
+            custom_vae=custom_vae,
+        )
+        print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
+        gc.collect()
+
+    def prepare_pipe(self, custom_weights, adapters, embeddings, is_img2img):
+        print(f"\n[LOG] Preparing pipeline...")
+        self.is_img2img = False
+        mlirs = copy.deepcopy(self.model_map)
+        vmfbs = copy.deepcopy(self.model_map)
+        weights = copy.deepcopy(self.model_map)
+
+        if custom_weights:
+            custom_weights = os.path.join(
+                get_checkpoints_path("checkpoints"),
+                safe_name(self.base_model_id.split("/")[-1]),
+                custom_weights,
+            )
+            diffusers_weights_path = preprocessCKPT(custom_weights, self.precision)
+            for key in weights:
+                if key in ["scheduled_unet", "unet"]:
+                    unet_weights_path = os.path.join(
+                        diffusers_weights_path,
+                        "unet",
+                        "diffusion_pytorch_model.safetensors",
                     )
-            else:
-                self.static_kwargs[submodel]["external_weight_path"] = os.path.join(
-                    self.weights_path, submodel + ".safetensors"
-                )
+                    weights[key] = save_irpa(unet_weights_path, "unet.")
 
-        self.get_compiled_map(pipe_id=self.pipe_id)
-        print("\n[LOG] Pipeline successfully prepared for runtime.")
+                elif key in ["clip", "prompt_encoder"]:
+                    if not self.is_sdxl:
+                        sd1_path = os.path.join(
+                            diffusers_weights_path, "text_encoder", "model.safetensors"
+                        )
+                        weights[key] = save_irpa(sd1_path, "text_encoder_model.")
+                    else:
+                        clip_1_path = os.path.join(
+                            diffusers_weights_path, "text_encoder", "model.safetensors"
+                        )
+                        clip_2_path = os.path.join(
+                            diffusers_weights_path,
+                            "text_encoder_2",
+                            "model.safetensors",
+                        )
+                        weights[key] = [
+                            save_irpa(clip_1_path, "text_encoder_model_1."),
+                            save_irpa(clip_2_path, "text_encoder_model_2."),
+                        ]
+
+                elif key in ["vae_decode"] and weights[key] is None:
+                    vae_weights_path = os.path.join(
+                        diffusers_weights_path,
+                        "vae",
+                        "diffusion_pytorch_model.safetensors",
+                    )
+                    weights[key] = save_irpa(vae_weights_path, "vae.")
+
+        vmfbs, weights = self.sd_pipe.check_prepared(
+            mlirs, vmfbs, weights, interactive=False
+        )
+        print(f"\n[LOG] Loading pipeline to device {self.rt_device}.")
+        self.sd_pipe.load_pipeline(
+            vmfbs, weights, self.rt_device, self.compiled_pipeline
+        )
+        print(
+            "\n[LOG] Pipeline successfully prepared for runtime. Generating images..."
+        )
         return
-
-    def encode_prompts_weight(
-        self,
-        prompt,
-        negative_prompt,
-        do_classifier_free_guidance=True,
-    ):
-        # Encodes the prompt into text encoder hidden states.
-        self.load_submodels(["clip"])
-        self.tokenizer = CLIPTokenizer.from_pretrained(
-            self.base_model_id,
-            subfolder="tokenizer",
-        )
-        clip_inf_start = time.time()
-
-        text_embeddings, uncond_embeddings = get_weighted_text_embeddings(
-            pipe=self,
-            prompt=prompt,
-            uncond_prompt=negative_prompt if do_classifier_free_guidance else None,
-        )
-
-        if do_classifier_free_guidance:
-            text_embeddings = torch.cat([uncond_embeddings, text_embeddings])
-
-        pad = (0, 0) * (len(text_embeddings.shape) - 2)
-        pad = pad + (
-            0,
-            self.static_kwargs["unet"]["max_length"] - text_embeddings.shape[1],
-        )
-        text_embeddings = torch.nn.functional.pad(text_embeddings, pad)
-
-        # SHARK: Report clip inference time
-        clip_inf_time = (time.time() - clip_inf_start) * 1000
-        if self.ondemand:
-            self.unload_submodels(["clip"])
-            gc.collect()
-        print(f"\n[LOG] Clip Inference time (ms) = {clip_inf_time:.3f}")
-
-        return text_embeddings.numpy().astype(np.float16)
-
-    def prepare_latents(
-        self,
-        generator,
-        num_inference_steps,
-        image,
-        strength,
-    ):
-        noise = torch.randn(
-            (
-                self.batch_size,
-                4,
-                self.height // 8,
-                self.width // 8,
-            ),
-            generator=generator,
-            dtype=self.dtype,
-        ).to("cpu")
-
-        self.scheduler.set_timesteps(num_inference_steps)
-        if self.is_img2img:
-            init_timestep = min(
-                int(num_inference_steps * strength), num_inference_steps
-            )
-            t_start = max(num_inference_steps - init_timestep, 0)
-            timesteps = self.scheduler.timesteps[t_start:]
-            latents = self.encode_image(image)
-            latents = self.scheduler.add_noise(latents, noise, timesteps[0].repeat(1))
-            return latents, [timesteps]
-        else:
-            self.scheduler.is_scale_input_called = True
-            latents = noise * self.scheduler.init_noise_sigma
-            return latents, self.scheduler.timesteps
-
-    def encode_image(self, input_image):
-        self.load_submodels(["vae_encode"])
-        vae_encode_start = time.time()
-        latents = self.run("vae_encode", input_image)
-        vae_inf_time = (time.time() - vae_encode_start) * 1000
-        if self.ondemand:
-            self.unload_submodels(["vae_encode"])
-        print(f"\n[LOG] VAE Encode Inference time (ms): {vae_inf_time:.3f}")
-
-        return latents
-
-    def produce_img_latents(
-        self,
-        latents,
-        text_embeddings,
-        guidance_scale,
-        total_timesteps,
-        cpu_scheduling,
-        mask=None,
-        masked_image_latents=None,
-        return_all_latents=False,
-    ):
-        # self.status = SD_STATE_IDLE
-        step_time_sum = 0
-        latent_history = [latents]
-        text_embeddings = torch.from_numpy(text_embeddings).to(self.dtype)
-        text_embeddings_numpy = text_embeddings.detach().numpy()
-        guidance_scale = torch.Tensor([guidance_scale]).to(self.dtype)
-        self.load_submodels(["unet"])
-        for i, t in tqdm(enumerate(total_timesteps)):
-            step_start_time = time.time()
-            timestep = torch.tensor([t]).to(self.dtype).detach().numpy()
-            latent_model_input = self.scheduler.scale_model_input(latents, t).to(
-                self.dtype
-            )
-            if mask is not None and masked_image_latents is not None:
-                latent_model_input = torch.cat(
-                    [
-                        torch.from_numpy(np.asarray(latent_model_input)).to(self.dtype),
-                        mask,
-                        masked_image_latents,
-                    ],
-                    dim=1,
-                ).to(self.dtype)
-            if cpu_scheduling:
-                latent_model_input = latent_model_input.detach().numpy()
-
-            # Profiling Unet.
-            # profile_device = start_profiling(file_path="unet.rdc")
-            noise_pred = self.run(
-                "unet",
-                [
-                    latent_model_input,
-                    timestep,
-                    text_embeddings_numpy,
-                    guidance_scale,
-                ],
-            )
-            # end_profiling(profile_device)
-
-            if cpu_scheduling:
-                noise_pred = torch.from_numpy(noise_pred.to_host())
-                latents = self.scheduler.step(noise_pred, t, latents).prev_sample
-            else:
-                latents = self.run("scheduler_step", (noise_pred, t, latents))
-
-            latent_history.append(latents)
-            step_time = (time.time() - step_start_time) * 1000
-            # print(
-            #     f"\n [LOG] step = {i} | timestep = {t} | time = {step_time:.2f}ms"
-            # )
-            step_time_sum += step_time
-
-            # if self.status == SD_STATE_CANCEL:
-            #    break
-
-        if self.ondemand:
-            self.unload_submodels(["unet"])
-            gc.collect()
-
-        avg_step_time = step_time_sum / len(total_timesteps)
-        print(f"\n[LOG] Average step time: {avg_step_time}ms/it")
-
-        if not return_all_latents:
-            return latents
-        all_latents = torch.cat(latent_history, dim=0)
-        return all_latents
-
-    def decode_latents(self, latents, cpu_scheduling=True):
-        latents_numpy = latents.to(self.dtype)
-        if cpu_scheduling:
-            latents_numpy = latents.detach().numpy()
-
-        # profile_device = start_profiling(file_path="vae.rdc")
-        vae_start = time.time()
-        images = self.run("vae_decode", latents_numpy).to_host()
-        vae_inf_time = (time.time() - vae_start) * 1000
-        # end_profiling(profile_device)
-        print(f"\n[LOG] VAE Inference time (ms): {vae_inf_time:.3f}")
-
-        images = torch.from_numpy(images).permute(0, 2, 3, 1).float().numpy()
-        pil_images = self.image_processor.numpy_to_pil(images)
-        return pil_images
 
     def generate_images(
         self,
         prompt,
         negative_prompt,
         image,
-        scheduler,
-        steps,
         strength,
         guidance_scale,
         seed,
@@ -359,69 +226,15 @@ class StableDiffusion(SharkPipelineBase):
         control_mode,
         hints,
     ):
-        # TODO: Batched args
-        self.image_processor = VaeImageProcessor(do_convert_rgb=True)
-        self.scheduler = self.schedulers[scheduler]
-        self.ondemand = ondemand
-        if self.is_img2img:
-            image, _ = self.image_processor.preprocess(image, resample_type)
-        else:
-            image = None
-
-        print("\n[LOG] Generating images...")
-        batched_args = [
+        img = self.sd_pipe.generate_images(
             prompt,
             negative_prompt,
-            image,
-        ]
-        for arg in batched_args:
-            if not isinstance(arg, list):
-                arg = [arg] * self.batch_size
-            if len(arg) < self.batch_size:
-                arg = arg * self.batch_size
-            else:
-                arg = [arg[i] for i in range(self.batch_size)]
-
-        text_embeddings = self.encode_prompts_weight(
-            prompt,
-            negative_prompt,
+            1,
+            guidance_scale,
+            seed,
+            return_imgs=True,
         )
-
-        uint32_info = np.iinfo(np.uint32)
-        uint32_min, uint32_max = uint32_info.min, uint32_info.max
-        if seed < uint32_min or seed >= uint32_max:
-            seed = randint(uint32_min, uint32_max)
-
-        generator = torch.manual_seed(seed)
-
-        init_latents, final_timesteps = self.prepare_latents(
-            generator=generator,
-            num_inference_steps=steps,
-            image=image,
-            strength=strength,
-        )
-
-        latents = self.produce_img_latents(
-            latents=init_latents,
-            text_embeddings=text_embeddings,
-            guidance_scale=guidance_scale,
-            total_timesteps=final_timesteps,
-            cpu_scheduling=True,  # until we have schedulers through Turbine
-        )
-
-        # Img latents -> PIL images
-        all_imgs = []
-        self.load_submodels(["vae_decode"])
-        for i in tqdm(range(0, latents.shape[0], self.batch_size)):
-            imgs = self.decode_latents(
-                latents=latents[i : i + self.batch_size],
-                cpu_scheduling=True,
-            )
-            all_imgs.extend(imgs)
-        if self.ondemand:
-            self.unload_submodels(["vae_decode"])
-
-        return all_imgs
+        return img
 
 
 def shark_sd_fn_dict_input(
@@ -481,6 +294,7 @@ def shark_sd_fn(
     control_mode = None
     hints = []
     num_loras = 0
+    import_ir = True
     for i in embeddings:
         num_loras += 1 if embeddings[i] else 0
     if "model" in controlnets:
@@ -514,8 +328,10 @@ def shark_sd_fn(
         "device": device,
         "custom_vae": custom_vae,
         "num_loras": num_loras,
-        "import_ir": cmd_opts.import_mlir,
+        "import_ir": import_ir,
         "is_controlled": is_controlled,
+        "steps": steps,
+        "scheduler": scheduler,
     }
     submit_prep_kwargs = {
         "custom_weights": custom_weights,
@@ -527,8 +343,6 @@ def shark_sd_fn(
         "prompt": prompt,
         "negative_prompt": negative_prompt,
         "image": sd_init_image,
-        "steps": steps,
-        "scheduler": scheduler,
         "strength": strength,
         "guidance_scale": guidance_scale,
         "seed": seed,
@@ -566,9 +380,9 @@ def shark_sd_fn(
     for current_batch in range(batch_count):
         start_time = time.time()
         out_imgs = global_obj.get_sd_obj().generate_images(**submit_run_kwargs)
-        total_time = time.time() - start_time
-        text_output = f"Total image(s) generation time: {total_time:.4f}sec"
-        print(f"\n[LOG] {text_output}")
+        # total_time = time.time() - start_time
+        # text_output = f"Total image(s) generation time: {total_time:.4f}sec"
+        # print(f"\n[LOG] {text_output}")
         # if global_obj.get_sd_status() == SD_STATE_CANCEL:
         #     break
         # else:
@@ -596,13 +410,19 @@ def view_json_file(file_path):
     return content
 
 
+def safe_name(name):
+    return name.replace("/", "_").replace("\\", "_").replace(".", "_")
+
+
 if __name__ == "__main__":
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
     import apps.shark_studio.web.utils.globals as global_obj
 
     global_obj._init()
 
-    sd_json = view_json_file(get_resource_path("../configs/default_sd_config.json"))
+    sd_json = view_json_file(
+        get_resource_path(os.path.join(cmd_opts.config_dir, "default_sd_config.json"))
+    )
     sd_kwargs = json.loads(sd_json)
     for arg in vars(cmd_opts):
         if arg in sd_kwargs:

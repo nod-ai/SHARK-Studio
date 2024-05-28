@@ -2,10 +2,16 @@ import os
 import json
 import re
 import requests
+import torch
+import safetensors
+from shark_turbine.aot.params import (
+    ParameterArchiveBuilder,
+)
 from io import BytesIO
 from pathlib import Path
 from tqdm import tqdm
 from omegaconf import OmegaConf
+from diffusers import StableDiffusionPipeline
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
     download_from_original_stable_diffusion_ckpt,
@@ -14,21 +20,21 @@ from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
 )
 
 
-def get_path_to_diffusers_checkpoint(custom_weights):
+def get_path_to_diffusers_checkpoint(custom_weights, precision="fp16"):
     path = Path(custom_weights)
     diffusers_path = path.parent.absolute()
-    diffusers_directory_name = os.path.join("diffusers", path.stem)
+    diffusers_directory_name = os.path.join("diffusers", path.stem + f"_{precision}")
     complete_path_to_diffusers = diffusers_path / diffusers_directory_name
     complete_path_to_diffusers.mkdir(parents=True, exist_ok=True)
     path_to_diffusers = complete_path_to_diffusers.as_posix()
     return path_to_diffusers
 
 
-def preprocessCKPT(custom_weights, is_inpaint=False):
-    path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights)
+def preprocessCKPT(custom_weights, precision="fp16", is_inpaint=False):
+    path_to_diffusers = get_path_to_diffusers_checkpoint(custom_weights, precision)
     if next(Path(path_to_diffusers).iterdir(), None):
         print("Checkpoint already loaded at : ", path_to_diffusers)
-        return
+        return path_to_diffusers
     else:
         print(
             "Diffusers' checkpoint will be identified here : ",
@@ -50,8 +56,24 @@ def preprocessCKPT(custom_weights, is_inpaint=False):
         from_safetensors=from_safetensors,
         num_in_channels=num_in_channels,
     )
+    if precision == "fp16":
+        pipe.to(dtype=torch.float16)
     pipe.save_pretrained(path_to_diffusers)
+    del pipe
     print("Loading complete")
+    return path_to_diffusers
+
+
+def save_irpa(weights_path, prepend_str):
+    weights = safetensors.torch.load_file(weights_path)
+    archive = ParameterArchiveBuilder()
+    for key in weights.keys():
+        new_key = prepend_str + key
+        archive.add_tensor(new_key, weights[key])
+
+    irpa_file = weights_path.replace(".safetensors", ".irpa")
+    archive.save(irpa_file)
+    return irpa_file
 
 
 def convert_original_vae(vae_checkpoint):
@@ -87,6 +109,7 @@ def process_custom_pipe_weights(custom_weights):
             ), "checkpoint files supported can be any of [.ckpt, .safetensors] type"
             custom_weights_tgt = get_path_to_diffusers_checkpoint(custom_weights)
             custom_weights_params = custom_weights
+
         return custom_weights_params, custom_weights_tgt
 
 
@@ -98,7 +121,7 @@ def get_civitai_checkpoint(url: str):
         base_filename = re.findall(
             '"([^"]*)"', response.headers["Content-Disposition"]
         )[0]
-        destination_path = Path.cwd() / (cmd_opts.ckpt_dir or "models") / base_filename
+        destination_path = Path.cwd() / (cmd_opts.model_dir or "models") / base_filename
 
         # we don't have this model downloaded yet
         if not destination_path.is_file():

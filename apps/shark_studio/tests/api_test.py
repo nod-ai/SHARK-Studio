@@ -36,6 +36,7 @@ class LLMAPITest(unittest.TestCase):
             device="cpu",
             precision="fp32",
             quantization="None",
+            streaming_llm=True,
         )
         count = 0
         label = "Turkishoure Turkish"
