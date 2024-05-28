@@ -55,6 +55,9 @@ PYTORCH_URL="https://download.pytorch.org/whl/nightly/cpu/"
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
 $PYTHON -m pip install --upgrade --pre torch torchvision torchaudio --index-url $PYTORCH_URL
+if [[ -z "${NO_BREVITAS}" ]]; then
+  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
+fi
 $PYTHON -m pip install --pre --upgrade -r "$TD/requirements.txt"
 
 
@@ -65,11 +68,8 @@ else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
 fi
 
-$PYTHON -m pip install --no-warn-conflicts -e . -f ${RUNTIME} -f ${PYTORCH_URL}
+$PYTHON -m pip install --no-warn-conflicts -e .
 
-if [[ -z "${NO_BREVITAS}" ]]; then
-  $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
-fi
 
 if [[ -z "${CONDA_PREFIX}" && "$SKIP_VENV" != "1" ]]; then
   echo "${Green}Before running examples activate venv with:"
