@@ -54,7 +54,7 @@ PYTORCH_URL="https://download.pytorch.org/whl/nightly/cpu/"
 
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
-$PYTHON -m pip install --upgrade --pre torch torchvision torchaudio --index-url $PYTORCH_URL
+$PYTHON -m pip install --upgrade --pre torch==2.3.0 torchvision torchaudio --index-url $PYTORCH_URL
 if [[ -z "${NO_BREVITAS}" ]]; then
   $PYTHON -m pip install git+https://github.com/Xilinx/brevitas.git@dev
 fi
