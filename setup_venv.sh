@@ -49,39 +49,20 @@ Red=`tput setaf 1`
 Green=`tput setaf 2`
 Yellow=`tput setaf 3`
 
+RUNTIME="https://iree.dev/pip-release-links.html"
+PYTORCH_URL="https://download.pytorch.org/whl/nightly/cpu/"
+
 # Upgrade pip and install requirements.
 $PYTHON -m pip install --upgrade pip || die "Could not upgrade pip"
-$PYTHON -m pip install --upgrade -r "$TD/requirements.txt"
-if [[ $(uname -s) = 'Darwin' ]]; then
-  echo "MacOS detected. Installing torch-mlir from .whl, to avoid dependency problems with torch."
-  $PYTHON -m pip uninstall -y timm #TEMP FIX FOR MAC
-  $PYTHON -m pip install --pre --no-cache-dir torch-mlir -f https://llvm.github.io/torch-mlir/package-index/ -f https://download.pytorch.org/whl/nightly/torch/
-else
-  $PYTHON -m pip install --pre torch-mlir -f https://llvm.github.io/torch-mlir/package-index/
-  if [ $? -eq 0 ];then
-    echo "Successfully Installed torch-mlir"
-  else
-    echo "Could not install torch-mlir" >&2
-  fi
-fi
-if [[ -z "${USE_IREE}" ]]; then
-  rm .use-iree
-  RUNTIME="https://nod-ai.github.io/SRT/pip-release-links.html"
-else
-  touch ./.use-iree
-  RUNTIME="https://openxla.github.io/iree/pip-release-links.html"
-fi
+$PYTHON -m pip install --upgrade --pre torch torchvision torchaudio --index-url $PYTORCH_URL
+$PYTHON -m pip install --pre --upgrade -r "$TD/requirements.txt"
+
+
 if [[ -z "${NO_BACKEND}" ]]; then
   echo "Installing ${RUNTIME}..."
   $PYTHON -m pip install --pre --upgrade --no-index --find-links ${RUNTIME} iree-compiler iree-runtime
 else
   echo "Not installing a backend, please make sure to add your backend to PYTHONPATH"
-fi
-
-if [[ $(uname -s) = 'Darwin' ]]; then
-  PYTORCH_URL=https://download.pytorch.org/whl/nightly/torch/
-else
-  PYTORCH_URL=https://download.pytorch.org/whl/nightly/cpu/
 fi
 
 $PYTHON -m pip install --no-warn-conflicts -e . -f ${RUNTIME} -f ${PYTORCH_URL}
