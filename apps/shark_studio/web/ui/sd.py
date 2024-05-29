@@ -117,6 +117,7 @@ def pull_sd_configs(
     custom_vae,
     precision,
     device,
+    target_triple,
     ondemand,
     repeatable_seeds,
     resample_type,
@@ -175,6 +176,7 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
         sd_json["custom_vae"],
         sd_json["precision"],
         sd_json["device"],
+        sd_json["target_triple"],
         sd_json["ondemand"],
         sd_json["repeatable_seeds"],
         sd_json["resample_type"],
@@ -252,6 +254,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         value=global_obj.get_device_list()[0],
                         choices=global_obj.get_device_list(),
                         allow_custom_value=False,
+                    )
+                    target_triple = gr.Textbox(
+                        elem_id="triple",
+                        label="Architecture",
+                        value="",
                     )
                     with gr.Row():
                         ondemand = gr.Checkbox(
@@ -691,6 +698,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                         custom_vae,
                                         precision,
                                         device,
+                                        target_triple,
                                         ondemand,
                                         repeatable_seeds,
                                         resample_type,
@@ -730,6 +738,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             custom_vae,
             precision,
             device,
+            target_triple,
             ondemand,
             repeatable_seeds,
             resample_type,

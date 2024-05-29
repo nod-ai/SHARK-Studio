@@ -73,6 +73,7 @@ class StableDiffusion:
         scheduler: str,
         precision: str,
         device: str,
+        target_triple: str = None,
         custom_vae: str = None,
         num_loras: int = 0,
         import_ir: bool = True,
@@ -91,7 +92,7 @@ class StableDiffusion:
             self.model_map = EMPTY_SD_MAP
         external_weights = "safetensors"
         max_length = 64
-        target_backend, self.rt_device, triple = parse_device(device)
+        target_backend, self.rt_device, triple = parse_device(device, target_triple)
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
@@ -273,6 +274,7 @@ def shark_sd_fn(
     custom_vae: str,
     precision: str,
     device: str,
+    target_triple: str,
     ondemand: bool,
     repeatable_seeds: bool,
     resample_type: str,
@@ -326,6 +328,7 @@ def shark_sd_fn(
         "batch_size": batch_size,
         "precision": precision,
         "device": device,
+        "target_triple": target_triple,
         "custom_vae": custom_vae,
         "num_loras": num_loras,
         "import_ir": import_ir,
