@@ -77,6 +77,21 @@ def get_available_devices():
     available_devices.extend(cpu_device)
     cpu_device = get_devices_by_name("cpu-task")
     available_devices.extend(cpu_device)
+    print(available_devices)
+    for idx, device_str in enumerate(available_devices):
+        if "AMD Radeon(TM) Graphics =>" in device_str:
+            igpu_id_candidates = [
+                x.split("w/")[-1].split("=>")[0]
+                for x in available_devices
+                if "M Graphics" in x
+            ]
+            for igpu_name in igpu_id_candidates:
+                if igpu_name:
+                    print(f"Found iGPU: {igpu_name} for {device_str}")
+                available_devices[idx] = device_str.replace(
+                    "AMD Radeon(TM) Graphics", f"AMD iGPU: {igpu_name}"
+                )
+                break
     return available_devices
 
 
@@ -129,7 +144,7 @@ def set_iree_runtime_flags():
     set_iree_vulkan_runtime_flags(flags=vulkan_runtime_flags)
 
 
-def parse_device(device_str):
+def parse_device(device_str, target_override=""):
     from shark.iree_utils.compile_utils import (
         clean_device_info,
         get_iree_target_triple,
@@ -143,6 +158,8 @@ def parse_device(device_str):
     else:
         rt_device = rt_driver
 
+    if target_override:
+        return target_backend, rt_device, target_override
     match target_backend:
         case "vulkan-spirv":
             triple = get_iree_target_triple(device_str)
@@ -168,6 +185,7 @@ def get_rocm_target_chip(device_str):
         "MI100": "gfx908",
         "MI50": "gfx906",
         "MI60": "gfx906",
+        "780M": "gfx1103",
     }
     for key in rocm_chip_map:
         if key in device_str:
