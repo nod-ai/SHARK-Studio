@@ -272,7 +272,7 @@ class StableDiffusion:
 def shark_sd_fn_dict_input(
     sd_kwargs: dict,
 ):
-    print("[LOG] Submitting Request...")
+    print("\n[LOG] Submitting Request...")
 
     for key in sd_kwargs:
         if sd_kwargs[key] in [None, []]:
@@ -282,9 +282,8 @@ def shark_sd_fn_dict_input(
         if key == "seed":
             sd_kwargs[key] = int(sd_kwargs[key])
 
-    for i in range(1):
-        generated_imgs = yield from shark_sd_fn(**sd_kwargs)
-        yield generated_imgs
+    generated_imgs = yield from shark_sd_fn(**sd_kwargs)
+    return generated_imgs
 
 
 def shark_sd_fn(
@@ -412,22 +411,27 @@ def shark_sd_fn(
     for current_batch in range(batch_count):
         start_time = time.time()
         out_imgs = global_obj.get_sd_obj().generate_images(**submit_run_kwargs)
+        if not isinstance(out_imgs, list):
+            out_imgs = [out_imgs]
         # total_time = time.time() - start_time
         # text_output = f"Total image(s) generation time: {total_time:.4f}sec"
         # print(f"\n[LOG] {text_output}")
         # if global_obj.get_sd_status() == SD_STATE_CANCEL:
         #     break
         # else:
-        save_output_img(
-            out_imgs[current_batch],
-            seed,
-            sd_kwargs,
-        )
+        for batch in range(batch_size):
+            save_output_img(
+                out_imgs[batch],
+                seed,
+                sd_kwargs,
+            )
         generated_imgs.extend(out_imgs)
+        # TODO: make seed changes over batch counts more configurable.
+        submit_run_kwargs["seed"] = submit_run_kwargs["seed"] + 1
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )
-    return generated_imgs, ""
+    return (generated_imgs, "")
 
 
 def cancel_sd():

@@ -588,21 +588,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     preview=True,
                                 )
                             with gr.Row():
-                                std_output = gr.Textbox(
-                                    value=f"{sd_model_info}\n"
-                                    f"Images will be saved at "
-                                    f"{get_generated_imgs_path()}",
-                                    lines=2,
-                                    elem_id="std_output",
-                                    show_label=True,
-                                    label="Log",
-                                    show_copy_button=True,
-                                )
-                                sd_element.load(
-                                    logger.read_sd_logs, None, std_output, every=1
-                                )
-                                sd_status = gr.Textbox(visible=False)
-                            with gr.Row():
                                 batch_count = gr.Slider(
                                     1,
                                     100,
@@ -718,6 +703,22 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             inputs=[sd_json, sd_config_name],
                             outputs=[sd_config_name],
                         )
+                    with gr.Tab(label="Log", id=103) as sd_tab_log:
+                        with gr.Row():
+                            std_output = gr.Textbox(
+                                value=f"{sd_model_info}\n"
+                                f"Images will be saved at "
+                                f"{get_generated_imgs_path()}",
+                                lines=2,
+                                elem_id="std_output",
+                                show_label=True,
+                                label="Log",
+                                show_copy_button=True,
+                            )
+                            sd_element.load(
+                                logger.read_sd_logs, None, std_output, every=1
+                            )
+                            sd_status = gr.Textbox(visible=False)
 
     pull_kwargs = dict(
         fn=pull_sd_configs,
