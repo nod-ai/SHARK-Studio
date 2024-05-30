@@ -282,6 +282,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     elem_id="custom_model",
                     value="stabilityai/stable-diffusion-2-1-base",
                     choices=sd_default_models,
+                    allow_custom_value=True,
                 )  # base_model_id
                 with gr.Row():
                     height = gr.Slider(

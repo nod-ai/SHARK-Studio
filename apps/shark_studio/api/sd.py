@@ -5,6 +5,8 @@ import os
 import json
 import numpy as np
 import copy
+import importlib.util
+import sys
 from tqdm.auto import tqdm
 
 from pathlib import Path
@@ -56,6 +58,24 @@ EMPTY_FLAGS = {
 }
 
 
+
+def load_script(source, module_name):
+    """
+    reads file source and loads it as a module
+
+    :param source: file to load
+    :param module_name: name of module to register in sys.modules
+    :return: loaded module
+    """
+
+    spec = importlib.util.spec_from_file_location(module_name, source)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    spec.loader.exec_module(module)
+
+    return module
+
+
 class StableDiffusion:
     # This class is responsible for executing image generation and creating
     # /managing a set of compiled modules to run Stable Diffusion. The init
@@ -85,6 +105,18 @@ class StableDiffusion:
         self.base_model_id = base_model_id
         self.custom_vae = custom_vae
         self.is_sdxl = "xl" in self.base_model_id.lower()
+        self.is_custom = "custom" in self.base_model_id.lower()
+        if self.is_custom:
+            custom_module = load_script(
+                os.path.join(
+                    get_checkpoints_path("scripts"),
+                    self.base_model_id
+                ),
+                "custom_pipeline"
+            )
+            self.turbine_pipe = custom_module.StudioPipeline
+            self.model_map = custom_module.MODEL_MAP
+
         if self.is_sdxl:
             self.turbine_pipe = SharkSDXLPipeline
             self.model_map = EMPTY_SDXL_MAP
