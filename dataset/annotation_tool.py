@@ -10,7 +10,7 @@ from utils import get_datasets
 
 shark_root = Path(__file__).parent.parent
 demo_css = shark_root.joinpath("web/demo.css").resolve()
-nodlogo_loc = shark_root.joinpath("web/models/stable_diffusion/logos/nod-logo.png")
+nodlogo_loc = shark_root.joinpath("web/models/stable_diffusion/logos/amd-logo.jpg")
 
 
 with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:

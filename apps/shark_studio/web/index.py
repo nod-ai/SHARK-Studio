@@ -76,8 +76,8 @@ def launch_webui(address):
 def webui():
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
     from apps.shark_studio.web.ui.utils import (
-        nodicon_loc,
-        nodlogo_loc,
+        amdicon_loc,
+        amdlogo_loc,
     )
 
     launch_api = cmd_opts.api
@@ -172,9 +172,9 @@ def webui():
         analytics_enabled=False,
         title="Shark Studio 2.0 Beta",
     ) as studio_web:
-        nod_logo = Image.open(nodlogo_loc)
+        amd_logo = Image.open(amdlogo_loc)
         gr.Image(
-            value=nod_logo,
+            value=amd_logo,
             show_label=False,
             interactive=False,
             elem_id="tab_bar_logo",
@@ -209,7 +209,7 @@ def webui():
         inbrowser=True,
         server_name="0.0.0.0",
         server_port=cmd_opts.server_port,
-        favicon_path=nodicon_loc,
+        favicon_path=amdicon_loc,
     )
 
 
