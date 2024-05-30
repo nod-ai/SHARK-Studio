@@ -10,8 +10,8 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-nodlogo_loc = resource_path("logos/nod-logo.png")
-nodicon_loc = resource_path("logos/nod-icon.png")
+amdlogo_loc = resource_path("logos/amd-logo.jpg")
+amdicon_loc = resource_path("logos/amd-icon.jpg")
 
 
 class HSLHue(IntEnum):

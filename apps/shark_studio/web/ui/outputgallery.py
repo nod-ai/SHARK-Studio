@@ -10,7 +10,7 @@ from apps.shark_studio.web.utils.file_utils import (
     get_generated_imgs_path,
     get_generated_imgs_todays_subdir,
 )
-from apps.shark_studio.web.ui.utils import nodlogo_loc
+from apps.shark_studio.web.ui.utils import amdlogo_loc
 from apps.shark_studio.web.utils.metadata import displayable_metadata
 
 # -- Functions for file, directory and image info querying
@@ -60,7 +60,7 @@ def output_subdirs() -> list[str]:
 # --- Define UI layout for Gradio
 
 with gr.Blocks() as outputgallery_element:
-    nod_logo = Image.open(nodlogo_loc)
+    amd_logo = Image.open(amdlogo_loc)
 
     with gr.Row(elem_id="outputgallery_gallery"):
         # needed to workaround gradio issue:
@@ -73,7 +73,7 @@ with gr.Blocks() as outputgallery_element:
         with gr.Column(scale=6):
             logo = gr.Image(
                 label="Getting subdirectories...",
-                value=nod_logo,
+                value=amd_logo,
                 interactive=False,
                 visible=True,
                 show_label=True,
