@@ -79,6 +79,7 @@ def get_available_devices():
     available_devices.extend(cuda_devices)
     hip_devices = get_devices_by_name("hip")
     available_devices.extend(hip_devices)
+
     for idx, device_str in enumerate(available_devices):
         if "AMD Radeon(TM) Graphics =>" in device_str:
             igpu_id_candidates = [
