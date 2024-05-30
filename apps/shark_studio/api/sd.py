@@ -58,7 +58,6 @@ EMPTY_FLAGS = {
 }
 
 
-
 def load_script(source, module_name):
     """
     reads file source and loads it as a module
@@ -108,11 +107,8 @@ class StableDiffusion:
         self.is_custom = "custom" in self.base_model_id.lower()
         if self.is_custom:
             custom_module = load_script(
-                os.path.join(
-                    get_checkpoints_path("scripts"),
-                    self.base_model_id
-                ),
-                "custom_pipeline"
+                os.path.join(get_checkpoints_path("scripts"), self.base_model_id),
+                "custom_pipeline",
             )
             self.turbine_pipe = custom_module.StudioPipeline
             self.model_map = custom_module.MODEL_MAP
