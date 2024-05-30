@@ -78,6 +78,7 @@ class StableDiffusion:
         num_loras: int = 0,
         import_ir: bool = True,
         is_controlled: bool = False,
+        external_weights: str = "safetensors",
     ):
         self.precision = precision
         self.compiled_pipeline = False
@@ -90,7 +91,6 @@ class StableDiffusion:
         else:
             self.turbine_pipe = SharkSDPipeline
             self.model_map = EMPTY_SD_MAP
-        external_weights = "safetensors"
         max_length = 64
         target_backend, self.rt_device, triple = parse_device(device, target_triple)
         pipe_id_list = [
@@ -122,9 +122,12 @@ class StableDiffusion:
         if triple in ["gfx940", "gfx942", "gfx90a"]:
             decomp_attn = False
             attn_spec = "mfma"
-        elif triple in ["gfx1100", "gfx1103"]:
+        elif triple in ["gfx1100", "gfx1103", "gfx1150"]:
             decomp_attn = False
             attn_spec = "wmma"
+            if triple in ["gfx1103", "gfx1150"]:
+                # external weights have issues on igpu
+                external_weights = None
         elif target_backend == "llvm-cpu":
             decomp_attn = False
 
@@ -285,8 +288,6 @@ def shark_sd_fn(
     if not isinstance(sd_init_image, list):
         sd_init_image = [sd_init_image]
     is_img2img = True if sd_init_image[0] is not None else False
-
-    print("\n[LOG] Performing Stable Diffusion Pipeline setup...")
 
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
     import apps.shark_studio.web.utils.globals as global_obj
