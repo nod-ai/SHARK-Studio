@@ -120,7 +120,7 @@ def pull_sd_configs(
     device,
     target_triple,
     ondemand,
-    repeatable_seeds,
+    compiled_pipeline,
     resample_type,
     controlnets,
     embeddings,
@@ -179,7 +179,7 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
         sd_json["device"],
         sd_json["target_triple"],
         sd_json["ondemand"],
-        sd_json["repeatable_seeds"],
+        sd_json["compiled_pipeline"],
         sd_json["resample_type"],
         sd_json["controlnets"],
         sd_json["embeddings"],
@@ -606,9 +606,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     interactive=True,
                                     visible=True,
                                 )
-                                repeatable_seeds = gr.Checkbox(
-                                    cmd_opts.repeatable_seeds,
-                                    label="Use Repeatable Seeds for Batches",
+                                compiled_pipeline = gr.Checkbox(
+                                    False,
+                                    label="Faster txt2img (SDXL only)",
                                 )
                             with gr.Row():
                                 stable_diffusion = gr.Button("Start")
@@ -685,7 +685,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                         device,
                                         target_triple,
                                         ondemand,
-                                        repeatable_seeds,
+                                        compiled_pipeline,
                                         resample_type,
                                         cnet_config,
                                         embeddings_config,
@@ -741,7 +741,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             device,
             target_triple,
             ondemand,
-            repeatable_seeds,
+            compiled_pipeline,
             resample_type,
             cnet_config,
             embeddings_config,

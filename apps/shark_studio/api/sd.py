@@ -181,12 +181,17 @@ class StableDiffusion:
         print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
         gc.collect()
 
-    def prepare_pipe(self, custom_weights, adapters, embeddings, is_img2img):
+    def prepare_pipe(
+        self, custom_weights, adapters, embeddings, is_img2img, compiled_pipeline
+    ):
         print(f"\n[LOG] Preparing pipeline...")
         self.is_img2img = False
         mlirs = copy.deepcopy(self.model_map)
         vmfbs = copy.deepcopy(self.model_map)
         weights = copy.deepcopy(self.model_map)
+        if not self.is_sdxl:
+            compiled_pipeline = False
+        self.compiled_pipeline = compiled_pipeline
 
         if custom_weights:
             custom_weights = os.path.join(
@@ -253,7 +258,6 @@ class StableDiffusion:
         guidance_scale,
         seed,
         ondemand,
-        repeatable_seeds,
         resample_type,
         control_mode,
         hints,
@@ -306,7 +310,7 @@ def shark_sd_fn(
     device: str,
     target_triple: str,
     ondemand: bool,
-    repeatable_seeds: bool,
+    compiled_pipeline: bool,
     resample_type: str,
     controlnets: dict,
     embeddings: dict,
@@ -369,6 +373,7 @@ def shark_sd_fn(
         "adapters": adapters,
         "embeddings": embeddings,
         "is_img2img": is_img2img,
+        "compiled_pipeline": compiled_pipeline,
     }
     submit_run_kwargs = {
         "prompt": prompt,
@@ -378,7 +383,6 @@ def shark_sd_fn(
         "guidance_scale": guidance_scale,
         "seed": seed,
         "ondemand": ondemand,
-        "repeatable_seeds": repeatable_seeds,
         "resample_type": resample_type,
         "control_mode": control_mode,
         "hints": hints,
