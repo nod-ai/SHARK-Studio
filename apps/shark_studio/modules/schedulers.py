@@ -24,47 +24,47 @@ def get_schedulers(model_id):
         model_id,
         subfolder="scheduler",
     )
-    schedulers["DDPM"] = DDPMScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
-    schedulers["KDPM2Discrete"] = KDPM2DiscreteScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
-    schedulers["LMSDiscrete"] = LMSDiscreteScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
-    schedulers["DDIM"] = DDIMScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
-    schedulers["LCMScheduler"] = LCMScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
-    schedulers["DPMSolverMultistep"] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id, subfolder="scheduler", algorithm_type="dpmsolver"
-    )
-    schedulers["DPMSolverMultistep++"] = DPMSolverMultistepScheduler.from_pretrained(
-        model_id, subfolder="scheduler", algorithm_type="dpmsolver++"
-    )
-    schedulers["DPMSolverMultistepKarras"] = (
-        DPMSolverMultistepScheduler.from_pretrained(
-            model_id,
-            subfolder="scheduler",
-            use_karras_sigmas=True,
-        )
-    )
-    schedulers["DPMSolverMultistepKarras++"] = (
-        DPMSolverMultistepScheduler.from_pretrained(
-            model_id,
-            subfolder="scheduler",
-            algorithm_type="dpmsolver++",
-            use_karras_sigmas=True,
-        )
-    )
+    # schedulers["DDPM"] = DDPMScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
+    # schedulers["KDPM2Discrete"] = KDPM2DiscreteScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
+    # schedulers["LMSDiscrete"] = LMSDiscreteScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
+    # schedulers["DDIM"] = DDIMScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
+    # schedulers["LCMScheduler"] = LCMScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
+    # schedulers["DPMSolverMultistep"] = DPMSolverMultistepScheduler.from_pretrained(
+    #     model_id, subfolder="scheduler", algorithm_type="dpmsolver"
+    # )
+    # schedulers["DPMSolverMultistep++"] = DPMSolverMultistepScheduler.from_pretrained(
+    #     model_id, subfolder="scheduler", algorithm_type="dpmsolver++"
+    # )
+    # schedulers["DPMSolverMultistepKarras"] = (
+    #     DPMSolverMultistepScheduler.from_pretrained(
+    #         model_id,
+    #         subfolder="scheduler",
+    #         use_karras_sigmas=True,
+    #     )
+    # )
+    # schedulers["DPMSolverMultistepKarras++"] = (
+    #     DPMSolverMultistepScheduler.from_pretrained(
+    #         model_id,
+    #         subfolder="scheduler",
+    #         algorithm_type="dpmsolver++",
+    #         use_karras_sigmas=True,
+    #     )
+    # )
     schedulers["EulerDiscrete"] = EulerDiscreteScheduler.from_pretrained(
         model_id,
         subfolder="scheduler",
@@ -75,24 +75,24 @@ def get_schedulers(model_id):
             subfolder="scheduler",
         )
     )
-    schedulers["DEISMultistep"] = DEISMultistepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
-    schedulers["DPMSolverSinglestep"] = DPMSolverSinglestepScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
-    schedulers["KDPM2AncestralDiscrete"] = (
-        KDPM2AncestralDiscreteScheduler.from_pretrained(
-            model_id,
-            subfolder="scheduler",
-        )
-    )
-    schedulers["HeunDiscrete"] = HeunDiscreteScheduler.from_pretrained(
-        model_id,
-        subfolder="scheduler",
-    )
+    # schedulers["DEISMultistep"] = DEISMultistepScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
+    # schedulers["DPMSolverSinglestep"] = DPMSolverSinglestepScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
+    # schedulers["KDPM2AncestralDiscrete"] = (
+    #     KDPM2AncestralDiscreteScheduler.from_pretrained(
+    #         model_id,
+    #         subfolder="scheduler",
+    #     )
+    # )
+    # schedulers["HeunDiscrete"] = HeunDiscreteScheduler.from_pretrained(
+    #     model_id,
+    #     subfolder="scheduler",
+    # )
     return schedulers
 
 
@@ -102,17 +102,17 @@ def export_scheduler_model(model):
 
 scheduler_model_map = {
     "PNDM": export_scheduler_model("PNDMScheduler"),
-    "DPMSolverSDE": export_scheduler_model("DpmSolverSDEScheduler"),
+    # "DPMSolverSDE": export_scheduler_model("DpmSolverSDEScheduler"),
     "EulerDiscrete": export_scheduler_model("EulerDiscreteScheduler"),
     "EulerAncestralDiscrete": export_scheduler_model("EulerAncestralDiscreteScheduler"),
-    "LCM": export_scheduler_model("LCMScheduler"),
-    "LMSDiscrete": export_scheduler_model("LMSDiscreteScheduler"),
-    "DDPM": export_scheduler_model("DDPMScheduler"),
-    "DDIM": export_scheduler_model("DDIMScheduler"),
-    "DPMSolverMultistep": export_scheduler_model("DPMSolverMultistepScheduler"),
-    "KDPM2Discrete": export_scheduler_model("KDPM2DiscreteScheduler"),
-    "DEISMultistep": export_scheduler_model("DEISMultistepScheduler"),
-    "DPMSolverSinglestep": export_scheduler_model("DPMSolverSingleStepScheduler"),
-    "KDPM2AncestralDiscrete": export_scheduler_model("KDPM2AncestralDiscreteScheduler"),
-    "HeunDiscrete": export_scheduler_model("HeunDiscreteScheduler"),
+    # "LCM": export_scheduler_model("LCMScheduler"),
+    # "LMSDiscrete": export_scheduler_model("LMSDiscreteScheduler"),
+    # "DDPM": export_scheduler_model("DDPMScheduler"),
+    # "DDIM": export_scheduler_model("DDIMScheduler"),
+    # "DPMSolverMultistep": export_scheduler_model("DPMSolverMultistepScheduler"),
+    # "KDPM2Discrete": export_scheduler_model("KDPM2DiscreteScheduler"),
+    # "DEISMultistep": export_scheduler_model("DEISMultistepScheduler"),
+    # "DPMSolverSinglestep": export_scheduler_model("DPMSolverSingleStepScheduler"),
+    # "KDPM2AncestralDiscrete": export_scheduler_model("KDPM2AncestralDiscreteScheduler"),
+    # "HeunDiscrete": export_scheduler_model("HeunDiscreteScheduler"),
 }

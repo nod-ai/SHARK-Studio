@@ -32,7 +32,7 @@ from apps.shark_studio.modules.img_processing import (
 )
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from apps.shark_studio.web.ui.utils import (
-    nodlogo_loc,
+    amdlogo_loc,
     none_to_str_none,
     str_none_to_none,
 )
@@ -282,6 +282,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     elem_id="custom_model",
                     value="stabilityai/stable-diffusion-2-1-base",
                     choices=sd_default_models,
+                    allow_custom_value=True,
                 )  # base_model_id
                 with gr.Row():
                     height = gr.Slider(
