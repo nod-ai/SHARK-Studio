@@ -19,6 +19,7 @@ from apps.shark_studio.web.utils.file_utils import (
 from apps.shark_studio.api.sd import (
     shark_sd_fn_dict_input,
     cancel_sd,
+    unload_sd,
 )
 from apps.shark_studio.api.controlnet import (
     cnet_preview,
@@ -611,11 +612,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 )
                             with gr.Row():
                                 stable_diffusion = gr.Button("Start")
-                                random_seed = gr.Button("Randomize Seed")
-                                random_seed.click(
-                                    lambda: -1,
-                                    inputs=[],
-                                    outputs=[seed],
+                                unload = gr.Button("Unload Models")
+                                unload.click(
+                                    fn=unload_sd,
                                     queue=False,
                                     show_progress=False,
                                 )

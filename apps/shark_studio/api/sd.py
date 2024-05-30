@@ -434,6 +434,14 @@ def shark_sd_fn(
     return (generated_imgs, "")
 
 
+def unload_sd():
+    print("Unloading models.")
+    import apps.shark_studio.web.utils.globals as global_obj
+
+    global_obj.clear_cache()
+    gc.collect()
+
+
 def cancel_sd():
     print("Inject call to cancel longer API calls.")
     return
