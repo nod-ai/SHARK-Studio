@@ -367,7 +367,7 @@ footer {
 #tab_bar_logo .image-container {
     object-fit: scale-down;
     position: absolute !important;
-    top: 14px;
+    top: 10px;
     right: 0px;
     height: 36px;
 }
