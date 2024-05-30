@@ -32,7 +32,7 @@ from apps.shark_studio.modules.img_processing import (
 )
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from apps.shark_studio.web.ui.utils import (
-    nodlogo_loc,
+    amdlogo_loc,
     none_to_str_none,
     str_none_to_none,
 )
