@@ -14,7 +14,7 @@ from apps.shark_studio.web.utils.file_utils import (
     get_checkpoints_path,
     get_checkpoints,
     get_configs_path,
-    write_default_sd_config,
+    write_default_sd_configs,
 )
 from apps.shark_studio.api.sd import (
     shark_sd_fn_dict_input,
@@ -257,7 +257,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         allow_custom_value=False,
                     )
                     target_triple = gr.Textbox(
-                        elem_id="triple",
+                        elem_id="target_triple",
                         label="Architecture",
                         value="",
                     )
@@ -629,7 +629,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     get_configs_path(),
                                     "default_sd_config.json",
                                 )
-                                write_default_sd_config(default_config_file)
+                                write_default_sd_configs(get_configs_path())
                                 sd_json = gr.JSON(
                                     elem_classes=["fill"],
                                     value=view_json_file(default_config_file),
