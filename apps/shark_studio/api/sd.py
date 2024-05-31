@@ -286,7 +286,7 @@ def shark_sd_fn_dict_input(
         if key == "seed":
             sd_kwargs[key] = int(sd_kwargs[key])
 
-    #TODO: move these checks into the UI code so we don't have gradio warnings in a generalized dict input function.
+    # TODO: move these checks into the UI code so we don't have gradio warnings in a generalized dict input function.
     if sd_kwargs["device"] == "":
         gr.Warning("No device specified. Please specify a device.")
         return None, ""
@@ -301,11 +301,15 @@ def shark_sd_fn_dict_input(
             gr.Warning("Max steps for sdxl-turbo is 10. 1 to 4 steps are recommended.")
             return None, ""
         if sd_kwargs["guidance_scale"] > 3:
-            gr.Warning("sdxl-turbo CFG scale should be less than 2.0 if using negative prompt, 0 otherwise.")
+            gr.Warning(
+                "sdxl-turbo CFG scale should be less than 2.0 if using negative prompt, 0 otherwise."
+            )
             return None, ""
     if sd_kwargs["target_triple"] == "":
         if parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[2] == "":
-            gr.Warning("Target device architecture could not be inferred. Please specify a target triple, e.g. 'gfx1100' for a Radeon 7900xtx.")
+            gr.Warning(
+                "Target device architecture could not be inferred. Please specify a target triple, e.g. 'gfx1100' for a Radeon 7900xtx."
+            )
             return None, ""
 
     generated_imgs = yield from shark_sd_fn(**sd_kwargs)
