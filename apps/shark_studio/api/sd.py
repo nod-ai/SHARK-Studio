@@ -262,8 +262,6 @@ class StableDiffusion:
         control_mode,
         hints,
     ):
-        if seed == -1:
-            seed = randint(0, sys.maxsize)
         img = self.sd_pipe.generate_images(
             prompt,
             negative_prompt,
@@ -458,8 +456,6 @@ def shark_sd_fn(
                 sd_kwargs,
             )
         generated_imgs.extend(out_imgs)
-        # TODO: make seed changes over batch counts more configurable.
-        submit_run_kwargs["seed"] = submit_run_kwargs["seed"] + 1
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )
