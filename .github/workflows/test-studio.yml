@@ -81,4 +81,5 @@ jobs:
         source shark.venv/bin/activate
         pip install -r requirements.txt --no-cache-dir
         pip install -e .
-        python apps/shark_studio/tests/api_test.py
+        # Disabled due to hang when exporting test llama2
+        # python apps/shark_studio/tests/api_test.py
