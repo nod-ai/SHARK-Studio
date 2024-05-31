@@ -287,11 +287,7 @@ def shark_sd_fn_dict_input(
             sd_kwargs[key] = int(sd_kwargs[key])
 
     # TODO: move these checks into the UI code so we don't have gradio warnings in a generalized dict input function.
-<<<<<<< HEAD
     if not sd_kwargs["device"]:
-=======
-    if sd_kwargs["device"] == "":
->>>>>>> e41cf1af (Formatting)
         gr.Warning("No device specified. Please specify a device.")
         return None, ""
     if sd_kwargs["height"] not in [512, 1024]:
