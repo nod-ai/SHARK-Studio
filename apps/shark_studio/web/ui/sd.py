@@ -19,6 +19,7 @@ from apps.shark_studio.web.utils.file_utils import (
 from apps.shark_studio.api.sd import (
     shark_sd_fn_dict_input,
     cancel_sd,
+    unload_sd,
 )
 from apps.shark_studio.api.controlnet import (
     cnet_preview,
@@ -119,7 +120,7 @@ def pull_sd_configs(
     device,
     target_triple,
     ondemand,
-    repeatable_seeds,
+    compiled_pipeline,
     resample_type,
     controlnets,
     embeddings,
@@ -178,7 +179,7 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
         sd_json["device"],
         sd_json["target_triple"],
         sd_json["ondemand"],
-        sd_json["repeatable_seeds"],
+        sd_json["compiled_pipeline"],
         sd_json["resample_type"],
         sd_json["controlnets"],
         sd_json["embeddings"],
@@ -588,21 +589,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     preview=True,
                                 )
                             with gr.Row():
-                                std_output = gr.Textbox(
-                                    value=f"{sd_model_info}\n"
-                                    f"Images will be saved at "
-                                    f"{get_generated_imgs_path()}",
-                                    lines=2,
-                                    elem_id="std_output",
-                                    show_label=True,
-                                    label="Log",
-                                    show_copy_button=True,
-                                )
-                                sd_element.load(
-                                    logger.read_sd_logs, None, std_output, every=1
-                                )
-                                sd_status = gr.Textbox(visible=False)
-                            with gr.Row():
                                 batch_count = gr.Slider(
                                     1,
                                     100,
@@ -620,17 +606,15 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     interactive=True,
                                     visible=True,
                                 )
-                                repeatable_seeds = gr.Checkbox(
-                                    cmd_opts.repeatable_seeds,
-                                    label="Use Repeatable Seeds for Batches",
+                                compiled_pipeline = gr.Checkbox(
+                                    False,
+                                    label="Faster txt2img (SDXL only)",
                                 )
                             with gr.Row():
                                 stable_diffusion = gr.Button("Start")
-                                random_seed = gr.Button("Randomize Seed")
-                                random_seed.click(
-                                    lambda: -1,
-                                    inputs=[],
-                                    outputs=[seed],
+                                unload = gr.Button("Unload Models")
+                                unload.click(
+                                    fn=unload_sd,
                                     queue=False,
                                     show_progress=False,
                                 )
@@ -701,7 +685,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                         device,
                                         target_triple,
                                         ondemand,
-                                        repeatable_seeds,
+                                        compiled_pipeline,
                                         resample_type,
                                         cnet_config,
                                         embeddings_config,
@@ -718,6 +702,22 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             inputs=[sd_json, sd_config_name],
                             outputs=[sd_config_name],
                         )
+                    with gr.Tab(label="Log", id=103) as sd_tab_log:
+                        with gr.Row():
+                            std_output = gr.Textbox(
+                                value=f"{sd_model_info}\n"
+                                f"Images will be saved at "
+                                f"{get_generated_imgs_path()}",
+                                lines=2,
+                                elem_id="std_output",
+                                show_label=True,
+                                label="Log",
+                                show_copy_button=True,
+                            )
+                            sd_element.load(
+                                logger.read_sd_logs, None, std_output, every=1
+                            )
+                            sd_status = gr.Textbox(visible=False)
 
     pull_kwargs = dict(
         fn=pull_sd_configs,
@@ -741,7 +741,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             device,
             target_triple,
             ondemand,
-            repeatable_seeds,
+            compiled_pipeline,
             resample_type,
             cnet_config,
             embeddings_config,

@@ -138,6 +138,7 @@ with gr.Blocks(title="Chat") as chat_element:
                 label="Run in streaming mode (requires recompilation)",
                 value=True,
                 interactive=False,
+                visible=False,
             )
             prompt_prefix = gr.Checkbox(
                 label="Add System Prompt",

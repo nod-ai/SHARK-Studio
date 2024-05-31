@@ -104,7 +104,7 @@ class StableDiffusion:
         self.base_model_id = base_model_id
         self.custom_vae = custom_vae
         self.is_sdxl = "xl" in self.base_model_id.lower()
-        self.is_custom = "custom" in self.base_model_id.lower()
+        self.is_custom = ".py" in self.base_model_id.lower()
         if self.is_custom:
             custom_module = load_script(
                 os.path.join(get_checkpoints_path("scripts"), self.base_model_id),
@@ -112,8 +112,7 @@ class StableDiffusion:
             )
             self.turbine_pipe = custom_module.StudioPipeline
             self.model_map = custom_module.MODEL_MAP
-
-        if self.is_sdxl:
+        elif self.is_sdxl:
             self.turbine_pipe = SharkSDXLPipeline
             self.model_map = EMPTY_SDXL_MAP
         else:
@@ -181,12 +180,17 @@ class StableDiffusion:
         print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
         gc.collect()
 
-    def prepare_pipe(self, custom_weights, adapters, embeddings, is_img2img):
+    def prepare_pipe(
+        self, custom_weights, adapters, embeddings, is_img2img, compiled_pipeline
+    ):
         print(f"\n[LOG] Preparing pipeline...")
         self.is_img2img = False
         mlirs = copy.deepcopy(self.model_map)
         vmfbs = copy.deepcopy(self.model_map)
         weights = copy.deepcopy(self.model_map)
+        if not self.is_sdxl:
+            compiled_pipeline = False
+        self.compiled_pipeline = compiled_pipeline
 
         if custom_weights:
             custom_weights = os.path.join(
@@ -253,7 +257,6 @@ class StableDiffusion:
         guidance_scale,
         seed,
         ondemand,
-        repeatable_seeds,
         resample_type,
         control_mode,
         hints,
@@ -272,7 +275,7 @@ class StableDiffusion:
 def shark_sd_fn_dict_input(
     sd_kwargs: dict,
 ):
-    print("[LOG] Submitting Request...")
+    print("\n[LOG] Submitting Request...")
 
     for key in sd_kwargs:
         if sd_kwargs[key] in [None, []]:
@@ -282,9 +285,8 @@ def shark_sd_fn_dict_input(
         if key == "seed":
             sd_kwargs[key] = int(sd_kwargs[key])
 
-    for i in range(1):
-        generated_imgs = yield from shark_sd_fn(**sd_kwargs)
-        yield generated_imgs
+    generated_imgs = yield from shark_sd_fn(**sd_kwargs)
+    return generated_imgs
 
 
 def shark_sd_fn(
@@ -307,7 +309,7 @@ def shark_sd_fn(
     device: str,
     target_triple: str,
     ondemand: bool,
-    repeatable_seeds: bool,
+    compiled_pipeline: bool,
     resample_type: str,
     controlnets: dict,
     embeddings: dict,
@@ -370,6 +372,7 @@ def shark_sd_fn(
         "adapters": adapters,
         "embeddings": embeddings,
         "is_img2img": is_img2img,
+        "compiled_pipeline": compiled_pipeline,
     }
     submit_run_kwargs = {
         "prompt": prompt,
@@ -379,7 +382,6 @@ def shark_sd_fn(
         "guidance_scale": guidance_scale,
         "seed": seed,
         "ondemand": ondemand,
-        "repeatable_seeds": repeatable_seeds,
         "resample_type": resample_type,
         "control_mode": control_mode,
         "hints": hints,
@@ -412,22 +414,35 @@ def shark_sd_fn(
     for current_batch in range(batch_count):
         start_time = time.time()
         out_imgs = global_obj.get_sd_obj().generate_images(**submit_run_kwargs)
+        if not isinstance(out_imgs, list):
+            out_imgs = [out_imgs]
         # total_time = time.time() - start_time
         # text_output = f"Total image(s) generation time: {total_time:.4f}sec"
         # print(f"\n[LOG] {text_output}")
         # if global_obj.get_sd_status() == SD_STATE_CANCEL:
         #     break
         # else:
-        save_output_img(
-            out_imgs[current_batch],
-            seed,
-            sd_kwargs,
-        )
+        for batch in range(batch_size):
+            save_output_img(
+                out_imgs[batch],
+                seed,
+                sd_kwargs,
+            )
         generated_imgs.extend(out_imgs)
+        # TODO: make seed changes over batch counts more configurable.
+        submit_run_kwargs["seed"] = submit_run_kwargs["seed"] + 1
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )
-    return generated_imgs, ""
+    return (generated_imgs, "")
+
+
+def unload_sd():
+    print("Unloading models.")
+    import apps.shark_studio.web.utils.globals as global_obj
+
+    global_obj.clear_cache()
+    gc.collect()
 
 
 def cancel_sd():
