@@ -45,9 +45,9 @@ from apps.shark_studio.modules import logger
 import apps.shark_studio.web.utils.globals as global_obj
 
 sd_default_models = [
-    "runwayml/stable-diffusion-v1-5",
-    "stabilityai/stable-diffusion-2-1-base",
-    "stabilityai/stable-diffusion-2-1",
+    #"runwayml/stable-diffusion-v1-5",
+    #"stabilityai/stable-diffusion-2-1-base",
+    #"stabilityai/stable-diffusion-2-1",
     "stabilityai/stable-diffusion-xl-base-1.0",
     "stabilityai/sdxl-turbo",
 ]
@@ -158,6 +158,8 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
                 sd_image = [Image.open(i, mode="r")]
     else:
         sd_image = None
+    if not sd_json["device"]:
+        sd_json["device"] = gr.update()
 
     return [
         sd_json["prompt"][0],
@@ -256,17 +258,18 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         choices=global_obj.get_device_list(),
                         allow_custom_value=False,
                     )
-                    target_triple = gr.Textbox(
-                        elem_id="target_triple",
-                        label="Architecture",
-                        value="",
-                    )
                     with gr.Row():
                         ondemand = gr.Checkbox(
                             value=cmd_opts.lowvram,
                             label="Low VRAM",
                             interactive=True,
+                            visible=False,
                         )
+                        target_triple = gr.Textbox(
+                            elem_id="target_triple",
+                            label="Architecture",
+                            value="",
+                        )   
                         precision = gr.Radio(
                             label="Precision",
                             value=cmd_opts.precision,
@@ -301,7 +304,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         label="\U00002194\U0000FE0F Width",
                     )
                 with gr.Accordion(
-                    label="\U00002696\U0000FE0F Model Weights", open=False
+                    label="\U00002696\U0000FE0F Model Weights", open=False, visible=False, #DEMO
                 ):
                     with gr.Column():
                         custom_weights = gr.Dropdown(
@@ -369,7 +372,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             show_progress=False,
                         )
                 with gr.Accordion(
-                    label="\U0001F9EA\U0000FE0F Input Image Processing", open=False
+                    label="\U0001F9EA\U0000FE0F Input Image Processing", open=False, visible=False
                 ):
                     strength = gr.Slider(
                         0,
@@ -558,7 +561,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         lambda: gr.Tabs(selected=101),
                         outputs=[sd_tabs],
                     )
-                    with gr.Tab(label="Input Image", id=100) as sd_tab_init_image:
+                    with gr.Tab(label="Input Image", id=100, visible=False) as sd_tab_init_image: #DEMO
                         with gr.Column(elem_classes=["sd-right-panel"]):
                             with gr.Row(elem_classes=["fill"]):
                                 # TODO: make this import image prompt info if it exists
@@ -604,7 +607,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     step=1,
                                     label="Batch Size",
                                     interactive=True,
-                                    visible=True,
+                                    visible=False, #DEMO
                                 )
                                 compiled_pipeline = gr.Checkbox(
                                     False,
