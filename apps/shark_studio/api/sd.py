@@ -262,6 +262,8 @@ class StableDiffusion:
         control_mode,
         hints,
     ):
+        if seed == -1:
+            seed = randint(0, sys.maxsize)
         img = self.sd_pipe.generate_images(
             prompt,
             negative_prompt,

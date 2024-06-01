@@ -71,7 +71,12 @@ def save_irpa(weights_path, prepend_str):
         new_key = prepend_str + key
         archive.add_tensor(new_key, weights[key])
 
-    irpa_file = weights_path.replace(".safetensors", ".irpa")
+    if "safetensors" in weights_path:
+        irpa_file = weights_path.replace(".safetensors", ".irpa")
+    elif "irpa" in weights_path:
+        irpa_file = weights_path
+    else:
+        return Exception("Invalid file format. Please provide a .safetensors or .irpa file.")
     archive.save(irpa_file)
     return irpa_file
 
