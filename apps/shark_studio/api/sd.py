@@ -99,7 +99,10 @@ class StableDiffusion:
         import_ir: bool = True,
         is_controlled: bool = False,
         external_weights: str = "safetensors",
+        progress=gr.Progress(),
     ):
+        progress(0, desc="Initializing pipeline...")
+        self.ui_device = device
         self.precision = precision
         self.compiled_pipeline = False
         self.base_model_id = base_model_id
@@ -178,13 +181,19 @@ class StableDiffusion:
             external_weights=external_weights,
             custom_vae=custom_vae,
         )
-        print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
+        progress(1, desc="Pipeline initialized!...")
         gc.collect()
 
     def prepare_pipe(
-        self, custom_weights, adapters, embeddings, is_img2img, compiled_pipeline
+        self,
+        custom_weights,
+        adapters,
+        embeddings,
+        is_img2img,
+        compiled_pipeline,
+        progress=gr.Progress(),
     ):
-        print(f"\n[LOG] Preparing pipeline...")
+
         self.is_img2img = False
         mlirs = copy.deepcopy(self.model_map)
         vmfbs = copy.deepcopy(self.model_map)
@@ -236,17 +245,18 @@ class StableDiffusion:
                         "diffusion_pytorch_model.safetensors",
                     )
                     weights[key] = save_irpa(vae_weights_path, "vae.")
+        progress(0, desc=f"Preparing pipeline for {self.ui_device}...")
 
         vmfbs, weights = self.sd_pipe.check_prepared(
             mlirs, vmfbs, weights, interactive=False
         )
-        print(f"\n[LOG] Loading pipeline to device {self.rt_device}.")
+        progress(1, desc=f"Artifacts ready!")
+        progress(0, desc=f"Loading pipeline on device {self.ui_device}...")
+
         self.sd_pipe.load_pipeline(
             vmfbs, weights, self.rt_device, self.compiled_pipeline
         )
-        print(
-            "\n[LOG] Pipeline successfully prepared for runtime. Generating images..."
-        )
+        progress(1, desc="Pipeline loaded!")
         return
 
     def generate_images(
@@ -261,7 +271,9 @@ class StableDiffusion:
         resample_type,
         control_mode,
         hints,
+        progress=gr.Progress(track_tqdm=True),
     ):
+        progress(0, desc="Generating images...")
         img = self.sd_pipe.generate_images(
             prompt,
             negative_prompt,
@@ -270,12 +282,11 @@ class StableDiffusion:
             seed,
             return_imgs=True,
         )
+        progress(1, desc="Image generation complete!")
         return img
 
 
-def shark_sd_fn_dict_input(
-    sd_kwargs: dict,
-):
+def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
     print("\n[LOG] Submitting Request...")
 
     for key in sd_kwargs:
@@ -340,6 +351,8 @@ def shark_sd_fn(
     resample_type: str,
     controlnets: dict,
     embeddings: dict,
+    seed_increment: str | int = 1,
+    progress=gr.Progress(),
 ):
     sd_kwargs = locals()
     if not isinstance(sd_init_image, list):
@@ -438,6 +451,8 @@ def shark_sd_fn(
         global_obj.get_sd_obj().prepare_pipe(**submit_prep_kwargs)
 
     generated_imgs = []
+    if seed == -1:
+        seed = randint(0, sys.maxsize)
     for current_batch in range(batch_count):
         start_time = time.time()
         out_imgs = global_obj.get_sd_obj().generate_images(**submit_run_kwargs)
@@ -456,10 +471,18 @@ def shark_sd_fn(
                 sd_kwargs,
             )
         generated_imgs.extend(out_imgs)
+        seed = get_next_seed(seed, seed_increment)
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )
     return (generated_imgs, "")
+
+
+def get_next_seed(seed, seed_increment):
+    if isinstance(seed_increment, int):
+        return int(seed + seed_increment)
+    elif seed_increment == "random":
+        return randint(0, sys.maxsize)
 
 
 def unload_sd():

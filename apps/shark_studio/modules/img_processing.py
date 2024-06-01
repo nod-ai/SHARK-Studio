@@ -33,6 +33,8 @@ def save_output_img(output_img, img_seed, extra_info=None):
 
     if extra_info is None:
         extra_info = {}
+    elif "progress" in extra_info.keys():
+        extra_info.pop("progress")
     generated_imgs_path = Path(
         get_generated_imgs_path(), get_generated_imgs_todays_subdir()
     )

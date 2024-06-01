@@ -54,31 +54,31 @@ def get_available_devices():
     available_devices = []
     rocm_devices = get_devices_by_name("rocm")
     available_devices.extend(rocm_devices)
-    cpu_device = get_devices_by_name("cpu-sync")
-    available_devices.extend(cpu_device)
+    # cpu_device = get_devices_by_name("cpu-sync")
+    # available_devices.extend(cpu_device)
     cpu_device = get_devices_by_name("cpu-task")
     available_devices.extend(cpu_device)
 
-    from shark.iree_utils.vulkan_utils import (
-        get_all_vulkan_devices,
-    )
+    # from shark.iree_utils.vulkan_utils import (
+    #     get_all_vulkan_devices,
+    # )
 
-    vulkaninfo_list = get_all_vulkan_devices()
-    vulkan_devices = []
-    id = 0
-    for device in vulkaninfo_list:
-        vulkan_devices.append(f"{device.strip()} => vulkan://{id}")
-        id += 1
-    if id != 0:
-        print(f"vulkan devices are available.")
+    # vulkaninfo_list = get_all_vulkan_devices()
+    # vulkan_devices = []
+    # id = 0
+    # for device in vulkaninfo_list:
+    #     vulkan_devices.append(f"{device.strip()} => vulkan://{id}")
+    #     id += 1
+    # if id != 0:
+    #     print(f"vulkan devices are available.")
 
-    available_devices.extend(vulkan_devices)
-    metal_devices = get_devices_by_name("metal")
-    available_devices.extend(metal_devices)
-    cuda_devices = get_devices_by_name("cuda")
-    available_devices.extend(cuda_devices)
-    hip_devices = get_devices_by_name("hip")
-    available_devices.extend(hip_devices)
+    # available_devices.extend(vulkan_devices)
+    # metal_devices = get_devices_by_name("metal")
+    # available_devices.extend(metal_devices)
+    # cuda_devices = get_devices_by_name("cuda")
+    # available_devices.extend(cuda_devices)
+    # hip_devices = get_devices_by_name("hip")
+    # available_devices.extend(hip_devices)
 
     for idx, device_str in enumerate(available_devices):
         if "AMD Radeon(TM) Graphics =>" in device_str:

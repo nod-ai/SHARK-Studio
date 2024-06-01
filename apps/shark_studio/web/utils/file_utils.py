@@ -17,8 +17,9 @@ from apps.shark_studio.web.utils.default_configs import default_sd_configs
 def write_default_sd_configs(path):
     for key in default_sd_configs.keys():
         config_fpath = os.path.join(path, key)
-        with open(config_fpath, "w") as f:
-            f.write(default_sd_configs[key])
+        if not os.path.exists(config_fpath):
+            with open(config_fpath, "w") as f:
+                f.write(default_sd_configs[key])
 
 
 def safe_name(name):

@@ -76,7 +76,9 @@ def save_irpa(weights_path, prepend_str):
     elif "irpa" in weights_path:
         irpa_file = weights_path
     else:
-        return Exception("Invalid file format. Please provide a .safetensors or .irpa file.")
+        return Exception(
+            "Invalid file format. Please provide a .safetensors or .irpa file."
+        )
     archive.save(irpa_file)
     return irpa_file
 

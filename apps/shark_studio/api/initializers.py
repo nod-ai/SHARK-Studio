@@ -25,6 +25,14 @@ def imports():
     )
     warnings.filterwarnings(action="ignore", category=UserWarning, module="torchvision")
     warnings.filterwarnings(action="ignore", category=UserWarning, module="torch")
+    warnings.filterwarnings(action="ignore", category=UserWarning, module="diffusers")
+    warnings.filterwarnings(action="ignore", category=FutureWarning, module="diffusers")
+    warnings.filterwarnings(
+        action="ignore", category=FutureWarning, module="huggingface-hub"
+    )
+    warnings.filterwarnings(
+        action="ignore", category=UserWarning, module="huggingface-hub"
+    )
 
     import gradio  # noqa: F401
 

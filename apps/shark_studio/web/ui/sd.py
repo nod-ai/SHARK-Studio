@@ -45,9 +45,9 @@ from apps.shark_studio.modules import logger
 import apps.shark_studio.web.utils.globals as global_obj
 
 sd_default_models = [
-    #"runwayml/stable-diffusion-v1-5",
-    #"stabilityai/stable-diffusion-2-1-base",
-    #"stabilityai/stable-diffusion-2-1",
+    # "runwayml/stable-diffusion-v1-5",
+    # "stabilityai/stable-diffusion-2-1-base",
+    # "stabilityai/stable-diffusion-2-1",
     "stabilityai/stable-diffusion-xl-base-1.0",
     "stabilityai/sdxl-turbo",
 ]
@@ -269,7 +269,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             elem_id="target_triple",
                             label="Architecture",
                             value="",
-                        )   
+                        )
                         precision = gr.Radio(
                             label="Precision",
                             value=cmd_opts.precision,
@@ -304,7 +304,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         label="\U00002194\U0000FE0F Width",
                     )
                 with gr.Accordion(
-                    label="\U00002696\U0000FE0F Model Weights", open=False, visible=False, #DEMO
+                    label="\U00002696\U0000FE0F Model Weights",
+                    open=False,
+                    visible=False,  # DEMO
                 ):
                     with gr.Column():
                         custom_weights = gr.Dropdown(
@@ -372,7 +374,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             show_progress=False,
                         )
                 with gr.Accordion(
-                    label="\U0001F9EA\U0000FE0F Input Image Processing", open=False, visible=False
+                    label="\U0001F9EA\U0000FE0F Input Image Processing",
+                    open=False,
+                    visible=False,
                 ):
                     strength = gr.Slider(
                         0,
@@ -561,7 +565,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         lambda: gr.Tabs(selected=101),
                         outputs=[sd_tabs],
                     )
-                    with gr.Tab(label="Input Image", id=100, visible=False) as sd_tab_init_image: #DEMO
+                    with gr.Tab(
+                        label="Input Image", id=100, visible=False
+                    ) as sd_tab_init_image:  # DEMO
                         with gr.Column(elem_classes=["sd-right-panel"]):
                             with gr.Row(elem_classes=["fill"]):
                                 # TODO: make this import image prompt info if it exists
@@ -607,7 +613,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     step=1,
                                     label="Batch Size",
                                     interactive=True,
-                                    visible=False, #DEMO
+                                    visible=False,  # DEMO
                                 )
                                 compiled_pipeline = gr.Checkbox(
                                     False,
@@ -628,11 +634,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 Path(get_configs_path()).mkdir(
                                     parents=True, exist_ok=True
                                 )
+                                write_default_sd_configs(get_configs_path())
                                 default_config_file = os.path.join(
                                     get_configs_path(),
-                                    "default_sd_config.json",
+                                    "sdxl-turbo.json",
                                 )
-                                write_default_sd_configs(get_configs_path())
                                 sd_json = gr.JSON(
                                     elem_classes=["fill"],
                                     value=view_json_file(default_config_file),

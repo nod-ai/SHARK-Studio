@@ -89,7 +89,7 @@ sdxl_turbo = r"""{
 }"""
 
 default_sd_configs = {
-    "default_sd_config.json": default_sd_config,
+    # "default_sd_config.json": sdxl_turbo,
     "sdxl-30steps.json": sdxl_30steps,
     "sdxl-turbo.json": sdxl_turbo,
 }
