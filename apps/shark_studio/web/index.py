@@ -194,7 +194,7 @@ def webui():
                 sd_element.render()
             with gr.TabItem(label="Output Gallery", id=1):
                 outputgallery_element.render()
-            with gr.TabItem(label="Chat Bot", id=2):
+            with gr.TabItem(label="Chat Bot", id=2, visible=False):
                 chat_element.render()
 
     studio_web.queue()
