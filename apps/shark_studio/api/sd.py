@@ -101,7 +101,7 @@ class StableDiffusion:
         external_weights: str = "safetensors",
         progress=gr.Progress(),
     ):
-        progress(0, desc="Initializing pipeline...")
+        progress(None, desc="Initializing pipeline...")
         self.ui_device = device
         self.precision = precision
         self.compiled_pipeline = False
@@ -181,7 +181,7 @@ class StableDiffusion:
             external_weights=external_weights,
             custom_vae=custom_vae,
         )
-        progress(1, desc="Pipeline initialized!...")
+        progress(None, desc="Pipeline initialized!...")
         gc.collect()
 
     def prepare_pipe(
@@ -245,18 +245,18 @@ class StableDiffusion:
                         "diffusion_pytorch_model.safetensors",
                     )
                     weights[key] = save_irpa(vae_weights_path, "vae.")
-        progress(0, desc=f"Preparing pipeline for {self.ui_device}...")
+        progress(None, desc=f"Preparing pipeline for {self.ui_device}...")
 
         vmfbs, weights = self.sd_pipe.check_prepared(
             mlirs, vmfbs, weights, interactive=False
         )
-        progress(1, desc=f"Artifacts ready!")
-        progress(0, desc=f"Loading pipeline on device {self.ui_device}...")
+        progress(None, desc=f"Artifacts ready!")
+        progress(None, desc=f"Loading pipeline on device {self.ui_device}...")
 
         self.sd_pipe.load_pipeline(
             vmfbs, weights, self.rt_device, self.compiled_pipeline
         )
-        progress(1, desc="Pipeline loaded!")
+        progress(None, desc="Pipeline loaded! Generating images...")
         return
 
     def generate_images(
@@ -271,9 +271,9 @@ class StableDiffusion:
         resample_type,
         control_mode,
         hints,
-        progress=gr.Progress(track_tqdm=True),
+        progress=gr.Progress()
     ):
-        progress(0, desc="Generating images...")
+
         img = self.sd_pipe.generate_images(
             prompt,
             negative_prompt,
@@ -282,7 +282,6 @@ class StableDiffusion:
             seed,
             return_imgs=True,
         )
-        progress(1, desc="Image generation complete!")
         return img
 
 
@@ -453,6 +452,8 @@ def shark_sd_fn(
     generated_imgs = []
     if seed == -1:
         seed = randint(0, sys.maxsize)
+    progress(None, desc=f"Generating...")
+
     for current_batch in range(batch_count):
         start_time = time.time()
         out_imgs = global_obj.get_sd_obj().generate_images(**submit_run_kwargs)

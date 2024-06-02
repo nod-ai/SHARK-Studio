@@ -88,6 +88,8 @@ def get_checkpoints_path(model_type=""):
 def get_checkpoints(model_type="checkpoints"):
     ckpt_files = []
     file_types = checkpoints_filetypes
+    if model_type == "scripts":
+        file_types = ["shark_*.py"]
     if model_type == "lora":
         file_types = file_types + ("*.pt", "*.bin")
     for extn in file_types:
