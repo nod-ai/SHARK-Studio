@@ -51,6 +51,7 @@ sd_default_models = [
     "stabilityai/stable-diffusion-xl-base-1.0",
     "stabilityai/sdxl-turbo",
 ]
+sd_default_models.extend(get_checkpoints(model_type="scripts"))
 
 
 def view_json_file(file_path):
@@ -200,7 +201,7 @@ def save_sd_cfg(config: dict, save_name: str):
         filepath += ".json"
     with open(filepath, mode="w") as f:
         f.write(json.dumps(config))
-    return "..."
+    return save_name
 
 
 def create_canvas(width, height):
@@ -284,7 +285,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     label="\U000026F0\U0000FE0F Base Model",
                     info="Select or enter HF model ID",
                     elem_id="custom_model",
-                    value="stabilityai/stable-diffusion-2-1-base",
+                    value="stabilityai/sdxl-turbo",
                     choices=sd_default_models,
                     allow_custom_value=True,
                 )  # base_model_id
@@ -410,21 +411,21 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     seed = gr.Textbox(
                         value=cmd_opts.seed,
                         label="\U0001F331\U0000FE0F Seed",
-                        info="An integer or a JSON list of integers, -1 for random",
+                        info="An integer, -1 for random",
                         show_copy_button=True,
                     )
                     scheduler = gr.Dropdown(
                         elem_id="scheduler",
                         label="\U0001F4C5\U0000FE0F Scheduler",
                         info="\U000E0020",  # forces same height as seed
-                        value="EulerDiscrete",
+                        value="EulerAncestralDiscrete",
                         choices=scheduler_model_map.keys(),
                         allow_custom_value=False,
                     )
                 with gr.Row():
                     steps = gr.Slider(
                         1,
-                        100,
+                        50,
                         value=cmd_opts.steps,
                         step=1,
                         label="\U0001F3C3\U0000FE0F Steps",
@@ -485,17 +486,17 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             with gr.Row():
                                 canvas_width = gr.Slider(
                                     label="Canvas Width",
-                                    minimum=256,
+                                    minimum=512,
                                     maximum=1024,
                                     value=512,
-                                    step=8,
+                                    step=512,
                                 )
                                 canvas_height = gr.Slider(
                                     label="Canvas Height",
-                                    minimum=256,
+                                    minimum=512,
                                     maximum=1024,
                                     value=512,
-                                    step=8,
+                                    step=512,
                                 )
                             make_canvas = gr.Button(
                                 value="Make Canvas!",
@@ -616,7 +617,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     visible=False,  # DEMO
                                 )
                                 compiled_pipeline = gr.Checkbox(
-                                    False,
+                                    True,
                                     label="Faster txt2img (SDXL only)",
                                 )
                             with gr.Row():
@@ -627,7 +628,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     queue=False,
                                     show_progress=False,
                                 )
-                                stop_batch = gr.Button("Stop")
+                                stop_batch = gr.Button("Stop", visible=False)
                     with gr.Tab(label="Config", id=102) as sd_tab_config:
                         with gr.Column(elem_classes=["sd-right-panel"]):
                             with gr.Row(elem_classes=["fill"]):
@@ -653,7 +654,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                             if cmd_opts.configs_path
                                             else get_configs_path()
                                         ),
-                                        height=75,
+                                        height=200,
                                     )
                                 with gr.Column(scale=1):
                                     save_sd_config = gr.Button(
@@ -664,13 +665,13 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                         size="sm",
                                         components=sd_json,
                                     )
-                            with gr.Row():
-                                sd_config_name = gr.Textbox(
-                                    value="Config Name",
-                                    info="Name of the file this config will be saved to.",
-                                    interactive=True,
-                                    show_label=False,
-                                )
+                            #with gr.Row():
+                                    sd_config_name = gr.Textbox(
+                                        value="Config Name",
+                                        info="Name of the file this config will be saved to.",
+                                        interactive=True,
+                                        show_label=False,
+                                    )
                                 load_sd_config.change(
                                     fn=load_sd_cfg,
                                     inputs=[sd_json, load_sd_config],
@@ -758,6 +759,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
         outputs=[
             sd_json,
         ],
+        show_progress=False,
     )
 
     status_kwargs = dict(

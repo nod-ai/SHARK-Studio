@@ -35,10 +35,7 @@ p.add_argument(
     "--prompt",
     nargs="+",
     default=[
-        "a photo taken of the front of a super-car drifting on a road near "
-        "mountains at high speeds with smoke coming off the tires, front "
-        "angle, front point of view, trees in the mountains of the "
-        "background, ((sharp focus))"
+        "A hi-res photo of a red street racer drifting around a curve on a mountain, high altitude, at night, tokyo in the background, 8k"
     ],
     help="Text of which images to be generated.",
 )
@@ -62,7 +59,7 @@ p.add_argument(
 p.add_argument(
     "--steps",
     type=int,
-    default=50,
+    default=2,
     help="The number of steps to do the sampling.",
 )
 
@@ -100,7 +97,7 @@ p.add_argument(
 p.add_argument(
     "--guidance_scale",
     type=float,
-    default=7.5,
+    default=0,
     help="The value to be used for guidance scaling.",
 )
 
@@ -346,7 +343,7 @@ p.add_argument(
 p.add_argument(
     "--batch_count",
     type=int,
-    default=1,
+    default=4,
     help="Number of batches to be generated with random seeds in " "single execution.",
 )
 
