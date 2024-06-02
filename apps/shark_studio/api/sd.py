@@ -115,12 +115,15 @@ class StableDiffusion:
                 "custom_pipeline",
             )
             self.turbine_pipe = custom_module.StudioPipeline
+            self.dynamic_steps = custom_module.dynamic_steps
             self.model_map = custom_module.MODEL_MAP
         elif self.is_sdxl:
             self.turbine_pipe = SharkSDXLPipeline
+            self.dynamic_steps = False
             self.model_map = EMPTY_SDXL_MAP
         else:
             self.turbine_pipe = SharkSDPipeline
+            self.dynamic_steps = True
             self.model_map = EMPTY_SD_MAP
         max_length = 64
         target_backend, self.rt_device, triple = parse_device(device, target_triple)
@@ -316,7 +319,7 @@ def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
             )
             return None, ""
     if sd_kwargs["target_triple"] == "":
-        if parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[2] == "":
+        if not parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[2]:
             gr.Warning(
                 "Target device architecture could not be inferred. Please specify a target triple, e.g. 'gfx1100' for a Radeon 7900xtx."
             )
@@ -425,6 +428,9 @@ def shark_sd_fn(
         "control_mode": control_mode,
         "hints": hints,
     }
+    if global_obj.get_sd_obj() and global_obj.get_sd_obj().dynamic_steps:
+        submit_run_kwargs["steps"] = submit_pipe_kwargs["steps"]
+        submit_pipe_kwargs.pop("steps")
     if (
         not global_obj.get_sd_obj()
         or global_obj.get_pipe_kwargs() != submit_pipe_kwargs
@@ -450,8 +456,9 @@ def shark_sd_fn(
         global_obj.get_sd_obj().prepare_pipe(**submit_prep_kwargs)
 
     generated_imgs = []
-    if seed == -1:
-        seed = randint(0, sys.maxsize)
+    if seed in [-1, "-1"]:
+        seed = randint(0, 4294967295)
+        print(f"\n[LOG] Random seed: {seed}")
     progress(None, desc=f"Generating...")
 
     for current_batch in range(batch_count):
