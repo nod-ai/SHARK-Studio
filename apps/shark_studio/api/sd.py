@@ -115,7 +115,7 @@ class StableDiffusion:
                 "custom_pipeline",
             )
             self.turbine_pipe = custom_module.StudioPipeline
-            self.dynamic_steps = custom_module.dynamic_steps
+            self.dynamic_steps = False
             self.model_map = custom_module.MODEL_MAP
         elif self.is_sdxl:
             self.turbine_pipe = SharkSDXLPipeline
