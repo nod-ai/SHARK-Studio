@@ -789,7 +789,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
         outputs=[
             sd_json,
         ],
-        show_progress=False,
     )
 
     status_kwargs = dict(
