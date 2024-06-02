@@ -459,10 +459,10 @@ def shark_sd_fn(
         global_obj.get_sd_obj().prepare_pipe(**submit_prep_kwargs)
 
     generated_imgs = []
-    if seed in [-1, "-1"]:
-        seed = randint(0, 4294967295)
+    if submit_run_kwargs["seed"] in [-1, "-1"]:
+        submit_run_kwargs["seed"] = randint(0, 4294967295)
         seed_increment = "random"
-        print(f"\n[LOG] Random seed: {seed}")
+        #print(f"\n[LOG] Random seed: {seed}")
     progress(None, desc=f"Generating...")
 
     for current_batch in range(batch_count):
@@ -483,20 +483,23 @@ def shark_sd_fn(
                 sd_kwargs,
             )
         generated_imgs.extend(out_imgs)
-        seed = get_next_seed(seed, seed_increment)
+        
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )
+        if batch_count > 1:
+            submit_run_kwargs["seed"] = get_next_seed(seed, seed_increment)
+
     return (generated_imgs, "")
 
 
 def get_next_seed(seed, seed_increment: str | int = 10):
     if isinstance(seed_increment, int):
-        print(f"\n[LOG] Seed after batch increment: {seed + seed_increment}")
+        #print(f"\n[LOG] Seed after batch increment: {seed + seed_increment}")
         return int(seed + seed_increment)
     elif seed_increment == "random":
         seed = randint(0, 4294967295)
-        print(f"\n[LOG] Random seed: {seed}")
+        #print(f"\n[LOG] Random seed: {seed}")
         return seed
 
 

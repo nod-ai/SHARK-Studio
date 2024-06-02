@@ -343,7 +343,7 @@ p.add_argument(
 p.add_argument(
     "--batch_count",
     type=int,
-    default=4,
+    default=1,
     help="Number of batches to be generated with random seeds in " "single execution.",
 )
 

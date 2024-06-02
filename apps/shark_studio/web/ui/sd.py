@@ -256,7 +256,7 @@ def base_model_changed(base_model_id):
     elif ".py" in base_model_id:
         new_steps = gr.Dropdown(
             value=20,
-            choices=[10, 15, 20, 28],
+            choices=[10, 15, 20],
             label="\U0001F3C3\U0000FE0F Steps",
             allow_custom_value=True,
         )
@@ -462,7 +462,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                     )
                     guidance_scale = gr.Slider(
                         0,
-                        50,
+                        5, #DEMO
                         value=cmd_opts.guidance_scale,
                         step=0.1,
                         label="\U0001F5C3\U0000FE0F CFG Scale",
@@ -636,6 +636,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     step=1,
                                     label="Batch Count",
                                     interactive=True,
+                                    visible=True,
                                 )
                                 batch_size = gr.Slider(
                                     1,
@@ -649,6 +650,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 compiled_pipeline = gr.Checkbox(
                                     True,
                                     label="Faster txt2img (SDXL only)",
+                                    visible=False,  # DEMO
                                 )
                             with gr.Row():
                                 stable_diffusion = gr.Button("Start")
