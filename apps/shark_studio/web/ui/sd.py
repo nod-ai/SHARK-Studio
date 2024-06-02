@@ -241,7 +241,7 @@ def base_model_changed(base_model_id):
     if "turbo" in base_model_id:
         new_steps = gr.Dropdown(
             value=cmd_opts.steps,
-            choices=[1, 2, 3, 4],
+            choices=[1, 2, 3],
             label="\U0001F3C3\U0000FE0F Steps",
             allow_custom_value=False,
         )
