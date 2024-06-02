@@ -44,11 +44,12 @@ from apps.shark_studio.web.ui.common_events import lora_changed
 from apps.shark_studio.modules import logger
 import apps.shark_studio.web.utils.globals as global_obj
 
+# Disabled some models for demo purposes
 sd_default_models = [
     # "runwayml/stable-diffusion-v1-5",
     # "stabilityai/stable-diffusion-2-1-base",
     # "stabilityai/stable-diffusion-2-1",
-    "stabilityai/stable-diffusion-xl-base-1.0",
+    # "stabilityai/stable-diffusion-xl-base-1.0",
     "stabilityai/sdxl-turbo",
 ]
 sd_default_models.extend(get_checkpoints(model_type="scripts"))
@@ -327,6 +328,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         value=512,
                         step=512,
                         label="\U00002195\U0000FE0F Height",
+                        interactive=False, # DEMO
+                        visible=False,  # DEMO
                     )
                     width = gr.Slider(
                         512,
@@ -334,6 +337,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         value=512,
                         step=512,
                         label="\U00002194\U0000FE0F Width",
+                        interactive=False, # DEMO
+                        visible=False,  # DEMO
                     )
                 with gr.Accordion(
                     label="\U00002696\U0000FE0F Model Weights",
