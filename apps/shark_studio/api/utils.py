@@ -160,6 +160,8 @@ def parse_device(device_str, target_override=""):
         rt_device = rt_driver
 
     if target_override:
+        if "cpu" in device_str:
+            rt_device = "local-task"
         return target_backend, rt_device, target_override
     match target_backend:
         case "vulkan-spirv":
@@ -169,7 +171,10 @@ def parse_device(device_str, target_override=""):
             triple = get_rocm_target_chip(device_str)
             return target_backend, rt_device, triple
         case "llvm-cpu":
-            return "llvm-cpu", "local-task", "x86_64-linux-gnu"
+            if "Ryzen 9" in device_str:
+                return target_backend, "local-task", "znver4"
+            else:
+                return "llvm-cpu", "local-task", "x86_64-linux-gnu"
 
 
 def get_rocm_target_chip(device_str):

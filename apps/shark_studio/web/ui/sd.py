@@ -272,7 +272,7 @@ def base_model_changed(base_model_id):
             value=new_choices[0] if len(new_choices) > 0 else "None",
             choices=["None"] + new_choices,
         ),
-        new_steps
+        new_steps,
     ]
 
 
@@ -690,7 +690,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                         size="sm",
                                         components=sd_json,
                                     )
-                            #with gr.Row():
+                                    # with gr.Row():
                                     sd_config_name = gr.Textbox(
                                         value="Config Name",
                                         info="Name of the file this config will be saved to.",

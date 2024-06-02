@@ -274,7 +274,7 @@ class StableDiffusion:
         resample_type,
         control_mode,
         hints,
-        progress=gr.Progress()
+        progress=gr.Progress(),
     ):
 
         img = self.sd_pipe.generate_images(
