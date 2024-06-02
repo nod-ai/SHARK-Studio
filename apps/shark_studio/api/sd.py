@@ -254,7 +254,7 @@ class StableDiffusion:
         vmfbs, weights = self.sd_pipe.check_prepared(
             mlirs, vmfbs, weights, interactive=False
         )
-        progress(.5, desc=f"Artifacts ready!")
+        progress(0.5, desc=f"Artifacts ready!")
         progress(0.75, desc=f"Loading models and weights...")
 
         self.sd_pipe.load_pipeline(
@@ -297,6 +297,8 @@ def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
             sd_kwargs[key] = None
         if sd_kwargs[key] in ["None"]:
             sd_kwargs[key] = ""
+        if key in ["steps", "height", "width", "batch_count", "batch_size"]:
+            sd_kwargs[key] = int(sd_kwargs[key])
         if key == "seed":
             sd_kwargs[key] = int(sd_kwargs[key])
 
@@ -487,7 +489,7 @@ def shark_sd_fn(
     return (generated_imgs, "")
 
 
-def get_next_seed(seed, seed_increment):
+def get_next_seed(seed, seed_increment: str | int = 1):
     if isinstance(seed_increment, int):
         return int(seed + seed_increment)
     elif seed_increment == "random":
