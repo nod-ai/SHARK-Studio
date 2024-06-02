@@ -461,6 +461,7 @@ def shark_sd_fn(
     generated_imgs = []
     if seed in [-1, "-1"]:
         seed = randint(0, 4294967295)
+        seed_increment = "random"
         print(f"\n[LOG] Random seed: {seed}")
     progress(None, desc=f"Generating...")
 
@@ -489,11 +490,14 @@ def shark_sd_fn(
     return (generated_imgs, "")
 
 
-def get_next_seed(seed, seed_increment: str | int = 1):
+def get_next_seed(seed, seed_increment: str | int = 10):
     if isinstance(seed_increment, int):
+        print(f"\n[LOG] Seed after batch increment: {seed + seed_increment}")
         return int(seed + seed_increment)
     elif seed_increment == "random":
-        return randint(0, sys.maxsize)
+        seed = randint(0, 4294967295)
+        print(f"\n[LOG] Random seed: {seed}")
+        return seed
 
 
 def unload_sd():

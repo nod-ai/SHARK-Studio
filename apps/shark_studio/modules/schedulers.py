@@ -101,7 +101,7 @@ def export_scheduler_model(model):
 
 
 scheduler_model_map = {
-    #"PNDM": export_scheduler_model("PNDMScheduler"),
+    "PNDM": export_scheduler_model("PNDMScheduler"),
     # "DPMSolverSDE": export_scheduler_model("DpmSolverSDEScheduler"),
     "EulerDiscrete": export_scheduler_model("EulerDiscreteScheduler"),
     "EulerAncestralDiscrete": export_scheduler_model("EulerAncestralDiscreteScheduler"),
