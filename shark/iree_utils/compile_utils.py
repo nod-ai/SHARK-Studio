@@ -18,7 +18,7 @@ import re
 import tempfile
 from pathlib import Path
 
-import iree.runtime as ireert
+#import iree.runtime as ireert
 import iree.compiler as ireec
 from shark.parser import shark_args
 
@@ -684,21 +684,21 @@ def get_results(
         dl.log("Execution complete")
 
 
-@functools.cache
-def get_iree_runtime_config(device):
-    device = iree_device_map(device)
-    haldriver = ireert.get_driver(device)
-    if "metal" in device and shark_args.device_allocator == "caching":
-        print(
-            "[WARNING] metal devices can not have a `caching` allocator."
-            "\nUsing default allocator `None`"
-        )
-    haldevice = haldriver.create_device_by_uri(
-        device,
-        # metal devices have a failure with caching allocators atm. blcking this util it gets fixed upstream.
-        allocators=shark_args.device_allocator
-        if "metal" not in device
-        else None,
-    )
-    config = ireert.Config(device=haldevice)
-    return config
+# @functools.cache
+# def get_iree_runtime_config(device):
+#     device = iree_device_map(device)
+#     haldriver = ireert.get_driver(device)
+#     if "metal" in device and shark_args.device_allocator == "caching":
+#         print(
+#             "[WARNING] metal devices can not have a `caching` allocator."
+#             "\nUsing default allocator `None`"
+#         )
+#     haldevice = haldriver.create_device_by_uri(
+#         device,
+#         # metal devices have a failure with caching allocators atm. blcking this util it gets fixed upstream.
+#         allocators=shark_args.device_allocator
+#         if "metal" not in device
+#         else None,
+#     )
+#     config = ireert.Config(device=haldevice)
+#     return config

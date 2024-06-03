@@ -170,7 +170,7 @@ def webui():
         css=dark_theme,
         js=gradio_workarounds,
         analytics_enabled=False,
-        title="Shark Studio 2.0 Beta",
+        title="Shark Studio 2.0",
     ) as studio_web:
         amd_logo = Image.open(amdlogo_loc)
         gr.Image(

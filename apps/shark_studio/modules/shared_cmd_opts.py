@@ -594,6 +594,11 @@ p.add_argument(
 ##############################################################################
 # Web UI flags
 ##############################################################################
+p.add_argument(
+    "--default_config",
+    default="sdxl-turbo.json",
+    type=str,
+)
 
 p.add_argument(
     "--webui",

@@ -12,10 +12,7 @@ from tqdm.auto import tqdm
 
 from pathlib import Path
 from random import randint
-from turbine_models.custom_models.sd_inference.sd_pipeline import SharkSDPipeline
-from turbine_models.custom_models.sdxl_inference.sdxl_compiled_pipeline import (
-    SharkSDXLPipeline,
-)
+
 
 
 from apps.shark_studio.api.controlnet import control_adapter_map
@@ -31,11 +28,8 @@ from apps.shark_studio.modules.img_processing import (
     save_output_img,
 )
 
-from apps.shark_studio.modules.ckpt_processing import (
-    preprocessCKPT,
-    save_irpa,
-)
 
+from subprocess import check_output
 EMPTY_SD_MAP = {
     "clip": None,
     "scheduler": None,
@@ -67,7 +61,6 @@ def load_script(source, module_name):
     :param module_name: name of module to register in sys.modules
     :return: loaded module
     """
-
     spec = importlib.util.spec_from_file_location(module_name, source)
     module = importlib.util.module_from_spec(spec)
     sys.modules[module_name] = module
@@ -118,10 +111,15 @@ class StableDiffusion:
             self.dynamic_steps = False
             self.model_map = custom_module.MODEL_MAP
         elif self.is_sdxl:
+            from turbine_models.custom_models.sdxl_inference.sdxl_compiled_pipeline import (
+                SharkSDXLPipeline,
+            )
             self.turbine_pipe = SharkSDXLPipeline
             self.dynamic_steps = False
             self.model_map = EMPTY_SDXL_MAP
         else:
+            from turbine_models.custom_models.sd_inference.sd_pipeline import SharkSDPipeline
+
             self.turbine_pipe = SharkSDPipeline
             self.dynamic_steps = True
             self.model_map = EMPTY_SD_MAP
@@ -207,6 +205,10 @@ class StableDiffusion:
         self.compiled_pipeline = compiled_pipeline
 
         if custom_weights:
+            from apps.shark_studio.modules.ckpt_processing import (
+                preprocessCKPT,
+                save_irpa,
+            )
             custom_weights = os.path.join(
                 get_checkpoints_path("checkpoints"),
                 safe_name(self.base_model_id.split("/")[-1]),
@@ -534,11 +536,11 @@ if __name__ == "__main__":
     global_obj._init()
 
     sd_json = view_json_file(
-        get_resource_path(os.path.join(cmd_opts.config_dir, "default_sd_config.json"))
+        get_resource_path(os.path.join(cmd_opts.config_dir, cmd_opts.default_config))
     )
     sd_kwargs = json.loads(sd_json)
-    for arg in vars(cmd_opts):
-        if arg in sd_kwargs:
-            sd_kwargs[arg] = getattr(cmd_opts, arg)
+    # for arg in vars(cmd_opts):
+    #     if arg in sd_kwargs:
+    #         sd_kwargs[arg] = getattr(cmd_opts, arg)
     for i in shark_sd_fn_dict_input(sd_kwargs):
         print(i)
