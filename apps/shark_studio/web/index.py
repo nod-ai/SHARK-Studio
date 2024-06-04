@@ -83,7 +83,7 @@ def webui():
     launch_api = cmd_opts.api
     initialize.initialize()
 
-    from ui.chat import chat_element
+    #from ui.chat import chat_element
     from ui.sd import sd_element
     from ui.outputgallery import outputgallery_element
 
@@ -194,8 +194,8 @@ def webui():
                 sd_element.render()
             with gr.TabItem(label="Output Gallery", id=1):
                 outputgallery_element.render()
-            with gr.TabItem(label="Chat Bot", id=2, visible=False):
-                chat_element.render()
+            # with gr.TabItem(label="Chat Bot", id=2):
+            #     chat_element.render()
 
     studio_web.queue()
 
