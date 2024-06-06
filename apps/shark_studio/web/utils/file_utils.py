@@ -100,6 +100,15 @@ def get_checkpoints(model_type="checkpoints"):
     ckpt_files.extend(files)
     return sorted(ckpt_files, key=str.casefold)
 
+def get_configs():
+    return sorted(
+        [
+            os.path.basename(x)
+            for x in glob.glob(os.path.join(get_configs_path(), "*.json"))
+        ],
+        key=str.casefold,
+    )
+
 
 def get_checkpoint_pathfile(checkpoint_name, model_type="checkpoints"):
     return os.path.join(get_checkpoints_path(model_type), checkpoint_name)

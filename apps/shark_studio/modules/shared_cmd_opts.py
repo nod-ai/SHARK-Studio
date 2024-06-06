@@ -23,7 +23,6 @@ p = argparse.ArgumentParser(
 ##############################################################################
 # Stable Diffusion Params
 ##############################################################################
-
 p.add_argument(
     "-a",
     "--app",
@@ -595,9 +594,10 @@ p.add_argument(
 # Web UI flags
 ##############################################################################
 p.add_argument(
-    "--default_config",
+    "--defaults",
     default="sdxl-turbo.json",
     type=str,
+    help="Path to the default API request .json file. Works for CLI and webui."
 )
 
 p.add_argument(
