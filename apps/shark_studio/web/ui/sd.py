@@ -307,7 +307,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         show_copy_button=True,
                     )
                 with gr.Accordion(
-                        label="\U0001F4D0\U0000FE0F Advanced Settings", open=True
+                        label="\U0001F4D0\U0000FE0F Advanced Settings", open=False
                 ):
                     with gr.Accordion(
                         label="Device Settings", open=False
