@@ -64,11 +64,14 @@ def preprocessCKPT(custom_weights, precision="fp16", is_inpaint=False):
     return path_to_diffusers
 
 
-def save_irpa(weights_path, prepend_str):
+def save_irpa(weights_path, prepend_str, remove_str=None):
     weights = safetensors.torch.load_file(weights_path)
     archive = ParameterArchiveBuilder()
     for key in weights.keys():
-        new_key = prepend_str + key
+        if remove_str:
+            new_key = key.replace(remove_str, prepend_str)
+        else:
+            new_key = prepend_str + key
         archive.add_tensor(new_key, weights[key])
 
     if "safetensors" in weights_path:

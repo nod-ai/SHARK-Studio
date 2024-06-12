@@ -15,6 +15,12 @@ parser.add_argument(
     default="",
     help="prefix to add to all the keys in the irpa",
 )
+parser.add_argument(
+    "--replace",
+    type=str,
+    default=None,
+    help="prefix to be removed"
+)
 args = parser.parse_args()
-output_file = save_irpa(args.input, args.prefix)
+output_file = save_irpa(args.input, args.prefix, args.replace)
 print("saved irpa to", output_file, "with prefix", args.prefix)
