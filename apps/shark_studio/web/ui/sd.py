@@ -51,7 +51,7 @@ sd_default_models = [
     # "stabilityai/stable-diffusion-2-1-base",
     # "stabilityai/stable-diffusion-2-1",
     # "stabilityai/stable-diffusion-xl-base-1.0",
-    "stabilityai/sdxl-turbo",
+    #"stabilityai/sdxl-turbo",
 ]
 sd_default_models.extend(get_checkpoints(model_type="scripts"))
 
@@ -402,6 +402,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value=init_config["scheduler"],
                             choices=scheduler_model_map.keys(),
                             allow_custom_value=False,
+                            visible=False,
                         )
                     with gr.Row():
                         steps = gr.Dropdown(
@@ -416,6 +417,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value=4,
                             step=0.1,
                             label="\U0001F5C3\U0000FE0F CFG Scale",
+                            visible=False,
                         )
                     with gr.Row():
                         batch_count = gr.Slider(
@@ -425,7 +427,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             step=1,
                             label="Batch Count",
                             interactive=True,
-                            visible=True,
+                            visible=False,
                         )
                         batch_size = gr.Slider(
                             1,
@@ -434,7 +436,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             step=1,
                             label="Batch Size",
                             interactive=False,  # DEMO
-                            visible=True,
+                            visible=False,
                         )
                         compiled_pipeline = gr.Checkbox(
                             value=init_config["compiled_pipeline"],
@@ -451,13 +453,14 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             elem_classes=["fill"],
                             value=view_json_file(default_config_file),
                         )
-                    with gr.Row():
+                    with gr.Row(visible=False):
                         with gr.Row():
                             load_sd_config = gr.Dropdown(
                                 label="Load Config",
                                 value=cmd_opts.defaults,
                                 choices=get_configs(),
                                 allow_custom_value=True,
+                                visible=False,
                             )
                         with gr.Row():
                             save_sd_config = gr.Button(
