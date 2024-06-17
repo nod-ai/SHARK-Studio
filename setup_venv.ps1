@@ -89,7 +89,7 @@ else {python -m venv .\shark.venv\}
 python -m pip install --upgrade pip
 pip install wheel
 pip install --pre -r requirements.txt
-pip install https://github.com/nod-ai/SRT/releases/download/candidate-20240602.283/iree_compiler-20240602.283-cp311-cp311-win_amd64.whl https://github.com/nod-ai/SRT/releases/download/candidate-20240602.283/iree_runtime-20240602.283-cp311-cp311-win_amd64.whl
+pip install https://github.com/nod-ai/SRT/releases/download/candidate-20240617.289/iree_compiler-20240617.289-cp311-cp311-win_amd64.whl https://github.com/nod-ai/SRT/releases/download/candidate-20240617.289/iree_runtime-20240617.289-cp311-cp311-win_amd64.whl
 pip install -e .
 
 Write-Host "Source your venv with ./shark.venv/Scripts/activate"

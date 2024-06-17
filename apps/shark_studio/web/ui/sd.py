@@ -52,6 +52,7 @@ sd_default_models = [
     # "stabilityai/stable-diffusion-2-1",
     # "stabilityai/stable-diffusion-xl-base-1.0",
     "stabilityai/sdxl-turbo",
+    "stabilityai/stable-diffusion-3-medium-diffusers",
 ]
 sd_default_models.extend(get_checkpoints(model_type="scripts"))
 
@@ -315,7 +316,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         device = gr.Dropdown(
                             elem_id="device",
                             label="Device",
-                            value=init_config["device"] if init_config["device"] else "rocm",
+                            value=init_config["device"] if init_config["device"] else global_obj.get_device_list()[0],
                             choices=global_obj.get_device_list(),
                             allow_custom_value=True,
                         )
@@ -347,8 +348,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value=512,
                             step=512,
                             label="\U00002195\U0000FE0F Height",
-                            interactive=False, # DEMO
-                            visible=False,  # DEMO
+                            interactive=True, # DEMO
+                            visible=True,  # DEMO
                         )
                         width = gr.Slider(
                             512,
@@ -356,8 +357,8 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value=512,
                             step=512,
                             label="\U00002194\U0000FE0F Width",
-                            interactive=False, # DEMO
-                            visible=False,  # DEMO
+                            interactive=True, # DEMO
+                            visible=True,  # DEMO
                         )
                     
                     with gr.Accordion(

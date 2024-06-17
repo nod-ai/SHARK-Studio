@@ -39,17 +39,25 @@ EMPTY_SD_MAP = {
 
 EMPTY_SDXL_MAP = {
     "prompt_encoder": None,
-    "scheduled_unet": None,
+    "unet": None,
     "vae_decode": None,
-    "pipeline": None,
-    "full_pipeline": None,
+    "scheduler": None,
+}
+
+EMPTY_SD3_MAP = {
+    "clip": None,
+    "mmdit": None,
+    "vae": None,
+    "scheduler": None,
 }
 
 EMPTY_FLAGS = {
     "clip": None,
     "unet": None,
+    "mmdit": None,
     "vae": None,
     "pipeline": None,
+    "scheduler": None,
 }
 
 
@@ -86,21 +94,50 @@ class StableDiffusion:
         scheduler: str,
         precision: str,
         device: str,
+        clip_device: str = None,
+        vae_device: str = None,
         target_triple: str = None,
         custom_vae: str = None,
         num_loras: int = 0,
         import_ir: bool = True,
         is_controlled: bool = False,
         external_weights: str = "safetensors",
+        vae_precision: str = "fp16",
         progress=gr.Progress(),
     ):
         progress(0, desc="Initializing pipeline...")
         self.ui_device = device
+        backend, target = parse_device(device, target_triple)
+        if clip_device:
+            clip_device, clip_target = parse_device(clip_device)
+        else:
+            clip_device, clip_target = backend, target
+        if vae_device:
+            vae_device, vae_target = parse_device(vae_device)
+        else:
+            vae_device, vae_target = backend, target
+        devices = {
+            "clip": clip_device,
+            "mmdit": backend,
+            "vae": vae_device,
+        }
+        targets = {
+            "clip": clip_target,
+            "mmdit": target,
+            "vae": vae_target,
+        }
+        pipe_device_id = backend
+        target_triple = target
+        for key in devices:
+            if devices[key] != backend:
+                pipe_device_id = "hybrid"
+                target_triple = "_".join([clip_target, target, vae_target])
         self.precision = precision
         self.compiled_pipeline = False
         self.base_model_id = base_model_id
         self.custom_vae = custom_vae
         self.is_sdxl = "xl" in self.base_model_id.lower()
+        self.is_sd3 = "stable-diffusion-3" in self.base_model_id.lower()
         self.is_custom = ".py" in self.base_model_id.lower()
         if self.is_custom:
             custom_module = load_script(
@@ -115,23 +152,32 @@ class StableDiffusion:
                 SharkSDXLPipeline,
             )
             self.turbine_pipe = SharkSDXLPipeline
-            self.dynamic_steps = False
+            self.dynamic_steps = True
             self.model_map = EMPTY_SDXL_MAP
+        elif self.is_sd3:
+            from turbine_models.custom_models.sd3_inference.sd3_pipeline import SharkSD3Pipeline, empty_pipe_dict
+
+            self.turbine_pipe = SharkSD3Pipeline
+            self.dynamic_steps = True
+            self.model_map = EMPTY_SD3_MAP
         else:
             from turbine_models.custom_models.sd_inference.sd_pipeline import SharkSDPipeline
 
             self.turbine_pipe = SharkSDPipeline
             self.dynamic_steps = True
             self.model_map = EMPTY_SD_MAP
+            # no multi-device yet
+            devices = backend
+            targets = target
         max_length = 64
-        target_backend, self.rt_device, triple = parse_device(device, target_triple)
+        
         pipe_id_list = [
             safe_name(base_model_id),
             str(batch_size),
             str(max_length),
             f"{str(height)}x{str(width)}",
             precision,
-            triple,
+            target_triple,
         ]
         if num_loras > 0:
             pipe_id_list.append(str(num_loras) + "lora")
@@ -151,16 +197,16 @@ class StableDiffusion:
 
         decomp_attn = True
         attn_spec = None
-        if triple in ["gfx940", "gfx942", "gfx90a"]:
+        if target_triple in ["gfx940", "gfx942", "gfx90a"]:
             decomp_attn = False
             attn_spec = "mfma"
-        elif triple in ["gfx1100", "gfx1103", "gfx1150"]:
+        elif target in ["gfx1100", "gfx1103", "gfx1150"]:
             decomp_attn = False
             attn_spec = "wmma"
-            if triple in ["gfx1103", "gfx1150"]:
+            if target in ["gfx1103", "gfx1150"]:
                 # external weights have issues on igpu
                 external_weights = None
-        elif target_backend == "llvm-cpu":
+        elif backend == "llvm-cpu":
             decomp_attn = False
         progress(0.5, desc="Initializing pipeline...")
         self.sd_pipe = self.turbine_pipe(
@@ -172,15 +218,15 @@ class StableDiffusion:
             max_length=max_length,
             batch_size=batch_size,
             num_inference_steps=steps,
-            device=target_backend,
-            iree_target_triple=triple,
+            device=devices,
+            iree_target_triple=targets,
             ireec_flags=EMPTY_FLAGS,
             attn_spec=attn_spec,
             decomp_attn=decomp_attn,
             pipeline_dir=self.pipeline_dir,
             external_weights_dir=self.weights_path,
             external_weights=external_weights,
-            custom_vae=custom_vae,
+            vae_precision=vae_precision,
         )
         progress(1, desc="Pipeline initialized!...")
         gc.collect()
@@ -191,15 +237,23 @@ class StableDiffusion:
         adapters,
         embeddings,
         is_img2img,
-        compiled_pipeline,
+        compiled_pipeline = False,
+        cpu_scheduling=False,
         progress=gr.Progress(),
     ):
         progress(0, desc="Preparing models...")
-
+        pipe_map = copy.deepcopy(self.model_map)
+        if compiled_pipeline and self.is_sdxl:
+            pipe_map.pop("scheduler")
+            pipe_map.pop("unet")
+            pipe_map["scheduled_unet"] = None
+            pipe_map["full_pipeline"] = None
+        if cpu_scheduling:
+            pipe_map.pop("scheduler")
         self.is_img2img = False
-        mlirs = copy.deepcopy(self.model_map)
-        vmfbs = copy.deepcopy(self.model_map)
-        weights = copy.deepcopy(self.model_map)
+        mlirs = copy.deepcopy(pipe_map)
+        vmfbs = copy.deepcopy(pipe_map)
+        weights = copy.deepcopy(pipe_map)
         if not self.is_sdxl:
             compiled_pipeline = False
         self.compiled_pipeline = compiled_pipeline
@@ -260,7 +314,7 @@ class StableDiffusion:
         progress(0.75, desc=f"Loading models and weights...")
 
         self.sd_pipe.load_pipeline(
-            vmfbs, weights, self.rt_device, self.compiled_pipeline
+            vmfbs, weights, self.compiled_pipeline
         )
         progress(1, desc="Pipeline loaded! Generating images...")
         return
@@ -324,7 +378,7 @@ def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
             )
             return None, ""
     if sd_kwargs["target_triple"] == "":
-        if not parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[2]:
+        if not parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[1]:
             gr.Warning(
                 "Target device architecture could not be inferred. Please specify a target triple, e.g. 'gfx1100' for a Radeon 7900xtx."
             )
@@ -359,6 +413,9 @@ def shark_sd_fn(
     controlnets: dict,
     embeddings: dict,
     seed_increment: str | int = 1,
+    clip_device: str = None,
+    vae_device: str = None,
+    vae_precision: str = None,
     progress=gr.Progress(),
 ):
     sd_kwargs = locals()
@@ -398,7 +455,8 @@ def shark_sd_fn(
         control_mode = controlnets["control_mode"]
         for i in controlnets["hint"]:
             hints.append[i]
-
+    if not vae_precision:
+        vae_precision = precision
     submit_pipe_kwargs = {
         "base_model_id": base_model_id,
         "height": height,
@@ -406,6 +464,8 @@ def shark_sd_fn(
         "batch_size": batch_size,
         "precision": precision,
         "device": device,
+        "clip_device": clip_device,
+        "vae_device": vae_device,
         "target_triple": target_triple,
         "custom_vae": custom_vae,
         "num_loras": num_loras,
@@ -413,6 +473,7 @@ def shark_sd_fn(
         "is_controlled": is_controlled,
         "steps": steps,
         "scheduler": scheduler,
+        "vae_precision": vae_precision,
     }
     submit_prep_kwargs = {
         "custom_weights": custom_weights,
@@ -485,7 +546,7 @@ def shark_sd_fn(
                 sd_kwargs,
             )
         generated_imgs.extend(out_imgs)
-        
+        breakpoint()
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )

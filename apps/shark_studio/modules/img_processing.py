@@ -89,8 +89,13 @@ def save_output_img(output_img, img_seed, extra_info=None):
                 f"VAE: {img_vae}, "
                 f"LoRA: {img_loras}",
             )
-
-        output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
+        if isinstance(output_img, list):
+            for i, img in enumerate(output_img):
+                out_img_path = Path(generated_imgs_path, f"{out_img_name}_{i}.png")
+                img.save(out_img_path, "PNG", pnginfo=pngInfo)
+        else:
+            out_img_path = Path(generated_imgs_path, f"{out_img_name}.png")
+            output_img.save(out_img_path, "PNG", pnginfo=pngInfo)
 
         if cmd_opts.output_img_format not in ["png", "jpg"]:
             print(

@@ -12,6 +12,18 @@ from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 from cpuinfo import get_cpu_info
 
 
+_IREE_DEVICE_MAP = {
+    "cpu": "local-task",
+    "cpu-task": "local-task",
+    "cpu-sync": "local-sync",
+    "cuda": "cuda",
+    "vulkan": "vulkan",
+    "metal": "metal",
+    "rocm": "rocm",
+    "hip": "hip",
+    "intel-gpu": "level_zero",
+}
+
 def iree_device_map(device):
     uri_parts = device.split("://", 2)
     iree_driver = (
@@ -31,25 +43,6 @@ def get_supported_device_list():
     return list(_IREE_DEVICE_MAP.keys())
 
 
-_IREE_DEVICE_MAP = {
-    "cpu": "local-task",
-    "cpu-task": "local-task",
-    "cpu-sync": "local-sync",
-    "cuda": "cuda",
-    "vulkan": "vulkan",
-    "metal": "metal",
-    "rocm": "rocm",
-    "hip": "hip",
-    "intel-gpu": "level_zero",
-}
-
-
-def iree_target_map(device):
-    if "://" in device:
-        device = device.split("://")[0]
-    return _IREE_TARGET_MAP[device] if device in _IREE_TARGET_MAP else device
-
-
 _IREE_TARGET_MAP = {
     "cpu": "llvm-cpu",
     "cpu-task": "llvm-cpu",
@@ -63,9 +56,13 @@ _IREE_TARGET_MAP = {
 }
 
 
+def iree_target_map(device):
+    if "://" in device:
+        device = device.split("://")[0]
+    return _IREE_TARGET_MAP[device] if device in _IREE_TARGET_MAP else device
+
 
 def get_available_devices():
-    return ['rocm', 'cpu']
     def get_devices_by_name(driver_name):
 
         device_list = []
@@ -163,7 +160,6 @@ def clean_device_info(raw_device):
     return device, device_id
 
 def parse_device(device_str, target_override=""):
-
     rt_driver, device_id = clean_device_info(device_str)
     target_backend = iree_target_map(rt_driver)
     if device_id:
@@ -174,19 +170,19 @@ def parse_device(device_str, target_override=""):
     if target_override:
         if "cpu" in device_str:
             rt_device = "local-task"
-        return target_backend, rt_device, target_override
+        return target_backend, target_override
     match target_backend:
         case "vulkan-spirv":
-            triple = get_iree_target_triple(device_str)
-            return target_backend, rt_device, triple
+            triple = None #get_iree_target_triple(device_str)
+            return target_backend, triple
         case "rocm":
             triple = get_rocm_target_chip(device_str)
-            return target_backend, rt_device, triple
+            return target_backend, triple
         case "llvm-cpu":
             if "Ryzen 9" in device_str:
-                return target_backend, "local-task", "znver4"
+                return target_backend, "znver4"
             else:
-                return "llvm-cpu", "local-task", "x86_64-linux-gnu"
+                return "llvm-cpu", "x86_64-linux-gnu"
 
 
 def get_rocm_target_chip(device_str):
@@ -224,67 +220,3 @@ def get_all_devices(driver_name):
     device_list_src.sort(key=lambda d: d["path"])
     del driver
     return device_list_src
-
-
-# def get_device_mapping(driver, key_combination=3):
-#     """This method ensures consistent device ordering when choosing
-#     specific devices for execution
-#     Args:
-#         driver (str): execution driver (vulkan, cuda, rocm, etc)
-#         key_combination (int, optional): choice for mapping value for
-#             device name.
-#         1 : path
-#         2 : name
-#         3 : (name, path)
-#         Defaults to 3.
-#     Returns:
-#         dict: map to possible device names user can input mapped to desired
-#             combination of name/path.
-#     """
-
-#     driver = iree_device_map(driver)
-#     device_list = get_all_devices(driver)
-#     device_map = dict()
-
-#     def get_output_value(dev_dict):
-#         if key_combination == 1:
-#             return f"{driver}://{dev_dict['path']}"
-#         if key_combination == 2:
-#             return dev_dict["name"]
-#         if key_combination == 3:
-#             return dev_dict["name"], f"{driver}://{dev_dict['path']}"
-
-#     # mapping driver name to default device (driver://0)
-#     device_map[f"{driver}"] = get_output_value(device_list[0])
-#     for i, device in enumerate(device_list):
-#         # mapping with index
-#         device_map[f"{driver}://{i}"] = get_output_value(device)
-#         # mapping with full path
-#         device_map[f"{driver}://{device['path']}"] = get_output_value(device)
-#     return device_map
-
-
-# def get_opt_flags(model, precision="fp16"):
-#     iree_flags = []
-#     if len(cmd_opts.iree_vulkan_target_triple) > 0:
-#         iree_flags.append(
-#             f"-iree-vulkan-target-triple={cmd_opts.iree_vulkan_target_triple}"
-#         )
-#     if "rocm" in cmd_opts.device:
-#         from shark.iree_utils.gpu_utils import get_iree_rocm_args
-
-#         rocm_args = get_iree_rocm_args()
-#         iree_flags.extend(rocm_args)
-#     if cmd_opts.iree_constant_folding == False:
-#         iree_flags.append("--iree-opt-const-expr-hoisting=False")
-#         iree_flags.append(
-#             "--iree-codegen-linalg-max-constant-fold-elements=9223372036854775807"
-#         )
-#     if cmd_opts.data_tiling == False:
-#         iree_flags.append("--iree-opt-data-tiling=False")
-
-#     if "vae" not in model:
-#         # Due to lack of support for multi-reduce, we always collapse reduction
-#         # dims before dispatch formation right now.
-#         iree_flags += ["--iree-flow-collapse-reduction-dims"]
-#     return iree_flags
