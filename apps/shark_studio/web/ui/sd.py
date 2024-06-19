@@ -121,6 +121,7 @@ def pull_sd_configs(
     custom_weights,
     custom_vae,
     precision,
+    vae_precision,
     device,
     target_triple,
     ondemand,
@@ -128,6 +129,7 @@ def pull_sd_configs(
     resample_type,
     controlnets,
     embeddings,
+    cpu_scheduling,
 ):
     sd_args = str_none_to_none(locals())
     sd_cfg = {}
@@ -189,6 +191,7 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
         sd_json["custom_weights"],
         sd_json["custom_vae"],
         sd_json["precision"],
+        sd_json["vae_precision"],
         sd_json["device"],
         sd_json["target_triple"],
         sd_json["ondemand"],
@@ -196,6 +199,7 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
         sd_json["resample_type"],
         sd_json["controlnets"],
         sd_json["embeddings"],
+        sd_json["cpu_scheduling"],
         sd_json,
     ]
 
@@ -248,44 +252,17 @@ def base_model_changed(base_model_id):
     new_choices = get_checkpoints(
         os.path.join("checkpoints", os.path.basename(str(base_model_id)))
     ) + get_checkpoints(model_type="checkpoints")
-    if "turbo" in base_model_id:
-        new_steps = gr.Dropdown(
-            value=2,
-            choices=[1, 2],
-            label="\U0001F3C3\U0000FE0F Steps",
-            allow_custom_value=True,
-        )
-    if "stable-diffusion-xl-base-1.0" in base_model_id:
-        new_steps = gr.Dropdown(
-            value=40,
-            choices=[20, 25, 30, 35, 40, 45, 50],
-            label="\U0001F3C3\U0000FE0F Steps",
-            allow_custom_value=True,
-        )
-    elif ".py" in base_model_id:
-        new_steps = gr.Dropdown(
-            value=20,
-            choices=[10, 15, 20],
-            label="\U0001F3C3\U0000FE0F Steps",
-            allow_custom_value=True,
-        )
-    else:
-        new_steps = gr.Dropdown(
-            value=20,
-            choices=[10, 20, 30, 40, 50],
-            label="\U0001F3C3\U0000FE0F Steps",
-            allow_custom_value=True,
-        )
-
     return [
         gr.Dropdown(
             value=new_choices[0] if len(new_choices) > 0 else "None",
             choices=["None"] + new_choices,
         ),
-        new_steps,
+        gr.update(),
     ]
 
 init_config = global_obj.get_init_config()
+if not os.path.exists(init_config):
+    write_default_sd_configs(get_configs_path())
 init_config = none_to_str_none(json.loads(view_json_file(init_config)))
 
 with gr.Blocks(title="Stable Diffusion") as sd_element:
@@ -339,23 +316,43 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                     "fp16",
                                     "fp32",
                                 ],
-                                visible=False,
+                                visible=True,
+                            )
+                            vae_precision = gr.Radio(
+                                label="VAE Precision",
+                                value=init_config["precision"],
+                                choices=[
+                                    "fp16",
+                                    "fp32",
+                                ],
+                                visible=True,
+                            )
+                            cpu_scheduling = gr.Checkbox(
+                                value=init_config["ondemand"],
+                                label="CPU scheduling",
+                                interactive=True,
+                                visible=True,
+                            )
+                            compiled_pipeline = gr.Checkbox(
+                                value=False,
+                                label="Faster txt2img (SDXL only)",
+                                visible=False,  # DEMO
                             )
                     with gr.Row():
                         height = gr.Slider(
-                            512,
+                            256,
                             1024,
                             value=512,
-                            step=512,
+                            step=256,
                             label="\U00002195\U0000FE0F Height",
                             interactive=True, # DEMO
                             visible=True,  # DEMO
                         )
                         width = gr.Slider(
-                            512,
+                            256,
                             1024,
                             value=512,
-                            step=512,
+                            step=256,
                             label="\U00002194\U0000FE0F Width",
                             interactive=True, # DEMO
                             visible=True,  # DEMO
@@ -405,23 +402,24 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             allow_custom_value=False,
                         )
                     with gr.Row():
-                        steps = gr.Dropdown(
-                            value=20,
-                            choices=[10, 15, 20],
+                        steps = gr.Slider(
+                            1,
+                            50,
+                            value=init_config["steps"],
+                            step=1,
                             label="\U0001F3C3\U0000FE0F Steps",
-                            allow_custom_value=True,
                         )
                         guidance_scale = gr.Slider(
                             0,
-                            5, #DEMO
-                            value=4,
+                            20, #DEMO
+                            value=7,
                             step=0.1,
                             label="\U0001F5C3\U0000FE0F CFG Scale",
                         )
                     with gr.Row():
                         batch_count = gr.Slider(
                             1,
-                            100,
+                            10,
                             value=init_config["batch_count"],
                             step=1,
                             label="Batch Count",
@@ -436,11 +434,6 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             label="Batch Size",
                             interactive=False,  # DEMO
                             visible=True,
-                        )
-                        compiled_pipeline = gr.Checkbox(
-                            value=init_config["compiled_pipeline"],
-                            label="Faster txt2img (SDXL only)",
-                            visible=False,  # DEMO
                         )
                     with gr.Row(elem_classes=["fill"], visible=False):
                         Path(get_configs_path()).mkdir(
@@ -479,7 +472,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                 with gr.Accordion(
                     label="\U00002696\U0000FE0F Model Weights",
                     open=False,
-                    visible=False,  # DEMO
+                    visible=True,  # DEMO
                 ):
                     with gr.Column():
                         custom_weights = gr.Dropdown(
@@ -503,6 +496,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             choices=["None"] + get_checkpoints("vae"),
                             allow_custom_value=True,
                             scale=1,
+                            visible=False,
                         )
                         sd_lora_info = (str(get_checkpoints_path("loras"))).replace(
                             "\\", "\n\\"
@@ -516,13 +510,16 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             multiselect=True,
                             choices=[] + get_checkpoints("lora"),
                             scale=2,
+                            visible=False,
                         )
                         lora_tags = gr.HTML(
                             value="<div><i>No LoRA selected</i></div>",
                             elem_classes="lora-tags",
+                            visible=False,
                         )
                         embeddings_config = gr.JSON(
-                            label="Embeddings Options", min_width=50, scale=1
+                            label="Embeddings Options", min_width=50, scale=1,
+                            visible=False,
                         )
                         gr.on(
                             triggers=[lora_opt.change],
@@ -700,13 +697,13 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 )
                             with gr.Row():
                                 stable_diffusion = gr.Button("Start")
+                                stop_batch = gr.Button("Stop", visible=True)
                                 unload = gr.Button("Unload Models")
                                 unload.click(
                                     fn=unload_sd,
                                     queue=False,
                                     show_progress=False,
                                 )
-                                stop_batch = gr.Button("Stop", visible=False)
                     # with gr.Tab(label="Config", id=102) as sd_tab_config:
                     #     with gr.Group():#elem_classes=["sd-right-panel"]):
                     #         with gr.Row(elem_classes=["fill"], visible=False):
@@ -784,6 +781,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             custom_weights,
             custom_vae,
             precision,
+            vae_precision,
             device,
             target_triple,
             ondemand,
@@ -791,6 +789,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             resample_type,
             cnet_config,
             embeddings_config,
+            cpu_scheduling,
             sd_json,
         ],
     )
@@ -818,6 +817,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             custom_weights,
             custom_vae,
             precision,
+            vae_precision,
             device,
             target_triple,
             ondemand,
@@ -825,6 +825,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
             resample_type,
             cnet_config,
             embeddings_config,
+            cpu_scheduling,
         ],
         outputs=[
             sd_json,

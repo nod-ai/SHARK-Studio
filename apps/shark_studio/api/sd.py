@@ -32,7 +32,6 @@ from apps.shark_studio.modules.img_processing import (
 from subprocess import check_output
 EMPTY_SD_MAP = {
     "clip": None,
-    "scheduler": None,
     "unet": None,
     "vae_decode": None,
 }
@@ -41,14 +40,12 @@ EMPTY_SDXL_MAP = {
     "prompt_encoder": None,
     "unet": None,
     "vae_decode": None,
-    "scheduler": None,
 }
 
 EMPTY_SD3_MAP = {
     "clip": None,
     "mmdit": None,
     "vae": None,
-    "scheduler": None,
 }
 
 EMPTY_FLAGS = {
@@ -90,10 +87,10 @@ class StableDiffusion:
         height: int,
         width: int,
         batch_size: int,
-        steps: int,
-        scheduler: str,
         precision: str,
         device: str,
+        steps: int = 50,
+        scheduler_id: str = None,
         clip_device: str = None,
         vae_device: str = None,
         target_triple: str = None,
@@ -103,6 +100,7 @@ class StableDiffusion:
         is_controlled: bool = False,
         external_weights: str = "safetensors",
         vae_precision: str = "fp16",
+        cpu_scheduling: bool = False,
         progress=gr.Progress(),
     ):
         progress(0, desc="Initializing pipeline...")
@@ -119,19 +117,15 @@ class StableDiffusion:
         devices = {
             "clip": clip_device,
             "mmdit": backend,
+            "unet": backend,
             "vae": vae_device,
         }
         targets = {
             "clip": clip_target,
             "mmdit": target,
+            "unet": target,
             "vae": vae_target,
         }
-        pipe_device_id = backend
-        target_triple = target
-        for key in devices:
-            if devices[key] != backend:
-                pipe_device_id = "hybrid"
-                target_triple = "_".join([clip_target, target, vae_target])
         self.precision = precision
         self.compiled_pipeline = False
         self.base_model_id = base_model_id
@@ -171,27 +165,11 @@ class StableDiffusion:
             targets = target
         max_length = 64
         
-        pipe_id_list = [
-            safe_name(base_model_id),
-            str(batch_size),
-            str(max_length),
-            f"{str(height)}x{str(width)}",
-            precision,
-            target_triple,
-        ]
-        if num_loras > 0:
-            pipe_id_list.append(str(num_loras) + "lora")
-        if is_controlled:
-            pipe_id_list.append("controlled")
-        if custom_vae:
-            pipe_id_list.append(custom_vae)
         self.pipe_id = "_".join(pipe_id_list)
-        self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), self.pipe_id))
-        self.weights_path = Path(
-            os.path.join(
-                get_checkpoints_path(), safe_name(self.base_model_id + "_" + precision)
-            )
-        )
+        self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), "vmfbs"))
+        self.weights_path = Path(os.path.join(get_checkpoints_path(), "weights"))
+        if not os.path.exists(self.pipeline_dir):
+            os.mkdir(self.pipeline_dir)
         if not os.path.exists(self.weights_path):
             os.mkdir(self.weights_path)
 
@@ -211,7 +189,7 @@ class StableDiffusion:
         progress(0.5, desc="Initializing pipeline...")
         self.sd_pipe = self.turbine_pipe(
             hf_model_name=base_model_id,
-            scheduler_id=scheduler,
+            scheduler_id=scheduler_id,
             height=height,
             width=width,
             precision=precision,
@@ -227,6 +205,7 @@ class StableDiffusion:
             external_weights_dir=self.weights_path,
             external_weights=external_weights,
             vae_precision=vae_precision,
+            cpu_scheduling=cpu_scheduling,
         )
         progress(1, desc="Pipeline initialized!...")
         gc.collect()
@@ -331,16 +310,23 @@ class StableDiffusion:
         resample_type,
         control_mode,
         hints,
-        progress=gr.Progress(),
+        steps=None,
+        cpu_scheduling=False,
+        scheduler_id=None,
+        progress=gr.Progress(track_tqdm=True),
     ):
 
         img = self.sd_pipe.generate_images(
-            prompt,
-            negative_prompt,
-            1,
-            guidance_scale,
-            seed,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            batch_count=1,
+            guidance_scale=guidance_scale,
+            seed=seed,
             return_imgs=True,
+            steps=steps,
+            cpu_scheduling=cpu_scheduling,
+            scheduler_id=scheduler_id,
+            progress=gr.Progress(track_tqdm=True),
         )
         return img
 
@@ -362,11 +348,8 @@ def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
     if not sd_kwargs["device"]:
         gr.Warning("No device specified. Please specify a device.")
         return None, ""
-    if sd_kwargs["height"] not in [512, 1024]:
-        gr.Warning("Height must be 512 or 1024. This is a temporary limitation.")
-        return None, ""
-    if sd_kwargs["height"] != sd_kwargs["width"]:
-        gr.Warning("Height and width must be the same. This is a temporary limitation.")
+    if sd_kwargs["height"] != 512 and sd_kwargs["width"] != 512 and sd_kwargs["base_model_id"] == "stabilityai/sdxl-turbo":
+        gr.Warning("SDXL turbo output size must be 512x512. This is a temporary limitation.")
         return None, ""
     if sd_kwargs["base_model_id"] == "stabilityai/sdxl-turbo":
         if sd_kwargs["steps"] > 10:
@@ -416,6 +399,7 @@ def shark_sd_fn(
     clip_device: str = None,
     vae_device: str = None,
     vae_precision: str = None,
+    cpu_scheduling: bool = False,
     progress=gr.Progress(),
 ):
     sd_kwargs = locals()
@@ -471,8 +455,6 @@ def shark_sd_fn(
         "num_loras": num_loras,
         "import_ir": import_ir,
         "is_controlled": is_controlled,
-        "steps": steps,
-        "scheduler": scheduler,
         "vae_precision": vae_precision,
     }
     submit_prep_kwargs = {
@@ -486,6 +468,7 @@ def shark_sd_fn(
         "prompt": prompt,
         "negative_prompt": negative_prompt,
         "image": sd_init_image,
+        "steps": steps,
         "strength": strength,
         "guidance_scale": guidance_scale,
         "seed": seed,
@@ -493,10 +476,12 @@ def shark_sd_fn(
         "resample_type": resample_type,
         "control_mode": control_mode,
         "hints": hints,
+        "cpu_scheduling": cpu_scheduling,
+        "scheduler_id": scheduler,
     }
-    if global_obj.get_sd_obj() and global_obj.get_sd_obj().dynamic_steps:
-        submit_run_kwargs["steps"] = submit_pipe_kwargs["steps"]
-        submit_pipe_kwargs.pop("steps")
+    if compiled_pipeline:
+        submit_pipe_kwargs["steps"] = submit_run_kwargs["steps"]
+        submit_pipe_kwargs["scheduler_id"] = submit_run_kwargs["scheduler_id"]
     if (
         not global_obj.get_sd_obj()
         or global_obj.get_pipe_kwargs() != submit_pipe_kwargs
@@ -545,14 +530,12 @@ def shark_sd_fn(
                 seed,
                 sd_kwargs,
             )
-        generated_imgs.extend(out_imgs)
-        breakpoint()
+            generated_imgs.extend(out_imgs[batch])
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )
         if batch_count > 1:
             submit_run_kwargs["seed"] = get_next_seed(seed, seed_increment)
-
     return (generated_imgs, "")
 
 
@@ -575,7 +558,11 @@ def unload_sd():
 
 
 def cancel_sd():
-    print("Inject call to cancel longer API calls.")
+    import apps.shark_studio.web.utils.globals as global_obj
+    print("Cancelling...")
+    global_obj.get_sd_obj()._interrupt = True
+    while global_obj.get_sd_obj()._interrupt:
+        time.sleep(0.1)
     return
 
 
