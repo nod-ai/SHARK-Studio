@@ -65,7 +65,10 @@ def preprocessCKPT(custom_weights, precision="fp16", is_inpaint=False):
 
 
 def save_irpa(weights_path, prepend_str, remove_str=None):
-    weights = safetensors.torch.load_file(weights_path)
+    try:
+        weights = safetensors.torch.load_file(weights_path)
+    except:
+        weights = safetensors.numpy.load_file(weights_path)
     archive = ParameterArchiveBuilder()
     for key in weights.keys():
         if remove_str:

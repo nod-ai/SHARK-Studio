@@ -164,8 +164,7 @@ class StableDiffusion:
             devices = backend
             targets = target
         max_length = 64
-        
-        self.pipe_id = "_".join(pipe_id_list)
+
         self.pipeline_dir = Path(os.path.join(get_checkpoints_path(), "vmfbs"))
         self.weights_path = Path(os.path.join(get_checkpoints_path(), "weights"))
         if not os.path.exists(self.pipeline_dir):
@@ -348,18 +347,13 @@ def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
     if not sd_kwargs["device"]:
         gr.Warning("No device specified. Please specify a device.")
         return None, ""
-    if sd_kwargs["height"] != 512 and sd_kwargs["width"] != 512 and sd_kwargs["base_model_id"] == "stabilityai/sdxl-turbo":
-        gr.Warning("SDXL turbo output size must be 512x512. This is a temporary limitation.")
-        return None, ""
     if sd_kwargs["base_model_id"] == "stabilityai/sdxl-turbo":
         if sd_kwargs["steps"] > 10:
-            gr.Warning("Max steps for sdxl-turbo is 10. 1 to 4 steps are recommended.")
-            return None, ""
+            gr.Warning("1 to 4 steps are recommended for sdxl-turbo, unless you are using a custom checkpoint.")
         if sd_kwargs["guidance_scale"] > 3:
             gr.Warning(
-                "sdxl-turbo CFG scale should be less than 2.0 if using negative prompt, 0 otherwise."
+                "sdxl-turbo CFG scale should be between 1.0 and 2.0 if using negative prompt, 0 otherwise."
             )
-            return None, ""
     if sd_kwargs["target_triple"] == "":
         if not parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[1]:
             gr.Warning(
