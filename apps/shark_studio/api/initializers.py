@@ -34,9 +34,9 @@ def imports():
         action="ignore", category=UserWarning, module="huggingface-hub"
     )
 
-    import gradio  # noqa: F401
+    # import gradio  # noqa: F401
 
-    startup_timer.record("import gradio")
+    # startup_timer.record("import gradio")
 
     import apps.shark_studio.web.utils.globals as global_obj
 
@@ -56,9 +56,8 @@ def initialize():
     # existing temporary images there if they exist. Then we can import gradio.
     # It has to be in this order or gradio ignores what we've set up.
 
-    config_tmp()
-    # clear_tmp_mlir()
-    clear_tmp_imgs()
+    # config_tmp()
+    # clear_tmp_imgs()
 
     from apps.shark_studio.web.utils.file_utils import (
         create_model_folders,
@@ -66,8 +65,6 @@ def initialize():
 
     # Create custom models folders if they don't exist
     create_model_folders()
-
-    import gradio as gr
 
     # initialize_rest(reload_script_modules=False)
 

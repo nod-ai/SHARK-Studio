@@ -32,31 +32,15 @@ datas += collect_data_files("torch")
 datas += collect_data_files("tokenizers")
 datas += collect_data_files("diffusers")
 datas += collect_data_files("transformers")
-datas += collect_data_files("gradio")
-datas += collect_data_files("gradio_client")
 datas += collect_data_files("iree", include_py_files=True)
-datas += collect_data_files("shark-turbine", include_py_files=True)
 datas += collect_data_files("tqdm")
-datas += collect_data_files("sentencepiece")
 datas += collect_data_files("jsonschema")
 datas += collect_data_files("jsonschema_specifications")
 datas += collect_data_files("cpuinfo")
-datas += [
-    ("web/ui/css/*", "ui/css"),
-    ("web/ui/js/*", "ui/js"),
-    ("web/ui/logos/*", "logos"),
-]
 
 
 # hidden imports for pyinstaller
 hiddenimports = ["apps", "shark-turbine"]
-hiddenimports += [x for x in collect_submodules("gradio") if "tests" not in x]
 hiddenimports += [x for x in collect_submodules("diffusers") if "tests" not in x]
-blacklist = ["tests", "convert"]
-hiddenimports += [
-    x
-    for x in collect_submodules("transformers")
-    if not any(kw in x for kw in blacklist)
-]
 hiddenimports += [x for x in collect_submodules("iree") if "test" not in x]
 hiddenimports += ["iree._runtime"]

@@ -20,9 +20,6 @@ from fastapi.encoders import jsonable_encoder
 
 from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
-# from sdapi_v1 import shark_sd_api
-from apps.shark_studio.api.llm import llm_chat_api
-
 
 def decode_base64_to_image(encoding):
     if encoding.startswith("http://") or encoding.startswith("https://"):
@@ -183,77 +180,14 @@ class ApiCompat:
         self.app = app
         self.queue_lock = queue_lock
         api_middleware(self.app)
-        # self.add_api_route("/sdapi/v1/txt2img", shark_sd_api, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/img2img", shark_sd_api, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/upscaler", self.upscaler_api, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/extra-single-image", self.extras_single_image_api, methods=["POST"], response_model=models.ExtrasSingleImageResponse)
-        # self.add_api_route("/sdapi/v1/extra-batch-images", self.extras_batch_images_api, methods=["POST"], response_model=models.ExtrasBatchImagesResponse)
-        # self.add_api_route("/sdapi/v1/png-info", self.pnginfoapi, methods=["POST"], response_model=models.PNGInfoResponse)
-        # self.add_api_route("/sdapi/v1/progress", self.progressapi, methods=["GET"], response_model=models.ProgressResponse)
-        # self.add_api_route("/sdapi/v1/interrogate", self.interrogateapi, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/interrupt", self.interruptapi, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/skip", self.skip, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/options", self.get_config, methods=["GET"], response_model=models.OptionsModel)
-        # self.add_api_route("/sdapi/v1/options", self.set_config, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/cmd-flags", self.get_cmd_flags, methods=["GET"], response_model=models.FlagsModel)
-        # self.add_api_route("/sdapi/v1/samplers", self.get_samplers, methods=["GET"], response_model=List[models.SamplerItem])
-        # self.add_api_route("/sdapi/v1/upscalers", self.get_upscalers, methods=["GET"], response_model=List[models.UpscalerItem])
-        # self.add_api_route("/sdapi/v1/latent-upscale-modes", self.get_latent_upscale_modes, methods=["GET"], response_model=List[models.LatentUpscalerModeItem])
-        # self.add_api_route("/sdapi/v1/sd-models", self.get_sd_models, methods=["GET"], response_model=List[models.SDModelItem])
-        # self.add_api_route("/sdapi/v1/sd-vae", self.get_sd_vaes, methods=["GET"], response_model=List[models.SDVaeItem])
-        # self.add_api_route("/sdapi/v1/hypernetworks", self.get_hypernetworks, methods=["GET"], response_model=List[models.HypernetworkItem])
-        # self.add_api_route("/sdapi/v1/face-restorers", self.get_face_restorers, methods=["GET"], response_model=List[models.FaceRestorerItem])
-        # self.add_api_route("/sdapi/v1/realesrgan-models", self.get_realesrgan_models, methods=["GET"], response_model=List[models.RealesrganItem])
-        # self.add_api_route("/sdapi/v1/prompt-styles", self.get_prompt_styles, methods=["GET"], response_model=List[models.PromptStyleItem])
-        # self.add_api_route("/sdapi/v1/embeddings", self.get_embeddings, methods=["GET"], response_model=models.EmbeddingsResponse)
-        # self.add_api_route("/sdapi/v1/refresh-checkpoints", self.refresh_checkpoints, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/refresh-vae", self.refresh_vae, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/create/embedding", self.create_embedding, methods=["POST"], response_model=models.CreateResponse)
-        # self.add_api_route("/sdapi/v1/create/hypernetwork", self.create_hypernetwork, methods=["POST"], response_model=models.CreateResponse)
-        # self.add_api_route("/sdapi/v1/preprocess", self.preprocess, methods=["POST"], response_model=models.PreprocessResponse)
-        # self.add_api_route("/sdapi/v1/train/embedding", self.train_embedding, methods=["POST"], response_model=models.TrainResponse)
-        # self.add_api_route("/sdapi/v1/train/hypernetwork", self.train_hypernetwork, methods=["POST"], response_model=models.TrainResponse)
-        # self.add_api_route("/sdapi/v1/memory", self.get_memory, methods=["GET"], response_model=models.MemoryResponse)
-        # self.add_api_route("/sdapi/v1/unload-checkpoint", self.unloadapi, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/reload-checkpoint", self.reloadapi, methods=["POST"])
-        # self.add_api_route("/sdapi/v1/scripts", self.get_scripts_list, methods=["GET"], response_model=models.ScriptsList)
-        # self.add_api_route("/sdapi/v1/script-info", self.get_script_info, methods=["GET"], response_model=List[models.ScriptInfo])
 
-        # chat APIs needed for compatibility with multiple extensions using OpenAI API
-        self.add_api_route("/v1/chat/completions", llm_chat_api, methods=["POST"])
-        self.add_api_route("/v1/completions", llm_chat_api, methods=["POST"])
-        self.add_api_route("/chat/completions", llm_chat_api, methods=["POST"])
-        self.add_api_route("/completions", llm_chat_api, methods=["POST"])
-        self.add_api_route(
-            "/v1/engines/codegen/completions", llm_chat_api, methods=["POST"]
-        )
+        # self.add_api_route("/sdapi/v1/txt2img", shark_sd_api, methods=["POST"])
 
         self.default_script_arg_txt2img = []
         self.default_script_arg_img2img = []
 
     def add_api_route(self, path: str, endpoint, **kwargs):
         return self.app.add_api_route(path, endpoint, **kwargs)
-
-    # def refresh_checkpoints(self):
-    #     with self.queue_lock:
-    #         studio_data.refresh_checkpoints()
-
-    # def refresh_vae(self):
-    #     with self.queue_lock:
-    #         studio_data.refresh_vae_list()
-
-    # def unloadapi(self):
-    #     unload_model_weights()
-
-    #     return {}
-
-    # def reloadapi(self):
-    #     reload_model_weights()
-
-    #     return {}
-
-    # def skip(self):
-    #     studio.state.skip()
 
     def launch(self, server_name, port, root_path):
         self.app.include_router(self.router)

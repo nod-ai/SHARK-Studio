@@ -100,6 +100,7 @@ def get_checkpoints(model_type="checkpoints"):
     ckpt_files.extend(files)
     return sorted(ckpt_files, key=str.casefold)
 
+
 def get_configs():
     return sorted(
         [

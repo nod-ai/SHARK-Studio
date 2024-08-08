@@ -63,9 +63,9 @@ _IREE_TARGET_MAP = {
 }
 
 
-
 def get_available_devices():
-    return ['rocm', 'cpu']
+    return ["rocm", "cpu"]
+
     def get_devices_by_name(driver_name):
 
         device_list = []
@@ -94,7 +94,7 @@ def get_available_devices():
                         device_list.append(f"{device_name} => {driver_name}://{i}")
         return device_list
 
-    #set_iree_runtime_flags()
+    # set_iree_runtime_flags()
 
     available_devices = []
     rocm_devices = get_devices_by_name("rocm")
@@ -140,17 +140,14 @@ def get_available_devices():
                 break
     return available_devices
 
+
 def clean_device_info(raw_device):
     # return appropriate device and device_id for consumption by Studio pipeline
     # Multiple devices only supported for vulkan and rocm (as of now).
     # default device must be selected for all others
 
     device_id = None
-    device = (
-        raw_device
-        if "=>" not in raw_device
-        else raw_device.split("=>")[1].strip()
-    )
+    device = raw_device if "=>" not in raw_device else raw_device.split("=>")[1].strip()
     if "://" in device:
         device, device_id = device.split("://")
         if len(device_id) <= 2:
@@ -161,6 +158,7 @@ def clean_device_info(raw_device):
     if device in ["hip", "rocm", "vulkan"] and device_id == None:
         device_id = 0
     return device, device_id
+
 
 def parse_device(device_str, target_override=""):
 

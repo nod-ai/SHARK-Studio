@@ -597,7 +597,7 @@ p.add_argument(
     "--defaults",
     default="sdxl-turbo.json",
     type=str,
-    help="Path to the default API request .json file. Works for CLI and webui."
+    help="Path to the default API request .json file. Works for CLI and webui.",
 )
 
 p.add_argument(

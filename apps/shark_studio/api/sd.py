@@ -14,7 +14,6 @@ from pathlib import Path
 from random import randint
 
 
-
 from apps.shark_studio.api.controlnet import control_adapter_map
 from apps.shark_studio.api.utils import parse_device
 from apps.shark_studio.web.utils.state import status_label
@@ -30,6 +29,7 @@ from apps.shark_studio.modules.img_processing import (
 
 
 from subprocess import check_output
+
 EMPTY_SD_MAP = {
     "clip": None,
     "scheduler": None,
@@ -114,11 +114,14 @@ class StableDiffusion:
             from turbine_models.custom_models.sdxl_inference.sdxl_compiled_pipeline import (
                 SharkSDXLPipeline,
             )
+
             self.turbine_pipe = SharkSDXLPipeline
             self.dynamic_steps = False
             self.model_map = EMPTY_SDXL_MAP
         else:
-            from turbine_models.custom_models.sd_inference.sd_pipeline import SharkSDPipeline
+            from turbine_models.custom_models.sd_inference.sd_pipeline import (
+                SharkSDPipeline,
+            )
 
             self.turbine_pipe = SharkSDPipeline
             self.dynamic_steps = True
@@ -209,6 +212,7 @@ class StableDiffusion:
                 preprocessCKPT,
                 save_irpa,
             )
+
             custom_weights = os.path.join(
                 get_checkpoints_path("checkpoints"),
                 safe_name(self.base_model_id.split("/")[-1]),
@@ -223,14 +227,20 @@ class StableDiffusion:
                         "diffusion_pytorch_model.safetensors",
                     )
                     weights[key] = save_irpa(unet_weights_path, "unet.")
-
-                elif key in ["clip", "prompt_encoder"]:
-                    if not self.is_sdxl:
+                if key in ["mmdit"]:
+                    mmdit_weights_path = os.path.join(
+                        diffusers_weights_path,
+                        "mmdit",
+                        "diffusion_pytorch_model_fp16.safetensors",
+                    )
+                    weights[key] = save_irpa(mmdit_weights_path, "mmdit.")
+                elif key in ["clip", "prompt_encoder", "text_encoder"]:
+                    if not self.is_sdxl and not self.is_custom:
                         sd1_path = os.path.join(
                             diffusers_weights_path, "text_encoder", "model.safetensors"
                         )
                         weights[key] = save_irpa(sd1_path, "text_encoder_model.")
-                    else:
+                    elif self.is_sdxl:
                         clip_1_path = os.path.join(
                             diffusers_weights_path, "text_encoder", "model.safetensors"
                         )
@@ -243,7 +253,27 @@ class StableDiffusion:
                             save_irpa(clip_1_path, "text_encoder_model_1."),
                             save_irpa(clip_2_path, "text_encoder_model_2."),
                         ]
-
+                    elif self.is_custom:
+                        clip_g_path = os.path.join(
+                            diffusers_weights_path,
+                            "text_encoder",
+                            "model.fp16.safetensors",
+                        )
+                        clip_l_path = os.path.join(
+                            diffusers_weights_path,
+                            "text_encoder_2",
+                            "model.fp16.safetensors",
+                        )
+                        t5xxl_path = os.path.join(
+                            diffusers_weights_path,
+                            "text_encoder_3",
+                            "model.fp16.safetensors",
+                        )
+                        weights[key] = [
+                            save_irpa(clip_g_path, "clip_g.transformer."),
+                            save_irpa(clip_l_path, "clip_l.transformer."),
+                            save_irpa(t5xxl_path, "t5xxl.transformer."),
+                        ]
                 elif key in ["vae_decode"] and weights[key] is None:
                     vae_weights_path = os.path.join(
                         diffusers_weights_path,
@@ -251,6 +281,7 @@ class StableDiffusion:
                         "diffusion_pytorch_model.safetensors",
                     )
                     weights[key] = save_irpa(vae_weights_path, "vae.")
+
         progress(0.25, desc=f"Preparing pipeline for {self.ui_device}...")
 
         vmfbs, weights = self.sd_pipe.check_prepared(
@@ -291,49 +322,6 @@ class StableDiffusion:
         return img
 
 
-def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
-    print("\n[LOG] Submitting Request...")
-
-    for key in sd_kwargs:
-        if sd_kwargs[key] in [None, []]:
-            sd_kwargs[key] = None
-        if sd_kwargs[key] in ["None"]:
-            sd_kwargs[key] = ""
-        if key in ["steps", "height", "width", "batch_count", "batch_size"]:
-            sd_kwargs[key] = int(sd_kwargs[key])
-        if key == "seed":
-            sd_kwargs[key] = int(sd_kwargs[key])
-
-    # TODO: move these checks into the UI code so we don't have gradio warnings in a generalized dict input function.
-    if not sd_kwargs["device"]:
-        gr.Warning("No device specified. Please specify a device.")
-        return None, ""
-    if sd_kwargs["height"] not in [512, 1024]:
-        gr.Warning("Height must be 512 or 1024. This is a temporary limitation.")
-        return None, ""
-    if sd_kwargs["height"] != sd_kwargs["width"]:
-        gr.Warning("Height and width must be the same. This is a temporary limitation.")
-        return None, ""
-    if sd_kwargs["base_model_id"] == "stabilityai/sdxl-turbo":
-        if sd_kwargs["steps"] > 10:
-            gr.Warning("Max steps for sdxl-turbo is 10. 1 to 4 steps are recommended.")
-            return None, ""
-        if sd_kwargs["guidance_scale"] > 3:
-            gr.Warning(
-                "sdxl-turbo CFG scale should be less than 2.0 if using negative prompt, 0 otherwise."
-            )
-            return None, ""
-    if sd_kwargs["target_triple"] == "":
-        if not parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[2]:
-            gr.Warning(
-                "Target device architecture could not be inferred. Please specify a target triple, e.g. 'gfx1100' for a Radeon 7900xtx."
-            )
-            return None, ""
-
-    generated_imgs = yield from shark_sd_fn(**sd_kwargs)
-    return generated_imgs
-
-
 def shark_sd_fn(
     prompt,
     negative_prompt,
@@ -359,7 +347,8 @@ def shark_sd_fn(
     controlnets: dict,
     embeddings: dict,
     seed_increment: str | int = 1,
-    progress=gr.Progress(),
+    output_type: str = "png",
+    # progress=gr.Progress(),
 ):
     sd_kwargs = locals()
     if not isinstance(sd_init_image, list):
@@ -464,8 +453,8 @@ def shark_sd_fn(
     if submit_run_kwargs["seed"] in [-1, "-1"]:
         submit_run_kwargs["seed"] = randint(0, 4294967295)
         seed_increment = "random"
-        #print(f"\n[LOG] Random seed: {seed}")
-    progress(None, desc=f"Generating...")
+        # print(f"\n[LOG] Random seed: {seed}")
+    # progress(None, desc=f"Generating...")
 
     for current_batch in range(batch_count):
         start_time = time.time()
@@ -479,13 +468,14 @@ def shark_sd_fn(
         #     break
         # else:
         for batch in range(batch_size):
-            save_output_img(
-                out_imgs[batch],
-                seed,
-                sd_kwargs,
-            )
+            if output_type == "png":
+                save_output_img(
+                    out_imgs[batch],
+                    seed,
+                    sd_kwargs,
+                )
         generated_imgs.extend(out_imgs)
-        
+
         yield generated_imgs, status_label(
             "Stable Diffusion", current_batch + 1, batch_count, batch_size
         )
@@ -495,13 +485,56 @@ def shark_sd_fn(
     return (generated_imgs, "")
 
 
+def shark_sd_fn_dict_input(sd_kwargs: dict, *, progress=gr.Progress()):
+    print("\n[LOG] Submitting Request...")
+
+    for key in sd_kwargs:
+        if sd_kwargs[key] in [None, []]:
+            sd_kwargs[key] = None
+        if sd_kwargs[key] in ["None"]:
+            sd_kwargs[key] = ""
+        if key in ["steps", "height", "width", "batch_count", "batch_size"]:
+            sd_kwargs[key] = int(sd_kwargs[key])
+        if key == "seed":
+            sd_kwargs[key] = int(sd_kwargs[key])
+
+    # TODO: move these checks into the UI code so we don't have gradio warnings in a generalized dict input function.
+    if not sd_kwargs["device"]:
+        gr.Warning("No device specified. Please specify a device.")
+        return None, ""
+    if sd_kwargs["height"] not in [512, 1024]:
+        gr.Warning("Height must be 512 or 1024. This is a temporary limitation.")
+        return None, ""
+    if sd_kwargs["height"] != sd_kwargs["width"]:
+        gr.Warning("Height and width must be the same. This is a temporary limitation.")
+        return None, ""
+    if sd_kwargs["base_model_id"] == "stabilityai/sdxl-turbo":
+        if sd_kwargs["steps"] > 10:
+            gr.Warning("Max steps for sdxl-turbo is 10. 1 to 4 steps are recommended.")
+            return None, ""
+        if sd_kwargs["guidance_scale"] > 3:
+            gr.Warning(
+                "sdxl-turbo CFG scale should be less than 2.0 if using negative prompt, 0 otherwise."
+            )
+            return None, ""
+    if sd_kwargs["target_triple"] == "":
+        if not parse_device(sd_kwargs["device"], sd_kwargs["target_triple"])[2]:
+            gr.Warning(
+                "Target device architecture could not be inferred. Please specify a target triple, e.g. 'gfx1100' for a Radeon 7900xtx."
+            )
+            return None, ""
+
+    generated_imgs = yield from shark_sd_fn(**sd_kwargs)
+    return generated_imgs
+
+
 def get_next_seed(seed, seed_increment: str | int = 10):
     if isinstance(seed_increment, int):
-        #print(f"\n[LOG] Seed after batch increment: {seed + seed_increment}")
+        # print(f"\n[LOG] Seed after batch increment: {seed + seed_increment}")
         return int(seed + seed_increment)
     elif seed_increment == "random":
         seed = randint(0, 4294967295)
-        #print(f"\n[LOG] Random seed: {seed}")
+        # print(f"\n[LOG] Random seed: {seed}")
         return seed
 
 

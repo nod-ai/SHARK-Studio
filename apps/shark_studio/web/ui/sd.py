@@ -51,7 +51,7 @@ sd_default_models = [
     # "stabilityai/stable-diffusion-2-1-base",
     # "stabilityai/stable-diffusion-2-1",
     # "stabilityai/stable-diffusion-xl-base-1.0",
-    #"stabilityai/sdxl-turbo",
+    # "stabilityai/sdxl-turbo",
 ]
 sd_default_models.extend(get_checkpoints(model_type="scripts"))
 
@@ -154,7 +154,9 @@ def load_sd_cfg(sd_json: dict, load_sd_config: str):
     elif os.path.exists(os.path.join(get_configs_path(), load_sd_config)):
         config = os.path.join(get_configs_path(), load_sd_config)
     else:
-        print("Default config not found as absolute path or in configs folder. Using sdxl-turbo as default config.")
+        print(
+            "Default config not found as absolute path or in configs folder. Using sdxl-turbo as default config."
+        )
         config = sd_json
     new_sd_config = none_to_str_none(json.loads(view_json_file(config)))
     if sd_json:
@@ -284,6 +286,7 @@ def base_model_changed(base_model_id):
         new_steps,
     ]
 
+
 init_config = global_obj.get_init_config()
 init_config = none_to_str_none(json.loads(view_json_file(init_config)))
 
@@ -307,15 +310,17 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         show_copy_button=True,
                     )
                 with gr.Accordion(
-                        label="\U0001F4D0\U0000FE0F Advanced Settings", open=False
+                    label="\U0001F4D0\U0000FE0F Advanced Settings", open=False
                 ):
-                    with gr.Accordion(
-                        label="Device Settings", open=False
-                    ):
+                    with gr.Accordion(label="Device Settings", open=False):
                         device = gr.Dropdown(
                             elem_id="device",
                             label="Device",
-                            value=init_config["device"] if init_config["device"] else "rocm",
+                            value=(
+                                init_config["device"]
+                                if init_config["device"]
+                                else "rocm"
+                            ),
                             choices=global_obj.get_device_list(),
                             allow_custom_value=True,
                         )
@@ -347,7 +352,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value=512,
                             step=512,
                             label="\U00002195\U0000FE0F Height",
-                            interactive=False, # DEMO
+                            interactive=False,  # DEMO
                             visible=False,  # DEMO
                         )
                         width = gr.Slider(
@@ -356,10 +361,10 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             value=512,
                             step=512,
                             label="\U00002194\U0000FE0F Width",
-                            interactive=False, # DEMO
+                            interactive=False,  # DEMO
                             visible=False,  # DEMO
                         )
-                    
+
                     with gr.Accordion(
                         label="\U0001F9EA\U0000FE0F Input Image Processing",
                         open=False,
@@ -379,7 +384,9 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             allow_custom_value=True,
                         )
                     with gr.Row():
-                        sd_model_info = f"Checkpoint Path: {str(get_checkpoints_path())}"
+                        sd_model_info = (
+                            f"Checkpoint Path: {str(get_checkpoints_path())}"
+                        )
                         base_model_id = gr.Dropdown(
                             label="\U000026F0\U0000FE0F Base Model",
                             info="Select or enter HF model ID",
@@ -413,7 +420,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                         )
                         guidance_scale = gr.Slider(
                             0,
-                            5, #DEMO
+                            5,  # DEMO
                             value=4,
                             step=0.1,
                             label="\U0001F5C3\U0000FE0F CFG Scale",
@@ -444,9 +451,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             visible=False,  # DEMO
                         )
                     with gr.Row(elem_classes=["fill"], visible=False):
-                        Path(get_configs_path()).mkdir(
-                            parents=True, exist_ok=True
-                        )
+                        Path(get_configs_path()).mkdir(parents=True, exist_ok=True)
                         write_default_sd_configs(get_configs_path())
                         default_config_file = global_obj.get_init_config()
                         sd_json = gr.JSON(
@@ -463,9 +468,7 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                                 visible=False,
                             )
                         with gr.Row():
-                            save_sd_config = gr.Button(
-                                value="Save Config", size="sm"
-                            )
+                            save_sd_config = gr.Button(value="Save Config", size="sm")
                             clear_sd_config = gr.ClearButton(
                                 value="Clear Config",
                                 size="sm",
@@ -514,7 +517,11 @@ with gr.Blocks(title="Stable Diffusion") as sd_element:
                             label=f"Standalone LoRA Weights",
                             info=sd_lora_info,
                             elem_id="lora_weights",
-                            value=init_config["embeddings"][0] if (len(init_config["embeddings"].keys()) > 1) else "None",
+                            value=(
+                                init_config["embeddings"][0]
+                                if (len(init_config["embeddings"].keys()) > 1)
+                                else "None"
+                            ),
                             multiselect=True,
                             choices=[] + get_checkpoints("lora"),
                             scale=2,

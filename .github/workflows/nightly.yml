@@ -46,7 +46,7 @@ jobs:
         draft: true
         prerelease: true
 
-    - name: Build Package 
+    - name: Build Package (api only)
       shell: powershell
       run: |
         ./setup_venv.ps1
@@ -54,10 +54,10 @@ jobs:
         $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
         pip install -e .
         pip freeze -l
-        pyinstaller .\apps\shark_studio\shark_studio.spec
+        pyinstaller .\apps\shark_studio\shark_studio_apionly.spec
         mv ./dist/nodai_shark_studio.exe ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
         signtool sign /f c:\g\shark_02152023.cer /fd certHash /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
-  
+
     - name: Upload Release Assets
       id: upload-release-assets
       uses: dwenegar/upload-release-assets@v1

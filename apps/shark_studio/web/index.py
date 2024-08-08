@@ -32,13 +32,15 @@ def create_api(app):
 
 
 def api_only():
-    from fastapi import FastAPI
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
+    from apps.shark_studio.web.api.sd import sdapi
+    from fastapi import FastAPI
 
     initialize.initialize()
 
     app = FastAPI()
     initialize.setup_middleware(app)
+    app.mount("/sdapi/", sdapi)
     api = create_api(app)
 
     # from modules import script_callbacks
@@ -56,6 +58,7 @@ def api_only():
 def launch_webui(address):
     from tkinter import Tk
     import webview
+    import gradio as gr
 
     window = Tk()
 
@@ -83,7 +86,7 @@ def webui():
     launch_api = cmd_opts.api
     initialize.initialize()
 
-    #from ui.chat import chat_element
+    # from ui.chat import chat_element
     from ui.sd import sd_element
     from ui.outputgallery import outputgallery_element
 
@@ -216,7 +219,8 @@ def webui():
 if __name__ == "__main__":
     from apps.shark_studio.modules.shared_cmd_opts import cmd_opts
 
-    if cmd_opts.webui == False:
-        api_only()
-    else:
-        webui()
+    api_only()
+    # if cmd_opts.webui == False:
+    #     api_only()
+    # else:
+    #     webui()
