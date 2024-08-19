@@ -2,11 +2,18 @@
 
 High Performance Machine Learning Distribution
 
-*We are currently rebuilding SHARK to take advantage of [Turbine](https://github.com/nod-ai/SHARK-Turbine). Until that is complete make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK*
+> ⚠️ We are currently rebuilding SHARK to take advantage of [Turbine](https://github.com/nod-ai/SHARK-Turbine). Until that is complete make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK
 
 [![Nightly Release](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml)
-[![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
 
+## What is SHARK?
+SHARK is a high-performance machine learning distribution that provides optimized inference for a wide range of models, including BERT, GPT2, BLOOM, Stable Diffusion, and ResNet50. 
+
+It supports multiple hardware backends, allowing users to run models efficiently on their available hardware. SHARK leveraes MLIR (Multi-Level Intermediate Representation) and IREE (Integrated Runtime and Compiler Environment) to enable high-performance model execution. 
+
+This approach allows SHARK to deliver fast inference speeds while maintaining flexibility and ease of use.
+
+## Installation
 
 <details>
   <summary>Prerequisites - Drivers </summary>
