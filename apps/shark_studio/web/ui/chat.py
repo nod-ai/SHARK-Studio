@@ -62,7 +62,7 @@ def chat_fn(
             model,
             device=device,
             precision=precision,
-            external_weights="safetensors",
+            external_weights="gguf",
             use_system_prompt=prompt_prefix,
             streaming_llm=streaming_llm,
             hf_auth_token=cmd_opts.hf_auth_token,
