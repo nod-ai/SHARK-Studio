@@ -121,8 +121,9 @@ def generate_images(
             pass
         elif base_model == "sd3":
             pass
-        # existing_args = pipeline_args
-        pass
+        existing_args = pipeline_args
+        pipeline = new_pipeline
+        pipelines[base_model] = (existing_args, pipeline)
 
     generated_images = []
     for current_batch in range(batch_count):
