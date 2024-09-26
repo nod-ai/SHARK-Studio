@@ -95,11 +95,9 @@ def generate_images(
     (existing_args, pipeline) = pipelines[base_model]
     if not existing_args or not pipeline or not pipeline_args == existing_args:
         # TODO: Initialize new pipeline
-        if base_model == "sd1.5":
-            pass
-        elif base_model == "sd2":
+        if base_model in ["sd1.5", "sd2"]:
             new_pipeline = SharkSDPipeline(
-                hf_model_name="stabilityai/stable-diffusion-2-1",
+                hf_model_name=("stabilityai/stable-diffusion-2-1" if base_model == "sd2" else "stabilityai/stable-diffusion-1-5"),
                 scheduler_id=scheduler,
                 height=height,
                 width=width,
