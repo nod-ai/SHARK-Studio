@@ -6,7 +6,7 @@ We currently make use of the [AI-Render Plugin](https://github.com/benrugg/AI-Re
 
 ## Setup SHARK and prerequisites:
 
- * Download the latest SHARK SD webui .exe from [here](https://github.com/nod-ai/SHARK/releases) or follow instructions on the [README](https://github.com/nod-ai/SHARK#readme)
+ * Download the latest SHARK SD webui .exe from [here](https://github.com/nod-ai/SHARK-Studio/releases) or follow instructions on the [README](https://github.com/nod-ai/SHARK#readme)
  * Once you have the .exe where you would like SHARK to install, run the .exe from terminal/PowerShell with the `--api` flag:
 ```
 ## Run the .exe in API mode:

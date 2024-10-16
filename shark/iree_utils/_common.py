@@ -157,7 +157,7 @@ def device_driver_info(device):
             f"Required drivers for {device} not found. {device_driver_err_map[device]['debug']} "
             f"Please install the required drivers{device_driver_err_map[device]['solution']} "
             f"For further assistance please reach out to the community on discord [https://discord.com/invite/RUqY2h2s9u]"
-            f" and/or file a bug at https://github.com/nod-ai/SHARK/issues"
+            f" and/or file a bug at https://github.com/nod-ai/SHARK-Studio/issues"
         )
         return err_msg
     else:

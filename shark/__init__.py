@@ -14,7 +14,7 @@ def shark(model, inputs, *, options):
         log.exception(
             "Unable to import SHARK - High Performance Machine Learning Distribution"
             "Please install the right version of SHARK that matches the PyTorch version being used. "
-            "Refer to https://github.com/nod-ai/SHARK/ for details."
+            "Refer to https://github.com/nod-ai/SHARK-Studio/ for details."
         )
         raise
     return SharkBackend(model, inputs, options)

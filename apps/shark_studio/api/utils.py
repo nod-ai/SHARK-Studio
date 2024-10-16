@@ -192,7 +192,7 @@ def get_rocm_target_chip(device_str):
         if key in device_str:
             return rocm_chip_map[key]
     raise AssertionError(
-        f"Device {device_str} not recognized. Please file an issue at https://github.com/nod-ai/SHARK/issues."
+        f"Device {device_str} not recognized. Please file an issue at https://github.com/nod-ai/SHARK-Studio/issues."
     )
 
 

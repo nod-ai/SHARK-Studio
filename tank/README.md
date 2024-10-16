@@ -142,7 +142,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 
 ### Run all model tests on CPU/GPU/VULKAN/Metal
 
-For a list of models included in our pytest model suite, see https://github.com/nod-ai/SHARK/blob/main/tank/all_models.csv
+For a list of models included in our pytest model suite, see https://github.com/nod-ai/SHARK-Studio/blob/main/tank/all_models.csv
 
 ```shell
 pytest tank/test_models.py
