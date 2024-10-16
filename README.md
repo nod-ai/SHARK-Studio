@@ -27,7 +27,7 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 
 ### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
 
-Install the Driver from (Prerequisites)[https://github.com/nod-ai/SHARK#install-your-hardware-drivers] above
+Install the Driver from (Prerequisites)[https://github.com/nod-ai/SHARK-Studio#install-your-hardware-drivers] above
 
 Download the [stable release](https://github.com/nod-ai/SHARK-Studio/releases/latest) or the most recent [SHARK 1.0 pre-release](https://github.com/nod-ai/SHARK-Studio/releases).
 
