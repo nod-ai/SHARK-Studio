@@ -2,10 +2,10 @@
 
 High Performance Machine Learning Distribution
 
-*We are currently rebuilding SHARK to take advantage of [Turbine](https://github.com/nod-ai/SHARK-Turbine). Until that is complete make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK*
+*We are currently rebuilding SHARK to take advantage of [Turbine](https://github.com/iree-org/iree-turbine). Until that is complete make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK*
 
-[![Nightly Release](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/nightly.yml)
-[![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK/actions/workflows/test-models.yml)
+[![Nightly Release](https://github.com/nod-ai/SHARK-Studio/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK-Studio/actions/workflows/nightly.yml)
+[![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK-Studio/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK-Studio/actions/workflows/test-models.yml)
 
 
 <details>
@@ -27,9 +27,9 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 
 ### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
 
-Install the Driver from (Prerequisites)[https://github.com/nod-ai/SHARK#install-your-hardware-drivers] above
+Install the Driver from (Prerequisites)[https://github.com/nod-ai/SHARK-Studio#install-your-hardware-drivers] above
 
-Download the [stable release](https://github.com/nod-ai/shark/releases/latest) or the most recent [SHARK 1.0 pre-release](https://github.com/nod-ai/shark/releases).
+Download the [stable release](https://github.com/nod-ai/SHARK-Studio/releases/latest) or the most recent [SHARK 1.0 pre-release](https://github.com/nod-ai/SHARK-Studio/releases).
 
 Double click the .exe, or [run from the command line](#running) (recommended), and you should have the [UI](http://localhost:8080/) in the browser.
 
@@ -73,7 +73,7 @@ cd SHARK
 
 ## Switch to the Correct Branch (IMPORTANT!)
 
-Currently SHARK is being rebuilt for [Turbine](https://github.com/nod-ai/SHARK-Turbine) on the `main` branch. For now you are strongly discouraged from using `main` unless you are working on the rebuild effort, and should not expect the code there to produce a working application for Image Generation, So for now you'll need switch over to the `SHARK-1.0` branch and use the stable code.
+Currently SHARK is being rebuilt for [Turbine](https://github.com/iree-org/iree-turbine) on the `main` branch. For now you are strongly discouraged from using `main` unless you are working on the rebuild effort, and should not expect the code there to produce a working application for Image Generation, So for now you'll need switch over to the `SHARK-1.0` branch and use the stable code.
 
 ```shell
 git checkout SHARK-1.0
@@ -358,12 +358,12 @@ SHARK is maintained to support the latest innovations in ML Models:
 | Vision Transformer       | :green_heart:         | :green_heart:         | :green_heart:            |
 | ResNet50         | :green_heart:         | :green_heart:         | :green_heart:            |
 
-For a complete list of the models supported in SHARK, please refer to [tank/README.md](https://github.com/nod-ai/SHARK/blob/main/tank/README.md).
+For a complete list of the models supported in SHARK, please refer to [tank/README.md](https://github.com/nod-ai/SHARK-Studio/blob/main/tank/README.md).
 
 ## Communication Channels
 
 *   [SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the SHARK team and other users
-*   [GitHub issues](https://github.com/nod-ai/SHARK/issues): Feature requests, bugs etc
+*   [GitHub issues](https://github.com/nod-ai/SHARK-Studio/issues): Feature requests, bugs etc
 
 ## Related Projects
 

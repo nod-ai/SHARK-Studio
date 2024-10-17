@@ -8,7 +8,7 @@ wheel
 
 torch==2.3.0
 shark-turbine @ git+https://github.com/iree-org/iree-turbine.git@main
-turbine-models @ git+https://github.com/nod-ai/SHARK-Turbine.git@main#subdirectory=models
+turbine-models @ git+https://github.com/nod-ai/SHARK-ModelDev.git@main#subdirectory=models
 diffusers @ git+https://github.com/nod-ai/diffusers@0.29.0.dev0-shark
 brevitas @ git+https://github.com/Xilinx/brevitas.git@6695e8df7f6a2c7715b9ed69c4b78157376bb60b
 

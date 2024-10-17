@@ -396,7 +396,7 @@ class SharkModuleTest(unittest.TestCase):
             and device == "rocm"
         ):
             pytest.xfail(
-                reason="iree-compile buffer limit issue: https://github.com/nod-ai/SHARK/issues/475"
+                reason="iree-compile buffer limit issue: https://github.com/nod-ai/SHARK-Studio/issues/475"
             )
         if (
             config["model_name"]
@@ -407,7 +407,7 @@ class SharkModuleTest(unittest.TestCase):
             and device == "rocm"
         ):
             pytest.xfail(
-                reason="Numerics issues: https://github.com/nod-ai/SHARK/issues/476"
+                reason="Numerics issues: https://github.com/nod-ai/SHARK-Studio/issues/476"
             )
         if config["framework"] == "tf" and self.module_tester.batch_size != 1:
             pytest.xfail(

@@ -21,7 +21,7 @@ setup(
     long_description_content_type="text/markdown",
     project_urls={
         "Code": "https://github.com/nod-ai/SHARK",
-        "Bug Tracker": "https://github.com/nod-ai/SHARK/issues",
+        "Bug Tracker": "https://github.com/nod-ai/SHARK-Studio/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",

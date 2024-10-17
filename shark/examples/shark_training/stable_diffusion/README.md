@@ -23,7 +23,7 @@ pip install accelerate transformers ftfy
 
 Please cherry-pick this branch of torch-mlir: https://github.com/vivekkhandelwal1/torch-mlir/tree/sd-ops
 and build it locally. You can find the instructions for using locally build Torch-MLIR,
-here: https://github.com/nod-ai/SHARK#how-to-use-your-locally-built-iree--torch-mlir-with-shark
+here: https://github.com/nod-ai/SHARK-Studio#how-to-use-your-locally-built-iree--torch-mlir-with-shark
 
 ## Run the Stable diffusion fine tuning
 
