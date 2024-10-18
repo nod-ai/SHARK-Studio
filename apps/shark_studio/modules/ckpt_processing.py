@@ -4,7 +4,7 @@ import re
 import requests
 import torch
 import safetensors
-from shark_turbine.aot.params import (
+from iree.turbine.aot.params import (
     ParameterArchiveBuilder,
 )
 from io import BytesIO
