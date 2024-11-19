@@ -1,4 +1,9 @@
-from turbine_models.custom_models import stateless_llama
+from shark_turbine.aot import *
+from sharktank.models.llama.llama import LlamaModelConfig, PagedLlamaModelV1
+import sharktank
+import huggingface_hub
+
+# from turbine_models.custom_models import stateless_llama
 from turbine_models.model_runner import vmfbRunner
 from turbine_models.gen_external_params.gen_external_params import gen_external_params
 import time
@@ -19,7 +24,7 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 llm_model_map = {
     "meta-llama/Llama-2-7b-chat-hf": {
-        "initializer": stateless_llama.export_transformer_model,
+        # "initializer": stateless_llama.export_transformer_model,
         "hf_model_name": "meta-llama/Llama-2-7b-chat-hf",
         "compile_flags": ["--iree-opt-const-expr-hoisting=False"],
         "stop_token": 2,
@@ -27,7 +32,7 @@ llm_model_map = {
         "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
     },
     "Trelis/Llama-2-7b-chat-hf-function-calling-v2": {
-        "initializer": stateless_llama.export_transformer_model,
+        # "initializer": stateless_llama.export_transformer_model,
         "hf_model_name": "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
         "compile_flags": ["--iree-opt-const-expr-hoisting=False"],
         "stop_token": 2,
@@ -35,7 +40,7 @@ llm_model_map = {
         "system_prompt": """<s>[INST] <<SYS>>Be concise. You are a helpful, respectful and honest assistant. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information. <</SYS>>""",
     },
     "TinyPixel/small-llama2": {
-        "initializer": stateless_llama.export_transformer_model,
+        # "initializer": stateless_llama.export_transformer_model,
         "hf_model_name": "TinyPixel/small-llama2",
         "compile_flags": ["--iree-opt-const-expr-hoisting=True"],
         "stop_token": 2,
@@ -130,13 +135,18 @@ class LanguageModel:
                 print(
                     f"External weight file {self.external_weight_file} does not exist. Generating..."
                 )
-                gen_external_params(
-                    hf_model_name=self.hf_model_name,
-                    quantization=self.quantization,
-                    weight_path=self.external_weight_file,
-                    hf_auth_token=hf_auth_token,
-                    precision=self.precision,
+                # gen_external_params(
+                #    hf_model_name=self.hf_model_name,
+                #    quantization=self.quantization,
+                #    weight_path=self.external_weight_file,
+                #    hf_auth_token=hf_auth_token,
+                #    precision=self.precision,
+                # )
+                cache_dir = os.path.join(".", str(self.hf_model_name).replace("/", "_"))
+                huggingface_hub.snapshot_download(
+                    repo_id=self.hf_model_name, cache_dir=cache_dir
                 )
+                # TODO: Convert to gguf, delete cache
             else:
                 print(
                     f"External weight file {self.external_weight_file} found for {self.vmfb_name}"
@@ -161,20 +171,39 @@ class LanguageModel:
                 use_auth_token=hf_auth_token,
             )
         elif not os.path.exists(self.tempfile_name):
-            self.torch_ir, self.tokenizer = llm_model_map[self.hf_model_name][
-                "initializer"
-            ](
-                self.hf_model_name,
-                hf_auth_token,
-                compile_to="torch",
-                external_weights=external_weights,
-                precision=self.precision,
-                quantization=self.quantization,
-                streaming_llm=self.streaming_llm,
-                decomp_attn=True,
+            # self.torch_ir, self.tokenizer = llm_model_map[self.hf_model_name][
+            #    "initializer"
+            # ](
+            #    self.hf_model_name,
+            #    hf_auth_token,
+            #    compile_to="torch",
+            #    external_weights=external_weights,
+            #    precision=self.precision,
+            #    quantization=self.quantization,
+            #    streaming_llm=self.streaming_llm,
+            #    decomp_attn=True,
+            # )
+
+            dataset = sharktank.types.Dataset.load(
+                self.external_weight_file, file_type="gguf"
             )
-            with open(self.tempfile_name, "w+") as f:
-                f.write(self.torch_ir)
+            hp = sharktank.layers.configs.LlamaHParams.from_gguf_props(
+                dataset.properties
+            )
+            llama_config = sharktank.models.llama.llama.LlamaModelConfig(hp)
+            llama_config.use_hf = False
+            llama_config.static_tables = (
+                False  # Rely on the compiler for hoisting tables.
+            )
+            llama_config.kv_cache_type = "direct"  # if args.bs == [1] else "paged"
+            model = PagedLlamaModelV1(dataset.root_theta, llama_config)
+
+            fxb = FxProgramsBuilder(model)
+            self.torch_ir = export(fxb)
+            self.torch_ir.save_mlir(self.tempfile_name)
+
+            # with open(self.tempfile_name, "w+") as f:
+            #    f.write(self.torch_ir)
             del self.torch_ir
             gc.collect()
             self.compile()
@@ -413,7 +442,7 @@ def llm_chat_api(InputData: dict):
             hf_auth_token=cmd_opts.hf_auth_token,
             device=device,
             quantization=cmd_opts.quantization,
-            external_weights="safetensors",
+            external_weights="gguf",
             use_system_prompt=True,
             streaming_llm=False,
         )
@@ -467,7 +496,7 @@ if __name__ == "__main__":
         "Trelis/Llama-2-7b-chat-hf-function-calling-v2",
         hf_auth_token=None,
         device="cpu-task",
-        external_weights="safetensors",
+        external_weights="gguf",
     )
 
     print("model loaded")
