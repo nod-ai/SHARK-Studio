@@ -1,6 +1,6 @@
 # SHARK
 
-High Performance Machine Learning Distribution
+High Performance Machine Learning Distribution built on [LLVM](https://llvm.org/), [MLIR](https://mlir.llvm.org/), [OpenXLA’s IREE](https://iree-org.github.io/iree/) and nod.ai’s tuning.
 
 *We are currently rebuilding SHARK to take advantage of [Turbine](https://github.com/iree-org/iree-turbine). Until that is complete make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK*
 
