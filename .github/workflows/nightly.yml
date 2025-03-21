@@ -35,12 +35,12 @@ jobs:
 
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: ncipollo/release-action@440c8c1cb0ed28b9f43e4d1d670870f059653174 # v1.16.0
       env:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
-        tag_name: ${{ env.tag_name }}
-        release_name: nod.ai SHARK ${{ env.tag_name }}
+        tag: ${{ env.tag_name }}
+        name: nod.ai SHARK ${{ env.tag_name }}
         body: |
           Automatic snapshot release of nod.ai SHARK.
         draft: true
