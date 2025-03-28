@@ -2,11 +2,11 @@
 
 High Performance Machine Learning Distribution
 
-*We are currently rebuilding SHARK to take advantage of [Turbine](https://github.com/iree-org/iree-turbine). Until that is complete make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK*
+<h2>NOTE: This project is not currently maintained.</h2>
+
+*The latest versions of this project are developments towards a refactor on top of IREE-Turbine. Until further notice, make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK-Studio*
 
 [![Nightly Release](https://github.com/nod-ai/SHARK-Studio/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK-Studio/actions/workflows/nightly.yml)
-[![Validate torch-models on Shark Runtime](https://github.com/nod-ai/SHARK-Studio/actions/workflows/test-models.yml/badge.svg)](https://github.com/nod-ai/SHARK-Studio/actions/workflows/test-models.yml)
-
 
 <details>
   <summary>Prerequisites - Drivers </summary>
@@ -27,7 +27,7 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 
 ### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
 
-Install the Driver from (Prerequisites)[https://github.com/nod-ai/SHARK-Studio#install-your-hardware-drivers] above
+Install the Driver from [Prerequisites](https://github.com/nod-ai/SHARK-Studio#install-your-hardware-drivers) above
 
 Download the [stable release](https://github.com/nod-ai/SHARK-Studio/releases/latest) or the most recent [SHARK 1.0 pre-release](https://github.com/nod-ai/SHARK-Studio/releases).
 
