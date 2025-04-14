@@ -30,7 +30,7 @@ scipy
 transformers==4.37.1
 torchsde # Required for Stable Diffusion SDE schedulers.
 ftfy
-gradio==4.29.0
+gradio==4.36.1
 altair
 omegaconf
 # 0.3.2 doesn't have binaries for arm64
