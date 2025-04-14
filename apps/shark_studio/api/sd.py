@@ -169,14 +169,14 @@ class StableDiffusion:
             batch_size=batch_size,
             num_inference_steps=steps,
             device=target_backend,
-            iree_target_triple=triple,
+            target=triple,  # iree_target_triple=triple,
             ireec_flags=EMPTY_FLAGS,
             attn_spec=attn_spec,
             decomp_attn=decomp_attn,
             pipeline_dir=self.pipeline_dir,
             external_weights_dir=self.weights_path,
             external_weights=external_weights,
-            custom_vae=custom_vae,
+            # custom_vae=custom_vae,
         )
         print(f"\n[LOG] Pipeline initialized with pipe_id: {self.pipe_id}.")
         gc.collect()
@@ -237,13 +237,15 @@ class StableDiffusion:
                     )
                     weights[key] = save_irpa(vae_weights_path, "vae.")
 
-        vmfbs, weights = self.sd_pipe.check_prepared(
-            mlirs, vmfbs, weights, interactive=False
-        )
+        # vmfbs, weights = self.sd_pipe.check_prepared(
+        #    mlirs, vmfbs, weights, interactive=False
+        # )
+        self.sd_pipe.prepare_all()
         print(f"\n[LOG] Loading pipeline to device {self.rt_device}.")
-        self.sd_pipe.load_pipeline(
-            vmfbs, weights, self.rt_device, self.compiled_pipeline
-        )
+        # self.sd_pipe.load_pipeline(
+        #    vmfbs, weights, self.rt_device, self.compiled_pipeline
+        # )
+        self.sd_pipe.load_map()
         print(
             "\n[LOG] Pipeline successfully prepared for runtime. Generating images..."
         )
