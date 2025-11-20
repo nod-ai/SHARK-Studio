@@ -17,12 +17,12 @@ exclude = '''
   /(
     | apps/stable_diffusion
     | apps/language_models
-    | shark
+    | amdshark
     | benchmarks
     | tank
     | build
     | generated_imgs
-    | shark.venv
+    | amdshark.venv
   )/
   | setup.py
 )

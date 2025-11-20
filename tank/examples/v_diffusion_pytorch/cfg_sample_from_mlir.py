@@ -14,8 +14,8 @@ from torchvision import transforms
 from torchvision.transforms import functional as TF
 from tqdm import trange
 
-from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.amdshark_downloader import download_model
 import numpy as np
 
 import sys
@@ -72,7 +72,7 @@ p.add_argument("--device", type=str, help="the device to use")
 p.add_argument(
     "--runtime_device",
     type=str,
-    help="the device to use with SHARK",
+    help="the device to use with AMDSHARK",
     default="cpu",
 )
 p.add_argument(
@@ -195,17 +195,17 @@ mlir_model, func_name, inputs, golden_out = download_model(
     "v_diffusion", frontend="torch"
 )
 
-shark_module = SharkInference(
+amdshark_module = AMDSharkInference(
     mlir_model, func_name, device=args.runtime_device, mlir_dialect="linalg"
 )
-shark_module.compile()
+amdshark_module.compile()
 
 
 def compiled_cfg_model_fn(x, t):
     x_ny = x.detach().numpy()
     t_ny = t.detach().numpy()
     inputs = (x_ny, t_ny)
-    result = shark_module.forward(inputs)
+    result = amdshark_module.forward(inputs)
     return torch.from_numpy(result)
 
 

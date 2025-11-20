@@ -39,7 +39,7 @@ FROM base-${TARGETARCH}
 
 ARG TARGETARCH
 
-LABEL maintainer "SHARK<stdin@nod.com>"
+LABEL maintainer "AMDSHARK<stdin@nod.com>"
 
 # Register the ROCM package repository, and install rocm-dev package
 ARG ROCM_VERSION=5.6

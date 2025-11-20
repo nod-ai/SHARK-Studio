@@ -40,9 +40,9 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       with:
         tag: ${{ env.tag_name }}
-        name: nod.ai SHARK ${{ env.tag_name }}
+        name: nod.ai AMDSHARK ${{ env.tag_name }}
         body: |
-          Automatic snapshot release of nod.ai SHARK.
+          Automatic snapshot release of nod.ai AMDSHARK.
         draft: true
         prerelease: true
 
@@ -51,12 +51,12 @@ jobs:
       run: |
         ./setup_venv.ps1
         python process_skipfiles.py
-        $env:SHARK_PACKAGE_VERSION=${{ env.package_version }}
+        $env:AMDSHARK_PACKAGE_VERSION=${{ env.package_version }}
         pip install -e .
         pip freeze -l
-        pyinstaller .\apps\shark_studio\shark_studio.spec
-        mv ./dist/nodai_shark_studio.exe ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
-        signtool sign /f c:\g\shark_02152023.cer /fd certHash /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/nodai_shark_studio_${{ env.package_version_ }}.exe
+        pyinstaller .\apps\amdshark_studio\amdshark_studio.spec
+        mv ./dist/nodai_amdshark_studio.exe ./dist/nodai_amdshark_studio_${{ env.package_version_ }}.exe
+        signtool sign /f c:\g\amdshark_02152023.cer /fd certHash /csp "eToken Base Cryptographic Provider" /k "${{ secrets.CI_CERT }}" ./dist/nodai_amdshark_studio_${{ env.package_version_ }}.exe
   
     - name: Upload Release Assets
       id: upload-release-assets

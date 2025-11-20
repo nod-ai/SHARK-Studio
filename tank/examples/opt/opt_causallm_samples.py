@@ -4,7 +4,7 @@ import os
 import opt_causallm
 import opt_util
 
-from shark.shark_inference import SharkInference
+from amdshark.amdshark_inference import AMDSharkInference
 from transformers import AutoTokenizer, OPTForCausalLM
 
 
@@ -51,21 +51,21 @@ if __name__ == "__main__":
         rt_flags = [f"--executable_plugin={args.plugin_path}"]
     else:
         rt_flags = []
-    opt_shark_module = SharkInference(
+    opt_amdshark_module = AMDSharkInference(
         mlir_module=None, device="cpu-task", rt_flags=rt_flags
     )
     if os.path.isfile(vmfb_path):
-        opt_shark_module.load_module(vmfb_path)
+        opt_amdshark_module.load_module(vmfb_path)
     else:
         vmfb_path = opt_causallm.create_module(
             args.model_name, tokenizer, "cpu-task", args
         )
-        opt_shark_module.load_module(vmfb_path)
+        opt_amdshark_module.load_module(vmfb_path)
 
     for prompt in opt_util.PROMPTS:
         print("\n\nprompt: {}".format(prompt))
         response = opt_causallm.generate_tokens(
-            opt_shark_module,
+            opt_amdshark_module,
             tokenizer,
             prompt,
             args.max_seq_len,

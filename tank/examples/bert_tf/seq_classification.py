@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 from transformers import TFAutoModelForSequenceClassification, AutoTokenizer
 import tensorflow as tf
-from shark.shark_inference import SharkInference
-from shark.parser import shark_args
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.parser import amdshark_args
 import argparse
 
 
 seq_parser = argparse.ArgumentParser(
-    description="Shark Sequence Classification."
+    description="AMDShark Sequence Classification."
 )
 seq_parser.add_argument(
     "--hf_model_name",
@@ -61,13 +61,13 @@ class SeqClassification(tf.Module):
 
 if __name__ == "__main__":
     inputs = preprocess_input()
-    shark_module = SharkInference(
+    amdshark_module = AMDSharkInference(
         SeqClassification(seq_args.hf_model_name),
         (inputs["input_ids"], inputs["attention_mask"]),
     )
-    shark_module.set_frontend("tensorflow")
-    shark_module.compile()
-    print(f"Model has been successfully compiled on {shark_args.device}")
+    amdshark_module.set_frontend("tensorflow")
+    amdshark_module.compile()
+    print(f"Model has been successfully compiled on {amdshark_args.device}")
 
     while True:
         input_text = input(
@@ -77,7 +77,7 @@ if __name__ == "__main__":
             break
         inputs = preprocess_input(input_text)
         print(
-            shark_module.forward(
+            amdshark_module.forward(
                 (inputs["input_ids"], inputs["attention_mask"])
             )
         )

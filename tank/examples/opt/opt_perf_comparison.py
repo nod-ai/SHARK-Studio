@@ -1,14 +1,14 @@
 """
-Script for comparing OPT model performance between SHARK and Huggingface
+Script for comparing OPT model performance between AMDSHARK and Huggingface
 PyTorch.
 
 Usage Example:
 
 python opt_perf_comparison.py --max-seq-len=32 --model-name=facebook/opt-125m \
-        --platform=shark
+        --platform=amdshark
 
 python opt_perf_comparison.py --max-seq-len=512 --model-name=facebook/opt-1.3b \
-        --platform=shark
+        --platform=amdshark
 
 See parse_args() below for command line argument usage.
 """
@@ -23,15 +23,15 @@ import numpy as np
 from typing import Tuple
 
 from opt_util import PROMPTS
-from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.amdshark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM
-from shark_opt_wrapper import OPTForCausalLMModel
-from shark.parser import shark_args
+from amdshark_opt_wrapper import OPTForCausalLMModel
+from amdshark.parser import amdshark_args
 import iree.compiler as ireec
 
 DEVICE = "cpu"
-PLATFORM_SHARK = "shark"
+PLATFORM_AMDSHARK = "amdshark"
 PLATFORM_HUGGINGFACE = "huggingface"
 
 # Dict keys for reports.
@@ -98,17 +98,17 @@ def create_vmfb_module(
     tokenizer,
     device: str,
     max_seq_len: int,
-    recompile_shark: bool,
+    recompile_amdshark: bool,
 ):
     opt_fs_name = get_opt_fs_name(model_name)
     mlir_path = f"./{opt_fs_name}_causallm_{max_seq_len}_torch.mlir"
     # If MLIR has already been loaded and recompilation is not requested, use
     # the loaded MLIR file.
     has_mlir = os.path.isfile(mlir_path)
-    # The purpose of recompile_shark is to measure compilation time; the
+    # The purpose of recompile_amdshark is to measure compilation time; the
     # compilation time can be correctly measured only when MLIR has already been
     # loaded.
-    assert not recompile_shark or has_mlir
+    assert not recompile_amdshark or has_mlir
     if not has_mlir:
         import_mlir_module(
             model_name,
@@ -116,7 +116,7 @@ def create_vmfb_module(
             device,
             max_seq_len,
         )
-    shark_module = SharkInference(
+    amdshark_module = AMDSharkInference(
         mlir_path,
         device=device,
         mlir_dialect="tm_tensor",
@@ -125,38 +125,38 @@ def create_vmfb_module(
     )
 
     vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}"
-    shark_module.save_module(module_name=vmfb_name)
+    amdshark_module.save_module(module_name=vmfb_name)
     vmfb_path = vmfb_name + ".vmfb"
     return vmfb_path
 
 
-def load_shark_model(
+def load_amdshark_model(
     model_name: str,
     token_model_name: str,
     max_seq_len: int,
-    recompile_shark: bool,
+    recompile_amdshark: bool,
     plugin_path: str = [],
 ) -> ModelWrapper:
     opt_fs_name = get_opt_fs_name(model_name)
     vmfb_name = f"{opt_fs_name}_causallm_{max_seq_len}_torch_{DEVICE}.vmfb"
     tokenizer = AutoTokenizer.from_pretrained(token_model_name, use_fast=False)
-    if recompile_shark or not os.path.isfile(vmfb_name):
+    if recompile_amdshark or not os.path.isfile(vmfb_name):
         print(f"vmfb not found. compiling and saving to {vmfb_name}")
         create_vmfb_module(
-            model_name, tokenizer, DEVICE, max_seq_len, recompile_shark
+            model_name, tokenizer, DEVICE, max_seq_len, recompile_amdshark
         )
     if plugin_path is not None:
         rt_flags = [f"--executable_plugin={plugin_path}"]
     else:
         rt_flags = []
-    shark_module = SharkInference(
+    amdshark_module = AMDSharkInference(
         mlir_module=None, device="cpu-task", rt_flags=rt_flags
     )
-    shark_module.load_module(vmfb_name)
-    return ModelWrapper(model=shark_module, tokenizer=tokenizer)
+    amdshark_module.load_module(vmfb_name)
+    return ModelWrapper(model=amdshark_module, tokenizer=tokenizer)
 
 
-def run_shark_model(model_wrapper: ModelWrapper, tokens):
+def run_amdshark_model(model_wrapper: ModelWrapper, tokens):
     # Generate logits output of OPT model.
     return model_wrapper.model("forward", tokens)
 
@@ -231,21 +231,21 @@ def collect_huggingface_logits(
     }
 
 
-def collect_shark_logits(
+def collect_amdshark_logits(
     model_name: str,
     token_model_name: str,
     max_seq_len: int,
-    recompile_shark: bool,
+    recompile_amdshark: bool,
     to_save_json: bool,
     plugin_path: str,
 ) -> Tuple[float, float]:
     # Load
     t0 = time.time()
-    model_wrapper = load_shark_model(
-        model_name, token_model_name, max_seq_len, recompile_shark, plugin_path
+    model_wrapper = load_amdshark_model(
+        model_name, token_model_name, max_seq_len, recompile_amdshark, plugin_path
     )
     load_time = time.time() - t0
-    print("--- Took {} seconds to load Shark.".format(load_time))
+    print("--- Took {} seconds to load AMDShark.".format(load_time))
     load_memory_info = get_memory_info()
 
     results = []
@@ -268,18 +268,18 @@ def collect_shark_logits(
     t0 = time.time()
     for idx, tokens in enumerate(tokenized_prompts):
         print("prompt: {}".format(PROMPTS[idx]))
-        logits = run_shark_model(model_wrapper, tokens)
+        logits = run_amdshark_model(model_wrapper, tokens)
         lst = [e.tolist() for e in logits]
         if to_save_json:
             results.append([PROMPTS[idx], lst])
     run_time = time.time() - t0
-    print("--- Took {} seconds to run Shark.".format(run_time))
+    print("--- Took {} seconds to run AMDShark.".format(run_time))
     if to_save_json:
-        save_json(results, "/tmp/shark.json")
-    platform_postfix = "-compile" if recompile_shark else "-precompiled"
+        save_json(results, "/tmp/amdshark.json")
+    platform_postfix = "-compile" if recompile_amdshark else "-precompiled"
     run_memory_info = get_memory_info()
     return {
-        REPORT_PLATFORM: PLATFORM_SHARK + platform_postfix,
+        REPORT_PLATFORM: PLATFORM_AMDSHARK + platform_postfix,
         REPORT_MODEL_NAME: model_name,
         REPORT_MAX_SEQ_LEN: max_seq_len,
         REPORT_LOAD_TIME: load_time,
@@ -333,17 +333,17 @@ def parse_args():
         default="facebook/opt-1.3b",
     )
     parser.add_argument(
-        "--recompile-shark",
+        "--recompile-amdshark",
         help="If set, recompiles MLIR",
         action=argparse.BooleanOptionalAction,
         default=False,
     )
     parser.add_argument(
         "--platform",
-        help="Either shark or huggingface",
+        help="Either amdshark or huggingface",
         type=str,
-        choices=[PLATFORM_SHARK, PLATFORM_HUGGINGFACE],
-        default=PLATFORM_SHARK,
+        choices=[PLATFORM_AMDSHARK, PLATFORM_HUGGINGFACE],
+        default=PLATFORM_AMDSHARK,
     )
     parser.add_argument(
         "--plugin-path",
@@ -371,16 +371,16 @@ if __name__ == "__main__":
             )
         else:
             args.token_model_name = args.model_name
-    if args.platform == PLATFORM_SHARK:
-        shark_report = collect_shark_logits(
+    if args.platform == PLATFORM_AMDSHARK:
+        amdshark_report = collect_amdshark_logits(
             args.model_name,
             args.token_model_name,
             args.max_seq_len,
-            args.recompile_shark,
+            args.recompile_amdshark,
             args.save_json,
             args.plugin_path,
         )
-        print("# Summary: {}".format(json.dumps(shark_report)))
+        print("# Summary: {}".format(json.dumps(amdshark_report)))
     else:
         huggingface_report = collect_huggingface_logits(
             args.model_name,

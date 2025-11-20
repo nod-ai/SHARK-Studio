@@ -1,5 +1,5 @@
-from shark.shark_inference import SharkInference
-from shark.iree_utils._common import check_device_drivers
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.iree_utils._common import check_device_drivers
 
 import torch
 import tensorflow as tf
@@ -164,7 +164,7 @@ def test_bench_minilm_torch(dynamic, device):
     model, test_input, act_out = get_hf_model(
         "microsoft/MiniLM-L12-H384-uncased"
     )
-    shark_module = SharkInference(
+    amdshark_module = AMDSharkInference(
         model,
         (test_input,),
         device=device,
@@ -174,8 +174,8 @@ def test_bench_minilm_torch(dynamic, device):
     )
     try:
         # If becnhmarking succesful, assert success/True.
-        shark_module.compile()
-        shark_module.benchmark_all((test_input,))
+        amdshark_module.compile()
+        amdshark_module.benchmark_all((test_input,))
         assert True
     except Exception as e:
         # If anything happen during benchmarking, assert False/failure.
@@ -189,7 +189,7 @@ def test_bench_minilm_torch(dynamic, device):
 @pytest_benchmark_param
 def test_bench_distilbert(dynamic, device):
     model, test_input, act_out = get_TFhf_model("distilbert-base-uncased")
-    shark_module = SharkInference(
+    amdshark_module = AMDSharkInference(
         model,
         test_input,
         device=device,
@@ -199,9 +199,9 @@ def test_bench_distilbert(dynamic, device):
     )
     try:
         # If becnhmarking succesful, assert success/True.
-        shark_module.set_frontend("tensorflow")
-        shark_module.compile()
-        shark_module.benchmark_all(test_input)
+        amdshark_module.set_frontend("tensorflow")
+        amdshark_module.compile()
+        amdshark_module.benchmark_all(test_input)
         assert True
     except Exception as e:
         # If anything happen during benchmarking, assert False/failure.
@@ -212,7 +212,7 @@ def test_bench_distilbert(dynamic, device):
 @pytest_benchmark_param
 def test_bench_xlm_roberta(dynamic, device):
     model, test_input, act_out = get_TFhf_model("xlm-roberta-base")
-    shark_module = SharkInference(
+    amdshark_module = AMDSharkInference(
         model,
         test_input,
         device=device,
@@ -222,9 +222,9 @@ def test_bench_xlm_roberta(dynamic, device):
     )
     try:
         # If becnhmarking succesful, assert success/True.
-        shark_module.set_frontend("tensorflow")
-        shark_module.compile()
-        shark_module.benchmark_all(test_input)
+        amdshark_module.set_frontend("tensorflow")
+        amdshark_module.compile()
+        amdshark_module.benchmark_all(test_input)
         assert True
     except Exception as e:
         # If anything happen during benchmarking, assert False/failure.

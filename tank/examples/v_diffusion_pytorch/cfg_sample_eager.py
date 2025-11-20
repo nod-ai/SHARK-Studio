@@ -14,8 +14,8 @@ from torchvision import transforms
 from torchvision.transforms import functional as TF
 from tqdm import trange
 
-from shark.shark_inference import SharkInference
-from shark.torch_mlir_lockstep_tensor import TorchMLIRLockstepTensor
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.torch_mlir_lockstep_tensor import TorchMLIRLockstepTensor
 
 import sys
 
@@ -235,10 +235,10 @@ ts_g = torch.jit.script(fx_g)
 # mlir_model = module
 # func_name = "forward"
 #
-# shark_module = SharkInference(
+# amdshark_module = AMDSharkInference(
 #    mlir_model, func_name, device="cuda", mlir_dialect="linalg"
 # )
-# shark_module.compile()
+# amdshark_module.compile()
 
 
 def compiled_cfg_model_fn(x, t):

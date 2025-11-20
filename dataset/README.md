@@ -1,12 +1,12 @@
 # Dataset annotation tool
 
-SHARK annotator for adding or modifying prompts of dataset images
+AMDSHARK annotator for adding or modifying prompts of dataset images
 
 ## Set up
 
-Activate SHARK Python virtual environment and install additional packages
+Activate AMDSHARK Python virtual environment and install additional packages
 ```shell
-source ../shark.venv/bin/activate
+source ../amdshark.venv/bin/activate
 pip install -r requirements.txt
 ```
 

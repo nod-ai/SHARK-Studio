@@ -1,6 +1,0 @@
-flax
-jax[cpu]
-nodai-SHARK
-orbax
-transformers
-torch

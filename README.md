@@ -1,12 +1,12 @@
-# SHARK
+# AMDSHARK
 
 High Performance Machine Learning Distribution
 
 <h2>NOTE: This project is not currently maintained.</h2>
 
-*The latest versions of this project are developments towards a refactor on top of IREE-Turbine. Until further notice, make sure you use an .exe release or a checkout of the `SHARK-1.0` branch, for a working SHARK-Studio*
+*The latest versions of this project are developments towards a refactor on top of IREE-Turbine. Until further notice, make sure you use an .exe release or a checkout of the `AMDSHARK-1.0` branch, for a working AMDSHARK-Studio*
 
-[![Nightly Release](https://github.com/nod-ai/SHARK-Studio/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/SHARK-Studio/actions/workflows/nightly.yml)
+[![Nightly Release](https://github.com/nod-ai/AMDSHARK-Studio/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/AMDSHARK-Studio/actions/workflows/nightly.yml)
 
 <details>
   <summary>Prerequisites - Drivers </summary>
@@ -25,11 +25,11 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 
 
 
-### Quick Start for SHARK Stable Diffusion for Windows 10/11 Users
+### Quick Start for AMDSHARK Stable Diffusion for Windows 10/11 Users
 
-Install the Driver from [Prerequisites](https://github.com/nod-ai/SHARK-Studio#install-your-hardware-drivers) above
+Install the Driver from [Prerequisites](https://github.com/nod-ai/AMDSHARK-Studio#install-your-hardware-drivers) above
 
-Download the [stable release](https://github.com/nod-ai/SHARK-Studio/releases/latest) or the most recent [SHARK 1.0 pre-release](https://github.com/nod-ai/SHARK-Studio/releases).
+Download the [stable release](https://github.com/nod-ai/AMDSHARK-Studio/releases/latest) or the most recent [AMDSHARK 1.0 pre-release](https://github.com/nod-ai/AMDSHARK-Studio/releases).
 
 Double click the .exe, or [run from the command line](#running) (recommended), and you should have the [UI](http://localhost:8080/) in the browser.
 
@@ -67,16 +67,16 @@ Enjoy.
 ## Check out the code
 
 ```shell
-git clone https://github.com/nod-ai/SHARK.git
-cd SHARK
+git clone https://github.com/nod-ai/AMDSHARK.git
+cd AMDSHARK
 ```
 
 ## Switch to the Correct Branch (IMPORTANT!)
 
-Currently SHARK is being rebuilt for [Turbine](https://github.com/iree-org/iree-turbine) on the `main` branch. For now you are strongly discouraged from using `main` unless you are working on the rebuild effort, and should not expect the code there to produce a working application for Image Generation, So for now you'll need switch over to the `SHARK-1.0` branch and use the stable code.
+Currently AMDSHARK is being rebuilt for [Turbine](https://github.com/iree-org/iree-turbine) on the `main` branch. For now you are strongly discouraged from using `main` unless you are working on the rebuild effort, and should not expect the code there to produce a working application for Image Generation, So for now you'll need switch over to the `AMDSHARK-1.0` branch and use the stable code.
 
 ```shell
-git checkout SHARK-1.0
+git checkout AMDSHARK-1.0
 ```
 
 The following setup instructions assume you are on this branch.
@@ -92,7 +92,7 @@ The following setup instructions assume you are on this branch.
 set-executionpolicy remotesigned
 ```
 
-#### Setup venv and install necessary packages (torch-mlir, nodLabs/Shark, ...)
+#### Setup venv and install necessary packages (torch-mlir, nodLabs/AMDShark, ...)
 ```powershell
 ./setup_venv.ps1 #You can re-run this script to get the latest version
 ```
@@ -101,20 +101,20 @@ set-executionpolicy remotesigned
 
 ```shell
 ./setup_venv.sh
-source shark1.venv/bin/activate
+source amdshark1.venv/bin/activate
 ```
 
 ### Run Stable Diffusion on your device - WebUI
 
 #### Windows 10/11 Users
 ```powershell
-(shark1.venv) PS C:\g\shark> cd .\apps\stable_diffusion\web\
-(shark1.venv) PS C:\g\shark\apps\stable_diffusion\web> python .\index.py
+(amdshark1.venv) PS C:\g\amdshark> cd .\apps\stable_diffusion\web\
+(amdshark1.venv) PS C:\g\amdshark\apps\stable_diffusion\web> python .\index.py
 ```
 #### Linux / macOS Users
 ```shell
-(shark1.venv) > cd apps/stable_diffusion/web
-(shark1.venv) > python index.py
+(amdshark1.venv) > cd apps/stable_diffusion/web
+(amdshark1.venv) > python index.py
 ```
 
 #### Access Stable Diffusion on http://localhost:8080/?__theme=dark
@@ -128,7 +128,7 @@ source shark1.venv/bin/activate
 
 #### Windows 10/11 Users
 ```powershell
-(shark1.venv) PS C:\g\shark> python .\apps\stable_diffusion\scripts\main.py --app="txt2img" --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
+(amdshark1.venv) PS C:\g\amdshark> python .\apps\stable_diffusion\scripts\main.py --app="txt2img" --precision="fp16" --prompt="tajmahal, snow, sunflowers, oil on canvas" --device="vulkan"
 ```
 
 #### Linux / macOS Users
@@ -156,7 +156,7 @@ Here are some samples generated:
 ![a photo of a crab playing a trumpet](https://user-images.githubusercontent.com/74956/204933258-252e7240-8548-45f7-8253-97647d38313d.jpg)
 
 
-Find us on [SHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware.
+Find us on [AMDSHARK Discord server](https://discord.gg/RUqY2h2s9u) if you have any trouble with running it on your hardware.
 
 
 <details>
@@ -168,8 +168,8 @@ This step sets up a new VirtualEnv for Python
 
 ```shell
 python --version #Check you have 3.11 on Linux, macOS or Windows Powershell
-python -m venv shark_venv
-source shark_venv/bin/activate   # Use shark_venv/Scripts/activate on Windows
+python -m venv amdshark_venv
+source amdshark_venv/bin/activate   # Use amdshark_venv/Scripts/activate on Windows
 
 # If you are using conda create and activate a new conda env
 
@@ -179,15 +179,15 @@ python -m pip install --upgrade pip
 
 *macOS Metal* users please install https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg and enable "System wide install"
 
-### Install SHARK
+### Install AMDSHARK
 
-This step pip installs SHARK and related packages on Linux Python 3.8, 3.10 and 3.11 and macOS / Windows Python 3.11
+This step pip installs AMDSHARK and related packages on Linux Python 3.8, 3.10 and 3.11 and macOS / Windows Python 3.11
 
 ```shell
-pip install nodai-shark -f https://nod-ai.github.io/SHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SRT/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install nodai-amdshark -f https://nod-ai.github.io/AMDSHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SRT/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 
-### Run shark tank model tests.
+### Run amdshark tank model tests.
 ```shell
 pytest tank/test_models.py
 ```
@@ -196,7 +196,7 @@ See tank/README.md for a more detailed walkthrough of our pytest suite and CLI.
 ### Download and run Resnet50 sample
 
 ```shell
-curl -O https://raw.githubusercontent.com/nod-ai/SHARK/main/shark/examples/shark_inference/resnet50_script.py
+curl -O https://raw.githubusercontent.com/nod-ai/AMDSHARK/main/amdshark/examples/amdshark_inference/resnet50_script.py
 #Install deps for test script
 pip install --pre torch torchvision torchaudio tqdm pillow gsutil --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 python ./resnet50_script.py --device="cpu"  #use cuda or vulkan or metal
@@ -204,7 +204,7 @@ python ./resnet50_script.py --device="cpu"  #use cuda or vulkan or metal
 
 ### Download and run BERT (MiniLM) sample
 ```shell
-curl -O https://raw.githubusercontent.com/nod-ai/SHARK/main/shark/examples/shark_inference/minilm_jit.py
+curl -O https://raw.githubusercontent.com/nod-ai/AMDSHARK/main/amdshark/examples/amdshark_inference/minilm_jit.py
 #Install deps for test script
 pip install transformers torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal
@@ -222,34 +222,34 @@ Set `USE_IREE=1` to use upstream IREE
 # PYTHON=python3.11 VENV_DIR=0617_venv IMPORTER=1 ./setup_venv.sh
 ```
 
-### Run any of the hundreds of SHARK tank models via the test framework
+### Run any of the hundreds of AMDSHARK tank models via the test framework
 ```shell
-python -m  shark.examples.shark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
+python -m  amdshark.examples.amdshark_inference.resnet50_script --device="cpu" # Use gpu | vulkan
 # Or a pytest
 pytest tank/test_models.py -k "MiniLM"
 ```
 
-### How to use your locally built IREE / Torch-MLIR with SHARK
+### How to use your locally built IREE / Torch-MLIR with AMDSHARK
 If you are a *Torch-mlir developer or an IREE developer* and want to test local changes you can uninstall
 the provided packages with `pip uninstall torch-mlir` and / or `pip uninstall iree-compiler iree-runtime` and build locally
 with Python bindings and set your PYTHONPATH as mentioned [here](https://github.com/iree-org/iree/tree/main/docs/api_docs/python#install-iree-binaries)
 for IREE and [here](https://github.com/llvm/torch-mlir/blob/main/development.md#setup-python-environment-to-export-the-built-python-packages)
 for Torch-MLIR.
 
-How to use your locally built Torch-MLIR with SHARK:
+How to use your locally built Torch-MLIR with AMDSHARK:
 ```shell
-1.) Run `./setup_venv.sh in SHARK` and activate `shark.venv` virtual env.
+1.) Run `./setup_venv.sh in AMDSHARK` and activate `amdshark.venv` virtual env.
 2.) Run `pip uninstall torch-mlir`.
 3.) Go to your local Torch-MLIR directory.
 4.) Activate mlir_venv virtual envirnoment.
 5.) Run `pip uninstall -r requirements.txt`.
 6.) Run `pip install -r requirements.txt`.
 7.) Build Torch-MLIR.
-8.) Activate shark.venv virtual environment from the Torch-MLIR directory.
+8.) Activate amdshark.venv virtual environment from the Torch-MLIR directory.
 8.) Run `export PYTHONPATH=`pwd`/build/tools/torch-mlir/python_packages/torch_mlir:`pwd`/examples` in the Torch-MLIR directory.
-9.) Go to the SHARK directory.
+9.) Go to the AMDSHARK directory.
 ```
-Now the SHARK will use your locally build Torch-MLIR repo.
+Now the AMDSHARK will use your locally build Torch-MLIR repo.
 
 
 ## Benchmarking Dispatches
@@ -263,10 +263,10 @@ pytest -k "MiniLM and torch and static and cuda" --benchmark_dispatches=All -s -
 ```
 The given command will populate `<dispatch_benchmarks_dir>/<model_name>/` with an `ordered_dispatches.txt` that lists and orders the dispatches and their latencies, as well as folders for each dispatch that contain .mlir, .vmfb, and results of the benchmark for that dispatch.
 
-if you want to instead incorporate this into a python script, you can pass the `dispatch_benchmarks` and `dispatch_benchmarks_dir` commands when initializing `SharkInference`, and the benchmarks will be generated when compiled.  E.G:
+if you want to instead incorporate this into a python script, you can pass the `dispatch_benchmarks` and `dispatch_benchmarks_dir` commands when initializing `AMDSharkInference`, and the benchmarks will be generated when compiled.  E.G:
 
 ```
-shark_module = SharkInference(
+amdshark_module = AMDSharkInference(
         mlir_model,
         device=args.device,
         mlir_dialect="tm_tensor",
@@ -285,34 +285,34 @@ Output will include:
 - A .txt file containing benchmark output
 
 
-See tank/README.md for further instructions on how to run model tests and benchmarks from the SHARK tank.
+See tank/README.md for further instructions on how to run model tests and benchmarks from the AMDSHARK tank.
 
 </details>
 
 <details>
   <summary>API Reference</summary>
 
-### Shark Inference API
+### AMDShark Inference API
 
 ```
 
-from shark.shark_importer import SharkImporter
+from amdshark.amdshark_importer import AMDSharkImporter
 
-# SharkImporter imports mlir file from the torch, tensorflow or tf-lite module.
+# AMDSharkImporter imports mlir file from the torch, tensorflow or tf-lite module.
 
-mlir_importer = SharkImporter(
+mlir_importer = AMDSharkImporter(
     torch_module,
     (input),
     frontend="torch",  #tf, #tf-lite
 )
 torch_mlir, func_name = mlir_importer.import_mlir(tracing_required=True)
 
-# SharkInference accepts mlir in linalg, mhlo, and tosa dialect.
+# AMDSharkInference accepts mlir in linalg, mhlo, and tosa dialect.
 
-from shark.shark_inference import SharkInference
-shark_module = SharkInference(torch_mlir, device="cpu", mlir_dialect="linalg")
-shark_module.compile()
-result = shark_module.forward((input))
+from amdshark.amdshark_inference import AMDSharkInference
+amdshark_module = AMDSharkInference(torch_mlir, device="cpu", mlir_dialect="linalg")
+amdshark_module.compile()
+result = amdshark_module.forward((input))
 
 ```
 
@@ -320,7 +320,7 @@ result = shark_module.forward((input))
 ### Example demonstrating running MHLO IR.
 
 ```
-from shark.shark_inference import SharkInference
+from amdshark.amdshark_inference import AMDSharkInference
 import numpy as np
 
 mhlo_ir = r"""builtin.module  {
@@ -333,22 +333,22 @@ mhlo_ir = r"""builtin.module  {
 
 arg0 = np.ones((1, 4)).astype(np.float32)
 arg1 = np.ones((4, 1)).astype(np.float32)
-shark_module = SharkInference(mhlo_ir, device="cpu", mlir_dialect="mhlo")
-shark_module.compile()
-result = shark_module.forward((arg0, arg1))
+amdshark_module = AMDSharkInference(mhlo_ir, device="cpu", mlir_dialect="mhlo")
+amdshark_module.compile()
+result = amdshark_module.forward((arg0, arg1))
 ```
 </details>
 
 ## Examples Using the REST API
 
-* [Setting up SHARK for use with Blender](./docs/shark_sd_blender.md)
-* [Setting up SHARK for use with Koboldcpp](./docs/shark_sd_koboldcpp.md)
+* [Setting up AMDSHARK for use with Blender](./docs/amdshark_sd_blender.md)
+* [Setting up AMDSHARK for use with Koboldcpp](./docs/amdshark_sd_koboldcpp.md)
 
 ## Supported and Validated Models
 
-SHARK is maintained to support the latest innovations in ML Models:
+AMDSHARK is maintained to support the latest innovations in ML Models:
 
-| TF HuggingFace Models | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| TF HuggingFace Models | AMDSHARK-CPU | AMDSHARK-CUDA | AMDSHARK-METAL |
 |---------------------|----------|----------|-------------|
 | BERT                | :green_heart:         | :green_heart:         | :green_heart:            |
 | DistilBERT         | :green_heart:         | :green_heart:         | :green_heart:            |
@@ -358,12 +358,12 @@ SHARK is maintained to support the latest innovations in ML Models:
 | Vision Transformer       | :green_heart:         | :green_heart:         | :green_heart:            |
 | ResNet50         | :green_heart:         | :green_heart:         | :green_heart:            |
 
-For a complete list of the models supported in SHARK, please refer to [tank/README.md](https://github.com/nod-ai/SHARK-Studio/blob/main/tank/README.md).
+For a complete list of the models supported in AMDSHARK, please refer to [tank/README.md](https://github.com/nod-ai/AMDSHARK-Studio/blob/main/tank/README.md).
 
 ## Communication Channels
 
-*   [SHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the SHARK team and other users
-*   [GitHub issues](https://github.com/nod-ai/SHARK-Studio/issues): Feature requests, bugs etc
+*   [AMDSHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the AMDSHARK team and other users
+*   [GitHub issues](https://github.com/nod-ai/AMDSHARK-Studio/issues): Feature requests, bugs etc
 
 ## Related Projects
 
@@ -385,10 +385,10 @@ For a complete list of the models supported in SHARK, please refer to [tank/READ
 * Torch-MLIR Github issues [here](https://github.com/llvm/torch-mlir/issues)
 * [`torch-mlir` section](https://llvm.discourse.group/c/projects-that-want-to-become-official-llvm-projects/torch-mlir/41) of LLVM Discourse
 *  Weekly meetings on Mondays 9AM PST. See [here](https://discourse.llvm.org/t/community-meeting-developer-hour-refactoring-recurring-meetings/62575) for more information.
-* [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31) SHARK and IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org).
+* [MLIR topic within LLVM Discourse](https://llvm.discourse.group/c/llvm-project/mlir/31) AMDSHARK and IREE is enabled by and heavily relies on [MLIR](https://mlir.llvm.org).
 </details>
 
 ## License
 
-nod.ai SHARK is licensed under the terms of the Apache 2.0 License with LLVM Exceptions.
+nod.ai AMDSHARK is licensed under the terms of the Apache 2.0 License with LLVM Exceptions.
 See [LICENSE](LICENSE) for more information.

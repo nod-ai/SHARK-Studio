@@ -2,9 +2,9 @@ import unittest
 
 import pytest
 import torch_mlir
-from shark_hf_opt import OPTModel
-from shark.iree_utils._common import check_device_drivers, device_driver_info
-from shark.shark_inference import SharkInference
+from amdshark_hf_opt import OPTModel
+from amdshark.iree_utils._common import check_device_drivers, device_driver_info
+from amdshark.amdshark_inference import AMDSharkInference
 from tank.model_utils import compare_tensors
 from transformers import AutoTokenizer
 
@@ -45,7 +45,7 @@ class OPTModuleTester:
         func_name = "forward"
         act_out = opt_model(input_ids, attention_mask).detach()
 
-        # mlir_importer = SharkImporter(
+        # mlir_importer = AMDSharkImporter(
         #    model,
         #    (input,),
         #    frontend="torch",
@@ -54,18 +54,18 @@ class OPTModuleTester:
         #    is_dynamic=dynamic, tracing_required=True
         # )
 
-        shark_module = SharkInference(
+        amdshark_module = AMDSharkInference(
             model_mlir,
             device=device,
             mlir_dialect="tm_tensor",
             is_benchmark=self.benchmark,
         )
-        shark_module.compile()
-        results = shark_module("forward", (input_ids, attention_mask))
+        amdshark_module.compile()
+        results = amdshark_module("forward", (input_ids, attention_mask))
         assert compare_tensors(act_out, results)
 
         if self.benchmark:
-            shark_module.shark_runner.benchmark_all_csv(
+            amdshark_module.amdshark_runner.benchmark_all_csv(
                 (input_ids, attention_mask),
                 "opt",
                 dynamic,

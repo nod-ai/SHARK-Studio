@@ -1,17 +1,17 @@
-from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.amdshark_downloader import download_model
 
 mlir_model, func_name, inputs, golden_out = download_model(
     "bert-base-uncased_tosa",
     frontend="torch",
 )
 
-shark_module = SharkInference(
+amdshark_module = AMDSharkInference(
     mlir_model, func_name, device="cpu", mlir_dialect="tosa"
 )
-shark_module.compile()
-result = shark_module.forward(inputs)
-print("The obtained result via shark is: ", result)
+amdshark_module.compile()
+result = amdshark_module.forward(inputs)
+print("The obtained result via amdshark is: ", result)
 print("The golden result is:", golden_out)
 
 import numpy as np

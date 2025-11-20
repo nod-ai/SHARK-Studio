@@ -1,6 +1,6 @@
 import torch
-from shark.shark_benchmark_runner import SharkBenchmarkRunner
-from shark.parser import shark_args
+from amdshark.amdshark_benchmark_runner import AMDSharkBenchmarkRunner
+from amdshark.parser import amdshark_args
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from onnxruntime.transformers.benchmark import (
     run_pytorch,
@@ -42,8 +42,8 @@ class HuggingFaceLanguage(torch.nn.Module):
         return self.model.forward(tokens)[0]
 
 
-class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
-    # SharkRunner derived class with Benchmarking capabilities.
+class AMDSharkHFBenchmarkRunner(AMDSharkBenchmarkRunner):
+    # AMDSharkRunner derived class with Benchmarking capabilities.
     def __init__(
         self,
         model_name: str,
@@ -54,14 +54,14 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
         from_aot: bool = False,
         frontend: str = "torch",
     ):
-        self.device = device if device is not None else shark_args.device
+        self.device = device if device is not None else amdshark_args.device
         if self.device == "gpu":
             raise ValueError(
                 "Currently GPU Benchmarking is not supported due to OOM from ORT."
             )
         self.model_name = model_name
         model = HuggingFaceLanguage(model_name)
-        SharkBenchmarkRunner.__init__(
+        AMDSharkBenchmarkRunner.__init__(
             self,
             model,
             input,
@@ -90,13 +90,13 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
             num_threads,
             batch_sizes,
             sequence_lengths,
-            shark_args.num_iterations,
+            amdshark_args.num_iterations,
             False,
             cache_dir,
             verbose,
         )
         print(
-            f"ONNX Pytorch-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
+            f"ONNX Pytorch-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{amdshark_args.num_iterations}"
         )
 
     # TODO: Currently non-functional due to TF runtime error. There might be some issue with, initializing TF.
@@ -118,12 +118,12 @@ class SharkHFBenchmarkRunner(SharkBenchmarkRunner):
             num_threads,
             batch_sizes,
             sequence_lengths,
-            shark_args.num_iterations,
+            amdshark_args.num_iterations,
             cache_dir,
             verbose,
         )
         print(
-            f"ONNX TF-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
+            f"ONNX TF-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{amdshark_args.num_iterations}"
         )
 
     def benchmark_onnx(self, inputs):
@@ -162,7 +162,7 @@ for currently supported models. Exiting benchmark ONNX."
             num_threads,
             batch_sizes,
             sequence_lengths,
-            shark_args.num_iterations,
+            amdshark_args.num_iterations,
             input_counts,
             optimize_onnx,
             validate_onnx,
@@ -177,5 +177,5 @@ for currently supported models. Exiting benchmark ONNX."
             onnx_args,
         )
         print(
-            f"ONNX ORT-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{shark_args.num_iterations}"
+            f"ONNX ORT-benchmark:{result[0]['QPS']} iter/second, Total Iterations:{amdshark_args.num_iterations}"
         )

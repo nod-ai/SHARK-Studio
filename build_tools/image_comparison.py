@@ -13,7 +13,7 @@ parser.add_argument("-n", "--newfile")
 parser.add_argument(
     "-g",
     "--golden_url",
-    default="https://storage.googleapis.com/shark_tank/testdata/cyberpunk_fores_42_0_230119_021148.png",
+    default="https://storage.googleapis.com/amdshark_tank/testdata/cyberpunk_fores_42_0_230119_021148.png",
 )
 
 
@@ -36,7 +36,7 @@ def compare_images(new_filename, golden_filename, upload=False):
                     "gsutil",
                     "cp",
                     new_filename,
-                    "gs://shark_tank/testdata/builder/",
+                    "gs://amdshark_tank/testdata/builder/",
                 ]
             )
         raise AssertionError("new and golden not close")

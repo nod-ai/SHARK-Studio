@@ -164,15 +164,15 @@ cython_debug/
 # vscode related
 .vscode
 
-# Shark related artifacts
+# AMDShark related artifacts
 *venv/
-shark_tmp/
+amdshark_tmp/
 *.vmfb
 .use-iree
 tank/dict_configs.py
 *.csv
 reproducers/
-apps/shark_studio/web/configs
+apps/amdshark_studio/web/configs
 
 # ORT related artefacts
 cache_models/
@@ -189,7 +189,7 @@ variants.json
 # models folder
 apps/stable_diffusion/web/models/
 
-# model artifacts (SHARK)
+# model artifacts (AMDSHARK)
 *.tempfile
 *.mlir
 *.vmfb

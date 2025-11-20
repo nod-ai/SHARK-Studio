@@ -1,10 +1,10 @@
-from shark.iree_utils._common import (
+from amdshark.iree_utils._common import (
     check_device_drivers,
     device_driver_info,
     get_supported_device_list,
 )
-from shark.iree_utils.vulkan_utils import get_vulkan_triple_flag
-from shark.parser import shark_args
+from amdshark.iree_utils.vulkan_utils import get_vulkan_triple_flag
+from amdshark.parser import amdshark_args
 from parameterized import parameterized
 import iree.compiler as ireec
 import pytest
@@ -101,7 +101,7 @@ def is_valid_case(test_params):
         return True
 
 
-def shark_test_name_func(testcase_func, param_num, param):
+def amdshark_test_name_func(testcase_func, param_num, param):
     """
     Generate function name string which shows dynamic/static and device name.
     this will be ingested by 'parameterized' package to rename the pytest.
@@ -129,7 +129,7 @@ def shark_test_name_func(testcase_func, param_num, param):
     )
 
 
-class SharkModuleTester:
+class AMDSharkModuleTester:
     def __init__(self, config):
         """config should be a dict containing minimally:
         dialect: (str) name of input dialect
@@ -140,43 +140,43 @@ class SharkModuleTester:
         self.config = config
 
     def create_and_check_module(self, dynamic, device):
-        shark_args.update_tank = self.update_tank
-        shark_args.force_update_tank = self.force_update_tank
-        shark_args.shark_prefix = self.shark_tank_prefix
-        shark_args.local_tank_cache = self.local_tank_cache
-        shark_args.dispatch_benchmarks = self.benchmark_dispatches
-        shark_args.enable_tf32 = self.tf32
+        amdshark_args.update_tank = self.update_tank
+        amdshark_args.force_update_tank = self.force_update_tank
+        amdshark_args.amdshark_prefix = self.amdshark_tank_prefix
+        amdshark_args.local_tank_cache = self.local_tank_cache
+        amdshark_args.dispatch_benchmarks = self.benchmark_dispatches
+        amdshark_args.enable_tf32 = self.tf32
 
         if self.benchmark_dispatches is not None:
             _m = self.config["model_name"].split("/")
             _m.extend([self.config["framework"], str(dynamic), device])
             _m = "_".join(_m)
-            shark_args.dispatch_benchmarks_dir = os.path.join(
+            amdshark_args.dispatch_benchmarks_dir = os.path.join(
                 self.dispatch_benchmarks_dir,
                 _m,
             )
             if not os.path.exists(self.dispatch_benchmarks_dir):
                 os.mkdir(self.dispatch_benchmarks_dir)
-            if not os.path.exists(shark_args.dispatch_benchmarks_dir):
-                os.mkdir(shark_args.dispatch_benchmarks_dir)
+            if not os.path.exists(amdshark_args.dispatch_benchmarks_dir):
+                os.mkdir(amdshark_args.dispatch_benchmarks_dir)
         if "nhcw-nhwc" in self.config["flags"] and not os.path.isfile(
             ".use-iree"
         ):
-            shark_args.enable_conv_transform = True
+            amdshark_args.enable_conv_transform = True
         else:
-            shark_args.enable_conv_transform = False
+            amdshark_args.enable_conv_transform = False
         if "img2col" in self.config["flags"]:
-            shark_args.enable_img2col_transform = True
+            amdshark_args.enable_img2col_transform = True
         if "winograd" in self.config["flags"]:
-            shark_args.use_winograd = True
+            amdshark_args.use_winograd = True
 
         import_config = {
             "batch_size": self.batch_size,
         }
 
-        from shark.shark_downloader import download_model
-        from shark.shark_inference import SharkInference
-        from tank.generate_sharktank import NoImportException
+        from amdshark.amdshark_downloader import download_model
+        from amdshark.amdshark_inference import AMDSharkInference
+        from tank.generate_amdsharktank import NoImportException
 
         dl_gen_attempts = 2
         for i in range(dl_gen_attempts):
@@ -199,7 +199,7 @@ class SharkModuleTester:
                     )
             break
         is_bench = True if self.benchmark is not None else False
-        shark_module = SharkInference(
+        amdshark_module = AMDSharkInference(
             model,
             device=device,
             mlir_dialect=self.config["dialect"],
@@ -207,7 +207,7 @@ class SharkModuleTester:
         )
 
         try:
-            shark_module.compile()
+            amdshark_module.compile()
         except:
             if any([self.ci, self.save_repro, self.save_fails]) == True:
                 self.save_reproducers()
@@ -215,7 +215,7 @@ class SharkModuleTester:
                 self.upload_repro()
             raise
 
-        result = shark_module(func_name, inputs)
+        result = amdshark_module(func_name, inputs)
         golden_out, result = self.postprocess_outputs(golden_out, result)
         if self.tf32 == True:
             print(
@@ -237,7 +237,7 @@ class SharkModuleTester:
                 self.upload_repro()
             if self.benchmark is not None:
                 self.benchmark_module(
-                    shark_module, inputs, dynamic, device, mode=self.benchmark
+                    amdshark_module, inputs, dynamic, device, mode=self.benchmark
                 )
                 print(msg)
                 pytest.xfail(
@@ -245,21 +245,21 @@ class SharkModuleTester:
                 )
         if self.benchmark is not None:
             self.benchmark_module(
-                shark_module, inputs, dynamic, device, mode=self.benchmark
+                amdshark_module, inputs, dynamic, device, mode=self.benchmark
             )
 
         if self.save_repro == True:
             self.save_reproducers()
 
     def benchmark_module(
-        self, shark_module, inputs, dynamic, device, mode="native"
+        self, amdshark_module, inputs, dynamic, device, mode="native"
     ):
         model_config = {
             "batch_size": self.batch_size,
         }
 
-        shark_args.onnx_bench = self.onnx_bench
-        shark_module.shark_runner.benchmark_all_csv(
+        amdshark_args.onnx_bench = self.onnx_bench
+        amdshark_module.amdshark_runner.benchmark_all_csv(
             (inputs),
             self.config["model_name"],
             dynamic,
@@ -286,9 +286,9 @@ class SharkModuleTester:
 
         repro_path = os.path.join("reproducers", self.tmp_prefix, "*")
 
-        bashCommand = f"gsutil cp -r {repro_path} gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
+        bashCommand = f"gsutil cp -r {repro_path} gs://amdshark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         print(
-            f"Uploading reproducer {repro_path} to gs://shark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
+            f"Uploading reproducer {repro_path} to gs://amdshark-public/builder/repro_artifacts/{self.ci_sha}/{self.tmp_prefix}/"
         )
         process = subprocess.run(bashCommand.split())
 
@@ -309,16 +309,16 @@ class SharkModuleTester:
         return expected, logits
 
 
-class SharkModuleTest(unittest.TestCase):
+class AMDSharkModuleTest(unittest.TestCase):
     @pytest.fixture(autouse=True)
     def configure(self, pytestconfig):
         self.pytestconfig = pytestconfig
 
     param_list = get_valid_test_params()
 
-    @parameterized.expand(param_list, name_func=shark_test_name_func)
+    @parameterized.expand(param_list, name_func=amdshark_test_name_func)
     def test_module(self, dynamic, device, config):
-        self.module_tester = SharkModuleTester(config)
+        self.module_tester = AMDSharkModuleTester(config)
         self.module_tester.batch_size = self.pytestconfig.getoption(
             "batchsize"
         )
@@ -344,7 +344,7 @@ class SharkModuleTest(unittest.TestCase):
         self.module_tester.force_update_tank = self.pytestconfig.getoption(
             "force_update_tank"
         )
-        self.module_tester.shark_tank_prefix = self.pytestconfig.getoption(
+        self.module_tester.amdshark_tank_prefix = self.pytestconfig.getoption(
             "tank_prefix"
         )
         self.module_tester.benchmark_dispatches = self.pytestconfig.getoption(
@@ -396,7 +396,7 @@ class SharkModuleTest(unittest.TestCase):
             and device == "rocm"
         ):
             pytest.xfail(
-                reason="iree-compile buffer limit issue: https://github.com/nod-ai/SHARK-Studio/issues/475"
+                reason="iree-compile buffer limit issue: https://github.com/nod-ai/AMDSHARK-Studio/issues/475"
             )
         if (
             config["model_name"]
@@ -407,7 +407,7 @@ class SharkModuleTest(unittest.TestCase):
             and device == "rocm"
         ):
             pytest.xfail(
-                reason="Numerics issues: https://github.com/nod-ai/SHARK-Studio/issues/476"
+                reason="Numerics issues: https://github.com/nod-ai/AMDSHARK-Studio/issues/476"
             )
         if config["framework"] == "tf" and self.module_tester.batch_size != 1:
             pytest.xfail(

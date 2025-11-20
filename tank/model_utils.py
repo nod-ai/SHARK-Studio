@@ -1,4 +1,4 @@
-from shark.shark_inference import SharkInference
+from amdshark.amdshark_inference import AMDSharkInference
 
 import torch
 import numpy as np

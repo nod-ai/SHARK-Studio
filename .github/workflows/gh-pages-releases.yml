@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Don't run this in everyone's forks.
-    if: github.repository == 'nod-ai/SHARK'
+    if: github.repository == 'nod-ai/AMDSHARK'
 
     steps:
       - name: Checking out repository
@@ -18,7 +18,7 @@ jobs:
         with:
           token: ${{ secrets.NODAI_INVOCATION_TOKEN }}
       - name: Run scrape releases script
-        run: python ./build_tools/scrape_releases.py nod-ai SHARK > /tmp/index.html
+        run: python ./build_tools/scrape_releases.py nod-ai AMDSHARK > /tmp/index.html
         shell: bash
       - run: git fetch --all
       - run: git switch github-pages

@@ -7,21 +7,21 @@ import glob
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
-PACKAGE_VERSION = os.environ.get("SHARK_PACKAGE_VERSION") or "2.0.0"
+PACKAGE_VERSION = os.environ.get("AMDSHARK_PACKAGE_VERSION") or "2.0.0"
 backend_deps = []
 
 setup(
-    name="nodai-SHARK",
+    name="nodai-AMDSHARK",
     version=f"{PACKAGE_VERSION}",
-    description="SHARK provides a High Performance Machine Learning Framework",
+    description="AMDSHARK provides a High Performance Machine Learning Framework",
     author="nod.ai",
     author_email="stdin@nod.ai",
     url="https://nod.ai",
     long_description=long_description,
     long_description_content_type="text/markdown",
     project_urls={
-        "Code": "https://github.com/nod-ai/SHARK",
-        "Bug Tracker": "https://github.com/nod-ai/SHARK-Studio/issues",
+        "Code": "https://github.com/nod-ai/AMDSHARK",
+        "Bug Tracker": "https://github.com/nod-ai/AMDSHARK-Studio/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",

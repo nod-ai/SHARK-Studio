@@ -1,6 +1,6 @@
 # This script will toggle the comment/uncommenting aspect for dealing
 # with __file__ AttributeError arising in case of a few modules in
-# `torch/_dynamo/skipfiles.py` (within shark.venv)
+# `torch/_dynamo/skipfiles.py` (within amdshark.venv)
 
 from distutils.sysconfig import get_python_lib
 import fileinput

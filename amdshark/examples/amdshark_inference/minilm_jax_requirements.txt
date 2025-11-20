@@ -1,0 +1,6 @@
+flax
+jax[cpu]
+nodai-AMDSHARK
+orbax
+transformers
+torch

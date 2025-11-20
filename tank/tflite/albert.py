@@ -1,6 +1,6 @@
 # RUN: %PYTHON %s
 import numpy as np
-from shark.shark_importer import SharkImporter
+from amdshark.amdshark_importer import AMDSharkImporter
 import pytest
 
 model_path = "https://tfhub.dev/tensorflow/lite-model/albert_lite_base/squadv1/1?lite-format=tflite"
@@ -34,7 +34,7 @@ def generate_inputs(input_details):
 
 
 if __name__ == "__main__":
-    my_shark_importer = SharkImporter(
+    my_amdshark_importer = AMDSharkImporter(
         model_path=model_path,
         model_type="tflite",
         model_source_hub="tfhub",
@@ -43,11 +43,11 @@ if __name__ == "__main__":
         jit_trace=True,
     )
     # Case1: Use default inputs
-    my_shark_importer.compile()
-    shark_results = my_shark_importer.forward()
+    my_amdshark_importer.compile()
+    amdshark_results = my_amdshark_importer.forward()
     # Case2: Use manually set inputs
-    input_details, output_details = my_shark_importer.get_model_details()
+    input_details, output_details = my_amdshark_importer.get_model_details()
     inputs = generate_inputs(input_details)  # device_inputs
-    my_shark_importer.compile(inputs)
-    shark_results = my_shark_importer.forward(inputs)
-    # print(shark_results)
+    my_amdshark_importer.compile(inputs)
+    amdshark_results = my_amdshark_importer.forward(inputs)
+    # print(amdshark_results)

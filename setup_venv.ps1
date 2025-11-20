@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-  A script to update and install the SHARK runtime and its dependencies.
+  A script to update and install the AMDSHARK runtime and its dependencies.
 
 .DESCRIPTION
-  This script updates and installs the SHARK runtime and its dependencies.
+  This script updates and installs the AMDSHARK runtime and its dependencies.
   It checks the Python version installed and installs any required build
   dependencies into a Python virtual environment.
   If that environment does not exist, it creates it.
@@ -40,11 +40,11 @@ if ($arguments -eq "--force"){
         Deactivate
     }
 
-    if (Test-Path .\shark.venv\) {
+    if (Test-Path .\amdshark.venv\) {
         Write-Host "removing and recreating venv..."
-        Remove-Item .\shark.venv -Force -Recurse
-        if (Test-Path .\shark.venv\) {
-            Write-Host 'could not remove .\shark-venv - please try running ".\setup_venv.ps1 --force" again!'
+        Remove-Item .\amdshark.venv -Force -Recurse
+        if (Test-Path .\amdshark.venv\) {
+            Write-Host 'could not remove .\amdshark-venv - please try running ".\setup_venv.ps1 --force" again!'
             exit 1
         }
     }
@@ -83,13 +83,13 @@ if (!($PyVer -like "*3.11*") -and !($p -like "*3.11*")) # if 3.11 is not in any 
 
 Write-Host "Installing Build Dependencies"
 # make sure we really use 3.11 from list, even if it's not the default.
-if ($NULL -ne $PyVer) {py -3.11 -m venv .\shark.venv\}
-else {python -m venv .\shark.venv\}
-.\shark.venv\Scripts\activate
+if ($NULL -ne $PyVer) {py -3.11 -m venv .\amdshark.venv\}
+else {python -m venv .\amdshark.venv\}
+.\amdshark.venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install wheel
 pip install --pre -r requirements.txt
 pip install --force-reinstall https://github.com/nod-ai/SRT/releases/download/candidate-20240528.279/iree_compiler-20240528.279-cp311-cp311-win_amd64.whl https://github.com/nod-ai/SRT/releases/download/candidate-20240528.279/iree_runtime-20240528.279-cp311-cp311-win_amd64.whl 
 pip install -e .
 
-Write-Host "Source your venv with ./shark.venv/Scripts/activate"
+Write-Host "Source your venv with ./amdshark.venv/Scripts/activate"

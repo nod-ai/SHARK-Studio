@@ -9,7 +9,7 @@ from transformers import BloomTokenizerFast, BloomForSequenceClassification
 
 from torch.fx.experimental.proxy_tensor import make_fx
 from torch._decomp import get_decompositions
-from shark.shark_inference import SharkInference
+from amdshark.amdshark_inference import AMDSharkInference
 
 p = argparse.ArgumentParser(
     description=__doc__, formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -103,20 +103,20 @@ module = torch_mlir.compile(
 mlir_model = module
 func_name = "forward"
 
-shark_module = SharkInference(
+amdshark_module = AMDSharkInference(
     mlir_model, func_name, device=args.device, mlir_dialect="tm_tensor"
 )
-shark_module.compile()
+amdshark_module.compile()
 
 
-def shark_result(x):
+def amdshark_result(x):
     x_ny = x.detach().numpy()
     inputs = (x_ny,)
-    result = shark_module.forward(inputs)
+    result = amdshark_module.forward(inputs)
     return torch.from_numpy(result)
 
 
-observed_out = shark_result(test_input)
+observed_out = amdshark_result(test_input)
 
 print("Golden result:", actual_out)
-print("SHARK result:", observed_out)
+print("AMDSHARK result:", observed_out)

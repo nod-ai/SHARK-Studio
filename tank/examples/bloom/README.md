@@ -5,10 +5,10 @@
 <details>
   <summary>Installation (Linux)</summary>
 
-### Activate shark.venv Virtual Environment
+### Activate amdshark.venv Virtual Environment
 
 ```shell
-source shark.venv/bin/activate
+source amdshark.venv/bin/activate
 
 # Some older pip installs may not be able to handle the recent PyTorch deps
 python -m pip install --upgrade pip

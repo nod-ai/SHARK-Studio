@@ -1,5 +1,5 @@
 import torch
-from benchmarks.hf_transformer import SharkHFBenchmarkRunner
+from benchmarks.hf_transformer import AMDSharkHFBenchmarkRunner
 import importlib
 import pytest
 
@@ -27,17 +27,17 @@ def test_HFbench_minilm_torch(dynamic, device):
     model_name = "bert-base-uncased"
     test_input = torch.randint(2, (1, 128))
     try:
-        shark_module = SharkHFBenchmarkRunner(
+        amdshark_module = AMDSharkHFBenchmarkRunner(
             model_name,
             (test_input,),
             jit_trace=True,
             dynamic=dynamic,
             device=device,
         )
-        shark_module.benchmark_c()
-        shark_module.benchmark_python((test_input,))
-        shark_module.benchmark_torch(test_input)
-        shark_module.benchmark_onnx(test_input)
+        amdshark_module.benchmark_c()
+        amdshark_module.benchmark_python((test_input,))
+        amdshark_module.benchmark_torch(test_input)
+        amdshark_module.benchmark_onnx(test_input)
         # If becnhmarking succesful, assert success/True.
         assert True
     except Exception as e:

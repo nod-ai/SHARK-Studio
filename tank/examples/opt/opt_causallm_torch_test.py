@@ -3,10 +3,10 @@ import os
 import pytest
 import torch
 import numpy as np
-from shark_opt_wrapper import OPTForCausalLMModel
-from shark.iree_utils._common import check_device_drivers, device_driver_info
-from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx, save_mlir
+from amdshark_opt_wrapper import OPTForCausalLMModel
+from amdshark.iree_utils._common import check_device_drivers, device_driver_info
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.amdshark_importer import import_with_fx, save_mlir
 from transformers import AutoTokenizer, OPTForCausalLM
 
 OPT_MODEL = "facebook/opt-1.3b"
@@ -59,17 +59,17 @@ class OPTModuleTester:
         print(f"Saved mlir at {mlir_path}")
         del mlir_module
 
-        shark_module = SharkInference(
+        amdshark_module = AMDSharkInference(
             mlir_path,
             device=device,
             mlir_dialect="tm_tensor",
             is_benchmark=self.benchmark,
         )
 
-        shark_module.compile()
-        results = shark_module("forward", inputs)
+        amdshark_module.compile()
+        results = amdshark_module("forward", inputs)
         print(
-            "SHARK logits have shape: ",
+            "AMDSHARK logits have shape: ",
             str(results[0].shape) + " : " + str(results[0]),
         )
         print(
@@ -79,11 +79,11 @@ class OPTModuleTester:
             + str(act_out[0])
         )
         # exp_out = tokenizer.decode(act_out[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
-        # shark_out = tokenizer.decode(results[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
+        # amdshark_out = tokenizer.decode(results[0][0], skip_special_tokens=True, clean_up_tokenization_spaces=False)
         np.testing.assert_allclose(act_out[0].detach(), results[0])
 
         if self.benchmark:
-            shark_module.shark_runner.benchmark_all_csv(
+            amdshark_module.amdshark_runner.benchmark_all_csv(
                 inputs,
                 "opt",
                 dynamic,

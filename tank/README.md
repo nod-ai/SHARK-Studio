@@ -2,7 +2,7 @@
 
 ### PyTorch HuggingFace Models
 
-| PyTorch Language Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| PyTorch Language Models | Torch-MLIR lowerable | AMDSHARK-CPU | AMDSHARK-CUDA | AMDSHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :green_heart: (JIT)          | :green_heart:         | :green_heart:         | :green_heart:            |
 | Albert              | :green_heart: (JIT)            | :green_heart:         | :green_heart:         | :green_heart:            |
@@ -17,7 +17,7 @@
 
 ### Torchvision  Models
 
-| TORCHVISION Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| TORCHVISION Models | Torch-MLIR lowerable | AMDSHARK-CPU | AMDSHARK-CUDA | AMDSHARK-METAL |
 |--------------------|----------------------|----------|----------|-------------|
 | AlexNet            | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
 | MobileNetV2        | :green_heart: (Script)         | :green_heart:         | :green_heart:         | :green_heart:            |
@@ -40,7 +40,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 
 ### Tensorflow Models (Inference)
 
-| Hugging Face Models | tf-mhlo lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| Hugging Face Models | tf-mhlo lowerable | AMDSHARK-CPU | AMDSHARK-CUDA | AMDSHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
 | MiniLM                | :green_heart:          | :green_heart:         | :green_heart:         | :green_heart:            |
@@ -63,14 +63,14 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 
 ### PyTorch Training Models
 
-| Models | Torch-MLIR lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| Models | Torch-MLIR lowerable | AMDSHARK-CPU | AMDSHARK-CUDA | AMDSHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :green_heart:           | :green_heart:         |          |             |
 | FullyConnected                | :green_heart:           | :green_heart:         |          |             |
 
 ### JAX  Models
 
-| Models | JAX-MHLO lowerable | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| Models | JAX-MHLO lowerable | AMDSHARK-CPU | AMDSHARK-CUDA | AMDSHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | DALL-E                | :broken_heart:           | :broken_heart:         |          |             |
 | FullyConnected                | :green_heart:           | :green_heart:         |          |             |
@@ -80,7 +80,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 
 ### TFLite Models
 
-| Models | TOSA/LinAlg  | SHARK-CPU | SHARK-CUDA | SHARK-METAL |
+| Models | TOSA/LinAlg  | AMDSHARK-CPU | AMDSHARK-CUDA | AMDSHARK-METAL |
 |---------------------|----------------------|----------|----------|-------------|
 | BERT                | :broken_heart:           | :broken_heart:         |          |             |
 | FullyConnected      | :green_heart:           | :green_heart:         |          |             |
@@ -142,7 +142,7 @@ For more information refer to [MODEL TRACKING SHEET](https://docs.google.com/spr
 
 ### Run all model tests on CPU/GPU/VULKAN/Metal
 
-For a list of models included in our pytest model suite, see https://github.com/nod-ai/SHARK-Studio/blob/main/tank/all_models.csv
+For a list of models included in our pytest model suite, see https://github.com/nod-ai/AMDSHARK-Studio/blob/main/tank/all_models.csv
 
 ```shell
 pytest tank/test_models.py
@@ -170,7 +170,7 @@ pytest tank/test_models.py -k "resnet and tf and vulkan"
 # Exclude a test case:
 pytest tank/test_models.py -k "not ..."
 
-### Run benchmarks on SHARK tank pytests and generate bench_results.csv with results.
+### Run benchmarks on AMDSHARK tank pytests and generate bench_results.csv with results.
 
 (the following requires source installation with `IMPORTER=1 ./setup_venv.sh`)
 
@@ -206,11 +206,11 @@ cd transformer-benchmarks
 
 ```
 
-To run the fine tuning example, from the root SHARK directory, run:
+To run the fine tuning example, from the root AMDSHARK directory, run:
 
 ```shell
 IMPORTER=1 ./setup_venv.sh
-source shark.venv/bin/activate
+source amdshark.venv/bin/activate
 pip install jupyter tf-models-nightly tf-datasets
 jupyter-notebook
 ```

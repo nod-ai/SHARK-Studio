@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from shark.shark_inference import SharkInference
+from amdshark.amdshark_inference import AMDSharkInference
 
 
 def load_and_preprocess_image(fname: str):

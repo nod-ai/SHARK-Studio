@@ -1,6 +1,6 @@
-from shark.iree_utils._common import check_device_drivers, device_driver_info
-from shark.shark_inference import SharkInference
-from shark.shark_downloader import download_model
+from amdshark.iree_utils._common import check_device_drivers, device_driver_info
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.amdshark_downloader import download_model
 
 import iree.compiler as ireec
 import unittest
@@ -21,11 +21,11 @@ class TapasBaseModuleTester:
             frontend="tf",
         )
 
-        shark_module = SharkInference(
+        amdshark_module = AMDSharkInference(
             model, func_name, device=device, mlir_dialect="mhlo"
         )
-        shark_module.compile()
-        result = shark_module.forward(inputs)
+        amdshark_module.compile()
+        result = amdshark_module.forward(inputs)
         np.testing.assert_allclose(golden_out, result, rtol=1e-02, atol=1e-03)
 
 

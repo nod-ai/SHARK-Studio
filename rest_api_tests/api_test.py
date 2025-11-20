@@ -321,8 +321,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description=(
-            "Exercises the Stable Diffusion REST API of Shark. Make sure "
-            "Shark is running in API mode on 127.0.0.1:8080 before running"
+            "Exercises the Stable Diffusion REST API of AMDShark. Make sure "
+            "AMDShark is running in API mode on 127.0.0.1:8080 before running"
             "this script."
         ),
     )

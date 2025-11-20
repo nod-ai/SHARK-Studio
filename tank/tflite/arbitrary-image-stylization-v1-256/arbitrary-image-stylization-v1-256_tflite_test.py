@@ -1,9 +1,9 @@
 import numpy as np
-from shark.shark_downloader import download_tflite_model
-from shark.shark_inference import SharkInference
+from amdshark.amdshark_downloader import download_tflite_model
+from amdshark.amdshark_inference import AMDSharkInference
 import pytest
 import unittest
-from shark.parser import shark_args
+from amdshark.parser import amdshark_args
 
 
 # model_path = "https://tfhub.dev/google/lite-model/magenta/arbitrary-image-stylization-v1-256/int8/prediction/1?lite-format=tflite"
@@ -41,8 +41,8 @@ class ArbitraryImageStylizationV1TfliteModuleTester:
         self.save_vmfb = save_vmfb
 
     def create_and_check_module(self):
-        shark_args.save_mlir = self.save_mlir
-        shark_args.save_vmfb = self.save_vmfb
+        amdshark_args.save_mlir = self.save_mlir
+        amdshark_args.save_vmfb = self.save_vmfb
 
         (
             mlir_model,
@@ -52,16 +52,16 @@ class ArbitraryImageStylizationV1TfliteModuleTester:
         ) = download_tflite_model(
             model_name="arbitrary-image-stylization-v1-256"
         )
-        shark_module = SharkInference(
+        amdshark_module = AMDSharkInference(
             mlir_module=mlir_model,
             function_name="main",
             device=self.device,
             mlir_dialect="tflite",
         )
-        # Case1: Use shark_importer default generate inputs
-        shark_module.compile()
-        mlir_results = shark_module.forward(inputs)
-        # print(shark_results)
+        # Case1: Use amdshark_importer default generate inputs
+        amdshark_module.compile()
+        mlir_results = amdshark_module.forward(inputs)
+        # print(amdshark_results)
         compare_results(mlir_results, tflite_results)
 
 

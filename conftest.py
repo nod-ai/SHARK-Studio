@@ -1,5 +1,5 @@
 def pytest_addoption(parser):
-    # Attaches SHARK command-line arguments to the pytest machinery.
+    # Attaches AMDSHARK command-line arguments to the pytest machinery.
     parser.addoption(
         "--benchmark",
         action="store",
@@ -24,7 +24,7 @@ def pytest_addoption(parser):
         "--save_repro",
         action="store_true",
         default="False",
-        help="Pass option to save reproduction artifacts to SHARK/shark_tmp/test_case/",
+        help="Pass option to save reproduction artifacts to AMDSHARK/amdshark_tmp/test_case/",
     )
     parser.addoption(
         "--save_fails",
@@ -42,13 +42,13 @@ def pytest_addoption(parser):
         "--update_tank",
         action="store_true",
         default="False",
-        help="Update local shark tank with latest artifacts if model artifact hash mismatched.",
+        help="Update local amdshark tank with latest artifacts if model artifact hash mismatched.",
     )
     parser.addoption(
         "--force_update_tank",
         action="store_true",
         default="False",
-        help="Force-update local shark tank with artifacts from specified shark_tank URL (defaults to nightly).",
+        help="Force-update local amdshark tank with artifacts from specified amdshark_tank URL (defaults to nightly).",
     )
     parser.addoption(
         "--ci_sha",
@@ -60,19 +60,19 @@ def pytest_addoption(parser):
         "--local_tank_cache",
         action="store",
         default=None,
-        help="Specify the directory in which all downloaded shark_tank artifacts will be cached.",
+        help="Specify the directory in which all downloaded amdshark_tank artifacts will be cached.",
     )
     parser.addoption(
         "--tank_url",
         type=str,
-        default="gs://shark_tank/nightly",
-        help="URL to bucket from which to download SHARK tank artifacts. Default is gs://shark_tank/latest",
+        default="gs://amdshark_tank/nightly",
+        help="URL to bucket from which to download AMDSHARK tank artifacts. Default is gs://amdshark_tank/latest",
     )
     parser.addoption(
         "--tank_prefix",
         type=str,
         default=None,
-        help="Prefix to gs://shark_tank/ model directories from which to download SHARK tank artifacts. Default is nightly.",
+        help="Prefix to gs://amdshark_tank/ model directories from which to download AMDSHARK tank artifacts. Default is nightly.",
     )
     parser.addoption(
         "--benchmark_dispatches",

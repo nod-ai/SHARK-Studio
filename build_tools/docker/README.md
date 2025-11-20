@@ -15,7 +15,7 @@ Install Nvidia [Container and register it](https://docs.nvidia.com/datacenter/cl
 Build docker with :
 
 ```
-docker build . -f Dockerfile-ubuntu-22.04 -t shark/dev-22.04:5.6 --build-arg=ROCM_VERSION=5.6 --build-arg=AMDGPU_VERSION=5.6 --build-arg=APT_PREF="Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600" --build-arg=IMAGE_NAME=nvidia/cuda --build-arg=TARGETARCH=amd64
+docker build . -f Dockerfile-ubuntu-22.04 -t amdshark/dev-22.04:5.6 --build-arg=ROCM_VERSION=5.6 --build-arg=AMDGPU_VERSION=5.6 --build-arg=APT_PREF="Package: *\nPin: release o=repo.radeon.com\nPin-Priority: 600" --build-arg=IMAGE_NAME=nvidia/cuda --build-arg=TARGETARCH=amd64
 ```
 
 Run with:
@@ -23,19 +23,19 @@ Run with:
 *CPU*
 
 ```
-docker run  -it docker.io/shark/dev-22.04:5.6
+docker run  -it docker.io/amdshark/dev-22.04:5.6
 ```
 
 *Nvidia GPU*
 
 ```
-docker run --rm -it --gpus all docker.io/shark/dev-22.04:5.6
+docker run --rm -it --gpus all docker.io/amdshark/dev-22.04:5.6
 ```
 
 *AMD GPUs*
 
 ```
-docker run --device /dev/kfd --device /dev/dri  docker.io/shark/dev-22.04:5.6
+docker run --device /dev/kfd --device /dev/dri  docker.io/amdshark/dev-22.04:5.6
 ```
 
 More AMD instructions are [here](https://docs.amd.com/en/latest/deploy/docker.html)

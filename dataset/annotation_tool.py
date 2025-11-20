@@ -8,12 +8,12 @@ from PIL import Image
 from utils import get_datasets
 
 
-shark_root = Path(__file__).parent.parent
-demo_css = shark_root.joinpath("web/demo.css").resolve()
-nodlogo_loc = shark_root.joinpath("web/models/stable_diffusion/logos/amd-logo.jpg")
+amdshark_root = Path(__file__).parent.parent
+demo_css = amdshark_root.joinpath("web/demo.css").resolve()
+nodlogo_loc = amdshark_root.joinpath("web/models/stable_diffusion/logos/amd-logo.jpg")
 
 
-with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
+with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as amdshark_web:
     with gr.Row(elem_id="ui_title"):
         nod_logo = Image.open(nodlogo_loc)
         with gr.Column(scale=1, elem_id="demo_title_outer"):
@@ -62,7 +62,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             return gr.Dropdown.update(value=None, choices=[])
 
         # create the dataset dir if doesn't exist and download prompt file
-        dataset_path = str(shark_root) + "/dataset/" + dataset
+        dataset_path = str(amdshark_root) + "/dataset/" + dataset
         if not os.path.exists(dataset_path):
             os.mkdir(dataset_path)
 
@@ -89,7 +89,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
         img_gs_path = args.gs_url + "/" + dataset + "/" + image_name
         img_sub_path = "/".join(image_name.split("/")[:-1])
         img_dst_path = (
-            str(shark_root) + "/dataset/" + dataset + "/" + img_sub_path + "/"
+            str(amdshark_root) + "/dataset/" + dataset + "/" + img_sub_path + "/"
         )
         if not os.path.exists(img_dst_path):
             os.mkdir(img_dst_path)
@@ -126,7 +126,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             idx = prompt_data[image_name].index(prompts)
             prompt_data[image_name][idx] = prompt
 
-        prompt_path = str(shark_root) + "/dataset/" + dataset + "/metadata.jsonl"
+        prompt_path = str(amdshark_root) + "/dataset/" + dataset + "/metadata.jsonl"
         # write prompt jsonlines file
         with open(prompt_path, "w") as f:
             for key, value in prompt_data.items():
@@ -153,7 +153,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             return
 
         prompt_data[image_name].remove(prompts)
-        prompt_path = str(shark_root) + "/dataset/" + dataset + "/metadata.jsonl"
+        prompt_path = str(amdshark_root) + "/dataset/" + dataset + "/metadata.jsonl"
         # write prompt jsonlines file
         with open(prompt_path, "w") as f:
             for key, value in prompt_data.items():
@@ -178,7 +178,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             return
 
         # remove local image
-        img_path = str(shark_root) + "/dataset/" + dataset + "/" + image_name
+        img_path = str(amdshark_root) + "/dataset/" + dataset + "/" + image_name
         os.system(f'rm "{img_path}"')
         # get the index for the back image
         idx = images[dataset].index(image_name)
@@ -196,7 +196,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             return
 
         # remove local image
-        img_path = str(shark_root) + "/dataset/" + dataset + "/" + image_name
+        img_path = str(amdshark_root) + "/dataset/" + dataset + "/" + image_name
         os.system(f'rm "{img_path}"')
         # get the index for the next image
         idx = images[dataset].index(image_name)
@@ -214,7 +214,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
             return
 
         # upload prompt and remove local data
-        dataset_path = str(shark_root) + "/dataset/" + dataset
+        dataset_path = str(amdshark_root) + "/dataset/" + dataset
         dataset_gs_path = args.gs_url + "/" + dataset + "/"
         os.system(f'gsutil cp "{dataset_path}/metadata.jsonl" "{dataset_gs_path}"')
         os.system(f'rm -rf "{dataset_path}"')
@@ -225,7 +225,7 @@ with gr.Blocks(title="Dataset Annotation Tool", css=demo_css) as shark_web:
 
 
 if __name__ == "__main__":
-    shark_web.launch(
+    amdshark_web.launch(
         share=args.share,
         inbrowser=True,
         server_name="0.0.0.0",

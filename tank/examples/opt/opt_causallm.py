@@ -2,9 +2,9 @@ import argparse
 import os
 import torch
 import numpy as np
-from shark_opt_wrapper import OPTForCausalLMModel
-from shark.shark_inference import SharkInference
-from shark.shark_importer import import_with_fx
+from amdshark_opt_wrapper import OPTForCausalLMModel
+from amdshark.amdshark_inference import AMDSharkInference
+from amdshark.amdshark_importer import import_with_fx
 from transformers import AutoTokenizer, OPTForCausalLM
 from typing import Iterable
 
@@ -48,7 +48,7 @@ def create_module(model_name, tokenizer, device, args):
         print(f"Saved mlir at {mlir_path}")
         del model_mlir
 
-    shark_module = SharkInference(
+    amdshark_module = AMDSharkInference(
         mlir_path,
         device=device,
         mlir_dialect="tm_tensor",
@@ -56,7 +56,7 @@ def create_module(model_name, tokenizer, device, args):
     )
 
     vmfb_name = f"{opt_fs_name}_causallm_{args.max_seq_len}_torch_cpu"
-    shark_module.save_module(module_name=vmfb_name, debug=False)
+    amdshark_module.save_module(module_name=vmfb_name, debug=False)
     vmfb_path = vmfb_name + ".vmfb"
     return vmfb_path
 
@@ -69,7 +69,7 @@ def shouldStop(tokens):
     return False
 
 
-def generate_new_token(shark_module, tokenizer, new_text, max_seq_len: int):
+def generate_new_token(amdshark_module, tokenizer, new_text, max_seq_len: int):
     model_inputs = tokenizer(
         new_text,
         padding="max_length",
@@ -82,7 +82,7 @@ def generate_new_token(shark_module, tokenizer, new_text, max_seq_len: int):
         model_inputs["attention_mask"],
     )
     sum_attentionmask = torch.sum(model_inputs.attention_mask)
-    output = shark_module("forward", inputs)
+    output = amdshark_module("forward", inputs)
     output = torch.FloatTensor(output[0])
     next_toks = torch.topk(output, 1)
     stop_generation = False
@@ -140,7 +140,7 @@ def parse_args():
 
 
 def generate_tokens(
-    opt_shark_module: "SharkInference",
+    opt_amdshark_module: "AMDSharkInference",
     tokenizer,
     input_text: str,
     max_output_len: int,
@@ -151,7 +151,7 @@ def generate_tokens(
     try:
         for _ in range(max_output_len):
             generated_token_op = generate_new_token(
-                opt_shark_module, tokenizer, new_text, max_output_len
+                opt_amdshark_module, tokenizer, new_text, max_output_len
             )
             detok = generated_token_op["detok"]
             if generated_token_op["stop_generation"]:
@@ -182,16 +182,16 @@ if __name__ == "__main__":
         rt_flags = [f"--executable_plugin={args.plugin_path}"]
     else:
         rt_flags = []
-    opt_shark_module = SharkInference(
+    opt_amdshark_module = AMDSharkInference(
         mlir_module=None, device="cpu-task", rt_flags=rt_flags
     )
     if os.path.isfile(vmfb_path):
-        opt_shark_module.load_module(vmfb_path)
+        opt_amdshark_module.load_module(vmfb_path)
     else:
         vmfb_path = create_module(args.model_name, tokenizer, "cpu-task", args)
-        opt_shark_module.load_module(vmfb_path)
+        opt_amdshark_module.load_module(vmfb_path)
     while True:
         input_text = input("Give me a sentence to complete:")
         generate_tokens(
-            opt_shark_module, tokenizer, input_text, args.max_seq_len
+            opt_amdshark_module, tokenizer, input_text, args.max_seq_len
         )

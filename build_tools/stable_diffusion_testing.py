@@ -5,7 +5,7 @@ from apps.stable_diffusion.src.utils.resources import (
     get_json_file,
 )
 from datetime import datetime as dt
-from shark.shark_downloader import download_public_file
+from amdshark.amdshark_downloader import download_public_file
 from image_comparison import compare_images
 import argparse
 from glob import glob
@@ -178,7 +178,7 @@ def test_loop(
                     print("Successfully generated image")
                     os.makedirs("./test_images/golden/" + model_name, exist_ok=True)
                     download_public_file(
-                        "gs://shark_tank/testdata/golden/" + model_name,
+                        "gs://amdshark_tank/testdata/golden/" + model_name,
                         "./test_images/golden/" + model_name,
                     )
                     test_file_path = os.path.join(
@@ -239,7 +239,7 @@ def test_loop(
 
 
 def prepare_artifacts():
-    gen_path = os.path.join(os.getcwd(), "gen_shark_tank")
+    gen_path = os.path.join(os.getcwd(), "gen_amdshark_tank")
     if not os.path.isdir(gen_path):
         os.mkdir(gen_path)
     for dirname in os.listdir(os.getcwd()):
