@@ -6,7 +6,7 @@ High Performance Machine Learning Distribution
 
 *The latest versions of this project are developments towards a refactor on top of IREE-Turbine. Until further notice, make sure you use an .exe release or a checkout of the `AMDSHARK-1.0` branch, for a working AMDSHARK-Studio*
 
-[![Nightly Release](https://github.com/nod-ai/AMDSHARK-Studio/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/AMDSHARK-Studio/actions/workflows/nightly.yml)
+[![Nightly Release](https://github.com/nod-ai/AMD-SHARK-Studio/actions/workflows/nightly.yml/badge.svg)](https://github.com/nod-ai/AMD-SHARK-Studio/actions/workflows/nightly.yml)
 
 <details>
   <summary>Prerequisites - Drivers </summary>
@@ -27,9 +27,9 @@ Other users please ensure you have your latest vendor drivers and Vulkan SDK fro
 
 ### Quick Start for AMDSHARK Stable Diffusion for Windows 10/11 Users
 
-Install the Driver from [Prerequisites](https://github.com/nod-ai/AMDSHARK-Studio#install-your-hardware-drivers) above
+Install the Driver from [Prerequisites](https://github.com/nod-ai/AMD-SHARK-Studio#install-your-hardware-drivers) above
 
-Download the [stable release](https://github.com/nod-ai/AMDSHARK-Studio/releases/latest) or the most recent [AMDSHARK 1.0 pre-release](https://github.com/nod-ai/AMDSHARK-Studio/releases).
+Download the [stable release](https://github.com/nod-ai/AMD-SHARK-Studio/releases/latest) or the most recent [AMDSHARK 1.0 pre-release](https://github.com/nod-ai/AMD-SHARK-Studio/releases).
 
 Double click the .exe, or [run from the command line](#running) (recommended), and you should have the [UI](http://localhost:8080/) in the browser.
 
@@ -67,8 +67,8 @@ Enjoy.
 ## Check out the code
 
 ```shell
-git clone https://github.com/nod-ai/AMDSHARK.git
-cd AMDSHARK
+git clone https://github.com/nod-ai/AMD-SHARK-Studio.git
+cd AMD-SHARK-Studio
 ```
 
 ## Switch to the Correct Branch (IMPORTANT!)
@@ -179,12 +179,12 @@ python -m pip install --upgrade pip
 
 *macOS Metal* users please install https://sdk.lunarg.com/sdk/download/latest/mac/vulkan-sdk.dmg and enable "System wide install"
 
-### Install AMDSHARK
+### Install AMD-SHARK
 
-This step pip installs AMDSHARK and related packages on Linux Python 3.8, 3.10 and 3.11 and macOS / Windows Python 3.11
+This step pip installs AMD-SHARK and related packages on Linux Python 3.8, 3.10 and 3.11 and macOS / Windows Python 3.11
 
 ```shell
-pip install nodai-amdshark -f https://nod-ai.github.io/AMDSHARK/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SRT/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
+pip install nodai-amdshark -f https://nod-ai.github.io/AMD-SHARK-Studio/package-index/ -f https://llvm.github.io/torch-mlir/package-index/ -f  https://nod-ai.github.io/SRT/pip-release-links.html --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 ```
 
 ### Run amdshark tank model tests.
@@ -196,7 +196,7 @@ See tank/README.md for a more detailed walkthrough of our pytest suite and CLI.
 ### Download and run Resnet50 sample
 
 ```shell
-curl -O https://raw.githubusercontent.com/nod-ai/AMDSHARK/main/amdshark/examples/amdshark_inference/resnet50_script.py
+curl -O https://raw.githubusercontent.com/nod-ai/AMD-SHARK-Studio/main/amdshark/examples/amdshark_inference/resnet50_script.py
 #Install deps for test script
 pip install --pre torch torchvision torchaudio tqdm pillow gsutil --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 python ./resnet50_script.py --device="cpu"  #use cuda or vulkan or metal
@@ -204,7 +204,7 @@ python ./resnet50_script.py --device="cpu"  #use cuda or vulkan or metal
 
 ### Download and run BERT (MiniLM) sample
 ```shell
-curl -O https://raw.githubusercontent.com/nod-ai/AMDSHARK/main/amdshark/examples/amdshark_inference/minilm_jit.py
+curl -O https://raw.githubusercontent.com/nod-ai/AMD-SHARK-Studio/main/amdshark/examples/amdshark_inference/minilm_jit.py
 #Install deps for test script
 pip install transformers torch --extra-index-url https://download.pytorch.org/whl/nightly/cpu
 python ./minilm_jit.py --device="cpu"  #use cuda or vulkan or metal
@@ -358,12 +358,12 @@ AMDSHARK is maintained to support the latest innovations in ML Models:
 | Vision Transformer       | :green_heart:         | :green_heart:         | :green_heart:            |
 | ResNet50         | :green_heart:         | :green_heart:         | :green_heart:            |
 
-For a complete list of the models supported in AMDSHARK, please refer to [tank/README.md](https://github.com/nod-ai/AMDSHARK-Studio/blob/main/tank/README.md).
+For a complete list of the models supported in AMDSHARK, please refer to [tank/README.md](https://github.com/nod-ai/AMD-SHARK-Studio/blob/main/tank/README.md).
 
 ## Communication Channels
 
 *   [AMDSHARK Discord server](https://discord.gg/RUqY2h2s9u): Real time discussions with the AMDSHARK team and other users
-*   [GitHub issues](https://github.com/nod-ai/AMDSHARK-Studio/issues): Feature requests, bugs etc
+*   [GitHub issues](https://github.com/nod-ai/AMD-SHARK-Studio/issues): Feature requests, bugs etc
 
 ## Related Projects
 

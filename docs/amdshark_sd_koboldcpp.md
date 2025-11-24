@@ -20,8 +20,8 @@ This does mean however, that on a brand new fresh install of AMDSHARK that has n
 
 ## Setup AMDSHARK and prerequisites:
 
- * Make sure you have suitable drivers for your graphics card installed. See the prerequisties section of the [README](https://github.com/nod-ai/AMDSHARK-Studio#readme).
- * Download the latest AMDSHARK studio .exe from [here](https://github.com/nod-ai/AMDSHARK-Studio/releases) or follow the instructions in the [README](https://github.com/nod-ai/AMDSHARK-Studio#readme) for an advanced, Linux or Mac install.
+ * Make sure you have suitable drivers for your graphics card installed. See the prerequisties section of the [README](https://github.com/nod-ai/AMD-SHARK-Studio#readme).
+ * Download the latest AMDSHARK studio .exe from [here](https://github.com/nod-ai/AMD-SHARK-Studio/releases) or follow the instructions in the [README](https://github.com/nod-ai/AMD-SHARK-Studio#readme) for an advanced, Linux or Mac install.
  * Run AMDSHARK from terminal/PowerShell with the `--api` flag. Since koboldcpp also expects both CORS support and the image generator to be running on port `7860` rather than AMDSHARK default of `8080`, also include both the `--api_accept_origin` flag with a suitable origin (use `="*"` to enable all origins) and `--server_port=7860` on the command line. (See the if you want to run AMDSHARK on a different port)
 
 ```powershell

@@ -1,5 +1,5 @@
 # Lint as: python3
-"""AMDSHARK Tank"""
+"""AMD-SHARK Tank"""
 # python generate_amdsharktank.py, you have to give a csv tile with [model_name, model_download_url]
 # will generate local amdshark tank folder like this:
 #   /AMDSHARK
@@ -191,7 +191,7 @@ if __name__ == "__main__":
     #    type=lambda x: is_valid_file(x),
     #    default="./tank/torch_model_list.csv",
     #    help="""Contains the file with torch_model name and args.
-    #         Please see: https://github.com/nod-ai/AMDSHARK-Studio/blob/main/tank/torch_model_list.csv""",
+    #         Please see: https://github.com/nod-ai/AMD-SHARK-Studio/blob/main/tank/torch_model_list.csv""",
     # )
     # parser.add_argument(
     #    "--ci_tank_dir",

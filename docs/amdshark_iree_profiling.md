@@ -1,9 +1,9 @@
 # Overview
 
 This document is intended to provide a starting point for profiling with AMDSHARK/IREE. At it's core
-[AMDSHARK](https://github.com/nod-ai/AMDSHARK-Studio/tree/main/tank) is a python API that links the MLIR lowerings from various
+[AMDSHARK](https://github.com/nod-ai/AMD-SHARK-Studio/tree/main/tank) is a python API that links the MLIR lowerings from various
 frameworks + frontends (e.g. PyTorch -> Torch-MLIR) with the compiler + runtime offered by IREE. More information
-on model coverage and framework support can be found [here](https://github.com/nod-ai/AMDSHARK-Studio/tree/main/tank). The intended
+on model coverage and framework support can be found [here](https://github.com/nod-ai/AMD-SHARK-Studio/tree/main/tank). The intended
 use case for AMDSHARK is for compilation and deployment of performant state of the art AI models.
 
 ![image](https://user-images.githubusercontent.com/22101546/217151219-9bb184a3-cfb9-4788-bb7e-5b502953525c.png)

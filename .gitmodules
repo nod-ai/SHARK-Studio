@@ -1,4 +1,4 @@
 [submodule "inference/thirdparty/amdshark-runtime"]
 	path = inference/thirdparty/amdshark-runtime
 	url =https://github.com/nod-ai/SRT.git
-	branch = amdshark-06032022
+	branch = shark-06032022

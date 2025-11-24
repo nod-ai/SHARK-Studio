@@ -6,7 +6,7 @@ We currently make use of the [AI-Render Plugin](https://github.com/benrugg/AI-Re
 
 ## Setup AMDSHARK and prerequisites:
 
- * Download the latest AMDSHARK SD webui .exe from [here](https://github.com/nod-ai/AMDSHARK-Studio/releases) or follow instructions on the [README](https://github.com/nod-ai/AMDSHARK-Studio#readme)
+ * Download the latest AMDSHARK SD webui .exe from [here](https://github.com/nod-ai/AMD-SHARK-Studio/releases) or follow instructions on the [README](https://github.com/nod-ai/AMD-SHARK-Studio#readme)
  * Once you have the .exe where you would like AMDSHARK to install, run the .exe from terminal/PowerShell with the `--api` flag:
 ```
 ## Run the .exe in API mode:

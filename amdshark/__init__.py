@@ -14,7 +14,7 @@ def amdshark(model, inputs, *, options):
         log.exception(
             "Unable to import AMDSHARK - High Performance Machine Learning Distribution"
             "Please install the right version of AMDSHARK that matches the PyTorch version being used. "
-            "Refer to https://github.com/nod-ai/AMDSHARK-Studio/ for details."
+            "Refer to https://github.com/nod-ai/AMD-SHARK-Studio/ for details."
         )
         raise
     return AMDSharkBackend(model, inputs, options)

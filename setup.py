@@ -20,8 +20,8 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     project_urls={
-        "Code": "https://github.com/nod-ai/AMDSHARK",
-        "Bug Tracker": "https://github.com/nod-ai/AMDSHARK-Studio/issues",
+        "Code": "https://github.com/nod-ai/AMD-SHARK-Studio",
+        "Bug Tracker": "https://github.com/nod-ai/AMD-SHARK-Studio/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
