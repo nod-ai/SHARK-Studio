@@ -1,6 +1,6 @@
 # AMDSHARK
 
-High Performance Machine Learning Distribution
+High Performance Machine Learning Distribution built on [LLVM](https://llvm.org/), [MLIR](https://mlir.llvm.org/), [OpenXLA’s IREE](https://iree-org.github.io/iree/) and nod.ai’s tuning.
 
 <h2>NOTE: This project is not currently maintained.</h2>
 
